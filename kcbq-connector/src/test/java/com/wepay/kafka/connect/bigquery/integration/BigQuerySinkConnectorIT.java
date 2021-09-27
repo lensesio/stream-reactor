@@ -36,13 +36,18 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.SinkConnectorConfig;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -57,17 +62,18 @@ import java.util.Scanner;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
+import static com.wepay.kafka.connect.bigquery.integration.BaseConnectorIT.boxByteArray;
 import static io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG;
 import static org.junit.Assert.assertEquals;
 
 @Category(IntegrationTest.class)
-public class BigQuerySinkConnectorIT extends BaseConnectorIT {
+@RunWith(Parameterized.class)
+public class BigQuerySinkConnectorIT {
 
-  private static final Map<String, List<List<Object>>> TEST_CASES;
-  static {
-    Map<String, List<List<Object>>> testCases = new HashMap<>();
+  @Parameterized.Parameters
+  public static Iterable<Object[]> testCases() {
+    Collection<Object[]> result = new ArrayList<>();
 
     List<List<Object>> expectedGcsLoadRows = new ArrayList<>();
     expectedGcsLoadRows.add(Arrays.asList(
@@ -103,14 +109,14 @@ public class BigQuerySinkConnectorIT extends BaseConnectorIT {
         "nineteen",
         boxByteArray(new byte[] { 0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78 })
     ));
-    testCases.put("gcs-load", expectedGcsLoadRows);
+    result.add(new Object[] {"gcs-load", expectedGcsLoadRows});
 
     List<List<Object>> expectedNullsRows = new ArrayList<>();
     expectedNullsRows.add(Arrays.asList(1L, "Required string", null, 42L, false));
     expectedNullsRows.add(Arrays.asList(2L, "Required string", "Optional string", 89L, null));
     expectedNullsRows.add(Arrays.asList(3L, "Required string", null, null, true));
     expectedNullsRows.add(Arrays.asList(4L, "Required string", "Optional string", null, null));
-    testCases.put("nulls", expectedNullsRows);
+    result.add(new Object[] {"nulls", expectedNullsRows});
 
     List<List<Object>> expectedMatryoshkaRows = new ArrayList<>();
     expectedMatryoshkaRows.add(Arrays.asList(
@@ -127,7 +133,7 @@ public class BigQuerySinkConnectorIT extends BaseConnectorIT {
             "-42"
         )
     ));
-    testCases.put("matryoshka-dolls", expectedMatryoshkaRows);
+    result.add(new Object[] {"matryoshka-dolls", expectedMatryoshkaRows});
 
     List<List<Object>> expectedPrimitivesRows = new ArrayList<>();
     expectedPrimitivesRows.add(Arrays.asList(
@@ -141,52 +147,75 @@ public class BigQuerySinkConnectorIT extends BaseConnectorIT {
         "forty-two",
         boxByteArray(new byte[] { 0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78 })
     ));
-    testCases.put("primitives", expectedPrimitivesRows);
+    result.add(new Object[] {"primitives", expectedPrimitivesRows});
 
     List<List<Object>> expectedLogicalTypesRows = new ArrayList<>();
     expectedLogicalTypesRows.add(Arrays.asList(1L, 0L, 0L));
     expectedLogicalTypesRows.add(Arrays.asList(2L, 42000000000L, 362880000000L));
     expectedLogicalTypesRows.add(Arrays.asList(3L, 1468275102000000L, 1468195200000L));
-    testCases.put("logical-types", expectedLogicalTypesRows);
+    result.add(new Object[] {"logical-types", expectedLogicalTypesRows});
 
-    TEST_CASES = Collections.unmodifiableMap(testCases);
+    return result;
   }
 
   private static final String TEST_CASE_PREFIX = "kcbq_test_";
 
-  private static final Collection<String> TEST_TOPICS = TEST_CASES.keySet().stream()
-      .map(tc -> TEST_CASE_PREFIX + tc)
-      .collect(Collectors.toList());
+  // Share a single embedded Connect and Schema Registry cluster for all test cases to keep the runtime down
+  private static BaseConnectorIT testBase;
+  private static RestApp schemaRegistry;
+  private static String schemaRegistryUrl;
 
-  private RestApp restApp;
-  private String schemaRegistryUrl;
+  private final String testCase;
+  private final List<List<Object>> expectedRows;
+  private final String topic;
+  private final String table;
+  private final String connectorName;
+
   private Producer<byte[], byte[]> valueProducer;
   private int numRecordsProduced;
 
-  @Before
-  public void setup() throws Exception {
-    Collection<String> tables = TEST_TOPICS.stream()
-        .map(this::suffixedAndSanitizedTable)
-        .collect(Collectors.toSet());
-    BucketClearer.clearBucket(keyFile(), project(), gcsBucket(), gcsFolder(), keySource());
-    TableClearer.clearTables(newBigQuery(), dataset(), tables);
+  public BigQuerySinkConnectorIT(String testCase, List<List<Object>> expectedRows) {
+    this.testCase = testCase;
+    this.expectedRows = expectedRows;
 
-    startConnect();
-    restApp = new RestApp(
+    this.topic = TEST_CASE_PREFIX + testCase;
+    this.table = testBase.suffixedAndSanitizedTable(topic);
+    this.connectorName = "bigquery-connector-" + testCase;
+  }
+
+  @BeforeClass
+  public static void globalSetup() throws Exception {
+    testBase = new BaseConnectorIT() {};
+    testBase.startConnect();
+
+    schemaRegistry = new RestApp(
         ClusterTestHarness.choosePort(),
         null,
-        connect.kafka().bootstrapServers(),
+        testBase.connect.kafka().bootstrapServers(),
         SchemaRegistryConfig.DEFAULT_KAFKASTORE_TOPIC,
         CompatibilityLevel.BACKWARD.name,
         true,
         null);
 
-    restApp.start();
+    schemaRegistry.start();
 
-    schemaRegistryUrl = restApp.restClient.getBaseUrls().current();
+    schemaRegistryUrl = schemaRegistry.restClient.getBaseUrls().current();
+
+    BucketClearer.clearBucket(
+      testBase.keyFile(),
+      testBase.project(),
+      testBase.gcsBucket(),
+      testBase.gcsFolder(),
+      testBase.keySource()
+    );
+  }
+
+  @Before
+  public void setup() {
+    TableClearer.clearTables(testBase.newBigQuery(), testBase.dataset(), table);
 
     Map<String, Object> producerProps = new HashMap<>();
-    producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, connect.kafka().bootstrapServers());
+    producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, testBase.connect.kafka().bootstrapServers());
     valueProducer = new KafkaProducer<>(
         producerProps, Serdes.ByteArray().serializer(), Serdes.ByteArray().serializer());
 
@@ -194,33 +223,36 @@ public class BigQuerySinkConnectorIT extends BaseConnectorIT {
   }
 
   @After
-  public void close() throws Exception {
-    if (restApp != null) {
-      restApp.stop();
+  public void cleanup() {
+    testBase.connect.deleteConnector(connectorName);
+  }
+
+  @AfterClass
+  public static void globalCleanup() {
+    if (schemaRegistry != null) {
+      Utils.closeQuietly(schemaRegistry::stop, "embedded Schema Registry instance");
     }
-    stopConnect();
+    testBase.stopConnect();
   }
 
   @Test
-  public void testAll() throws Exception {
+  public void runTestCase() throws Exception {
     final int tasksMax = 1;
-    final String connectorName = "bigquery-connector";
 
-    TEST_CASES.keySet().forEach(this::populate);
+    populate();
 
-    connect.configureConnector(connectorName, connectorProps(tasksMax));
+    testBase.connect.configureConnector(connectorName, connectorProps(tasksMax));
 
-    waitForConnectorToStart(connectorName, tasksMax);
+    testBase.waitForConnectorToStart(connectorName, tasksMax);
 
-    waitForCommittedRecords(
-        "bigquery-connector", TEST_TOPICS, numRecordsProduced, tasksMax, TimeUnit.MINUTES.toMillis(3));
+    testBase.waitForCommittedRecords(
+        connectorName, Collections.singleton(topic), numRecordsProduced, tasksMax, TimeUnit.MINUTES.toMillis(3));
 
-    TEST_CASES.forEach(this::verify);
+    verify();
   }
 
-  private void populate(String testCase) {
-    String topic = TEST_CASE_PREFIX + testCase;
-    connect.kafka().createTopic(topic);
+  private void populate() {
+    testBase.connect.kafka().createTopic(topic);
 
     String testCaseDir = "integration_test_cases/" + testCase + "/";
 
@@ -251,7 +283,7 @@ public class BigQuerySinkConnectorIT extends BaseConnectorIT {
   }
 
   private Map<String, String> connectorProps(int tasksMax) {
-    Map<String, String> result = baseConnectorProps(tasksMax);
+    Map<String, String> result = testBase.baseConnectorProps(tasksMax);
 
     result.put(
         ConnectorConfig.KEY_CONVERTER_CLASS_CONFIG,
@@ -266,17 +298,17 @@ public class BigQuerySinkConnectorIT extends BaseConnectorIT {
         ConnectorConfig.VALUE_CONVERTER_CLASS_CONFIG + "." + SCHEMA_REGISTRY_URL_CONFIG,
         schemaRegistryUrl);
 
-    result.put(SinkConnectorConfig.TOPICS_CONFIG, String.join(",", TEST_TOPICS));
+    result.put(SinkConnectorConfig.TOPICS_CONFIG, topic);
     
     result.put(BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG, "true");
     result.put(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG, "true");
-    result.put(BigQuerySinkConfig.ENABLE_BATCH_CONFIG, suffixedAndSanitizedTable("kcbq_test_gcs-load"));
+    result.put(BigQuerySinkConfig.ENABLE_BATCH_CONFIG, testBase.suffixedAndSanitizedTable("kcbq_test_gcs-load"));
     result.put(BigQuerySinkConfig.BATCH_LOAD_INTERVAL_SEC_CONFIG, "10");
-    result.put(BigQuerySinkConfig.GCS_BUCKET_NAME_CONFIG, gcsBucket());
-    result.put(BigQuerySinkConfig.GCS_FOLDER_NAME_CONFIG, gcsFolder());
+    result.put(BigQuerySinkConfig.GCS_BUCKET_NAME_CONFIG, testBase.gcsBucket());
+    result.put(BigQuerySinkConfig.GCS_FOLDER_NAME_CONFIG, testBase.gcsFolder());
     result.put(BigQuerySinkConfig.SCHEMA_RETRIEVER_CONFIG, IdentitySchemaRetriever.class.getName());
 
-    String suffix = tableSuffix();
+    String suffix = testBase.tableSuffix();
     if (!suffix.isEmpty()) {
       String escapedSuffix = suffix.replaceAll("\\\\", "\\\\\\\\").replaceAll("\\$", "\\\\\\$");
       result.put("transforms", "addSuffix");
@@ -288,11 +320,11 @@ public class BigQuerySinkConnectorIT extends BaseConnectorIT {
     return result;
   }
 
-  private void verify(String testCase, List<List<Object>> expectedRows) {
+  private void verify() {
     List<List<Object>> testRows;
     try {
-      String table = suffixedAndSanitizedTable(TEST_CASE_PREFIX + FieldNameSanitizer.sanitizeName(testCase));
-      testRows = readAllRows(newBigQuery(), table, "row");
+      String table = testBase.suffixedAndSanitizedTable(TEST_CASE_PREFIX + FieldNameSanitizer.sanitizeName(testCase));
+      testRows = testBase.readAllRows(testBase.newBigQuery(), table, "row");
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }

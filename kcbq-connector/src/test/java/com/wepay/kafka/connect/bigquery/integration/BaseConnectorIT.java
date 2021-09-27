@@ -49,6 +49,7 @@ import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.runtime.AbstractStatus;
 import org.apache.kafka.connect.runtime.WorkerConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -116,13 +117,13 @@ public abstract class BaseConnectorIT {
 
   protected void stopConnect() {
     if (kafkaAdminClient !=  null) {
-      kafkaAdminClient.close();
+      Utils.closeQuietly(kafkaAdminClient, "admin client for embedded Kafka cluster");
       kafkaAdminClient = null;
     }
 
     // stop all Connect, Kafka and Zk threads.
     if (connect != null) {
-      connect.stop();
+      Utils.closeQuietly(connect::stop, "embedded Connect, Kafka, and Zookeeper clusters");
       connect = null;
     }
   }
