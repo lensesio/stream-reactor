@@ -19,6 +19,8 @@ project(":kafka-connect-ftp") {
     ftpserverVersion = '1.0.6'
     commonsnetVersion = '3.5'
     commonsCodecVersion = '1.10'
+    minaVersion = '2.0.7'
+    fakeSftpServerVersion = '2.0.0'
   }
 
   test {
@@ -32,8 +34,11 @@ project(":kafka-connect-ftp") {
     compile project(':kafka-connect-common')
     compile "commons-net:commons-net:${commonsnetVersion}"
     compile "commons-codec:commons-codec:${commonsCodecVersion}"
+    compile "com.jcraft:jsch:0.1.55"
+    testCompile "org.apache.mina:mina-core:${minaVersion}"
     testCompile "com.github.pathikrit:better-files_2.12:${pathikritVersion}"
     testCompile "org.apache.ftpserver:ftpserver-core:${ftpserverVersion}"
+    testCompile "com.github.stefanbirkner:fake-sftp-server-lambda:${fakeSftpServerVersion}"
   }
 }
 
