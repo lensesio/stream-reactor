@@ -260,13 +260,12 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   test("SFTP Happy flow: files on sftp server are properly reflected by corresponding SourceRecords with structured keys") {
     withSftpServer(server => {
-      server.setPort(22)
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
       server.putFile("/directory/file2.txt", "bla bla bla", Charset.defaultCharset())
 
       val configMap = Map()
-        .updated(FtpSourceConfig.Address, "localhost")
+        .updated(FtpSourceConfig.Address, s"localhost:${server.getPort}")
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")

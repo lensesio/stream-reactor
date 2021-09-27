@@ -197,12 +197,11 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     "after update file with same data, we detect same info so no data must be sent") {
 
     withSftpServer(server => {
-      server.setPort(22)
       server.addUser("demo", "password")
 
       val offsets = new DummyOffsetStorage
       val configMap = Map()
-        .updated(FtpSourceConfig.Address, "localhost")
+        .updated(FtpSourceConfig.Address, s"localhost:${server.getPort}")
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")
