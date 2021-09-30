@@ -18,8 +18,6 @@ package io.lenses.streamreactor.connect.aws.s3.model.location
 
 import software.amazon.awssdk.services.s3.internal.BucketUtils
 
-import java.util.UUID
-
 case object RemoteS3RootLocation {
   def apply(bucketAndPath: String, allowSlash: Boolean = false): RemoteS3RootLocation = {
     bucketAndPath.split(":") match {
@@ -61,14 +59,6 @@ case class RemoteS3PathLocation(
                                  prefix: Option[String],
                                  override val path: String
                                ) extends PathLocation {
-
-  /**
-    * Given a LocalRootLocation, returns a new LocalPathLocation with the path including the remote location.
-    */
-  def toLocalPathLocation(localRoot: LocalRootLocation): LocalPathLocation = {
-    val uuid = UUID.randomUUID().toString
-    localRoot.withPath(s"${localRoot.basePath}/$bucket/$path/$uuid")
-  }
 
   BucketUtils.isValidDnsBucketName(bucket, true)
 

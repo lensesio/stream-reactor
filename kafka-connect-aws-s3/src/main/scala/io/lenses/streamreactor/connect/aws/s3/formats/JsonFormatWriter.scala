@@ -18,9 +18,9 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToJsonDataConverter
-import io.lenses.streamreactor.connect.aws.s3.storage.stream.S3OutputStream
+import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.kafka.connect.json.JsonConverter
 
 import java.nio.charset.StandardCharsets
@@ -43,7 +43,7 @@ class JsonFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
     Try {
 
       val dataBytes = valueSinkData match {
-        case data: PrimitiveSinkData => jsonConverter.fromConnectData(topic.value, valueSinkData.schema().orNull, data.primVal())
+        case data: PrimitiveSinkData => jsonConverter.fromConnectData(topic.value, valueSinkData.schema().orNull, data.safeVal())
         case StructSinkData(structVal) => jsonConverter.fromConnectData(topic.value, valueSinkData.schema().orNull, structVal)
         case MapSinkData(map, schema) =>
           jsonConverter.fromConnectData(topic.value, schema.orNull, ToJsonDataConverter.convertMap(map))
@@ -60,15 +60,14 @@ class JsonFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 
-  override def close(newName: RemoteS3PathLocation, offset: Offset, updateOffsetFn: () => Unit): Unit = {
-    Try(outputStream.complete(newName, offset))
-
-    Try(outputStream.flush())
-    Try(outputStream.close())
+  override def complete(): Either[SinkError,Unit] = {
+    for {
+      closed <- outputStream.complete()
+      _ <- Suppress(outputStream.flush())
+      _ <- Suppress(outputStream.close())
+    } yield closed
   }
 
   override def getPointer: Long = outputStream.getPointer
-
-  override def close(): Unit = Try(outputStream.close())
 
 }

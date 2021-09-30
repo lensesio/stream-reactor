@@ -30,8 +30,8 @@ import org.scalatest.matchers.should.Matchers
 class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfig {
 
   import S3ProxyContext._
-  import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
   import helper._
+  import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 
   private val TopicName = "myTopic"
   private val PathPrefix = "streamReactorBackups"
@@ -49,13 +49,13 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
         SinkBucketOptions(TopicName, bucketAndPrefix, commitPolicy = DefaultCommitPolicy(None, None, Some(1)),
           formatSelection = FormatSelection(Json),
           fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json)),
+          localStagingArea = LocalStagingArea(localRoot)
         ) // JsonS3Format
       )
     )
 
     val sink = S3WriterManager.from(config, "sinkName")
     sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(1)), MessageDetail(None, StructSinkData(users.head), Map.empty[String, SinkData]))
-    sink.catchUp()
     sink.close()
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
@@ -72,9 +72,14 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
       Some(Credential),
       AuthMode.Credentials),
       bucketOptions = Set(
-        SinkBucketOptions(TopicName, bucketAndPrefix, commitPolicy = DefaultCommitPolicy(None, None, Some(3)),
+        SinkBucketOptions(
+          TopicName,
+          bucketAndPrefix,
+          commitPolicy = DefaultCommitPolicy(None, None, Some(3)),
           formatSelection = FormatSelection(Json),
-          fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json))) // JsonS3Format
+          fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json)), // JsonS3Format
+          localStagingArea = LocalStagingArea(localRoot),
+        )
       )
     )
 
@@ -83,7 +88,6 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
       case (struct: Struct, index: Int) => sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
     }
 
-    sink.catchUp()
     sink.close()
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)

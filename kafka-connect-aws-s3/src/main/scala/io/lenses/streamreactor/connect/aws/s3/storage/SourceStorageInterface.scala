@@ -17,10 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, RemoteS3PathLocation, RemoteS3RootLocation}
-import org.jclouds.blobstore.domain.{MultipartPart, MultipartUpload}
-
-import java.io.InputStream
+import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
 
 trait SourceStorageInterface {
 

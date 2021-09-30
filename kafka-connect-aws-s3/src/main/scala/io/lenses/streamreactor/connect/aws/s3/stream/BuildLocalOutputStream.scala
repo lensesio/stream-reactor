@@ -15,25 +15,17 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.storage.stream
+package io.lenses.streamreactor.connect.aws.s3.stream
 
+import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.Offset
-import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, RemoteS3PathLocation}
-import io.lenses.streamreactor.connect.aws.s3.processing.{BlockingQueueProcessor, UploadFileProcessorOperation}
+import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
+import io.lenses.streamreactor.connect.aws.s3.sink.{FatalS3SinkError, SinkError}
 
-import java.io.OutputStream
+import java.io.BufferedOutputStream
+import scala.util.Try
 
-
-class BuildLocalOutputStream(
-                              initialName: LocalPathLocation,
-                              updateOffsetFn: Offset => () => Unit,
-                              cleanUp: Boolean = true,
-                            )(
-                              implicit queueProcessor: BlockingQueueProcessor
-                            ) extends OutputStream with LazyLogging with S3OutputStream {
-
-  private val outputStream = initialName.toBufferedFileOutputStream
+class BuildLocalOutputStream(outputStream: BufferedOutputStream, topicPartition: TopicPartition) extends S3OutputStream with LazyLogging {
 
   private var pointer = 0
 
@@ -56,17 +48,15 @@ class BuildLocalOutputStream(
     pointer += 1
   }
 
-  override def complete(finalDestination: RemoteS3PathLocation, offset: Offset): Unit = {
-    outputStream.close()
-    queueProcessor.enqueue(UploadFileProcessorOperation(offset, initialName, finalDestination, updateOffsetFn(offset)))
-    queueProcessor.process()
-    close()
-  }
-
-  override def close(): Unit = {
-    super.close()
-    if (cleanUp) {
-      initialName.delete()
+  override def complete(): Either[SinkError, Unit] = {
+    {
+      for {
+        a <- Try(outputStream.close()).toEither
+      } yield a
+    }.leftMap {
+      case se: SinkError => se
+      case to: Throwable =>
+        FatalS3SinkError(to.getMessage, topicPartition)
     }
   }
 

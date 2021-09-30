@@ -19,10 +19,10 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.parquet.ParquetOutputFile
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.{Offset, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.model.{SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
-import io.lenses.streamreactor.connect.aws.s3.storage.stream.S3OutputStream
+import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.{Schema => ConnectSchema}
 import org.apache.parquet.avro.AvroParquetWriter
@@ -50,7 +50,7 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
 
       writer.write(genericRecord)
       outputStream.flush()
-    } toEither
+    }.toEither
   }
 
   private def init(connectSchema: Option[ConnectSchema]): ParquetWriter[AnyRef] = {
@@ -70,15 +70,14 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
 
   override def rolloverFileOnSchemaChange() = true
 
-  override def close(newName: RemoteS3PathLocation, offset: Offset, updateOffsetFn: () => Unit) = {
-    Try(writer.close())
-    Try(outputStream.flush())
-    Try(outputStream.complete(newName, offset))
-    Try(outputStream.close())
+  override def complete(): Either[SinkError, Unit] = {
+    for {
+      _ <- Suppress(writer.close())
+      _ <- Suppress(outputStream.flush())
+      closed <- outputStream.complete()
+    } yield closed
   }
 
   override def getPointer: Long = outputStream.getPointer
-
-  override def close(): Unit = Try(outputStream.close())
 
 }

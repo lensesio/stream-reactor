@@ -21,7 +21,6 @@ import cats.implicits.catsSyntaxEitherId
 import com.datamountaineer.streamreactor.common.config.base.traits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.processors.{ConfigDefProcessor, DeprecationConfigDefProcessor, LowerCaseKeyConfigDefProcessor, YamlProfileProcessor}
-import io.lenses.streamreactor.connect.aws.s3.model.S3WriteMode.{BuildLocal, Streamed}
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
@@ -83,19 +82,13 @@ object S3ConfigDef {
       Importance.LOW,
       "Disable flush on reaching count"
     )
-    .define(
-      WRITE_MODE,
-      Type.STRING,
-      Streamed.entryName,
-      Importance.HIGH,
-      s"Write mode, '${Streamed.entryName}' or '${BuildLocal.entryName}'"
-    )
+
     .define(
       LOCAL_TMP_DIRECTORY,
       Type.STRING,
       "",
       Importance.LOW,
-      s"Local tmp directory for use with ${BuildLocal.entryName} write mode"
+      s"Local tmp directory for preparing the files"
     )
     .define(KCQL_CONFIG, Type.STRING, Importance.HIGH, KCQL_DOC)
     .define(ERROR_POLICY,
@@ -195,8 +188,7 @@ case class S3ConfigDefBuilder(sinkName: Option[String], props: util.Map[String, 
     with NumberRetriesSettings
     with UserSettings
     with ConnectionSettings
-    with S3FlushSettings
-    with S3WriteModeSettings {
+    with S3FlushSettings {
 
   def getParsedValues: Map[String, _] = values().asScala.toMap
 

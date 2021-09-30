@@ -17,12 +17,16 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.Format._
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.aws.s3.config.{FormatOptions, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.storage.stream.S3OutputStream
+import io.lenses.streamreactor.connect.aws.s3.model.location.LocalPathLocation
+import io.lenses.streamreactor.connect.aws.s3.sink.{NonFatalS3SinkError, SinkError}
+import io.lenses.streamreactor.connect.aws.s3.stream.{BuildLocalOutputStream, S3OutputStream}
+
+import scala.util.Try
 
 object S3FormatWriter {
 
@@ -31,6 +35,13 @@ object S3FormatWriter {
     formatOptions
       .headOption
       .fold[BytesWriteMode](BytesWriteMode.ValueWithSize)(fo => BytesWriteMode.withName(fo.entryName))
+  }
+
+  def apply(formatSelection: FormatSelection, path: LocalPathLocation, topicPartition: TopicPartition): Either[SinkError, S3FormatWriter] = {
+    {for {
+      outputStream <- Try(() => new BuildLocalOutputStream(path.toBufferedFileOutputStream, topicPartition))
+      writer <- Try(S3FormatWriter(formatSelection, outputStream))
+    } yield writer}.toEither.leftMap(ex => NonFatalS3SinkError(ex.getMessage, ex))
   }
 
   def apply(
@@ -59,8 +70,9 @@ trait S3FormatWriter extends AutoCloseable {
 
   def getPointer: Long
 
-  def close(newName: RemoteS3PathLocation, offset: Offset, updateOffsetFn: () => Unit = () => ())
+  def complete(): Either[SinkError, Unit]
 
+  def close() = complete()
 }
 
 

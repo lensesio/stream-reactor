@@ -17,10 +17,10 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.{Offset, StringSourceData, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.{StringSourceData, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData.{firstUsers, topic}
-import io.lenses.streamreactor.connect.aws.s3.storage.stream.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -47,7 +47,7 @@ class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
     val outputStream = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
     firstUsers.foreach(data => jsonFormatWriter.write(None, StructSinkData(data), topic))
-    jsonFormatWriter.close(RemoteS3PathLocation("my-bucket", "my-path"), Offset(0))
+    jsonFormatWriter.complete()
 
     val byteArrayInputStream = new ByteArrayInputStream(outputStream.toByteArray)
     byteArrayInputStream

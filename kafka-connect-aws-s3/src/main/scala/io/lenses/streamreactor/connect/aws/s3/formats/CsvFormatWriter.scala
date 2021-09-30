@@ -20,10 +20,10 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import au.com.bytecode.opencsv.CSVWriter
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
-import io.lenses.streamreactor.connect.aws.s3.storage.stream.S3OutputStream
+import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.kafka.connect.data.Schema
 
 import java.io.OutputStreamWriter
@@ -54,14 +54,15 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
 
   override def rolloverFileOnSchemaChange(): Boolean = true
 
-  override def close(newName: RemoteS3PathLocation, offset: Offset, updateOffsetFn: () => Unit) = {
-    Try(outputStream.complete(newName, offset))
-
-    Try(csvWriter.flush())
-    Try(outputStream.flush())
-    Try(csvWriter.close())
-    Try(outputStreamWriter.close())
-    Try(outputStream.close())
+  override def complete(): Either[SinkError, Unit] = {
+    for {
+      closed <- outputStream.complete()
+      _ <- Suppress(csvWriter.flush())
+      _ <- Suppress(outputStream.flush())
+      _ <- Suppress(csvWriter.close())
+      _ <- Suppress(outputStreamWriter.close())
+      _ <- Suppress(outputStream.close())
+    } yield closed
   }
 
   override def getPointer: Long = outputStream.getPointer
@@ -74,7 +75,4 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
     fieldsWritten = true
   }
 
-  override def close(): Unit = {
-    Try(outputStream.close())
-  }
 }

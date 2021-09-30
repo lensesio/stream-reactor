@@ -28,6 +28,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.conversion.{HeaderToStringCon
 import io.lenses.streamreactor.connect.aws.s3.storage.JCloudsStorageInterface
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import java.util
@@ -113,12 +114,26 @@ class S3SinkTask extends SinkTask with ErrorHandler {
   }
 
   def cleanUpAndRollBack(topicPartitions: Set[TopicPartition]): Unit = {
-    context.offset(
-      topicPartitions.map {
-        tp => (tp.toKafka, long2Long(writerManager.getLastCommittedOffset(tp).value))
-      }.toMap.asJava
-    )
+    val offsetRollback = topicPartitions.map(
+      tp => tp -> writerManager.getLastCommittedOffset(tp)
+    ).collect{
+      case (tp, Some(o)) => tp.toKafka -> long2Long(o.value)
+    }.toMap
+    if(offsetRollback.nonEmpty) {
+      context.offset(offsetRollback.asJava)
+    }
     topicPartitions.foreach(writerManager.cleanUp)
+  }
+
+  def handleErrors(value: Either[SinkError, Unit]) = {
+    value match {
+      case Left(error: SinkError) if error.rollBack() =>
+        cleanUpAndRollBack(error.topicPartitions())
+        throw new IllegalStateException(error.message())
+      case Left(error: SinkError) =>
+        throw new IllegalStateException(error.message())
+      case Right(_) =>
+    }
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
@@ -130,47 +145,24 @@ class S3SinkTask extends SinkTask with ErrorHandler {
 
         logger.debug(s"[$sinkName] put records=${records.size()} stats=$recordsStats")
 
-        // a failure in catchUp will prevent the processing of further records
-        writerManager.catchUp().toThrowable(sinkName)
+        // a failure in recommitPending will prevent the processing of further records
+        handleErrors(writerManager.recommitPending())
 
         records.asScala.foreach {
           record =>
-            writerManager.write(
+            handleErrors(writerManager.write(
               Topic(record.topic).withPartition(record.kafkaPartition.intValue).withOffset(record.kafkaOffset),
               MessageDetail(
                 keySinkData = Option(record.key()).fold(Option.empty[SinkData])(key => Option(ValueToSinkDataConverter(key, Option(record.keySchema())))),
                 valueSinkData = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
                 headers = HeaderToStringConverter(record)
               )
-            ) match {
-              case Left(processorException: ProcessorException) =>
-                logger.error(s"[$sinkName] ProcessorException encountered (recoverable), ${processorException.getMessage}")
-                throw processorException
-              case Left(commitException: BatchCommitException) =>
-                logger.error(s"[$sinkName] BatchCommitException encountered (non-recoverable), ${commitException.getMessage}")
-                cleanUpAndRollBack(commitException.commitExceptions.keys.map(_.topicPartition).toSet)
-                // no point in any further processing
-                return
-              case Left(ex: SinkException) =>
-                logger.error(s"[$sinkName] Other SinkException encountered (recoverable, but unexpected), ${ex.getMessage}")
-                throw ex
-              case Right(_) =>
-            }
+            ))
         }
 
         if (records.isEmpty) {
-          val commitResult = writerManager.enqueueCommitAllWritersIfFlushRequired()
-          commitResult match {
-            case Left(commitException: BatchCommitException) =>
-              logger.error(s"[$sinkName] BatchCommitException encountered (non-recoverable), ${commitException.getMessage}")
-              cleanUpAndRollBack(commitException.commitExceptions.keys.map(_.topicPartition).toSet)
-              // no point in any further processing
-              return
-            case Right(_) =>
-          }
+          handleErrors(writerManager.commitAllWritersIfFlushRequired())
         }
-
-        writerManager.catchUp().toThrowable(sinkName)
       }
     }
 
@@ -213,7 +205,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
       .map(tp => TopicPartition(Topic(tp.topic), tp.partition))
       .toSet
 
-    val throwableOrUnit = for {
+    handleErrors(for {
       tpoMap <- writerManager.open(topicPartitions)
     } yield {
       tpoMap.foreach {
@@ -221,8 +213,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
           logger.debug(s"[$sinkName] Seeking to ${topicPartition.topic.value}-${topicPartition.partition}:${offset.value}")
           context.offset(topicPartition.toKafka, offset.value)
       }
-    }
-    throwableOrUnit.toThrowable(sinkName)
+    })
 
   }
 

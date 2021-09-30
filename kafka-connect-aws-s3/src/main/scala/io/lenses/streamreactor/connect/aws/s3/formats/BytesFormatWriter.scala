@@ -19,10 +19,8 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.storage.stream.S3OutputStream
-
-import scala.util.Try
+import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
+import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 
 class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: BytesWriteMode) extends S3FormatWriter with LazyLogging {
 
@@ -78,16 +76,14 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 
-  override def close(newName: RemoteS3PathLocation, offset: Offset, updateOffsetFn: () => Unit) = {
-    Try(outputStream.complete(newName, offset))
-
-    Try(outputStream.flush())
-    Try(outputStream.close())
+  override def complete(): Either[SinkError,Unit] = {
+    for {
+      closed <- outputStream.complete()
+      _ <- Suppress(outputStream.flush())
+      _ <- Suppress(outputStream.close())
+    } yield closed
   }
 
   override def getPointer: Long = outputStream.getPointer
 
-  override def close(): Unit = {
-    Try(outputStream.close())
-  }
 }

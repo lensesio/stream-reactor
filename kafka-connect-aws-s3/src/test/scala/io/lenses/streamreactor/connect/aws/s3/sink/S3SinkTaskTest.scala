@@ -27,7 +27,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContext.{Credent
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
-import org.apache.commons.io.IOUtils
+import org.apache.commons.io.{FileUtils, IOUtils}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.{ConnectException, RetriableException}
@@ -44,8 +44,8 @@ import scala.collection.JavaConverters._
 
 class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with MockitoSugar {
 
-  import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
   import helper._
+  import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 
   private val parquetFormatReader = new ParquetFormatReader()
   private val avroFormatReader = new AvroFormatReader()
@@ -58,7 +58,8 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     DEP_AWS_SECRET_KEY -> Credential,
     DEP_AUTH_MODE -> AuthMode.Credentials.toString,
     DEP_CUSTOM_ENDPOINT -> S3ProxyContext.Uri,
-    DEP_ENABLE_VIRTUAL_HOST_BUCKETS -> "true"
+    DEP_ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
+    "name" -> "s3SinkTaskBuildLocalTest",
   )
 
   private val DefaultProps = Map(
@@ -66,7 +67,8 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     AWS_SECRET_KEY -> Credential,
     AUTH_MODE -> AuthMode.Credentials.toString,
     CUSTOM_ENDPOINT -> S3ProxyContext.Uri,
-    ENABLE_VIRTUAL_HOST_BUCKETS -> "true"
+    ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
+    "name" -> "s3SinkTaskBuildLocalTest",
   )
 
   private val partitionedData: List[Struct] = List(
@@ -277,6 +279,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     checkRecord(genericRecords.head, "sam", "mr", 100.43)
 
   }
+
 
 
   "S3SinkTask" should "error when trying to write AVRO to text format" in {
@@ -841,7 +844,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     )
   }
 
-  "S3SinkTask" should "not get passed csql parser when contains a slash" in {
+  "S3SinkTask" should "not get past kcql parser when contains a slash" in {
 
     val task = new S3SinkTask()
 
@@ -1434,7 +1437,6 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     val props = DefaultProps
       .combine(
         Map(
-          "name" -> "s3SinkTaskBuildLocalTest",
           "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1",
           "connect.s3.write.mode" -> "BuildLocal",
         )
@@ -1499,6 +1501,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     val task = new S3SinkTask()
 
     val props = Map(
+      "name" -> "sinkName",
       PROFILES -> s"$profileDir/inttest1.yaml,$profileDir/inttest2.yaml"
     ).asJava
 
@@ -1625,6 +1628,55 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     genericRecords1.size should be(1)
 
   }
+
+  "S3SinkTask" should "throw error when buildlocal file has been deleted " in {
+
+    val task = new S3SinkTask()
+    val context = mock[SinkTaskContext]
+    task.initialize(context)
+
+    val tmpDir = Files.createTempDirectory("myTestTempDir").toFile
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `json` WITH_FLUSH_COUNT = 1",
+          ERROR_POLICY -> "RETRY",
+          ERROR_RETRY_INTERVAL -> "10",
+          "connect.s3.local.tmp.directory" -> tmpDir.getAbsolutePath,
+        )
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(records.slice(0, 1).asJava)
+
+    // we need to stop the s3-like-proxy to let records build up
+    proxyContext.stopProxy
+    val ex1 = intercept[RetriableException] {
+      task.put(records.slice(1, 3).asJava)
+    }
+    ex1.getMessage should include ("Connection refused")
+
+    FileUtils.deleteDirectory(tmpDir)
+    tmpDir.exists() should be (false)
+
+    proxyContext.startProxy
+
+    val ex2 = intercept[RetriableException] {
+      task.put(records.slice(1, 3).asJava)
+    }
+    ex2.getMessage should include ("attempt to upload non-existing file")
+
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
+
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/0.json") should be("""{"name":"sam","title":"mr","salary":100.43}""")
+
+  }
+
 
   private def createSinkRecord(partition: Int, valueStruct: Struct, offset: Int, headers: lang.Iterable[Header]) = {
     new SinkRecord(TopicName, partition, null, null, null, valueStruct, offset, null, null, headers)

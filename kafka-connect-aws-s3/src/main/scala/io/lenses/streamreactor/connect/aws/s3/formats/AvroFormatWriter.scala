@@ -19,9 +19,9 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
-import io.lenses.streamreactor.connect.aws.s3.storage.stream.S3OutputStream
+import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.avro.Schema
 import org.apache.avro.file.DataFileWriter
 import org.apache.avro.generic.GenericDatumWriter
@@ -63,12 +63,11 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
     }
   }
 
-  override def close(newName: RemoteS3PathLocation, offset: Offset, updateOffsetFn: () => Unit): Unit = {
-    avroWriterState.fold(logger.debug("Requesting close (with args) when there's nothing to close"))(_.close(newName, offset))
-  }
-
-  override def close(): Unit = {
-    avroWriterState.fold(logger.debug("Requesting close when there's nothing to close"))(_.close())
+  override def complete(): Either[SinkError, Unit] = {
+    avroWriterState.fold{
+      logger.debug("Requesting close (with args) when there's nothing to close")
+      ().asRight[SinkError]
+    }(_.close())
   }
 
   override def getPointer: Long = avroWriterState.fold(0L)(_.pointer)
@@ -88,19 +87,16 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
     }
 
-
-    def close(newName: RemoteS3PathLocation, offset: Offset) = {
-      Try(fileWriter.flush())
-      Try(outputStream.complete(newName, offset))
-      Try(fileWriter.close())
-      Try(outputStream.close())
+    def close() : Either[SinkError, Unit] = {
+      for {
+        _ <- Suppress(fileWriter.flush())
+        closed <- outputStream.complete()
+        _ <- Suppress(fileWriter.close())
+      } yield closed
     }
 
     def pointer: Long = outputStream.getPointer
 
-    def close(): Unit = {
-      Try(outputStream.close())
-    }
   }
 
 }

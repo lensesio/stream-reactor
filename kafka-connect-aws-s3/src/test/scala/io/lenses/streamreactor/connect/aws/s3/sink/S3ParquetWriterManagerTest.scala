@@ -24,10 +24,9 @@ import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.config.{S3SinkConfig, SinkBucketOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig, RemoteFileTestHelper}
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
-import org.jclouds.blobstore.options.ListContainerOptions
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -40,8 +39,8 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
   private val PathPrefix = "streamReactorBackups"
   private val parquetFormatReader = new ParquetFormatReader
 
-  private val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix), false)
-  private val parquetConfig = S3SinkConfig(S3Config(
+  private val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix), allowSlash = false)
+  private def parquetConfig = S3SinkConfig(S3Config(
     None,
     Some(Identity),
     Some(Credential),
@@ -52,7 +51,8 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
         bucketAndPrefix,
         commitPolicy = DefaultCommitPolicy(None, None, Some(2)),
         fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Parquet)),
-        formatSelection = FormatSelection(Parquet)
+        formatSelection = FormatSelection(Parquet),
+        localStagingArea = LocalStagingArea(localRoot)
       )
     )
   )

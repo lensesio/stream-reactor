@@ -24,7 +24,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocati
 import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither.toJavaThrowableConverter
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
 import io.lenses.streamreactor.connect.aws.s3.source.files.{S3SourceFileQueue, S3SourceLister}
-import io.lenses.streamreactor.connect.aws.s3.source.reader.{ReaderCreator, ResultReader, S3ReaderManager}
+import io.lenses.streamreactor.connect.aws.s3.source.reader.{ReaderCreator, S3ReaderManager}
 import io.lenses.streamreactor.connect.aws.s3.storage.{AwsS3StorageInterface, JCloudsStorageInterface}
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 

@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.storage.stream
+package io.lenses.streamreactor.connect.aws.s3.stream
 
-import io.lenses.streamreactor.connect.aws.s3.model.Offset
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import cats.implicits.catsSyntaxEitherId
+import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 
 import java.io.ByteArrayOutputStream
 
@@ -28,7 +28,7 @@ class S3ByteArrayOutputStream extends S3OutputStream {
 
   var pointer: Long = 0L
 
-  override def complete(finalDestination: RemoteS3PathLocation, offset: Offset) = {}
+  override def complete(): Either[SinkError, Unit] = ().asRight
 
   override def getPointer: Long = pointer
 

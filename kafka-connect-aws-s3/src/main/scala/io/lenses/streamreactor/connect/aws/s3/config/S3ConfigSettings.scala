@@ -38,7 +38,6 @@ object S3ConfigSettings {
   val ENABLE_VIRTUAL_HOST_BUCKETS: String = s"$CONNECTOR_PREFIX.vhost.bucket"
 
   val DISABLE_FLUSH_COUNT: String = s"$CONNECTOR_PREFIX.disable.flush.count"
-  val WRITE_MODE: String = s"$CONNECTOR_PREFIX.write.mode"
   val LOCAL_TMP_DIRECTORY: String = s"$CONNECTOR_PREFIX.local.tmp.directory"
 
   val PROFILES: String = s"$CONNECTOR_PREFIX.config.profiles"

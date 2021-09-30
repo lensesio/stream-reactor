@@ -18,12 +18,11 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import au.com.bytecode.opencsv.CSVReader
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.{Offset, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorError
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.UnexpectedType
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
-import io.lenses.streamreactor.connect.aws.s3.storage.stream.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import org.apache.kafka.connect.data.Schema.STRING_SCHEMA
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.Assertions
@@ -135,7 +134,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
 
     val caught = formatWriter.write(None, StructSinkData(struct), topic)
-    formatWriter.close(RemoteS3PathLocation("my-bucket", "my-path"), Offset(0))
+    formatWriter.complete()
     caught should be (Left(ExtractorError(UnexpectedType)))
   }
 
@@ -156,7 +155,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
 
     val caught = formatWriter.write(None, StructSinkData(struct), topic)
-    formatWriter.close(RemoteS3PathLocation("my-bucket", "my-path"), Offset(0))
+    formatWriter.complete()
     caught should be (Left(ExtractorError(UnexpectedType)))
   }
 }

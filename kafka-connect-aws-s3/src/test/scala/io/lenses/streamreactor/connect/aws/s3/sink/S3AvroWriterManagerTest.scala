@@ -21,13 +21,12 @@ import io.lenses.streamreactor.connect.aws.s3.config.Format.Avro
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.config.{S3SinkConfig, SinkBucketOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig, RemoteFileTestHelper}
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
-import org.jclouds.blobstore.options.ListContainerOptions
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -41,7 +40,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
   private val avroFormatReader = new AvroFormatReader
 
   private val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix), false)
-  private val avroConfig = S3SinkConfig(S3Config(
+  private def avroConfig = S3SinkConfig(S3Config(
     None,
     Some(Identity),
     Some(Credential),
@@ -54,16 +53,18 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
         commitPolicy = DefaultCommitPolicy(None, None, Some(2)),
         formatSelection = FormatSelection(Avro),
         fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Avro)),
+        localStagingArea = LocalStagingArea(localRoot)
       )
     )
   )
-
 
   "avro sink" should "write 2 records to avro format in s3" in {
     val sink = S3WriterManager.from(avroConfig, "sinkName")
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
-        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
+        val writeRes = sink.write(
+          TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
+        writeRes.isRight should be (true)
     }
 
     sink.close()

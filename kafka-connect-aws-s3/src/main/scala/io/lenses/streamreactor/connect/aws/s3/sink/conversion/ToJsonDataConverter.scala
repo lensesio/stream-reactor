@@ -24,7 +24,7 @@ import scala.collection.JavaConverters._
 object ToJsonDataConverter {
 
   def convertArray(array: Seq[SinkData]): java.util.List[Any] = array.map {
-    case data: PrimitiveSinkData => data.primVal()
+    case data: PrimitiveSinkData => data.safeVal()
     case StructSinkData(structVal) => structVal
     case MapSinkData(map, _) => convertMap(map)
     case ArraySinkData(iArray, _) => convertArray(iArray)
@@ -37,7 +37,7 @@ object ToJsonDataConverter {
   }.asJava
 
   def convert(data: SinkData): Any = data match {
-    case data: PrimitiveSinkData => data.primVal()
+    case data: PrimitiveSinkData => data.safeVal()
     case StructSinkData(structVal) => structVal
     case MapSinkData(map, _) => convertMap(map)
     case ArraySinkData(array, _) => convertArray(array)

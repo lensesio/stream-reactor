@@ -18,10 +18,9 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, BytesWriteMode, Offset, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, BytesWriteMode, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
-import io.lenses.streamreactor.connect.aws.s3.storage.stream.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import org.apache.commons.io.IOUtils
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -41,7 +40,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toString should be("Sausages")
 
-    bytesFormatWriter.close(RemoteS3PathLocation("my-bucket", "my-path"), Offset(0))
+    bytesFormatWriter.complete()
   }
 
   "convert" should "write binary with ValueOnly" in {
@@ -52,7 +51,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toByteArray should be(bytes)
 
-    bytesFormatWriter.close(RemoteS3PathLocation("my-bucket", "my-path"), Offset(0))
+    bytesFormatWriter.complete()
 
   }
 
@@ -64,7 +63,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toByteArray should be(bytes)
 
-    bytesFormatWriter.close(RemoteS3PathLocation("my-bucket", "my-path"), Offset(0))
+    bytesFormatWriter.complete()
 
   }
 
@@ -77,7 +76,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toByteArray should be(pixelLengthBytes ++ pixelLengthBytes ++ bytes ++ bytes)
 
-    bytesFormatWriter.close(RemoteS3PathLocation("my-bucket", "my-path"), Offset(0))
+    bytesFormatWriter.complete()
 
   }
 
@@ -90,7 +89,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toByteArray should be(pixelLengthBytes ++ bytes)
 
-    bytesFormatWriter.close(RemoteS3PathLocation("my-bucket", "my-path"), Offset(0))
+    bytesFormatWriter.complete()
 
   }
 
@@ -103,7 +102,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toByteArray should be(pixelLengthBytes ++ bytes)
 
-    bytesFormatWriter.close(RemoteS3PathLocation("my-bucket", "my-path"), Offset(0))
+    bytesFormatWriter.complete()
 
   }
 
@@ -120,7 +119,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toByteArray should be(bytes)
 
-    bytesFormatWriter.close(RemoteS3PathLocation("my-bucket", "my-path"), Offset(0))
+    bytesFormatWriter.complete()
   }
 
   "convert" should "throw error when avro value is supplied" in {
@@ -128,7 +127,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.ValueOnly)
     val caught = bytesFormatWriter.write(None, StructSinkData(users.head), topic)
-    bytesFormatWriter.close(RemoteS3PathLocation("my-bucket", "my-path"), Offset(0))
+    bytesFormatWriter.complete()
     caught should be .leftSide
   }
 

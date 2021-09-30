@@ -16,37 +16,82 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-trait SinkException extends Exception
+import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
+
+trait SinkError {
+  def message(): String
+  def rollBack() : Boolean
+  def topicPartitions() : Set[TopicPartition]
+}
 
 // Cannot be retried, must be cleaned up
-case class CommitException(message: String) extends SinkException {
+case class FatalS3SinkError(message: String, exception: Throwable, topicPartition: TopicPartition) extends SinkError with LazyLogging {
 
+  logger.error(message, exception)
+
+  override def rollBack(): Boolean = true
+
+  override def topicPartitions(): Set[TopicPartition] = Set(topicPartition)
 }
 
-case class BatchCommitException(commitExceptions: Map[MapKey, CommitException]) extends SinkException {
+case object FatalS3SinkError {
 
-  override def getMessage: String = {
-    // TODO add more detail about TPO
-    "Multiple exceptions may have been found. Here is a summary.\n" +
-      commitExceptions.map(_._2.message).mkString("\n\n")
-  }
-}
-
-case object ProcessorException {
-  def apply(message: String): ProcessorException = {
-    ProcessorException(Seq(new IllegalStateException(message)))
+  def apply(message: String, topicPartition: TopicPartition): FatalS3SinkError = {
+    FatalS3SinkError(message, new IllegalStateException(message), topicPartition)
   }
 
-  def apply(exception: Throwable): ProcessorException = {
-    ProcessorException(Seq(exception))
-  }
 }
 
 // Can be retried
-case class ProcessorException(exceptions: Iterable[Throwable]) extends SinkException {
+case class NonFatalS3SinkError(message: String, exception: Throwable) extends SinkError with LazyLogging {
 
-  override def getMessage: String = {
-    "Multiple exceptions may have been found. Here is a summary.\n" +
-      exceptions.map(_.getMessage).mkString("\n\n")
+  logger.error(message, exception)
+
+  override def rollBack(): Boolean = false
+
+  override def topicPartitions(): Set[TopicPartition] = Set()
+}
+
+case object NonFatalS3SinkError {
+  def apply(message: String): NonFatalS3SinkError = {
+    NonFatalS3SinkError(message, new IllegalStateException(message))
   }
+
+  def apply(exception: Throwable): NonFatalS3SinkError = {
+    NonFatalS3SinkError(exception.getMessage, exception)
+  }
+}
+
+case object BatchS3SinkError {
+  def apply(mixedExceptions: Set[SinkError]): BatchS3SinkError = {
+    BatchS3SinkError(
+      mixedExceptions.collect {
+        case fatal: FatalS3SinkError => fatal
+      },
+      mixedExceptions.collect {
+        case fatal: NonFatalS3SinkError => fatal
+      }
+    )
+  }
+}
+
+case class BatchS3SinkError(
+                             fatal: Set[FatalS3SinkError],
+                             nonFatal: Set[NonFatalS3SinkError]
+                               ) extends SinkError with LazyLogging {
+
+  logger.error("Batchs3sinkError fatal {}, nonFatal {}", fatal, nonFatal)
+
+
+  def hasFatal: Boolean = fatal.nonEmpty
+
+
+  override def message(): String = {
+      "fatal:\n" + fatal.map(_.message).mkString("\n") + "\n\nnonFatal:\n" + nonFatal.map(_.message).mkString("\n") + "\n\nFatal TPs:\n" + fatal.map(_.topicPartitions())
+  }
+
+  override def rollBack(): Boolean = fatal.nonEmpty
+
+  override def topicPartitions(): Set[TopicPartition] = fatal.map(_.topicPartition)
 }

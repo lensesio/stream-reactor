@@ -29,11 +29,11 @@ case class LocalRootLocation (
 
   logger.info("Creating dir {}", basePath)
   file.mkdirs()
-  file.deleteOnExit()
+  //file.deleteOnExit()
 
-  override def withPath(path: String): LocalPathLocation = LocalPathLocation(
-    path
-  )
+  override def withPath(path: String): LocalPathLocation = {
+    LocalPathLocation(s"$basePath/$path".replace("//", ""))
+  }
 }
 
 
@@ -42,26 +42,27 @@ case class LocalPathLocation(
                           createFile : Boolean = true,
                         ) extends PathLocation with LazyLogging {
 
-  private val file = new File(path)
+  val file = new File(path)
 
   if(createFile) {
     logger.info("Creating dir {}", file.getParentFile)
     file.getParentFile.mkdirs()
-    file.getParentFile.deleteOnExit()
+    //file.getParentFile.deleteOnExit()
 
     logger.info("Creating file {}", file)
     file.createNewFile()
-    file.deleteOnExit()
+    //file.deleteOnExit()
   }
 
   /**
-    * Makes a best effort to clean up the file and parent directory.
+    * Makes a best effort to clean up the file.  The parent directory is retained as the next file may have started writing to it.
     */
   def delete(): Unit = {
+    logger.info("Deleting file {}", file)
     Try(file.delete())
-    Try(file.getParentFile.delete())
   }
 
   def toBufferedFileOutputStream = new BufferedOutputStream(new FileOutputStream(file))
 
+  def parent: LocalPathLocation = LocalPathLocation(file.getParent, createFile = false)
 }

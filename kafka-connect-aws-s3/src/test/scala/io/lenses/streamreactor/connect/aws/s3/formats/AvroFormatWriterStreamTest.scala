@@ -17,12 +17,10 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.{Offset, StructSinkData}
-import io.lenses.streamreactor.connect.aws.s3.processing.BlockingQueueProcessor
+import io.lenses.streamreactor.connect.aws.s3.model.{StructSinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
-import io.lenses.streamreactor.connect.aws.s3.storage.stream.MultipartBlobStoreOutputStream
+import io.lenses.streamreactor.connect.aws.s3.stream.BuildLocalOutputStream
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -31,18 +29,14 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3TestCo
 
   val avroFormatReader = new AvroFormatReader()
 
-  implicit val queueProcessor = new BlockingQueueProcessor()
-
   "convert" should "write byte output stream with json for a single record" in {
-    val blobStream = new MultipartBlobStoreOutputStream(RemoteS3PathLocation(BucketName, "myPrefix"), Offset(0), updateOffsetFn = (_) => () => ())
+    val blobStream = new BuildLocalOutputStream(localPath.toBufferedFileOutputStream, Topic("testTopic").withPartition(1))
 
     val avroFormatWriter = new AvroFormatWriter(() => blobStream)
     avroFormatWriter.write(None, StructSinkData(users.head), topic)
-    avroFormatWriter.close(RemoteS3PathLocation(BucketName, "my-path"), Offset(0))
-
-    queueProcessor.process()
-
-    val bytes = remoteFileAsBytes(BucketName, "my-path")
+    val closedResult = avroFormatWriter.complete()
+    closedResult should be (Right(()))
+    val bytes = localFileAsBytes(localPath)
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -51,17 +45,14 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3TestCo
   }
 
   "convert" should "write byte output stream with json for multiple records" in {
-    val blobStream = new MultipartBlobStoreOutputStream(
-      RemoteS3PathLocation(BucketName, "myPrefix"), Offset(0), updateOffsetFn = (_) => () => ()
-    )
+    val blobStream = new BuildLocalOutputStream(localPath.toBufferedFileOutputStream, Topic("testTopic").withPartition(1))
 
     val avroFormatWriter = new AvroFormatWriter(() => blobStream)
     firstUsers.foreach(u => avroFormatWriter.write(None, StructSinkData(u), topic))
-    avroFormatWriter.close(RemoteS3PathLocation(BucketName, "my-path"), Offset(0))
+    val closedResult = avroFormatWriter.complete()
+    closedResult should be (Right(()))
 
-    queueProcessor.process() should be ('right)
-
-    val bytes = remoteFileAsBytes(BucketName, "my-path")
+    val bytes = localFileAsBytes(localPath)
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(3)
 

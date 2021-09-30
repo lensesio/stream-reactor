@@ -16,11 +16,10 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatOptions, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
+import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.model.SourceData
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
 
 import java.io.InputStream
 

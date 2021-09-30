@@ -36,6 +36,7 @@ project(":kafka-connect-aws-s3") {
         }
     }
     dependencies {
+        compile("org.scala-lang.modules:scala-collection-compat_2.12:2.5.0")
 
         compile project(':kafka-connect-common')
         compile("io.netty:netty-all:4.1.52.Final")

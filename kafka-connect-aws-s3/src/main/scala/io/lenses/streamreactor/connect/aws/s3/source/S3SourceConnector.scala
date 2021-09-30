@@ -22,7 +22,6 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDef
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
-import org.slf4j.Logger
 
 import java.util
 import scala.collection.JavaConverters._

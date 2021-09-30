@@ -17,27 +17,13 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, RemoteS3PathLocation, RemoteS3RootLocation}
-import org.jclouds.blobstore.domain.{MultipartPart, MultipartUpload}
+import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, RemoteS3PathLocation}
 
 import java.io.InputStream
 
-case class MultiPartUploadState(
-                                 upload: MultipartUpload,
-                                 parts: Vector[MultipartPart],
-                               )
-
 trait StorageInterface {
 
-  def initUpload(bucketAndPath: RemoteS3PathLocation): MultiPartUploadState
-
-  def completeUpload(state: MultiPartUploadState): Unit
-
-  def uploadPart(state: MultiPartUploadState, bytes: Array[Byte]): MultiPartUploadState
-
-  def uploadFile(initialName: LocalPathLocation, finalDestination: RemoteS3PathLocation): Unit
-
-  def rename(originalFilename: RemoteS3PathLocation, newFilename: RemoteS3PathLocation): Unit
+  def uploadFile(initialName: LocalPathLocation, finalDestination: RemoteS3PathLocation): Either[UploadError, Unit]
 
   def close(): Unit
 

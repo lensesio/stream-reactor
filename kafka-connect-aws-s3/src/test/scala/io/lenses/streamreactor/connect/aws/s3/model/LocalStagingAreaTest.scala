@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.aws.s3.model
 
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.LOCAL_TMP_DIRECTORY
-import io.lenses.streamreactor.connect.aws.s3.model.BuildLocalOutputStreamOptions.PROPERTY_SINK_NAME
 import io.lenses.streamreactor.connect.aws.s3.model.location.LocalRootLocation
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -26,21 +25,11 @@ import org.scalatest.matchers.should.Matchers
 import java.nio.file.Files
 import scala.jdk.CollectionConverters.mapAsJavaMapConverter
 
-class S3OutputStreamOptionsTest extends AnyFlatSpec with Matchers {
+class LocalStagingAreaTest extends AnyFlatSpec with Matchers {
 
   private val tmpDir = Files.createTempDirectory("S3OutputStreamOptionsTest")
 
   behavior of "S3OutputStreamOptions"
-
-  it should "create StreamedOutputStreamOptions with warning when no write mode supplied" in {
-    S3OutputStreamOptions("", adapt(Map.empty[String, String])) should
-      be(Right(StreamedWriteOutputStreamOptions()))
-  }
-
-  it should "create StreamedOutputStreamOptions with warning when invalid write mode supplied" in {
-    S3OutputStreamOptions("whatisit", adapt(Map.empty[String, String])) should
-      be(Right(StreamedWriteOutputStreamOptions()))
-  }
 
   private def adapt(map: Map[String, String], sinkName: Option[String] = None) = {
     val newMap = map + {
@@ -49,37 +38,32 @@ class S3OutputStreamOptionsTest extends AnyFlatSpec with Matchers {
     S3ConfigDefBuilder(sinkName, newMap.asJava)
   }
 
-  it should "create StreamedOutputStreamOptions when invalid write mode supplied" in {
-    S3OutputStreamOptions("Streamed", adapt(Map.empty[String, String])) should
-      be(Right(StreamedWriteOutputStreamOptions()))
-  }
-
   it should "create BuildLocalOutputStreamOptions when temp directory has been supplied" in {
-    S3OutputStreamOptions("buildlocal", adapt(Map(LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path"))) should
-      be(Right(BuildLocalOutputStreamOptions(LocalRootLocation(s"$tmpDir/my/path"))))
+    LocalStagingArea(adapt(Map(LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path"))) should
+      be(Right(LocalStagingArea(LocalRootLocation(s"$tmpDir/my/path"))))
   }
 
   it should "create BuildLocalOutputStreamOptions when temp directory and sink name has been supplied" in {
     // should ignore the sinkName
-    S3OutputStreamOptions("BuildLocal", adapt(Map(LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path", PROPERTY_SINK_NAME -> "superSleekSinkName"))) should
-      be(Right(BuildLocalOutputStreamOptions(LocalRootLocation(s"$tmpDir/my/path"))))
+    LocalStagingArea(adapt(Map(LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path", "name" -> "superSleekSinkName"))) should
+      be(Right(LocalStagingArea(LocalRootLocation(s"$tmpDir/my/path"))))
   }
 
   it should "create BuildLocalOutputStreamOptions when sink name has been supplied" in {
     val tempDir = System.getProperty("java.io.tmpdir")
-    val result = S3OutputStreamOptions("BUILDLOCAL", adapt(Map(), Option("superSleekSinkName")))
+    val result = LocalStagingArea(adapt(Map(), Option("superSleekSinkName")))
     result.isRight should be(true)
     result.right.get match {
-      case BuildLocalOutputStreamOptions(localLocation) => localLocation.basePath should startWith(s"$tempDir/superSleekSinkName")
+      case LocalStagingArea(localLocation) => localLocation.basePath should startWith(s"$tempDir/superSleekSinkName".replace("//", "/"))
       case _ => fail("Wrong")
     }
   }
 
   it should "not create BuildLocalOutputStreamOptions when nothing supplied" in {
-    val result = S3OutputStreamOptions("bUiLdLoCal", adapt(Map[String, String]()))
+    val result = LocalStagingArea(adapt(Map[String, String]()))
     result.isLeft should be(true)
     result.left.get.getClass.getSimpleName should be("IllegalStateException")
-    result.left.get.getMessage should be("Either a local temporary directory (connect.s3.local.tmp.directory) or a Sink Name (name) must be configured to use 'BuildLocal' write mode.")
+    result.left.get.getMessage should be("Either a local temporary directory (connect.s3.local.tmp.directory) or a Sink Name (name) must be configured.")
   }
 
 }
