@@ -17,11 +17,15 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.streamreactor.common.config.base.settings.Projections
+import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
+import com.datamountaineer.streamreactor.common.schemas.StructFieldsExtractor
+import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisKCQLSetting, RedisSinkSettings}
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConverters._
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /**
   * The Redis CACHE mode can store a snapshot a time-series into a Key
@@ -37,17 +41,19 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
 
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
-    assert(c.getSource.trim.length > 0, "You need to supply a valid source kafka topic to fetch records from. Review your KCQL syntax")
+    assert(c.getSource.trim.nonEmpty, "You need to supply a valid source kafka topic to fetch records from. Review your KCQL syntax")
     assert(c.getPrimaryKeys.asScala.nonEmpty, "The Redis CACHE mode requires at least 1 PK (Primary Key) to be defined")
     assert(c.getStoredAs == null, "The Redis CACHE mode does not support STOREAS")
   }
+  private lazy val simpleJsonConverter = new SimpleJsonConverter()
+  private val projections = Projections(kcqls = configs, props = Map.empty, errorPolicy = sinkSettings.errorPolicy, errorRetries = sinkSettings.taskRetries, defaultBatchSize = 100)
 
   // Write a sequence of SinkRecords to Redis
   override def write(records: Seq[SinkRecord]): Unit = {
     if (records.isEmpty) {
       logger.debug("No records received on 'Cache' Redis writer")
     } else {
-      logger.debug(s"'Cache' Redis writer received ${records.size} records")
+      logger.debug(s"'Cache' Redis writer received [${records.size}] records")
       insert(records.groupBy(_.topic))
     }
   }
@@ -58,32 +64,55 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
       case (topic, sinkRecords) => {
         val topicSettings: Set[RedisKCQLSetting] = sinkSettings.kcqlSettings.filter(_.kcqlConfig.getSource == topic)
         if (topicSettings.isEmpty)
-          logger.warn(s"Received a batch for topic $topic - but no KCQL supports it")
+          logger.warn(s"No KCQL statement set for [$topic]")
         //pass try to error handler and try
         val t = Try(
           {
             sinkRecords.foreach { record =>
+              val struct = record.newFilteredRecordAsStruct(projections)
+              val newRecord = record.newRecord(record.topic(), record.kafkaPartition(), null, null, struct.schema(), struct, record.timestamp())
+
               topicSettings.map { KCQL =>
                 // We can prefix the name of the <KEY> using the target
                 val optionalPrefix = if (Option(KCQL.kcqlConfig.getTarget).isEmpty) "" else KCQL.kcqlConfig.getTarget.trim
                 // Use first primary key's value and (optional) prefix
                 val pkDelimiter = sinkSettings.pkDelimiter
-                val keyBuilder = RedisFieldsKeyBuilder(KCQL.kcqlConfig.getPrimaryKeys.asScala.map(_.toString), pkDelimiter)
-                val extracted = convert(record, fields = KCQL.fieldsAndAliases, ignoreFields = KCQL.ignoredFields)
-                val key = optionalPrefix + keyBuilder.build(record)
-                val payload = convertValueToJson(extracted).toString
-                val ttl = KCQL.kcqlConfig.getTTL
-                if (ttl <= 0) {
-                  jedis.set(key, payload)
-                } else {
-                  jedis.setex(key, ttl.toInt, payload)
+                val keys = KCQL.kcqlConfig.getPrimaryKeys.asScala.map(pk => (pk.getName, pk.getName)).toMap
+
+                val pkFieldStruct =
+                  Try(record.extract(record.value(),
+                    record.valueSchema(),
+                    keys,
+                    Set.empty)) match {
+                    case Success(value) => Some(value)
+                    case Failure(f) =>
+                      logger.warn(s"Failed to constructed new record with fields [${keys.mkString(",")}. Skipping record")
+                      None
+                  }
+
+                pkFieldStruct match {
+                  case Some(value) =>
+                    val extractor = StructFieldsExtractor(includeAllFields = false, keys)
+                    val pkValue = extractor.get(value).toMap.values.mkString(":")
+                    val key = optionalPrefix + pkValue
+
+                    val payload = simpleJsonConverter.fromConnectData(struct.schema(), struct).toString
+                    val ttl = KCQL.kcqlConfig.getTTL
+                    if (ttl <= 0) {
+                      jedis.set(key, payload)
+                    } else {
+                      jedis.setex(key, ttl.toInt, payload)
+                    }
+
+                  case _ =>
+                    logger.warn(s"Failed to extract primary keys from record in topic [${record.topic()}], partition [${record.kafkaPartition()}], offset [${record.kafkaOffset()}]")
                 }
               }
             }
           })
         handleTry(t)
       }
-        logger.debug(s"Wrote ${sinkRecords.size} rows for topic $topic")
+        logger.debug(s"Wrote [${sinkRecords.size}] rows for topic [$topic]")
     }
   }
 }

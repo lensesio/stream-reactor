@@ -48,6 +48,38 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
 
   "RedisDbWriter" should {
 
+
+    "write Kafka records to Redis using CACHE mode with JSON no schema" in {
+      val QUERY_ALL = s"SELECT * FROM $TOPIC PK firstName, child.firstName"
+      val props = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava
+      val config = RedisConfig(props)
+      val settings = RedisSinkSettings(config)
+      val writer = new RedisCache(settings)
+      writer.createClient(settings)
+
+      val json =
+        """
+          |{
+          |   "firstName":"Alex",
+          |   "age":30.0,
+          |   "child":"Alex_Junior"
+          |}
+        """.stripMargin
+
+      val record =
+        new SinkRecord("t", 0, null, null, Schema.STRING_SCHEMA, json, 0)
+
+      writer.write(Seq(record))
+
+      val alexValue = jedis.get("Alex.Alex_Junior")
+      alexValue should not be null
+
+      val alexMap = gson.fromJson(alexValue, classOf[java.util.Map[String, AnyRef]]).asScala
+      alexMap("firstName").toString shouldBe "Alex"
+      alexMap("age").toString shouldBe "30.0" //it gets back a java double!?
+      alexMap("child").asInstanceOf[java.util.Map[String, AnyRef]].get("firstName") shouldBe "Alex_Junior"
+    }
+
     "write Kafka records to Redis using CACHE mode" in {
       val QUERY_ALL = s"SELECT * FROM $TOPIC PK firstName, child.firstName"
       val props = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava

@@ -16,18 +16,16 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink
 
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
+import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
 import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
-
-import java.util
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
 import com.datamountaineer.streamreactor.connect.redis.sink.writer._
-import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
+import java.util
 import scala.collection.JavaConverters._
 
 /**
@@ -57,8 +55,10 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     enableProgress = sinkConfig.getBoolean(RedisConfigConstants.PROGRESS_COUNTER_ENABLED)
 
     //if error policy is retry set retry interval
-    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(RedisConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+    settings.errorPolicy match {
+      case RetryErrorPolicy() =>
+        context.timeout(sinkConfig.getInt(RedisConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+      case _ =>
     }
 
     //-- Find out the Connector modes (cache | INSERT (SortedSet) | PK (SortedSetS)
@@ -81,36 +81,36 @@ class RedisSinkTask extends SinkTask with StrictLogging {
 
     //-- Start as many writers as required
     writer = (modeCache.kcqlSettings.headOption.map { _ =>
-      logger.info("Starting " + modeCache.kcqlSettings.size + " KCQLs with Redis Cache mode")
+      logger.info(s"Starting [${modeCache.kcqlSettings.size}] KCQLs with Redis Cache mode")
       val writer = new RedisCache(modeCache)
       writer.createClient(settings)
       List(writer)
     } ++ mode_INSERT_SS.kcqlSettings.headOption.map { _ =>
-      logger.info("Starting " + mode_INSERT_SS.kcqlSettings.size + " KCQLs with Redis Insert Sorted Set mode")
+      logger.info(s"Starting ${mode_INSERT_SS.kcqlSettings.size}] KCQLs with Redis Insert Sorted Set mode")
       val writer = new RedisInsertSortedSet(mode_INSERT_SS)
       writer.createClient(settings)
       List(writer)
     } ++ mode_PUBSUB.kcqlSettings.headOption.map { _ =>
-      logger.info("Starting " + mode_PUBSUB.kcqlSettings.size + " KCQLs with Redis PubSub mode")
+      logger.info(s"Starting [${mode_PUBSUB.kcqlSettings.size}] KCQLs with Redis PubSub mode")
       val writer = new RedisPubSub(mode_PUBSUB)
       writer.createClient(settings)
       List(writer)
     } ++ mode_PK_SS.kcqlSettings.headOption.map { _ =>
-      logger.info("Starting " + mode_PK_SS.kcqlSettings.size + " KCQLs with Redis Multiple Sorted Sets mode")
+      logger.info(s"Starting [${mode_PK_SS.kcqlSettings.size}] KCQLs with Redis Multiple Sorted Sets mode")
       val writer = new RedisMultipleSortedSets(mode_PK_SS)
       writer.createClient(settings)
       List(writer)
     } ++ mode_GEOADD.kcqlSettings.headOption.map { _ =>
-      logger.info("Starting " + mode_GEOADD.kcqlSettings.size + " KCQLs with Redis Geo Add mode")
+      logger.info(s"Starting [${mode_GEOADD.kcqlSettings.size}] KCQLs with Redis Geo Add mode")
       List(new RedisGeoAdd(mode_GEOADD))
     }  ++ mode_STREAM.kcqlSettings.headOption.map { _ =>
-      logger.info("Starting " + mode_STREAM.kcqlSettings.size + " KCQLs with Redis Stream mode")
+      logger.info(s"Starting [${mode_STREAM.kcqlSettings.size}] KCQLs with Redis Stream mode")
       val writer = new RedisStreams(mode_STREAM)
       writer.createClient(settings)
       List(writer)
     }).flatten.toList
 
-    require(writer.nonEmpty, s"No writers set for ${RedisConfigConstants.KCQL_CONFIG}!")
+    require(writer.nonEmpty, s"No writers set for [${RedisConfigConstants.KCQL_CONFIG}]")
   }
 
   /**

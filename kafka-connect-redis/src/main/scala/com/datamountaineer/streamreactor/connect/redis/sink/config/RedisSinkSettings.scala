@@ -19,7 +19,6 @@ package com.datamountaineer.streamreactor.connect.redis.sink.config
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.common.rowkeys.StringKeyBuilder
-
 import org.apache.kafka.common.config.{ConfigException, SslConfigs}
 
 import scala.collection.JavaConverters._
@@ -96,7 +95,7 @@ object RedisSinkSettings {
 object RedisConnectionInfo {
   def apply(config: RedisConfig): RedisConnectionInfo = {
     val host = config.getString(RedisConfigConstants.REDIS_HOST)
-    if (host.isEmpty) new ConfigException(s"${RedisConfigConstants.REDIS_HOST} is not set correctly")
+    if (host.isEmpty) new ConfigException(s"[${RedisConfigConstants.REDIS_HOST}] is not set correctly")
 
     val password = Option(config.getPassword(RedisConfigConstants.REDIS_PASSWORD)).map(_.value())
 

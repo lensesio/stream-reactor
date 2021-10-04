@@ -18,14 +18,13 @@ package com.datamountaineer.streamreactor.connect.redis.sink
 
 import com.datamountaineer.streamreactor.common.config.Helpers
 import com.datamountaineer.streamreactor.common.utils.JarManifest
-
-import java.util
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
+import java.util
 import scala.collection.JavaConverters._
 
 /**
@@ -51,7 +50,7 @@ class RedisSinkConnector extends SinkConnector with StrictLogging {
     * @return a List of configuration properties per worker
     **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
-    logger.info(s"Setting task configurations for $maxTasks workers.")
+    logger.info(s"Setting task configurations for [$maxTasks] workers.")
     (1 to maxTasks).map(_ => configProps).toList.asJava
   }
 
@@ -61,7 +60,7 @@ class RedisSinkConnector extends SinkConnector with StrictLogging {
     * @param props A map of properties for the connector and worker
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Starting Redis sink task with ${props.toString}.")
+    logger.info(s"Starting Redis sink task with [${props.toString}].")
     Helpers.checkInputTopics(RedisConfigConstants.KCQL_CONFIG, props.asScala.toMap)
     configProps = props
   }

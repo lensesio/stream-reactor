@@ -19,17 +19,17 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.common.sink.DbWriter
-
-import java.io.{File, FileNotFoundException}
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import com.typesafe.scalalogging.StrictLogging
 import redis.clients.jedis.Jedis
+
+import java.io.{File, FileNotFoundException}
 
 
 /**
   * Responsible for taking a sequence of SinkRecord and write them to Redis
   */
-abstract class RedisWriter extends DbWriter with StrictLogging with ConverterUtil with ErrorHandler {
+abstract class RedisWriter extends DbWriter with StrictLogging with ErrorHandler {
 
   var jedis: Jedis = _
 
@@ -40,7 +40,7 @@ abstract class RedisWriter extends DbWriter with StrictLogging with ConverterUti
         connection.keyStoreFilepath match {
           case Some(path) =>
             if (!new File(path).exists) {
-              throw new FileNotFoundException(s"Keystore not found in: $path")
+              throw new FileNotFoundException(s"Keystore not found in: [$path]")
             }
 
             System.setProperty("javax.net.ssl.keyStorePassword", connection.keyStorePassword.getOrElse(""))
