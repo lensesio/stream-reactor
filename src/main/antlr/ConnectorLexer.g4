@@ -130,7 +130,7 @@ WITHUNWRAP
     ;
 
 FORMAT
-    : 'avro'|'AVRO'|'text'|'TEXT'|'binary'|'BINARY'|'json'|'JSON'|'object'|'OBJECT'|'map'|'MAP'
+    : 'avro'|'AVRO'|'text'|'TEXT'|'binary'|'BINARY'|'json'|'JSON'|'object'|'OBJECT'|'map'|'MAP'|'protobuf'|'PROTOBUF'
     ;
 
 PROJECTTO
