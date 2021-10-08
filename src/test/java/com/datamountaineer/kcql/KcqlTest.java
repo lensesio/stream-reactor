@@ -801,6 +801,10 @@ public class KcqlTest {
     String syntax4 = String.format("INSERT INTO %s SELECT * FROM %s WITHFORMAT object", table, topic);
     Kcql c4 = Kcql.parse(syntax4);
     assertEquals(c4.getFormatType().toString(), "OBJECT");
+
+    String syntax5 = String.format("INSERT INTO %s SELECT * FROM %s WITHFORMAT protobuf", table, topic);
+    Kcql c5 = Kcql.parse(syntax5);
+    assertEquals(c5.getFormatType().toString(), "PROTOBUF");
   }
 
   @Test(expected = IllegalArgumentException.class)
