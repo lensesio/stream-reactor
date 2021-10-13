@@ -57,7 +57,7 @@ allprojects {
         scalaCheck = '1.14.3'
         scalaTest = '3.1.1'
         junit = '4.11'
-        testcontainersVersion = '1.15.3'
+        testcontainersVersion = '1.16.0'
         //avroVersion="1.8.1"
         scalaLoggingVersion = '3.9.2'
         mockitoVersion = '1.13.9'
