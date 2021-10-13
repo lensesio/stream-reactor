@@ -19,11 +19,15 @@
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 
 import javax.jms.{Message, Session}
+import java.util.Map
 
 
-trait JMSMessageConverter {
-  def convert(record:SinkRecord, session:Session, setting: JMSSetting): (String, Message)
+trait JMSMessageConverter extends StrictLogging {
+  def initialize(config: Map[String, String]): Unit = {}
+
+  def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, Message)
 }

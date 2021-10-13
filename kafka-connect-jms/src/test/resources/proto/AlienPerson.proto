@@ -1,0 +1,9 @@
+syntax = "proto3";
+package  datamountaineer.streamreactor.example.alien;
+option csharp_namespace = "datamountaineer.streamreactor.example.alien";
+option java_package = "com.datamountaineer.streamreactor.example.alien";
+message AddressedPerson {
+   string name = 1;
+   int32 id = 2;
+   string email = 3;
+}

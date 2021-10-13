@@ -35,7 +35,13 @@ case class JMSWriter(settings: JMSSettings) extends AutoCloseable with Converter
   provider.start()
   val producers: Map[String, MessageProducer] = provider.queueProducers ++ provider.topicProducers
   val converterMap: Map[String, JMSMessageConverter] = settings.settings
-    .map(s => (s.source, JMSHeadersConverterWrapper(s.headers, JMSMessageConverterFn(s.format)))).toMap
+    .map(s => (
+      s.source,
+      JMSHeadersConverterWrapper(
+        s.headers,
+        s.sinkConverter
+      )
+    )).toMap
   val settingsMap: Map[String, JMSSetting] = settings.settings.map(s => (s.source, s)).toMap
 
   //initialize error tracker

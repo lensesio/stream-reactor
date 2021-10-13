@@ -27,6 +27,7 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 
+import java.nio.charset.StandardCharsets
 import java.util.UUID
 import javax.jms.Session
 import scala.collection.JavaConverters._
@@ -75,7 +76,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
     val queueName = s"avro-${UUID.randomUUID().toString}"
 
     val kcql = getKCQLAvroSource(kafkaTopic, queueName, "QUEUE")
-    val props = getProps(kcql, brokerUrl) ++ Map(AvroConverter.SCHEMA_CONFIG -> getAvroProp(queueName))
+    val props = getProps(kcql, brokerUrl) ++ Map(AvroConverter.CONNECT_SOURCE_CONVERTER_SCHEMA_CONFIG -> getAvroProp(queueName))
 
     val session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
     val avro = session.createQueue(queueName)
@@ -93,7 +94,9 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
       val sourceRecord = messagesRead.head._2
       sourceRecord.value().isInstanceOf[Struct] shouldBe true
       val struct = sourceRecord.value().asInstanceOf[Struct]
-      struct.getString("name") shouldBe "andrew"
+      val d=struct.getBytes("bytes_payload")
+      val str = new String(d, StandardCharsets.UTF_8)
+      str.contains("andrew") shouldBe true
     }
   }
 

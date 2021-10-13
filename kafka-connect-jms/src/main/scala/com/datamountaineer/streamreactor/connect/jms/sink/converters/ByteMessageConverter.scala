@@ -18,32 +18,22 @@
 
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
+import com.datamountaineer.streamreactor.common.converters.ByteArrayConverter
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import org.apache.kafka.connect.sink.SinkRecord
 
 import javax.jms.{Message, Session}
-import scala.jdk.CollectionConverters.iterableAsScalaIterableConverter
 
+class ByteMessageConverter extends JMSMessageConverter with ConverterUtil {
 
-class JMSHeadersConverterWrapper(headers: Map[String, String], delegate: JMSMessageConverter) extends JMSMessageConverter {
-
+  lazy val byteConverter = new ByteArrayConverter()
 
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, Message) = {
-    val response = delegate.convert(record, session, setting)
-    val message = response._2
-    for(header <- record.headers().asScala) {
-      message.setStringProperty(header.key(), header.value().toString)
-    }
-    message.setStringProperty("JMSXGroupID", record.kafkaPartition().toString)
-    for((key, value) <- headers) {
-      message.setStringProperty(key, value)
-    }
-    response
+
+    val value = byteConverter.fromConnectData(record.topic(), record.valueSchema(), record.value())
+    val msg = session.createBytesMessage()
+    msg.writeBytes(value)
+    (setting.source, msg)
   }
-}
-
-
-object JMSHeadersConverterWrapper {
-  def apply(config: Map[String, String], delegate: JMSMessageConverter): JMSMessageConverter =
-    new JMSHeadersConverterWrapper(config, delegate)
 }

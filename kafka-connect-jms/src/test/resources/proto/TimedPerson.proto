@@ -1,0 +1,12 @@
+syntax = "proto3";
+package  datamountaineer.streamreactor.example;
+option csharp_namespace = "datamountaineer.streamreactor.example";
+option java_package = "com.datamountaineer.streamreactor.example";
+
+import "google/protobuf/timestamp.proto";
+
+message TimedPerson {
+   string name = 1;
+   int32 id = 2;
+   google.protobuf.Timestamp timestamp = 3;
+}

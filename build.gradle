@@ -64,7 +64,7 @@ allprojects {
         slf4jVersion = "1.7.7"
         json4sVersion = "3.6.7"
         gsonVersion = "2.6.2"
-        kcqlVersion = "2.8.7"
+        kcqlVersion = "2.9.1"
         connectCLIVersion = "1.0.6"
         avro4sVersion = "1.6.4"
         smt = "2.0.0"
@@ -161,6 +161,7 @@ allprojects {
         compile "com.typesafe.scala-logging:scala-logging_${scalaMajorVersion}:${scalaLoggingVersion}"
         compile "org.apache.kafka:connect-json:$kafkaVersion"
         compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
+        compile "io.confluent:kafka-connect-protobuf-converter:$confluentVersion"
         compile ("io.confluent:kafka-schema-registry:$confluentVersion") {
             exclude group: 'com.google.guava', module: 'guava'
         }

@@ -18,22 +18,23 @@
 
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
-import java.nio.ByteBuffer
-import java.util.UUID
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.AvroDeserializer
 import com.datamountaineer.streamreactor.connect.jms.{TestBase, Using}
 import io.confluent.connect.avro.AvroData
-
-import javax.jms.{BytesMessage, MapMessage, ObjectMessage, TextMessage}
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.nio.ByteBuffer
+import java.util.UUID
+import javax.jms.{BytesMessage, MapMessage, ObjectMessage, TextMessage}
 import scala.collection.JavaConverters._
 import scala.reflect.io.Path
 
@@ -231,4 +232,75 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with Tes
       }
     }
   }
+
+  "ProtoMessageConverter" should {
+    "create a BytesMessage with sinkrecord payload when storedAs is null" in {
+      val converter = new ProtoMessageConverter()
+      val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
+      val queueName = UUID.randomUUID().toString
+      val kcql = getKCQL(queueName, kafkaTopic1, "QUEUE")
+      val props = getProps(kcql, JMS_URL)
+      val config = JMSConfig(props.asJava)
+      val settings = JMSSettings(config, true)
+      val setting = settings.settings.head
+      val connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false")
+      using(connectionFactory.createConnection()) { connection =>
+        using(connection.createSession(false, 1)) { session =>
+          val schema = getSchema
+          val struct = getStruct(schema)
+          val record = new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1)
+
+          val msg = converter.convert(record, session, setting)._2.asInstanceOf[BytesMessage]
+
+          var byteData: Array[Byte] = null
+          msg.reset()
+          byteData = new Array[Byte](msg.getBodyLength.asInstanceOf[Int])
+          msg.readBytes(byteData)
+          val stringMessage = new String(byteData, "UTF-8")
+
+          Option(msg).isDefined shouldBe true
+          stringMessage.contains("foo") shouldBe true
+        }
+      }
+    }
+
+    "create a BytesMessage with sinkrecord payload with storedAs data" in {
+      val converter = new ProtoMessageConverter()
+
+      val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
+      val queueName = UUID.randomUUID().toString
+      val kcql = getKCQLStoredAsWithNameOnly(queueName, kafkaTopic1, "QUEUE")
+      val props = getProps(kcql, JMS_URL)
+      val schema = getProtobufSchema
+      val struct = getProtobufStruct(schema, "addrressed-person", 103, "addressed-person@gmail.com")
+      val config = JMSConfig(props.asJava)
+      val settings = JMSSettings(config, true)
+      val connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false")
+      using(connectionFactory.createConnection()) { connection =>
+        using(connection.createSession(false, 1)) { session =>
+          val setting = settings.settings.head
+
+          converter.initialize(props.asJava)
+          val record = new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1)
+
+          val convertedValue = converter.convert(record, session, setting)._2.asInstanceOf[BytesMessage]
+
+          var byteData: Array[Byte] = null
+          convertedValue.reset()
+          byteData = new Array[Byte](convertedValue.getBodyLength.asInstanceOf[Int])
+          convertedValue.readBytes(byteData)
+          val stringMessage = new String(byteData, "UTF-8")
+
+          Option(stringMessage).isDefined shouldBe true
+          stringMessage.contains("name") shouldBe true
+          stringMessage.contains("addressed-person@gmail.com") shouldBe true
+          stringMessage.contains("id") shouldBe true
+          stringMessage.contains("103") shouldBe true
+          stringMessage.contains("email") shouldBe true
+          stringMessage.contains("addressed-person@gmail.com") shouldBe true
+        }
+      }
+    }
+  }
+
 }
