@@ -79,9 +79,7 @@ class RedisPubSub(sinkSettings: RedisSinkSettings) extends RedisWriter with PubS
               val payload = simpleJsonConverter.fromConnectData(struct.schema(), struct)
               val channelField = getChannelField(KCQL.kcqlConfig)
               val channel = StringStructFieldsStringKeyBuilder(Seq(channelField)).build(record)
-              logger.debug(s"PUBLISH [$channel] channel [$channel] payload [${payload.toString}]")
               val response = jedis.publish(channel, payload.toString)
-              logger.debug(s"Published a new message to [$response] clients.")
               response
             }
           }

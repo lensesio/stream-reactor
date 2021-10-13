@@ -19,9 +19,10 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.config.base.settings.Projections
 import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
-import com.datamountaineer.streamreactor.common.schemas.StructFieldsExtractor
+import com.datamountaineer.streamreactor.common.schemas.StructHelper
 import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisKCQLSetting, RedisSinkSettings}
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConverters._
@@ -39,13 +40,14 @@ import scala.util.{Failure, Success, Try}
   */
 class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
 
+  private lazy val simpleJsonConverter = new SimpleJsonConverter()
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
     assert(c.getSource.trim.nonEmpty, "You need to supply a valid source kafka topic to fetch records from. Review your KCQL syntax")
     assert(c.getPrimaryKeys.asScala.nonEmpty, "The Redis CACHE mode requires at least 1 PK (Primary Key) to be defined")
     assert(c.getStoredAs == null, "The Redis CACHE mode does not support STOREAS")
   }
-  private lazy val simpleJsonConverter = new SimpleJsonConverter()
+
   private val projections = Projections(kcqls = configs, props = Map.empty, errorPolicy = sinkSettings.errorPolicy, errorRetries = sinkSettings.taskRetries, defaultBatchSize = 100)
 
   // Write a sequence of SinkRecords to Redis
@@ -70,43 +72,44 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
           {
             sinkRecords.foreach { record =>
               val struct = record.newFilteredRecordAsStruct(projections)
-              val newRecord = record.newRecord(record.topic(), record.kafkaPartition(), null, null, struct.schema(), struct, record.timestamp())
 
               topicSettings.map { KCQL =>
                 // We can prefix the name of the <KEY> using the target
                 val optionalPrefix = if (Option(KCQL.kcqlConfig.getTarget).isEmpty) "" else KCQL.kcqlConfig.getTarget.trim
                 // Use first primary key's value and (optional) prefix
                 val pkDelimiter = sinkSettings.pkDelimiter
-                val keys = KCQL.kcqlConfig.getPrimaryKeys.asScala.map(pk => (pk.getName, pk.getName)).toMap
+                //extract will flatten if parent/child detected
+                val keys = KCQL.kcqlConfig.getPrimaryKeys.asScala.map(pk => (pk.toString, pk.toString.replaceAll("\\.", "_"))).toMap
 
-                val pkFieldStruct =
-                  Try(record.extract(record.value(),
-                    record.valueSchema(),
-                    keys,
-                    Set.empty)) match {
-                    case Success(value) => Some(value)
+                Try(record.extract(
+                      record.value(),
+                      record.valueSchema(),
+                      keys,
+                      Set.empty)) match {
+                    case Success(value) =>
+                      val helper = StructHelper.StructExtension(value)
+                      val pkValue = keys
+                        .values
+                        .map(k => helper.extractValueFromPath(k))
+                        .map {
+                          case Right(v) => v.get.toString
+                          case Left(e) => throw new ConnectException(s"Unable to find all primary key field values [${keys.mkString(",")}] in record in topic [${record.topic()}], " +
+                            s"partition [${record.kafkaPartition()}], offset [${record.kafkaOffset()}], ${e.msg}")
+                        }.mkString(sinkSettings.pkDelimiter)
+
+                      val key = optionalPrefix + pkValue
+
+                      val payload = simpleJsonConverter.fromConnectData(struct.schema(), struct).toString
+                      val ttl = KCQL.kcqlConfig.getTTL
+                      if (ttl <= 0) {
+                        jedis.set(key, payload)
+                      } else {
+                        jedis.setex(key, ttl.toInt, payload)
+                      }
+
                     case Failure(f) =>
-                      logger.warn(s"Failed to constructed new record with fields [${keys.mkString(",")}. Skipping record")
-                      None
+                      throw new ConnectException(s"Failed to constructed new record with primary key fields [${keys.mkString(",")}]")
                   }
-
-                pkFieldStruct match {
-                  case Some(value) =>
-                    val extractor = StructFieldsExtractor(includeAllFields = false, keys)
-                    val pkValue = extractor.get(value).toMap.values.mkString(":")
-                    val key = optionalPrefix + pkValue
-
-                    val payload = simpleJsonConverter.fromConnectData(struct.schema(), struct).toString
-                    val ttl = KCQL.kcqlConfig.getTTL
-                    if (ttl <= 0) {
-                      jedis.set(key, payload)
-                    } else {
-                      jedis.setex(key, ttl.toInt, payload)
-                    }
-
-                  case _ =>
-                    logger.warn(s"Failed to extract primary keys from record in topic [${record.topic()}], partition [${record.kafkaPartition()}], offset [${record.kafkaOffset()}]")
-                }
               }
             }
           })

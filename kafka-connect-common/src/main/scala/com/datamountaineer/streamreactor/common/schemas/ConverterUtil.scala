@@ -42,7 +42,7 @@ import scala.util.{Failure, Success, Try}
   * Created by andrew@datamountaineer.com on 22/02/16.
   * stream-reactor
   */
-@deprecated
+@deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
 trait ConverterUtil {
   type avroSchema = org.apache.avro.Schema
 
@@ -52,7 +52,7 @@ trait ConverterUtil {
   lazy val avroData = new AvroData(100)
 
   //for converting json to
-  @deprecated
+  @deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
   def connectSchemaTypeToSchema(schemaType: Schema.Type, value: Any): Schema = {
     schemaType match {
       case Schema.Type.INT8           => Schema.OPTIONAL_INT8_SCHEMA

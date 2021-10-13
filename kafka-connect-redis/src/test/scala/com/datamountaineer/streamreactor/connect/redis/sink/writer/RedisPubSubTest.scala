@@ -36,9 +36,9 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
   val redisContainer: GenericContainer[_] = new GenericContainer("redis:6-alpine")
     .withExposedPorts(6379)
 
-  override def beforeAll() = redisContainer.start()
+  override def beforeAll(): Unit = redisContainer.start()
 
-  override def afterAll() = redisContainer.stop()
+  override def afterAll(): Unit = redisContainer.stop()
 
   "Redis PUBSUB writer" should {
 

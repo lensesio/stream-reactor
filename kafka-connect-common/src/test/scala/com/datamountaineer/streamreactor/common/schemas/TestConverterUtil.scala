@@ -871,6 +871,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         valueFields = Map(
           "t" -> Map(
             "fieldMap.f1" -> "fm1_alias",
+            "moreComplex.nested1" -> "moreComplex.nested1",
             "moreComplex.nested1.n1" -> "moreComplex.nested1.n1",
             "moreComplex.nested1.arr" -> "moreComplex.nested1.arr"
           )),
@@ -882,7 +883,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
 
       val expected =
-        "{\"fm1_alias\":\"v1\",\"moreComplex.nested1.n1\":\"nv1\",\"moreComplex.nested1.arr\":[1,2,3]}"
+        "{\"fm1_alias\":\"v1\",\"moreComplex.nested1\":{\"arr\":[1,2,3],\"n1\":\"nv1\"},\"moreComplex.nested1.n1\":\"nv1\",\"moreComplex.nested1.arr\":[1,2,3]}"
       simpleJsonConverter
         .fromConnectData(combinedRecord.schema(), combinedRecord)
         .toString shouldBe expected

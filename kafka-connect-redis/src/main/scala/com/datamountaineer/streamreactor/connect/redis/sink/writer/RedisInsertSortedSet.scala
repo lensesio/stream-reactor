@@ -83,18 +83,14 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
               val newRecord = record.newRecord(record.topic(), record.kafkaPartition(), null, null, struct.schema(), struct, record.timestamp())
               val scoreField = getScoreField(KCQL.kcqlConfig)
               val score = StringStructFieldsStringKeyBuilder(Seq(scoreField)).build(newRecord).toDouble
-
-              logger.debug(s"ZADD [$sortedSetName] score [$score] payload [${payload.toString}]")
               val response = jedis.zadd(sortedSetName, score, payload.toString)
 
               if (response == 1) {
-                logger.debug("New element added")
                 val ttl = KCQL.kcqlConfig.getTTL
                 if (ttl > 0) {
                   jedis.expire(sortedSetName, ttl.toInt)
                 }
               } else if (response == 0)
-                logger.debug("The element was already a member of the sorted set and the score was updated")
               response
             }
           }

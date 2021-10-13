@@ -30,6 +30,7 @@ import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConverters._
 
+@deprecated ("Consolidated into StructHelper", "3.0")
 trait StructFieldsValuesExtractor {
   def get(struct: Struct): Seq[(String, Any)]
 }
@@ -40,6 +41,7 @@ trait StructFieldsValuesExtractor {
   * @param includeAllFields Boolean indicating if all the fields from the SinkRecord are to be written to the sink
   * @param fieldsAliasMap   A map of fields and their alias,if provided, to extract from the SinkRecord
   **/
+@deprecated ("Consolidated into StructHelper", "3.0")
 case class StructFieldsExtractor(includeAllFields: Boolean, fieldsAliasMap: Map[String, String]) extends StructFieldsValuesExtractor {
 
   /**
@@ -115,7 +117,7 @@ case class StructFieldsExtractor(includeAllFields: Boolean, fieldsAliasMap: Map[
   }
 }
 
-
+@deprecated ("Consolidated into StructHelper", "3.0")
 object StructFieldsExtractor {
   val DateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
   val TimeFormat: SimpleDateFormat = new SimpleDateFormat("HH:mm:ss.SSSZ")

@@ -196,7 +196,9 @@ object Projections extends StrictLogging {
   }
 
   def getTags(kcql: Set[Kcql]): Map[String, Set[Tag]] = {
-    kcql.map { k => (k.getSource -> k.getTags.asScala.toSet) }.toMap
+    kcql
+      .filter(k => k.getTags != null)
+      .map { k => (k.getSource -> k.getTags.asScala.toSet) }.toMap
   }
 
   def getWithType(kcql: Set[Kcql]): Map[String, String] = {

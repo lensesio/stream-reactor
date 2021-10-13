@@ -62,12 +62,14 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
           |{
           |   "firstName":"Alex",
           |   "age":30.0,
-          |   "child":"Alex_Junior"
+          |   "child": {
+          |     "firstName": "Alex_Junior"
+          |   }
           |}
         """.stripMargin
 
       val record =
-        new SinkRecord("t", 0, null, null, Schema.STRING_SCHEMA, json, 0)
+        new SinkRecord(TOPIC, 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
       writer.write(Seq(record))
 
