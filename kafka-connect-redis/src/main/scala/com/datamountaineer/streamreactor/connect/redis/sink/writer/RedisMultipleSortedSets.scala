@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.config.base.settings.Projections
 import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
 import com.datamountaineer.streamreactor.common.schemas.StructHelper
 import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
