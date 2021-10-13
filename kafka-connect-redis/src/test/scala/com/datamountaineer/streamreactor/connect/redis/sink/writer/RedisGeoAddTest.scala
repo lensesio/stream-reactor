@@ -49,7 +49,6 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
 
       val struct1 = new Struct(schema).put("longitude", "10").put("latitude", "20").put("country", "UK").put("town", "London")
       val struct2 = new Struct(schema).put("longitude", "10").put("latitude", "20").put("country", "UK").put("town", "Liverpool")
-      val struct3 = new Struct(schema).put("country", "UK").put("town", "Manchester")
 
       val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
       val sinkRecord2 = new SinkRecord(TOPIC, 0, null, null, schema, struct2, 2)

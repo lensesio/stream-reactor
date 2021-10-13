@@ -43,8 +43,7 @@ class RedisStreams(sinkSettings: RedisSinkSettings) extends RedisWriter with Pub
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
 //    assert(c.getTarget.length > 0, "Add to your KCQL syntax : INSERT INTO REDIS_KEY_NAME ")
-    assert(c.getSource.trim.length > 0, "You need to define one (1) topic to source data. Add to your KCQL syntax: SELECT * FROM topicName")
-    val allFields = if (c.getIgnoredFields.isEmpty) false else true
+    assert(c.getSource.trim.nonEmpty, "You need to define one (1) topic to source data. Add to your KCQL syntax: SELECT * FROM topicName")
     assert(c.getStoredAs.equalsIgnoreCase("Stream"), "This mode requires the KCQL syntax: STOREAS Stream")
   }
 

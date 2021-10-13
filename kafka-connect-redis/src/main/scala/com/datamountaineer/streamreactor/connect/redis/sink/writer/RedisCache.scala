@@ -76,8 +76,6 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
               topicSettings.map { KCQL =>
                 // We can prefix the name of the <KEY> using the target
                 val optionalPrefix = if (Option(KCQL.kcqlConfig.getTarget).isEmpty) "" else KCQL.kcqlConfig.getTarget.trim
-                // Use first primary key's value and (optional) prefix
-                val pkDelimiter = sinkSettings.pkDelimiter
                 //extract will flatten if parent/child detected
                 val keys = KCQL.kcqlConfig.getPrimaryKeys.asScala.map(pk => (pk.toString, pk.toString.replaceAll("\\.", "_"))).toMap
 
@@ -107,7 +105,7 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
                         jedis.setex(key, ttl.toInt, payload)
                       }
 
-                    case Failure(f) =>
+                    case Failure(_) =>
                       throw new ConnectException(s"Failed to constructed new record with primary key fields [${keys.mkString(",")}]")
                   }
               }

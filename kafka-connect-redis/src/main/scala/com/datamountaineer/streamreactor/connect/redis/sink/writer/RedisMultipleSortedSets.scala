@@ -45,7 +45,6 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
     assert(c.getPrimaryKeys.asScala.nonEmpty, "The Redis MultipleSortedSets mode requires at least 1 PK (Primary Key) to be defined")
     assert(c.getStoredAs.equalsIgnoreCase("SortedSet"), "The Redis MultipleSortedSets mode requires the KCQL syntax: STOREAS SortedSet")
   }
-  private val projections = Projections(kcqls = configs, props = Map.empty, errorPolicy = sinkSettings.errorPolicy, errorRetries = sinkSettings.taskRetries, defaultBatchSize = 100)
 
   // Write a sequence of SinkRecords to Redis
   override def write(records: Seq[SinkRecord]): Unit = {
@@ -81,8 +80,8 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
                 fields ++ scoreFields,
                 Set.empty)) match {
                 case Success(value) => simpleJsonConverter.fromConnectData(value.schema(), value)
-                case Failure(f) =>
-                  throw new ConnectException((s"Failed to constructed new record with fields [${fields.mkString(",")}] and score fields [${scoreFields.mkString(",")}]"))
+                case Failure(_) =>
+                  throw new ConnectException(s"Failed to constructed new record with fields [${fields.mkString(",")}] and score fields [${scoreFields.mkString(",")}]")
               }
 
               //extract pk, score fields and send
@@ -121,8 +120,8 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
                     }
 
                     response
-                  case Failure(f) =>
-                    throw new ConnectException((s"Failed to constructed new record with primary key fields [${fields.mkString(",")}] and score fields [${scoreFields.mkString(",")}]"))
+                  case Failure(_) =>
+                    throw new ConnectException(s"Failed to constructed new record with primary key fields [${fields.mkString(",")}] and score fields [${scoreFields.mkString(",")}]")
                 }
             }
           }

@@ -83,10 +83,9 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
         private val pubsub = new JedisPubSub {
           override def onMessage(channel: String, message: String): Unit = {
             messagesMap.get(channel) match {
-              case Some(msgs) => {
+              case Some(msgs) =>
                 logger.info("Receiving message!")
                 messagesMap.put(channel, msgs += message)
-              }
               case None => messagesMap.put(channel, ListBuffer(message))
             }
           }

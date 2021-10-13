@@ -175,7 +175,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     settings.kcqlSettings
       .filter { k =>
         Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SORTEDSET") &&
-          k.kcqlConfig.getPrimaryKeys.asScala.length >= 1
+          k.kcqlConfig.getPrimaryKeys.asScala.nonEmpty
       }
   )
 
@@ -236,7 +236,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping Redis sink.")
     writer.foreach(w => w.close())
-    progressCounter.empty
+    progressCounter.empty()
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {

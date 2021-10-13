@@ -51,7 +51,6 @@ class RedisStreamTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
       ).asJava
 
       val config = RedisConfig(props)
-      val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisStreams(settings)
 

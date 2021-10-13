@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.common.sink.DbWriter
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import com.typesafe.scalalogging.StrictLogging

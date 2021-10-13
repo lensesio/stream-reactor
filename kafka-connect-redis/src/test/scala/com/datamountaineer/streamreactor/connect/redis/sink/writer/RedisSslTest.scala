@@ -44,7 +44,7 @@ The test requires to:
 
 class RedisSslTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
-  val runTests = false;
+  val runTests = false
 
   val truststoreFilePath = "src/test/resources/truststore.jceks"
 

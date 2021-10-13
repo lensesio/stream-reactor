@@ -81,11 +81,11 @@ class RedisGeoAdd(sinkSettings: RedisSinkSettings) extends RedisWriter with GeoA
                     jedis.geoadd(key, longitude.toDouble, latitude.toDouble, payload.toString)
                   } else {
                     logger.warn(s"GeoAdd record contains invalid longitude [$longitude] and latitude [$latitude] values, " +
-                      s"Record with key [${record.key}] is skipped");
+                      s"Record with key [${record.key}] is skipped")
                   }
 
-                case Failure(f) =>
-                  throw new ConnectException(s"Failed to constructed new record with primary key fields [${keys.mkString(",")}] and lat and long fields [${longitudeField}, ${latitudeField}]")
+                case Failure(_) =>
+                  throw new ConnectException(s"Failed to constructed new record with primary key fields [${keys.mkString(",")}] and lat and long fields [$longitudeField, $latitudeField]")
               }
             }
           }
