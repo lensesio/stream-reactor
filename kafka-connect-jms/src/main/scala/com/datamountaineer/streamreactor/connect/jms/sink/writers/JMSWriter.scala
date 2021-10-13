@@ -22,7 +22,7 @@ import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSSetting, JMSSettings}
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.{JMSHeadersConverterWrapper, JMSMessageConverter, JMSMessageConverterFn}
+import com.datamountaineer.streamreactor.connect.jms.sink.converters.{JMSHeadersConverterWrapper, JMSMessageConverter}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 
@@ -37,7 +37,13 @@ case class JMSWriter(settings: JMSSettings) extends AutoCloseable with Converter
   provider.start()
   val producers: Map[String, MessageProducer] = provider.queueProducers ++ provider.topicProducers
   val converterMap: Map[String, JMSMessageConverter] = settings.settings
-    .map(s => (s.source, JMSHeadersConverterWrapper(s.headers, JMSMessageConverterFn(s.format)))).toMap
+    .map(s => (
+      s.source,
+      JMSHeadersConverterWrapper(
+        s.headers,
+        s.sinkConverter
+      )
+    )).toMap
   val settingsMap: Map[String, JMSSetting] = settings.settings.map(s => (s.source, s)).toMap
 
   //initialize error tracker

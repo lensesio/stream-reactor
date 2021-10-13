@@ -62,17 +62,24 @@ object JMSConfigConstants {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-  val AVRO_CONVERTERS_SCHEMA_FILES = "connect.converter.avro.schemas"
+  val AVRO_CONVERTERS_SCHEMA_FILES = "avro.schemas"
   val AVRO_CONVERTERS_SCHEMA_FILES_DOC = "If the AvroConverter is used you need to provide an avro Schema to be able to read and translate the raw bytes to an avro record. The format is $MQTT_TOPIC=$PATH_TO_AVRO_SCHEMA_FILE"
   val AVRO_CONVERTERS_SCHEMA_FILES_DEFAULT = ""
 
-  val DEFAULT_CONVERTER_CONFIG = s"${CONNECTOR_PREFIX}.source.default.converter"
-  private[config] val DEFAULT_CONVERTER_DOC =
+  val DEFAULT_SOURCE_CONVERTER_CONFIG = s"${CONNECTOR_PREFIX}.source.default.converter"
+  private[config] val DEFAULT_SOURCE_CONVERTER_DOC =
     """
       |Contains a canonical class name for the default converter of a raw JMS message bytes to a SourceRecord.
       |Overrides to the default can be done by using connect.jms.source.converters still.
       |i.e. com.datamountaineer.streamreactor.connect.source.converters.AvroConverter""".stripMargin
-  private[config] val DEFAULT_CONVERTER_DISPLAY = "Default Converter class"
+  private[config] val DEFAULT_SOURCE_CONVERTER_DISPLAY = "Default Source Converter class"
+
+  val DEFAULT_SINK_CONVERTER_CONFIG = s"${CONNECTOR_PREFIX}.sink.default.converter"
+  private[config] val DEFAULT_SINK_CONVERTER_DOC =
+    """
+      |Contains a canonical class name for the default converter from a SinkRecord to a raw JMS message.
+      |i.e. com.datamountaineer.streamreactor.connect.jms.sink.converters.AvroMessageConverter""".stripMargin
+  private[config] val DEFAULT_SINK_CONVERTER_DISPLAY = "Default Sink Converter class"
 
   val HEADERS_CONFIG = s"${CONNECTOR_PREFIX}.headers"
   private[config] val HEADERS_CONFIG_DOC =

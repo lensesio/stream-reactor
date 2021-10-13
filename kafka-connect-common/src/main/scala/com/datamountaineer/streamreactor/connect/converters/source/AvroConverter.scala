@@ -91,10 +91,11 @@ class AvroConverter extends Converter {
 }
 
 object AvroConverter {
-  val SCHEMA_CONFIG = "connect.source.converter.avro.schemas"
+  val SCHEMA_CONFIG = "avro.schemas"
+  val CONNECT_SOURCE_CONVERTER_SCHEMA_CONFIG = Converter.CONNECT_SOURCE_CONVERTER_PREFIX + "." + SCHEMA_CONFIG
 
   def getSchemas(config: Map[String, String]): Map[String, AvroSchema] = {
-    config.getOrElse(SCHEMA_CONFIG, throw new ConfigException(s"[$SCHEMA_CONFIG] is not provided"))
+    config.getOrElse(SCHEMA_CONFIG, config.getOrElse(CONNECT_SOURCE_CONVERTER_SCHEMA_CONFIG, throw new ConfigException(s"[$SCHEMA_CONFIG] is not provided")))
       .toString
       .split(';')
       .filter(_.trim.nonEmpty)

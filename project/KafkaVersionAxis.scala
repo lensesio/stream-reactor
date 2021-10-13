@@ -46,6 +46,7 @@ case class KafkaVersionAxis(kafkaVersion: String) extends WeakAxis {
     jacksonDatabind(jacksonDatabindVersion),
     jacksonDataformatCbor(jacksonVersion),
     jacksonModuleScala(jacksonVersion),
+    confluentProtobufConverter(confluentPlatformVersion)
   )
 
   def ideEnable(): Boolean = kafkaVersion == "3.1.0"

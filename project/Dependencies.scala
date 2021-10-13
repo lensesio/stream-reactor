@@ -82,7 +82,7 @@ object Dependencies {
     val guiceVersion      = "5.1.0"
     val javaxBindVersion  = "2.3.1"
 
-    val kcqlVersion         = "2.8.7"
+    val kcqlVersion         = "2.9.1"
     val json4sVersion       = "4.0.5"
     val mockitoScalaVersion = "1.16.55"
     val snakeYamlVersion    = "1.30"
@@ -116,6 +116,8 @@ object Dependencies {
 
     val jmsApiVersion   = "2.0.1"
     val activeMqVersion = "5.16.5"
+    val protocVersion   = "3.11.4"
+
 
     val kuduVersion = "1.16.0"
 
@@ -214,19 +216,21 @@ object Dependencies {
   def kafkaConnectJson(kafkaVersion: String): ModuleID = "org.apache.kafka" % "connect-json"  % kafkaVersion % "provided"
   def kafkaClients(kafkaVersion:     String): ModuleID = "org.apache.kafka" % "kafka-clients" % kafkaVersion
 
-  def confluentJsonSchemaSerializer(confluentVersion: String): ModuleID =
-    "io.confluent" % "kafka-json-schema-serializer" % confluentVersion
-  def confluentAvroConverter(confluentVersion: String): ModuleID =
-    ("io.confluent" % "kafka-connect-avro-converter" % confluentVersion)
+  def confluentJsonSchemaSerializer(confluentVersion: String): ModuleID = "io.confluent" % "kafka-json-schema-serializer" % confluentVersion
+
+  def confluentExcludes(moduleID: ModuleID): ModuleID = moduleID
       .exclude("org.slf4j", "slf4j-log4j12")
       .exclude("org.apache.kafka", "kafka-clients")
       .exclude("javax.ws.rs", "javax.ws.rs-api")
-      //.exclude("io.confluent", "kafka-schema-registry-client")
-      //.exclude("io.confluent", "kafka-schema-serializer")
       .excludeAll(ExclusionRule(organization = "io.swagger"))
       .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.core"))
       .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson"))
       .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.databind"))
+
+
+  def confluentAvroConverter(confluentVersion: String): ModuleID = confluentExcludes("io.confluent" % "kafka-connect-avro-converter" % confluentVersion)
+
+  def confluentProtobufConverter(confluentVersion: String): ModuleID = confluentExcludes("io.confluent" % "kafka-connect-protobuf-converter" % confluentVersion)
 
   val http4sDsl         = "org.http4s" %% "http4s-dsl"               % http4sVersion
   val http4sAsyncClient = "org.http4s" %% "http4s-async-http-client" % http4sVersion
@@ -375,6 +379,7 @@ object Dependencies {
   lazy val jmsApi   = "javax.jms"           % "javax.jms-api" % jmsApiVersion
   lazy val activeMq = "org.apache.activemq" % "activemq-all"  % activeMqVersion
 
+  lazy val protoc = "com.github.os72" % "protoc-jar" % protocVersion
   lazy val kuduClient = "org.apache.kudu" % "kudu-client" % kuduVersion
 
   lazy val mqttClient = "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % mqttVersion
@@ -533,7 +538,9 @@ trait Dependencies {
 
   val kafkaConnectInfluxDbDeps: Seq[ModuleID] = Seq(influx, avro4s, avro4sJson)
 
-  val kafkaConnectJmsDeps: Seq[ModuleID] = Seq(jmsApi)
+  // TODO: The confluent version should be overridden by dependency overrides if we're building 2.6
+  // Find a more elegant solution to pick the right dependencies.  May require some refactoring.
+  val kafkaConnectJmsDeps : Seq[ModuleID] = Seq(jmsApi, confluentProtobufConverter(KafkaVersionAxis("3.1.0").confluentPlatformVersion), protoc)
 
   val kafkaConnectJmsTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(activeMq)
 

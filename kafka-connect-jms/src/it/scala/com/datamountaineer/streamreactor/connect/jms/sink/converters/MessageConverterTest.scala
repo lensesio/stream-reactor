@@ -20,11 +20,15 @@ package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.AvroDeserializer
+import com.datamountaineer.streamreactor.connect.jms.{TestBase, Using}
+import com.datamountaineer.streamreactor.example.AddressedPerson
 import com.datamountaineer.streamreactor.connect.jms.{ItTestBase, Using}
 import io.confluent.connect.avro.AvroData
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -34,6 +38,12 @@ import java.nio.ByteBuffer
 import java.util.UUID
 import javax.jms.{BytesMessage, MapMessage, ObjectMessage, TextMessage}
 import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala}
+
+import java.nio.ByteBuffer
+import java.util.UUID
+import javax.jms.{BytesMessage, MapMessage, ObjectMessage, TextMessage}
+import scala.collection.JavaConverters._
+
 import scala.reflect.io.Path
 
 class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItTestBase with BeforeAndAfterAll {
@@ -230,4 +240,72 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItT
       }
     }
   }
+
+  "ProtoMessageConverter" should {
+    "create a BytesMessage with sinkrecord payload when storedAs is null" in {
+      val converter = new ProtoMessageConverter()
+      val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
+      val queueName = UUID.randomUUID().toString
+      val kcql = getKCQL(queueName, kafkaTopic1, "QUEUE")
+      val props = getProps(kcql, JMS_URL)
+      val config = JMSConfig(props.asJava)
+      val settings = JMSSettings(config, true)
+      val setting = settings.settings.head
+      val connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false")
+      using(connectionFactory.createConnection()) { connection =>
+        using(connection.createSession(false, 1)) { session =>
+          val schema = getProtobufSchema
+          val struct = getProtobufStruct(schema, "lenses", 101, "lenses@lenses.com")
+          val record = new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1)
+
+          val msg = converter.convert(record, session, setting)._2
+          msg.reset()
+          val convertedValueLength = msg.getBodyLength
+
+          val byteData: Array[Byte] = new Array[Byte](convertedValueLength.toInt)
+          msg.readBytes(byteData)
+          val person = AddressedPerson.parser().parseFrom(byteData)
+
+          person.getName shouldBe "lenses"
+          person.getId shouldBe 101
+          person.getEmail shouldBe "lenses@lenses.com"
+        }
+      }
+    }
+
+    "create a BytesMessage with sinkrecord payload with storedAs data" in {
+      val converter = new ProtoMessageConverter()
+
+      val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
+      val queueName = UUID.randomUUID().toString
+      val kcql = getKCQLStoredAsWithNameOnly(queueName, kafkaTopic1, "QUEUE")
+      val props = getProps(kcql, JMS_URL)
+      val schema = getProtobufSchema
+      val struct = getProtobufStruct(schema, "addrressed-person", 103, "addressed-person@gmail.com")
+      val config = JMSConfig(props.asJava)
+      val settings = JMSSettings(config, true)
+      val connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false")
+      using(connectionFactory.createConnection()) { connection =>
+        using(connection.createSession(false, 1)) { session =>
+          val setting = settings.settings.head
+
+          converter.initialize(props.asJava)
+          val record = new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1)
+
+          val convertedValue = converter.convert(record, session, setting)._2
+
+          convertedValue.reset()
+          val convertedValueLength = convertedValue.getBodyLength
+          val byteData: Array[Byte] = new Array[Byte](convertedValueLength.toInt)
+          convertedValue.readBytes(byteData)
+          val person = AddressedPerson.parser().parseFrom(byteData)
+
+          person.getName shouldBe "addrressed-person"
+          person.getId shouldBe 103
+          person.getEmail shouldBe "addressed-person@gmail.com"
+        }
+      }
+    }
+  }
+
 }
