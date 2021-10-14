@@ -221,9 +221,9 @@ object JMSSettings extends StrictLogging {
       evictThreshold)
   }
 
-  def toSinkJMSMessageConverter(value: Any): com.datamountaineer.streamreactor.connect.jms.sink.converters.JMSMessageConverter = {
+  def toSinkJMSMessageConverter(value: Any): JMSMessageConverter = {
     value match {
-      case converter: com.datamountaineer.streamreactor.connect.jms.sink.converters.JMSMessageConverter =>
+      case converter: JMSMessageConverter =>
         converter
       case _ =>
         throw new ConfigException(s"${value.getClass.toString} is neither JMSMessageConverter nor Converter.")
@@ -251,11 +251,11 @@ object JMSSettings extends StrictLogging {
     }
   }
 
-  def toSourceJMSMessageConverter(value: Any): com.datamountaineer.streamreactor.connect.jms.source.converters.JMSMessageConverter = {
+  def toSourceJMSMessageConverter(value: Any): JMSMessageSourceConverter = {
     value match {
       case converter1: Converter =>
-        new com.datamountaineer.streamreactor.connect.jms.source.converters.CommonJMSMessageConverter(converter1)
-      case converter: com.datamountaineer.streamreactor.connect.jms.source.converters.JMSMessageConverter =>
+        new CommonJMSMessageConverter(converter1)
+      case converter: JMSMessageSourceConverter =>
         converter
       case _ =>
         throw new ConfigException(s"${value.getClass.toString} is neither JMSMessageConverter nor Converter.")
