@@ -23,7 +23,7 @@ import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorP
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
 import com.datamountaineer.streamreactor.connect.jms.sink.converters.{JMSMessageConverter, JMSMessageConverterFn, JsonMessageConverter}
-import com.datamountaineer.streamreactor.connect.jms.source.converters.JMSStructMessageConverter
+import com.datamountaineer.streamreactor.connect.jms.source.converters.{CommonJMSMessageConverter, JMSStructMessageConverter, JMSMessageConverter => JMSMessageSourceConverter}
 import com.google.common.base.Splitter
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
@@ -135,15 +135,15 @@ object JMSSettings extends StrictLogging {
     //check converters
 
     var kcqlSinkConverter: JMSMessageConverter = new JsonMessageConverter
-    var kcqlSourceConverter: com.datamountaineer.streamreactor.connect.jms.source.converters.JMSMessageConverter = new JMSStructMessageConverter
+    var kcqlSourceConverter: JMSMessageSourceConverter = new JMSStructMessageConverter
 
     converters foreach {
       case (jms_source, clazz) =>
         logger.info(s"Creating converter instance for $clazz")
         Class.forName(clazz).newInstance() match {
           case converter: Converter =>
-            new  com.datamountaineer.streamreactor.connect.jms.source.converters.CommonJMSMessageConverter(converter)
-          case converter: com.datamountaineer.streamreactor.connect.jms.source.converters.JMSMessageConverter =>
+            new  CommonJMSMessageConverter(converter)
+          case converter: JMSMessageSourceConverter =>
             kcqlSourceConverter = converter
           case converter: JMSMessageConverter =>
             kcqlSinkConverter = converter
@@ -174,6 +174,7 @@ object JMSSettings extends StrictLogging {
 
       val sinkConverter = if (sink && r.getFormatType != null) {
         val messageConverter = JMSMessageConverterFn(r.getFormatType)
+        logger.info(s"Message converter associated to the format type is: $messageConverter")
         messageConverter
       }
       else

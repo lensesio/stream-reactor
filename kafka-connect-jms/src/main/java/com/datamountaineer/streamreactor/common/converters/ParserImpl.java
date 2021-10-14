@@ -71,7 +71,6 @@ public class ParserImpl {
             JsonReader reader = new JsonReader(new StringReader(json));
             reader.setLenient(false);
             JsonElement jsonelement = JsonParser.parseReader(reader);
-            System.out.println("JsonElement: "+ jsonelement);
             merge(jsonelement, builder);
         } catch (InvalidProtocolBufferException e) {
             throw e;

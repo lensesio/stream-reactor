@@ -47,13 +47,11 @@ class JMSReader(settings: JMSSettings) extends StrictLogging {
           .flatMap(_ => Option(consumer.receiveNoWait()))
           .map(m => (m, convert(source, topicsMap(source), m)))
       })
-    println("Poll message:"+ messages)
     messages
   }
 
   def convert(source: String, target: String, message: Message): SourceRecord = {
     val converter = convertersMap(source)
-    println("JMSReader: "+ message)
     converter.convert(source, target, message)
   }
 

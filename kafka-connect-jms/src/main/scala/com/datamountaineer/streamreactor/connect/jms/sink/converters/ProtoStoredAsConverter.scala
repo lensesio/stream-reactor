@@ -5,7 +5,6 @@ import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import com.github.os72.protocjar.Protoc
 import com.google.protobuf.util.JsonFormat
 import com.google.protobuf.{DescriptorProtos, Descriptors, DynamicMessage}
-import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.lang.StringUtils
 import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.json.JsonConverter
@@ -118,13 +117,11 @@ case class ProtoStoredAsConverter() extends ProtoConverter {
   }
 
   private def replaceBackQuote(replaceString: String) = {
-
-    val value = if (StringUtils.isEmpty(replaceString)) {
+    if (StringUtils.isEmpty(replaceString)) {
       StringUtils.EMPTY
     } else if (replaceString.contains(BACK_QUOTE))
       replaceString.replace(BACK_QUOTE, StringUtils.EMPTY)
     else replaceString
-    value
   }
 
   private def getDescriptor(message: String, protoPath: String, protoFiles: util.Collection[String]): Descriptors.Descriptor = {

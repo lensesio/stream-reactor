@@ -258,8 +258,22 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with Tes
           msg.readBytes(byteData)
           val stringMessage = new String(byteData, "UTF-8")
 
-          Option(msg).isDefined shouldBe true
-          stringMessage.contains("foo") shouldBe true
+          stringMessage shouldBe "int8: 12\n" +
+            "int16: 12\n" +
+            "int32: 12\n" +
+            "int64: 12\n" +
+            "float32: 12.2\n" +
+            "float64: 12.2\n" +
+            "boolean: true\n" +
+            "string: \"foo\"\n" +
+            "bytes: \"foo\"\n" +
+            "array: \"a\"\n" +
+            "array: \"b\"\n" +
+            "array: \"c\"\n" +
+            "map {\n  " +
+            "key: \"field\"\n  " +
+            "value: 1\n}\n" +
+            "mapNonStringKeys {\n  key: 1\n  value: 1\n}\n"
         }
       }
     }
