@@ -2,14 +2,15 @@ package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
 import java.io.IOException
 import java.util
-import javax.jms.{BytesMessage, JMSException, Message, Session}
+import javax.jms.{BytesMessage, JMSException, Session}
 
-class ProtoMessageConverter extends JMSMessageConverter with ConverterUtil {
+class ProtoMessageConverter extends JMSMessageConverter with ConverterUtil with StrictLogging {
 
   private val dynamicConverter = new ProtoDynamicConverter
   private val storedAsConverter = new ProtoStoredAsConverter

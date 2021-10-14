@@ -5,6 +5,7 @@ import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import com.github.os72.protocjar.Protoc
 import com.google.protobuf.util.JsonFormat
 import com.google.protobuf.{DescriptorProtos, Descriptors, DynamicMessage}
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.lang.StringUtils
 import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.json.JsonConverter
@@ -20,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
 import scala.collection.JavaConverters._
 
-case class ProtoStoredAsConverter() extends ProtoConverter {
+case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
 
   private val SCHEMA_PROTO_PATH = "proto_path"
   private val SCHEMA_PROTO_FILE = "proto_file"
