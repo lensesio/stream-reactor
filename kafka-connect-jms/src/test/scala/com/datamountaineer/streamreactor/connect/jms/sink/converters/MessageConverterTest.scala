@@ -250,11 +250,11 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with Tes
           val struct = getStruct(schema)
           val record = new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1)
 
-          val msg = converter.convert(record, session, setting)._2.asInstanceOf[BytesMessage]
+          val msg = converter.convert(record, session, setting)._2
 
-          var byteData: Array[Byte] = null
           msg.reset()
-          byteData = new Array[Byte](msg.getBodyLength.asInstanceOf[Int])
+          val convertedValueLength = msg.getBodyLength
+          val byteData: Array[Byte] = new Array[Byte](convertedValueLength.toInt)
           msg.readBytes(byteData)
           val stringMessage = new String(byteData, "UTF-8")
 
@@ -297,15 +297,14 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with Tes
           converter.initialize(props.asJava)
           val record = new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1)
 
-          val convertedValue = converter.convert(record, session, setting)._2.asInstanceOf[BytesMessage]
+          val convertedValue = converter.convert(record, session, setting)._2
 
-          var byteData: Array[Byte] = null
           convertedValue.reset()
-          byteData = new Array[Byte](convertedValue.getBodyLength.asInstanceOf[Int])
+          val convertedValueLength = convertedValue.getBodyLength
+          val byteData: Array[Byte] = new Array[Byte](convertedValueLength.toInt)
           convertedValue.readBytes(byteData)
           val stringMessage = new String(byteData, "UTF-8")
 
-          Option(stringMessage).isDefined shouldBe true
           stringMessage.contains("name") shouldBe true
           stringMessage.contains("addressed-person@gmail.com") shouldBe true
           stringMessage.contains("id") shouldBe true

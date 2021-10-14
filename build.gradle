@@ -19,6 +19,7 @@ plugins {
     id "de.undercouch.download" version "3.4.3"
     id "com.github.maiflai.scalatest" version "0.26"
     id "com.github.johnrengelman.shadow" version "5.2.0"
+    id 'com.google.protobuf' version "0.8.17"
 }
 
 

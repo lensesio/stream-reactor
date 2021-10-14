@@ -15,10 +15,16 @@
  */
 
 project(":kafka-connect-jms") {
-
+    apply plugin: 'com.google.protobuf'
     ext {
         jmsVersion = "2.0.1"
         scalaxVersion = "1.26.0"
+    }
+
+    repositories {
+        maven {
+            url = uri('https://plugins.gradle.org/m2/')
+        }
     }
 
     dependencies {
@@ -26,10 +32,29 @@ project(":kafka-connect-jms") {
         compile("javax.jms:javax.jms-api:$jmsVersion")
         compile ("io.confluent:kafka-connect-protobuf-converter:$confluentVersion")
         compile ("com.github.os72:protoc-jar:3.11.4")
+        implementation 'com.google.protobuf:protobuf-java:3.11.4'
         testCompile("org.apache.activemq:activemq-all:5.14.5")
         testCompile("org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion")
         testCompile("com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion")
         testCompile("com.sksamuel.avro4s:avro4s-macros_$scalaMajorVersion:$avro4sVersion")
         testCompile("com.sksamuel.avro4s:avro4s-generator_2.12.0-M4:1.6.0")
+    }
+
+    sourceSets {
+        main {
+            proto {
+                srcDir 'src/test/resources/proto'
+            }
+        }
+    }
+
+    protobuf {
+        protoc {
+            artifact = "com.google.protobuf:protoc:3.7.0"
+        }
+
+        generateProtoTasks {
+            ofSourceSet('main')
+        }
     }
 }
