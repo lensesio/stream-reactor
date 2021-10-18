@@ -23,7 +23,7 @@ class ProtoMessageConverter extends JMSMessageConverter with ConverterUtil with 
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): Tuple2[String, BytesMessage] = {
     val protoConverter = if (setting.storedAs == null) dynamicConverter
     else storedAsConverter
-    logger.info(s"Proto converter loaded is: $protoConverter")
+    logger.debug(s"Proto converter loaded is: $protoConverter")
     try {
       val bytes = protoConverter.convert(record, setting)
       val message = session.createBytesMessage

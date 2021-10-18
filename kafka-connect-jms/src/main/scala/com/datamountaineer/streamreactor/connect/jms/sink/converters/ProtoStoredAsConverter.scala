@@ -44,13 +44,13 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
   override def convert(record: SinkRecord, setting: JMSSetting): Array[Byte] = {
     val properties: util.Map[String, String] = mapAsJavaMap(setting.storedAsProperties)
     val storedAs = replaceBackQuote(setting.storedAs)
-    logger.info(s"storedAs:  $storedAs")
+    logger.debug(s"storedAs:  $storedAs")
     val storedas_proto_path: String = properties.getOrDefault(SCHEMA_PROTO_PATH, defaultProtoPath)
     val protoPath: String = replaceBackQuote(storedas_proto_path)
-    logger.info(s"protoPath:  $protoPath")
+    logger.debug(s"protoPath:  $protoPath")
     val storedas_proto_file = properties.get(SCHEMA_PROTO_FILE)
     val protoFile: String = getProtoFile(storedas_proto_file)
-    logger.info(s"protoFile:  $protoFile")
+    logger.debug(s"protoFile:  $protoFile")
     //Cache the descriptor lookup so not doing reflection on every record.
     val descriptor = descriptors.computeIfAbsent(storedAs, (name: String) => {
       try if (!StringUtils.isEmpty(protoPath)) {
@@ -66,7 +66,7 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
         }
       } else {
         val specificProtobufClass = Class.forName(name)
-        logger.info(s"Class loaded is: $specificProtobufClass")
+        logger.debug(s"Class loaded is: $specificProtobufClass")
         val parseMethod = if (specificProtobufClass != null) specificProtobufClass.getDeclaredMethod("getDescriptor")
         else throw new DataException("Invalid storedAs classpath name: " + name)
         parseMethod.invoke(null)
@@ -148,7 +148,7 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
         .findFirst
         .orElse(null)
 
-      logger.info(s"Descriptor value is $descriptor")
+      logger.debug(s"Descriptor value is $descriptor")
       descriptor
     }
     else throw new DataException("File descriptor name doesn't match with proto file name")
