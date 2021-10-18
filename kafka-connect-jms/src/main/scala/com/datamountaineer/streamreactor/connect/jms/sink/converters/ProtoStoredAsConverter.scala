@@ -6,7 +6,6 @@ import com.github.os72.protocjar.Protoc
 import com.google.protobuf.util.JsonFormat
 import com.google.protobuf.{DescriptorProtos, Descriptors, DynamicMessage}
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.commons.lang.StringUtils
 import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.json.JsonConverter
 import org.apache.kafka.connect.sink.SinkRecord
@@ -17,6 +16,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{Files, Path, Paths}
 import java.util
+import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
 import scala.collection.JavaConverters._
@@ -35,9 +35,10 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
   private var defaultProtoPath: String = _
 
   private val BACK_QUOTE = "`"
+  private val EMPTY = ""
 
   override def initialize(map: util.Map[String, String]): Unit = {
-    defaultProtoPath = map.get(CONNECT_SINK_CONVERTER_SCHEMA_CONFIG)
+    defaultProtoPath = Option(map.get(CONNECT_SINK_CONVERTER_SCHEMA_CONFIG)).getOrElse(EMPTY)
   }
 
 
@@ -48,13 +49,13 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
     val storedas_proto_path: String = properties.getOrDefault(SCHEMA_PROTO_PATH, defaultProtoPath)
     val protoPath: String = replaceBackQuote(storedas_proto_path)
     logger.debug(s"protoPath:  $protoPath")
-    val storedas_proto_file = properties.get(SCHEMA_PROTO_FILE)
+    val storedas_proto_file = Option(properties.get(SCHEMA_PROTO_FILE)).getOrElse(EMPTY)
     val protoFile: String = getProtoFile(storedas_proto_file)
     logger.debug(s"protoFile:  $protoFile")
     //Cache the descriptor lookup so not doing reflection on every record.
     val descriptor = descriptors.computeIfAbsent(storedAs, (name: String) => {
-      try if (!StringUtils.isEmpty(protoPath)) {
-        if (!StringUtils.isEmpty(protoFile)) {
+      try if (protoPath.trim.nonEmpty) {
+        if (protoFile.trim.nonEmpty) {
           getDescriptor(name, protoPath, protoFile)
         } else {
           val basePath = Paths.get(protoPath)
@@ -85,9 +86,9 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
     // As Protobuf is Positional based, yet Record is FieldName based,
     // we can convert to JSON and then back into Proto using JsonFormat which will match the FieldName to the Protobuf FieldName
     // This is safest for compatibility to be explicit though unfortunate the extra convert to JSON is not ideal.
-    val enable_schema = Map(
-      "schemas.enable" -> "true",
-    ).asJava
+    val enable_schema = Collections.singletonMap(
+      "schemas.enable","true"
+    )
     jsonConverter.configure(enable_schema, true)
 
     val json_converted_data = jsonConverter.fromConnectData(record.topic, record.valueSchema, record.value)
@@ -108,29 +109,26 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
   }
 
   private def getProtoFile(storedas_proto_file: String) = {
-    if (!StringUtils.isEmpty(storedas_proto_file)) {
+    if (storedas_proto_file.trim.nonEmpty) {
       val protoFile = replaceBackQuote(storedas_proto_file)
       val fileName = new File(protoFile)
         .getName
       fileName
     }
-    else null
+    else EMPTY
   }
 
-  private def replaceBackQuote(replaceString: String) = {
-    if (StringUtils.isEmpty(replaceString)) {
-      StringUtils.EMPTY
-    } else if (replaceString.contains(BACK_QUOTE))
-      replaceString.replace(BACK_QUOTE, StringUtils.EMPTY)
-    else replaceString
+  private def replaceBackQuote(s: String) = {
+   if (s.contains(BACK_QUOTE))
+      s.replace(BACK_QUOTE, EMPTY)
+    else s
   }
 
   private def getDescriptor(message: String, protoPath: String, protoFiles: util.Collection[String]): Descriptors.Descriptor = {
-    protoFiles.forEach(protoFile => {
-      val descriptor = getDescriptor(message: String, protoPath: String, protoFile: String)
-      if (descriptor != null) return descriptor
-    })
-    throw new DataException("Proto file package name doesn't match with storedAs package name")
+    protoFiles.asScala
+      .flatMap(file=> Option(getDescriptor(message, protoPath, file)))
+      .headOption
+      .getOrElse(throw new DataException("Proto file package name doesn't match with storedAs package name"))
   }
 
   private def getDescriptor(message: String, protoPath: String, protoFile: String): Descriptors.Descriptor = try {

@@ -28,7 +28,7 @@ class ProtoMessageConverter extends JMSMessageConverter with ConverterUtil with 
       val bytes = protoConverter.convert(record, setting)
       val message = session.createBytesMessage
       message.writeBytes(bytes)
-      new Tuple2[String, BytesMessage](setting.source, message)
+      setting.source -> message
     } catch {
       case e@(_: IOException | _: JMSException) =>
         throw new ConnectException(e.getMessage, e)

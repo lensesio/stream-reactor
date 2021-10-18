@@ -116,9 +116,9 @@ object JMSSettings extends StrictLogging {
       .filterNot(c => c.isEmpty).map { c =>
       Try(Class.forName(c)) match {
         case Failure(_) => throw new ConfigException(s"Invalid ${JMSConfigConstants.DEFAULT_SINK_CONVERTER_CONFIG}.$c can't be found")
-        case Success(_) =>
+        case Success(cls) =>
           logger.info(s"Creating converter instance for $c")
-          val converter = Try(Class.forName(c).newInstance()) match {
+          val converter = Try(cls.newInstance()) match {
             case Success(value) => toSinkJMSMessageConverter(value)
             case Failure(_) => throw new ConfigException(s"${JMSConfigConstants.DEFAULT_SINK_CONVERTER_CONFIG} is invalid. $c should have an empty ctor!")
           }
@@ -140,15 +140,16 @@ object JMSSettings extends StrictLogging {
     converters foreach {
       case (jms_source, clazz) =>
         logger.info(s"Creating converter instance for $clazz")
-        Class.forName(clazz).newInstance() match {
-          case converter: Converter =>
-            new  CommonJMSMessageConverter(converter)
-          case converter: JMSMessageSourceConverter =>
-            kcqlSourceConverter = converter
-          case converter: JMSMessageConverter =>
-            kcqlSinkConverter = converter
-          case _ =>
-            throw new ConfigException(s"Invalid ${JMSConfigConstants.KCQL} is invalid for $jms_source. $clazz should have an empty ctor!")
+        Try(Class.forName(clazz).newInstance()) match {
+          case Success(cls) => cls match {
+            case cls: Converter =>
+              new CommonJMSMessageConverter(cls)
+            case cls: JMSMessageSourceConverter =>
+              kcqlSourceConverter = cls
+            case cls: JMSMessageConverter =>
+              kcqlSinkConverter = cls
+          }
+          case Failure(_) => throw new ConfigException(s"Invalid ${JMSConfigConstants.KCQL} is invalid for $jms_source. $clazz should have an empty ctor!")
         }
     }
     kcqlSourceConverter.initialize(config.props.asScala.toMap)
