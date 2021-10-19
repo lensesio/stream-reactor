@@ -80,14 +80,13 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
       }
     })
 
-    // As Protobuf is Positional based, yet Record is FieldName based,
-    // we can convert to JSON and then back into Proto using JsonFormat which will match the FieldName to the Protobuf FieldName
-    // This is safest for compatibility to be explicit though unfortunate the extra convert to JSON is not ideal.
-
     if (descriptor == null) {
       throw new DataException("Invalid storedAs settings")
     }
 
+    // As Protobuf is Positional based, yet Record is FieldName based,
+    // we can convert to JSON and then back into Proto using JsonFormat which will match the FieldName to the Protobuf FieldName
+    // This is safest for compatibility to be explicit though unfortunate the extra convert to JSON is not ideal.
     val json_converted_data = jsonConverter.fromConnectData(record.topic, record.valueSchema, record.value)
     val json = new String(json_converted_data, StandardCharsets.UTF_8)
     val b = DynamicMessage.newBuilder(descriptor)
