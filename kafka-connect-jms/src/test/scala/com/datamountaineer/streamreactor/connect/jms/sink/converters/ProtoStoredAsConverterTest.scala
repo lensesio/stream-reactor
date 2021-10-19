@@ -150,7 +150,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
         converter.convert(record, setting)
       }
 
-    assert(caught.getMessage == "Invalid storedAs settings: File descriptor name doesn't match with proto file name")
+    assert(caught.getMessage == "Invalid storedAs settings: File descriptor name=datamountaineer.streamreactor.example.NonAddressedPerson doesn't match with proto file name=NonExisting.proto")
   }
 
   private def assertTimedPersonDetails(convertedValue: Array[Byte], name: String, id: Int, time: String) = {

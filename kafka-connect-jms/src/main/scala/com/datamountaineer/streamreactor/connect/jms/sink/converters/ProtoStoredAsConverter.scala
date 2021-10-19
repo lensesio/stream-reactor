@@ -4,7 +4,7 @@ import com.datamountaineer.streamreactor.common.converters.ParserImpl
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import com.github.os72.protocjar.Protoc
 import com.google.protobuf.util.JsonFormat
-import com.google.protobuf.{DescriptorProtos, Descriptors, DynamicMessage}
+import com.google.protobuf.{DescriptorProtos, Descriptors, DynamicMessage, TypeRegistry}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.json.JsonConverter
@@ -39,37 +39,40 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
 
   override def initialize(map: util.Map[String, String]): Unit = {
     defaultProtoPath = Option(map.get(CONNECT_SINK_CONVERTER_SCHEMA_CONFIG)).getOrElse(EMPTY)
+    jsonConverter.configure(Collections.emptyMap(), false)
   }
 
 
   override def convert(record: SinkRecord, setting: JMSSetting): Array[Byte] = {
-    val properties: util.Map[String, String] = mapAsJavaMap(setting.storedAsProperties)
-    val storedAs = replaceBackQuote(setting.storedAs)
+    val storedAs = setting.storedAs
+      .replace(BACK_QUOTE, EMPTY)
     logger.debug(s"storedAs:  $storedAs")
-    val storedas_proto_path: String = properties.getOrDefault(SCHEMA_PROTO_PATH, defaultProtoPath)
-    val protoPath: String = replaceBackQuote(storedas_proto_path)
-    logger.debug(s"protoPath:  $protoPath")
-    val storedas_proto_file = Option(properties.get(SCHEMA_PROTO_FILE)).getOrElse(EMPTY)
-    val protoFile: String = getProtoFile(storedas_proto_file)
-    logger.debug(s"protoFile:  $protoFile")
+
+
     //Cache the descriptor lookup so not doing reflection on every record.
     val descriptor = descriptors.computeIfAbsent(storedAs, (name: String) => {
+      val properties: util.Map[String, String] = mapAsJavaMap(setting.storedAsProperties)
+      val protoPath = properties.getOrDefault(SCHEMA_PROTO_PATH, defaultProtoPath)
+        .replace(BACK_QUOTE, EMPTY)
+      logger.debug(s"protoPath:  $protoPath")
+      val protoFile = properties.getOrDefault(SCHEMA_PROTO_FILE, EMPTY)
+        .replace(BACK_QUOTE, EMPTY)
+      logger.debug(s"protoFile:  $protoFile")
+
       try if (protoPath.trim.nonEmpty) {
         if (protoFile.trim.nonEmpty) {
           getDescriptor(name, protoPath, protoFile)
         } else {
           val basePath = Paths.get(protoPath)
           val protoFiles: util.Collection[String] = Files.find(basePath, Integer.MAX_VALUE, (filePath: Path, fileAttr: BasicFileAttributes) => fileAttr.isRegularFile)
-            .map[Path](file => file.getFileName)
-            .map[String](_.toString)
+            .map[String](file => file.getFileName.toString)
             .collect(Collectors.toList[String])
           getDescriptor(name, protoPath, protoFiles)
         }
       } else {
         val specificProtobufClass = Class.forName(name)
         logger.debug(s"Class loaded is: $specificProtobufClass")
-        val parseMethod = if (specificProtobufClass != null) specificProtobufClass.getDeclaredMethod("getDescriptor")
-        else throw new DataException("Invalid storedAs classpath name: " + name)
+        val parseMethod = specificProtobufClass.getDeclaredMethod("getDescriptor")
         parseMethod.invoke(null)
           .asInstanceOf[Descriptors.FileDescriptor]
           .getMessageTypes
@@ -86,10 +89,6 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
     // As Protobuf is Positional based, yet Record is FieldName based,
     // we can convert to JSON and then back into Proto using JsonFormat which will match the FieldName to the Protobuf FieldName
     // This is safest for compatibility to be explicit though unfortunate the extra convert to JSON is not ideal.
-    val enable_schema = Collections.singletonMap(
-      "schemas.enable","true"
-    )
-    jsonConverter.configure(enable_schema, true)
 
     val json_converted_data = jsonConverter.fromConnectData(record.topic, record.valueSchema, record.value)
     val json = new String(json_converted_data, StandardCharsets.UTF_8)
@@ -100,28 +99,12 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
       .get("payload")
       .toString
 
-    new ParserImpl()
+    new ParserImpl(TypeRegistry.getEmptyTypeRegistry, JsonFormat.TypeRegistry.getEmptyTypeRegistry, true, 100)
       .merge(jsonPayload, b)
 
     JsonFormat.printer
       .print(b)
       .getBytes()
-  }
-
-  private def getProtoFile(storedas_proto_file: String) = {
-    if (storedas_proto_file.trim.nonEmpty) {
-      val protoFile = replaceBackQuote(storedas_proto_file)
-      val fileName = new File(protoFile)
-        .getName
-      fileName
-    }
-    else EMPTY
-  }
-
-  private def replaceBackQuote(s: String) = {
-   if (s.contains(BACK_QUOTE))
-      s.replace(BACK_QUOTE, EMPTY)
-    else s
   }
 
   private def getDescriptor(message: String, protoPath: String, protoFiles: util.Collection[String]): Descriptors.Descriptor = {
@@ -149,7 +132,7 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
       logger.debug(s"Descriptor value is $descriptor")
       descriptor
     }
-    else throw new DataException("File descriptor name doesn't match with proto file name")
+    else throw new DataException(s"File descriptor name=$message doesn't match with proto file name=$protoFile")
   } catch {
     case x@(_: IOException | _: InterruptedException) =>
       logger.error("Unexpected error", x.getMessage)
