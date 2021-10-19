@@ -2,8 +2,12 @@ syntax = "proto3";
 package  datamountaineer.streamreactor.example;
 option csharp_namespace = "datamountaineer.streamreactor.example";
 option java_package = "com.datamountaineer.streamreactor.example";
-message AddressedPerson {
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+message TimedPerson {
    string name = 1;
    int32 id = 2;
-   string email = 3;
+   google.protobuf.Timestamp timestamp = 3;
 }

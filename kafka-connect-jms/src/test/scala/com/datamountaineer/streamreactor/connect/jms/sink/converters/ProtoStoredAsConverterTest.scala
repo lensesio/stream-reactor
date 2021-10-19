@@ -96,7 +96,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
         converter.convert(record, setting)
       }
 
-    assert(caught.getMessage == "Invalid storedAs settings: NonAddressedPersonOuterClass")
+    assert(caught.getMessage == "Invalid storedAs settings")
   }
 
   "should throw exception for invalid package name for storedAs when protopath is present" in {
@@ -114,7 +114,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
         converter.convert(record, setting)
       }
 
-    assert(caught.getMessage == "Invalid storedAs settings: Proto file package name doesn't match with storedAs package name")
+    assert(caught.getMessage == "Invalid storedAs settings")
   }
 
   "should throw exception for valid package name for storedAs but invalid protopath which has no files in it" in {
@@ -132,7 +132,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
         converter.convert(record, setting)
       }
 
-    assert(caught.getMessage == "Invalid storedAs settings: /resources/path")
+    assert(caught.getMessage == "Invalid storedAs settings")
   }
 
   "should throw exception for for incorrect proto file name" in {
@@ -150,7 +150,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
         converter.convert(record, setting)
       }
 
-    assert(caught.getMessage == "Invalid storedAs settings: File descriptor name=datamountaineer.streamreactor.example.NonAddressedPerson doesn't match with proto file name=NonExisting.proto")
+    assert(caught.getMessage == "Invalid storedAs settings")
   }
 
   private def assertTimedPersonDetails(convertedValue: Array[Byte], name: String, id: Int, time: String) = {
@@ -186,7 +186,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
 
   private def getProtoPath = {
     getClass.getClassLoader
-      .getResource("proto/AddressedPerson.proto")
+      .getResource("example/AddressedPerson.proto")
       .getPath
       .replace("AddressedPerson.proto", "")
   }

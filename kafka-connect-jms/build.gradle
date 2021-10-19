@@ -43,14 +43,14 @@ project(":kafka-connect-jms") {
     sourceSets {
         main {
             proto {
-                srcDir 'src/test/resources/proto'
+                srcDir 'src/test/resources/example'
             }
         }
     }
 
     protobuf {
         protoc {
-            artifact = "com.google.protobuf:protoc:3.7.0"
+            artifact = "com.google.protobuf:protoc:3.11.4"
         }
 
         generateProtoTasks {
