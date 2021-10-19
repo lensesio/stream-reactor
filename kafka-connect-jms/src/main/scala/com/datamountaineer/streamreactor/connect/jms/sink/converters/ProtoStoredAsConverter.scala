@@ -7,9 +7,8 @@ import com.google.protobuf.util.JsonFormat
 import com.google.protobuf.{DescriptorProtos, Descriptors, DynamicMessage, TypeRegistry}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.DataException
-import org.apache.kafka.connect.json.JsonConverter
+import org.apache.kafka.connect.json.{JsonConverter, JsonConverterConfig}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.json.JSONObject
 
 import java.io.{File, FileInputStream, IOException}
 import java.nio.charset.StandardCharsets
@@ -39,7 +38,7 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
 
   override def initialize(map: util.Map[String, String]): Unit = {
     defaultProtoPath = Option(map.get(CONNECT_SINK_CONVERTER_SCHEMA_CONFIG)).getOrElse(EMPTY)
-    jsonConverter.configure(Collections.emptyMap(), false)
+    jsonConverter.configure(Collections.singletonMap(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, false), false)
   }
 
 
@@ -92,14 +91,9 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
     val json_converted_data = jsonConverter.fromConnectData(record.topic, record.valueSchema, record.value)
     val json = new String(json_converted_data, StandardCharsets.UTF_8)
     val b = DynamicMessage.newBuilder(descriptor)
-    val jSONObject = new JSONObject(json)
-
-    val jsonPayload = jSONObject
-      .get("payload")
-      .toString
 
     new ParserImpl(TypeRegistry.getEmptyTypeRegistry, JsonFormat.TypeRegistry.getEmptyTypeRegistry, true, 100)
-      .merge(jsonPayload, b)
+      .merge(json, b)
 
     JsonFormat.printer
       .print(b)
