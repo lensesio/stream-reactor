@@ -19,18 +19,17 @@ package io.lenses.streamreactor.connect.aws.s3.stream
 
 import io.lenses.streamreactor.connect.aws.s3.formats.Using
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.location.LocalPathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
+import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.nio.file.Files
 import scala.io.Source
 
-// TODO: tear down
-class BuildLocalOutputStreamTest extends AnyFlatSpec with Matchers with Using {
+class BuildLocalOutputStreamTest extends AnyFlatSpec with Matchers with Using with BeforeAndAfter {
 
-  private val tmpDir = Files.createTempDirectory("myTmpDir")
-  private val testLocalLocation = LocalPathLocation(s"$tmpDir/tmpFileTest.tmp")
+  private val testFile = Files.createTempDirectory("myTmpDir").resolve("tmpFileTest.tmp").toFile
 
   "write" should "write single byte sequences" in new TestContext() {
     val bytesToUpload: Array[Byte] = "Sausages".getBytes
@@ -59,14 +58,18 @@ class BuildLocalOutputStreamTest extends AnyFlatSpec with Matchers with Using {
   }
 
   private def readFileContents = {
-    using(Source.fromFile(testLocalLocation.path)) {
+    using(Source.fromFile(testFile)) {
       _.getLines().mkString
     }
   }
 
+  after {
+    testFile.delete()
+  }
+
   class TestContext() {
 
-    val target = new BuildLocalOutputStream(testLocalLocation.toBufferedFileOutputStream, Topic("testTopic").withPartition(1))
+    val target = new BuildLocalOutputStream(toBufferedOutputStream(testFile), Topic("testTopic").withPartition(1))
   }
 
 }

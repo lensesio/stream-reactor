@@ -21,10 +21,12 @@ import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, LocalRootLocation, RemoteS3PathLocation, RemoteS3RootLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.createFileAndParents
+import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
 
+import java.io.File
 import java.util.UUID
 import scala.util.matching.Regex
 import scala.util.{Failure, Success, Try}
@@ -37,12 +39,12 @@ trait S3FileNamingStrategy {
 
   def prefix(bucketAndPrefix: RemoteS3RootLocation): String = bucketAndPrefix.prefix.getOrElse(DefaultPrefix)
 
-  def stagingFilename(
-                       localRootLocation: LocalRootLocation,
+  def stagingFile(
+                       localRootLocation: File,
                        bucketAndPrefix: RemoteS3RootLocation,
                        topicPartition: TopicPartition,
                        partitionValues: Map[PartitionField, String]
-                     ): Either[FatalS3SinkError, LocalPathLocation]
+                     ): Either[FatalS3SinkError, File]
 
   def finalFilename(bucketAndPrefix: RemoteS3RootLocation, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): Either[FatalS3SinkError, RemoteS3PathLocation]
 
@@ -60,11 +62,19 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
 
   val format: Format = formatSelection.format
 
-  override def stagingFilename( localRootLocation: LocalRootLocation, bucketAndPrefix: RemoteS3RootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): Either[FatalS3SinkError, LocalPathLocation] = {
+  override def stagingFile(localRootLocation: File, bucketAndPrefix: RemoteS3RootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): Either[FatalS3SinkError, File] = {
     Try {
       val uuid = UUID.randomUUID().toString
-      val remoteLocation = bucketAndPrefix.withPath(s"${prefix(bucketAndPrefix)}/.temp/${topicPartition.topic.value}/${topicPartition.partition}.${format.entryName.toLowerCase}/$uuid")
-      localRootLocation.withPath(remoteLocation.path)
+      val file = localRootLocation
+        .toPath
+        .resolve(prefix(bucketAndPrefix))
+        .resolve(topicPartition.topic.value)
+        .resolve(topicPartition.partition.toString)
+        .resolve(s"${topicPartition.partition}.${format.entryName.toLowerCase}")
+        .resolve(uuid)
+        .toFile
+      createFileAndParents(file)
+      file
     }.toEither.left.map(ex => FatalS3SinkError(ex.getMessage, ex, topicPartition))
   }
 
@@ -89,11 +99,20 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
 
   override def getFormat: Format = format
 
-  override def stagingFilename( localRootLocation: LocalRootLocation, bucketAndPrefix: RemoteS3RootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): Either[FatalS3SinkError, LocalPathLocation] = {
+  override def stagingFile( localRootLocation: File, bucketAndPrefix: RemoteS3RootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): Either[FatalS3SinkError, File] = {
     Try {
       val uuid = UUID.randomUUID().toString
-      val remoteLocation = bucketAndPrefix.withPath(s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartition.topic.value}/${topicPartition.partition}/temp.${format.entryName.toLowerCase}/$uuid")
-      localRootLocation.withPath(remoteLocation.path)
+      val file = localRootLocation
+        .toPath
+        .resolve(prefix(bucketAndPrefix))
+        .resolve(buildPartitionPrefix(partitionValues))
+        .resolve(topicPartition.topic.value)
+        .resolve(topicPartition.partition.toString)
+        .resolve(format.entryName.toLowerCase)
+        .resolve(uuid)
+        .toFile
+      createFileAndParents(file)
+      file
     }.toEither.left.map(ex => FatalS3SinkError(ex.getMessage, ex, topicPartition))
   }
 

@@ -28,7 +28,6 @@ import io.lenses.streamreactor.connect.aws.s3.sink.conversion.{HeaderToStringCon
 import io.lenses.streamreactor.connect.aws.s3.storage.JCloudsStorageInterface
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
-import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import java.util
@@ -113,24 +112,16 @@ class S3SinkTask extends SinkTask with ErrorHandler {
     }
   }
 
-  def cleanUpAndRollBack(topicPartitions: Set[TopicPartition]): Unit = {
-    val offsetRollback = topicPartitions.map(
-      tp => tp -> writerManager.getLastCommittedOffset(tp)
-    ).collect{
-      case (tp, Some(o)) => tp.toKafka -> long2Long(o.value)
-    }.toMap
-    if(offsetRollback.nonEmpty) {
-      context.offset(offsetRollback.asJava)
-    }
+  def rollback(topicPartitions: Set[TopicPartition]): Unit = {
     topicPartitions.foreach(writerManager.cleanUp)
   }
 
   def handleErrors(value: Either[SinkError, Unit]) = {
     value match {
-      case Left(error: SinkError) if error.rollBack() =>
-        cleanUpAndRollBack(error.topicPartitions())
-        throw new IllegalStateException(error.message())
       case Left(error: SinkError) =>
+        if (error.rollBack()) {
+          rollback(error.topicPartitions())
+        }
         throw new IllegalStateException(error.message())
       case Right(_) =>
     }

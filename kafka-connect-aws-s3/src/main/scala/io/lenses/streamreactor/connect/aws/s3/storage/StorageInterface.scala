@@ -17,13 +17,13 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, RemoteS3PathLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 
-import java.io.InputStream
+import java.io.{File, InputStream}
 
 trait StorageInterface {
 
-  def uploadFile(initialName: LocalPathLocation, finalDestination: RemoteS3PathLocation): Either[UploadError, Unit]
+  def uploadFile(source: File, target: RemoteS3PathLocation): Either[UploadError, Unit]
 
   def close(): Unit
 

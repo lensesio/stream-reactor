@@ -22,13 +22,14 @@ import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.Offset.orderingByOffsetValue
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, RemoteS3PathLocation, RemoteS3RootLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
 import io.lenses.streamreactor.connect.aws.s3.sink.config.{S3SinkConfig, SinkBucketOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink.writer.S3Writer
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.data.Schema
 
+import java.io.File
 import scala.collection.compat.toTraversableLikeExtensionMethods
 import scala.collection.{immutable, mutable}
 import scala.util.Try
@@ -49,15 +50,13 @@ class S3WriterManager(
                        commitPolicyFn: TopicPartition => Either[SinkError, CommitPolicy],
                        bucketAndPrefixFn: TopicPartition => Either[SinkError, RemoteS3RootLocation],
                        fileNamingStrategyFn: TopicPartition => Either[SinkError, S3FileNamingStrategy],
-                       stagingFilenameFn: (TopicPartition, immutable.Map[PartitionField, String]) => Either[SinkError, LocalPathLocation],
+                       stagingFilenameFn: (TopicPartition, immutable.Map[PartitionField, String]) => Either[SinkError, File],
                        finalFilenameFn: (TopicPartition, immutable.Map[PartitionField, String], Offset) => Either[SinkError, RemoteS3PathLocation],
-                       formatWriterFn: (TopicPartition, LocalPathLocation) => Either[SinkError, S3FormatWriter],
+                       formatWriterFn: (TopicPartition, File) => Either[SinkError, S3FormatWriter],
                      )
                      (
                        implicit storageInterface: StorageInterface
                      ) extends StrictLogging {
-
-  private val initialOpenOffsets = mutable.Map.empty[TopicPartition, Offset]
 
   private val writers = mutable.Map.empty[MapKey, S3Writer]
 
@@ -83,9 +82,9 @@ class S3WriterManager(
   }
 
   def recommitPending() : Either[SinkError,Unit] = {
-    logger.debug(s"[{}] Retry Pending)", sinkName)
+    logger.trace(s"[{}] Retry Pending", sinkName)
     val result = commitWritersWithFilter(_._2.hasPendingUpload())
-    logger.debug(s"[{}] Retry Pending Complete)", sinkName)
+    logger.debug(s"[{}] Retry Pending Complete", sinkName)
     result
   }
 
@@ -132,10 +131,7 @@ class S3WriterManager(
         case (throwables, _) if throwables.nonEmpty => BatchS3SinkError(throwables).asLeft
         case (_, offsets) =>
           offsets.flatten.map(
-            tpo => {
-              initialOpenOffsets.put(tpo.toTopicPartition, tpo.offset)
-              tpo.toTopicPartitionOffsetTuple
-            }
+            _.toTopicPartitionOffsetTuple
           ).toMap.asRight
     }
   }
@@ -264,20 +260,6 @@ class S3WriterManager(
       .foreach(writers.remove)
   }
 
-  def getLastCommittedOffset(topicPartition: TopicPartition): Option[Offset] = {
-    val offsets = writers.filterKeys(mapKey => mapKey.topicPartition == topicPartition)
-      .values
-      .flatMap(_.getCommittedOffset)
-    if (offsets.nonEmpty) {
-      Some(offsets.max)
-    } else if (initialOpenOffsets.contains(topicPartition)) {
-      Some(initialOpenOffsets(topicPartition))
-    } else {
-      // There are no committed offsets to revert back to
-      None
-    }
-  }
-
 }
 
 object S3WriterManager extends LazyLogging {
@@ -303,12 +285,12 @@ object S3WriterManager extends LazyLogging {
         case None => FatalS3SinkError("Can't find fileNamingStrategy in config", topicPartition).asLeft
       }
 
-    val stagingFilenameFn: (TopicPartition, immutable.Map[PartitionField, String]) => Either[SinkError, LocalPathLocation] = (topicPartition, partitionValues) =>
+    val stagingFilenameFn: (TopicPartition, immutable.Map[PartitionField, String]) => Either[SinkError, File] = (topicPartition, partitionValues) =>
       bucketOptsForTopic(config, topicPartition.topic) match {
         case Some(bucketOptions) =>
           for {
             fileNamingStrategy <- fileNamingStrategyFn(topicPartition)
-            stagingFilename <- fileNamingStrategy.stagingFilename(bucketOptions.localStagingArea.localLocation, bucketOptions.bucketAndPrefix, topicPartition, partitionValues)
+            stagingFilename <- fileNamingStrategy.stagingFile(bucketOptions.localStagingArea.dir, bucketOptions.bucketAndPrefix, topicPartition, partitionValues)
           } yield stagingFilename
         case None => FatalS3SinkError("Can't find fileNamingStrategy in config", topicPartition).asLeft
       }
@@ -323,7 +305,7 @@ object S3WriterManager extends LazyLogging {
         case None => FatalS3SinkError("Can't find fileNamingStrategy in config", topicPartition).asLeft
       }
 
-    val formatWriterFn: (TopicPartition, LocalPathLocation) => Either[SinkError, S3FormatWriter] = (topicPartition: TopicPartition, stagingFilename) =>
+    val formatWriterFn: (TopicPartition, File) => Either[SinkError, S3FormatWriter] = (topicPartition: TopicPartition, stagingFilename) =>
       bucketOptsForTopic(config, topicPartition.topic) match {
         case Some(bucketOptions) =>
           for {

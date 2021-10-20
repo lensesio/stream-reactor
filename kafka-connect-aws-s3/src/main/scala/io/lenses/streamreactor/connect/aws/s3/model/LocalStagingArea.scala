@@ -19,37 +19,37 @@ package io.lenses.streamreactor.connect.aws.s3.model
 import cats.syntax.all._
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.LOCAL_TMP_DIRECTORY
-import io.lenses.streamreactor.connect.aws.s3.model.location.LocalRootLocation
 
+import java.io.File
 import java.nio.file.Files
 import java.util.UUID
 
 object LocalStagingArea {
 
   private def createLocalDirBasedOnSinkName(sinkName: String): String = {
-    Files.createTempDirectory(s"$sinkName.${UUID.randomUUID().toString}.").toAbsolutePath.toString
+    Files.createTempDirectory(s"$sinkName.${UUID.randomUUID().toString}").toAbsolutePath.toString
   }
 
-  private def fetchFromProps(props: Map[String,_], propertyToFetch: String): Option[String] = {
-    props.get(propertyToFetch).collect {
+  private def getStringValue(props: Map[String,_], key: String): Option[String] = {
+    props.get(key).collect {
       case value: String if value.trim.nonEmpty => value.trim
     }
   }
 
   def apply(confDef: S3ConfigDefBuilder): Either[Exception, LocalStagingArea] = {
-    val thing: Option[String] = fetchFromProps(confDef.getParsedValues, LOCAL_TMP_DIRECTORY)
+    getStringValue(confDef.getParsedValues, LOCAL_TMP_DIRECTORY)
       .orElse{
         confDef.sinkName.map(createLocalDirBasedOnSinkName)
-      }
-    thing match {
-      case Some(value: String) =>
-        val noTrailingSlash = value.replaceAll("/$", "")
-        LocalStagingArea(LocalRootLocation(noTrailingSlash)).asRight
-      case None =>
-        new IllegalStateException(s"Either a local temporary directory ($LOCAL_TMP_DIRECTORY) or a Sink Name (name) must be configured.").asLeft[LocalStagingArea]
+      } match {
+        case Some(value: String) =>
+          val stagingDir = new File(value)
+          stagingDir.mkdirs()
+          LocalStagingArea(stagingDir).asRight
+        case None =>
+          new IllegalStateException(s"Either a local temporary directory ($LOCAL_TMP_DIRECTORY) or a Sink Name (name) must be configured.").asLeft[LocalStagingArea]
     }
   }
 
 }
 
-case class LocalStagingArea(localLocation: LocalRootLocation)
+case class LocalStagingArea(dir: File)

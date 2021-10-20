@@ -16,7 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import cats.implicits.catsSyntaxEitherId
+import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError

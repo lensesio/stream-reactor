@@ -83,8 +83,7 @@ case class DefaultCommitPolicy(fileSize: Option[Long],
       flushDueToInterval ||
       flushDueToCount
 
-    if (flush) logger.debug(s"Flushing: Because why? size: $flushDueToFileSize, interval: $flushDueToInterval, count: $flushDueToCount, CommitContext: $context")
-    if (!flush) logger.debug(s"NOT Flushing: Because why? size: $flushDueToFileSize, interval: $flushDueToInterval, count: $flushDueToCount, CommitContext: $context")
+    logger.debug(s"${if (flush) "" else "Not "}Flushing: Because why? size: $flushDueToFileSize, interval: $flushDueToInterval, count: $flushDueToCount, CommitContext: $context")
 
     flush
   }

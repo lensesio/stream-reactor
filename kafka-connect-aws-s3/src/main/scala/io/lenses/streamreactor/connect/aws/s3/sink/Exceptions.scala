@@ -16,19 +16,18 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
 
 trait SinkError {
   def message(): String
-  def rollBack() : Boolean
-  def topicPartitions() : Set[TopicPartition]
+
+  def rollBack(): Boolean
+
+  def topicPartitions(): Set[TopicPartition]
 }
 
 // Cannot be retried, must be cleaned up
-case class FatalS3SinkError(message: String, exception: Throwable, topicPartition: TopicPartition) extends SinkError with LazyLogging {
-
-  logger.error(message, exception)
+case class FatalS3SinkError(message: String, exception: Throwable, topicPartition: TopicPartition) extends SinkError {
 
   override def rollBack(): Boolean = true
 
@@ -44,9 +43,7 @@ case object FatalS3SinkError {
 }
 
 // Can be retried
-case class NonFatalS3SinkError(message: String, exception: Throwable) extends SinkError with LazyLogging {
-
-  logger.error(message, exception)
+case class NonFatalS3SinkError(message: String, exception: Throwable) extends SinkError {
 
   override def rollBack(): Boolean = false
 
@@ -79,16 +76,13 @@ case object BatchS3SinkError {
 case class BatchS3SinkError(
                              fatal: Set[FatalS3SinkError],
                              nonFatal: Set[NonFatalS3SinkError]
-                               ) extends SinkError with LazyLogging {
-
-  logger.error("Batchs3sinkError fatal {}, nonFatal {}", fatal, nonFatal)
-
+                           ) extends SinkError {
 
   def hasFatal: Boolean = fatal.nonEmpty
 
 
   override def message(): String = {
-      "fatal:\n" + fatal.map(_.message).mkString("\n") + "\n\nnonFatal:\n" + nonFatal.map(_.message).mkString("\n") + "\n\nFatal TPs:\n" + fatal.map(_.topicPartitions())
+    "fatal:\n" + fatal.map(_.message).mkString("\n") + "\n\nnonFatal:\n" + nonFatal.map(_.message).mkString("\n") + "\n\nFatal TPs:\n" + fatal.map(_.topicPartitions())
   }
 
   override def rollBack(): Boolean = fatal.nonEmpty

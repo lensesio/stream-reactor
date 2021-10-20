@@ -22,10 +22,11 @@ import io.lenses.streamreactor.connect.aws.s3.config.Format._
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.aws.s3.config.{FormatOptions, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.LocalPathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
 import io.lenses.streamreactor.connect.aws.s3.sink.{NonFatalS3SinkError, SinkError}
 import io.lenses.streamreactor.connect.aws.s3.stream.{BuildLocalOutputStream, S3OutputStream}
 
+import java.io.File
 import scala.util.Try
 
 object S3FormatWriter {
@@ -37,9 +38,9 @@ object S3FormatWriter {
       .fold[BytesWriteMode](BytesWriteMode.ValueWithSize)(fo => BytesWriteMode.withName(fo.entryName))
   }
 
-  def apply(formatSelection: FormatSelection, path: LocalPathLocation, topicPartition: TopicPartition): Either[SinkError, S3FormatWriter] = {
+  def apply(formatSelection: FormatSelection, path: File, topicPartition: TopicPartition): Either[SinkError, S3FormatWriter] = {
     {for {
-      outputStream <- Try(() => new BuildLocalOutputStream(path.toBufferedFileOutputStream, topicPartition))
+      outputStream <- Try(() => new BuildLocalOutputStream(toBufferedOutputStream(path), topicPartition))
       writer <- Try(S3FormatWriter(formatSelection, outputStream))
     } yield writer}.toEither.leftMap(ex => NonFatalS3SinkError(ex.getMessage, ex))
   }

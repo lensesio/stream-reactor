@@ -17,10 +17,12 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatOptions}
-import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, RemoteS3PathLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.scalatest.matchers.should.Matchers
+
+import java.io.File
 
 
 class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers {
@@ -73,7 +75,7 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
     val resource = classOf[S3TestConfig].getResource(resourceSourceFilename)
     require(resource != null)
     storageInterface.uploadFile(
-      LocalPathLocation(resource.getFile, createFile = false),
+      new File(resource.getFile),
       RemoteS3PathLocation(blobStoreContainerName, blobStoreTargetFilename)
     )
   }

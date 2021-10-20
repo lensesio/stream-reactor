@@ -61,8 +61,8 @@ object SinkBucketOptions extends LazyLogging {
         case None => new HierarchicalS3FileNamingStrategy(formatSelection)
       }
 
-      val s3WriteOptions = LocalStagingArea(config)
-      s3WriteOptions match {
+      val stagingArea = LocalStagingArea(config)
+      stagingArea match {
         case Right(value) => SinkBucketOptions(
           kcql.getSource,
           RemoteS3RootLocation(kcql.getTarget),

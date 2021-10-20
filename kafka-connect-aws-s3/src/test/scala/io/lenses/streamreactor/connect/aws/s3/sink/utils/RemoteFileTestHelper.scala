@@ -17,11 +17,11 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.utils
 
 import com.google.common.io.ByteStreams
-import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, RemoteS3PathLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
-import java.io.InputStream
-import java.nio.file.{Files, Paths}
+import java.io.{File, InputStream}
+import java.nio.file.Files
 
 class RemoteFileTestHelper(implicit storageInterface: StorageInterface) {
 
@@ -33,8 +33,8 @@ class RemoteFileTestHelper(implicit storageInterface: StorageInterface) {
     streamToByteArray(remoteFileAsStream(bucketName, fileName))
   }
 
-  def localFileAsBytes(localPathLocation: LocalPathLocation): Array[Byte] = {
-    Files.readAllBytes(Paths.get(localPathLocation.path))
+  def localFileAsBytes(localFile: File): Array[Byte] = {
+    Files.readAllBytes(localFile.toPath)
   }
 
   def remoteFileAsStream(bucketName: String, fileName: String): InputStream = {

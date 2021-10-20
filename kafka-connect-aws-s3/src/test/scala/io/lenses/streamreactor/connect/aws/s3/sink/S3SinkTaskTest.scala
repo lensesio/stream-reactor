@@ -1629,7 +1629,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
   }
 
-  "S3SinkTask" should "throw error when buildlocal file has been deleted " in {
+  "S3SinkTask" should "continue processing records when a source file has been deleted" in {
 
     val task = new S3SinkTask()
     val context = mock[SinkTaskContext]
@@ -1654,7 +1654,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     // we need to stop the s3-like-proxy to let records build up
     proxyContext.stopProxy
     val ex1 = intercept[RetriableException] {
-      task.put(records.slice(1, 3).asJava)
+      task.put(records.slice(1, 2).asJava)
     }
     ex1.getMessage should include ("Connection refused")
 
@@ -1663,20 +1663,18 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     proxyContext.startProxy
 
-    val ex2 = intercept[RetriableException] {
-      task.put(records.slice(1, 3).asJava)
-    }
-    ex2.getMessage should include ("attempt to upload non-existing file")
+    task.put(records.slice(0, 3).asJava)
 
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
 
     remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/0.json") should be("""{"name":"sam","title":"mr","salary":100.43}""")
+    // file 1 will not exist because it had been deleted before upload.  We continue with the upload regardless.  There will be a message in the log.
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/2.json") should be("""{"name":"tom","title":null,"salary":395.44}""")
 
   }
-
 
   private def createSinkRecord(partition: Int, valueStruct: Struct, offset: Int, headers: lang.Iterable[Header]) = {
     new SinkRecord(TopicName, partition, null, null, null, valueStruct, offset, null, null, headers)

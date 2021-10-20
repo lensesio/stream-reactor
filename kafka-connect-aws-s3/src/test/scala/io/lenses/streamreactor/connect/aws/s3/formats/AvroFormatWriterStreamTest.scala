@@ -17,6 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
 import io.lenses.streamreactor.connect.aws.s3.model.{StructSinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
@@ -30,13 +31,12 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3TestCo
   val avroFormatReader = new AvroFormatReader()
 
   "convert" should "write byte output stream with json for a single record" in {
-    val blobStream = new BuildLocalOutputStream(localPath.toBufferedFileOutputStream, Topic("testTopic").withPartition(1))
+    val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
 
     val avroFormatWriter = new AvroFormatWriter(() => blobStream)
     avroFormatWriter.write(None, StructSinkData(users.head), topic)
-    val closedResult = avroFormatWriter.complete()
-    closedResult should be (Right(()))
-    val bytes = localFileAsBytes(localPath)
+    avroFormatWriter.complete() should be (Right(()))
+    val bytes = localFileAsBytes(localFile)
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -45,14 +45,13 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3TestCo
   }
 
   "convert" should "write byte output stream with json for multiple records" in {
-    val blobStream = new BuildLocalOutputStream(localPath.toBufferedFileOutputStream, Topic("testTopic").withPartition(1))
+    val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
 
     val avroFormatWriter = new AvroFormatWriter(() => blobStream)
     firstUsers.foreach(u => avroFormatWriter.write(None, StructSinkData(u), topic))
-    val closedResult = avroFormatWriter.complete()
-    closedResult should be (Right(()))
+    avroFormatWriter.complete() should be (Right(()))
 
-    val bytes = localFileAsBytes(localPath)
+    val bytes = localFileAsBytes(localFile)
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(3)
 

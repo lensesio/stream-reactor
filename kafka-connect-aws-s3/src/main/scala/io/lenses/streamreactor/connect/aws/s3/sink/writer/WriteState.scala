@@ -3,8 +3,9 @@ package io.lenses.streamreactor.connect.aws.s3.sink.writer
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
-import io.lenses.streamreactor.connect.aws.s3.model.location.LocalPathLocation
 import org.apache.kafka.connect.data.Schema
+
+import java.io.File
 
 
 sealed abstract class WriteState(commitState: CommitState) {
@@ -15,7 +16,7 @@ case class NoWriter(commitState: CommitState) extends WriteState(commitState) wi
 
   def toWriting(
                  s3FormatWriter: S3FormatWriter,
-                 file: LocalPathLocation,
+                 file: File,
                  uncommittedOffset: Offset,
                ): Writing = {
     logger.debug("state transition: NoWriter => Writing")
@@ -27,7 +28,7 @@ case class NoWriter(commitState: CommitState) extends WriteState(commitState) wi
 case class Writing(
                     commitState: CommitState,
                     s3FormatWriter: S3FormatWriter,
-                    file: LocalPathLocation,
+                    file: File,
                     uncommittedOffset: Offset,
                   ) extends WriteState(commitState) with LazyLogging {
 
@@ -51,7 +52,7 @@ case class Writing(
 
 case class Uploading(
                       commitState: CommitState,
-                      file: LocalPathLocation,
+                      file: File,
                       uncommittedOffset: Offset,
                     ) extends WriteState(commitState) with LazyLogging {
 

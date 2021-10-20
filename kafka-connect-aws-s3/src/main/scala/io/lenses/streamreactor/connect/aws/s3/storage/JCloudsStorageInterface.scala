@@ -19,12 +19,12 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, RemoteS3PathLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.blobstore.domain.StorageType
 import org.jclouds.blobstore.options.ListContainerOptions
 
-import java.io.InputStream
+import java.io.{File, InputStream}
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -33,33 +33,33 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
   private val blobStore = blobStoreContext.getBlobStore
   private val awsMaxKeys = 1000
 
-  override def uploadFile(initialName: LocalPathLocation, finalDestination: RemoteS3PathLocation): Either[UploadError, Unit] = {
-    logger.debug(s"[{}] Uploading file from local {} to s3 {}", sinkName, initialName, finalDestination)
+  override def uploadFile(source: File, target: RemoteS3PathLocation): Either[UploadError, Unit] = {
+    logger.debug(s"[{}] Uploading file from local {} to s3 {}", sinkName, source, target)
 
-    if(!initialName.file.exists()){
-      return FatalNonExistingFileError(initialName.path).asLeft
-    }
-    val length = initialName.file.length()
-    if(length == 0L){
-      return FatalZeroByteFileError(initialName.path).asLeft
-    }
-    Try {
-      val blob = blobStore
-        .blobBuilder(finalDestination.path)
-        .payload(initialName.file)
-        .contentLength(length)
-        .build()
+    if(!source.exists()){
+      NonExistingFileError(source).asLeft
+    } else if (source.length() == 0L){
+      ZeroByteFileError(source).asLeft
+    } else {
+      Try {
+        val blob = blobStore
+          .blobBuilder(target.path)
+          .payload(source)
+          .contentLength(source.length())
+          .build()
 
-      blobStore.putBlob(finalDestination.bucket, blob)
-      ()
-    } match {
-      case Failure(exception) =>
-        logger.error(s"[{}] Failed upload from local {} to s3 {}", sinkName, initialName, finalDestination, exception)
-        UploadFailedError(exception, initialName.path).asLeft
-      case Success(_) =>
-        logger.debug(s"[{}] Completed upload from local {} to s3 {}", sinkName, initialName, finalDestination)
-        ().asRight
+        blobStore.putBlob(target.bucket, blob)
+        ()
+      } match {
+        case Failure(exception) =>
+          logger.error(s"[{}] Failed upload from local {} to s3 {}", sinkName, source, target, exception)
+          UploadFailedError(exception, source).asLeft
+        case Success(_) =>
+          logger.debug(s"[{}] Completed upload from local {} to s3 {}", sinkName, source, target)
+          ().asRight
+      }
     }
+
 
   }
 

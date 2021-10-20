@@ -18,10 +18,10 @@ package io.lenses.streamreactor.connect.aws.s3.model
 
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.LOCAL_TMP_DIRECTORY
-import io.lenses.streamreactor.connect.aws.s3.model.location.LocalRootLocation
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.io.File
 import java.nio.file.Files
 import scala.jdk.CollectionConverters.mapAsJavaMapConverter
 
@@ -29,7 +29,7 @@ class LocalStagingAreaTest extends AnyFlatSpec with Matchers {
 
   private val tmpDir = Files.createTempDirectory("S3OutputStreamOptionsTest")
 
-  behavior of "S3OutputStreamOptions"
+  behavior of "LocalStagingArea"
 
   private def adapt(map: Map[String, String], sinkName: Option[String] = None) = {
     val newMap = map + {
@@ -40,13 +40,13 @@ class LocalStagingAreaTest extends AnyFlatSpec with Matchers {
 
   it should "create BuildLocalOutputStreamOptions when temp directory has been supplied" in {
     LocalStagingArea(adapt(Map(LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path"))) should
-      be(Right(LocalStagingArea(LocalRootLocation(s"$tmpDir/my/path"))))
+      be(Right(LocalStagingArea(new File(s"$tmpDir/my/path"))))
   }
 
   it should "create BuildLocalOutputStreamOptions when temp directory and sink name has been supplied" in {
     // should ignore the sinkName
     LocalStagingArea(adapt(Map(LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path", "name" -> "superSleekSinkName"))) should
-      be(Right(LocalStagingArea(LocalRootLocation(s"$tmpDir/my/path"))))
+      be(Right(LocalStagingArea(new File(s"$tmpDir/my/path"))))
   }
 
   it should "create BuildLocalOutputStreamOptions when sink name has been supplied" in {
@@ -54,7 +54,7 @@ class LocalStagingAreaTest extends AnyFlatSpec with Matchers {
     val result = LocalStagingArea(adapt(Map(), Option("superSleekSinkName")))
     result.isRight should be(true)
     result.right.get match {
-      case LocalStagingArea(localLocation) => localLocation.basePath should startWith(s"$tempDir/superSleekSinkName".replace("//", "/"))
+      case LocalStagingArea(file) => file.toString should startWith(s"$tempDir/superSleekSinkName".replace("//", "/"))
       case _ => fail("Wrong")
     }
   }
