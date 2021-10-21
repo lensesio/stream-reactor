@@ -99,15 +99,11 @@ class S3Writer(
       case uploadState@Uploading(commitState, file, uncommittedOffset) =>
         for {
           finalFileName <- finalFilenameFn(uncommittedOffset)
-          _ <- storageInterface.uploadFile(file, finalFileName) match {
-            case Left(e: NonExistingFileError) =>
-              logger.error(e.message)
-              ().asRight
-            case Left(e: ZeroByteFileError) =>
-              logger.error(e.message)
-              ().asRight
-            case Left(UploadFailedError(exception, _)) => NonFatalS3SinkError(exception.getMessage, exception).asLeft
-            case Right(_) => ().asRight
+          _ <- storageInterface.uploadFile(file, finalFileName).recover {
+            case _: NonExistingFileError => ()
+            case _: ZeroByteFileError => ()
+          }.leftMap {
+            case UploadFailedError(exception, _) => NonFatalS3SinkError(exception.getMessage, exception)
           }
           stateReset <- Try {
             logger.debug(s"[{}] S3Writer.resetState: Resetting state $writeState", sinkName)
@@ -170,7 +166,7 @@ class S3Writer(
 
       def logSkipOutcome(currentOffset: Offset, latestOffset: Option[Offset], skipRecord: Boolean): Unit = {
         val skipping = if (skipRecord) "SKIPPING" else "PROCESSING"
-        logger.info(s"[$sinkName] current=${currentOffset.value} latest=${latestOffset} - $skipping")
+        logger.debug(s"[$sinkName] current=${currentOffset.value} latest=${latestOffset} - $skipping")
       }
 
       val shouldSkip = if (latestOffset.isEmpty) {

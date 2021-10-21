@@ -38,16 +38,14 @@ object LocalStagingArea {
 
   def apply(confDef: S3ConfigDefBuilder): Either[Exception, LocalStagingArea] = {
     getStringValue(confDef.getParsedValues, LOCAL_TMP_DIRECTORY)
-      .orElse{
+      .orElse {
         confDef.sinkName.map(createLocalDirBasedOnSinkName)
-      } match {
-        case Some(value: String) =>
-          val stagingDir = new File(value)
-          stagingDir.mkdirs()
-          LocalStagingArea(stagingDir).asRight
-        case None =>
-          new IllegalStateException(s"Either a local temporary directory ($LOCAL_TMP_DIRECTORY) or a Sink Name (name) must be configured.").asLeft[LocalStagingArea]
-    }
+      }.map {
+      value: String =>
+        val stagingDir = new File(value)
+        stagingDir.mkdirs()
+        LocalStagingArea(stagingDir).asRight
+    }.getOrElse(new IllegalStateException(s"Either a local temporary directory ($LOCAL_TMP_DIRECTORY) or a Sink Name (name) must be configured.").asLeft[LocalStagingArea])
   }
 
 }

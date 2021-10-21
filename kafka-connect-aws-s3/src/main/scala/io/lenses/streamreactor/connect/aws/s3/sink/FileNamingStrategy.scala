@@ -40,10 +40,10 @@ trait S3FileNamingStrategy {
   def prefix(bucketAndPrefix: RemoteS3RootLocation): String = bucketAndPrefix.prefix.getOrElse(DefaultPrefix)
 
   def stagingFile(
-                       localRootLocation: File,
-                       bucketAndPrefix: RemoteS3RootLocation,
-                       topicPartition: TopicPartition,
-                       partitionValues: Map[PartitionField, String]
+                   stagingDirectory: File,
+                   bucketAndPrefix: RemoteS3RootLocation,
+                   topicPartition: TopicPartition,
+                   partitionValues: Map[PartitionField, String]
                      ): Either[FatalS3SinkError, File]
 
   def finalFilename(bucketAndPrefix: RemoteS3RootLocation, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): Either[FatalS3SinkError, RemoteS3PathLocation]
@@ -62,14 +62,13 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
 
   val format: Format = formatSelection.format
 
-  override def stagingFile(localRootLocation: File, bucketAndPrefix: RemoteS3RootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): Either[FatalS3SinkError, File] = {
+  override def stagingFile(stagingDirectory: File, bucketAndPrefix: RemoteS3RootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): Either[FatalS3SinkError, File] = {
     Try {
       val uuid = UUID.randomUUID().toString
-      val file = localRootLocation
+      val file = stagingDirectory
         .toPath
         .resolve(prefix(bucketAndPrefix))
         .resolve(topicPartition.topic.value)
-        .resolve(topicPartition.partition.toString)
         .resolve(s"${topicPartition.partition}.${format.entryName.toLowerCase}")
         .resolve(uuid)
         .toFile
@@ -99,10 +98,10 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
 
   override def getFormat: Format = format
 
-  override def stagingFile( localRootLocation: File, bucketAndPrefix: RemoteS3RootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): Either[FatalS3SinkError, File] = {
+  override def stagingFile(stagingDirectory: File, bucketAndPrefix: RemoteS3RootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): Either[FatalS3SinkError, File] = {
     Try {
       val uuid = UUID.randomUUID().toString
-      val file = localRootLocation
+      val file = stagingDirectory
         .toPath
         .resolve(prefix(bucketAndPrefix))
         .resolve(buildPartitionPrefix(partitionValues))
