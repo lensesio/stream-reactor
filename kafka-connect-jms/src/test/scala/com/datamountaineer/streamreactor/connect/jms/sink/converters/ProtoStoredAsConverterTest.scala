@@ -91,10 +91,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
     val struct = getProtobufStruct(schema, "addrressed-person", 103, "addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
-    val caught =
-      intercept[DataException] {
-        converter.convert(record, setting)
-      }
+    val caught = the[DataException] thrownBy converter.convert(record, setting)
 
     assert(caught.getMessage == "Invalid storedAs settings")
   }
@@ -109,10 +106,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
     val struct = getProtobufStruct(schema, "addrressed-person", 103, "addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
-    val caught =
-      intercept[DataException] {
-        converter.convert(record, setting)
-      }
+    val caught = the[DataException] thrownBy converter.convert(record, setting)
 
     assert(caught.getMessage == "Invalid storedAs settings")
   }
@@ -127,10 +121,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
     val struct = getProtobufStruct(schema, "addrressed-person", 103, "addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
-    val caught =
-      intercept[DataException] {
-        converter.convert(record, setting)
-      }
+    val caught = the[DataException] thrownBy converter.convert(record, setting)
 
     assert(caught.getMessage == "Invalid storedAs settings")
   }
@@ -145,10 +136,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
     val struct = getProtobufStruct(schema, "addrressed-person", 103, "addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
-    val caught =
-      intercept[DataException] {
-        converter.convert(record, setting)
-      }
+    val caught = the[DataException] thrownBy converter.convert(record, setting)
 
     assert(caught.getMessage == "Invalid storedAs settings")
   }

@@ -19,6 +19,7 @@ import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
 import scala.collection.JavaConverters._
+import scala.util.{Failure, Success, Try}
 
 case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
 
@@ -76,7 +77,7 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
       }
       catch {
         case x: Exception => logger.error("Invalid storedAs settings: " + x.getMessage)
-        null
+          null
       }
     })
 
@@ -153,18 +154,16 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
   }
 
   private def buildFileDescriptor(currentFileProto: DescriptorProtos.FileDescriptorProto, fileProtoCache: util.Map[String, DescriptorProtos.FileDescriptorProto]): Descriptors.FileDescriptor = {
-    val dependencyFileDescriptorList = new util.ArrayList[Descriptors.FileDescriptor]
-    currentFileProto.getDependencyList.forEach((dependencyStr: String) => {
-      {
-        val dependencyFileProto = fileProtoCache.get(dependencyStr)
+    val dependencies = currentFileProto.getDependencyList.asScala.foldLeft(Array.empty[Descriptors.FileDescriptor]) {
+      case (array, dependency: String) =>
+        val dependencyFileProto = fileProtoCache.get(dependency)
         val dependencyFileDescriptor: Descriptors.FileDescriptor = buildFileDescriptor(dependencyFileProto, fileProtoCache)
-        dependencyFileDescriptorList.add(dependencyFileDescriptor)
-      }
-    })
-    try Descriptors.FileDescriptor.buildFrom(currentFileProto, dependencyFileDescriptorList.toArray(new Array[Descriptors.FileDescriptor](0)))
-    catch {
-      case e: Descriptors.DescriptorValidationException =>
-        throw new IllegalStateException("FileDescriptor build fail!", e)
+        array :+ dependencyFileDescriptor
+    }
+
+    Try(Descriptors.FileDescriptor.buildFrom(currentFileProto, dependencies)) match {
+      case Success(value) => value
+      case Failure(ex) => throw new IllegalStateException("FileDescriptor build fail!", ex)
     }
   }
 
