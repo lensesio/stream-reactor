@@ -137,12 +137,13 @@ class S3WriterManager(
   }
 
   private def seekOffsetsForTopicPartition(topicPartition: TopicPartition): Either[SinkError, Option[TopicPartitionOffset]] = {
+    logger.debug(s"[{}] seekOffsetsForTopicPartition {}", sinkName, topicPartition)
       for {
         fileNamingStrategy <- fileNamingStrategyFn(topicPartition)
         bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
         topicPartitionPrefix <- Try(fileNamingStrategy.topicPartitionPrefix(bucketAndPrefix, topicPartition)).toEither.leftMap(ex => FatalS3SinkError(ex.getMessage, ex, topicPartition))
       } yield {
-        new OffsetSeeker(fileNamingStrategy)
+        new OffsetSeeker(sinkName, fileNamingStrategy)
           .seek(topicPartitionPrefix)
           .find(_.toTopicPartition == topicPartition)
       }

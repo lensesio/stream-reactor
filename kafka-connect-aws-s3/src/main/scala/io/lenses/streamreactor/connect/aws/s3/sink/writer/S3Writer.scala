@@ -158,8 +158,9 @@ class S3Writer(
    */
   def shouldSkip(currentOffset: Offset): Boolean = {
 
-    def largestOffset(maybeO1: Option[Offset], o2: Offset): Offset = {
-      (maybeO1.toList :+ o2).max
+    def largestOffset(maybeCommittedOffset: Option[Offset], uncommittedOffset: Offset): Offset = {
+      logger.trace(s"[{}] maybeCommittedOffset: {}, uncommittedOffset: {}", sinkName, maybeCommittedOffset, uncommittedOffset)
+      (maybeCommittedOffset.toList :+ uncommittedOffset).max
     }
 
     def shouldSkipInternal(currentOffset: Offset, latestOffset: Option[Offset]): Boolean = {

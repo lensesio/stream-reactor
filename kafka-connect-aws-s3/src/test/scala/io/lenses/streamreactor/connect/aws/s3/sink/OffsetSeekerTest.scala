@@ -29,7 +29,7 @@ import org.scalatest.matchers.should.Matchers
 class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   private val fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json))
-  private val offsetSeeker = new OffsetSeeker(fileNamingStrategy)
+  private val offsetSeeker = new OffsetSeeker("mySinkName", fileNamingStrategy)
 
   private implicit val storageInterface: StorageInterface = mock[StorageInterface]
 

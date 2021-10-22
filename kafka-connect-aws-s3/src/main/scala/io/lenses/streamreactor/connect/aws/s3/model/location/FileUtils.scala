@@ -12,12 +12,12 @@ object FileUtils extends LazyLogging {
     Option(file.getParentFile)
       .foreach(
         parent => {
-          logger.info("Creating dir {}", parent)
+          logger.debug("Creating dir {}", parent)
           parent.mkdirs()
         }
       )
 
-    logger.info("Creating file {}", file)
+    logger.debug("Creating file {}", file)
     file.createNewFile()
   }
 }
