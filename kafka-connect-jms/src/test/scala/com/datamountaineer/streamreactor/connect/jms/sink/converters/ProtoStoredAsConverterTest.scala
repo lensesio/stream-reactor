@@ -20,6 +20,7 @@ package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSetting, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.{TestBase, Using}
+import com.datamountaineer.streamreactor.example.{AddressedPerson, TimedPerson}
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.sink.SinkRecord
@@ -40,6 +41,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
     val kcql = getKCQLStoreAsTimedPerson(queueName, kafkaTopic1, "QUEUE", getProtoPath)
     val props = getProps(kcql, JMS_URL)
     val schema = getProtobufSchemaTimestamp
+
     val struct = getProtobufStructTimestamp(schema, "non-addressed-person", 101, "1970-01-01T00:00:00Z")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
@@ -58,7 +60,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
     val props = getProps(kcql, JMS_URL) ++
       Map("connect.sink.converter.proto_path" -> path)
     val schema = getProtobufSchema
-    val struct = getProtobufStruct(schema, "non-addrressed-person", 102, "non-addressed-person@gmail.com")
+    val struct = getProtobufStruct(schema, "non-addressed-person", 102, "non-addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
     val convertedValue: Array[Byte] = converter.convert(record, setting)
@@ -73,7 +75,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
     val kcql = getKCQLStoredAsWithNameOnly(queueName, kafkaTopic1, "QUEUE")
     val props = getProps(kcql, JMS_URL)
     val schema = getProtobufSchema
-    val struct = getProtobufStruct(schema, "addrressed-person", 103, "addressed-person@gmail.com")
+    val struct = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
     val convertedValue: Array[Byte] = converter.convert(record, setting)
@@ -88,7 +90,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
     val kcql = getKCQLStoredAsWithInvalidData(queueName, kafkaTopic1, "QUEUE")
     val props = getProps(kcql, JMS_URL)
     val schema = getProtobufSchema
-    val struct = getProtobufStruct(schema, "addrressed-person", 103, "addressed-person@gmail.com")
+    val struct = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
     val caught = the[DataException] thrownBy converter.convert(record, setting)
@@ -103,7 +105,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
     val kcql = getKCQLStoredAsWithInvalidPackageNameWithProtopath(queueName, kafkaTopic1, "QUEUE", getProtoPath)
     val props = getProps(kcql, JMS_URL)
     val schema = getProtobufSchema
-    val struct = getProtobufStruct(schema, "addrressed-person", 103, "addressed-person@gmail.com")
+    val struct = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
     val caught = the[DataException] thrownBy converter.convert(record, setting)
@@ -118,7 +120,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
     val kcql = getKCQLStoredAsWithProtopath(queueName, kafkaTopic1, "QUEUE", "/resources/path")
     val props = getProps(kcql, JMS_URL)
     val schema = getProtobufSchema
-    val struct = getProtobufStruct(schema, "addrressed-person", 103, "addressed-person@gmail.com")
+    val struct = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
     val caught = the[DataException] thrownBy converter.convert(record, setting)
@@ -133,7 +135,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
     val kcql = getKCQLStoreAsWithFileAndPath(queueName, kafkaTopic1, "QUEUE", "`NonExisting.proto`", getProtoPath)
     val props = getProps(kcql, JMS_URL)
     val schema = getProtobufSchema
-    val struct = getProtobufStruct(schema, "addrressed-person", 103, "addressed-person@gmail.com")
+    val struct = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
     val caught = the[DataException] thrownBy converter.convert(record, setting)
@@ -142,14 +144,10 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
   }
 
   private def assertTimedPersonDetails(convertedValue: Array[Byte], name: String, id: Int, time: String) = {
-    val stringValue = convertedValue.map(_.toChar).mkString
-    Option(stringValue).isDefined shouldBe true
-    stringValue.contains("name") shouldBe true
-    stringValue.contains(name) shouldBe true
-    stringValue.contains("id") shouldBe true
-    stringValue.contains(id) shouldBe true
-    stringValue.contains("timestamp") shouldBe true
-    stringValue.contains(time) shouldBe true
+    val person = TimedPerson.parser().parseFrom(convertedValue)
+
+    person.getName shouldBe name
+    person.getId shouldBe id
   }
 
   private def getRecordAndSetting(converter: ProtoStoredAsConverter, kafkaTopic1: String, props: Map[String, String], schema: Schema, struct: Struct) = {
@@ -163,13 +161,11 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
   }
 
   private def assertPersonDetails(convertedValue: Array[Byte], name: String, id: Int, email: String) = {
-    val stringValue = convertedValue.map(_.toChar).mkString
-    Option(stringValue).isDefined shouldBe true
-    stringValue.contains("name") shouldBe true
-    stringValue.contains(name) shouldBe true
-    stringValue.contains("id") shouldBe true
-    stringValue.contains("email") shouldBe true
-    stringValue.contains(email) shouldBe true
+    val person = AddressedPerson.parser().parseFrom(convertedValue)
+
+    person.getName shouldBe name
+    person.getId shouldBe id
+    person.getEmail shouldBe email
   }
 
   private def getProtoPath = {

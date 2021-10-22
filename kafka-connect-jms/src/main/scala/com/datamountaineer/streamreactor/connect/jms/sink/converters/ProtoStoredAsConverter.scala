@@ -95,9 +95,8 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
     new ParserImpl(TypeRegistry.getEmptyTypeRegistry, JsonFormat.TypeRegistry.getEmptyTypeRegistry, true, 100)
       .merge(json, b)
 
-    JsonFormat.printer
-      .print(b)
-      .getBytes()
+    b.build
+      .toByteArray
   }
 
   private def getDescriptor(message: String, protoPath: String, protoFiles: util.Collection[String]): Descriptors.Descriptor = {

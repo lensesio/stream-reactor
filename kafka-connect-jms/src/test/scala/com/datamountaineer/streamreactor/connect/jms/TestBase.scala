@@ -20,6 +20,7 @@ package com.datamountaineer.streamreactor.connect.jms
 
 
 import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, JMSConfigConstants}
+import com.google.protobuf.Timestamp
 import com.sksamuel.avro4s.{AvroOutputStream, SchemaFor}
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService

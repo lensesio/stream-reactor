@@ -21,6 +21,7 @@ package com.datamountaineer.streamreactor.connect.jms.sink.converters
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.AvroDeserializer
 import com.datamountaineer.streamreactor.connect.jms.{TestBase, Using}
+import com.datamountaineer.streamreactor.example.AddressedPerson
 import io.confluent.connect.avro.AvroData
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.avro.generic.GenericData
@@ -246,34 +247,21 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with Tes
       val connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false")
       using(connectionFactory.createConnection()) { connection =>
         using(connection.createSession(false, 1)) { session =>
-          val schema = getSchema
-          val struct = getStruct(schema)
+          val schema = getProtobufSchema
+          val struct = getProtobufStruct(schema, "lenses", 101, "lenses@lenses.com")
           val record = new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1)
 
           val msg = converter.convert(record, session, setting)._2
-
           msg.reset()
           val convertedValueLength = msg.getBodyLength
+
           val byteData: Array[Byte] = new Array[Byte](convertedValueLength.toInt)
           msg.readBytes(byteData)
-          val stringMessage = new String(byteData, "UTF-8")
+          val person = AddressedPerson.parser().parseFrom(byteData)
 
-          stringMessage shouldBe "int8: 12\n" +
-            "int16: 12\n" +
-            "int32: 12\n" +
-            "int64: 12\n" +
-            "float32: 12.2\n" +
-            "float64: 12.2\n" +
-            "boolean: true\n" +
-            "string: \"foo\"\n" +
-            "bytes: \"foo\"\n" +
-            "array: \"a\"\n" +
-            "array: \"b\"\n" +
-            "array: \"c\"\n" +
-            "map {\n  " +
-            "key: \"field\"\n  " +
-            "value: 1\n}\n" +
-            "mapNonStringKeys {\n  key: 1\n  value: 1\n}\n"
+          person.getName shouldBe "lenses"
+          person.getId shouldBe 101
+          person.getEmail shouldBe "lenses@lenses.com"
         }
       }
     }
@@ -303,14 +291,11 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with Tes
           val convertedValueLength = convertedValue.getBodyLength
           val byteData: Array[Byte] = new Array[Byte](convertedValueLength.toInt)
           convertedValue.readBytes(byteData)
-          val stringMessage = new String(byteData, "UTF-8")
+          val person = AddressedPerson.parser().parseFrom(byteData)
 
-          stringMessage.contains("name") shouldBe true
-          stringMessage.contains("addressed-person@gmail.com") shouldBe true
-          stringMessage.contains("id") shouldBe true
-          stringMessage.contains("103") shouldBe true
-          stringMessage.contains("email") shouldBe true
-          stringMessage.contains("addressed-person@gmail.com") shouldBe true
+          person.getName shouldBe "addrressed-person"
+          person.getId shouldBe 103
+          person.getEmail shouldBe "addressed-person@gmail.com"
         }
       }
     }
