@@ -18,6 +18,7 @@ An example configuration is provided:
     connect.s3.aws.secret.key=SECRET_KEY
     connect.s3.aws.access.key=ACCESS_KEY
     connect.s3.aws.auth.mode=Credentials
+    connect.s3.aws.region=eu-west-1
     value.converter=io.confluent.connect.avro.AvroConverter
     value.converter.schema.registry.url=http://localhost:8089
 
@@ -148,34 +149,11 @@ In order to ensure the message is passed through as bytes it may be necessary to
     key.converter=org.apache.kafka.connect.converters.ByteArrayConverter
 
 
-## Partitioning Options
-
-When using the S3 Source it is required to specify partitioning options so that the connector understands the layout of the file system.
-
-While the file naming format is required for the connector to read the files in the partition names themselves are not used within the connector.
-
-This will mirror the options defined in the sink.
-
-Please see the [S3 Sink readme](README-sink.md) for more information on the partitioning scheme.
-
-
-##### Configuring read partitions
-
-The options you define will be in the following formats:
-
-    PARTITIONBY fieldA[,fieldB]
-    PARTITIONBY _key
-    PARTITIONBY _key.fieldA[, _key.fieldB]
-    PARTITIONBY _header.<header_key1>[,_header.<header_key2>]
-    PARTITIONBY fieldA, _key.fieldB, _headers.fieldC
-
-##### Configuring read partition display
-
-    WITHPARTITIONER=KeysAndValues
-    WITHPARTITIONER=Values 
-    
-
 ## Limit Options
+
+To limit the number of file names the source reads from S3 in a single poll, use
+
+    BATCH = 100
 
 In order to limit the number of result rows returned from the source in a single poll operation, you can use the LIMIT clause.
 
@@ -190,11 +168,11 @@ Often, no error will be presented if this is the case.
 
 The correct order for defining options for the S3 Source is
 
-    PARTITIONBY STOREAS WITHPARTITIONER LIMIT
+    BATCH STOREAS LIMIT
 
 An example Kcql string showing most of the available config options for the Sink follows:
 
-    insert into $TopicName select * from $BucketName:$PrefixName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values LIMIT 100
+    insert into $TopicName select * from $BucketName:$PrefixName BATCH = 500 STOREAS `CSV` LIMIT 100
 
 
 

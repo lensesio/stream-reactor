@@ -56,6 +56,10 @@ object KcqlProp extends Enum[KcqlProp] {
 
   case object FlushCount extends KcqlProp("flush_count", k => fromLong(k.getWithFlushCount))
 
+  case object BatchSize extends KcqlProp("batch_size", k => fromLong(k.getBatchSize))
+
+  case object Limit extends KcqlProp("limit", k => fromLong(k.getLimit))
+
   private def fromString(source: String): Option[String] = Option(source).filter(_.nonEmpty)
 
   private def fromLong(source: Long): Option[String] = Option(String.valueOf(source)).filterNot(_ == "0")

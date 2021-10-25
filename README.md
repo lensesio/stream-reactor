@@ -25,11 +25,12 @@ A collection of components to build a real time ingestion pipeline.
 
 ## DEPRECATION NOTICE
 
-The following connectors will be deprecated and no longer included in any release from 3.0
+The following connectors have been deprecated and are no longer included in any release from 3.0.
 
+* Blockchain
+* Bloomberg
 * Rethink
 * VoltDB
-* Blockchain
 
 
 ### Connectors
@@ -40,7 +41,6 @@ The following connectors will be deprecated and no longer included in any releas
 |----------------|--------|-----------------------------------------------------------------------------------------------|------|
 | AWS S3         | Sink   | Copy data from Kafka to AWS S3.                                                     | [Docs](https://docs.lenses.io/4.0/integrations/connectors/stream-reactor/sinks/s3sinkconnector/)             |
 | AzureDocumentDb| Sink   | Copy data from Kafka and Azure Document Db.                                          | [Docs](https://docs.lenses.io/connectors/sink/azuredocdb.html)             |
-| Bloomberg      | Source | Copy data from Bloomberg streams and Kafka.                              | [Docs](https://docs.lenses.io/connectors/source/bloomberg.html)            |
 | Cassandra      | Source | Copy data from Cassandra and Kafka.                          | [Docs](https://docs.lenses.io/connectors/source/cassandra.html)            |
 | *Cassandra     | Sink   | Certified DSE Cassandra, copy data from Kafka to Cassandra.   | [Docs](https://docs.lenses.io/connectors/sink/cassandra.html)              |
 | Coap           | Source | Copy data from IoT Coap endpoints (using Californium) to Kafka.                  | [Docs](https://docs.lenses.io/connectors/source/coap.html)                 |
@@ -61,12 +61,60 @@ The following connectors will be deprecated and no longer included in any releas
 | Pulsar         | Source | Copy data from Pulsar to Kafka.                               | [Docs](https://docs.lenses.io/connectors/source/pulsar.html)                 |
 | Pulsar         | Sink   | Copy data from Kafka to Pulsar.                                 | [Docs](https://docs.lenses.io/connectors/sink/pulsar.html)                   |
 | Redis          | Sink   | Copy data from Kafka to Redis.                              | [Docs](https://docs.lenses.io/connectors/sink/redis.html)                  |
-| ReThinkDB      | Source | Copy data from RethinkDb to Kafka.         | [Docs](https://docs.lenses.io/connectors/source/rethink.html)              |
-| ReThinkDB      | Sink   | Copy data from Kafka to RethinkDb.                      | [Docs](https://docs.lenses.io/connectors/sink/rethink.html)                |
-| VoltDB         | Sink   | Copy data from Kafka to Voltdb.                            | [Docs](https://docs.lenses.io/connectors/sink/voltdb.html)                 |
 
 
 ## Release Notes
+
+**3.0.0**
+
+* All
+    * Move to KCQL 2.8.9
+    * Change sys.errors to ConnectExceptions
+    * Additional testing with TestContainers
+    * Licence scan report and status
+
+* AWS S3 Sink Connector
+    * S3 Source Offset Fix
+    * Fix JSON & Text newline detection when running in certain Docker images
+    * Byte handling fixes
+    * Partitioning of nested data
+    * Error handling and retry logic
+    * Handle preCommit with null currentOffsets
+    * Remove bucket validation on startup
+    * Enabled simpler management of default flush values.
+    * Local write mode - build locally, then ship
+    * Deprecating old properties, however rewriting them to the new properties to ensure backwards compatibility.
+    * Adding the capability to specify properties in yaml configuration
+    * Rework exception handling. Refactoring errors to use Either[X,Y] return types where possible instead of throwing exceptions.
+    * Ensuring task can be stopped gracefully if it has not been started yet
+    * ContextReader testing and refactor
+    * Adding a simple state model to the S3Writer to ensure that states and transitions are kept consistent.  This can be improved in time.
+  
+* AWS S3 Source Connector
+    * Change order of match to avoid scala.MatchError
+    * S3 Source rewritten to be more efficient and use the natural ordering of S3 keys
+    * Region is necessary when using the AWS client
+
+* Cassandra Sink & Source Connectors
+    * Add connection and read client timeout
+
+* FTP Connector
+    * Support for Secure File Transfer Protocol
+
+* Hive Sink Connector
+    * Array Support
+    * Kerberos debug flag added
+
+* Influx DB Sink
+    * Bump influxdb-java from version 2.9 to 2.29
+    * Added array handling support
+
+* MongoDB Sink Connector
+    * Nested Fields Support
+
+* Redis Sink Connector 
+    * Fix Redis Pubsub Writer
+    * Add support for json and json with schema
 
 **2.1.3**
 
