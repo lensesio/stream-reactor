@@ -36,9 +36,9 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
   val redisContainer: GenericContainer[_] = new GenericContainer("redis:6-alpine")
     .withExposedPorts(6379)
 
-  override def beforeAll() = redisContainer.start()
+  override def beforeAll(): Unit = redisContainer.start()
 
-  override def afterAll() = redisContainer.stop()
+  override def afterAll(): Unit = redisContainer.stop()
 
   "Redis PUBSUB writer" should {
 
@@ -83,10 +83,9 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
         private val pubsub = new JedisPubSub {
           override def onMessage(channel: String, message: String): Unit = {
             messagesMap.get(channel) match {
-              case Some(msgs) => {
+              case Some(msgs) =>
                 logger.info("Receiving message!")
                 messagesMap.put(channel, msgs += message)
-              }
               case None => messagesMap.put(channel, ListBuffer(message))
             }
           }

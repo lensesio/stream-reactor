@@ -34,9 +34,9 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with BeforeA
   val redisContainer: GenericContainer[_] = new GenericContainer("redis:6-alpine")
     .withExposedPorts(6379)
 
-  override def beforeAll() = redisContainer.start()
+  override def beforeAll(): Unit = redisContainer.start()
 
-  override def afterAll() = redisContainer.stop()
+  override def afterAll(): Unit = redisContainer.stop()
 
   "Redis INSERT into Multiple Sorted Sets (SS) writer" should {
 
@@ -186,7 +186,7 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with BeforeA
 
       val connectionInfo = new RedisConnectionInfo("localhost", redisContainer.getMappedPort(6379), None)
       val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
-      jedis.zcard("sensor-sink-task:random") shouldBe 1
+      jedis.zcard("sensor-sink-task.random") shouldBe 1
     }
   }
 }

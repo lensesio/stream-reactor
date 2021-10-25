@@ -46,7 +46,7 @@ class ConfigGeoAddTest extends AnyWordSpec with Matchers with RedisMockSupport {
   }
 
   // GEOADD with PK, prefix, storedAsParameters
-  val KCQL3 = "INSERT INTO address_set SELECT country from addressTopic PK addressId " +
+  val KCQL3: String = "INSERT INTO address_set SELECT country from addressTopic PK addressId " +
     "STOREAS GeoAdd (longitudeField=lng, latitudeField=lat)"
   KCQL3 in {
     val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL3))

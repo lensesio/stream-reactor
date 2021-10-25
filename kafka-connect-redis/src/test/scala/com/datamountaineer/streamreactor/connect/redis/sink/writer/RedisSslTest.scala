@@ -16,8 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
-import java.net.URI
-
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
 import com.google.gson.Gson
 import org.apache.kafka.common.config.SslConfigs
@@ -29,6 +27,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.Jedis
 
+import java.net.URI
 import scala.collection.JavaConverters._
 
 /*
@@ -45,7 +44,7 @@ The test requires to:
 
 class RedisSslTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
-  val runTests = false;
+  val runTests = false
 
   val truststoreFilePath = "src/test/resources/truststore.jceks"
 

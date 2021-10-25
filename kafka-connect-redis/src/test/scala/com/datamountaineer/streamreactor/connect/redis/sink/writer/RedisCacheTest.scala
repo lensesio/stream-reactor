@@ -48,6 +48,40 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
 
   "RedisDbWriter" should {
 
+
+    "write Kafka records to Redis using CACHE mode with JSON no schema" in {
+      val QUERY_ALL = s"SELECT * FROM $TOPIC PK firstName, child.firstName"
+      val props = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava
+      val config = RedisConfig(props)
+      val settings = RedisSinkSettings(config)
+      val writer = new RedisCache(settings)
+      writer.createClient(settings)
+
+      val json =
+        """
+          |{
+          |   "firstName":"Alex",
+          |   "age":30.0,
+          |   "child": {
+          |     "firstName": "Alex_Junior"
+          |   }
+          |}
+        """.stripMargin
+
+      val record =
+        new SinkRecord(TOPIC, 0, null, null, Schema.STRING_SCHEMA, json, 0)
+
+      writer.write(Seq(record))
+
+      val alexValue = jedis.get("Alex.Alex_Junior")
+      alexValue should not be null
+
+      val alexMap = gson.fromJson(alexValue, classOf[java.util.Map[String, AnyRef]]).asScala
+      alexMap("firstName").toString shouldBe "Alex"
+      alexMap("age").toString shouldBe "30.0" //it gets back a java double!?
+      alexMap("child").asInstanceOf[java.util.Map[String, AnyRef]].get("firstName") shouldBe "Alex_Junior"
+    }
+
     "write Kafka records to Redis using CACHE mode" in {
       val QUERY_ALL = s"SELECT * FROM $TOPIC PK firstName, child.firstName"
       val props = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava
@@ -203,7 +237,7 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
 
     "write Kafka records to Redis using CACHE mode and PK has default delimiter" in {
 
-      val props = (base_Props).asJava
+      val props = base_Props.asJava
       val config = RedisConfig(props)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
@@ -213,7 +247,7 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
 
       val key = nick.get("firstName") + RedisConfigConstants.REDIS_PK_DELIMITER_DEFAULT_VALUE + nickJr.get("firstName")
       val nickValue = jedis.get(key)
-      key shouldBe ("Nick.Nick_Junior")
+      key shouldBe "Nick.Nick_Junior"
       nickValue should not be null
     }
 
@@ -230,14 +264,14 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
 
       val key = nick.get("firstName") + delimiter + nickJr.get("firstName")
       val nickValue = jedis.get(key)
-      key shouldBe ("Nick-Nick_Junior")
+      key shouldBe "Nick-Nick_Junior"
       nickValue should not be null
     }
 
     "write Kafka records to Redis using CACHE mode and PK has custom delimiter but not set" in {
 
       val delimiter = "$"
-      val props = (base_Props).asJava
+      val props = base_Props.asJava
       val config = RedisConfig(props)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
@@ -247,7 +281,7 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
 
       val key = nick.get("firstName") + delimiter + nickJr.get("firstName")
       val nickValue = jedis.get(key)
-      key shouldBe ("Nick$Nick_Junior")
+      key shouldBe "Nick$Nick_Junior"
       nickValue shouldBe null
     }
   }
