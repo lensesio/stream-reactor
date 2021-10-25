@@ -24,7 +24,7 @@ sealed abstract class PartitionSpecifier(override val entryName: String) extends
 
 object PartitionSpecifier extends Enum[PartitionSpecifier] {
 
-  val values: immutable.IndexedSeq[PartitionSpecifier] = findValues
+  override val values: immutable.IndexedSeq[PartitionSpecifier] = findValues
 
   case object Key extends PartitionSpecifier("_key")
 

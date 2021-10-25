@@ -16,51 +16,38 @@
 
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, Format, FormatOptions}
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestPayloadReader}
-import org.jclouds.blobstore.BlobStoreContext
+import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatOptions}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestConfig
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.scalatest.matchers.should.Matchers
 
+import java.io.File
 
-object BucketSetup extends Matchers {
 
-  import S3ProxyContext._
-
-  val DefaultProps = Map(
-    AWS_ACCESS_KEY -> Identity,
-    AWS_SECRET_KEY -> Credential,
-    AUTH_MODE -> AuthMode.Credentials.toString,
-    CUSTOM_ENDPOINT -> S3ProxyContext.Uri,
-    ENABLE_VIRTUAL_HOST_BUCKETS -> "true"
-  )
+class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers {
 
   val PrefixName = "streamReactorBackups"
   val TopicName = "myTopic"
 
-  def setUpBucketData(bucketName: String, blobStoreContext: BlobStoreContext, format: Format, formatOption: Option[FormatOptions]): Unit = {
+  def setUpBucketData(bucketName: String, format: Format, formatOption: Option[FormatOptions], dir: String): Unit = {
 
     1 to 5 foreach {
       fileNum =>
-        S3TestPayloadReader.copyResourceToBucket(
+        copyResourceToBucket(
           s"/${format.entryName.toLowerCase}${generateFormatString(formatOption)}/$fileNum.${format.entryName.toLowerCase}",
           bucketName,
-          s"$PrefixName/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}",
-          blobStoreContext
+          s"$PrefixName/$dir/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}"
         )
 
-        S3TestPayloadReader.fileExists(
-          bucketName,
-          s"$PrefixName/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}",
-          blobStoreContext
-        ) should be(true)
+        storageInterface.pathExists(RemoteS3PathLocation(bucketName, s"$PrefixName/$dir/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}"))should be(true)
     }
   }
-  
+
   def totalFileLengthBytes(format: Format, formatOption: Option[FormatOptions]): Int = {
     1 to 5 map {
       fileNum: Int =>
-        S3TestPayloadReader.fileLengthBytes(
+        fileLengthBytes(
           s"/${format.entryName.toLowerCase}${generateFormatString(formatOption)}/$fileNum.${format.entryName.toLowerCase}",
         )
     }
@@ -68,6 +55,29 @@ object BucketSetup extends Matchers {
 
   def generateFormatString(formatOptions: Option[FormatOptions]): String = {
     formatOptions.fold("")(option => s"_${option.entryName.toLowerCase}")
+  }
+
+  private def fileLengthBytes(
+                       resourceSourceFilename: String
+                     ): Int = {
+
+    val inputStream = classOf[S3TestConfig].getResourceAsStream(resourceSourceFilename)
+    require(inputStream != null)
+    inputStream.available()
+  }
+
+  private def copyResourceToBucket(
+                            resourceSourceFilename: String,
+                            blobStoreContainerName: String,
+                            blobStoreTargetFilename: String,
+                          ): Unit = {
+
+    val resource = classOf[S3TestConfig].getResource(resourceSourceFilename)
+    require(resource != null)
+    storageInterface.uploadFile(
+      new File(resource.getFile),
+      RemoteS3PathLocation(blobStoreContainerName, blobStoreTargetFilename)
+    )
   }
 
 }

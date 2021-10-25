@@ -17,7 +17,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 import scala.util.control.NonFatal
@@ -28,10 +29,10 @@ import scala.util.control.NonFatal
   *
   * @param fileNamingStrategy we need the policy so we can match on this.
   */
-class OffsetSeeker(fileNamingStrategy: S3FileNamingStrategy) {
+class OffsetSeeker(sinkName: String, fileNamingStrategy: S3FileNamingStrategy) {
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
-  def seek(bucketAndPath: RemotePathLocation)(implicit storageInterface: StorageInterface): Set[TopicPartitionOffset] = {
+  def seek(bucketAndPath: RemoteS3PathLocation)(implicit storageInterface: StorageInterface): Set[TopicPartitionOffset] = {
     try {
 
       // the path may not have been created, in which case we have no offsets defined
@@ -40,21 +41,26 @@ class OffsetSeeker(fileNamingStrategy: S3FileNamingStrategy) {
         val listOfFilesInBucketTopicPartition = storageInterface.list(bucketAndPath)
         implicit val impFileNamingStrategy: S3FileNamingStrategy = fileNamingStrategy
 
-        listOfFilesInBucketTopicPartition.collect {
+        val seeked = listOfFilesInBucketTopicPartition.collect {
           case CommittedFileName(topic, partition, end, format)
             if format == fileNamingStrategy.getFormat =>
             TopicPartitionOffset(topic, partition, end)
         }.groupBy(_.toTopicPartition).map { case (tp, tpo) =>
           tp.withOffset(tpo.maxBy(_.offset.value).offset)
         }.toSet
+        logger.info("[{}] Seeked {} {}", sinkName, bucketAndPath.toString, seeked.toString())
+        seeked
 
       } else {
+
+        logger.info("[{}] Seeked, found nothing", sinkName)
+
         Set.empty
       }
 
     } catch {
       case NonFatal(e) =>
-        logger.error(s"Error seeking bucket/prefix $bucketAndPath")
+        logger.error(s"[$sinkName] Error seeking bucket/prefix $bucketAndPath")
         throw e
     }
 

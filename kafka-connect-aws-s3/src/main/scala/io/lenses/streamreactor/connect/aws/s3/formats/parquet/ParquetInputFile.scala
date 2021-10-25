@@ -17,9 +17,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats.parquet
 
-import java.io.ByteArrayInputStream
-
 import org.apache.parquet.io.{DelegatingSeekableInputStream, InputFile, SeekableInputStream}
+
+import java.io.ByteArrayInputStream
 
 
 class SeekableByteArrayInputStream(val bArr: Array[Byte]) extends ByteArrayInputStream(bArr) {

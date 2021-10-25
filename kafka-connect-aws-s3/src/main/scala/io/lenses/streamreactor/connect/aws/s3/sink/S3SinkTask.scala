@@ -17,31 +17,28 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.{ErrorHandler, RetryErrorPolicy}
 import com.datamountaineer.streamreactor.common.utils.JarManifest
-import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
+import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
 import io.lenses.streamreactor.connect.aws.s3.config.{S3Config, S3ConfigDefBuilder}
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither.toJavaThrowableConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.{HeaderToStringConverter, ValueToSinkDataConverter}
-import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreStorageInterface, StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.JCloudsStorageInterface
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import java.util
 import scala.collection.JavaConverters._
-import scala.util.control.NonFatal
+import scala.util.Try
 
-class S3SinkTask extends SinkTask {
-
-  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
+class S3SinkTask extends SinkTask with ErrorHandler {
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   private var writerManager: S3WriterManager = _
-
-  private var storageInterface: StorageInterface = _
 
   private var sinkName: String = _
 
@@ -52,15 +49,20 @@ class S3SinkTask extends SinkTask {
 
     logger.debug(s"[{}] S3SinkTask.start", sinkName)
 
-    S3SinkConfig(S3ConfigDefBuilder(getSinkName(props), propsFromContext(props))) match {
-      case Left(ex) => throw ex
-      case Right(config) =>
-        val awsContextCreator = new AwsContextCreator(AwsContextCreator.DefaultCredentialsFn)
-        storageInterface = new MultipartBlobStoreStorageInterface(sinkName, awsContextCreator.fromConfig(config.s3Config))
-        setErrorRetryInterval(config.s3Config)
+    val errOrWriterMan = for {
+      config <- S3SinkConfig(S3ConfigDefBuilder(getSinkName(props), propsFromContext(props)))
+      authResources = new AuthResources(config.s3Config)
+      jCloudsAuth <- authResources.jClouds
+      storageInterface <- Try {new JCloudsStorageInterface(sinkName, jCloudsAuth)}.toEither
+      _ <- Try {setErrorRetryInterval(config.s3Config)} .toEither
+      writerManager <- Try {S3WriterManager.from(config, sinkName)(storageInterface)}.toEither
+      _ <- Try(initialize(
+        config.s3Config.connectorRetryConfig.numberOfRetries,
+        config.s3Config.errorPolicy,
+      )).toEither
+    } yield writerManager
 
-        writerManager = S3WriterManager.from(config, sinkName)(storageInterface)
-    }
+    writerManager = errOrWriterMan.toThrowable(sinkName)
 
   }
 
@@ -75,7 +77,7 @@ class S3SinkTask extends SinkTask {
       .getOrElse(props)
   }
 
-  private def setErrorRetryInterval(s3Config: S3Config) = {
+  private def setErrorRetryInterval(s3Config: S3Config): Unit = {
     //if error policy is retry set retry interval
     s3Config.errorPolicy match {
       case RetryErrorPolicy() => context.timeout(s3Config.connectorRetryConfig.errorRetryInterval)
@@ -84,7 +86,7 @@ class S3SinkTask extends SinkTask {
   }
 
   case class TopicAndPartition(topic: String, partition: Int) {
-    override def toString(): String = s"$topic-$partition"
+    override def toString: String = s"$topic-$partition"
   }
 
   object TopicAndPartition {
@@ -109,36 +111,59 @@ class S3SinkTask extends SinkTask {
       }
     }
   }
+
+  def rollback(topicPartitions: Set[TopicPartition]): Unit = {
+    topicPartitions.foreach(writerManager.cleanUp)
+  }
+
+  def handleErrors(value: Either[SinkError, Unit]) = {
+    value match {
+      case Left(error: SinkError) =>
+        if (error.rollBack()) {
+          rollback(error.topicPartitions())
+        }
+        throw new IllegalStateException(error.message())
+      case Right(_) =>
+    }
+  }
+
   override def put(records: util.Collection[SinkRecord]): Unit = {
-    val recordsStats = buildLogForRecords(records.asScala)
-      .toList.sortBy(_._1).map { case (k, v) => s"$k=$v" }.mkString(";")
 
-    logger.debug(s"[$sinkName] put records=${records.size()} stats=$recordsStats")
+    handleTry {
+      Try {
+        val recordsStats = buildLogForRecords(records.asScala)
+          .toList.sortBy(_._1).map { case (k, v) => s"$k=$v" }.mkString(";")
 
-    records.asScala.foreach {
-      record =>
-        val tpo = TopicPartitionOffset(
-          Topic(record.topic),
-          record.kafkaPartition.intValue,
-          Offset(record.kafkaOffset)
-        )
-        writerManager.write(
-          tpo,
-          MessageDetail(
-            keySinkData = Option(record.key()).fold(Option.empty[SinkData])(key => Option(ValueToSinkDataConverter(key, Option(record.keySchema())))),
-            valueSinkData = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
-            headers = HeaderToStringConverter(record)
-          )
-        )
+        logger.debug(s"[$sinkName] put records=${records.size()} stats=$recordsStats")
+
+        // a failure in recommitPending will prevent the processing of further records
+        handleErrors(writerManager.recommitPending())
+
+        records.asScala.foreach {
+          record =>
+            handleErrors(writerManager.write(
+              Topic(record.topic).withPartition(record.kafkaPartition.intValue).withOffset(record.kafkaOffset),
+              MessageDetail(
+                keySinkData = Option(record.key()).fold(Option.empty[SinkData])(key => Option(ValueToSinkDataConverter(key, Option(record.keySchema())))),
+                valueSinkData = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
+                headers = HeaderToStringConverter(record)
+              )
+            ))
+        }
+
+        if (records.isEmpty) {
+          handleErrors(writerManager.commitAllWritersIfFlushRequired())
+        }
+      }
     }
 
-    if (records.isEmpty) writerManager.commitAllWritersIfFlushRequired()
   }
 
   override def preCommit(currentOffsets: util.Map[KafkaTopicPartition, OffsetAndMetadata]): util.Map[KafkaTopicPartition, OffsetAndMetadata] = {
     def getDebugInfo(in: util.Map[KafkaTopicPartition, OffsetAndMetadata]): String = {
       in.entrySet().asScala.toList.map(e => e.getKey.topic() + "-" + e.getKey.partition() + ":" + e.getValue.offset()).mkString(";")
     }
+
     logger.debug(s"[{}] preCommit with offsets={}", sinkName, getDebugInfo(currentOffsets): Any)
 
     val topicPartitionOffsetTransformed: Map[TopicPartition, OffsetAndMetadata] = Option(currentOffsets).getOrElse(new util.HashMap())
@@ -167,23 +192,20 @@ class S3SinkTask extends SinkTask {
     val partitionsDebug = partitions.asScala.map(tp => s"${tp.topic()}-${tp.partition()}").mkString(",")
     logger.debug(s"[{}] Open partitions", sinkName: Any, partitionsDebug: Any)
 
-    try {
-      val topicPartitions = partitions.asScala
-        .map(tp => TopicPartition(Topic(tp.topic), tp.partition))
-        .toSet
+    val topicPartitions = partitions.asScala
+      .map(tp => TopicPartition(Topic(tp.topic), tp.partition))
+      .toSet
 
-      writerManager.open(topicPartitions)
-        .foreach {
-          case (topicPartition, offset) =>
-            logger.debug(s"[$sinkName] Seeking to ${topicPartition.topic.value}-${topicPartition.partition}:${offset.value}")
-            context.offset(topicPartition.toKafka, offset.value)
-        }
+    handleErrors(for {
+      tpoMap <- writerManager.open(topicPartitions)
+    } yield {
+      tpoMap.foreach {
+        case (topicPartition, offset) =>
+          logger.debug(s"[$sinkName] Seeking to ${topicPartition.topic.value}-${topicPartition.partition}:${offset.value}")
+          context.offset(topicPartition.toKafka, offset.value)
+      }
+    })
 
-    } catch {
-      case NonFatal(e) =>
-        logger.error(s"[$sinkName] Error opening s3 sink writer", e)
-        throw e
-    }
   }
 
   /**
@@ -192,15 +214,15 @@ class S3SinkTask extends SinkTask {
     * for those (topic,partitions) to ensure no records are lost.
     */
   override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
-    logger.debug(s"[{}] S3SinkTask.close with {} partitions", sinkName, partitions.size())
+    logger.debug("[{}] S3SinkTask.close with {} partitions", sinkName, partitions.size())
 
-    writerManager.close()
+    Option(writerManager).foreach(_.close())
   }
 
   override def stop(): Unit = {
-    logger.debug(s"[{}] Stop")
+    logger.debug("[{}] Stop", sinkName)
 
-    writerManager.close()
+    Option(writerManager).foreach(_.close())
     writerManager = null
   }
 

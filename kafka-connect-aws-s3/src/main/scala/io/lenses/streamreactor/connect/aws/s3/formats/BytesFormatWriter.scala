@@ -16,17 +16,17 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, ByteArraySinkData, BytesOutputRow, BytesWriteMode, SinkData, Topic}
-import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
-
-import scala.util.Try
+import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
+import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 
 class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: BytesWriteMode) extends S3FormatWriter with LazyLogging {
 
   private val outputStream: S3OutputStream = outputStreamFn()
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] = {
 
     val writeKeys = bytesWriteMode.entryName.contains("Key")
     val writeValues = bytesWriteMode.entryName.contains("Value")
@@ -40,41 +40,48 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
     )
 
     if (writeKeys) {
-      keySinkData.fold(throw new IllegalArgumentException("No key supplied however requested to write key."))(keyStruct => {
-        val keyDataBytes: Array[Byte] = convertToBytes(keyStruct)
-        byteOutputRow = byteOutputRow.copy(
-          keySize = if (writeSizes) Some(keyDataBytes.length.longValue()) else None,
-          key = keyDataBytes
-        )
+      keySinkData.fold(throw FormatWriterException("No key supplied however requested to write key."))(keyStruct => {
+        convertToBytes(keyStruct) match {
+          case Left(exception) => return exception.asLeft
+          case Right(keyDataBytes) => byteOutputRow = byteOutputRow.copy(
+            keySize = if (writeSizes) Some(keyDataBytes.length.longValue()) else None,
+            key = keyDataBytes
+          )
+        }
       })
     }
 
     if (writeValues) {
-      val valueDataBytes: Array[Byte] = convertToBytes(valueSinkData)
-      byteOutputRow = byteOutputRow.copy(
-        valueSize = if (writeSizes) Some(valueDataBytes.length.longValue()) else None,
-        value = valueDataBytes
-      )
+      convertToBytes(valueSinkData) match {
+        case Left(exception) => return exception.asLeft
+        case Right(valueDataBytes) => byteOutputRow = byteOutputRow.copy(
+          valueSize = if (writeSizes) Some(valueDataBytes.length.longValue()) else None,
+          value = valueDataBytes
+        )
+      }
+
     }
 
     outputStream.write(byteOutputRow.toByteArray)
     outputStream.flush()
+    ().asRight
   }
 
-  def convertToBytes(sinkData: SinkData): Array[Byte] = {
+  def convertToBytes(sinkData: SinkData): Either[Throwable, Array[Byte]] = {
     sinkData match {
-      case ByteArraySinkData(array, _) => array
-      case _ => throw new IllegalStateException("Non-binary content received.  Please check your configuration.  It may be advisable to ensure you are using org.apache.kafka.connect.converters.ByteArrayConverter\", exception)\n      case Success(value) => value")
+      case ByteArraySinkData(array, _) => array.asRight
+      case _ => new IllegalStateException("Non-binary content received.  Please check your configuration.  It may be advisable to ensure you are using org.apache.kafka.connect.converters.ByteArrayConverter\", exception)\n      case Success(value) => value").asLeft
     }
   }
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 
-  override def close(newName: RemotePathLocation) = {
-    Try(outputStream.complete(newName))
-
-    Try(outputStream.flush())
-    Try(outputStream.close())
+  override def complete(): Either[SinkError,Unit] = {
+    for {
+      closed <- outputStream.complete()
+      _ <- Suppress(outputStream.flush())
+      _ <- Suppress(outputStream.close())
+    } yield closed
   }
 
   override def getPointer: Long = outputStream.getPointer

@@ -16,22 +16,22 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.ByteArrayInputStream
-
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, StringSourceData, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.{StringSourceData, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData.{firstUsers, topic}
-import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
+import java.io.ByteArrayInputStream
 
+class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
   "read" should "take read through all records" in {
 
     val byteArrayInputStream: ByteArrayInputStream = writeRecordsToOutputStream
-    val avroFormatStreamReader = new TextFormatStreamReader(() => byteArrayInputStream, RemotePathLocation("test-bucket", "test-path"))
+    val avroFormatStreamReader = new TextFormatStreamReader(() => byteArrayInputStream, RemoteS3PathLocation("test-bucket", "test-path"))
 
     avroFormatStreamReader.hasNext should be(true)
     avroFormatStreamReader.next should be(StringSourceData(TestSampleSchemaAndData.recordsAsJson(0), 0))
@@ -47,7 +47,7 @@ class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
     val outputStream = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
     firstUsers.foreach(data => jsonFormatWriter.write(None, StructSinkData(data), topic))
-    jsonFormatWriter.close(RemotePathLocation("my-bucket", "my-path"))
+    jsonFormatWriter.complete()
 
     val byteArrayInputStream = new ByteArrayInputStream(outputStream.toByteArray)
     byteArrayInputStream

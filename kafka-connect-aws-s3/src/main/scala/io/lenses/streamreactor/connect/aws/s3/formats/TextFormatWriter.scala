@@ -17,10 +17,11 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.nio.charset.StandardCharsets
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, PrimitiveSinkData, SinkData, Topic}
-import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
+import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
+import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 
+import java.nio.charset.StandardCharsets
 import scala.util.{Failure, Success, Try}
 
 class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter {
@@ -29,31 +30,36 @@ class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   private val outputStream: S3OutputStream = outputStreamFn()
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] = {
 
-    val dataBytes: Array[Byte] = Try {
-      valueSinkData match {
-        case data: PrimitiveSinkData => data.primVal().toString.getBytes
-        case _ => throw new IllegalArgumentException("Not a string")
+    Try {
+
+      val dataBytes: Array[Byte] = Try {
+        valueSinkData match {
+          case data: PrimitiveSinkData => data.safeVal().toString.getBytes
+          case _ => throw FormatWriterException("Not a string")
+        }
+      } match {
+        case Failure(exception: Throwable) => throw FormatWriterException("Unable to retrieve text field value.  Text format is only for output of kafka string values.", Some(exception))
+        case Success(value) => value
       }
-    } match {
-      case Failure(exception) => throw new IllegalStateException("Unable to retrieve text field value.  Text format is only for output of kafka string values.", exception)
-      case Success(value) => value
-    }
 
-    outputStream.write(dataBytes)
-    outputStream.write(LineSeparatorBytes)
-    outputStream.flush()
+      outputStream.write(dataBytes)
+      outputStream.write(LineSeparatorBytes)
+      outputStream.flush()
+    }.toEither
   }
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 
-  override def close(newName: RemotePathLocation): Unit = {
-    Try(outputStream.complete(newName))
-
-    Try(outputStream.flush())
-    Try(outputStream.close())
+  override def complete(): Either[SinkError, Unit] = {
+    for {
+      closed <- outputStream.complete()
+      _ <- Suppress(outputStream.flush())
+      _ <- Suppress(outputStream.close())
+    } yield closed
   }
 
   override def getPointer: Long = outputStream.getPointer
+
 }

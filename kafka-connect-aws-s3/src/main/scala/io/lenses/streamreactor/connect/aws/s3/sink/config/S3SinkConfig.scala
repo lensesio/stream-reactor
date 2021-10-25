@@ -23,10 +23,9 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.S3FlushSettings.{defaultFlushCount, defaultFlushInterval, defaultFlushSize}
 import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3Config, S3ConfigDefBuilder}
-import io.lenses.streamreactor.connect.aws.s3.model.{PartitionSelection, RemoteRootLocation, S3OutputStreamOptions, StreamedWriteOutputStreamOptions}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.{LocalStagingArea, PartitionSelection}
 import io.lenses.streamreactor.connect.aws.s3.sink._
-
-import scala.collection.JavaConverters._
 
 object S3SinkConfig {
 
@@ -62,16 +61,16 @@ object SinkBucketOptions extends LazyLogging {
         case None => new HierarchicalS3FileNamingStrategy(formatSelection)
       }
 
-      val s3WriteOptions = config.s3WriteOptions(config)
-      s3WriteOptions match {
+      val stagingArea = LocalStagingArea(config)
+      stagingArea match {
         case Right(value) => SinkBucketOptions(
           kcql.getSource,
-          RemoteRootLocation(kcql.getTarget),
+          RemoteS3RootLocation(kcql.getTarget),
           formatSelection = formatSelection,
           fileNamingStrategy = namingStrategy,
           partitionSelection = partitionSelection,
           commitPolicy = config.commitPolicy(kcql),
-          writeMode = value,
+          localStagingArea = value,
         )
         case Left(exception) => return exception.asLeft[Set[SinkBucketOptions]]
       }
@@ -83,10 +82,10 @@ object SinkBucketOptions extends LazyLogging {
 
 case class SinkBucketOptions(
                               sourceTopic: String,
-                              bucketAndPrefix: RemoteRootLocation,
+                              bucketAndPrefix: RemoteS3RootLocation,
                               formatSelection: FormatSelection,
                               fileNamingStrategy: S3FileNamingStrategy,
                               partitionSelection: Option[PartitionSelection] = None,
                               commitPolicy: CommitPolicy = DefaultCommitPolicy(Some(defaultFlushSize), Some(defaultFlushInterval), Some(defaultFlushCount)),
-                              writeMode: S3OutputStreamOptions = StreamedWriteOutputStreamOptions(),
+                              localStagingArea: LocalStagingArea,
                             )

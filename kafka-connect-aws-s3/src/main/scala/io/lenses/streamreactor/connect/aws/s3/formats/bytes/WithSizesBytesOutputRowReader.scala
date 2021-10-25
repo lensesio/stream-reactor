@@ -16,9 +16,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats.bytes
 
-import java.io.{DataInputStream, InputStream}
-
 import io.lenses.streamreactor.connect.aws.s3.model.BytesOutputRow
+
+import java.io.{DataInputStream, InputStream}
 
 object WithSizesBytesOutputRowReader {
 

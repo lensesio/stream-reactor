@@ -30,11 +30,24 @@ sealed trait SinkData {
 
 sealed trait PrimitiveSinkData extends SinkData {
   def primVal(): Any
+
+  def safeVal() : Any = primVal()
+
 }
 
 case class BooleanSinkData(primVal: Boolean, schema: Option[Schema] = None) extends PrimitiveSinkData
 
-case class StringSinkData(primVal: String, schema: Option[Schema] = None) extends PrimitiveSinkData
+case class StringSinkData(primVal: String, schema: Option[Schema] = None) extends PrimitiveSinkData {
+
+  /**
+   * Escapes new line characters so that they don't cause line breaks in the output.  In the case of text or json mode,
+   * which is line delimited, these breaks could cause the file to be read incorrectly.
+   */
+  override def safeVal(): Any = {
+    primVal.replace("\n", "\\n")
+  }
+
+}
 
 case class LongSinkData(primVal: Long, schema: Option[Schema] = None) extends PrimitiveSinkData
 

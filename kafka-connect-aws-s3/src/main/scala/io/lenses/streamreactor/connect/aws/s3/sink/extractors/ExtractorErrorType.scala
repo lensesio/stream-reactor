@@ -23,7 +23,7 @@ sealed trait ExtractorErrorType extends EnumEntry
 
 object ExtractorErrorType extends Enum[ExtractorErrorType] {
 
-  val values = findValues
+  override val values = findValues
 
   case object MissingValue extends ExtractorErrorType
 

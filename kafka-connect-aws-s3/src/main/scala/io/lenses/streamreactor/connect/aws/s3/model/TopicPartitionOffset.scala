@@ -18,14 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.model
 
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 
-case class OffsetReaderResult(path: String, line: String)
 
-case class PollResults(
-                        resultList: Vector[_ <: SourceData],
-                        bucketAndPath: RemotePathLocation,
-                        prefix: String,
-                        targetTopic: String
-                      )
 
 
 case class Topic(value: String) {
@@ -64,4 +57,6 @@ case class TopicPartition(topic: Topic, partition: Int) {
 
 case class TopicPartitionOffset(topic: Topic, partition: Int, offset: Offset) {
   def toTopicPartition: TopicPartition = TopicPartition(topic, partition)
+
+  def toTopicPartitionOffsetTuple = (toTopicPartition, offset)
 }

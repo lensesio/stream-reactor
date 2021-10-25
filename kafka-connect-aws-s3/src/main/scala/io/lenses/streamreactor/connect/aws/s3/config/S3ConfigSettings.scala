@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.{ERROR_POLICY_PROP_SUFFIX, KCQL_PROP_SUFFIX, MAX_RETRIES_PROP_SUFFIX, PROGRESS_ENABLED_CONST, RETRY_INTERVAL_PROP_SUFFIX}
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
 
 object S3ConfigSettings {
 
@@ -30,6 +30,7 @@ object S3ConfigSettings {
   val DEP_CUSTOM_ENDPOINT: String = "aws.custom.endpoint"
   val DEP_ENABLE_VIRTUAL_HOST_BUCKETS: String = "aws.vhost.bucket"
 
+  val AWS_REGION: String = s"$CONNECTOR_PREFIX.aws.region"
   val AWS_ACCESS_KEY: String = s"$CONNECTOR_PREFIX.aws.access.key"
   val AWS_SECRET_KEY: String = s"$CONNECTOR_PREFIX.aws.secret.key"
   val AUTH_MODE: String = s"$CONNECTOR_PREFIX.aws.auth.mode"
@@ -37,7 +38,6 @@ object S3ConfigSettings {
   val ENABLE_VIRTUAL_HOST_BUCKETS: String = s"$CONNECTOR_PREFIX.vhost.bucket"
 
   val DISABLE_FLUSH_COUNT: String = s"$CONNECTOR_PREFIX.disable.flush.count"
-  val WRITE_MODE: String = s"$CONNECTOR_PREFIX.write.mode"
   val LOCAL_TMP_DIRECTORY: String = s"$CONNECTOR_PREFIX.local.tmp.directory"
 
   val PROFILES: String = s"$CONNECTOR_PREFIX.config.profiles"
@@ -72,11 +72,11 @@ object S3ConfigSettings {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT: Int = 20
 
-  val HTTP_ERROR_RETRY_INTERVAL = s"$CONNECTOR_PREFIX.HTTP.$RETRY_INTERVAL_PROP_SUFFIX"
+  val HTTP_ERROR_RETRY_INTERVAL = s"$CONNECTOR_PREFIX.http.$RETRY_INTERVAL_PROP_SUFFIX"
   val HTTP_ERROR_RETRY_INTERVAL_DOC = "If greater than zero, used to determine the delay after which to retry the http request in milliseconds.  Based on an exponential backoff algorithm."
   val HTTP_ERROR_RETRY_INTERVAL_DEFAULT: Long = 50L
 
-  val HTTP_NBR_OF_RETRIES = s"$CONNECTOR_PREFIX.HTTP.$MAX_RETRIES_PROP_SUFFIX"
+  val HTTP_NBR_OF_RETRIES = s"$CONNECTOR_PREFIX.http.$MAX_RETRIES_PROP_SUFFIX"
   val HTTP_NBR_OF_RETRIES_DOC = "Number of times to retry the http request, in the case of a resolvable error on the server side."
   val HTTP_NBR_OF_RETIRES_DEFAULT: Int = 5
 }

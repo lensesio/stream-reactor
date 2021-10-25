@@ -17,19 +17,19 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.StringReader
 import au.com.bytecode.opencsv.CSVReader
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorError
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.UnexpectedType
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
-import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import org.apache.kafka.connect.data.Schema.STRING_SCHEMA
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.Assertions
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.io.StringReader
 import scala.collection.JavaConverters._
 
 class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
@@ -133,11 +133,9 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
 
-    val caught = intercept[ExtractorError] {
-      formatWriter.write(None, StructSinkData(struct), topic)
-    }
-    formatWriter.close(RemotePathLocation("my-bucket", "my-path"))
-    caught.extractorErrorType should be(UnexpectedType)
+    val caught = formatWriter.write(None, StructSinkData(struct), topic)
+    formatWriter.complete()
+    caught should be (Left(ExtractorError(UnexpectedType)))
   }
 
   "convert" should "not allow complex struct types" in {
@@ -156,10 +154,8 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
 
-    val caught = intercept[ExtractorError] {
-      formatWriter.write(None, StructSinkData(struct), topic)
-    }
-    formatWriter.close(RemotePathLocation("my-bucket", "my-path"))
-    caught.extractorErrorType should be(UnexpectedType)
+    val caught = formatWriter.write(None, StructSinkData(struct), topic)
+    formatWriter.complete()
+    caught should be (Left(ExtractorError(UnexpectedType)))
   }
 }
