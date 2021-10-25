@@ -19,6 +19,8 @@ package io.lenses.streamreactor.connect.aws.s3.model
 import com.datamountaineer.kcql.Kcql
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
+import java.time.format.DateTimeFormatter
+import java.util.TimeZone
 
 sealed trait PartitionField {
   def valuePrefixDisplay(): String
@@ -96,4 +98,6 @@ case class PartitionPartitionField() extends PartitionField {
 
 case class DatePartitionField(format: String) extends PartitionField {
   override def valuePrefixDisplay(): String = "date"
+
+  def formatter = DateTimeFormatter.ofPattern(format).withZone( TimeZone.getDefault.toZoneId)
 }

@@ -29,6 +29,7 @@ import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
 import org.apache.commons.io.{FileUtils, IOUtils}
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.{ConnectException, RetriableException}
 import org.apache.kafka.connect.header.{ConnectHeaders, Header}
@@ -39,6 +40,8 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.StringReader
 import java.nio.file.Files
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, ZoneOffset}
 import java.{lang, util}
 import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala, SeqHasAsJava}
 
@@ -1686,21 +1689,39 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "partition by date" in {
 
+    def toTimestamp(str: String): Long = {
+      LocalDate.parse(str, DateTimeFormatter.ISO_DATE).atTime(6, 0).toInstant(ZoneOffset.UTC).toEpochMilli
+    }
+
+    val timeStampedRecords = firstUsers.zip(
+      Seq(
+        toTimestamp("2010-04-02"),
+        toTimestamp("2010-04-02"),
+        toTimestamp("2012-06-28"),
+      )
+
+    ).zipWithIndex.map { case ((user, timestamp), k) =>
+      new SinkRecord(TopicName, 1, null, null, schema, user, k.toLong, timestamp, TimestampType.CREATE_TIME)
+    }
+
     val task = new S3SinkTask()
 
     val props = DefaultProps
       .combine(
-        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _date.u,_date.L,_date.d WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1")
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _date.uuuu,_date.LL,_date.dd WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1")
       ).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
-    task.put(headerPartitionedRecords.asJava)
+    task.put(timeStampedRecords.asJava)
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/").size should be(6)
-
+    listBucketPath(BucketName, "streamReactorBackups/") should contain allOf(
+      "streamReactorBackups/2010/04/02/myTopic(1_0).json",
+      "streamReactorBackups/2010/04/02/myTopic(1_1).json",
+      "streamReactorBackups/2012/06/28/myTopic(1_2).json",
+    )
   }
 
   private def createSinkRecord(partition: Int, valueStruct: Struct, offset: Int, headers: lang.Iterable[Header]) = {
