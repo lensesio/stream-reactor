@@ -90,8 +90,7 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
                 if (ttl > 0) {
                   jedis.expire(sortedSetName, ttl.toInt)
                 }
-              } else if (response == 0)
-              response
+              }
             }
           }
         }

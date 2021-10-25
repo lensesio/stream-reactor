@@ -88,7 +88,7 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
                       val helper = StructHelper.StructExtension(value)
                       val pkValue = keys
                         .values
-                        .map(k => helper.extractValueFromPath(k))
+                        .map(helper.extractValueFromPath)
                         .map {
                           case Right(v) => v.get.toString
                           case Left(e) => throw new ConnectException(s"Unable to find all primary key field values [${keys.mkString(",")}] in record in topic [${record.topic()}], " +
