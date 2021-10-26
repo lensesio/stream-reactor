@@ -147,6 +147,7 @@ allprojects {
 
         dependencies {
             exclude(dependency("org.apache.avro:.*"))
+            exclude(dependency("com.google.protobuf:.*"))
             exclude(dependency("org.apache.kafka:.*"))
             exclude(dependency("io.confluent:.*"))
             exclude(dependency("org.apache.kafka:.*"))
@@ -156,7 +157,6 @@ allprojects {
     }
 
     dependencies {
-
         compile "org.scala-lang:scala-library:$scala"
         compile "org.scala-lang:scala-compiler:$scala"
         compile "com.typesafe.scala-logging:scala-logging_${scalaMajorVersion}:${scalaLoggingVersion}"
