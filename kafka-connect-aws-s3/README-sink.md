@@ -268,23 +268,16 @@ An example Kcql string showing all available config options for the Sink follows
     insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_SIZE=1000 WITH_FLUSH_INTERVAL=200 WITH_FLUSH_COUNT=200
 
 
-## Write modes
+## Local File Writing
 
-There are two write modes available for the upload of files to S3.
+The connector builds complete files locally before uploading in one operation in the commit.
 
-* Sreaming (Default) - Streaming files to S3 as they are written to via Multi-part uploads, and the commit moves the file to the committed name.
-* BuildLocal - Building the file locally in completion before uploading in one operation in the commit.  This may be preferred when bucket versioning is enabled as it reduces write operations to the bucket at the expense of increasing disk space requirements locally.
-
-To configure the write modes explicitly you can use either:
-
-    connect.s3.write.mode=BuildLocal
-    connect.s3.write.mode=Streamed
-
-Also, to optionally supply a directory to write the files to locally. If none is supplied and BuildLocal mode is used, then a directory will be created in your system temporary directory (eg /tmp)
+To optionally supply a directory to write the files to locally. If none is supplied and BuildLocal mode is used, then a directory will be created in your system temporary directory (eg /tmp)
 
     connect.s3.local.tmp.directory 
 
-The new BuildLocal write mode is currently limited to 5GB as it does not use the multipart upload API.  This can be addressed in future if it is required.
+Files are currently limited to 5GB.  This can be addressed in future if it is required.
+
 
 ## Error handling
 
