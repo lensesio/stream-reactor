@@ -79,5 +79,13 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     commitPolicy.interval should be(Some(2.seconds))
   }
 
+  "apply" should "respect custom batch size and limit" in {
+    val props = Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName BATCH = 150 STOREAS `CSV` LIMIT 550")
+
+    val kcql = S3ConfigDefBuilder(None, props.asJava).getKCQL
+
+    kcql.head.getBatchSize should be (150)
+    kcql.head.getLimit should be (550)
+  }
 
 }

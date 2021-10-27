@@ -57,18 +57,22 @@ object KcqlMapToStringConverter {
     for {
       target <- nonOptional(KcqlProp.Target)
       source <- nonOptional(KcqlProp.Source)
+      batchSize <- optional(KcqlProp.BatchSize)
       partitions <- optional(KcqlProp.Partitions)
       format <- optional(KcqlProp.Format)
       partitioner <- optional(KcqlProp.Partitioner)
       flush_size <- optional(KcqlProp.FlushSize)
       flush_interval <- optional(KcqlProp.FlushInterval)
       flush_count <- optional(KcqlProp.FlushCount)
+      limit <- optional(KcqlProp.Limit)
     } yield joinKcql(
       generateInsert(target, source),
+      generateBatchSize(batchSize),
       generatePartitions(partitions),
       generateFormat(format),
       generatePartitioner(partitioner),
-      generateFlushSize(flush_size, flush_interval, flush_count)
+      generateFlushSize(flush_size, flush_interval, flush_count),
+      generateLimit(limit)
     )
   }
 
@@ -79,6 +83,10 @@ object KcqlMapToStringConverter {
   private def generatePartitions(partitions: Option[String]): Option[String] = {
     partitions.map("PARTITIONBY " + _)
   }
+
+  private def generateBatchSize(batchSize: Option[String]): Option[String] = batchSize.map(s"BATCH " + _)
+
+  private def generateLimit(limit: Option[String]): Option[String] = limit.map(s"LIMIT " + _)
 
   private def generateFormat(format: Option[String]): Option[String] = format.map("STOREAS `" + _ + "`")
 
@@ -94,11 +102,13 @@ object KcqlMapToStringConverter {
 
   private def joinKcql(
                         insert: String,
+                        batchSize: Option[String],
                         partitions: Option[String],
                         format: Option[String],
                         partitioner: Option[String],
-                        flush: Option[String]) = {
-    Seq(Some(insert), partitions, format, partitioner, flush).filter(_.nonEmpty).flatten.mkString(" ")
+                        flush: Option[String],
+                        limit: Option[String]) = {
+    Seq(Some(insert), batchSize, partitions, format, partitioner, flush, limit).filter(_.nonEmpty).flatten.mkString(" ")
   }
 
 }
