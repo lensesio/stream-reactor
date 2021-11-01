@@ -23,34 +23,25 @@ import com.google.cloud.bigquery.Schema;
 
 import com.google.cloud.bigquery.TimePartitioning;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
-
 import com.wepay.kafka.connect.bigquery.convert.BigQueryRecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.BigQuerySchemaConverter;
 import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
-
 import com.wepay.kafka.connect.bigquery.retrieve.IdentitySchemaRetriever;
 import org.apache.kafka.common.config.AbstractConfig;
-import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
-
+import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.connect.sink.SinkConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -59,6 +50,8 @@ import java.util.stream.Stream;
  * Base class for connector and task configs; contains properties shared between the two of them.
  */
 public class BigQuerySinkConfig extends AbstractConfig {
+  private static final Logger logger = LoggerFactory.getLogger(BigQuerySinkConfig.class);
+
   // Values taken from https://github.com/apache/kafka/blob/1.1.1/connect/runtime/src/main/java/org/apache/kafka/connect/runtime/SinkConnectorConfig.java#L33
   public static final String TOPICS_CONFIG =                     SinkConnector.TOPICS_CONFIG;
   private static final ConfigDef.Type TOPICS_TYPE =              ConfigDef.Type.LIST;
@@ -300,6 +293,91 @@ public class BigQuerySinkConfig extends AbstractConfig {
       "How many records to write to an intermediate table before performing a merge flush, if " 
       + "upsert/delete is enabled. Can be set to -1 to disable record count-based flushing.";
 
+  public static final String THREAD_POOL_SIZE_CONFIG =                  "threadPoolSize";
+  private static final ConfigDef.Type THREAD_POOL_SIZE_TYPE =           ConfigDef.Type.INT;
+  public static final Integer THREAD_POOL_SIZE_DEFAULT =                10;
+  private static final ConfigDef.Validator THREAD_POOL_SIZE_VALIDATOR = ConfigDef.Range.atLeast(1);
+  private static final ConfigDef.Importance THREAD_POOL_SIZE_IMPORTANCE =
+      ConfigDef.Importance.MEDIUM;
+  private static final String THREAD_POOL_SIZE_DOC =
+      "The size of the BigQuery write thread pool. This establishes the maximum number of "
+          + "concurrent writes to BigQuery.";
+
+  public static final String QUEUE_SIZE_CONFIG =                    "queueSize";
+  private static final ConfigDef.Type QUEUE_SIZE_TYPE =             ConfigDef.Type.LONG;
+  // should this even have a default?
+  public static final Long QUEUE_SIZE_DEFAULT =                     -1L;
+  private static final ConfigDef.Validator QUEUE_SIZE_VALIDATOR =   ConfigDef.Range.atLeast(-1);
+  private static final ConfigDef.Importance QUEUE_SIZE_IMPORTANCE = ConfigDef.Importance.HIGH;
+  private static final String QUEUE_SIZE_DOC =
+      "The maximum size (or -1 for no maximum size) of the worker queue for bigQuery write "
+          + "requests before all topics are paused. This is a soft limit; the size of the queue can "
+          + "go over this before topics are paused. All topics will be resumed once a flush is "
+          + "requested or the size of the queue drops under half of the maximum size.";
+
+  public static final String BIGQUERY_RETRY_CONFIG =                    "bigQueryRetry";
+  private static final ConfigDef.Type BIGQUERY_RETRY_TYPE =             ConfigDef.Type.INT;
+  public static final Integer BIGQUERY_RETRY_DEFAULT =                  0;
+  private static final ConfigDef.Validator BIGQUERY_RETRY_VALIDATOR =   ConfigDef.Range.atLeast(0);
+  private static final ConfigDef.Importance BIGQUERY_RETRY_IMPORTANCE =
+      ConfigDef.Importance.MEDIUM;
+  private static final String BIGQUERY_RETRY_DOC =
+      "The number of retry attempts that will be made per BigQuery request that fails with a "
+          + "backend error or a quota exceeded error";
+
+  public static final String BIGQUERY_RETRY_WAIT_CONFIG =               "bigQueryRetryWait";
+  private static final ConfigDef.Type BIGQUERY_RETRY_WAIT_CONFIG_TYPE = ConfigDef.Type.LONG;
+  public static final Long BIGQUERY_RETRY_WAIT_DEFAULT =                1000L;
+  private static final ConfigDef.Validator BIGQUERY_RETRY_WAIT_VALIDATOR =
+      ConfigDef.Range.atLeast(0);
+  private static final ConfigDef.Importance BIGQUERY_RETRY_WAIT_IMPORTANCE =
+      ConfigDef.Importance.MEDIUM;
+  private static final String BIGQUERY_RETRY_WAIT_DOC =
+      "The minimum amount of time, in milliseconds, to wait between BigQuery backend or quota "
+          +  "exceeded error retry attempts.";
+
+  public static final String BIGQUERY_MESSAGE_TIME_PARTITIONING_CONFIG =
+      "bigQueryMessageTimePartitioning";
+  private static final ConfigDef.Type BIGQUERY_MESSAGE_TIME_PARTITIONING_CONFIG_TYPE =
+      ConfigDef.Type.BOOLEAN;
+  public static final Boolean BIGQUERY_MESSAGE_TIME_PARTITIONING_DEFAULT =                   false;
+  private static final ConfigDef.Importance BIGQUERY_MESSAGE_TIME_PARTITIONING_IMPORTANCE =
+      ConfigDef.Importance.HIGH;
+  private static final String BIGQUERY_MESSAGE_TIME_PARTITIONING_DOC =
+      "Whether or not to use the message time when inserting records. "
+          + "Default uses the connector processing time.";
+
+  public static final String BIGQUERY_PARTITION_DECORATOR_CONFIG =
+      "bigQueryPartitionDecorator";
+  private static final ConfigDef.Type BIGQUERY_PARTITION_DECORATOR_CONFIG_TYPE =
+      ConfigDef.Type.BOOLEAN;
+  //This has been set to true to preserve the existing behavior. However, we can set it to false if field based partitioning is used in BigQuery
+  public static final Boolean BIGQUERY_PARTITION_DECORATOR_DEFAULT =                 true;
+  private static final ConfigDef.Importance BIGQUERY_PARTITION_DECORATOR_IMPORTANCE =
+      ConfigDef.Importance.HIGH;
+  private static final String BIGQUERY_PARTITION_DECORATOR_DOC =
+      "Whether or not to append partition decorator to BigQuery table name when inserting records. "
+          + "Default is true. Setting this to true appends partition decorator to table name (e.g. table$yyyyMMdd depending on the configuration set for bigQueryPartitionDecorator). "
+          + "Setting this to false bypasses the logic to append the partition decorator and uses raw table name for inserts.";
+
+  public static final String BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG = "timestampPartitionFieldName";
+  private static final ConfigDef.Type BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_TYPE = ConfigDef.Type.STRING;
+  private static final String BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_DEFAULT = null;
+  private static final ConfigDef.Importance BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_IMPORTANCE =
+      ConfigDef.Importance.LOW;
+  private static final String BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_DOC =
+      "The name of the field in the value that contains the timestamp to partition by in BigQuery"
+          + " and enable timestamp partitioning for each table. Leave this configuration blank,"
+          + " to enable ingestion time partitioning for each table.";
+
+  public static final String BIGQUERY_CLUSTERING_FIELD_NAMES_CONFIG = "clusteringPartitionFieldNames";
+  private static final ConfigDef.Type BIGQUERY_CLUSTERING_FIELD_NAMES_TYPE = ConfigDef.Type.LIST;
+  private static final List<String> BIGQUERY_CLUSTERING_FIELD_NAMES_DEFAULT = null;
+  private static final ConfigDef.Importance BIGQUERY_CLUSTERING_FIELD_NAMES_IMPORTANCE =
+      ConfigDef.Importance.LOW;
+  private static final String BIGQUERY_CLUSTERING_FIELD_NAMES_DOC =
+      "List of fields on which data should be clustered by in BigQuery, separated by commas";
+
   public static final String TIME_PARTITIONING_TYPE_CONFIG = "timePartitioningType";
   private static final ConfigDef.Type TIME_PARTITIONING_TYPE_TYPE = ConfigDef.Type.STRING;
   public static final String TIME_PARTITIONING_TYPE_DEFAULT = TimePartitioning.Type.DAY.name().toUpperCase();
@@ -309,12 +387,12 @@ public class BigQuerySinkConfig extends AbstractConfig {
       .collect(Collectors.toList());
   private static final String TIME_PARTITIONING_TYPE_DOC =
       "The time partitioning type to use when creating tables. "
-          + "Existing tables will not be altered to use this partitioning type."; 
+          + "Existing tables will not be altered to use this partitioning type.";
 
   /**
-   * Return a ConfigDef object used to define this config's fields.
+   * Return the ConfigDef object used to define this config's fields.
    *
-   * @return A ConfigDef object used to define this config's fields.
+   * @return The ConfigDef object used to define this config's fields.
    */
   public static ConfigDef getConfig() {
     return new ConfigDef()
@@ -498,6 +576,58 @@ public class BigQuerySinkConfig extends AbstractConfig {
             MERGE_RECORDS_THRESHOLD_VALIDATOR,
             MERGE_RECORDS_THRESHOLD_IMPORTANCE,
             MERGE_RECORDS_THRESHOLD_DOC
+        ).define(
+            THREAD_POOL_SIZE_CONFIG,
+            THREAD_POOL_SIZE_TYPE,
+            THREAD_POOL_SIZE_DEFAULT,
+            THREAD_POOL_SIZE_VALIDATOR,
+            THREAD_POOL_SIZE_IMPORTANCE,
+            THREAD_POOL_SIZE_DOC
+        ).define(
+            QUEUE_SIZE_CONFIG,
+            QUEUE_SIZE_TYPE,
+            QUEUE_SIZE_DEFAULT,
+            QUEUE_SIZE_VALIDATOR,
+            QUEUE_SIZE_IMPORTANCE,
+            QUEUE_SIZE_DOC
+        ).define(
+            BIGQUERY_RETRY_CONFIG,
+            BIGQUERY_RETRY_TYPE,
+            BIGQUERY_RETRY_DEFAULT,
+            BIGQUERY_RETRY_VALIDATOR,
+            BIGQUERY_RETRY_IMPORTANCE,
+            BIGQUERY_RETRY_DOC
+        ).define(
+            BIGQUERY_RETRY_WAIT_CONFIG,
+            BIGQUERY_RETRY_WAIT_CONFIG_TYPE,
+            BIGQUERY_RETRY_WAIT_DEFAULT,
+            BIGQUERY_RETRY_WAIT_VALIDATOR,
+            BIGQUERY_RETRY_WAIT_IMPORTANCE,
+            BIGQUERY_RETRY_WAIT_DOC
+        ).define(
+            BIGQUERY_MESSAGE_TIME_PARTITIONING_CONFIG,
+            BIGQUERY_MESSAGE_TIME_PARTITIONING_CONFIG_TYPE,
+            BIGQUERY_MESSAGE_TIME_PARTITIONING_DEFAULT,
+            BIGQUERY_MESSAGE_TIME_PARTITIONING_IMPORTANCE,
+            BIGQUERY_MESSAGE_TIME_PARTITIONING_DOC
+        ).define(
+            BIGQUERY_PARTITION_DECORATOR_CONFIG,
+            BIGQUERY_PARTITION_DECORATOR_CONFIG_TYPE,
+            BIGQUERY_PARTITION_DECORATOR_DEFAULT,
+            BIGQUERY_PARTITION_DECORATOR_IMPORTANCE,
+            BIGQUERY_PARTITION_DECORATOR_DOC
+        ).define(
+            BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG,
+            BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_TYPE,
+            BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_DEFAULT,
+            BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_IMPORTANCE,
+            BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_DOC
+        ).define(
+            BIGQUERY_CLUSTERING_FIELD_NAMES_CONFIG,
+            BIGQUERY_CLUSTERING_FIELD_NAMES_TYPE,
+            BIGQUERY_CLUSTERING_FIELD_NAMES_DEFAULT,
+            BIGQUERY_CLUSTERING_FIELD_NAMES_IMPORTANCE,
+            BIGQUERY_CLUSTERING_FIELD_NAMES_DOC
         ).define(
             TIME_PARTITIONING_TYPE_CONFIG,
             TIME_PARTITIONING_TYPE_TYPE,
@@ -755,18 +885,80 @@ public class BigQuerySinkConfig extends AbstractConfig {
         "Conflicting Configs, allBQFieldsNullable can be true only if allowBigQueryFieldRelaxation is true"
       );
     }
+
+    Class<?> schemaRetriever = getClass(BigQuerySinkConfig.SCHEMA_RETRIEVER_CONFIG);
+
+    boolean allowNewBigQueryFields = getBoolean(BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG);
+    boolean allowRequiredFieldRelaxation = getBoolean(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG);
+    if ((allowNewBigQueryFields || allowRequiredFieldRelaxation) && schemaRetriever == null) {
+      throw new ConfigException(
+          "Cannot perform schema updates without a schema retriever"
+      );
+    }
+
+    if (schemaRetriever == null) {
+      logger.warn(
+          "No schema retriever class provided; auto schema updates are impossible"
+      );
+    }
+  }
+
+  /**
+   * Returns the field name to use for timestamp partitioning.
+   * @return String that represents the field name.
+   */
+  public Optional<String> getTimestampPartitionFieldName() {
+    return Optional.ofNullable(getString(BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG));
+  }
+
+  /**
+   * Returns the field names to use for clustering.
+   * @return List of Strings that represent the field names.
+   */
+  public Optional<List<String>> getClusteringPartitionFieldName() {
+    return Optional.ofNullable(getList(BIGQUERY_CLUSTERING_FIELD_NAMES_CONFIG));
+  }
+
+  /**
+   * Check the validity of table partitioning configs.
+   */
+  private void checkPartitionConfigs() {
+    if (getTimestampPartitionFieldName().isPresent() && getBoolean(BIGQUERY_PARTITION_DECORATOR_CONFIG)) {
+      throw new ConfigException(
+          "Only one partitioning configuration mode may be specified for the connector. "
+              + "Use either bigQueryPartitionDecorator OR timestampPartitionFieldName."
+      );
+    }
+  }
+
+  /**
+   * Check the validity of table clustering configs.
+   */
+  private void checkClusteringConfigs() {
+    if (getClusteringPartitionFieldName().isPresent()) {
+      if (!getTimestampPartitionFieldName().isPresent() && !getBoolean(BIGQUERY_PARTITION_DECORATOR_CONFIG)) {
+        throw new ConfigException(
+            "Clustering field name may be specified only on a partitioned table."
+        );
+      }
+      if (getClusteringPartitionFieldName().get().size() > 4) {
+        throw new ConfigException(
+            "You can only specify up to four clustering field names."
+        );
+      }
+    }
   }
 
   protected BigQuerySinkConfig(ConfigDef config, Map<String, String> properties) {
     super(config, properties);
     verifyBucketSpecified();
+    checkAutoCreateTables();
+    checkBigQuerySchemaUpdateConfigs();
+    checkPartitionConfigs();
+    checkClusteringConfigs();
   }
 
   public BigQuerySinkConfig(Map<String, String> properties) {
-    super(getConfig(), properties);
-    verifyBucketSpecified();
-    checkAutoCreateTables();
-    checkBigQuerySchemaUpdateConfigs();
+    this(getConfig(), properties);
   }
-
 }

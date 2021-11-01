@@ -24,15 +24,21 @@ import static org.junit.Assert.assertTrue;
 
 import com.google.cloud.bigquery.TimePartitioning;
 import com.wepay.kafka.connect.bigquery.SinkPropertiesFactory;
-
 import com.wepay.kafka.connect.bigquery.convert.BigQueryRecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.BigQuerySchemaConverter;
 import org.apache.kafka.common.config.ConfigException;
-
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class BigQuerySinkConfigTest {
   private SinkPropertiesFactory propertiesFactory;
@@ -81,6 +87,102 @@ public class BigQuerySinkConfigTest {
 
     new BigQuerySinkConfig(badConfigProperties);
   }
+
+  /**
+   * Test the default for the field name is not present.
+   */
+  @Test
+  public void testEmptyTimestampPartitionFieldName() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
+    assertFalse(testConfig.getTimestampPartitionFieldName().isPresent());
+  }
+
+  /**
+   * Test if the field name being non-empty and the decorator default (true) errors correctly.
+   */
+  @Test (expected = ConfigException.class)
+  public void testTimestampPartitionFieldNameError() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG, "name");
+    new BigQuerySinkConfig(configProperties);
+  }
+
+  /**
+   * Test the field name being non-empty and the decorator set to false works correctly.
+   */
+  @Test
+  public void testTimestampPartitionFieldName() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG, "name");
+    configProperties.put(BigQuerySinkConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "false");
+    BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
+    assertTrue(testConfig.getTimestampPartitionFieldName().isPresent());
+    assertFalse(testConfig.getBoolean(BigQuerySinkConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG));
+  }
+
+  /**
+   * Test the default for the field names is not present.
+   */
+  @Test
+  public void testEmptyClusteringFieldNames() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
+    assertFalse(testConfig.getClusteringPartitionFieldName().isPresent());
+  }
+
+  /**
+   * Test if the field names being non-empty and the partitioning is not present errors correctly.
+   */
+  @Test (expected = ConfigException.class)
+  public void testClusteringFieldNamesWithoutTimestampPartitionError() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG, null);
+    configProperties.put(BigQuerySinkConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "false");
+    configProperties.put(
+        BigQuerySinkConfig.BIGQUERY_CLUSTERING_FIELD_NAMES_CONFIG,
+        "column1,column2"
+    );
+    new BigQuerySinkConfig(configProperties);
+  }
+
+  /**
+   * Test if the field names are more than four fields errors correctly.
+   */
+  @Test (expected = ConfigException.class)
+  public void testClusteringPartitionFieldNamesWithMoreThanFourFieldsError() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "true");
+    configProperties.put(
+        BigQuerySinkConfig.BIGQUERY_CLUSTERING_FIELD_NAMES_CONFIG,
+        "column1,column2,column3,column4,column5"
+    );
+    new BigQuerySinkConfig(configProperties);
+  }
+
+  /**
+   * Test the field names being non-empty and the partitioning field exists works correctly.
+   */
+  @Test
+  public void testClusteringFieldNames() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG, "name");
+    configProperties.put(BigQuerySinkConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "false");
+    configProperties.put(
+        BigQuerySinkConfig.BIGQUERY_CLUSTERING_FIELD_NAMES_CONFIG,
+        "column1,column2"
+    );
+
+    ArrayList<String> expectedClusteringPartitionFieldName = new ArrayList<>(
+        Arrays.asList("column1", "column2")
+    );
+
+    BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
+    Optional<List<String>> testClusteringPartitionFieldName = testConfig.getClusteringPartitionFieldName();
+    assertTrue(testClusteringPartitionFieldName.isPresent());
+    assertEquals(expectedClusteringPartitionFieldName, testClusteringPartitionFieldName.get());
+  }
+
 
   @Test
   public void testValidTimePartitioningTypes() {
