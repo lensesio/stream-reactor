@@ -58,16 +58,15 @@ public class SinkPropertiesFactory {
    */
   public void testProperties(BigQuerySinkConfig config) {
 
-    config.getList(config.TOPICS_CONFIG);
-    config.getString(config.DEFAULT_DATASET_CONFIG);
+    config.getList(BigQuerySinkConfig.TOPICS_CONFIG);
+    config.getString(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG);
 
+    config.getString(BigQuerySinkConfig.PROJECT_CONFIG);
     config.getKeyFile();
-    config.getString(config.PROJECT_CONFIG);
+    config.getBoolean(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG);
+    config.getInt(BigQuerySinkConfig.AVRO_DATA_CACHE_SIZE_CONFIG);
 
-    config.getBoolean(config.SANITIZE_TOPICS_CONFIG);
-    config.getInt(config.AVRO_DATA_CACHE_SIZE_CONFIG);
-
-    config.getBoolean(config.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG);
-    config.getBoolean(config.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG);
+    config.getBoolean(BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG);
+    config.getBoolean(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG);
   }
 }

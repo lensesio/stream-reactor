@@ -23,24 +23,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 
-import static org.mockito.Matchers.any;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.Table;
-import com.google.cloud.bigquery.TableId;
-
-import com.wepay.kafka.connect.bigquery.api.KafkaSchemaRecordType;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
-import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 import org.apache.kafka.common.config.ConfigException;
 
@@ -55,7 +42,7 @@ import java.util.List;
 import java.util.Map;
 
 public class BigQuerySinkConnectorTest {
-  private static SinkConnectorPropertiesFactory propertiesFactory;
+  private static SinkPropertiesFactory propertiesFactory;
 
   // Would just use Mockito, but can't provide the name of an anonymous class to the config file
   public static class MockSchemaRetriever implements SchemaRetriever {
@@ -77,7 +64,7 @@ public class BigQuerySinkConnectorTest {
 
   @BeforeClass
   public static void initializePropertiesFactory() {
-    propertiesFactory = new SinkConnectorPropertiesFactory();
+    propertiesFactory = new SinkPropertiesFactory();
   }
 
   @Test
@@ -89,13 +76,7 @@ public class BigQuerySinkConnectorTest {
   public void testTaskConfigs() {
     Map<String, String> properties = propertiesFactory.getProperties();
 
-    Table fakeTable = mock(Table.class);
-
-    BigQuery bigQuery = mock(BigQuery.class);
-    when(bigQuery.getTable(any(TableId.class))).thenReturn(fakeTable);
-
-    SchemaManager schemaManager = mock(SchemaManager.class);
-    BigQuerySinkConnector testConnector = new BigQuerySinkConnector(bigQuery, schemaManager);
+    BigQuerySinkConnector testConnector = new BigQuerySinkConnector();
 
     testConnector.start(properties);
 

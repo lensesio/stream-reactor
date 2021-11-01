@@ -19,20 +19,14 @@
 
 package com.wepay.kafka.connect.bigquery;
 
-import com.google.cloud.bigquery.BigQuery;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
-
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
-
 import com.wepay.kafka.connect.bigquery.utils.Version;
-
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
-
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,27 +40,6 @@ import java.util.Map;
  * {@link org.apache.kafka.connect.sink.SinkTask SinkTasks}.
  */
 public class BigQuerySinkConnector extends SinkConnector {
-  private final BigQuery testBigQuery;
-  private final SchemaManager testSchemaManager;
-
-  public static final String  GCS_BQ_TASK_CONFIG_KEY = "GCSBQTask";
-
-  public BigQuerySinkConnector() {
-    testBigQuery = null;
-    testSchemaManager = null;
-  }
-
-  // For testing purposes only; will never be called by the Kafka Connect framework
-  BigQuerySinkConnector(BigQuery bigQuery) {
-    this.testBigQuery = bigQuery;
-    this.testSchemaManager = null;
-  }
-
-  // For testing purposes only; will never be called by the Kafka Connect framework
-  BigQuerySinkConnector(BigQuery bigQuery, SchemaManager schemaManager) {
-    this.testBigQuery = bigQuery;
-    this.testSchemaManager = schemaManager;
-  }
 
   private BigQuerySinkConfig config;
   private Map<String, String> configProperties;
@@ -76,7 +49,7 @@ public class BigQuerySinkConnector extends SinkConnector {
   @Override
   public ConfigDef config() {
     logger.trace("connector.config()");
-    return config.getConfig();
+    return BigQuerySinkConfig.getConfig();
   }
 
   @Override
@@ -112,7 +85,7 @@ public class BigQuerySinkConnector extends SinkConnector {
       HashMap<String, String> taskConfig = new HashMap<>(configProperties);
       if (i == 0 && !config.getList(BigQuerySinkConfig.ENABLE_BATCH_CONFIG).isEmpty()) {
         // if batch loading is enabled, configure first task to do the GCS -> BQ loading
-        taskConfig.put(GCS_BQ_TASK_CONFIG_KEY, "true");
+        taskConfig.put(BigQuerySinkTaskConfig.GCS_BQ_TASK_CONFIG, "true");
       }
       taskConfig.put(BigQuerySinkTaskConfig.TASK_ID_CONFIG, Integer.toString(i));
       taskConfigs.add(taskConfig);
