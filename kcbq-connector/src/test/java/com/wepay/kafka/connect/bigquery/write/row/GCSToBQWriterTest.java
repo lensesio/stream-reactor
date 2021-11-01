@@ -21,16 +21,14 @@ package com.wepay.kafka.connect.bigquery.write.row;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Table;
-import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.wepay.kafka.connect.bigquery.BigQuerySinkTask;
 import com.wepay.kafka.connect.bigquery.SchemaManager;
-import com.wepay.kafka.connect.bigquery.SinkTaskPropertiesFactory;
+import com.wepay.kafka.connect.bigquery.SinkPropertiesFactory;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
-import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -52,11 +50,11 @@ import static org.mockito.Mockito.when;
 
 public class GCSToBQWriterTest {
 
-  private static SinkTaskPropertiesFactory propertiesFactory;
+  private static SinkPropertiesFactory propertiesFactory;
 
   @BeforeClass
   public static void initializePropertiesFactory() {
-    propertiesFactory = new SinkTaskPropertiesFactory();
+    propertiesFactory = new SinkPropertiesFactory();
   }
 
   @Test
@@ -162,8 +160,8 @@ public class GCSToBQWriterTest {
                                             String topic,
                                             String dataset) {
     Map<String, String> properties = propertiesFactory.getProperties();
-    properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_CONFIG, bigqueryRetry);
-    properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_WAIT_CONFIG, bigqueryRetryWait);
+    properties.put(BigQuerySinkConfig.BIGQUERY_RETRY_CONFIG, bigqueryRetry);
+    properties.put(BigQuerySinkConfig.BIGQUERY_RETRY_WAIT_CONFIG, bigqueryRetryWait);
     properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
     // gcs config

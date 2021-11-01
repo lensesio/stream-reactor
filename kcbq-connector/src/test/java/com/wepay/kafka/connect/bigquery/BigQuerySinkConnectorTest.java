@@ -53,7 +53,7 @@ import java.util.List;
 import java.util.Map;
 
 public class BigQuerySinkConnectorTest {
-  private static SinkConnectorPropertiesFactory propertiesFactory;
+  private static SinkPropertiesFactory propertiesFactory;
 
   // Would just use Mockito, but can't provide the name of an anonymous class to the config file
   public static class MockSchemaRetriever implements SchemaRetriever {
@@ -75,7 +75,7 @@ public class BigQuerySinkConnectorTest {
 
   @BeforeClass
   public static void initializePropertiesFactory() {
-    propertiesFactory = new SinkConnectorPropertiesFactory();
+    propertiesFactory = new SinkPropertiesFactory();
   }
 
   @Test
@@ -127,7 +127,7 @@ public class BigQuerySinkConnectorTest {
 
   @Test
   public void testConfig() {
-    assertEquals(BigQuerySinkConfig.getConfig(), new BigQuerySinkConnector().config());
+    assertNotNull(new BigQuerySinkConnector().config());
   }
 
   // Make sure that a config exception is properly translated into a SinkConfigConnectException

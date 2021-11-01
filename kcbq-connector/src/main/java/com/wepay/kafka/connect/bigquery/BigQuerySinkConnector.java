@@ -22,12 +22,9 @@ package com.wepay.kafka.connect.bigquery;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableId;
 
-import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
-
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 
-import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
-
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 
@@ -47,7 +44,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * A {@link SinkConnector} used to delegate BigQuery data writes to
@@ -56,8 +52,6 @@ import java.util.Optional;
 public class BigQuerySinkConnector extends SinkConnector {
   private final BigQuery testBigQuery;
   private final SchemaManager testSchemaManager;
-
-  public static final String  GCS_BQ_TASK_CONFIG_KEY = "GCSBQTask";
 
   public BigQuerySinkConnector() {
     testBigQuery = null;
@@ -84,16 +78,16 @@ public class BigQuerySinkConnector extends SinkConnector {
   @Override
   public ConfigDef config() {
     logger.trace("connector.config()");
-    return config.getConfig();
+    return BigQuerySinkConfig.getConfig();
   }
 
   private BigQuery getBigQuery() {
     if (testBigQuery != null) {
       return testBigQuery;
     }
-    String projectName = config.getString(config.PROJECT_CONFIG);
+    String projectName = config.getString(BigQuerySinkConfig.PROJECT_CONFIG);
     String key = config.getKeyFile();
-    String keySource = config.getString(config.KEY_SOURCE_CONFIG);
+    String keySource = config.getString(BigQuerySinkConfig.KEY_SOURCE_CONFIG);
     return new BigQueryHelper().setKeySource(keySource).connect(projectName, key);
   }
 
@@ -104,7 +98,7 @@ public class BigQuerySinkConnector extends SinkConnector {
       if (bigQuery.getTable(tableId) == null) {
         logger.warn(
           "You may want to enable auto table creation by setting {}=true in the properties file",
-          config.TABLE_CREATE_CONFIG);
+            BigQuerySinkConfig.TABLE_CREATE_CONFIG);
         throw new BigQueryConnectException("Table '" + tableId + "' does not exist");
       }
     }
@@ -123,7 +117,7 @@ public class BigQuerySinkConnector extends SinkConnector {
       );
     }
 
-    if (!config.getBoolean(config.TABLE_CREATE_CONFIG)) {
+    if (!config.getBoolean(BigQuerySinkConfig.TABLE_CREATE_CONFIG)) {
       ensureExistingTables();
     }
   }
@@ -148,7 +142,7 @@ public class BigQuerySinkConnector extends SinkConnector {
       HashMap<String, String> taskConfig = new HashMap<>(configProperties);
       if (i == 0 && !config.getList(BigQuerySinkConfig.ENABLE_BATCH_CONFIG).isEmpty()) {
         // if batch loading is enabled, configure first task to do the GCS -> BQ loading
-        taskConfig.put(GCS_BQ_TASK_CONFIG_KEY, "true");
+        taskConfig.put(BigQuerySinkTaskConfig.GCS_BQ_TASK_CONFIG, "true");
       }
       taskConfigs.add(taskConfig);
     }

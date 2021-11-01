@@ -37,12 +37,12 @@ import com.google.cloud.storage.Storage;
 
 import com.wepay.kafka.connect.bigquery.BigQuerySinkTask;
 import com.wepay.kafka.connect.bigquery.SchemaManager;
-import com.wepay.kafka.connect.bigquery.SinkTaskPropertiesFactory;
+import com.wepay.kafka.connect.bigquery.SinkPropertiesFactory;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
-import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
+import com.wepay.kafka.connect.bigquery.retrieve.MemorySchemaRetriever;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -63,11 +63,11 @@ import java.util.Set;
 
 @SuppressWarnings("unchecked")
 public class BigQueryWriterTest {
-  private static SinkTaskPropertiesFactory propertiesFactory;
+  private static SinkPropertiesFactory propertiesFactory;
 
   @BeforeClass
   public static void initializePropertiesFactory() {
-    propertiesFactory = new SinkTaskPropertiesFactory();
+    propertiesFactory = new SinkPropertiesFactory();
   }
 
   @Test
@@ -109,7 +109,8 @@ public class BigQueryWriterTest {
     final String topic = "test_topic";
     final String dataset = "scratch";
     final Map<String, String> properties = makeProperties("3", "2000", topic, dataset);
-    properties.put(BigQuerySinkTaskConfig.TABLE_CREATE_CONFIG, "true");
+    properties.put(BigQuerySinkConfig.TABLE_CREATE_CONFIG, "true");
+    properties.put(BigQuerySinkConfig.SCHEMA_RETRIEVER_CONFIG, MemorySchemaRetriever.class.getName());
 
     BigQuery bigQuery = mock(BigQuery.class);
     Map<Long, List<BigQueryError>> emptyMap = mock(Map.class);
@@ -285,8 +286,8 @@ public class BigQueryWriterTest {
                                             String topic,
                                             String dataset) {
     Map<String, String> properties = propertiesFactory.getProperties();
-    properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_CONFIG, bigqueryRetry);
-    properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_WAIT_CONFIG, bigqueryRetryWait);
+    properties.put(BigQuerySinkConfig.BIGQUERY_RETRY_CONFIG, bigqueryRetry);
+    properties.put(BigQuerySinkConfig.BIGQUERY_RETRY_WAIT_CONFIG, bigqueryRetryWait);
     properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
     return properties;

@@ -35,9 +35,9 @@ public class SinkPropertiesFactory {
     Map<String, String> properties = new HashMap<>();
 
     properties.put(BigQuerySinkConfig.TABLE_CREATE_CONFIG, "false");
+    properties.put(BigQuerySinkConfig.SCHEMA_UPDATE_CONFIG, "false");
     properties.put(BigQuerySinkConfig.TOPICS_CONFIG, "kcbq-test");
     properties.put(BigQuerySinkConfig.PROJECT_CONFIG, "test-project");
-    properties.put(BigQuerySinkConfig.DATASETS_CONFIG, ".*=test");
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, "kcbq-test=kcbq-test-table");
 
     properties.put(BigQuerySinkConfig.KEYFILE_CONFIG, "key.json");
@@ -59,14 +59,9 @@ public class SinkPropertiesFactory {
 
     config.getMap(config.DATASETS_CONFIG);
     config.getMap(config.TOPICS_TO_TABLES_CONFIG);
-
     config.getList(config.TOPICS_CONFIG);
-    config.getList(config.TOPICS_TO_TABLES_CONFIG);
-    config.getList(config.DATASETS_CONFIG);
-
-    config.getKeyFile();
     config.getString(config.PROJECT_CONFIG);
-
+    config.getKeyFile();
     config.getBoolean(config.SANITIZE_TOPICS_CONFIG);
     config.getInt(config.AVRO_DATA_CACHE_SIZE_CONFIG);
   }

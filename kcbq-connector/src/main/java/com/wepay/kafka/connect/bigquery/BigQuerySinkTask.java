@@ -171,7 +171,7 @@ public class BigQuerySinkTask extends SinkTask {
     if (kafkaDataFieldName.isPresent()) {
       convertedRecord.put(kafkaDataFieldName.get(), KafkaDataBuilder.buildKafkaDataRecord(record));
     }
-    if (config.getBoolean(config.SANITIZE_FIELD_NAME_CONFIG)) {
+    if (config.getBoolean(BigQuerySinkConfig.SANITIZE_FIELD_NAME_CONFIG)) {
       convertedRecord = FieldNameSanitizer.replaceInvalidKeys(convertedRecord);
     }
     return RowToInsert.of(getRowId(record), convertedRecord);
@@ -205,17 +205,17 @@ public class BigQuerySinkTask extends SinkTask {
 
         if (!tableWriterBuilders.containsKey(table)) {
           TableWriterBuilder tableWriterBuilder;
-          if (config.getList(config.ENABLE_BATCH_CONFIG).contains(record.topic())) {
+          if (config.getList(BigQuerySinkConfig.ENABLE_BATCH_CONFIG).contains(record.topic())) {
             String topic = record.topic();
             String gcsBlobName = topic + "_" + uuid + "_" + Instant.now().toEpochMilli();
-            String gcsFolderName = config.getString(config.GCS_FOLDER_NAME_CONFIG);
+            String gcsFolderName = config.getString(BigQuerySinkConfig.GCS_FOLDER_NAME_CONFIG);
             if (gcsFolderName != null && !"".equals(gcsFolderName)) {
               gcsBlobName = gcsFolderName + "/" + gcsBlobName;
             }
             tableWriterBuilder = new GCSBatchTableWriter.Builder(
                 gcsToBQWriter,
                 table.getBaseTableId(),
-                config.getString(config.GCS_BUCKET_NAME_CONFIG),
+                config.getString(BigQuerySinkConfig.GCS_BUCKET_NAME_CONFIG),
                 gcsBlobName,
                 topic,
                 recordConverter);
@@ -255,9 +255,9 @@ public class BigQuerySinkTask extends SinkTask {
     if (testBigQuery != null) {
       return testBigQuery;
     }
-    String projectName = config.getString(config.PROJECT_CONFIG);
+    String projectName = config.getString(BigQuerySinkConfig.PROJECT_CONFIG);
     String keyFile = config.getKeyFile();
-    String keySource = config.getString(config.KEY_SOURCE_CONFIG);
+    String keySource = config.getString(BigQuerySinkConfig.KEY_SOURCE_CONFIG);
     return new BigQueryHelper().setKeySource(keySource).connect(projectName, keyFile);
   }
 
@@ -277,10 +277,10 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private BigQueryWriter getBigQueryWriter() {
-    boolean autoUpdateSchemas = config.getBoolean(config.SCHEMA_UPDATE_CONFIG);
-    boolean autoCreateTables = config.getBoolean(config.TABLE_CREATE_CONFIG);
-    int retry = config.getInt(config.BIGQUERY_RETRY_CONFIG);
-    long retryWait = config.getLong(config.BIGQUERY_RETRY_WAIT_CONFIG);
+    boolean autoUpdateSchemas = config.getBoolean(BigQuerySinkConfig.SCHEMA_UPDATE_CONFIG);
+    boolean autoCreateTables = config.getBoolean(BigQuerySinkConfig.TABLE_CREATE_CONFIG);
+    int retry = config.getInt(BigQuerySinkConfig.BIGQUERY_RETRY_CONFIG);
+    long retryWait = config.getLong(BigQuerySinkConfig.BIGQUERY_RETRY_WAIT_CONFIG);
     BigQuery bigQuery = getBigQuery();
     if (autoUpdateSchemas || autoCreateTables) {
       return new AdaptiveBigQueryWriter(bigQuery,
@@ -298,18 +298,18 @@ public class BigQuerySinkTask extends SinkTask {
     if (testGcs != null) {
       return testGcs;
     }
-    String projectName = config.getString(config.PROJECT_CONFIG);
+    String projectName = config.getString(BigQuerySinkConfig.PROJECT_CONFIG);
     String key = config.getKeyFile();
-    String keySource = config.getString(config.KEY_SOURCE_CONFIG);
+    String keySource = config.getString(BigQuerySinkConfig.KEY_SOURCE_CONFIG);
     return new GCSBuilder(projectName).setKey(key).setKeySource(keySource).build();
 
   }
 
   private GCSToBQWriter getGcsWriter() {
     BigQuery bigQuery = getBigQuery();
-    int retry = config.getInt(config.BIGQUERY_RETRY_CONFIG);
-    long retryWait = config.getLong(config.BIGQUERY_RETRY_WAIT_CONFIG);
-    boolean autoCreateTables = config.getBoolean(config.TABLE_CREATE_CONFIG);
+    int retry = config.getInt(BigQuerySinkConfig.BIGQUERY_RETRY_CONFIG);
+    long retryWait = config.getLong(BigQuerySinkConfig.BIGQUERY_RETRY_WAIT_CONFIG);
+    boolean autoCreateTables = config.getBoolean(BigQuerySinkConfig.TABLE_CREATE_CONFIG);
     // schemaManager shall only be needed for creating table hence do not fetch instance if not
     // needed.
     SchemaManager schemaManager = autoCreateTables ? getSchemaManager(bigQuery) : null;
@@ -324,8 +324,6 @@ public class BigQuerySinkTask extends SinkTask {
   @Override
   public void start(Map<String, String> properties) {
     logger.trace("task.start()");
-    final boolean hasGCSBQTask =
-        properties.remove(BigQuerySinkConnector.GCS_BQ_TASK_CONFIG_KEY) != null;
     try {
       config = new BigQuerySinkTaskConfig(properties);
     } catch (ConfigException err) {
@@ -342,10 +340,10 @@ public class BigQuerySinkTask extends SinkTask {
     executor = new KCBQThreadPoolExecutor(config, new LinkedBlockingQueue<>());
     topicPartitionManager = new TopicPartitionManager();
     useMessageTimeDatePartitioning =
-        config.getBoolean(config.BIGQUERY_MESSAGE_TIME_PARTITIONING_CONFIG);
+        config.getBoolean(BigQuerySinkConfig.BIGQUERY_MESSAGE_TIME_PARTITIONING_CONFIG);
     usePartitionDecorator = 
-            config.getBoolean(config.BIGQUERY_PARTITION_DECORATOR_CONFIG);
-    if (hasGCSBQTask) {
+            config.getBoolean(BigQuerySinkConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG);
+    if (config.getBoolean(BigQuerySinkTaskConfig.GCS_BQ_TASK_CONFIG)) {
       startGCSToBQLoadTask();
     }
   }
@@ -353,7 +351,7 @@ public class BigQuerySinkTask extends SinkTask {
   private void startGCSToBQLoadTask() {
     logger.info("Attempting to start GCS Load Executor.");
     gcsLoadExecutor = Executors.newScheduledThreadPool(1);
-    String bucketName = config.getString(config.GCS_BUCKET_NAME_CONFIG);
+    String bucketName = config.getString(BigQuerySinkConfig.GCS_BUCKET_NAME_CONFIG);
     Storage gcs = getGcs();
     // get the bucket, or create it if it does not exist.
     Bucket bucket = gcs.get(bucketName);
