@@ -40,6 +40,7 @@ public class DebeziumLogicalConvertersTest {
   //corresponds to March 1 2017, 22:20:38.808(123) UTC
   //              (March 1 2017, 14:20:38.808(123)-8:00)
   private static final Integer DAYS_TIMESTAMP = 17226;
+  private static final Integer MILLI_TIMESTAMP_INT = 1488406838;
   private static final Long MILLI_TIMESTAMP = 1488406838808L;
   private static final Long MICRO_TIMESTAMP = 1488406838808123L;
 
@@ -103,8 +104,8 @@ public class DebeziumLogicalConvertersTest {
       fail("Expected encoding type check to succeed.");
     }
 
-    String formattedTime = converter.convert(MILLI_TIMESTAMP);
-    assertEquals("22:20:38.808", formattedTime);
+    String formattedTime = converter.convert(MILLI_TIMESTAMP_INT);
+    assertEquals("05:26:46.838", formattedTime);
   }
 
   @Test
