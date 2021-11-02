@@ -152,7 +152,7 @@ public class DebeziumLogicalConverters {
 
     @Override
     public String convert(Object kafkaConnectObject) {
-      java.util.Date date = new java.util.Date((Long) kafkaConnectObject);
+      java.util.Date date = new java.util.Date((Integer) kafkaConnectObject);
       return getBQTimeFormat().format(date);
     }
   }
