@@ -20,12 +20,14 @@ import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.config.base.settings.Projections
 import com.datamountaineer.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
 import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
+import com.datamountaineer.streamreactor.common.schemas.StructHelper
 import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisKCQLSetting, RedisSinkSettings}
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConverters._
-import scala.util.Try
+import scala.util.{Success, Try}
 
 /**
   * A generic Redis `writer` that can store data into Redis PubSub / KCQL
@@ -78,9 +80,13 @@ class RedisPubSub(sinkSettings: RedisSinkSettings) extends RedisWriter with PubS
             topicSettings.map { KCQL =>
               val payload = simpleJsonConverter.fromConnectData(struct.schema(), struct)
               val channelField = getChannelField(KCQL.kcqlConfig)
-              val channel = StringStructFieldsStringKeyBuilder(Seq(channelField)).build(record)
-              val response = jedis.publish(channel, payload.toString)
-              response
+              val channel = StructHelper.StructExtension(struct).extractValueFromPath(channelField) match {
+                  case Right(v) => v.get.toString
+                  case Left(e) => throw new ConnectException(s"Unable to find all primary key field values [${channelField}] in record in topic [${record.topic()}], " +
+                    s"partition [${record.kafkaPartition()}], offset [${record.kafkaOffset()}], ${e.msg}")
+              }
+
+              jedis.publish(channel, payload.toString)
             }
           }
         }

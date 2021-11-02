@@ -73,12 +73,6 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
     errorRetries = settings.taskRetries,
     defaultBatchSize = ElasticConfigConstants.BATCH_SIZE_DEFAULT
   )
-
-
-  implicit object SinkRecordIndexable extends Indexable[SinkRecord] {
-    override def json(t: SinkRecord): String = convertValueToJson(t).toString
-  }
-
   /**
     * Close elastic4s client
     **/

@@ -18,11 +18,11 @@ package com.datamountaineer.streamreactor.connect.elastic7
 
 import java.nio.file.Paths
 import java.util.UUID
-
 import com.datamountaineer.streamreactor.connect.elastic7.CreateLocalNodeClientUtil._
 import com.datamountaineer.streamreactor.connect.elastic7.config.{ElasticConfig, ElasticSettings}
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
+import org.apache.kafka.connect.sink.SinkRecord
 import org.elasticsearch.common.settings.Settings
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
@@ -35,9 +35,10 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
 
   class TestContext {
 
-    val TemporaryLocalNodeDir = createTmpDir()
-    val RandomClusterName = UUID.randomUUID().toString()
-    val TestRecords = getTestRecords()
+    val TemporaryLocalNodeDir: File = createTmpDir()
+    val RandomClusterName: String = UUID.randomUUID().toString
+    val TestRecords: Vector[SinkRecord] = getTestRecords
+    val TestJsonRecords: Vector[SinkRecord] = getTestJsonRecords
 
     val DefaultSettings = Settings
       .builder()
@@ -54,7 +55,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
     }
 
     // TODO: Ensure these Settings properties are used
-    def writeTestRecords(localNodeSettings: Settings, props: java.util.Map[String, String]) = {
+    def writeTestRecords(localNodeSettings: Settings, props: java.util.Map[String, String]): (ElasticsearchContainer, ElasticClient, ElasticJsonWriter) = {
 
       val localNode = createLocalNode()
 
@@ -65,6 +66,20 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
       )
 
       writer.write(TestRecords)
+      (localNode, client, writer)
+    }
+
+    def writeTestJsonRecords(localNodeSettings: Settings, props: java.util.Map[String, String]): (ElasticsearchContainer, ElasticClient, ElasticJsonWriter) = {
+
+      val localNode = createLocalNode()
+
+      val client: ElasticClient = createLocalNodeClient(localNode)
+
+      val writer = new ElasticJsonWriter(new HttpKElasticClient(client),
+        ElasticSettings(ElasticConfig(props))
+      )
+
+      writer.write(TestJsonRecords)
       (localNode, client, writer)
     }
 
@@ -84,6 +99,27 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
       search(INDEX)
     }.await
     res.result.totalHits shouldBe TestRecords.size
+
+    writer.close()
+    client.close()
+    node.stop()
+    TemporaryLocalNodeDir.deleteRecursively()
+
+  }
+
+  "A ElasticWriter should insert into Elastic Search a number of json records" in new TestContext {
+
+    val (node: ElasticsearchContainer, client: ElasticClient, writer: ElasticJsonWriter) = writeTestJsonRecords(
+      DefaultSettings,
+      getElasticSinkConfigProps(RandomClusterName)
+    )
+
+    Thread.sleep(2000)
+
+    val res = client.execute {
+      search(INDEX)
+    }.await
+    res.result.totalHits shouldBe TestJsonRecords.size
 
     writer.close()
     client.close()

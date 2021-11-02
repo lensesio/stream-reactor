@@ -114,7 +114,7 @@ trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
   }
 
   //generate some test records
-  def getTestRecords(): Vector[SinkRecord] = {
+  def getTestRecords: Vector[SinkRecord] = {
     val schema = createSchema
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
 
@@ -124,6 +124,21 @@ trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
         new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toVector
+  }
+
+  def getTestJsonRecords: Vector[SinkRecord] = {
+    val json =
+      """
+        |{
+        |   "firstName":"Alex",
+        |   "age":30.0,
+        |   "child": {
+        |     "firstName": "Alex_Junior"
+        |   }
+        |}
+      """.stripMargin
+
+    Vector(new SinkRecord(TOPIC, 0, null, null, Schema.STRING_SCHEMA, json, 0))
   }
 
   def getTestRecordsNested: Vector[SinkRecord] = {

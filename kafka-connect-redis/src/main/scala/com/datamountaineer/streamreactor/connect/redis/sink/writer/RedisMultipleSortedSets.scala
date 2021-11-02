@@ -105,6 +105,8 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
 
                     val score = helper.extractValueFromPath(scoreField) match {
                       case Right(Some(v: java.lang.Long)) => v.toDouble
+                      case Right(_) => throw new ConnectException(s"Unable to convert score field [$scoreField] to type double in record in topic [${record.topic()}], " +
+                        s"partition [${record.kafkaPartition()}], offset [${record.kafkaOffset()}]")
                       case Left(e) => throw new ConnectException(s"Unable to find score field [$scoreField] in record in topic [${record.topic()}], " +
                         s"partition [${record.kafkaPartition()}], offset [${record.kafkaOffset()}], ${e.msg}")
                     }
