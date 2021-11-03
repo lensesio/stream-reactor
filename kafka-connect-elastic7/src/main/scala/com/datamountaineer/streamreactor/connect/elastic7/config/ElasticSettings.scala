@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.elastic7.config
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
 
+case class AWSCredentials(region: String, accessKey: String, secretKey: String)
 /**
   * Created by andrew@datamountaineer.com on 13/05/16.
   * stream-reactor-maven
@@ -30,7 +31,8 @@ case class ElasticSettings(kcqls: Seq[Kcql],
                            batchSize: Int = ElasticConfigConstants.BATCH_SIZE_DEFAULT,
                            pkJoinerSeparator: String = ElasticConfigConstants.PK_JOINER_SEPARATOR_DEFAULT,
                            httpBasicAuthUsername: String = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
-                           httpBasicAuthPassword: String = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT
+                           httpBasicAuthPassword: String = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
+                           awsCredentials: Option[AWSCredentials]
                           )
 
 
@@ -47,6 +49,18 @@ object ElasticSettings {
 
     val batchSize = config.getInt(ElasticConfigConstants.BATCH_SIZE_CONFIG)
 
+    val aws = Option(config.getString(ElasticConfigConstants.AWS_REGION)) match {
+      case Some(region) =>
+        Some(
+          AWSCredentials(
+            region = region,
+            accessKey = config.getString(ElasticConfigConstants.AWS_ACCESS_KEY),
+            secretKey = config.getString(ElasticConfigConstants.AWS_SECRET_KEY)
+          )
+        )
+      case None => None
+    }
+
     ElasticSettings(kcql,
       errorPolicy,
       retries,
@@ -54,7 +68,8 @@ object ElasticSettings {
       batchSize,
       pkJoinerSeparator,
       httpBasicAuthUsername,
-      httpBasicAuthPassword
+      httpBasicAuthPassword,
+      aws
     )
   }
 }

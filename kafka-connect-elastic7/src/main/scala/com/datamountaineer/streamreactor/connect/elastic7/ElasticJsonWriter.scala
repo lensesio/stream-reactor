@@ -88,7 +88,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
-      logger.debug(s"Received ${records.size} records.")
+      logger.debug(s"Received [${records.size}] records.")
       val grouped = records.groupBy(_.topic())
       insert(grouped)
     }

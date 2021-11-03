@@ -170,6 +170,27 @@ object ElasticConfig {
       1,
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
+    .define(
+      ElasticConfigConstants.AWS_REGION,
+      Type.STRING,
+      null,
+      Importance.HIGH,
+      ElasticConfigConstants.AWS_REGION_DOC
+    )
+    .define(
+      ElasticConfigConstants.AWS_ACCESS_KEY,
+      Type.PASSWORD,
+      "",
+      Importance.HIGH,
+      ElasticConfigConstants.AWS_ACCESS_KEY_DOC
+    )
+    .define(
+      ElasticConfigConstants.AWS_SECRET_KEY,
+      Type.PASSWORD,
+      "",
+      Importance.HIGH,
+      ElasticConfigConstants.AWS_SECRET_KEY_DOC
+    )
 }
 
 /**

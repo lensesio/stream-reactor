@@ -40,7 +40,7 @@ object CustomIndexName {
           val newResultsWithDateTimeFragment = results :+ maybeCurrentFragment.map(TextFragment.apply) :+ maybeDateTimeFormat.map(DateTimeFragment(_))
 
           parseIndexName(afterDateTimeFormat, new StringBuilder, newResultsWithDateTimeFragment)
-        case DateTimeFragment.ClosingChar => throw new InvalidCustomIndexNameException(s"Found closing '${DateTimeFragment.ClosingChar}' but no opening character")
+        case DateTimeFragment.ClosingChar => throw new InvalidCustomIndexNameException(s"Found closing [${DateTimeFragment.ClosingChar}] but no opening character")
         case anyOtherChar => parseIndexName(rest, currentFragment.append(anyOtherChar), results)
       }
       case Vector() =>

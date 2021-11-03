@@ -103,4 +103,11 @@ object ElasticConfigConstants {
   val PK_JOINER_SEPARATOR_DOC = "Separator used when have more that one field in PK"
   val PK_JOINER_SEPARATOR_DEFAULT = "-"
   val PK_JOINER_SEPARATOR_DISPLAY = "PK joiner separator"
+
+  val AWS_REGION = s"$CONNECTOR_PREFIX.aws.region"
+  val AWS_REGION_DOC = "AWS Region"
+  val AWS_ACCESS_KEY = s"$CONNECTOR_PREFIX.aws.access.key"
+  val AWS_ACCESS_KEY_DOC = "AWS Access Key"
+  val AWS_SECRET_KEY = s"$CONNECTOR_PREFIX.aws.secret.key"
+  val AWS_SECRET_KEY_DOC = s"AWS Secret Key"
 }
