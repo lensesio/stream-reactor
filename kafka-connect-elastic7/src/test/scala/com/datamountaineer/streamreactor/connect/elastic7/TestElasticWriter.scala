@@ -20,12 +20,14 @@ import java.nio.file.Paths
 import java.util.UUID
 import com.datamountaineer.streamreactor.connect.elastic7.CreateLocalNodeClientUtil._
 import com.datamountaineer.streamreactor.connect.elastic7.config.{ElasticConfig, ElasticSettings}
-import com.sksamuel.elastic4s.ElasticClient
+import com.sksamuel.elastic4s.{ElasticClient, Response}
 import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.requests.searches.SearchResponse
 import org.apache.kafka.connect.sink.SinkRecord
 import org.elasticsearch.common.settings.Settings
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.Eventually.eventually
 import org.testcontainers.elasticsearch.ElasticsearchContainer
 
 import scala.reflect.io.File
@@ -40,7 +42,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
     val TestRecords: Vector[SinkRecord] = getTestRecords
     val TestJsonRecords: Vector[SinkRecord] = getTestJsonRecords
 
-    val DefaultSettings = Settings
+    val DefaultSettings: Settings = Settings
       .builder()
       .put("cluster.name", RandomClusterName)
       .put("path.home", TemporaryLocalNodeDir.toString)
@@ -93,12 +95,12 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
       getElasticSinkConfigProps(RandomClusterName)
     )
 
-    Thread.sleep(2000)
-
-    val res = client.execute {
-      search(INDEX)
-    }.await
-    res.result.totalHits shouldBe TestRecords.size
+    eventually {
+      val res = client.execute {
+        search(INDEX)
+      }.await
+      res.result.totalHits shouldBe TestRecords.size
+    }
 
     writer.close()
     client.close()
@@ -114,12 +116,12 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
       getElasticSinkConfigProps(RandomClusterName)
     )
 
-    Thread.sleep(2000)
-
-    val res = client.execute {
-      search(INDEX)
-    }.await
-    res.result.totalHits shouldBe TestJsonRecords.size
+    eventually {
+      val res = client.execute {
+        search(INDEX)
+      }.await
+      res.result.totalHits shouldBe TestJsonRecords.size
+    }
 
     writer.close()
     client.close()
@@ -134,24 +136,24 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
       getElasticSinkUpdateConfigProps(RandomClusterName)
     )
 
-    Thread.sleep(2000)
+    eventually {
+      val res = client.execute {
+        search(INDEX)
+      }.await
+      res.result.totalHits shouldBe TestRecords.size
+    }
 
-    val res = client.execute {
-      search(INDEX)
-    }.await
-    res.result.totalHits shouldBe TestRecords.size
-
-    val testUpdateRecords = getUpdateTestRecord
+    val testUpdateRecords: Vector[SinkRecord] = getUpdateTestRecord
 
     //Second run just updates
     writer.write(testUpdateRecords)
 
-    Thread.sleep(2000)
-
-    val updateRes = client.execute {
-      search(INDEX)
-    }.await
-    updateRes.result.totalHits shouldBe TestRecords.size
+    eventually {
+      val updateRes: Response[SearchResponse] = client.execute {
+        search(INDEX)
+      }.await
+      updateRes.result.totalHits shouldBe TestRecords.size
+    }
 
     writer.close()
     client.close()
@@ -166,12 +168,12 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
       getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = true)
     )
 
-    Thread.sleep(2000)
-
-    val res = client.execute {
-      search(INDEX_WITH_DATE)
-    }.await
-    res.result.totalHits shouldBe TestRecords.size
+    eventually {
+      val res = client.execute {
+        search(INDEX_WITH_DATE)
+      }.await
+      res.result.totalHits shouldBe TestRecords.size
+    }
 
     writer.close()
     client.close()
@@ -194,13 +196,13 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
       getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = false, RandomClusterName)
     )
 
-    Thread.sleep(2000)
-
-    val searchResponse = client.execute {
-      search(INDEX_WITH_DATE)
-    }.await
-    searchResponse.isError should be(true)
-    searchResponse.error.`type` should be("index_not_found_exception")
+    eventually {
+      val searchResponse: Response[SearchResponse] = client.execute {
+        search(INDEX_WITH_DATE)
+      }.await
+      searchResponse.isError should be(true)
+      searchResponse.error.`type` should be("index_not_found_exception")
+    }
 
     writer.close()
     client.close()
@@ -223,12 +225,12 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
       getElasticSinkConfigPropsHTTPClient(autoCreate = true)
     )
 
-    Thread.sleep(2000)
-
-    val res = client.execute {
-      search(INDEX)
-    }.await
-    res.result.totalHits shouldBe TestRecords.size
+    eventually {
+      val res = client.execute {
+        search(INDEX)
+      }.await
+      res.result.totalHits shouldBe TestRecords.size
+    }
 
     writer.close()
     client.close()
@@ -244,21 +246,21 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
       getElasticSinkConfigPropsPk(RandomClusterName)
     )
 
-    Thread.sleep(2000)
-
-    val res = client.execute {
-      search(INDEX)
-    }.await
-    res.result.totalHits shouldBe TestRecords.size
+    eventually {
+      val res = client.execute {
+        search(INDEX)
+      }.await
+      res.result.totalHits shouldBe TestRecords.size
+    }
 
     writer.write(TestRecords)
 
-    Thread.sleep(2000)
-
-    val resUpdate = client.execute {
-      search(INDEX)
-    }.await
-    resUpdate.result.totalHits shouldBe TestRecords.size
+    eventually {
+      val resUpdate: Response[SearchResponse] = client.execute {
+        search(INDEX)
+      }.await
+      resUpdate.result.totalHits shouldBe TestRecords.size
+    }
 
     writer.close()
     client.close()
@@ -273,21 +275,22 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
       getElasticSinkConfigProps(RandomClusterName)
     )
 
-    Thread.sleep(2000)
+    eventually {
 
-    val res = client.execute {
-      search(INDEX)
-    }.await
-    res.result.totalHits shouldBe TestRecords.size
+      val res = client.execute {
+        search(INDEX)
+      }.await
+      res.result.totalHits shouldBe TestRecords.size
+    }
 
     writer.write(TestRecords)
 
-    Thread.sleep(2000)
-
-    val resUpdate = client.execute {
-      search(INDEX)
-    }.await
-    resUpdate.result.totalHits shouldBe TestRecords.size
+    eventually {
+      val resUpdate = client.execute {
+        search(INDEX)
+      }.await
+      resUpdate.result.totalHits shouldBe TestRecords.size
+    }
 
     writer.close()
     client.close()

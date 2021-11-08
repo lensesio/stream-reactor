@@ -21,10 +21,9 @@ import com.datamountaineer.kcql.{Kcql, WriteModeEnum}
 import com.datamountaineer.streamreactor.common.config.base.settings.Projections
 import com.datamountaineer.streamreactor.common.converters.FieldConverter
 import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.elastic7.config.{ElasticConfigConstants, ElasticSettings}
 import com.datamountaineer.streamreactor.connect.elastic7.indexname.CreateIndex
-import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
+import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.{SinkRecordExtension, simpleJsonConverter}
 import com.datamountaineer.streamreactor.common.schemas.StructHelper
 import com.fasterxml.jackson.databind.JsonNode
 import com.landoop.sql.Field
@@ -38,10 +37,10 @@ import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Success, Try}
+import scala.util.{Success, Try}
 
 class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
-  extends ErrorHandler with StrictLogging with ConverterUtil {
+  extends ErrorHandler with StrictLogging {
 
   logger.info("Initialising Elastic Json writer")
 
@@ -86,9 +85,9 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
     **/
   def write(records: Vector[SinkRecord]): Unit = {
     if (records.isEmpty) {
-      logger.debug("No records received.")
+      logger.debug("No records received")
     } else {
-      logger.debug(s"Received [${records.size}] records.")
+      logger.debug(s"Received [${records.size}] records")
       val grouped = records.groupBy(_.topic())
       insert(grouped)
     }
@@ -129,16 +128,17 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                       val helper = StructHelper.StructExtension(value)
                       keys
                         .values
-                        .map(helper.extractValueFromPath)
-                        .map {
-                          case Right(v) => v.get.toString
-                          case Left(e) => throw new ConnectException(s"Unable to find all primary key field values [${keys.mkString(",")}] " +
-                            s"in record in topic [${r.topic()}], " +
-                            s"partition [${r.kafkaPartition()}], offset [${r.kafkaOffset()}], ${e.msg}")
-                        }
-
-                    case Failure(exception) =>
-                      throw new ConnectException(s"Failed to constructed new record with primary key fields [${keys.mkString(",")}]. ${exception.getMessage}")
+                        .map(p => {
+                          helper.extractValueFromPath(p) match {
+                            case Right(v) => v.get.toString
+                            case Right(None) => throw new ConnectException(s"Null values for primary key field values [${keys.mkString(",")}] " +
+                              s"in record in topic [${r.topic()}], " +
+                              s"partition [${r.kafkaPartition()}], offset [${r.kafkaOffset()}]")
+                            case Left(e) => throw new ConnectException(s"Unable to find all primary key field values [${keys.mkString(",")}] " +
+                              s"in record in topic [${r.topic()}], " +
+                              s"partition [${r.kafkaPartition()}], offset [${r.kafkaOffset()}], ${e.msg}")
+                          }
+                        })
                   }
                   (payload, pkValues.toSet)
                 }

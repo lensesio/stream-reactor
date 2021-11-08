@@ -22,7 +22,8 @@ import com.datamountaineer.streamreactor.common.config.base.settings.Projections
 import com.datamountaineer.streamreactor.common.converters.FieldConverter
 import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
-import com.datamountaineer.streamreactor.common.schemas.{ConverterUtil, StructHelper}
+import com.datamountaineer.streamreactor.common.schemas.StructHelper
+import com.datamountaineer.streamreactor.connect.elastic6.Transform.simpleJsonConverter
 import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfigConstants, ElasticSettings}
 import com.datamountaineer.streamreactor.connect.elastic6.indexname.CreateIndex
 import com.fasterxml.jackson.databind.JsonNode
@@ -40,7 +41,7 @@ import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
 class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
-  extends ErrorHandler with StrictLogging with ConverterUtil {
+  extends ErrorHandler with StrictLogging {
 
   logger.info("Initialising Elastic Json writer")
 
@@ -131,13 +132,17 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                       val helper = StructHelper.StructExtension(value)
                       keys
                         .values
-                        .map(helper.extractValueFromPath)
-                        .map {
-                          case Right(v) => v.get.toString
-                          case Left(e) => throw new ConnectException(s"Unable to find all primary key field values [${keys.mkString(",")}] " +
-                            s"in record in topic [${r.topic()}], " +
-                            s"partition [${r.kafkaPartition()}], offset [${r.kafkaOffset()}], ${e.msg}")
-                        }
+                        .map(p => {
+                          helper.extractValueFromPath(p) match {
+                            case Right(v) => v.get.toString
+                            case Right(None) => throw new ConnectException(s"Null values for primary key field values [${keys.mkString(",")}] " +
+                              s"in record in topic [${r.topic()}], " +
+                              s"partition [${r.kafkaPartition()}], offset [${r.kafkaOffset()}]")
+                            case Left(e) => throw new ConnectException(s"Unable to find all primary key field values [${keys.mkString(",")}] " +
+                              s"in record in topic [${r.topic()}], " +
+                              s"partition [${r.kafkaPartition()}], offset [${r.kafkaOffset()}], ${e.msg}")
+                          }
+                        })
 
                     case Failure(exception) =>
                       throw new ConnectException(s"Failed to constructed new record with primary key fields [${keys.mkString(",")}]. ${exception.getMessage}")
