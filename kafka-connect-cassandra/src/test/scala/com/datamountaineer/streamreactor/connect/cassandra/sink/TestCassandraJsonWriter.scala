@@ -26,7 +26,7 @@ import com.datastax.driver.core.utils.UUIDs
 import com.datastax.driver.core.{ConsistencyLevel, Session}
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Decimal, Schema, SchemaBuilder, Struct}
-import org.apache.kafka.connect.errors.RetriableException
+import org.apache.kafka.connect.errors.{ConnectException, RetriableException}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
@@ -1094,6 +1094,49 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     val result = session.execute(validate)
 
     (result.asScala.isEmpty) shouldBe true
+    writer.close()
+  }
+
+  "Cassandra JSONWriter should log table name on encountering an error" in {
+
+    val table = "A" + UUID.randomUUID().toString.replace("-", "_")
+    session.execute(
+      s"""
+         |CREATE TABLE IF NOT EXISTS $keyspace.$table
+         |(key bigint,
+         |fieldMissingFromStruct text,
+         |PRIMARY KEY((key), fieldMissingFromStruct)) WITH CLUSTERING ORDER BY (fieldMissingFromStruct asc)""".stripMargin)
+
+    val valueSchema = SchemaBuilder.struct
+      .field("key", Schema.INT64_SCHEMA)
+      .field("name", Schema.STRING_SCHEMA)
+      .build
+    val valueStruct = new Struct(valueSchema)
+    valueStruct.put("key", Int.box(UUIDs.timeBased().hashCode).toLong)
+    valueStruct.put("name", "Emperor Cleon")
+
+    val record = new SinkRecord("TOPIC", 0, null, null, valueSchema, valueStruct, 1)
+    val context = mock[SinkTaskContext]
+    when(context.assignment()).thenReturn(getAssignment)
+
+    //get config
+    val props = Map(
+      CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.KEY_SPACE -> keyspace,
+      CassandraConfigConstants.USERNAME -> userName,
+      CassandraConfigConstants.PASSWD -> password,
+      CassandraConfigConstants.KCQL -> s"INSERT INTO $table SELECT key, name FROM TOPIC",
+    ).asJava
+
+    val taskConfig = new CassandraConfigSink(props)
+
+    val writer = CassandraWriter(taskConfig, context)
+    val ex = intercept[ConnectException] {
+      writer.write(Seq(record))
+    }
+
+    ex.getMessage should include(s"JSON values map contains unrecognized column: name (table: $table)")
+
     writer.close()
   }
 
