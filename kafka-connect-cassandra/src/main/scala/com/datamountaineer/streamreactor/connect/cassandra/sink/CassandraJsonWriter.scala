@@ -16,24 +16,22 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
-import java.util.concurrent.Executors
-
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraSinkSetting, DefaultValueServeStrategy}
-import com.datamountaineer.streamreactor.connect.cassandra.utils.{CassandraUtils, KeyUtils}
 import com.datamountaineer.streamreactor.common.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.common.concurrent.FutureAwaitWithFailFastFn
 import com.datamountaineer.streamreactor.common.converters.{FieldConverter, ToJsonWithProjections}
 import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datastax.driver.core.exceptions.SyntaxError
+import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraSinkSetting, DefaultValueServeStrategy}
+import com.datamountaineer.streamreactor.connect.cassandra.utils.{CassandraUtils, KeyUtils}
+import com.datastax.driver.core.exceptions.{InvalidQueryException, SyntaxError}
 import com.datastax.driver.core.{PreparedStatement, Session}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
+import java.util.concurrent.Executors
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
@@ -44,7 +42,7 @@ import scala.util.{Failure, Success, Try}
   * Writes a list of Kafka connect sink records to Cassandra using the JSON support.
   */
 class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSinkSetting)
-  extends StrictLogging with ConverterUtil with ErrorHandler {
+  extends StrictLogging with ErrorHandler {
 
   logger.info("Initialising Cassandra writer.")
 
@@ -194,8 +192,11 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
       }
       catch {
         case e: SyntaxError =>
-          logger.error(s"Syntax error inserting <$json>", e)
-          throw e
+          logger.error(s"Syntax error inserting <$json> into table <$table>", e)
+          throw e;
+        case e: InvalidQueryException =>
+          logger.error(s"Invalid query inserting <$json> into table <$table>", e)
+          throw new InvalidQueryException(e.getAddress, s"${e.getMessage} (table: $table)", e)
       }
     }
   }
