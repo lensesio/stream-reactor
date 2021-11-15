@@ -33,6 +33,7 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
 import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.storage.Storage;
 
 import com.wepay.kafka.connect.bigquery.BigQuerySinkTask;
@@ -56,6 +57,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -80,12 +82,9 @@ public class BigQueryWriterTest {
     Table mockTable = mock(Table.class);
     when(bigQuery.getTable(any())).thenReturn(mockTable);
 
-    Map<Long, List<BigQueryError>> emptyMap = mock(Map.class);
-    when(emptyMap.isEmpty()).thenReturn(true);
-
     InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
     when(insertAllResponse.hasErrors()).thenReturn(false);
-    when(insertAllResponse.getInsertErrors()).thenReturn(emptyMap);
+    when(insertAllResponse.getInsertErrors()).thenReturn(Collections.emptyMap());
 
     //first attempt (success)
     when(bigQuery.insertAll(anyObject()))
@@ -97,7 +96,7 @@ public class BigQueryWriterTest {
     SchemaManager schemaManager = mock(SchemaManager.class);
 
     Storage storage = mock(Storage.class);
-    Map cache = mock(Map.class);
+    Map<TableId, Table> cache = new HashMap<>();
 
     BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);
     testTask.initialize(sinkTaskContext);
@@ -117,12 +116,10 @@ public class BigQueryWriterTest {
     properties.put(BigQuerySinkConfig.TABLE_CREATE_CONFIG, "true");
 
     BigQuery bigQuery = mock(BigQuery.class);
-    Map<Long, List<BigQueryError>> emptyMap = mock(Map.class);
-    when(emptyMap.isEmpty()).thenReturn(true);
 
     InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
     when(insertAllResponse.hasErrors()).thenReturn(false);
-    when(insertAllResponse.getInsertErrors()).thenReturn(emptyMap);
+    when(insertAllResponse.getInsertErrors()).thenReturn(Collections.emptyMap());
 
     String errorMessage = "Not found: Table project.scratch.test_topic";
     BigQueryError error = new BigQueryError("notFound", "global", errorMessage);
@@ -135,7 +132,7 @@ public class BigQueryWriterTest {
     Storage storage = mock(Storage.class);
     SchemaRetriever schemaRetriever = mock(SchemaRetriever.class);
     SchemaManager schemaManager = mock(SchemaManager.class);
-    Map<String, Table> cache = mock(Map.class);
+    Map<TableId, Table> cache = new HashMap<>();
 
     BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);
     testTask.initialize(sinkTaskContext);
@@ -158,11 +155,9 @@ public class BigQueryWriterTest {
     Table mockTable = mock(Table.class);
     when(bigQuery.getTable(any())).thenReturn(mockTable);
 
-    Map<Long, List<BigQueryError>> emptyMap = mock(Map.class);
-    when(emptyMap.isEmpty()).thenReturn(true);
     InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
     when(insertAllResponse.hasErrors()).thenReturn(false);
-    when(insertAllResponse.getInsertErrors()).thenReturn(emptyMap);
+    when(insertAllResponse.getInsertErrors()).thenReturn(Collections.emptyMap());
 
     BigQueryException missTableException = new BigQueryException(404, "Table is missing");
 
@@ -173,7 +168,7 @@ public class BigQueryWriterTest {
     Storage storage = mock(Storage.class);
     SchemaRetriever schemaRetriever = mock(SchemaRetriever.class);
     SchemaManager schemaManager = mock(SchemaManager.class);
-    Map cache = mock(Map.class);
+    Map<TableId, Table> cache = new HashMap<>();
 
     BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);
     testTask.initialize(sinkTaskContext);
@@ -188,24 +183,16 @@ public class BigQueryWriterTest {
     final String topic = "test_topic";
     final String dataset = "scratch";
     final Map<String, String> properties = makeProperties("3", "2000", topic, dataset);
-    final Set<Long> failedRowSet = new HashSet<>();
-    failedRowSet.add(1L);
-
-    Map<Long, List<BigQueryError>> insertErrorMap = mock(Map.class);
-    when(insertErrorMap.isEmpty()).thenReturn(false);
-    when(insertErrorMap.size()).thenReturn(1);
-    when(insertErrorMap.keySet()).thenReturn(failedRowSet);
+    BigQueryError insertError = new BigQueryError("reason", "location", "message");
+    Map<Long, List<BigQueryError>> insertErrorMap = Collections.singletonMap(1L, Collections.singletonList(insertError));
 
     InsertAllResponse insertAllResponseWithError = mock(InsertAllResponse.class);
     when(insertAllResponseWithError.hasErrors()).thenReturn(true);
     when(insertAllResponseWithError.getInsertErrors()).thenReturn(insertErrorMap);
 
-    Map<Long, List<BigQueryError>> emptyMap = mock(Map.class);
-    when(emptyMap.isEmpty()).thenReturn(true);
-
     InsertAllResponse insertAllResponseNoError = mock(InsertAllResponse.class);
     when(insertAllResponseNoError.hasErrors()).thenReturn(true);
-    when(insertAllResponseNoError.getInsertErrors()).thenReturn(emptyMap);
+    when(insertAllResponseNoError.getInsertErrors()).thenReturn(Collections.emptyMap());
 
     BigQuery bigQuery = mock(BigQuery.class);
     Table mockTable = mock(Table.class);
@@ -224,7 +211,7 @@ public class BigQueryWriterTest {
 
     SchemaRetriever schemaRetriever = mock(SchemaRetriever.class);
     SchemaManager schemaManager = mock(SchemaManager.class);
-    Map cache = mock(Map.class);
+    Map<TableId, Table> cache = new HashMap<>();
     Storage storage = mock(Storage.class);
 
     BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);
@@ -247,21 +234,19 @@ public class BigQueryWriterTest {
     final String topic = "test_topic";
     final String dataset = "scratch";
     final Map<String, String> properties = makeProperties("3", "2000", topic, dataset);
+    BigQueryError insertError = new BigQueryError("reason", "location", "message");
 
-    Map<Long, List<BigQueryError>> insertErrorMap = mock(Map.class);
-    when(insertErrorMap.isEmpty()).thenReturn(false);
-    when(insertErrorMap.size()).thenReturn(2);
+    Map<Long, List<BigQueryError>> insertErrorMap = new HashMap<>();
+    insertErrorMap.put(1L, Collections.singletonList(insertError));
+    insertErrorMap.put(2L, Collections.singletonList(insertError));
 
     InsertAllResponse insertAllResponseWithError = mock(InsertAllResponse.class);
     when(insertAllResponseWithError.hasErrors()).thenReturn(true);
     when(insertAllResponseWithError.getInsertErrors()).thenReturn(insertErrorMap);
 
-    Map<Long, List<BigQueryError>> emptyMap = mock(Map.class);
-    when(emptyMap.isEmpty()).thenReturn(true);
-
     InsertAllResponse insertAllResponseNoError = mock(InsertAllResponse.class);
     when(insertAllResponseNoError.hasErrors()).thenReturn(true);
-    when(insertAllResponseNoError.getInsertErrors()).thenReturn(emptyMap);
+    when(insertAllResponseNoError.getInsertErrors()).thenReturn(Collections.emptyMap());
 
     BigQuery bigQuery = mock(BigQuery.class);
     Table mockTable = mock(Table.class);
@@ -279,7 +264,7 @@ public class BigQueryWriterTest {
 
     SchemaRetriever schemaRetriever = mock(SchemaRetriever.class);
     SchemaManager schemaManager = mock(SchemaManager.class);
-    Map cache = mock(Map.class);
+    Map<TableId, Table> cache = new HashMap<>();
     Storage storage = mock(Storage.class);
 
     BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);

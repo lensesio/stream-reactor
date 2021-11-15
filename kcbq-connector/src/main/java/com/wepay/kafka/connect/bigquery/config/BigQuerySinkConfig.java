@@ -866,7 +866,6 @@ public class BigQuerySinkConfig extends AbstractConfig {
   }
 
   private void checkAutoCreateTables() {
-
     Class<?> schemaRetriever = getClass(BigQuerySinkConfig.SCHEMA_RETRIEVER_CONFIG);
     boolean autoCreateTables = getBoolean(TABLE_CREATE_CONFIG);
 
@@ -909,6 +908,27 @@ public class BigQuerySinkConfig extends AbstractConfig {
    */
   public Optional<String> getTimestampPartitionFieldName() {
     return Optional.ofNullable(getString(BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG));
+  }
+
+  private void checkTimePartitioningConfigs() {
+    boolean decoratorSyntax = getBoolean(BIGQUERY_PARTITION_DECORATOR_CONFIG);
+    boolean createTables = getBoolean(TABLE_CREATE_CONFIG);
+
+    if (!decoratorSyntax || !createTables) {
+      // The time partitioning type only matters when we're configured to automatically create tables and will write to them with decorator syntax
+      return;
+    }
+
+    String rawTimePartitioningType = getString(TIME_PARTITIONING_TYPE_CONFIG);
+    if (!TimePartitioning.Type.DAY.equals(parseTimePartitioningType(rawTimePartitioningType))) {
+      throw new ConfigException(
+          TIME_PARTITIONING_TYPE_CONFIG,
+          rawTimePartitioningType,
+          "Tables must be partitioned by DAY when using partition decorator syntax. "
+              + "Either configure the connector with the DAY time partitioning type, "
+              + "disable automatic table creation, or disable partition decorator syntax."
+      );
+    }
   }
 
   /**
@@ -956,6 +976,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
     checkBigQuerySchemaUpdateConfigs();
     checkPartitionConfigs();
     checkClusteringConfigs();
+    checkTimePartitioningConfigs();
   }
 
   public BigQuerySinkConfig(Map<String, String> properties) {

@@ -211,7 +211,9 @@ public abstract class BaseConnectorIT {
       BigQuery bigQuery, String tableName, String sortColumn) throws InterruptedException {
 
     Table table = bigQuery.getTable(dataset(), tableName);
-    Schema schema = table.getDefinition().getSchema();
+    Schema schema = table
+        .getDefinition()
+        .getSchema();
 
     TableResult tableResult = bigQuery.query(QueryJobConfiguration.of(String.format(
         "SELECT * FROM `%s`.`%s` ORDER BY %s ASC",
@@ -298,13 +300,12 @@ public abstract class BaseConnectorIT {
    * @return the time this method discovered the connector has started, in milliseconds past epoch
    * @throws InterruptedException if this was interrupted
    */
-  protected long waitForConnectorToStart(String name, int numTasks) throws InterruptedException {
-    TestUtils.waitForCondition(
+  protected void waitForConnectorToStart(String name, int numTasks) throws InterruptedException {
+    waitForCondition(
         () -> assertConnectorAndTasksRunning(name, numTasks).orElse(false),
         CONNECTOR_STARTUP_DURATION_MS,
         "Connector tasks did not start in time."
     );
-    return System.currentTimeMillis();
   }
 
   /**

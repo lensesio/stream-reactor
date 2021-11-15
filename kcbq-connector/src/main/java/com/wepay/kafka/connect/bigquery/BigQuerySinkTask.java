@@ -38,6 +38,7 @@ import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.utils.SinkRecordConverter;
+import com.wepay.kafka.connect.bigquery.utils.TableNameUtils;
 import com.wepay.kafka.connect.bigquery.utils.Version;
 import com.wepay.kafka.connect.bigquery.write.batch.GCSBatchTableWriter;
 import com.wepay.kafka.connect.bigquery.write.batch.KCBQThreadPoolExecutor;
@@ -133,7 +134,7 @@ public class BigQuerySinkTask extends SinkTask {
    * @see BigQuerySinkTask#BigQuerySinkTask()
    */
   public BigQuerySinkTask(BigQuery testBigQuery, SchemaRetriever schemaRetriever, Storage testGcs,
-                          SchemaManager testSchemaManager, Map testCache) {
+                          SchemaManager testSchemaManager, Map<TableId, Table> testCache) {
     this.testBigQuery = testBigQuery;
     this.schemaRetriever = schemaRetriever;
     this.testGcs = testGcs;
@@ -218,9 +219,9 @@ public class BigQuerySinkTask extends SinkTask {
           throw new ConnectException(
               "Message has no timestamp type, cannot use message timestamp to partition.");
         }
-        setTimePartitioningForTimestamp(builder, timePartitioning, record.timestamp());
+        setTimePartitioningForTimestamp(baseTableId, builder, timePartitioning, record.timestamp());
       } else {
-        setTimePartitioning(builder, timePartitioning);
+        setTimePartitioning(baseTableId, builder, timePartitioning);
       }
     }
 
@@ -307,37 +308,28 @@ public class BigQuerySinkTask extends SinkTask {
     return bigQuery.updateAndGet(bq -> bq != null ? bq : newBigQuery());
   }
 
-  private void setTimePartitioningForTimestamp(PartitionedTableId.Builder builder, TimePartitioning timePartitioning,
-                                               Long timestamp) {
-    switch (timePartitioning.getType()) {
-      case HOUR:
-        builder.setHourPartition(timestamp);
-        break;
-      case MONTH:
-        builder.setMonthPartition(timestamp);
-        break;
-      case YEAR:
-        builder.setYearPartition(timestamp);
-        break;
-      default:
-        builder.setDayPartition(timestamp);
+  private void setTimePartitioningForTimestamp(
+      TableId table, PartitionedTableId.Builder builder, TimePartitioning timePartitioning, Long timestamp
+  ) {
+    if (timePartitioning.getType() != Type.DAY) {
+      throw new ConnectException(String.format(
+          "Cannot use decorator syntax to write to %s as it is partitioned by %s and not by day",
+          TableNameUtils.table(table),
+          timePartitioning.getType().toString().toLowerCase()
+      ));
     }
+    builder.setDayPartition(timestamp);
   }
 
-  private void setTimePartitioning(PartitionedTableId.Builder builder, TimePartitioning timePartitioning) {
-    switch (timePartitioning.getType()) {
-      case HOUR:
-        builder.setHourPartitionNow();
-        break;
-      case MONTH:
-        builder.setMonthPartitionForNow();
-        break;
-      case YEAR:
-        builder.setYearPartitionForNow();
-        break;
-      default:
-        builder.setDayPartitionForNow();
+  private void setTimePartitioning(TableId table, PartitionedTableId.Builder builder, TimePartitioning timePartitioning) {
+    if (timePartitioning.getType() != Type.DAY) {
+      throw new ConnectException(String.format(
+          "Cannot use decorator syntax to write to %s as it is partitioned by %s and not by day",
+          TableNameUtils.table(table),
+          timePartitioning.getType().toString().toLowerCase()
+      ));
     }
+    builder.setDayPartitionForNow();
   }
 
   private Table retrieveCachedTable(TableId tableId) {
