@@ -35,6 +35,7 @@ import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class BigQuerySinkConfigTest {
@@ -215,6 +216,7 @@ public class BigQuerySinkConfigTest {
   @Test
   public void testValidTimePartitioningTypes() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkTaskConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "false");
 
     for (TimePartitioning.Type type : TimePartitioning.Type.values()) {
       configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, type.name());
@@ -226,6 +228,22 @@ public class BigQuerySinkConfigTest {
     configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, BigQuerySinkConfig.TIME_PARTITIONING_TYPE_NONE);
     Optional<TimePartitioning.Type> timePartitioningType = new BigQuerySinkConfig(configProperties).getTimePartitioningType();
     assertFalse(timePartitioningType.isPresent());
+  }
+
+  @Test
+  public void testInvalidTimePartitioningTypes() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkTaskConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "true");
+    configProperties.put(BigQuerySinkTaskConfig.TABLE_CREATE_CONFIG, "true");
+
+    for (TimePartitioning.Type type : TimePartitioning.Type.values()) {
+      if (TimePartitioning.Type.DAY.equals(type)) {
+        continue;
+      }
+
+      configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, type.name());
+      assertThrows(ConfigException.class, () -> new BigQuerySinkConfig(configProperties));
+    }
   }
 
   @Test(expected = ConfigException.class)

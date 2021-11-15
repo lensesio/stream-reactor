@@ -30,6 +30,9 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * A TableId with separate base table name and partition information.
+ * Note that this class only supports partitioning by day; even though BigQuery supports other time partitioning types
+ * for tables partitioned by ingestion time, it doesn't support decorator syntax (i.e., appending "$YYYYMMDD" to the
+ * name of a table being streamed to) for these other time partitioning types.
  */
 public class PartitionedTableId {
 
@@ -203,19 +206,6 @@ public class PartitionedTableId {
       return this;
     }
 
-    public Builder setHourPartition(long utcTime) {
-      Instant instant = Instant.ofEpochMilli(utcTime);
-      return setHourPartition(LocalDateTime.ofInstant(instant, ZoneId.of("UTC")));
-    }
-
-    public Builder setHourPartition(LocalDateTime localDate) {
-      return setPartition(dateToHourPartition(localDate));
-    }
-
-    public Builder setHourPartitionNow() {
-      return setHourPartition(LocalDateTime.now(UTC_CLOCK));
-    }
-
     public Builder setDayPartition(long utcTime) {
       return setDayPartition(LocalDate.ofEpochDay(utcTime / MILLIS_IN_DAY));
     }
@@ -228,48 +218,12 @@ public class PartitionedTableId {
       return setDayPartition(LocalDate.now(UTC_CLOCK));
     }
 
-    public Builder setMonthPartition(long utcTime) {
-      return setMonthPartition(LocalDate.ofEpochDay(utcTime / MILLIS_IN_DAY));
-    }
-
-    public Builder setMonthPartition(LocalDate localDate) {
-      return setPartition(dateToMonthPartition(localDate));
-    }
-
-    public Builder setMonthPartitionForNow() {
-      return setMonthPartition(LocalDate.now(UTC_CLOCK));
-    }
-
-    public Builder setYearPartition(long utcTime) {
-      return setYearPartition(LocalDate.ofEpochDay(utcTime / MILLIS_IN_DAY));
-    }
-
-    public Builder setYearPartition(LocalDate localDate) {
-      return setPartition(dateToYearPartition(localDate));
-    }
-
-    public Builder setYearPartitionForNow() {
-      return setYearPartition(LocalDate.now(UTC_CLOCK));
-    }
-
-    private String dateToHourPartition(LocalDateTime localDate) {
-      return localDate.format(DateTimeFormatter.ofPattern("yyyyMMddHH"));
-    }
-
     /**
      * @param localDate the localDate of the partition.
      * @return The String representation of the partition.
      */
     private static String dateToDayPartition(LocalDate localDate) {
       return localDate.format(DateTimeFormatter.BASIC_ISO_DATE);
-    }
-
-    private String dateToMonthPartition(LocalDate localDate) {
-      return localDate.format(DateTimeFormatter.ofPattern("yyyyMM"));
-    }
-
-    private String dateToYearPartition(LocalDate localDate) {
-      return localDate.format(DateTimeFormatter.ofPattern("yyyy"));
     }
 
     /**

@@ -119,8 +119,14 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
           logger.debug("re-attempting insertion");
           writeResponse = bigQuery.insertAll(request);
         } catch (BigQueryException exception) {
-          // no-op, we want to keep retrying the insert
-          logger.debug("insertion failed", exception);
+          if ((BigQueryErrorResponses.isNonExistentTableError(exception) && autoCreateTables)
+              || BigQueryErrorResponses.isTableMissingSchemaError(exception)
+          ) {
+            // no-op, we want to keep retrying the insert
+            logger.debug("insertion failed", exception);
+          } else {
+            throw exception;
+          }
         }
       } else {
         return writeResponse.getInsertErrors();
