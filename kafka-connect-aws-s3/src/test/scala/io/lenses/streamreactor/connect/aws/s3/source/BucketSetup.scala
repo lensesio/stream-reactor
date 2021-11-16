@@ -40,7 +40,7 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
           s"$PrefixName/$dir/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}"
         )
 
-        storageInterface.pathExists(RemoteS3PathLocation(bucketName, s"$PrefixName/$dir/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}"))should be(true)
+        storageInterface.pathExists(RemoteS3PathLocation(bucketName, s"$PrefixName/$dir/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}")) should be(Right(true))
     }
   }
 

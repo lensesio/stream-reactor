@@ -21,19 +21,25 @@ import cats.syntax.all._
 import com.datamountaineer.kcql.Kcql
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.{SEEK_MAX_INDEX_FILES, SEEK_MAX_INDEX_FILES_DEFAULT, SEEK_MIGRATION, SEEK_MIGRATION_DEFAULT}
 import io.lenses.streamreactor.connect.aws.s3.config.S3FlushSettings.{defaultFlushCount, defaultFlushInterval, defaultFlushSize}
 import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3Config, S3ConfigDefBuilder}
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.model.{LocalStagingArea, PartitionSelection}
 import io.lenses.streamreactor.connect.aws.s3.sink._
 
+import scala.util.Try
+
 object S3SinkConfig {
 
-  def apply(s3ConfigDefBuilder: S3ConfigDefBuilder): Either[Exception, S3SinkConfig] = {
-    SinkBucketOptions(s3ConfigDefBuilder) match {
-      case Left(ex) => ex.asLeft[S3SinkConfig]
-      case Right(value) => S3SinkConfig(S3Config(s3ConfigDefBuilder.getParsedValues), value).asRight
-    }
+  def apply(s3ConfigDefBuilder: S3ConfigDefBuilder): Either[Throwable, S3SinkConfig] = {
+    for {
+      sinkBucketOptions <- SinkBucketOptions(s3ConfigDefBuilder)
+      offsetSeekerOptions = OffsetSeekerOptions(
+          Try(s3ConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES).toInt).getOrElse(SEEK_MAX_INDEX_FILES_DEFAULT),
+          Try(s3ConfigDefBuilder.getBoolean(SEEK_MIGRATION).booleanValue()).getOrElse(SEEK_MIGRATION_DEFAULT)
+        )
+    } yield S3SinkConfig(S3Config(s3ConfigDefBuilder.getParsedValues), sinkBucketOptions, offsetSeekerOptions)
 
   }
 
@@ -41,12 +47,13 @@ object S3SinkConfig {
 
 case class S3SinkConfig(
                          s3Config: S3Config,
-                         bucketOptions: Set[SinkBucketOptions] = Set.empty
+                         bucketOptions: Set[SinkBucketOptions] = Set.empty,
+                         offsetSeekerOptions: OffsetSeekerOptions,
                        )
 
 object SinkBucketOptions extends LazyLogging {
 
-  def apply(config: S3ConfigDefBuilder): Either[Exception, Set[SinkBucketOptions]] = {
+  def apply(config: S3ConfigDefBuilder): Either[Throwable, Set[SinkBucketOptions]] = {
 
     config.getKCQL.map { kcql: Kcql =>
 
@@ -89,3 +96,9 @@ case class SinkBucketOptions(
                               commitPolicy: CommitPolicy = DefaultCommitPolicy(Some(defaultFlushSize), Some(defaultFlushInterval), Some(defaultFlushCount)),
                               localStagingArea: LocalStagingArea,
                             )
+
+
+case class OffsetSeekerOptions(
+                              maxIndexFiles: Int,
+                              migrate: Boolean,
+                              )
