@@ -107,15 +107,8 @@ public class BigQuerySinkConnector extends SinkConnector {
   @Override
   public void start(Map<String, String> properties) {
     logger.trace("connector.start()");
-    try {
-      configProperties = properties;
-      config = new BigQuerySinkConfig(properties);
-    } catch (ConfigException err) {
-      throw new SinkConfigConnectException(
-          "Couldn't start BigQuerySinkConnector due to configuration error",
-          err
-      );
-    }
+    configProperties = properties;
+    config = new BigQuerySinkConfig(properties);
 
     if (!config.getBoolean(BigQuerySinkConfig.TABLE_CREATE_CONFIG)) {
       ensureExistingTables();

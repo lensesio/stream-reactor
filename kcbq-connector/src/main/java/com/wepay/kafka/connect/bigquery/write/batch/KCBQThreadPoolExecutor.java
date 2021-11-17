@@ -21,18 +21,16 @@ package com.wepay.kafka.connect.bigquery.write.batch;
 
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
+import org.apache.kafka.connect.errors.ConnectException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * ThreadPoolExecutor for writing Rows to BigQuery.
@@ -44,9 +42,7 @@ public class KCBQThreadPoolExecutor extends ThreadPoolExecutor {
 
   private static final Logger logger = LoggerFactory.getLogger(KCBQThreadPoolExecutor.class);
 
-
-  private final ConcurrentHashMap.KeySetView<Throwable, Boolean> encounteredErrors =
-      ConcurrentHashMap.newKeySet();
+  private final AtomicReference<Throwable> encounteredError = new AtomicReference<>();
 
   /**
    * @param config the {@link BigQuerySinkTaskConfig}
@@ -66,11 +62,10 @@ public class KCBQThreadPoolExecutor extends ThreadPoolExecutor {
     super.afterExecute(runnable, throwable);
 
     if (throwable != null) {
-      logger.error("Task failed with {} error: {}",
-                   throwable.getClass().getName(),
-                   throwable.getMessage());
-      logger.debug("Error Task Stacktrace:", throwable);
-      encounteredErrors.add(throwable);
+      // Log at debug level since this will be shown to the user at error level by the Connect framework if it causes
+      // the task to fail, and will otherwise just pollute logs and potentially mislead users
+      logger.debug("A write thread has failed with an unrecoverable error", throwable);
+      encounteredError.compareAndSet(null, throwable);
     }
   }
 
@@ -92,12 +87,7 @@ public class KCBQThreadPoolExecutor extends ThreadPoolExecutor {
       execute(new CountDownRunnable(countDownLatch));
     }
     countDownLatch.await();
-    maybeThrowEncounteredErrors();
-    if (encounteredErrors.size() > 0) {
-      String errorString = createErrorString(encounteredErrors);
-      throw new BigQueryConnectException("Some write threads encountered unrecoverable errors: "
-                                         + errorString + "; See logs for more detail");
-    }
+    maybeThrowEncounteredError();
   }
 
   /**
@@ -106,41 +96,9 @@ public class KCBQThreadPoolExecutor extends ThreadPoolExecutor {
    *
    * @throws BigQueryConnectException if any of the tasks failed.
    */
-  public void maybeThrowEncounteredErrors() {
-    if (encounteredErrors.size() > 0) {
-      String errorString = createErrorString(encounteredErrors);
-      throw new BigQueryConnectException("Some write threads encountered unrecoverable errors: "
-          + errorString + "; See logs for more detail");
-    }
+  public void maybeThrowEncounteredError() {
+    Optional.ofNullable(encounteredError.get()).ifPresent(t -> {
+      throw new BigQueryConnectException("A write thread has failed with an unrecoverable error", t);
+    });
   }
-
-  private static String createErrorString(Collection<Throwable> errors) {
-    List<String> exceptionTypeStrings = new ArrayList<>(errors.size());
-    exceptionTypeStrings.addAll(errors.stream()
-                        .map(throwable -> throwable.getClass().getName())
-                        .collect(Collectors.toList()));
-    return String.join(", ", exceptionTypeStrings);
-  }
-
-  private static String createDetailedErrorString(Collection<Throwable> errors) {
-    List<String> exceptionTypeStrings = new ArrayList<>(errors.size());
-    exceptionTypeStrings.addAll(errors.stream()
-        .map(throwable ->
-            throwable.getClass().getName() + "\nMessage: " + throwable.getLocalizedMessage())
-        .collect(Collectors.toList()));
-    return String.join(", ", exceptionTypeStrings);
-  }
-
-  /**
-   * Checks for BigQuery errors. No-op if there isn't any error.
-   *
-   * @throws BigQueryConnectException if there have been any unrecoverable errors when writing to BigQuery.
-   */
-  public void maybeFail() throws BigQueryConnectException {
-    if (encounteredErrors.size() > 0) {
-      throw new BigQueryConnectException("Encountered unrecoverable errors: "
-          + createDetailedErrorString(encounteredErrors) + "; See logs for more detail");
-    }
-  }
-
 }
