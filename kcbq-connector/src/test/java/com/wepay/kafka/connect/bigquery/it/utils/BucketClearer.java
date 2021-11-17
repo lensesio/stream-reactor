@@ -20,27 +20,26 @@
 package com.wepay.kafka.connect.bigquery.it.utils;
 
 import com.google.cloud.storage.Storage;
-import com.wepay.kafka.connect.bigquery.GCSBuilder;
+import com.wepay.kafka.connect.bigquery.GcpClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BucketClearer {
 
   private static final Logger logger = LoggerFactory.getLogger(BucketClearer.class);
-  private static String keySource;
 
   /**
    * Clears tables in the given project and dataset, using a provided JSON service account key.
    */
   public static void main(String[] args) {
-    if (args.length < 3 || args.length > 4) {
+    if (args.length != 3) {
       usage();
-    } else if (args.length == 3) {
-      keySource = "FILE";
-    } else {
-      keySource = args[3];
     }
-    Storage gcs = new GCSBuilder(args[1]).setKey(args[0]).setKeySource(keySource).build();
+    Storage gcs = new GcpClientBuilder.GcsBuilder()
+        .withKeySource(GcpClientBuilder.KeySource.FILE)
+        .withKey(args[0])
+        .withProject(args[1])
+        .build();
 
     // if bucket exists, delete it.
     String bucketName = args[2];
@@ -53,7 +52,7 @@ public class BucketClearer {
 
   private static void usage() {
     System.err.println(
-        "usage: BucketClearer <key_file> <project_name> <bucket_name> [<key_source>]"
+        "usage: BucketClearer <key_file> <project_name> <bucket_name>"
     );
     System.exit(1);
   }

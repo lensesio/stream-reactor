@@ -47,22 +47,4 @@ public class SinkPropertiesFactory {
 
     return properties;
   }
-
-  /**
-   * Make sure that each of the default configuration properties work nicely with the given
-   * configuration object.
-   *
-   * @param config The config object to test
-   */
-  public void testProperties(BigQuerySinkConfig config) {
-    config.getTopicsToDatasets();
-
-    config.getMap(config.DATASETS_CONFIG);
-    config.getMap(config.TOPICS_TO_TABLES_CONFIG);
-    config.getList(config.TOPICS_CONFIG);
-    config.getString(config.PROJECT_CONFIG);
-    config.getKeyFile();
-    config.getBoolean(config.SANITIZE_TOPICS_CONFIG);
-    config.getInt(config.AVRO_DATA_CACHE_SIZE_CONFIG);
-  }
 }

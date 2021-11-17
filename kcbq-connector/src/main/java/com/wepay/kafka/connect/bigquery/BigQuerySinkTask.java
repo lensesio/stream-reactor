@@ -33,7 +33,6 @@ import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.convert.KafkaDataBuilder;
 import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
-import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.utils.TopicToTableResolver;
@@ -48,7 +47,6 @@ import com.wepay.kafka.connect.bigquery.write.row.GCSToBQWriter;
 import com.wepay.kafka.connect.bigquery.write.row.SimpleBigQueryWriter;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -255,10 +253,9 @@ public class BigQuerySinkTask extends SinkTask {
     if (testBigQuery != null) {
       return testBigQuery;
     }
-    String projectName = config.getString(BigQuerySinkConfig.PROJECT_CONFIG);
-    String keyFile = config.getKeyFile();
-    String keySource = config.getString(BigQuerySinkConfig.KEY_SOURCE_CONFIG);
-    return new BigQueryHelper().setKeySource(keySource).connect(projectName, keyFile);
+    return new GcpClientBuilder.BigQueryBuilder()
+        .withConfig(config)
+        .build();
   }
 
   private SchemaManager getSchemaManager(BigQuery bigQuery) {
@@ -271,7 +268,7 @@ public class BigQuerySinkTask extends SinkTask {
     Optional<String> kafkaKeyFieldName = config.getKafkaKeyFieldName();
     Optional<String> kafkaDataFieldName = config.getKafkaDataFieldName();
     Optional<String> timestampPartitionFieldName = config.getTimestampPartitionFieldName();
-    Optional<List<String>> clusteringFieldName = config.getClusteringPartitionFieldName();
+    Optional<List<String>> clusteringFieldName = config.getClusteringPartitionFieldNames();
     return new SchemaManager(schemaRetriever, schemaConverter, bigQuery, kafkaKeyFieldName,
                              kafkaDataFieldName, timestampPartitionFieldName, clusteringFieldName);
   }
@@ -298,11 +295,9 @@ public class BigQuerySinkTask extends SinkTask {
     if (testGcs != null) {
       return testGcs;
     }
-    String projectName = config.getString(BigQuerySinkConfig.PROJECT_CONFIG);
-    String key = config.getKeyFile();
-    String keySource = config.getString(BigQuerySinkConfig.KEY_SOURCE_CONFIG);
-    return new GCSBuilder(projectName).setKey(key).setKeySource(keySource).build();
-
+    return new GcpClientBuilder.GcsBuilder()
+        .withConfig(config)
+        .build();
   }
 
   private GCSToBQWriter getGcsWriter() {

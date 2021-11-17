@@ -21,16 +21,15 @@ package com.wepay.kafka.connect.bigquery.it.utils;
 
 import com.google.cloud.bigquery.BigQuery;
 
-import com.wepay.kafka.connect.bigquery.BigQueryHelper;
+import com.wepay.kafka.connect.bigquery.GcpClientBuilder;
 import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TableClearer {
-  private static final Logger logger = LoggerFactory.getLogger(TableClearer.class);
-  private static String keySource;
 
+  private static final Logger logger = LoggerFactory.getLogger(TableClearer.class);
 
   /**
    * Clears tables in the given project and dataset, using a provided JSON service account key.
@@ -39,9 +38,14 @@ public class TableClearer {
     if (args.length < 4) {
       usage();
     }
-    int tablesStart = 3;
-    BigQuery bigQuery = new BigQueryHelper().connect(args[1], args[0]);
-    for (int i = tablesStart; i < args.length; i++) {
+
+    BigQuery bigQuery = new GcpClientBuilder.BigQueryBuilder()
+        .withKeySource(GcpClientBuilder.KeySource.FILE)
+        .withKey(args[0])
+        .withProject(args[1])
+        .build();
+
+    for (int i = 3; i < args.length; i++) {
       // May be consider using sanitizeTopics property value in future to decide table name
       // sanitization but as currently we always run test cases with sanitizeTopics value as true
       // hence sanitize table name prior delete. This is required else it makes test cases flaky.

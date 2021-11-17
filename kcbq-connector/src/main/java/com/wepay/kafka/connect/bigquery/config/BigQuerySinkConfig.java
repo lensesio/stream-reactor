@@ -21,6 +21,7 @@ package com.wepay.kafka.connect.bigquery.config;
 
 import com.google.cloud.bigquery.Schema;
 
+import com.wepay.kafka.connect.bigquery.GcpClientBuilder;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 
 import com.wepay.kafka.connect.bigquery.convert.BigQueryRecordConverter;
@@ -29,13 +30,14 @@ import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 
 import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.Config;
+import org.apache.kafka.common.config.ConfigValue;
 import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 
+import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkConnector;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -46,17 +48,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Base class for connector and task configs; contains properties shared between the two of them.
  */
 public class BigQuerySinkConfig extends AbstractConfig {
-  private static final Validator validator = new Validator();
-  private static final Logger logger = LoggerFactory.getLogger(BigQuerySinkConfig.class);
-
   // Values taken from https://github.com/apache/kafka/blob/1.1.1/connect/runtime/src/main/java/org/apache/kafka/connect/runtime/SinkConnectorConfig.java#L33
   public static final String TOPICS_CONFIG =                     SinkConnector.TOPICS_CONFIG;
   private static final ConfigDef.Type TOPICS_TYPE =              ConfigDef.Type.LIST;
@@ -118,6 +120,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final ConfigDef.Importance TOPICS_TO_TABLES_IMPORTANCE =
       ConfigDef.Importance.MEDIUM;
   public static final Object TOPICS_TO_TABLES_DEFAULT =                    null;
+  private static final ConfigDef.Validator TOPICS_TO_TABLES_VALIDATOR =    new MapValidator();
   private static final String TOPICS_TO_TABLES_DOC =
       "A list of mappings from topic regexes to table names. Note the regex must include "
       + "capture groups that are referenced in the format string using placeholders (i.e. $1) "
@@ -132,7 +135,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
   public static final String DATASETS_CONFIG =                     "datasets";
   private static final ConfigDef.Type DATASETS_TYPE =              ConfigDef.Type.LIST;
   private static final Object DATASETS_DEFAULT =                   ConfigDef.NO_DEFAULT_VALUE;
-  private static final ConfigDef.Validator DATASETS_VALIDATOR =    validator;
+  private static final ConfigDef.Validator DATASETS_VALIDATOR = new MapValidator();
   private static final ConfigDef.Importance DATASETS_IMPORTANCE =  ConfigDef.Importance.HIGH;
   private static final String DATASETS_DOC =
       "Names for the datasets kafka topics will write to "
@@ -155,9 +158,13 @@ public class BigQuerySinkConfig extends AbstractConfig {
 
   public static final String KEY_SOURCE_CONFIG =                "keySource";
   private static final ConfigDef.Type KEY_SOURCE_TYPE =         ConfigDef.Type.STRING;
-  public static final String KEY_SOURCE_DEFAULT =               "FILE";
-  private static final ConfigDef.Validator KEY_SOURCE_VALIDATOR =
-          ConfigDef.ValidString.in("FILE", "JSON");
+  public static final String KEY_SOURCE_DEFAULT = GcpClientBuilder.KeySource.FILE.name();
+  private static final ConfigDef.Validator KEY_SOURCE_VALIDATOR = ConfigDef.ValidString.in(
+      Stream.of(GcpClientBuilder.KeySource.values())
+          .map(GcpClientBuilder.KeySource::name)
+          .collect(Collectors.toList())
+          .toArray(new String[0])
+  );
   private static final ConfigDef.Importance KEY_SOURCE_IMPORTANCE = ConfigDef.Importance.MEDIUM;
   private static final String KEY_SOURCE_DOC =
           "Determines whether the keyfile config is the path to the credentials json, or the json itself";
@@ -187,6 +194,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
   public static final String KAFKA_KEY_FIELD_NAME_CONFIG =        "kafkaKeyFieldName";
   private static final ConfigDef.Type KAFKA_KEY_FIELD_NAME_TYPE = ConfigDef.Type.STRING;
   public static final String KAFKA_KEY_FIELD_NAME_DEFAULT =       null;
+  private static final ConfigDef.Validator KAFKA_KEY_FIELD_NAME_VALIDATOR = new ConfigDef.NonEmptyString();
   private static final ConfigDef.Importance KAFKA_KEY_FIELD_NAME_IMPORTANCE = ConfigDef.Importance.LOW;
   private static final String KAFKA_KEY_FIELD_NAME_DOC = "The name of the field of Kafka key. " +
           "Default to be null, which means Kafka Key Field will not be included.";
@@ -194,6 +202,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
   public static final String KAFKA_DATA_FIELD_NAME_CONFIG =        "kafkaDataFieldName";
   private static final ConfigDef.Type KAFKA_DATA_FIELD_NAME_TYPE = ConfigDef.Type.STRING;
   public static final String KAFKA_DATA_FIELD_NAME_DEFAULT =       null;
+  private static final ConfigDef.Validator KAFKA_DATA_FIELD_NAME_VALIDATOR = new ConfigDef.NonEmptyString();
   private static final ConfigDef.Importance KAFKA_DATA_FIELD_NAME_IMPORTANCE = ConfigDef.Importance.LOW;
   private static final String KAFKA_DATA_FIELD_NAME_DOC = "The name of the field of Kafka Data. " +
           "Default to be null, which means Kafka Data Field will not be included. ";
@@ -310,6 +319,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
   public static final String BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG = "timestampPartitionFieldName";
   private static final ConfigDef.Type BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_TYPE = ConfigDef.Type.STRING;
   private static final String BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_DEFAULT = null;
+  private static final ConfigDef.Validator BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_VALIDATOR = new ConfigDef.NonEmptyString();
   private static final ConfigDef.Importance BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_IMPORTANCE =
       ConfigDef.Importance.LOW;
   private static final String BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_DOC =
@@ -320,6 +330,17 @@ public class BigQuerySinkConfig extends AbstractConfig {
   public static final String BIGQUERY_CLUSTERING_FIELD_NAMES_CONFIG = "clusteringPartitionFieldNames";
   private static final ConfigDef.Type BIGQUERY_CLUSTERING_FIELD_NAMES_TYPE = ConfigDef.Type.LIST;
   private static final List<String> BIGQUERY_CLUSTERING_FIELD_NAMES_DEFAULT = null;
+  private static final ConfigDef.Validator BIGQUERY_CLUSTERING_FIELD_NAMES_VALIDATOR = (name, value) -> {
+    if (value == null) {
+      return;
+    }
+
+    @SuppressWarnings("unchecked")
+    List<String> parsedValue = (List<String>) value;
+    if (parsedValue.size() > 4) {
+      throw new ConfigException(name, value, "You may only specify up to four clustering field names.");
+    }
+  };
   private static final ConfigDef.Importance BIGQUERY_CLUSTERING_FIELD_NAMES_IMPORTANCE =
       ConfigDef.Importance.LOW;
   private static final String BIGQUERY_CLUSTERING_FIELD_NAMES_DOC =
@@ -380,6 +401,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
             TOPICS_TO_TABLES_CONFIG,
             TOPICS_TO_TABLES_TYPE,
             TOPICS_TO_TABLES_DEFAULT,
+            TOPICS_TO_TABLES_VALIDATOR,
             TOPICS_TO_TABLES_IMPORTANCE,
             TOPICS_TO_TABLES_DOC
         ).define(
@@ -429,12 +451,14 @@ public class BigQuerySinkConfig extends AbstractConfig {
             KAFKA_KEY_FIELD_NAME_CONFIG,
             KAFKA_KEY_FIELD_NAME_TYPE,
             KAFKA_KEY_FIELD_NAME_DEFAULT,
+            KAFKA_KEY_FIELD_NAME_VALIDATOR,
             KAFKA_KEY_FIELD_NAME_IMPORTANCE,
             KAFKA_KEY_FIELD_NAME_DOC
         ).define(
             KAFKA_DATA_FIELD_NAME_CONFIG,
             KAFKA_DATA_FIELD_NAME_TYPE,
             KAFKA_DATA_FIELD_NAME_DEFAULT,
+            KAFKA_DATA_FIELD_NAME_VALIDATOR,
             KAFKA_DATA_FIELD_NAME_IMPORTANCE,
             KAFKA_DATA_FIELD_NAME_DOC
         ).define(
@@ -512,133 +536,145 @@ public class BigQuerySinkConfig extends AbstractConfig {
             BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG,
             BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_TYPE,
             BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_DEFAULT,
+            BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_VALIDATOR,
             BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_IMPORTANCE,
             BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_DOC
         ).define(
             BIGQUERY_CLUSTERING_FIELD_NAMES_CONFIG,
             BIGQUERY_CLUSTERING_FIELD_NAMES_TYPE,
             BIGQUERY_CLUSTERING_FIELD_NAMES_DEFAULT,
+            BIGQUERY_CLUSTERING_FIELD_NAMES_VALIDATOR,
             BIGQUERY_CLUSTERING_FIELD_NAMES_IMPORTANCE,
             BIGQUERY_CLUSTERING_FIELD_NAMES_DOC
         );
   }
-    /**
-     * Throw an exception if the passed-in properties do not constitute a valid sink.
-     * @param props sink configuration properties
-     */
-    public static void validate(Map<String, String> props) {
-        final boolean hasTopicsConfig = hasTopicsConfig(props);
-        final boolean hasTopicsRegexConfig = hasTopicsRegexConfig(props);
 
-        if (hasTopicsConfig && hasTopicsRegexConfig) {
-            throw new ConfigException(TOPICS_CONFIG + " and " + TOPICS_REGEX_CONFIG +
-                " are mutually exclusive options, but both are set.");
-        }
+  private static final List<MultiPropertyValidator<BigQuerySinkConfig>> MULTI_PROPERTY_VALIDATIONS = new ArrayList<>();
 
-        if (!hasTopicsConfig && !hasTopicsRegexConfig) {
-            throw new ConfigException("Must configure one of " +
-                TOPICS_CONFIG + " or " + TOPICS_REGEX_CONFIG);
-        }
+  static {
+    // Note that order matters here: validations are performed in the order they're added to this list, and if a
+    // property or any of the properties that it depends on has an error, validation for it gets skipped.
+    // This comes in handy for things like checking for the existence of tables, which requires valid BigQuery
+    // credentials. We validate those credentials before checking for tables so that we can safely assume while
+    // checking for those tables that the credentials are already valid.
+    MULTI_PROPERTY_VALIDATIONS.add(new CredentialsValidator.BigQueryCredentialsValidator());
+    MULTI_PROPERTY_VALIDATIONS.add(new CredentialsValidator.GcsCredentialsValidator());
+    MULTI_PROPERTY_VALIDATIONS.add(new TableExistenceValidator());
+    MULTI_PROPERTY_VALIDATIONS.add(new SchemaRetrieverValidator.TableCreationValidator());
+    MULTI_PROPERTY_VALIDATIONS.add(new SchemaRetrieverValidator.SchemaUpdateValidator());
+    MULTI_PROPERTY_VALIDATIONS.add(new GcsBucketValidator());
+    MULTI_PROPERTY_VALIDATIONS.add(new PartitioningModeValidator());
+  }
+
+  /**
+   * Used in conjunction with {@link com.wepay.kafka.connect.bigquery.BigQuerySinkConnector#validate(Map)} to perform
+   * preflight configuration checks. Simple validations that only require a single property value at a time (such as
+   * ensuring that boolean properties only contain true/false values, or that values for required properties are
+   * provided) are handled automatically by the {@link #getConfig() ConfigDef} for this class and optionally-defined
+   * custom {@link ConfigDef.Validator validators}. Other, more sophisticated validations that require multiple
+   * property values at a time (such as checking if all of the tables the connector will write to already exist if
+   * automatic table creation is disabled) are performed manually in a subsequent step.
+   *
+   * @return a {@link Config} object containing all errors that the connector was able to detect during preflight
+   * validation of this configuration; never null
+   */
+  public Config validate() {
+    List<ConfigValue> initialValidation = getConfig().validate(originalsStrings());
+    Map<String, ConfigValue> valuesByName = initialValidation
+        .stream()
+        .collect(Collectors.toMap(ConfigValue::name, Function.identity()));
+    MULTI_PROPERTY_VALIDATIONS.forEach(validator -> {
+      ConfigValue value = valuesByName.get(validator.propertyName());
+      validator.validate(value, this, valuesByName).ifPresent(value::addErrorMessage);
+    });
+    return new Config(initialValidation);
+  }
+
+  /**
+   * Ensure that this config is valid (including multi-property validations performed in {@link #validate()}, and if any errors
+   * are detected, throw an exception.
+   * @throws ConnectException if this config is invalid
+   */
+  public void ensureValid() {
+    Config config = validate();
+    List<String> errors = config.configValues().stream()
+        .filter(v -> !v.errorMessages().isEmpty())
+        .map(v -> "For property '" + v.name() + "': " + String.join(",", v.errorMessages()))
+        .collect(Collectors.toList());
+    if (!errors.isEmpty()) {
+      throw new ConnectException(
+          "The connector config is invalid and contains the following errors:\n"
+              + String.join("\n", errors)
+      );
     }
+  }
 
-    public static boolean hasTopicsConfig(Map<String, String> props) {
-        String topicsStr = props.get(TOPICS_CONFIG);
-        return topicsStr != null && !topicsStr.trim().isEmpty();
-    }
-
-    public static boolean hasTopicsRegexConfig(Map<String, String> props) {
-        String topicsRegexStr = props.get(TOPICS_REGEX_CONFIG);
-        return topicsRegexStr != null && !topicsRegexStr.trim().isEmpty();
-    }
-
-  @SuppressWarnings("unchecked")
-  public static class Validator implements ConfigDef.Validator {
+  public static class MapValidator implements ConfigDef.Validator {
     @Override
     public void ensureValid(String name, Object value) {
-      switch (name) {
-        case DATASETS_CONFIG:
-          ensureValidMap(name, (List<String>) value);
-          break;
-        case TOPICS_TO_TABLES_CONFIG:
-          ensureValidMap(name, (List<String>) value);
-          break;
-        default:
-          break;
-      }
-    }
-
-    protected static void ensureValidMap(String name, List<String> values) {
-      if (values == null) {
+      if (value == null) {
         return;
       }
-      values.forEach((entry) -> parseMapping(entry, name));
+
+      @SuppressWarnings("unchecked")
+      List<String> parsedValue = (List<String>) value;
+
+      parsedValue.forEach(BigQuerySinkConfig::parseMapping);
     }
 
-    /**
-    * Ensures the mapping given is valid, then returns an entry containing its key and value.
-    * Checks to make sure that the given String adheres to the specified format, and throws
-    * an exception if it does not. Trims leading and trailing whitespace, and then checks to make
-    * sure that both Strings are still non-empty.
-    *
-    * @param mapping The mapping to parse (should be of the form &lt;key&gt;=&lt;value&gt;)
-    * @param name The name of the field. Used in error messages.
-    * @return A Map.Entry containing the parsed key/value pair.
-    */
-    protected static Map.Entry<String, String> parseMapping(String mapping, String name) {
-      String[] keyValue = mapping.split("=");
-      if (keyValue.length != 2) {
-        throw new ConfigException(
-            "Invalid mapping for " + name
-            + " property: '" + mapping
-            + "' (must follow format '<key>=<value>')"
-        );
-      }
-
-      String key = keyValue[0].trim();
-      if (key.isEmpty()) {
-        throw new ConfigException(
-            "Empty key found in mapping '" + mapping
-            + "' for " + name + " property"
-        );
-      }
-
-      String value = keyValue[1].trim();
-      if (value.isEmpty()) {
-        throw new ConfigException(
-            "Empty value found in mapping '" + mapping
-            + "' for " + name + " property"
-        );
-      }
-
-      return new AbstractMap.SimpleEntry<>(key, value);
+    @Override
+    public String toString() {
+      return "A list of key-value pairs in the format <key1>=<value1>, <key2>=<value2>, ...";
     }
   }
 
   /**
-   * Returns the keyfile
+   * Ensures the mapping given is valid, then returns an entry containing its key and value.
+   * Checks to make sure that the given String adheres to the specified format, and throws
+   * an exception if it does not. Trims leading and trailing whitespace, and then checks to make
+   * sure that both Strings are still non-empty.
+   *
+   * @param mapping The mapping to parse (should be of the form &lt;key&gt;=&lt;value&gt;)
+   * @return A Map.Entry containing the parsed key/value pair.
    */
-  public String getKeyFile() {
+  static Map.Entry<String, String> parseMapping(String mapping) {
+    String[] keyValue = mapping.split("=");
+    if (keyValue.length != 2) {
+      throw new ConfigException("Invalid mapping '" + mapping + "' (must follow format '<key>=<value>')");
+    }
+
+    String key = keyValue[0].trim();
+    if (key.isEmpty()) {
+      throw new ConfigException("Invalid mapping '" + mapping + "' (key cannot be empty)");
+    }
+
+    String value = keyValue[1].trim();
+    if (value.isEmpty()) {
+      throw new ConfigException("Invalid mapping '" + mapping + "' (value cannot be empty)");
+    }
+
+    return new AbstractMap.SimpleEntry<>(key, value);
+  }
+
+  /**
+   * @return the key, which is (depending on the key source property) either a path to a file or a raw JSON string
+   */
+  public String getKey() {
     return Optional.ofNullable(getPassword(KEYFILE_CONFIG)).map(Password::value).orElse(null);
   }
 
   /**
-   * Parses a config map, which must be provided as a list of Strings of the form
-   * '&lt;key&gt;=&lt;value&gt;' into a Map. Locates that list, splits its key and value pairs, and
-   * returns they Map they represent.
-   *
-   * @param name The name of the property the mapping is given for. Used in exception messages.
-   * @return A Map containing the given key and value pairs.
+   * @return the {@link com.wepay.kafka.connect.bigquery.GcpClientBuilder.KeySource key source type} that dictates how
+   * the {@link #getKey()} should be be interpreted
    */
-  public Map<String, String> getMap(String name) {
-    List<String> assocList = getList(name);
-    Map<String, String> configMap = new HashMap<>();
-    if (assocList != null) {
-      for (String mapping : assocList) {
-        Map.Entry<String, String> entry = validator.parseMapping(mapping, name);
-        configMap.put(entry.getKey(), entry.getValue());
-      }
+  public GcpClientBuilder.KeySource getKeySource() {
+    String rawKeySource = getString(KEY_SOURCE_CONFIG);
+    try {
+      return GcpClientBuilder.KeySource.valueOf(rawKeySource);
+    } catch (IllegalArgumentException e) {
+      // Should never happen with preflight validation of the key source property
+      throw new ConnectException("Invalid key source type: " + rawKeySource);
     }
-    return configMap;
   }
 
   /**
@@ -653,7 +689,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
     List<Map.Entry<Pattern, String>> patternList = new ArrayList<>();
     if (propList != null) {
       for (String propValue : propList) {
-        Map.Entry<String, String> mapping = validator.parseMapping(propValue, property);
+        Map.Entry<String, String> mapping = parseMapping(propValue);
         Pattern propPattern = Pattern.compile(mapping.getKey());
         Map.Entry<Pattern, String> patternEntry =
             new AbstractMap.SimpleEntry<>(propPattern, mapping.getValue());
@@ -775,7 +811,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
     Class<? extends SchemaRetriever> schemaRetrieverClass =
         userSpecifiedClass.asSubclass(SchemaRetriever.class);
 
-    Constructor<? extends SchemaRetriever> schemaRetrieverConstructor = null;
+    Constructor<? extends SchemaRetriever> schemaRetrieverConstructor;
     try {
       schemaRetrieverConstructor = schemaRetrieverClass.getConstructor();
     } catch (NoSuchMethodException nsme) {
@@ -785,7 +821,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
       );
     }
 
-    SchemaRetriever schemaRetriever = null;
+    SchemaRetriever schemaRetriever;
     try {
       schemaRetriever = schemaRetrieverConstructor.newInstance();
     } catch (InstantiationException
@@ -804,7 +840,6 @@ public class BigQuerySinkConfig extends AbstractConfig {
   }
 
   /**
-   *
    * If the connector is configured to load Kafka data into BigQuery, this config defines
    * the name of the kafka data field. A structure is created under the field name to contain
    * kafka data schema including topic, offset, partition and insertTime.
@@ -816,7 +851,6 @@ public class BigQuerySinkConfig extends AbstractConfig {
   }
 
   /**
-   *
    * If the connector is configured to load Kafka keys into BigQuery, this config defines
    * the name of the kafka key field. A structure is created under the field name to contain
    * a topic's Kafka key schema.
@@ -825,47 +859,6 @@ public class BigQuerySinkConfig extends AbstractConfig {
    */
   public Optional<String> getKafkaDataFieldName() {
     return Optional.ofNullable(getString(KAFKA_DATA_FIELD_NAME_CONFIG));
-  }
-
-  /**
-   * Verifies that a bucket is specified if GCS batch loading is enabled.
-   * @throws ConfigException Exception thrown if no bucket is specified and batch loading is on.
-   */
-  private void verifyBucketSpecified() throws ConfigException {
-    // Throw an exception if GCS Batch loading will be used but no bucket is specified
-    if (getString(GCS_BUCKET_NAME_CONFIG).equals("")
-        && !getList(ENABLE_BATCH_CONFIG).isEmpty()) {
-      throw new ConfigException("Batch loading enabled for some topics, but no bucket specified");
-    }
-  }
-
-  private void checkAutoCreateTables() {
-
-    Class<?> schemaRetriever = getClass(BigQuerySinkConfig.SCHEMA_RETRIEVER_CONFIG);
-    boolean autoCreateTables = getBoolean(TABLE_CREATE_CONFIG);
-
-    if (autoCreateTables && schemaRetriever == null) {
-      throw new ConfigException(
-        "Cannot specify automatic table creation without a schema retriever"
-      );
-    }
-  }
-
-  private void checkAutoUpdateSchemas() {
-    Class<?> schemaRetriever = getClass(BigQuerySinkConfig.SCHEMA_RETRIEVER_CONFIG);
-
-    boolean autoUpdateSchemas = getBoolean(SCHEMA_UPDATE_CONFIG);
-    if (autoUpdateSchemas && schemaRetriever == null) {
-      throw new ConfigException(
-          "Cannot specify automatic table creation without a schema retriever"
-      );
-    }
-
-    if (schemaRetriever == null) {
-      logger.warn(
-          "No schema retriever class provided; auto schema updates are impossible"
-      );
-    }
   }
 
   /**
@@ -880,51 +873,18 @@ public class BigQuerySinkConfig extends AbstractConfig {
    * Returns the field names to use for clustering.
    * @return List of Strings that represent the field names.
    */
-  public Optional<List<String>> getClusteringPartitionFieldName() {
-    return Optional.ofNullable(getList(BIGQUERY_CLUSTERING_FIELD_NAMES_CONFIG));
-  }
-
-  /**
-   * Check the validity of table partitioning configs.
-   */
-  private void checkPartitionConfigs() {
-    if (getTimestampPartitionFieldName().isPresent() && getBoolean(BIGQUERY_PARTITION_DECORATOR_CONFIG)) {
-      throw new ConfigException(
-          "Only one partitioning configuration mode may be specified for the connector. "
-              + "Use either bigQueryPartitionDecorator OR timestampPartitionFieldName."
-      );
-    }
-  }
-
-  /**
-   * Check the validity of table clustering configs.
-   */
-  private void checkClusteringConfigs() {
-    if (getClusteringPartitionFieldName().isPresent()) {
-      if (!getTimestampPartitionFieldName().isPresent() && !getBoolean(BIGQUERY_PARTITION_DECORATOR_CONFIG)) {
-        throw new ConfigException(
-            "Clustering field name may be specified only on a partitioned table."
-        );
-      }
-      if (getClusteringPartitionFieldName().get().size() > 4) {
-        throw new ConfigException(
-            "You can only specify up to four clustering field names."
-        );
-      }
-    }
+  public Optional<List<String>> getClusteringPartitionFieldNames() {
+    return Optional
+        .ofNullable(getList(BIGQUERY_CLUSTERING_FIELD_NAMES_CONFIG))
+        // With Java 11 there's Predicate::not, but for now we have to just manually invert the isEmpty check
+        .filter(l -> !l.isEmpty());
   }
 
   protected BigQuerySinkConfig(ConfigDef config, Map<String, String> properties) {
     super(config, properties);
-    verifyBucketSpecified();
-    checkAutoCreateTables();
-    checkAutoUpdateSchemas();
-    checkPartitionConfigs();
-    checkClusteringConfigs();
   }
 
   public BigQuerySinkConfig(Map<String, String> properties) {
     this(getConfig(), properties);
   }
-
 }

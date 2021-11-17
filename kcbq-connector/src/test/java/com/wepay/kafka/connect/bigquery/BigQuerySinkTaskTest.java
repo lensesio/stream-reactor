@@ -40,8 +40,6 @@ import com.google.cloud.storage.Storage;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
-import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
-import org.apache.kafka.common.config.ConfigException;
 
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
@@ -518,25 +516,6 @@ public class BigQuerySinkTaskTest {
     testTask.put(Collections.singletonList(spoofSinkRecord(topic)));
     Thread.currentThread().interrupt();
     testTask.flush(Collections.emptyMap());
-  }
-
-  // Make sure that a ConfigException is properly translated into a SinkConfigConnectException
-  @Test(expected = SinkConfigConnectException.class)
-  public void testConfigException() {
-    try {
-      Map<String, String> badProperties = propertiesFactory.getProperties();
-      badProperties.remove(BigQuerySinkConfig.TOPICS_CONFIG);
-      BigQuerySinkConfig.validate(badProperties);
-  
-      SchemaRetriever schemaRetriever = mock(SchemaRetriever.class);
-      SchemaManager schemaManager = mock(SchemaManager.class);
-  
-      BigQuerySinkTask testTask =
-          new BigQuerySinkTask(mock(BigQuery.class), schemaRetriever, mock(Storage.class), schemaManager);
-      testTask.start(badProperties);
-    } catch (ConfigException e) {
-      throw new SinkConfigConnectException(e);
-    }
   }
 
   @Test
