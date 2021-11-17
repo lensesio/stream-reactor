@@ -144,7 +144,7 @@ public class BigQuerySinkTask extends SinkTask {
     if (stopped) {
       // Still have to check for errors in order to prevent offsets being committed for records that
       // we've failed to write
-      executor.maybeThrowEncounteredErrors();
+      executor.maybeThrowEncounteredError();
       return;
     }
 
@@ -213,7 +213,7 @@ public class BigQuerySinkTask extends SinkTask {
   @Override
   public void put(Collection<SinkRecord> records) {
     // Periodically poll for errors here instead of doing a stop-the-world check in flush()
-    executor.maybeThrowEncounteredErrors();
+    executor.maybeThrowEncounteredError();
 
     logger.debug("Putting {} records in the sink.", records.size());
 
@@ -381,24 +381,18 @@ public class BigQuerySinkTask extends SinkTask {
   public void start(Map<String, String> properties) {
     logger.trace("task.start()");
     stopped = false;
-    try {
-      config = new BigQuerySinkTaskConfig(properties);
-    } catch (ConfigException err) {
-      throw new SinkConfigConnectException(
-          "Couldn't start BigQuerySinkTask due to configuration error",
-          err
-      );
-    }
-    upsertDelete = config.getBoolean(config.UPSERT_ENABLED_CONFIG)
-        || config.getBoolean(config.DELETE_ENABLED_CONFIG);
+    config = new BigQuerySinkTaskConfig(properties);
+
+    upsertDelete = config.getBoolean(BigQuerySinkConfig.UPSERT_ENABLED_CONFIG)
+        || config.getBoolean(BigQuerySinkConfig.DELETE_ENABLED_CONFIG);
 
     bigQuery = new AtomicReference<>();
     schemaManager = new AtomicReference<>();
 
     if (upsertDelete) {
       String intermediateTableSuffix = String.format("_%s_%d_%s_%d",
-          config.getString(config.INTERMEDIATE_TABLE_SUFFIX_CONFIG),
-          config.getInt(config.TASK_ID_CONFIG),
+          config.getString(BigQuerySinkConfig.INTERMEDIATE_TABLE_SUFFIX_CONFIG),
+          config.getInt(BigQuerySinkTaskConfig.TASK_ID_CONFIG),
           uuid,
           Instant.now().toEpochMilli()
       );

@@ -441,7 +441,7 @@ public class BigQuerySinkTaskTest {
         testTask.put(Collections.emptyList());
       }
     } catch (Exception e) {
-      assertTrue(e.getMessage().contains(error));
+      assertTrue(e.getCause().getCause().getMessage().contains(error));
       throw e;
     }
   }
