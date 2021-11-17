@@ -49,24 +49,4 @@ public class SinkPropertiesFactory {
 
     return properties;
   }
-
-  /**
-   * Make sure that each of the default configuration properties work nicely with the given
-   * configuration object.
-   *
-   * @param config The config object to test
-   */
-  public void testProperties(BigQuerySinkConfig config) {
-
-    config.getList(BigQuerySinkConfig.TOPICS_CONFIG);
-    config.getString(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG);
-
-    config.getString(BigQuerySinkConfig.PROJECT_CONFIG);
-    config.getKeyFile();
-    config.getBoolean(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG);
-    config.getInt(BigQuerySinkConfig.AVRO_DATA_CACHE_SIZE_CONFIG);
-
-    config.getBoolean(BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG);
-    config.getBoolean(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG);
-  }
 }
