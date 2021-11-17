@@ -21,10 +21,8 @@ package com.wepay.kafka.connect.bigquery;
 
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
-import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 import com.wepay.kafka.connect.bigquery.utils.Version;
 import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
 import org.slf4j.Logger;
@@ -55,15 +53,8 @@ public class BigQuerySinkConnector extends SinkConnector {
   @Override
   public void start(Map<String, String> properties) {
     logger.trace("connector.start()");
-    try {
-      configProperties = properties;
-      config = new BigQuerySinkConfig(properties);
-    } catch (ConfigException err) {
-      throw new SinkConfigConnectException(
-          "Couldn't start BigQuerySinkConnector due to configuration error",
-          err
-      );
-    }
+    configProperties = properties;
+    config = new BigQuerySinkConfig(properties);
   }
 
   @Override
