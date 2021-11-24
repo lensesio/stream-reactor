@@ -2,6 +2,7 @@ package com.landoop.json.sql
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.{ObjectNode, TextNode}
+import com.landoop.json.sql.JsonSql._
 import org.scalatest.{Matchers, WordSpec}
 
 class JsonSqlTest extends WordSpec with Matchers {
