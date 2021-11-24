@@ -67,7 +67,6 @@ allprojects {
         kcqlVersion = "2.8.7"
         connectCLIVersion = "1.0.6"
         avro4sVersion = "1.6.4"
-        smt = "2.0.0"
 
         // The following 4 need to align to compileagainst a particular version
         confluentVersion = '5.5.0'
@@ -168,12 +167,6 @@ allprojects {
         compile "org.apache.calcite:calcite-linq4j:$link4jVersion"
         compile ("com.datamountaineer:kcql:$kcqlVersion") {
             exclude group: "com.google.guava", module: "guava"
-        }
-
-        implementation("com.landoop:kafka-connect-smt_$scalaMajorVersion:$smt") {
-            exclude group: "com.google.protobuf"
-            exclude group: "org.apache.calcite", module: "calcite-linq4j"
-            exclude group: "org.apache.httpcomponents"
         }
 
         testCompile "org.mockito:mockito-scala_$scalaMajorVersion:$mockitoVersion"
