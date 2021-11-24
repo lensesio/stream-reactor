@@ -13,16 +13,16 @@ class IndexManager(sinkName: String, maxIndexes: Int, fallbackSeeker: Option[Leg
    * deletes all index files except for the one corresponding to topicPartitionOffset
    *
    * @param mostRecentIndexFile the latest offset successfully written
-   * @param topicPartition the topicPartition
+   * @param topicPartition      the topicPartition
    */
   def clean(mostRecentIndexFile: RemoteS3PathLocation, topicPartition: TopicPartition): Either[SinkError, Int] = {
     val remoteS3PathLocation = mostRecentIndexFile.root().withPath(IndexFilenames.indexForTopicPartition(sinkName, topicPartition.topic.value, topicPartition.partition))
     storageInterface.list(remoteS3PathLocation)
-      .leftMap(e => {
+      .leftMap { e =>
         val logLine = s"Couldn't retrieve listing for (${mostRecentIndexFile.path}})"
         logger.error("[{}] {}", sinkName, logLine, e.exception)
         new NonFatalS3SinkError(logLine, e.exception)
-      })
+      }
       .flatMap {
         indexes: List[String] =>
           val filtered = indexes.filterNot(_ == mostRecentIndexFile.path)
@@ -35,10 +35,10 @@ class IndexManager(sinkName: String, maxIndexes: Int, fallbackSeeker: Option[Leg
           } else {
             storageInterface
               .deleteFiles(mostRecentIndexFile.bucket, filtered)
-              .map(_ => {
+              .map { _ =>
                 logger.debug("[{}] Retaining index file: {}, Deleting files: ({})", sinkName, mostRecentIndexFile.path, filtered.mkString(", "))
                 filtered.size
-              })
+              }
               .leftMap {
                 err =>
                   logger.error("[{}] Error on cleanup: {}", sinkName, err.message(), err.exception)
@@ -68,13 +68,11 @@ class IndexManager(sinkName: String, maxIndexes: Int, fallbackSeeker: Option[Leg
     storageInterface
       .writeStringToFile(idxPath, s3PathLocation.path)
       .map(_ => idxPath)
-      .leftMap(
-        ex => {
+      .leftMap {
+        ex =>
           logger.error("[{}] Exception writing index {} pointing to file {}", sinkName, s3Path, s3PathLocation.path, ex)
           NonFatalS3SinkError(ex.message())
-        }
-      )
-
+      }
   }
 
   def fallbackOffsetSeek(seeker: LegacyOffsetSeeker, topicPartition: TopicPartition, fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: RemoteS3RootLocation): Either[SinkError, Option[TopicPartitionOffset]] = {
@@ -91,15 +89,38 @@ class IndexManager(sinkName: String, maxIndexes: Int, fallbackSeeker: Option[Leg
 
   /**
    * Seeks the filesystem to find the latyest offsets for a topic/partition.
-   * @param topicPartition the TopicPartition for which to retrieve the offsets
+   *
+   * @param topicPartition     the TopicPartition for which to retrieve the offsets
    * @param fileNamingStrategy the S3FileNamingStrategy to use in the case that a fallback offset seeker is required.
-   * @param bucketAndPrefix the configured RemoteS3RootLocation
+   * @param bucketAndPrefix    the configured RemoteS3RootLocation
    * @return either a SinkError or an option to a TopicPartitionOffset with the seek result.
    */
   def seek(topicPartition: TopicPartition, fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: RemoteS3RootLocation): Either[SinkError, Option[TopicPartitionOffset]] = {
 
+    storageInterface.list(bucketAndPrefix.withPath(
+      IndexFilenames.indexForTopicPartition(sinkName, topicPartition.topic.value, topicPartition.partition)
+    ))
+      .leftMap(e => new NonFatalS3SinkError("Couldn't retrieve listing", e.exception))
+      .flatMap {
+        indexes =>
+          if (indexes.isEmpty && fallbackSeeker.nonEmpty) {
+            fallbackOffsetSeek(fallbackSeeker.get, topicPartition, fileNamingStrategy, bucketAndPrefix)
+          } else {
+            val seekResult = seekAndClean(topicPartition, bucketAndPrefix, indexes)
+            if (indexes.size > maxIndexes) {
+              logAndReturnMaxExceededError(topicPartition, indexes)
+            } else {
+              seekResult
+            }
+          }
+      }
+  }
+
+  private def seekAndClean(topicPartition: TopicPartition, bucketAndPrefix: RemoteS3RootLocation, indexes: List[String]) = {
+
     /**
      * Parses the filename of the index file, converting it to a TopicPartitionOffset
+     *
      * @param maybeIndex option of the index filename
      * @return either an error, or a TopicPartitionOffset
      */
@@ -113,43 +134,30 @@ class IndexManager(sinkName: String, maxIndexes: Int, fallbackSeeker: Option[Leg
       }
     }
 
-    storageInterface.list(bucketAndPrefix.withPath(
-      IndexFilenames.indexForTopicPartition(sinkName, topicPartition.topic.value, topicPartition.partition)
-    ))
-      .leftMap(e => new NonFatalS3SinkError("Couldn't retrieve listing", e.exception))
-      .flatMap(
-        indexes =>
-          if (indexes.size > maxIndexes) {
-            logAndReturnMaxExceededError(topicPartition, indexes)
-          } else if (indexes.isEmpty && fallbackSeeker.nonEmpty) {
-            fallbackOffsetSeek(fallbackSeeker.get, topicPartition, fileNamingStrategy, bucketAndPrefix)
-          } else {
-            {
-              for {
-                validIndex <- scanIndexes(bucketAndPrefix, indexes)
-                indexesToDelete = indexes.filterNot(validIndex.contains)
-                _ <- storageInterface.deleteFiles(bucketAndPrefix.bucket, indexesToDelete)
-                offset <- indexToOffset(validIndex)
-              } yield {
-                logger.info("[{}] Seeked offset {} for TP {}", sinkName, offset, topicPartition)
-                offset
-              }
-            }.leftMap {
-              case err: FileLoadError =>
-                val logLine = s"File load error while seeking: ${err.message()}"
-                logger.error(s"[{}] {}",sinkName, logLine, err.exception)
-                new NonFatalS3SinkError(logLine, err.exception)
-              case err: FileDeleteError =>
-                val logLine = s"File delete error while seeking: ${err.message()}"
-                logger.error(s"[{}] {}",sinkName, logLine, err.exception)
-                new NonFatalS3SinkError(logLine, err.exception)
-              case err: Throwable =>
-                val logLine = s"Error while seeking: ${err.getMessage}"
-                logger.error(s"[{}] {}",sinkName, logLine, err)
-                new NonFatalS3SinkError(logLine, err)
-            }
-          }
-      )
+    {
+      for {
+        validIndex <- scanIndexes(bucketAndPrefix, indexes)
+        indexesToDelete = indexes.filterNot(validIndex.contains)
+        _ <- storageInterface.deleteFiles(bucketAndPrefix.bucket, indexesToDelete)
+        offset <- indexToOffset(validIndex)
+      } yield {
+        logger.info("[{}] Seeked offset {} for TP {}", sinkName, offset, topicPartition)
+        offset
+      }
+    }.leftMap {
+      case err: FileLoadError =>
+        val logLine = s"File load error while seeking: ${err.message()}"
+        logger.error(s"[{}] {}", sinkName, logLine, err.exception)
+        new NonFatalS3SinkError(logLine, err.exception)
+      case err: FileDeleteError =>
+        val logLine = s"File delete error while seeking: ${err.message()}"
+        logger.error(s"[{}] {}", sinkName, logLine, err.exception)
+        new NonFatalS3SinkError(logLine, err.exception)
+      case err: Throwable =>
+        val logLine = s"Error while seeking: ${err.getMessage}"
+        logger.error(s"[{}] {}", sinkName, logLine, err)
+        new NonFatalS3SinkError(logLine, err)
+    }
   }
 
   /**
@@ -166,19 +174,18 @@ class IndexManager(sinkName: String, maxIndexes: Int, fallbackSeeker: Option[Leg
       .reverse
       .takeWhile {
         idxFileName: String =>
-          latest = {
+          latest =
             for {
               targetFileName <- storageInterface.getBlobAsString(bucketAndPrefix.withPath(idxFileName))
               targetBucketAndPath = bucketAndPrefix.withPath(targetFileName)
               pathExists <- storageInterface.pathExists(targetBucketAndPath)
-            } yield {
-              if (pathExists) Some(idxFileName) else Option.empty[String]
-            }
-          }
-        latest.isRight && latest.right.exists(_.isEmpty)
+            } yield if (pathExists) Some(idxFileName) else Option.empty[String]
+
+
+          latest.isRight && latest.right.exists(_.isEmpty)
       }
 
-      latest
+    latest
 
   }
 }
