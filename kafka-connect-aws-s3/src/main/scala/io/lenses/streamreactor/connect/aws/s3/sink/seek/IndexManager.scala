@@ -168,24 +168,21 @@ class IndexManager(sinkName: String, maxIndexes: Int, fallbackSeeker: Option[Leg
    * @return either a FileLoadError or an optional string containing the valid index file of the offset
    */
   def scanIndexes(bucketAndPrefix: RemoteS3RootLocation, indexFiles: List[String]): Either[FileLoadError, Option[String]] = {
-    var latest: Either[FileLoadError, Option[String]] = None.asRight
-
     indexFiles
-      .reverse
-      .takeWhile {
-        idxFileName: String =>
-          latest =
-            for {
-              targetFileName <- storageInterface.getBlobAsString(bucketAndPrefix.withPath(idxFileName))
-              targetBucketAndPath = bucketAndPrefix.withPath(targetFileName)
-              pathExists <- storageInterface.pathExists(targetBucketAndPath)
-            } yield if (pathExists) Some(idxFileName) else Option.empty[String]
-
-
-          latest.isRight && latest.right.exists(_.isEmpty)
-      }
-
-    latest
-
+      .foldRight(
+        Option.empty[String].asRight[FileLoadError]
+      ){
+        (idxFileName: String, result: Either[FileLoadError, Option[String]]) =>
+          result match {
+            case Right(None) =>
+              for {
+                targetFileName <- storageInterface.getBlobAsString(bucketAndPrefix.withPath(idxFileName))
+                targetBucketAndPath = bucketAndPrefix.withPath(targetFileName)
+                pathExists <- storageInterface.pathExists(targetBucketAndPath)
+              } yield if (pathExists) Some(idxFileName) else Option.empty[String]
+            case Left(_) => result
+            case Right(_) => result
+          }
+    }
   }
 }
