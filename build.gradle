@@ -66,7 +66,7 @@ allprojects {
         gsonVersion = "2.6.2"
         kcqlVersion = "2.8.7"
         connectCLIVersion = "1.0.6"
-        avro4sVersion = "1.6.4"
+        avro4sVersion = "1.7.0"
 
         // The following 4 need to align to compileagainst a particular version
         confluentVersion = '5.5.0'
