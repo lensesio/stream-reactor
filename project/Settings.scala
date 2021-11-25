@@ -165,7 +165,6 @@ object Settings extends Dependencies {
     betterMonadicFor,
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision,
-    libraryDependencies ++= Seq(Dependencies.scalaCollectionCompat)
   )
 
   val settings: Seq[Setting[_]] = commonSettings ++ Seq(

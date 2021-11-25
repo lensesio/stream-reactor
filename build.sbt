@@ -1,7 +1,6 @@
 import sbt._
 import Settings._
 
-ThisBuild / scalafixDependencies ++= Dependencies.scalafixDeps
 // This line ensures that sources are downloaded for dependencies, when using Bloop
 bloopExportJarClassifiers in Global := Some(Set("sources"))
 
@@ -15,7 +14,24 @@ lazy val root = Project("stream-reactor", file("."))
     awsS3
   )
 
+lazy val common = (project in file("kafka-connect-common"))
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-common",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectCommonDeps,
+        publish / skip := true,
+        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
+        packGenerateMakefile := false,
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
+      )
+  )
+  .configureTestsForProject(itTestsParallel = false)
+  .enablePlugins(PackPlugin)
+
 lazy val awsS3 = (project in file("kafka-connect-aws-s3"))
+  .dependsOn(common)
   .settings(
     settings ++
       Seq(
