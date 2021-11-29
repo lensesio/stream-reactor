@@ -174,7 +174,9 @@ object JMSSettings extends StrictLogging {
       val sourceConverter = defaultSourceConverter.getOrElse(kcqlSourceConverter)
 
       val sinkConverter = if (sink && r.getFormatType != null) {
-        JMSMessageConverterFn(r.getFormatType)
+        val converter = JMSMessageConverterFn(r.getFormatType)
+        converter.initialize(mapAsJavaMap(config.props.asScala.toMap))
+        converter
       }
       else
         defaultSinkConverter.getOrElse(kcqlSinkConverter)
