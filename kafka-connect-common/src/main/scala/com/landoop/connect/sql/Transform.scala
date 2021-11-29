@@ -63,7 +63,7 @@ private object Transform extends StrictLogging {
             val array = value match {
               case a: Array[Byte] => a
               case b: ByteBuffer => b.array()
-              case other => raiseException("Invalid payload:$other for schema Schema.BYTES.", None)
+              case _ => raiseException("Invalid payload:$other for schema Schema.BYTES.", None)
                 throw new IllegalArgumentException()
             }
 
@@ -95,19 +95,19 @@ private object Transform extends StrictLogging {
               case Failure(e) => raiseException(s"A KCQL error occurred.${e.getMessage}", Some(e))
             }
 
-          case other => raiseException("Can't transform Schema type:$other.", None)
+          case other => raiseException(s"Can't transform Schema type:$other.", None)
         }
       } else {
         //we can handle java.util.Map (this is what JsonConverter can spit out)
         value match {
           case m: java.util.Map[_, _] =>
             val map = m.asInstanceOf[java.util.Map[String, Any]]
-            val jsonNode: JsonNode = JacksonJson.mapper.valueToTree(map)
+            val jsonNode: JsonNode = JacksonJson.mapper.valueToTree[JsonNode](map)
             Try(jsonNode.sql(sql.select, sql.flatten)) match {
               case Success(j) => schema -> JacksonJson.mapper.convertValue(j, classOf[java.util.Map[String, Any]])
               case Failure(e) => raiseException(s"A KCQL exception occurred.${e.getMessage}", Some(e))
             }
-          case s: String =>
+          case _: String =>
             Try(JacksonJson.asJson(value.asInstanceOf[String])) match {
               case Failure(e) => raiseException("Invalid json", Some(e))
               case Success(json) =>

@@ -32,7 +32,7 @@ class TestErrorHandlerNoop extends TestUtilsBase with ErrorHandler {
 
     {
       try {
-        1 / 0
+        throw new ArithmeticException("Divide by zero")
       } catch {
         case t: Throwable => {
           handleTry(Failure(t))

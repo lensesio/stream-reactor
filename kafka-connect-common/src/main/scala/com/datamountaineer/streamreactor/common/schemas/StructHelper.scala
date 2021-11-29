@@ -18,17 +18,13 @@
 
 package com.datamountaineer.streamreactor.common.schemas
 
-import SchemaHelper.SchemaExtensions
-import com.typesafe.scalalogging.Logger
-import com.typesafe.scalalogging.StrictLogging
+import com.datamountaineer.streamreactor.common.schemas.SchemaHelper.SchemaExtensions
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.ConnectException
-import org.slf4j.LoggerFactory
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 object StructHelper {
-  private val logger = Logger(LoggerFactory.getLogger(getClass.getName))
 
   implicit final class StructExtension(val struct: Struct) extends AnyVal {
 
@@ -96,18 +92,17 @@ object StructHelper {
                      fields: Map[String, String] = Map.empty,
                      ignoreFields: Set[String] = Set.empty): Struct = {
 
-      val extractFields = if (fields.contains("*") || fields.isEmpty) {
+      val extractFields : Map[String,String] = {if (fields.contains("*") || fields.isEmpty) {
         //all fields excluding ignored
         schema
           .fields()
           .asScala
           .filterNot(f => ignoreFields.contains(f.name()))
           .map(f => (f.name, f.name()))
-          .toMap
       } else {
         //selected fields excluding ignored
-        fields.filterKeys(k => !ignoreFields.contains(k))
-      }
+        fields.view.filterKeys(k => !ignoreFields.contains(k)).toMap
+      }}.toMap
 
       //find the field
       val newStruct = new Struct(newSchemaWithFields(extractFields, schema))

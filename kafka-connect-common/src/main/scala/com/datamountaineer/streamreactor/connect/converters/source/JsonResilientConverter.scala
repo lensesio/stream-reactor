@@ -30,7 +30,7 @@ import scala.util.Try
   */
 class JsonResilientConverter extends JsonConverter {
 
-  override def configure(configs: util.Map[String, _], isKey: Boolean) {
+  override def configure(configs: util.Map[String, _], isKey: Boolean): Unit = {
     super.configure(configs, isKey)
   }
 

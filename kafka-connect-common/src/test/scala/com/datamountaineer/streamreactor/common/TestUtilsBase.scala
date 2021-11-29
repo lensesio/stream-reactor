@@ -32,7 +32,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import java.util
 import java.util.Collections
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
 
 /**
   * Created by andrew@datamountaineer.com on 29/02/16. 
@@ -137,7 +137,7 @@ trait TestUtilsBase extends AnyWordSpec with Matchers with BeforeAndAfter with M
     val baseRecords = getTestRecord
     val keySchema: Schema = createKeySchema
     val keyStruct: Struct = createKeyStruct(keySchema, ID)
-    val valueSchema: Schema = createSchema
+    val _: Schema = createSchema
     val headers = new ConnectHeaders()
     headers.addString("header_field_1", "foo")
     headers.addString("header_field_2", "bar")

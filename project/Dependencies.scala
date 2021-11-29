@@ -44,7 +44,8 @@ object Dependencies {
 
     val http4sVersion = "1.0.0-M27"
     val avroVersion   = "1.9.2"
-    val avro4sVersion = "4.0.11"
+    //val avro4sVersion = "4.0.11"
+    val avro4sVersion = "3.1.1"
 
     val catsVersion           = "2.6.1"
     val catsEffectVersion     = "3.2.2"
@@ -72,10 +73,13 @@ object Dependencies {
 
     val jerseyCommonVersion = "2.34"
 
-    val linq4jVersion = "1.8.0"
+    val calciteVersion = "1.12.0"
     val awsSdkVersion = "2.17.22"
     val jCloudsSdkVersion = "2.3.0"
     val kcqlVersion = "2.8.7"
+    val json4sVersion = "3.6.7"
+    val jacksonVersion = "2.11.3"
+    val mockitoScalaVersion = "1.16.46"
   }
 
   import Versions._
@@ -104,7 +108,8 @@ object Dependencies {
   val scalatestPlusScalaCheck =
     "org.scalatestplus" %% "scalatestplus-scalacheck" % scalatestPlusScalaCheckVersion
   val scalaCheck      = "org.scalacheck"    %% "scalacheck"  % scalaCheckVersion
-  val `mockito-scala` = "org.scalatestplus" %% "mockito-3-2" % scalaCheckPlusVersion
+  val `mockito-scala` = "org.mockito" %% "mockito-scala" % mockitoScalaVersion
+
 
   lazy val pegDown = "org.pegdown" % "pegdown" % "1.6.0"
 
@@ -163,13 +168,18 @@ object Dependencies {
   lazy val kcql = ("com.datamountaineer" % "kcql" % kcqlVersion)
     .exclude("com.google.guava", "guava")
 
-  lazy val calciteLinq4J = ("org.apache.calcite" % "calcite-linq4j" % linq4jVersion)
+  lazy val calciteCore = ("org.apache.calcite" % "calcite-core" % calciteVersion)
+  lazy val calciteLinq4J = ("org.apache.calcite" % "calcite-linq4j" % calciteVersion)
 
   lazy val s3Sdk = ("software.amazon.awssdk" % "s3" % awsSdkVersion)
 
   lazy val jcloudsBlobstore = ("org.apache.jclouds" % "jclouds-blobstore" % jCloudsSdkVersion)
   lazy val jcloudsProviderS3 = ("org.apache.jclouds.provider" % "aws-s3" % jCloudsSdkVersion)
 
+  lazy val json4sNative = ("org.json4s" %% "json4s-native" % json4sVersion)
+  lazy val json4sJackson = ("org.json4s" %% "json4s-jackson" % json4sVersion)
+  lazy val jacksonDatabind = ("com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion)
+  lazy val jacksonModuleScala = ("com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion)
 }
 
 trait Dependencies {
@@ -223,7 +233,14 @@ trait Dependencies {
 
   //Specific modules dependencies
   val kafkaConnectCommonDeps: Seq[ModuleID] = (Seq(
+    avro4s,
     kcql,
+    calciteCore,
+    calciteLinq4J,
+    json4sNative,
+    json4sJackson,
+    jacksonDatabind,
+    jacksonModuleScala,
   )).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))

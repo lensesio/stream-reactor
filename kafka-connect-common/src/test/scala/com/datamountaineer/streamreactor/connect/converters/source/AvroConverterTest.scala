@@ -46,7 +46,7 @@ class AvroConverterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll
   }
 
   override def afterAll() = {
-    path.deleteRecursively()
+    val _ = path.deleteRecursively()
   }
 
   private def initializeConverter(converter: AvroConverter, schema: Schema, converterTopic: String) = {

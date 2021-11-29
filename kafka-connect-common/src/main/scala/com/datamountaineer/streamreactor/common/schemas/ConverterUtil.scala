@@ -33,16 +33,16 @@ import StructHelper._
 import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.collection.JavaConverters._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, SetHasAsScala}
 import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 22/02/16.
   * stream-reactor
   */
-@deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
+//@deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
 trait ConverterUtil {
   type avroSchema = org.apache.avro.Schema
 
@@ -202,7 +202,7 @@ trait ConverterUtil {
     * @param key          Extract the fields from the key or the value of the ConnectRecord.
     * @return A new Struct with the fields specified in the fieldsMappings.
     * */
-  @deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
+  //@deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
   def convert(record: SinkRecord,
               fields: Map[String, String],
               ignoreFields: Set[String] = Set.empty[String],

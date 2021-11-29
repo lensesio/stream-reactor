@@ -16,13 +16,12 @@
 package com.landoop.connect.sql
 
 import com.landoop.sql.SqlContext
-import com.landoop.sql.Field._
 import org.apache.calcite.sql.SqlSelect
 import org.apache.kafka.connect.data.{Field, Schema, SchemaBuilder}
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 object StructSchemaSql {
 
@@ -32,7 +31,7 @@ object StructSchemaSql {
       def navigate(current: Schema, parents: Seq[String]): Seq[Field] = {
         if (Option(parents).isEmpty || parents.isEmpty) {
           current.`type`() match {
-            case Schema.Type.STRUCT => current.fields().asScala
+            case Schema.Type.STRUCT => current.fields().asScala.toSeq
             case Schema.Type.MAP => throw new IllegalArgumentException(s"Can't select fields ${path.mkString(".")} since it resolved to a Map($current)")
             case _ => throw new IllegalArgumentException(s"Can't select fields ${path.mkString(".")} from schema:$current ")
           }
@@ -58,7 +57,7 @@ object StructSchemaSql {
       if (!flatten) {
         com.landoop.sql.Field.from(query)
         implicit val kcqlContext = new SqlContext(com.landoop.sql.Field.from(query))
-        copy
+        copy()
       }
       else {
         this.flatten(com.landoop.sql.Field.from(query))
@@ -99,7 +98,7 @@ object StructSchemaSql {
     }
 
     private def createRecordSchemaForFlatten(fields: Seq[com.landoop.sql.Field]): Schema = {
-      var builder = SchemaBuilder.struct().name(schema.name())
+      val builder = SchemaBuilder.struct().name(schema.name())
         .doc(schema.doc())
       Option(schema.parameters()).map(builder.parameters)
       Option(schema.defaultValue()).map(builder.defaultValue)
@@ -277,11 +276,11 @@ object StructSchemaSql {
               builder.field(schemaField.name, newSchema)
             }
 
-        case other =>
+        case _ =>
           fields.foreach {
             case Left(field) if field.name == "*" =>
               from.fields().asScala
-                .withFilter(f => !fields.exists(e => e.isLeft && e.left.get.name == f.name))
+                .withFilter(f => !fields.exists(e => e.isLeft && e.left.exists(_.name == f.name)))
                 .map { f =>
                   val newSchema = copy(f.schema(), parents :+ f.name)
                   newSchema.copyProperties(f.schema())
@@ -319,8 +318,8 @@ object StructSchemaSql {
         case Seq(field) if field == "*" =>
           from.`type`() match {
             case Schema.Type.STRUCT =>
-              if (!isOptional) from.fields().asScala
-              else from.fields.asScala.map(withOptional)
+              if (!isOptional) from.fields().asScala.toSeq
+              else from.fields.asScala.map(withOptional).toSeq
             case other => throw new IllegalArgumentException(s"Can't select field:$field from ${other.toString}")
           }
         case Seq(field) =>

@@ -3,9 +3,10 @@ package com.landoop.json.sql
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.IntNode
 import com.landoop.json.sql.JsonSql._
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class JsonSqlWithRetainStructureTest extends WordSpec with Matchers {
+class JsonSqlWithRetainStructureTest extends AnyWordSpec with Matchers {
 
   private def compare[T](actual: JsonNode, t: T) = {
     val expectedRecord = JacksonJson.asJson(t)

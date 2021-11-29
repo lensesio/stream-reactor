@@ -23,8 +23,8 @@ import com.fasterxml.jackson.databind.node._
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.collection.JavaConverters._
 import scala.annotation.tailrec
+import scala.jdk.CollectionConverters.{IteratorHasAsScala, ListHasAsScala}
 
 object KeyExtractor {
   //TODO would be nice to return an Either rather than throw exception
@@ -39,7 +39,7 @@ object KeyExtractor {
 
       n match {
         case null => null
-        case bn: BinaryNode =>
+        case _: BinaryNode =>
           checkValidPath()
           n.binaryValue()
 
@@ -120,7 +120,7 @@ object KeyExtractor {
             case bd: BigDecimal =>
               checkValidPath()
               bd
-            case array: Array[Byte] =>
+            case _: Array[Byte] =>
               checkValidPath()
               Decimal.toLogical(field.schema, value.asInstanceOf[Array[Byte]])
           }
@@ -136,7 +136,7 @@ object KeyExtractor {
           }
         case Time.LOGICAL_NAME =>
           value.asInstanceOf[Any] match {
-            case i: Int =>
+            case _: Int =>
               checkValidPath()
               Time.toLogical(field.schema, value.asInstanceOf[Int])
             case d: java.util.Date =>

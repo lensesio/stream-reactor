@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.converters.source
 
 import com.datamountaineer.streamreactor.common.converters.MsgKey
-import com.sksamuel.avro4s.{RecordFormat, SchemaFor}
+import com.sksamuel.avro4s.{AvroSchema, RecordFormat}
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.Struct
@@ -36,7 +36,7 @@ class JsonConverterWithSchemaEvolutionTest extends AnyWordSpec with Matchers {
     "throw IllegalArgumentException if payload is null" in {
       intercept[ConnectException] {
         val converter = new JsonConverterWithSchemaEvolution
-        val record = converter.convert("topic", "somesource", "1000", null)
+        val _ = converter.convert("topic", "somesource", "1000", null)
       }
     }
 
@@ -50,7 +50,7 @@ class JsonConverterWithSchemaEvolutionTest extends AnyWordSpec with Matchers {
 
       val schema =
         new Schema.Parser().parse(
-          SchemaFor[CarOptional]().toString
+          AvroSchema[CarOptional].toString
             .replace("\"name\":\"CarOptional\"", s"""\"name\":\"$sourceTopic\"""")
             .replace(s""",\"namespace\":\"${getClass.getCanonicalName.dropRight(getClass.getSimpleName.length+1)}\"""", "")
         )

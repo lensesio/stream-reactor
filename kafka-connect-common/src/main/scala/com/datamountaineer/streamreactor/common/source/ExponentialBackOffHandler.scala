@@ -31,21 +31,21 @@ class ExponentialBackOffHandler(name: String, step: Duration, cap: Duration) ext
 
   def ready: Boolean = backoff.passed
 
-  def failure: Unit = {
-    backoff = backoff.nextFailure
+  def failure(): Unit = {
+    backoff = backoff.nextFailure()
     logger.info(s"$name: Next poll will be around ${backoff.endTime}")
   }
 
-  def success: Unit = {
-    backoff = backoff.nextSuccess
+  def success(): Unit = {
+    backoff = backoff.nextSuccess()
     logger.info(s"$name: Backing off. Next poll will be around ${backoff.endTime}")
   }
 
   def update(status: Boolean): Unit = {
     if (status) {
-      success
+      success()
     } else {
-      failure
+      failure()
     }
   }
 

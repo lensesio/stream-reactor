@@ -20,7 +20,7 @@ package com.datamountaineer.streamreactor.common.converters
 
 import com.datamountaineer.kcql.Field
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 @deprecated
 object FieldConverter {

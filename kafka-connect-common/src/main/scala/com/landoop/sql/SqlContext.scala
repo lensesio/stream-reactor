@@ -60,7 +60,7 @@ class SqlContext(val fields: Iterable[Field]) {
         } else {
           insertKey("", Left(field), map)
         }
-      }
+      }.view.mapValues(_.toSeq).toMap
     }
 
     def apply(sql: SqlSelect): Map[String, Seq[Either[Field, String]]] = {

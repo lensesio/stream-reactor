@@ -21,7 +21,7 @@ package com.datamountaineer.streamreactor.common.rowkeys
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
   * Builds the new record key for the given connect SinkRecord.

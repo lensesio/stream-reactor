@@ -59,7 +59,7 @@ class AvroConverter extends Converter {
         val avro = avroData.fromConnectData(data.valueSchema(), data.value())
         avro.asInstanceOf[GenericRecord]
 
-        val record = writer.write(avro, decoder)
+        val _ = writer.write(avro, decoder)
         decoder.flush()
         val arr = output.toByteArray
 

@@ -11,7 +11,8 @@ lazy val root = Project("stream-reactor", file("."))
     name := "stream-reactor"
   )
   .aggregate(
-    awsS3
+    common,
+    //awsS3
   )
 
 lazy val common = (project in file("kafka-connect-common"))
@@ -30,7 +31,7 @@ lazy val common = (project in file("kafka-connect-common"))
   .configureTestsForProject(itTestsParallel = false)
   .enablePlugins(PackPlugin)
 
-lazy val awsS3 = (project in file("kafka-connect-aws-s3"))
+/*lazy val awsS3 = (project in file("kafka-connect-aws-s3"))
   .dependsOn(common)
   .settings(
     settings ++
@@ -46,7 +47,7 @@ lazy val awsS3 = (project in file("kafka-connect-aws-s3"))
   )
   .configureTestsForProject(itTestsParallel = false)
   .enablePlugins(PackPlugin)
-
+*/
 addCommandAlias(
   "validateAll",
   ";headerCheck;test:headerCheck;fun:headerCheck;it:headerCheck;scalafmtCheck;test:scalafmtCheck;it:scalafmtCheck;fun:scalafmtCheck;e2e:scalafmtCheck"

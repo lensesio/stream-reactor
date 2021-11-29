@@ -94,7 +94,7 @@ object ToJsonWithProjections extends StrictLogging {
         value match {
           case m: java.util.Map[_, _] =>
             val map = m.asInstanceOf[java.util.Map[String, Any]]
-            val jsonNode: JsonNode = JacksonJson.mapper.valueToTree(map)
+            val jsonNode: JsonNode = JacksonJson.mapper.valueToTree[JsonNode](map)
             Try(jsonNode.sql(fields, !withStructure)) match {
               case Success(j) => j
               case Failure(e) => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
