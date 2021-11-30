@@ -25,7 +25,7 @@ import org.apache.kafka.connect.sink.SinkConnector
 import org.slf4j.Logger
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class S3SinkConnector extends SinkConnector {
 

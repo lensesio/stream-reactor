@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.model
 
 import com.datamountaineer.kcql.Kcql
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 sealed trait PartitionField {
   def valuePrefixDisplay(): String
@@ -31,7 +31,7 @@ object PartitionField {
       .map(_.asScala)
       .getOrElse(Nil)
       .map(name => {
-        val split = name.split("\\.").seq
+        val split = name.split("\\.").toSeq
         PartitionSpecifier.withNameOption(split.head).fold(PartitionField(split))(hd =>
           if (split.tail.isEmpty) PartitionField(hd) else PartitionField(hd, split.tail))
       }).toSeq
@@ -65,19 +65,19 @@ object PartitionField {
 case class HeaderPartitionField(path: PartitionNamePath) extends PartitionField {
   override def valuePrefixDisplay(): String = path.toString
 
-  path.validateProtectedCharacters
+  path.validateProtectedCharacters()
 }
 
 case class KeyPartitionField(path: PartitionNamePath) extends PartitionField {
   override def valuePrefixDisplay(): String = path.toString
 
-  path.validateProtectedCharacters
+  path.validateProtectedCharacters()
 }
 
 case class ValuePartitionField(path: PartitionNamePath) extends PartitionField {
   override def valuePrefixDisplay(): String = path.toString
 
-  path.validateProtectedCharacters
+  path.validateProtectedCharacters()
 }
 
 case class WholeKeyPartitionField() extends PartitionField {

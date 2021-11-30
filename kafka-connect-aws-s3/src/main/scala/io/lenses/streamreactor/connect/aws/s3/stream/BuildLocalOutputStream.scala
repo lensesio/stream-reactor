@@ -62,6 +62,6 @@ class BuildLocalOutputStream(outputStream: BufferedOutputStream, topicPartition:
 
   private def validateRange(startOffset: Int, numberOfBytes: Int) = startOffset >= 0 && startOffset <= numberOfBytes
 
-  override def getPointer: Long = pointer
+  override def getPointer: Long = pointer.toLong
 
 }

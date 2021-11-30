@@ -7,11 +7,11 @@ trait UploadError {
 }
 
 case class NonExistingFileError(file: File) extends UploadError {
-  def message = s"attempt to upload non-existing file (${file.getPath})"
+  def message() = s"attempt to upload non-existing file (${file.getPath})"
 }
 
 case class ZeroByteFileError(file: File) extends UploadError {
-  def message = s"zero byte upload prevented (${file.getPath})"
+  def message() = s"zero byte upload prevented (${file.getPath})"
 }
 
 case class UploadFailedError(exception: Throwable, file: File) extends UploadError {

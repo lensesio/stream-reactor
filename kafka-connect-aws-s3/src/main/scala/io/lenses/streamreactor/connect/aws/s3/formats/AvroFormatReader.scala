@@ -19,7 +19,8 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import org.apache.avro.file.{DataFileReader, SeekableByteArrayInput}
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.IteratorHasAsScala
+
 
 
 class AvroFormatReader extends Using {

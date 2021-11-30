@@ -6,7 +6,7 @@ import org.mockito.{Answers, MockitoSugar}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class ContextReaderTest extends AnyFlatSpec with Matchers with MockitoSugar {
 

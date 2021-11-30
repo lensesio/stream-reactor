@@ -51,7 +51,7 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
           s"/${format.entryName.toLowerCase}${generateFormatString(formatOption)}/$fileNum.${format.entryName.toLowerCase}",
         )
     }
-  }.seq.sum
+  }.sum
 
   def generateFormatString(formatOptions: Option[FormatOptions]): String = {
     formatOptions.fold("")(option => s"_${option.entryName.toLowerCase}")
@@ -74,7 +74,7 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
 
     val resource = classOf[S3TestConfig].getResource(resourceSourceFilename)
     require(resource != null)
-    storageInterface.uploadFile(
+    val _ = storageInterface.uploadFile(
       new File(resource.getFile),
       RemoteS3PathLocation(blobStoreContainerName, blobStoreTargetFilename)
     )

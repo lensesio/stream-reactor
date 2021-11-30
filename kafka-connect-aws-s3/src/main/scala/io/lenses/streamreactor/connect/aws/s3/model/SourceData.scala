@@ -21,7 +21,7 @@ import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.{from
 import org.apache.kafka.connect.data.{Schema, SchemaAndValue}
 import org.apache.kafka.connect.source.SourceRecord
 
-import scala.jdk.CollectionConverters.mapAsJavaMapConverter
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 abstract class SourceData(lineNumber: Long) {
   def representationSchema: Option[Schema]

@@ -30,7 +30,7 @@ class SeekableByteArrayInputStream(val bArr: Array[Byte]) extends ByteArrayInput
 
 class ParquetInputFile(inputStream: SeekableByteArrayInputStream) extends InputFile {
 
-  override def getLength: Long = inputStream.available()
+  override def getLength: Long = inputStream.available().toLong
 
   override def newStream(): SeekableInputStream = new DelegatingSeekableInputStream(inputStream) {
     override def getPos: Long = getStream.asInstanceOf[SeekableByteArrayInputStream].getPos.longValue

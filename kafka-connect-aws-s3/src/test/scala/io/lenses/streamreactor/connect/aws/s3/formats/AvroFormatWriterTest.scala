@@ -96,7 +96,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
     avroFormatWriter.write(
       None,
       ArraySinkData(
-        Array(
+        Seq(
           StringSinkData("batman"),
           StringSinkData("robin"),
           StringSinkData("alfred")
@@ -118,7 +118,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
     avroFormatWriter.write(
       None,
       ArraySinkData(
-        Array(
+        Seq(
           StringSinkData("batman"),
           StringSinkData("robin"),
           StringSinkData("alfred")
@@ -127,7 +127,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
     avroFormatWriter.write(
       None,
       ArraySinkData(
-        Array(
+        Seq(
           StringSinkData("superman"),
           StringSinkData("lois lane")
         ), Some(arraySchema)),
@@ -149,7 +149,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
     val caught = avroFormatWriter.write(
         None,
         ArraySinkData(
-          Array(
+          Seq(
             StringSinkData("batman"),
             StringSinkData("robin"),
             StringSinkData("alfred")

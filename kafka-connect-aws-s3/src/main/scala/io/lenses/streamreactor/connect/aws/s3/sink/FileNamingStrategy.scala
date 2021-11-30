@@ -194,7 +194,7 @@ object CommittedFileName {
       case s3FileNamingStrategy.committedFilenameRegex(topic, partition, end, extension) =>
         Format.withNameInsensitiveOption(extension)
           .fold(Option.empty[(Topic, Int, Offset, Format)]) {
-            format => Some(Topic(topic), partition.toInt, Offset(end.toLong), format)
+            format => Some((Topic(topic), partition.toInt, Offset(end.toLong), format))
           }
 
       case _ => None

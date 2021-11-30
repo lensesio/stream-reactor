@@ -20,7 +20,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocati
 import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.fromSourcePartition
 import org.apache.kafka.connect.source.SourceTaskContext
 
-import scala.jdk.CollectionConverters.{mapAsJavaMapConverter, mapAsScalaMapConverter}
+import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
 import scala.util.Try
 
 class ContextReader(context: () => SourceTaskContext) {

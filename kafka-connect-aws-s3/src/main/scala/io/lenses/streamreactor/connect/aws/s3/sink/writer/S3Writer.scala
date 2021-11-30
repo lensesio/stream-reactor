@@ -209,7 +209,7 @@ class S3Writer(
 
   private def rolloverOnSchemaChange: Boolean = {
     writeState match {
-      case Writing(commitState, s3FormatWriter, file, uncommittedOffset) => s3FormatWriter.rolloverFileOnSchemaChange()
+      case Writing(_, s3FormatWriter, _, _) => s3FormatWriter.rolloverFileOnSchemaChange()
       case _ => false
     }
   }

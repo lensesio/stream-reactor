@@ -73,7 +73,7 @@ trait S3FormatWriter extends AutoCloseable {
 
   def complete(): Either[SinkError, Unit]
 
-  def close() = complete()
+  def close(): Unit = {val _ = complete()}
 }
 
 

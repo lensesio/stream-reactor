@@ -115,7 +115,7 @@ class JCloudsS3ContextCreatorTest extends AnyFlatSpec with MockitoSugar with Mat
   }
 
   private def getIdentityFromContext(blobStoreContext: BlobStoreContext): String = {
-    val apiContextImpl: ApiContextImpl[ProviderMetadata] = blobStoreContext.unwrap()
+    val apiContextImpl: ApiContextImpl[ProviderMetadata] = blobStoreContext.unwrap[ApiContextImpl[ProviderMetadata]]()
     apiContextImpl.getIdentity
   }
 

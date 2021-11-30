@@ -252,12 +252,12 @@ object Settings extends Dependencies {
    * @param project the project that will be configured with Test, ItTest, FunctionalTest and E2ETest configurations
    */
   implicit final class ProjectTestsConfigurator(project: Project) {
-    def configureTestsForProject(itTestsParallel: Boolean = true, funTestsParallel: Boolean = true, e2eTestsParallel: Boolean = true): Project =
+    def configureTestsForProject(itTestsParallel: Boolean = true, funTestsParallel: Boolean = true, e2eTestsParallel: Boolean = true, testDeps: Seq[ModuleID] = Seq.empty): Project =
       project
         .configs(Test, ItTest, FunctionalTest, E2ETest)
         .settings(bloopConfigToConfig(Test) ++ bloopConfigToConfig(ItTest) ++ bloopConfigToConfig(FunctionalTest) ++ bloopConfigToConfig(E2ETest))
         .settings( testSettings ++ itSettings(itTestsParallel) ++ funSettings(funTestsParallel) ++ e2eSettings(e2eTestsParallel) : _*)
-        .settings(libraryDependencies ++= baseTestDeps)
+        .settings(libraryDependencies ++= baseTestDeps ++ testDeps)
         .enablePlugins(ScoverageSbtPlugin)
   }
 }

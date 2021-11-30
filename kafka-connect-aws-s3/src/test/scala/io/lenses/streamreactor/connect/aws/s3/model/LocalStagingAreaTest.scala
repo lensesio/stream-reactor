@@ -18,14 +18,15 @@ package io.lenses.streamreactor.connect.aws.s3.model
 
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.LOCAL_TMP_DIRECTORY
+import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.File
 import java.nio.file.Files
-import scala.jdk.CollectionConverters.mapAsJavaMapConverter
+import scala.jdk.CollectionConverters.MapHasAsJava
 
-class LocalStagingAreaTest extends AnyFlatSpec with Matchers {
+class LocalStagingAreaTest extends AnyFlatSpec with Matchers with EitherValues {
 
   private val tmpDir = Files.createTempDirectory("S3OutputStreamOptionsTest")
 
@@ -53,7 +54,7 @@ class LocalStagingAreaTest extends AnyFlatSpec with Matchers {
     val tempDir = System.getProperty("java.io.tmpdir")
     val result = LocalStagingArea(adapt(Map(), Option("superSleekSinkName")))
     result.isRight should be(true)
-    result.right.get match {
+    result.value match {
       case LocalStagingArea(file) => file.toString should startWith(s"$tempDir/superSleekSinkName".replace("//", "/"))
       case _ => fail("Wrong")
     }
@@ -61,9 +62,8 @@ class LocalStagingAreaTest extends AnyFlatSpec with Matchers {
 
   it should "not create BuildLocalOutputStreamOptions when nothing supplied" in {
     val result = LocalStagingArea(adapt(Map[String, String]()))
-    result.isLeft should be(true)
-    result.left.get.getClass.getSimpleName should be("IllegalStateException")
-    result.left.get.getMessage should be("Either a local temporary directory (connect.s3.local.tmp.directory) or a Sink Name (name) must be configured.")
+    result.left.value.getClass.getSimpleName should be("IllegalStateException")
+    result.left.value.getMessage should be("Either a local temporary directory (connect.s3.local.tmp.directory) or a Sink Name (name) must be configured.")
   }
 
 }

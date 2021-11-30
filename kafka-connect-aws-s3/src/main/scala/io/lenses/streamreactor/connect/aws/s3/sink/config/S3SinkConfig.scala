@@ -86,6 +86,6 @@ case class SinkBucketOptions(
                               formatSelection: FormatSelection,
                               fileNamingStrategy: S3FileNamingStrategy,
                               partitionSelection: Option[PartitionSelection] = None,
-                              commitPolicy: CommitPolicy = DefaultCommitPolicy(Some(defaultFlushSize), Some(defaultFlushInterval), Some(defaultFlushCount)),
+                              commitPolicy: CommitPolicy = DefaultCommitPolicy(Some(defaultFlushSize.toLong), Some(defaultFlushInterval), Some(defaultFlushCount.toLong)),
                               localStagingArea: LocalStagingArea,
                             )

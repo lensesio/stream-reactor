@@ -21,7 +21,7 @@ import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.errors.ConnectException
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 object ValueToSinkDataConverter {
 
@@ -46,7 +46,7 @@ object ValueToSinkDataConverter {
 
 object ArraySinkDataConverter {
   def apply(array: Array[_], schema: Option[Schema]): SinkData = {
-    ArraySinkData(array.map(e => ValueToSinkDataConverter(e, None)), schema)
+    ArraySinkData(array.map(e => ValueToSinkDataConverter(e, None)).toIndexedSeq, schema)
   }
 }
 

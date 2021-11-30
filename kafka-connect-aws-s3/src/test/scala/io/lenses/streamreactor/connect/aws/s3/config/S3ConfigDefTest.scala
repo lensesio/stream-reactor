@@ -21,7 +21,8 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
+
 
 class S3ConfigDefTest extends AnyFlatSpec with Matchers {
 

@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import au.com.bytecode.opencsv.CSVWriter
+import com.opencsv.CSVWriter
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
@@ -27,7 +27,7 @@ import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.kafka.connect.data.Schema
 
 import java.io.OutputStreamWriter
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
 class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolean) extends S3FormatWriter with LazyLogging {
@@ -47,7 +47,7 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
       }
       val nextRow = fields.map(PartitionNamePath(_))
         .map(path => adaptErrorResponse(SinkDataExtractor.extractPathFromSinkData(valueSinkData)(Some(path))).orNull)
-      csvWriter.writeNext(nextRow: _*)
+      csvWriter.writeNext(nextRow)
       csvWriter.flush()
     }.toEither
   }
@@ -70,7 +70,7 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
   private def writeFields(schema: Schema): Unit = {
     fields = schema.fields().asScala.map(_.name()).toArray
     if (writeHeaders) {
-      csvWriter.writeNext(fields: _*)
+      csvWriter.writeNext(fields)
     }
     fieldsWritten = true
   }

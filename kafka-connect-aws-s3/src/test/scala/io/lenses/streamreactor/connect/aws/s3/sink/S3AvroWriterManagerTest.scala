@@ -63,7 +63,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         val writeRes = sink.write(
-          TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
+          TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
         writeRes.isRight should be (true)
     }
 
@@ -95,9 +95,9 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
     )
 
     val sink = S3WriterManager.from(avroConfig, "sinkName")
-    firstUsers.union(usersWithNewSchema).zipWithIndex.foreach {
+    firstUsers.concat(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
-        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData]))
+        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)), MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData]))
     }
     sink.close()
 

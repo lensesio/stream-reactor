@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import au.com.bytecode.opencsv.CSVReader
+import com.opencsv.CSVReader
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
@@ -40,7 +40,7 @@ import org.scalatest.matchers.should.Matchers
 import java.io.StringReader
 import java.nio.file.Files
 import java.{lang, util}
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala, SeqHasAsJava}
 
 class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with MockitoSugar {
 
@@ -81,11 +81,11 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   )
 
   private val headerPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
-    new SinkRecord(TopicName, 1, null, null, schema, user, k, null, null, createHeaders(("headerPartitionKey", (k % 2).toString)))
+    new SinkRecord(TopicName, 1, null, null, schema, user, k.toLong, null, null, createHeaders(("headerPartitionKey", (k % 2).toString)))
   }
 
   private val records = firstUsers.zipWithIndex.map { case (user, k) =>
-    new SinkRecord(TopicName, 1, null, null, schema, user, k)
+    new SinkRecord(TopicName, 1, null, null, schema, user, k.toLong)
   }
 
   private val keySchema = SchemaBuilder.struct()
@@ -461,7 +461,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     )
 
     val records = partitionedData.zipWithIndex.map { case (user, k) =>
-      new SinkRecord(TopicName, 1, null, null, schema, user, k)
+      new SinkRecord(TopicName, 1, null, null, schema, user, k.toLong)
     }
 
     val props = DefaultProps
@@ -666,7 +666,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   "S3SinkTask" should "partition by whole of kafka message key with key label" in {
 
     val keyPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
-      new SinkRecord(TopicName, 1, null, (k % 2).toString, schema, user, k, null, null)
+      new SinkRecord(TopicName, 1, null, (k % 2).toString, schema, user, k.toLong, null, null)
     }
 
     val task = new S3SinkTask()
@@ -698,7 +698,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   "S3SinkTask" should "partition by whole of kafka message key without key label" in {
 
     val keyPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
-      new SinkRecord(TopicName, 1, null, (k % 2).toString, schema, user, k, null, null)
+      new SinkRecord(TopicName, 1, null, (k % 2).toString, schema, user, k.toLong, null, null)
     }
 
     val task = new S3SinkTask()
@@ -730,7 +730,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   "S3SinkTask" should "partition by custom partitioning with topic/partition/offset" in {
 
     val keyPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
-      new SinkRecord(TopicName, 1, null, (k % 2).toString, schema, user, k, null, null)
+      new SinkRecord(TopicName, 1, null, (k % 2).toString, schema, user, k.toLong, null, null)
     }
 
     val task = new S3SinkTask()
@@ -762,7 +762,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   "S3SinkTask" should "fail if the key is non-primitive but requests _key partitioning" in {
 
     val keyPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
-      new SinkRecord(TopicName, 1, null, user, schema, user, k, null, null)
+      new SinkRecord(TopicName, 1, null, user, schema, user, k.toLong, null, null)
     }
 
     val task = new S3SinkTask()
@@ -790,7 +790,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   "S3SinkTask" should "allow a primitive int key for _key partitioning" in {
 
     val keyPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
-      new SinkRecord(TopicName, 1, null, k % 2, schema, user, k, null, null)
+      new SinkRecord(TopicName, 1, null, k % 2, schema, user, k.toLong, null, null)
     }
 
     val task = new S3SinkTask()
@@ -1677,7 +1677,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   }
 
   private def createSinkRecord(partition: Int, valueStruct: Struct, offset: Int, headers: lang.Iterable[Header]) = {
-    new SinkRecord(TopicName, partition, null, null, null, valueStruct, offset, null, null, headers)
+    new SinkRecord(TopicName, partition, null, null, null, valueStruct, offset.toLong, null, null, headers)
   }
 
   private def createKey(keySchema: Schema, keyValuePair: (String, Any)*): Struct = {

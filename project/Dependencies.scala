@@ -80,6 +80,9 @@ object Dependencies {
     val json4sVersion = "3.6.7"
     val jacksonVersion = "2.11.3"
     val mockitoScalaVersion = "1.16.46"
+    val snakeYamlVersion = "1.29"
+    val openCsvVersion = "5.5.2"
+    val s3ProxyVersion = "1.9.0"
   }
 
   import Versions._
@@ -180,6 +183,10 @@ object Dependencies {
   lazy val json4sJackson = ("org.json4s" %% "json4s-jackson" % json4sVersion)
   lazy val jacksonDatabind = ("com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion)
   lazy val jacksonModuleScala = ("com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion)
+
+  lazy val snakeYaml = ("org.yaml" % "snakeyaml" % snakeYamlVersion)
+  lazy val openCsv = ("com.opencsv" % "opencsv" % openCsvVersion)
+  lazy val s3Proxy = ("org.gaul" % "s3proxy" % s3ProxyVersion)
 }
 
 trait Dependencies {
@@ -250,9 +257,13 @@ trait Dependencies {
     s3Sdk,
     jcloudsBlobstore,
     jcloudsProviderS3,
+    snakeYaml,
+    openCsv,
   )).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
+
+  val kafkaConnectS3TestDeps: Seq[ModuleID] = Seq(s3Proxy)
 
   // build plugins
   val kindProjectorPlugin = addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion)

@@ -36,14 +36,14 @@ class BytesFormatWithSizesStreamReader(inputStreamFn: () => InputStream, fileSiz
   override def next(): ByteArraySourceData = {
     recordNumber += 1
     val ret = ByteArraySourceData(bytesWriteMode.read(inputStream), recordNumber)
-    fileSizeCounter.addAndGet(-ret.data.bytesRead.get)
+    fileSizeCounter.addAndGet(-ret.data.bytesRead.get.toLong)
     ret
   }
 
   override def getLineNumber: Long = recordNumber
 
   override def close(): Unit = {
-    Try {
+    val _ = Try {
       inputStream.close()
     }
   }

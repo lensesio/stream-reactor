@@ -96,7 +96,7 @@ trait S3TestConfig extends AnyFlatSpec with BeforeAndAfter with BeforeAndAfterAl
 
     super.afterAll()
 
-    proxyContext.stopProxy
+    val _ = proxyContext.stopProxy
 
   }
 
@@ -111,11 +111,11 @@ trait S3TestConfig extends AnyFlatSpec with BeforeAndAfter with BeforeAndAfterAl
       val delete = Delete.builder().objects(toDeleteArray: _*).build
       s3Client.deleteObjects(DeleteObjectsRequest.builder().bucket(TestBucket).delete(delete).build())
 
-    }.toEither.right.map(_ => ())
+    }.toEither.map(_ => ())
   }
 
   private def createTestBucket(): Either[Throwable, Unit] = {
     // It is fine if it already exists
-    Try(s3Client.createBucket(CreateBucketRequest.builder().bucket(TestBucket).build())).toEither.right.map(_ => ())
+    Try(s3Client.createBucket(CreateBucketRequest.builder().bucket(TestBucket).build())).toEither.map(_ => ())
   }
 }

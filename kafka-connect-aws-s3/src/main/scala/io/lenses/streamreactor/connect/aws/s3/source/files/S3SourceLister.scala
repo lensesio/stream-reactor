@@ -20,7 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.source.files
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
-import io.lenses.streamreactor.connect.aws.s3.storage.{SourceStorageInterface, StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.SourceStorageInterface
 
 /**
   * The [[S3SourceLister]] is responsible for querying the [[StorageInterface]] to

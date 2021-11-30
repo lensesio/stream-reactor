@@ -65,7 +65,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
       parquetFormatWriter.write(
         None,
         ArraySinkData(
-          Array(
+          Seq(
             StringSinkData("batman"),
             StringSinkData("robin"),
             StringSinkData("alfred")

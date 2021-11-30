@@ -16,7 +16,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 
 class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with LazyLogging with BeforeAndAfter {
 
@@ -90,11 +90,11 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
         sourceRecords7 should have size 0
 
         sourceRecords1.asScala
-          .union(sourceRecords2.asScala)
-          .union(sourceRecords3.asScala)
-          .union(sourceRecords4.asScala)
-          .union(sourceRecords5.asScala)
-          .union(sourceRecords6.asScala)
+          .concat(sourceRecords2.asScala)
+          .concat(sourceRecords3.asScala)
+          .concat(sourceRecords4.asScala)
+          .concat(sourceRecords5.asScala)
+          .concat(sourceRecords6.asScala)
           .toSet should have size 1000
 
         val t2 = System.currentTimeMillis()
@@ -149,11 +149,11 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
         sourceRecords7 should have size 0
 
         sourceRecords1.asScala
-          .union(sourceRecords2.asScala)
-          .union(sourceRecords3.asScala)
-          .union(sourceRecords4.asScala)
-          .union(sourceRecords5.asScala)
-          .union(sourceRecords6.asScala)
+          .concat(sourceRecords2.asScala)
+          .concat(sourceRecords3.asScala)
+          .concat(sourceRecords4.asScala)
+          .concat(sourceRecords5.asScala)
+          .concat(sourceRecords6.asScala)
           .toSet should have size 790
     }
   }
@@ -220,11 +220,11 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
     sourceRecords7 should have size 0
 
     sourceRecords1.asScala
-      .union(sourceRecords2.asScala)
-      .union(sourceRecords3.asScala)
-      .union(sourceRecords4.asScala)
-      .union(sourceRecords5.asScala)
-      .union(sourceRecords6.asScala)
+      .concat(sourceRecords2.asScala)
+      .concat(sourceRecords3.asScala)
+      .concat(sourceRecords4.asScala)
+      .concat(sourceRecords5.asScala)
+      .concat(sourceRecords6.asScala)
       .toSet should have size 1000
 
     sourceRecords1.get(0).key should be("myKey".getBytes)

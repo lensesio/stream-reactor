@@ -12,7 +12,7 @@ lazy val root = Project("stream-reactor", file("."))
   )
   .aggregate(
     common,
-    //awsS3
+    awsS3,
   )
 
 lazy val common = (project in file("kafka-connect-common"))
@@ -31,7 +31,7 @@ lazy val common = (project in file("kafka-connect-common"))
   .configureTestsForProject(itTestsParallel = false)
   .enablePlugins(PackPlugin)
 
-/*lazy val awsS3 = (project in file("kafka-connect-aws-s3"))
+lazy val awsS3 = (project in file("kafka-connect-aws-s3"))
   .dependsOn(common)
   .settings(
     settings ++
@@ -39,15 +39,16 @@ lazy val common = (project in file("kafka-connect-common"))
         name := "kafka-connect-aws-s3",
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectS3Deps,
+
         publish / skip := true,
         packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
         packGenerateMakefile := false,
         packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
       )
   )
-  .configureTestsForProject(itTestsParallel = false)
+  .configureTestsForProject(itTestsParallel = false, testDeps = kafkaConnectS3TestDeps)
   .enablePlugins(PackPlugin)
-*/
+
 addCommandAlias(
   "validateAll",
   ";headerCheck;test:headerCheck;fun:headerCheck;it:headerCheck;scalafmtCheck;test:scalafmtCheck;it:scalafmtCheck;fun:scalafmtCheck;e2e:scalafmtCheck"

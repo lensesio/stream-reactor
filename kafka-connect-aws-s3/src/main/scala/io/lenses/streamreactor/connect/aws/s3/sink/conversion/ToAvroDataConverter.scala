@@ -22,7 +22,7 @@ import org.apache.avro.Schema
 import org.apache.kafka.connect.data.{Schema => ConnectSchema}
 
 import java.nio.ByteBuffer
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
 
 object ToAvroDataConverter {
 
@@ -31,7 +31,7 @@ object ToAvroDataConverter {
   def convertSchema(connectSchema: Option[ConnectSchema]): Schema = connectSchema
     .fold(throw new IllegalArgumentException("Schema-less data is not supported for Avro/Parquet"))(avroDataConverter.fromConnectSchema)
 
-  def convertToGenericRecord[Any](sinkData: SinkData): AnyRef = {
+  def convertToGenericRecord[A <: Any](sinkData: SinkData): AnyRef = {
     sinkData match {
       case StructSinkData(structVal) => avroDataConverter.fromConnectData(structVal.schema(), structVal)
       case MapSinkData(map, _) => convertMap(map)

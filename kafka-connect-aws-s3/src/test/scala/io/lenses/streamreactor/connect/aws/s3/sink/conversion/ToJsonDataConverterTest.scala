@@ -20,7 +20,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.{ArraySinkData, MapSinkData,
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
 
 class ToJsonDataConverterTest extends AnyFlatSpec with Matchers {
 

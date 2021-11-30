@@ -23,7 +23,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ArrayIndexUtil.get
 import org.apache.kafka.connect.data.Schema
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 object ArrayExtractor extends LazyLogging {
 

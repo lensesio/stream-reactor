@@ -63,7 +63,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
     val sink = S3WriterManager.from(parquetConfig, "sinkName")
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
-        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
+        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
     }
 
     sink.close()
@@ -94,9 +94,9 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
     )
 
     val sink = S3WriterManager.from(parquetConfig, "sinkName")
-    firstUsers.union(usersWithNewSchema).zipWithIndex.foreach {
+    firstUsers.concat(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
-        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData]))
+        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)), MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData]))
     }
     sink.close()
 

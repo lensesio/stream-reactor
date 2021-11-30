@@ -21,7 +21,7 @@ case class PartitionNamePath(path: String*) {
 
   val reservedCharacters = Set("/", "\\")
 
-  def validateProtectedCharacters: Unit =
+  def validateProtectedCharacters(): Unit =
     path.foreach(validateProtectedCharacters)
 
   private def validateProtectedCharacters(name: String): Unit =

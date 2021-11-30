@@ -40,7 +40,7 @@ class BytesFormatStreamFileReader(inputStreamFn: () => InputStream, fileSizeFn: 
   override def getLineNumber: Long = if (consumed) 0 else -1
 
   override def close(): Unit = {
-    Try {
+    val _ = Try {
       inputStream.close()
     }
   }

@@ -30,7 +30,6 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.data.Schema
 
 import java.io.File
-import scala.collection.compat.toTraversableLikeExtensionMethods
 import scala.collection.{immutable, mutable}
 import scala.util.Try
 
@@ -108,7 +107,7 @@ class S3WriterManager(
     logger.debug(s"[{}] Received call to S3WriterManager.commitWritersWithFilter (filter)", sinkName)
     val writerCommitErrors = writers
       .filter(keyValueFilterFn)
-      .mapValues(_.commit)
+      .view.mapValues(_.commit)
       .collect {
         case (_, Left(err)) => err
       }.toSet
@@ -255,7 +254,7 @@ class S3WriterManager(
 
   def cleanUp(topicPartition: TopicPartition): Unit = {
     writers
-      .filterKeys(mapKey => mapKey
+      .view.filterKeys(mapKey => mapKey
         .topicPartition == topicPartition)
       .keys
       .foreach(writers.remove)

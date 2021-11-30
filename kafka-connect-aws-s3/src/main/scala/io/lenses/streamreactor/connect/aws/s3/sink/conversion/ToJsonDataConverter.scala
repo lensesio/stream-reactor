@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 import io.lenses.streamreactor.connect.aws.s3.model._
 
 import java.nio.ByteBuffer
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
 
 object ToJsonDataConverter {
 
@@ -32,7 +32,7 @@ object ToJsonDataConverter {
     case _ => throw new IllegalArgumentException("Complex array writing not currently supported")
   }.asJava
 
-  def convertMap(map: Map[SinkData, SinkData]): java.util.Map[Any, Any] = map.map {
+  def convertMap(map: Map[SinkData, SinkData]): java.util.Map[_, _] = map.map {
     case (data, data1) => convert(data) -> convert(data1)
   }.asJava
 

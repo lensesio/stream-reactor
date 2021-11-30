@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import au.com.bytecode.opencsv.CSVReader
+import com.opencsv.CSVReader
 import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorError
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.UnexpectedType
@@ -30,7 +30,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.StringReader
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
