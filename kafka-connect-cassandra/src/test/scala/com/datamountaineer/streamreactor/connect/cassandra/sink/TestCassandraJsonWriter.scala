@@ -33,7 +33,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{IterableHasAsScala, ListHasAsScala, MapHasAsJava, SeqHasAsJava}
+
 
 /**
   * Created by andrew@datamountaineer.com on 04/05/16.
@@ -48,7 +49,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
   val password = "cassandra"
   var session : Session = _
 
-  override def beforeAll {
+  override def beforeAll(): Unit = {
     session = createKeySpace(keyspace ,secure = true, ssl = false)
   }
 

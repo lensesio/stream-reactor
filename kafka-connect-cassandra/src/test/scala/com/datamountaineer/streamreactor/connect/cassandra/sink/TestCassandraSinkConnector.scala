@@ -22,7 +22,7 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 
 class TestCassandraSinkConnector extends AnyWordSpec with BeforeAndAfter with Matchers with TestConfig {
   "Should start a Cassandra Sink Connector" in {

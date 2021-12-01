@@ -23,11 +23,11 @@ import com.fasterxml.jackson.databind.JsonNode
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Schema
 import org.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 @DoNotDiscover
 class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
@@ -42,7 +42,7 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
   val keyspace = "source"
   var tableName: String = _
 
-  override def beforeAll {
+  override def beforeAll(): Unit = {
     session = createKeySpace(keyspace, secure = true)
     tableName = createTimeuuidTable(session, keyspace)
   }

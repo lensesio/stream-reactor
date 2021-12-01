@@ -11,11 +11,9 @@ class KeyUtilsTest extends AnyWordSpec with Matchers {
   val uuid = UUID.randomUUID()
   val key1 = Int.box(uuid.hashCode)
   val key2 = uuid.toString
-  val key3 = Long.box(uuid.hashCode())
+  val key3 = Long.box(uuid.hashCode().toLong)
 
   "KeyUtilsTest.keysFromJson" should {
-
-    val keySchema = SchemaBuilder.string().build
 
     "return key values from flat json structure" in {
 

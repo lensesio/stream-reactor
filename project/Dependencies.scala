@@ -86,6 +86,11 @@ object Dependencies {
 
     val californiumVersion = "2.0.0-M4"
     val bouncyCastleVersion = "1.54"
+    val nettyVersion = "4.0.47.Final"
+    val cassandraDriverVersion = "3.7.1"
+    val jsonPathVersion = "2.4.0"
+
+    val cassandraUnitVersion = "3.3.0.2"
   }
 
   import Versions._
@@ -199,6 +204,12 @@ object Dependencies {
   lazy val snakeYaml = ("org.yaml" % "snakeyaml" % snakeYamlVersion)
   lazy val openCsv = ("com.opencsv" % "opencsv" % openCsvVersion)
   lazy val s3Proxy = ("org.gaul" % "s3proxy" % s3ProxyVersion)
+
+  lazy val cassandraDriver = ("com.datastax.cassandra" % "cassandra-driver-core" % cassandraDriverVersion)
+  lazy val jsonPath = ("com.jayway.jsonpath" % "json-path" % jsonPathVersion)
+  lazy val nettyTransport = ("io.netty" % "netty-transport-native-epoll" % nettyVersion classifier "linux-x86_64")
+
+  lazy val cassandraUnit = ("org.cassandraunit" % "cassandra-unit" % cassandraUnitVersion)
 }
 
 trait Dependencies {
@@ -251,7 +262,7 @@ trait Dependencies {
     .map(_.exclude("com.sun.jersey", "*"))
 
   //Specific modules dependencies
-  val kafkaConnectCommonDeps: Seq[ModuleID] = (Seq(
+  val kafkaConnectCommonDeps: Seq[ModuleID] = Seq(
     avro4s,
     kcql,
     calciteCore,
@@ -260,28 +271,55 @@ trait Dependencies {
     json4sJackson,
     jacksonDatabind,
     jacksonModuleScala,
-  )).map(_.exclude("org.slf4j", "slf4j-log4j12"))
+  ).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
 
   //Specific modules dependencies
-  val kafkaConnectS3Deps: Seq[ModuleID] = (Seq(
+
+  val kafkaConnectS3Deps: Seq[ModuleID] = Seq(
     s3Sdk,
     jcloudsBlobstore,
     jcloudsProviderS3,
     snakeYaml,
     openCsv,
-  )).map(_.exclude("org.slf4j", "slf4j-log4j12"))
+  ).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
 
   val kafkaConnectS3TestDeps: Seq[ModuleID] = Seq(s3Proxy)
 
-
-  //Specific modules dependencies
   val kafkaConnectCoapDeps: Seq[ModuleID] = (californium ++ bouncyCastle).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
+
+  val kafkaConnectCassandraDeps: Seq[ModuleID] = Seq(
+    cassandraDriver,
+    jsonPath,
+    nettyTransport,
+    json4sNative,
+  ).map(_.exclude("org.slf4j", "slf4j-log4j12"))
+    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
+    .map(_.exclude("com.sun.jersey", "*"))
+
+  //
+  //        testCompile("org.apache.cassandra:cassandra-all:$cassandraVersion") {
+  //            exclude group: "org.slf4j", module: "log4j-over-slf4j"
+  //            exclude group: "io.netty"
+  //            exclude group: "ch.qos.logback", module: "logback-core"
+  //            exclude group: "ch.qos.logback", module: "logback-classic"
+  //        }
+  //        testCompile("org.pegdown:pegdown:$pegDownversion")
+  //        testCompile("com.google.code.findbugs:jsr305:1.3.9")
+  //        testCompile ("net.jpountz.lz4:lz4:$jPountzVersion")
+  //        testCompile ("org.xerial.snappy:snappy-java:$snappyVersion")
+  //        testCompile("org.cassandraunit:cassandra-unit:$cassandraUnitVersion") {
+  //            exclude group: "org.slf4j", module: "log4j-over-slf4j"
+  //        }
+  //
+  //        testCompile 'org.ow2.asm:asm-all:4.2'
+
+  val kafkaConnectCassandraTestDeps: Seq[ModuleID] = Seq(cassandraUnit)
 
 
   // build plugins

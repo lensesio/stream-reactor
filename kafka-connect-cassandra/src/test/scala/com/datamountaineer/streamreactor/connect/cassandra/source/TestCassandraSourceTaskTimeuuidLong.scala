@@ -18,19 +18,18 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import com.datamountaineer.streamreactor.common.queues.QueueHelpers
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-
-import java.util.concurrent.LinkedBlockingQueue
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigSource, CassandraSettings}
 import com.datastax.driver.core.Session
 import com.fasterxml.jackson.databind.JsonNode
 import org.apache.kafka.connect.source.SourceRecord
 import org.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
 
-import scala.collection.JavaConverters._
+import java.util.concurrent.LinkedBlockingQueue
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 @DoNotDiscover
 class TestCassandraSourceTaskTimeuuidLong extends AnyWordSpec
@@ -45,7 +44,7 @@ class TestCassandraSourceTaskTimeuuidLong extends AnyWordSpec
   val keyspace = "source"
   var tableName: String = _
 
-  override def beforeAll {
+  override def beforeAll(): Unit = {
     session = createKeySpace(keyspace, secure = true)
     tableName = createTimeuuidTable(session, keyspace)
   }

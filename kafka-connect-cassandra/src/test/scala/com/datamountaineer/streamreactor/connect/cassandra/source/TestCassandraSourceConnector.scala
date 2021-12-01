@@ -22,7 +22,8 @@ import org.scalatest.DoNotDiscover
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
+
 /**
   * Created by andrew@datamountaineer.com on 20/04/16.
   * stream-reactor

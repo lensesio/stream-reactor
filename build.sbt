@@ -64,7 +64,25 @@ lazy val coap = (project in file("kafka-connect-coap"))
         packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
       )
   )
-  .configureTestsForProject(itTestsParallel = false, testDeps = kafkaConnectS3TestDeps)
+  .configureTestsForProject(itTestsParallel = false)
+  .enablePlugins(PackPlugin)
+
+lazy val cassandra = (project in file("kafka-connect-cassandra"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-cassandra",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectCassandraDeps,
+
+        publish / skip := true,
+        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
+        packGenerateMakefile := false,
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
+      )
+  )
+  .configureTestsForProject(itTestsParallel = false, testDeps = kafkaConnectCassandraTestDeps)
   .enablePlugins(PackPlugin)
 
 addCommandAlias(

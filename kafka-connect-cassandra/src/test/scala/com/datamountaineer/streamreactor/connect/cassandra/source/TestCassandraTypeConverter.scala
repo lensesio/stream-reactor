@@ -3,7 +3,6 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.util.UUID
-
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSettings}
 import com.datastax.driver.core.{CodecRegistry, _}
@@ -13,7 +12,7 @@ import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{IterableHasAsScala, ListHasAsScala, MapHasAsJava}
 
 class TestCassandraTypeConverter extends AnyWordSpec
   with TestConfig
@@ -57,7 +56,7 @@ class TestCassandraTypeConverter extends AnyWordSpec
     checkCols(schema)
     sr.get("timeuuidCol").toString shouldBe uuid.toString
     sr.get("intCol") shouldBe 0
-    sr.get("mapCol") shouldBe ('empty)
+    sr.get("mapCol") shouldBe (Symbol("empty"))
   }
 
   "should convert a Cassandra row to a Struct with map in sub struct" in {
@@ -76,7 +75,7 @@ class TestCassandraTypeConverter extends AnyWordSpec
     val schema = sr.schema()
     checkCols(schema)
 
-    sr.getMap("mapCol").get("sub1").toString shouldBe "sub1value"
+    sr.getMap[String,String]("mapCol").get("sub1") shouldBe "sub1value"
   }
 
   "should convert a Cassandra row to a Struct with map in json" in {
@@ -116,9 +115,9 @@ class TestCassandraTypeConverter extends AnyWordSpec
     val schema = sr.schema()
     checkCols(schema)
 
-    sr.getArray("listCol").get(0).toString shouldBe "A"
-    sr.getArray("listCol").get(1).toString shouldBe "B"
-    sr.getArray("listCol").get(2).toString shouldBe "C"
+    sr.getArray[String]("listCol").get(0) shouldBe "A"
+    sr.getArray[String]("listCol").get(1) shouldBe "B"
+    sr.getArray[String]("listCol").get(2) shouldBe "C"
   }
 
   "should convert a Cassandra row to a Struct with list in json" in {
@@ -160,9 +159,9 @@ class TestCassandraTypeConverter extends AnyWordSpec
     val schema = sr.schema()
     checkCols(schema)
 
-    sr.getArray("setCol").get(0).toString shouldBe "A"
-    sr.getArray("setCol").get(1).toString shouldBe "B"
-    sr.getArray("setCol").get(2).toString shouldBe "C"
+    sr.getArray[String]("setCol").get(0) shouldBe "A"
+    sr.getArray[String]("setCol").get(1) shouldBe "B"
+    sr.getArray[String]("setCol").get(2) shouldBe "C"
   }
 
   "should convert a Cassandra row to a Struct no columns" in {
@@ -189,7 +188,7 @@ class TestCassandraTypeConverter extends AnyWordSpec
     val sr: Struct = cassandraTypeConverter.convert(row, "test", colDefList, None)
 
     sr.get("timeuuidCol").toString shouldBe uuid.toString
-    sr.get("mapCol") shouldBe ('empty)
+    sr.get("mapCol") shouldBe (Symbol("empty"))
 
     try {
       sr.get("intCol")

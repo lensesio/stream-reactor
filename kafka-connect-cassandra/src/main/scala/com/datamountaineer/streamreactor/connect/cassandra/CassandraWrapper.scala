@@ -20,7 +20,6 @@ import com.datastax.driver.core.{ResultSet, ResultSetFuture}
 import com.google.common.util.concurrent.{FutureCallback, Futures}
 
 import scala.concurrent.{Future, Promise}
-import scala.language.{implicitConversions, postfixOps}
 
 object CassandraWrapper {
 

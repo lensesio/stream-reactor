@@ -25,7 +25,7 @@ import com.datastax.driver.core.ConsistencyLevel
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.{Success, Try}
 
 /**
@@ -200,7 +200,7 @@ object CassandraSettings extends StrictLogging {
       enableCounter,
       deleteEnabled,
       deleteStmt,
-      structFlds.asScala,
+      structFlds.asScala.toSeq,
       defaultValueStrategy
     )
   }

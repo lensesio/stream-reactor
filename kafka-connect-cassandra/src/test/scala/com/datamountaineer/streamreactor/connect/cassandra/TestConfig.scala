@@ -19,7 +19,6 @@ package com.datamountaineer.streamreactor.connect.cassandra
 import java.text.SimpleDateFormat
 import java.util
 import java.util.{Collections, Date}
-
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
 import com.datastax.driver.core.Cluster.Builder
 import com.datastax.driver.core._
@@ -33,7 +32,8 @@ import org.apache.kafka.connect.storage.OffsetStorageReader
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
 import org.mockito.MockitoSugar
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
+
 
 /**
   * Created by andrew@datamountaineer.com on 14/04/16. 
@@ -160,12 +160,12 @@ trait TestConfig extends MockitoSugar {
 
     (1 to 7).map(i => {
       val record: Struct = createRecord(schema, table + "-" + i + "-" + i)
-      new SinkRecord(table, i, Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.LOG_APPEND_TIME)
+      new SinkRecord(table, i, Schema.STRING_SCHEMA, "key", schema, record, i.toLong, System.currentTimeMillis(), TimestampType.LOG_APPEND_TIME)
     })
   }
 
 
-  def getSourceTaskContext(lookupPartitionKey: String, offsetValue: String, offsetColumn: String, table: String) = {
+  def getSourceTaskContext(lookupPartitionKey: String, offsetValue: String, offsetColumn: String, table: String): SourceTaskContext = {
     /**
       * offset holds a map of map[string, something],map[identifier, value]
       *

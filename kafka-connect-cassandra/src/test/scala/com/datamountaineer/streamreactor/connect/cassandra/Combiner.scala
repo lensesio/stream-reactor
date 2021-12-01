@@ -33,11 +33,11 @@ class Combiner extends Suites(
   new TestCassandraSourceTaskTimeuuid,
   new TestCassandraSourceTaskTimeuuidLong
 ) with TestConfig with BeforeAndAfterAll {
-  override def beforeAll() {
+  override def beforeAll(): Unit = {
     startEmbeddedCassandra()
   }
 
-  override def afterAll {
+  override def afterAll(): Unit = {
     stopEmbeddedCassandra()
   }
 }

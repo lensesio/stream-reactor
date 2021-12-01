@@ -20,7 +20,7 @@ import com.datamountaineer.streamreactor.common.config.{SSLConfig, SSLConfigCont
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, LoadBalancingPolicy}
 import com.datastax.driver.core.Cluster.Builder
 import com.datastax.driver.core.policies.{DCAwareRoundRobinPolicy, LatencyAwarePolicy, RoundRobinPolicy, TokenAwarePolicy}
-import com.datastax.driver.core.{Cluster, JdkSSLOptions, QueryOptions, SocketOptions, RemoteEndpointAwareJdkSSLOptions, Session}
+import com.datastax.driver.core._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.AbstractConfig
 

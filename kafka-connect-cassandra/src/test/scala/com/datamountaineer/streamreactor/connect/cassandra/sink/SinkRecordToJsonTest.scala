@@ -26,7 +26,8 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 
 class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil {
@@ -34,7 +35,7 @@ class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil 
     "convert Kafka Struct to a JSON" in {
       implicit val settings = CassandraSinkSetting(
         "keyspace1",
-        s"INSERT INTO topic1 SELECT * FROM topic1;INSERT INTO topic2 SELECT * FROM topic2".split(';').map(Kcql.parse),
+        s"INSERT INTO topic1 SELECT * FROM topic1;INSERT INTO topic2 SELECT * FROM topic2".split(';').map(Kcql.parse).toIndexedSeq,
         Map.empty,
         Map.empty,
         NoopErrorPolicy(),
@@ -50,8 +51,8 @@ class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil 
 
         val kcql= kcqlMap(record.topic())
         val actual = ToJsonWithProjections(
-          kcql.getFields.asScala.map(FieldConverter.apply),
-          kcql.getIgnoredFields.asScala.map(FieldConverter.apply),
+          kcql.getFields.asScala.map(FieldConverter.apply).toSeq,
+          kcql.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
           record.valueSchema(),
           record.value(),
           kcql.hasRetainStructure()).toString
@@ -64,7 +65,7 @@ class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil 
     "convert String Schema + Json payload to JSON" in {
       implicit val settings = CassandraSinkSetting(
         "keyspace1",
-        s"INSERT INTO topic1 SELECT * FROM topic1;INSERT INTO topic2 SELECT * FROM topic2".split(';').map(Kcql.parse),
+        s"INSERT INTO topic1 SELECT * FROM topic1;INSERT INTO topic2 SELECT * FROM topic2".split(';').map(Kcql.parse).toIndexedSeq,
         Map.empty,
         Map.empty,
         NoopErrorPolicy(),
@@ -80,8 +81,8 @@ class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil 
 
         val kcql= kcqlMap(record.topic())
         val actual = ToJsonWithProjections(
-          kcql.getFields.asScala.map(FieldConverter.apply),
-          kcql.getIgnoredFields.asScala.map(FieldConverter.apply),
+          kcql.getFields.asScala.map(FieldConverter.apply).toSeq,
+          kcql.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
           record.valueSchema(),
           record.value(),
           kcql.hasRetainStructure()).toString
@@ -95,7 +96,7 @@ class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil 
 
       implicit val settings = CassandraSinkSetting(
         "keyspace1",
-        s"INSERT INTO topic1 SELECT * FROM topic1;INSERT INTO topic2 SELECT * FROM topic2".split(';').map(Kcql.parse),
+        s"INSERT INTO topic1 SELECT * FROM topic1;INSERT INTO topic2 SELECT * FROM topic2".split(';').map(Kcql.parse).toIndexedSeq,
         Map.empty,
         Map.empty,
         NoopErrorPolicy(),
@@ -111,8 +112,8 @@ class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil 
 
         val kcql= kcqlMap(record.topic())
         val actual = ToJsonWithProjections(
-          kcql.getFields.asScala.map(FieldConverter.apply),
-          kcql.getIgnoredFields.asScala.map(FieldConverter.apply),
+          kcql.getFields.asScala.map(FieldConverter.apply).toSeq,
+          kcql.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
           record.valueSchema(),
           record.value(),
           kcql.hasRetainStructure()).toString
