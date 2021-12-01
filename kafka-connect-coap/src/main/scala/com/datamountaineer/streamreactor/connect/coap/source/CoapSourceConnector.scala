@@ -24,7 +24,7 @@ import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SeqHasAsJava}
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 
@@ -39,7 +39,7 @@ class CoapSourceConnector extends SourceConnector {
 
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     val raw = configProps.get(CoapConstants.COAP_KCQL)
-    require(raw != null && !raw.isEmpty,  s"No ${CoapConstants.COAP_KCQL} provided!")
+    require(raw != null && raw.nonEmpty,  s"No ${CoapConstants.COAP_KCQL} provided!")
 
     //sql1, sql2
     val kcqls = raw.split(";")

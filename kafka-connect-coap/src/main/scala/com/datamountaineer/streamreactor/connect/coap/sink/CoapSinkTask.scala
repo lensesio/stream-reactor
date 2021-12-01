@@ -25,8 +25,8 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import java.util
-import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.IterableHasAsScala
 
 /**
   * Created by andrew@datamountaineer.com on 29/12/2016. 
@@ -54,7 +54,7 @@ class CoapSinkTask extends SinkTask with StrictLogging {
       case _ =>
     }
 
-    settings.map(s => (s.kcql.getSource, CoapWriter(s))).map({ case (k, v) => writers.put(k, v) })
+    settings.map(s => (s.kcql.getSource, CoapWriter(s))).foreach({ case (k, v) => writers.put(k, v) })
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
@@ -70,7 +70,7 @@ class CoapSinkTask extends SinkTask with StrictLogging {
       logger.info(s"Shutting down writer for $t")
       w.stop()
     })
-    progressCounter.empty
+    progressCounter.empty()
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}

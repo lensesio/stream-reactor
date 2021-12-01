@@ -25,7 +25,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.eclipse.californium.core.CoapResponse
 import org.eclipse.californium.core.coap.MediaTypeRegistry
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
 /**

@@ -24,7 +24,8 @@ import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.SetHasAsJava
+
 
 /**
   * Created by andrew@datamountaineer.com on 29/12/2016.

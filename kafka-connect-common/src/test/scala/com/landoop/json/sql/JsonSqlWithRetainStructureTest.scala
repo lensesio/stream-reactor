@@ -38,7 +38,7 @@ class JsonSqlWithRetainStructureTest extends AnyWordSpec with Matchers {
       val record = JacksonJson.asJson(pepperoni)
 
       val actual = record.sql("SELECT * withstructure")
-      actual shouldBe JacksonJson.fromJson[JsonNode](JacksonJson.toJson(pepperoni))
+      actual.toString shouldBe """{"name":"pepperoni","ingredients":[{"name":"pepperoni","sugar":12.0,"fat":4.4},{"name":"onions","sugar":1.0,"fat":0.4}],"vegetarian":false,"vegan":false,"calories":98}"""
     }
 
     "handle 'SELECT *, name as fieldName  withstructure' for a record" in {

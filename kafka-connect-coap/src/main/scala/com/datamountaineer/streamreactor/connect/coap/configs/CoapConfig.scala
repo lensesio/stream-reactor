@@ -21,7 +21,7 @@ import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 

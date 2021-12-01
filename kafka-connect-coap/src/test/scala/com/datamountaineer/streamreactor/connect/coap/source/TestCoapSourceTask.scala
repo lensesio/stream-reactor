@@ -26,7 +26,7 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.util.logging.Level
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
   * Created by andrew@datamountaineer.com on 28/12/2016. 

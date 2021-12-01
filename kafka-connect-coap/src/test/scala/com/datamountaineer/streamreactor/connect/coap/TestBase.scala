@@ -31,8 +31,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import java.nio.ByteBuffer
 import java.util
 import java.util.concurrent.CountDownLatch
-import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsScala}
 
 /**
   * Created by andrew@datamountaineer.com on 08/08/16. 
@@ -249,7 +249,7 @@ trait TestBase extends AnyWordSpec with BeforeAndAfter with Matchers {
     assignment.flatMap(a => {
       (1 to nbr).map(i => {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i.toLong, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toSet
   }
@@ -300,7 +300,7 @@ trait TestBase extends AnyWordSpec with BeforeAndAfter with Matchers {
   class Channel(latch: CountDownLatch) extends RawDataChannel() {
 
     @Override
-    def receiveData(raw : RawData) {
+    def receiveData(raw : RawData): Unit = {
       println(new String(raw.getBytes))
       latch.countDown()
     }

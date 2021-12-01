@@ -26,7 +26,7 @@ import org.bouncycastle.util.io.pem.PemReader
 import java.io.{File, FileInputStream, InputStreamReader}
 import java.security._
 import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.IterableHasAsScala
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 

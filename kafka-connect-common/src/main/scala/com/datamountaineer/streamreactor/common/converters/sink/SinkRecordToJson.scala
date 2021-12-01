@@ -24,7 +24,7 @@ import com.landoop.json.sql.JacksonJson
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
-import org.json4s.jackson.JsonMethods._
+import org.json4s.jackson.JsonMethods.{compact, _}
 
 import scala.util.Try
 
@@ -32,7 +32,7 @@ import scala.util.Try
   * Created by andrew@datamountaineer.com on 29/12/2016.
   * kafka-connect-common
   */
-@deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
+//@deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
 object SinkRecordToJson extends ConverterUtil {
 
   private val mapper = new ObjectMapper()
@@ -71,7 +71,11 @@ object SinkRecordToJson extends ConverterUtil {
           val extracted = convertFromStringAsJson(record,
             fields.getOrElse(record.topic(), Map.empty),
             ignoreFields.getOrElse(record.topic(), Set.empty))
-          compact(render(extracted.right.get.converted))
+          extracted match {
+            case Left(_) => "" // TODO: is this an error case?
+            case Right(value) => compact(render(value.converted))
+          }
+
         case Schema.Type.STRUCT =>
           val extracted = convert(record,
             fields.getOrElse(record.topic(), Map.empty),

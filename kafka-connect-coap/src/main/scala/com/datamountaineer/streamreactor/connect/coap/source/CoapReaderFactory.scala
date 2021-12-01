@@ -42,7 +42,7 @@ case class CoapReader(setting: CoapSetting, queue: LinkedBlockingQueue[SourceRec
   val handler = new MessageHandler(setting.kcql.getSource, setting.kcql.getTarget, queue)
   var observing = false
   var relation : Option[CoapObserveRelation] = None
-  read
+  read()
 
   //start observing
   def read(): Unit = {

@@ -16,19 +16,17 @@
 package com.landoop.json.sql
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include
-import com.fasterxml.jackson.databind.{DeserializationFeature, JsonNode, ObjectMapper}
+import com.fasterxml.jackson.databind.json.JsonMapper
+import com.fasterxml.jackson.databind.{DeserializationFeature, JsonNode}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.fasterxml.jackson.module.scala.experimental.ScalaObjectMapper
 
 object JacksonJson {
-  val mapper = {
-    val mapper = new ObjectMapper() with ScalaObjectMapper
-    mapper.registerModule(DefaultScalaModule)
-    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-    mapper.setSerializationInclusion(Include.NON_NULL)
-    mapper.setSerializationInclusion(Include.NON_EMPTY)
-    mapper
-  }
+  val mapper = JsonMapper.builder()
+      .addModule(DefaultScalaModule)
+      .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+      .serializationInclusion(Include.NON_NULL)
+      .serializationInclusion(Include.NON_EMPTY)
+      .build()
 
   def toJson[T](value: T): String = mapper.writeValueAsString(value)
 
@@ -36,10 +34,5 @@ object JacksonJson {
 
   def asJson[T](value: T): JsonNode = mapper.valueToTree(value)
 
-
-  def fromJson[T](json: String)(implicit m: Manifest[T]): T = mapper.readValue[T](json)
-
-
-  def toMap[V](json: String)(implicit m: Manifest[V]): Map[String, V] = fromJson[Map[String, V]](json)
 }
 

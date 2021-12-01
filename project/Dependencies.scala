@@ -78,11 +78,14 @@ object Dependencies {
     val jCloudsSdkVersion = "2.3.0"
     val kcqlVersion = "2.8.7"
     val json4sVersion = "3.6.7"
-    val jacksonVersion = "2.11.3"
+    val jacksonVersion = "2.12.3"
     val mockitoScalaVersion = "1.16.46"
     val snakeYamlVersion = "1.29"
     val openCsvVersion = "5.5.2"
     val s3ProxyVersion = "1.9.0"
+
+    val californiumVersion = "2.0.0-M4"
+    val bouncyCastleVersion = "1.54"
   }
 
   import Versions._
@@ -143,6 +146,15 @@ object Dependencies {
   val http4sBlazeClient = "org.http4s" %% "http4s-blaze-client"      % http4sVersion
   val http4sCirce       = "org.http4s" %% "http4s-circe"             % http4sVersion
   val http4s            = Seq(http4sDsl, http4sAsyncClient, http4sBlazeServer, http4sCirce)
+
+  val californiumCore =   "org.eclipse.californium" % "californium-core" % californiumVersion
+  val scandium = "org.eclipse.californium" % "scandium" % californiumVersion
+  val californium = Seq(californiumCore, scandium)
+
+  val bouncyProv = "org.bouncycastle" % "bcprov-jdk15on" % bouncyCastleVersion
+  val bouncyPkix = "org.bouncycastle" % "bcpkix-jdk15on" % bouncyCastleVersion
+  val bouncyBcpg = "org.bouncycastle" % "bcpg-jdk15on" % bouncyCastleVersion
+  val bouncyCastle = Seq(bouncyProv, bouncyPkix, bouncyBcpg)
 
   //lazy val avro   = "org.apache.avro"      % "avro"        % avroVersion
   lazy val avro4s = "com.sksamuel.avro4s" %% "avro4s-core" % avro4sVersion
@@ -264,6 +276,13 @@ trait Dependencies {
     .map(_.exclude("com.sun.jersey", "*"))
 
   val kafkaConnectS3TestDeps: Seq[ModuleID] = Seq(s3Proxy)
+
+
+  //Specific modules dependencies
+  val kafkaConnectCoapDeps: Seq[ModuleID] = (californium ++ bouncyCastle).map(_.exclude("org.slf4j", "slf4j-log4j12"))
+    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
+    .map(_.exclude("com.sun.jersey", "*"))
+
 
   // build plugins
   val kindProjectorPlugin = addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion)

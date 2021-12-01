@@ -49,6 +49,24 @@ lazy val awsS3 = (project in file("kafka-connect-aws-s3"))
   .configureTestsForProject(itTestsParallel = false, testDeps = kafkaConnectS3TestDeps)
   .enablePlugins(PackPlugin)
 
+lazy val coap = (project in file("kafka-connect-coap"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-coap",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectCoapDeps,
+
+        publish / skip := true,
+        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
+        packGenerateMakefile := false,
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
+      )
+  )
+  .configureTestsForProject(itTestsParallel = false, testDeps = kafkaConnectS3TestDeps)
+  .enablePlugins(PackPlugin)
+
 addCommandAlias(
   "validateAll",
   ";headerCheck;test:headerCheck;fun:headerCheck;it:headerCheck;scalafmtCheck;test:scalafmtCheck;it:scalafmtCheck;fun:scalafmtCheck;e2e:scalafmtCheck"
