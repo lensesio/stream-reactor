@@ -23,8 +23,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config.processors.ClasspathResourceResolver
 import io.lenses.streamreactor.connect.aws.s3.formats.{AvroFormatReader, BytesFormatWriter, ParquetFormatReader}
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContext.{Credential, Identity}
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContainerTest
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
 import org.apache.commons.io.{FileUtils, IOUtils}
@@ -42,7 +41,7 @@ import java.nio.file.Files
 import java.{lang, util}
 import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala, SeqHasAsJava}
 
-class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with MockitoSugar {
+class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with MockitoSugar {
 
   import helper._
   import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
@@ -53,20 +52,20 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   private val PrefixName = "streamReactorBackups"
   private val TopicName = "myTopic"
 
-  private val DeprecatedProps = Map(
+  private def DeprecatedProps = Map(
     DEP_AWS_ACCESS_KEY -> Identity,
     DEP_AWS_SECRET_KEY -> Credential,
     DEP_AUTH_MODE -> AuthMode.Credentials.toString,
-    DEP_CUSTOM_ENDPOINT -> S3ProxyContext.Uri,
+    DEP_CUSTOM_ENDPOINT -> uri(),
     DEP_ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
     "name" -> "s3SinkTaskBuildLocalTest",
   )
 
-  private val DefaultProps = Map(
+  private def DefaultProps = Map(
     AWS_ACCESS_KEY -> Identity,
     AWS_SECRET_KEY -> Credential,
     AUTH_MODE -> AuthMode.Credentials.toString,
-    CUSTOM_ENDPOINT -> S3ProxyContext.Uri,
+    CUSTOM_ENDPOINT -> uri(),
     ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
     "name" -> "s3SinkTaskBuildLocalTest",
   )
@@ -1502,6 +1501,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     val props = Map(
       "name" -> "sinkName",
+      "connect.s3.custom.endpoint" -> uri(),
       PROFILES -> s"$profileDir/inttest1.yaml,$profileDir/inttest2.yaml"
     ).asJava
 
@@ -1559,7 +1559,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
         Map(
           "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `json` WITH_FLUSH_COUNT = 3",
           ERROR_POLICY -> "RETRY",
-          ERROR_RETRY_INTERVAL -> "10",
+          ERROR_RETRY_INTERVAL -> "1",
+          HTTP_NBR_OF_RETRIES -> "2",
+          HTTP_SOCKET_TIMEOUT -> "200",
+          HTTP_CONNECTION_TIMEOUT -> "200",
         )
       ).asJava
 
@@ -1567,7 +1570,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
 
     // things going to start failing as our server is down
-    proxyContext.stopProxy
+    pause()
 
     intercept[RetriableException] {
       task.put(records.asJava)
@@ -1575,7 +1578,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     intercept[RetriableException] {
       task.put(records.asJava)
     }
-    proxyContext.startProxy
+    resume()
     task.put(records.asJava)
 
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -1599,6 +1602,8 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
           "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `avro` WITH_FLUSH_COUNT = 1",
           ERROR_POLICY -> "RETRY",
           ERROR_RETRY_INTERVAL -> "10",
+          HTTP_SOCKET_TIMEOUT -> "200",
+          HTTP_CONNECTION_TIMEOUT -> "200",
         )
       ).asJava
 
@@ -1606,7 +1611,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
 
     // things going to start failing as our server is down
-    proxyContext.stopProxy
+    pause()
 
     intercept[RetriableException] {
       task.put(records.asJava)
@@ -1614,7 +1619,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     intercept[RetriableException] {
       task.put(records.asJava)
     }
-    proxyContext.startProxy
+    resume()
     task.put(records.asJava)
 
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -1644,6 +1649,8 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
           ERROR_POLICY -> "RETRY",
           ERROR_RETRY_INTERVAL -> "10",
           "connect.s3.local.tmp.directory" -> tmpDir.getAbsolutePath,
+          HTTP_SOCKET_TIMEOUT -> "200",
+          HTTP_CONNECTION_TIMEOUT -> "200",
         )
       ).asJava
 
@@ -1652,16 +1659,16 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.put(records.slice(0, 1).asJava)
 
     // we need to stop the s3-like-proxy to let records build up
-    proxyContext.stopProxy
+    pause()
     val ex1 = intercept[RetriableException] {
       task.put(records.slice(1, 2).asJava)
     }
-    ex1.getMessage should include ("Connection refused")
+    ex1.getMessage should include ("Read timed out")
 
     FileUtils.deleteDirectory(tmpDir)
     tmpDir.exists() should be (false)
 
-    proxyContext.startProxy
+    resume()
 
     task.put(records.slice(0, 3).asJava)
 

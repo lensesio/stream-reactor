@@ -19,13 +19,14 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.microsoft.azure.documentdb._
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
+import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.ArgumentMatchers.{any, eq => mockEq}
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
+
 
 class DocumentDbSinkTaskMapTest extends AnyWordSpec with Matchers with MockitoSugar with MatchingArgument {
   private val connection = "https://accountName.documents.azure.com:443/"
@@ -68,10 +69,10 @@ class DocumentDbSinkTaskMapTest extends AnyWordSpec with Matchers with MockitoSu
 //      task.start(map)
 
       val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
-      val map1: java.util.Map[String, Any] = mapper.readValue(json1, `type`)
+      val map1: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String,Any]](json1, `type`)
 
       val json2 = scala.io.Source.fromFile(getClass.getResource(s"/transaction2.json").toURI.getPath).mkString
-      val map2: java.util.Map[String, Any] = mapper.readValue(json2, `type`)
+      val map2: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String,Any]](json2, `type`)
 
       val sinkRecord1 = new SinkRecord("topic1", 0, null, null, null, map1, 1000)
       val sinkRecord2 = new SinkRecord("topic2", 0, null, null, null, map2, 1000)
@@ -170,10 +171,10 @@ class DocumentDbSinkTaskMapTest extends AnyWordSpec with Matchers with MockitoSu
 //      task.start(map)
 
       val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
-      val map1: java.util.Map[String, Any] = mapper.readValue(json1, `type`)
+      val map1: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String,Any]](json1, `type`)
 
       val json2 = scala.io.Source.fromFile(getClass.getResource(s"/transaction2.json").toURI.getPath).mkString
-      val map2: java.util.Map[String, Any] = mapper.readValue(json2, `type`)
+      val map2: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String,Any]](json2, `type`)
 
       val sinkRecord1 = new SinkRecord("topic1", 0, null, null, null, map1, 1000)
       val sinkRecord2 = new SinkRecord("topic2", 0, null, null, null, map2, 1000)
@@ -273,9 +274,9 @@ class DocumentDbSinkTaskMapTest extends AnyWordSpec with Matchers with MockitoSu
 //      task.start(map)
 
       val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
-      val map1: java.util.Map[String, Any] = mapper.readValue(json1, `type`)
+      val map1: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String,Any]](json1, `type`)
       val json2 = scala.io.Source.fromFile(getClass.getResource(s"/transaction2.json").toURI.getPath).mkString
-      val map2: java.util.Map[String, Any] = mapper.readValue(json2, `type`)
+      val map2: java.util.Map[String, Any] = mapper.readValue[java.util.Map[String,Any]](json2, `type`)
       val sinkRecord1 = new SinkRecord("topic1", 0, null, null, null, map1, 1000)
       val sinkRecord2 = new SinkRecord("topic1", 0, null, null, null, map2, 1000)
 

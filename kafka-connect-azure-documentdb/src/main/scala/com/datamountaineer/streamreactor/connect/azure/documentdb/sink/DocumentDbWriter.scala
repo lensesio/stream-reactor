@@ -49,7 +49,7 @@ class DocumentDbWriter(configMap: Map[String, Kcql], settings: DocumentDbSinkSet
     * */
   def write(records: Seq[SinkRecord]): Unit = {
     if (records.nonEmpty) {
-      insert(records)
+      val _ = insert(records)
     }
   }
 
@@ -75,6 +75,10 @@ class DocumentDbWriter(configMap: Map[String, Kcql], settings: DocumentDbSinkSet
 
             case WriteModeEnum.UPSERT =>
               documentClient.upsertDocument(s"dbs/${settings.database}/colls/${config.getTarget}", document, requestOptionsInsert, key.nonEmpty).getResource
+
+            case WriteModeEnum.UPDATE =>
+              // TODO: What behaviour?  Currently this was producing a matcher error
+              throw new NotImplementedError("this behaviour hasn't been implemented yet")
           }
         }
     }

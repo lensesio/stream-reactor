@@ -76,13 +76,15 @@ object Dependencies {
     val calciteVersion = "1.12.0"
     val awsSdkVersion = "2.17.22"
     val jCloudsSdkVersion = "2.3.0"
+    val guavaVersion = "31.0.1-jre"
+    val guiceVersion = "5.0.1"
+
     val kcqlVersion = "2.8.7"
-    val json4sVersion = "3.6.7"
+    val json4sVersion = "4.0.3"
     val jacksonVersion = "2.12.3"
     val mockitoScalaVersion = "1.16.46"
     val snakeYamlVersion = "1.29"
     val openCsvVersion = "5.5.2"
-    val s3ProxyVersion = "1.9.0"
 
     val californiumVersion = "2.0.0-M4"
     val bouncyCastleVersion = "1.54"
@@ -90,7 +92,11 @@ object Dependencies {
     val cassandraDriverVersion = "3.7.1"
     val jsonPathVersion = "2.4.0"
 
-    val cassandraUnitVersion = "3.3.0.2"
+    val cassandraUnitVersion = "4.3.1.0"
+
+    val azureDocumentDbVersion = "2.4.7"
+    val scalaParallelCollectionsVersion = "0.2.0"
+    val testcontainersScalaVersion = "0.39.12"
   }
 
   import Versions._
@@ -195,6 +201,11 @@ object Dependencies {
 
   lazy val jcloudsBlobstore = ("org.apache.jclouds" % "jclouds-blobstore" % jCloudsSdkVersion)
   lazy val jcloudsProviderS3 = ("org.apache.jclouds.provider" % "aws-s3" % jCloudsSdkVersion)
+  lazy val guava = ("com.google.guava" % "guava" % guavaVersion)
+  lazy val guice = ("com.google.inject" % "guice" % guiceVersion)
+  lazy val guiceAssistedInject = ("com.google.inject.extensions" % "guice-assistedinject" % guiceVersion)
+
+
 
   lazy val json4sNative = ("org.json4s" %% "json4s-native" % json4sVersion)
   lazy val json4sJackson = ("org.json4s" %% "json4s-jackson" % json4sVersion)
@@ -203,13 +214,17 @@ object Dependencies {
 
   lazy val snakeYaml = ("org.yaml" % "snakeyaml" % snakeYamlVersion)
   lazy val openCsv = ("com.opencsv" % "opencsv" % openCsvVersion)
-  lazy val s3Proxy = ("org.gaul" % "s3proxy" % s3ProxyVersion)
 
   lazy val cassandraDriver = ("com.datastax.cassandra" % "cassandra-driver-core" % cassandraDriverVersion)
   lazy val jsonPath = ("com.jayway.jsonpath" % "json-path" % jsonPathVersion)
   lazy val nettyTransport = ("io.netty" % "netty-transport-native-epoll" % nettyVersion classifier "linux-x86_64")
 
   lazy val cassandraUnit = ("org.cassandraunit" % "cassandra-unit" % cassandraUnitVersion)
+
+  lazy val azureDocumentDb = ("com.microsoft.azure" % "azure-documentdb" % azureDocumentDbVersion)
+  lazy val scalaParallelCollections = ("org.scala-lang.modules" %% "scala-parallel-collections" % scalaParallelCollectionsVersion)
+
+  lazy val testContainers = ("com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion)
 }
 
 trait Dependencies {
@@ -283,11 +298,14 @@ trait Dependencies {
     jcloudsProviderS3,
     snakeYaml,
     openCsv,
+    guava,
+    guice,
+    guiceAssistedInject,
   ).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
 
-  val kafkaConnectS3TestDeps: Seq[ModuleID] = Seq(s3Proxy)
+  val kafkaConnectS3TestDeps: Seq[ModuleID] = Seq(testContainers)
 
   val kafkaConnectCoapDeps: Seq[ModuleID] = (californium ++ bouncyCastle).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
@@ -302,25 +320,13 @@ trait Dependencies {
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
 
-  //
-  //        testCompile("org.apache.cassandra:cassandra-all:$cassandraVersion") {
-  //            exclude group: "org.slf4j", module: "log4j-over-slf4j"
-  //            exclude group: "io.netty"
-  //            exclude group: "ch.qos.logback", module: "logback-core"
-  //            exclude group: "ch.qos.logback", module: "logback-classic"
-  //        }
-  //        testCompile("org.pegdown:pegdown:$pegDownversion")
-  //        testCompile("com.google.code.findbugs:jsr305:1.3.9")
-  //        testCompile ("net.jpountz.lz4:lz4:$jPountzVersion")
-  //        testCompile ("org.xerial.snappy:snappy-java:$snappyVersion")
-  //        testCompile("org.cassandraunit:cassandra-unit:$cassandraUnitVersion") {
-  //            exclude group: "org.slf4j", module: "log4j-over-slf4j"
-  //        }
-  //
-  //        testCompile 'org.ow2.asm:asm-all:4.2'
-
   val kafkaConnectCassandraTestDeps: Seq[ModuleID] = Seq(cassandraUnit)
 
+  val kafkaConnectAzureDocumentDbDeps: Seq[ModuleID] = Seq(azureDocumentDb, json4sNative//, scalaParallelCollections
+    )
+    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
+    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
+    .map(_.exclude("com.sun.jersey", "*"))
 
   // build plugins
   val kindProjectorPlugin = addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion)

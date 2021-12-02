@@ -4,6 +4,8 @@ import Settings._
 // This line ensures that sources are downloaded for dependencies, when using Bloop
 bloopExportJarClassifiers in Global := Some(Set("sources"))
 
+ThisBuild / scalaVersion := "2.13.7"
+
 lazy val root = Project("stream-reactor", file("."))
   .settings(
     publish := {},
@@ -13,6 +15,9 @@ lazy val root = Project("stream-reactor", file("."))
   .aggregate(
     common,
     awsS3,
+    azureDocumentDb,
+    cassandra,
+    coap,
   )
 
 lazy val common = (project in file("kafka-connect-common"))
@@ -28,7 +33,7 @@ lazy val common = (project in file("kafka-connect-common"))
         packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
       )
   )
-  .configureTestsForProject(itTestsParallel = false)
+  .configureTestsForProject()
   .enablePlugins(PackPlugin)
 
 lazy val awsS3 = (project in file("kafka-connect-aws-s3"))
@@ -39,6 +44,7 @@ lazy val awsS3 = (project in file("kafka-connect-aws-s3"))
         name := "kafka-connect-aws-s3",
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectS3Deps,
+        //Test / parallelExecution := false,
 
         publish / skip := true,
         packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
@@ -46,7 +52,25 @@ lazy val awsS3 = (project in file("kafka-connect-aws-s3"))
         packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
       )
   )
-  .configureTestsForProject(itTestsParallel = false, testDeps = kafkaConnectS3TestDeps)
+  .configureTestsForProject(testDeps = kafkaConnectS3TestDeps)
+  .enablePlugins(PackPlugin)
+
+lazy val azureDocumentDb = (project in file("kafka-connect-azure-documentdb"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-azure-documentdb",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectAzureDocumentDbDeps,
+
+        publish / skip := true,
+        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
+        packGenerateMakefile := false,
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
+      )
+  )
+  .configureTestsForProject()
   .enablePlugins(PackPlugin)
 
 lazy val coap = (project in file("kafka-connect-coap"))
@@ -64,7 +88,7 @@ lazy val coap = (project in file("kafka-connect-coap"))
         packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
       )
   )
-  .configureTestsForProject(itTestsParallel = false)
+  .configureTestsForProject()
   .enablePlugins(PackPlugin)
 
 lazy val cassandra = (project in file("kafka-connect-cassandra"))
@@ -82,7 +106,7 @@ lazy val cassandra = (project in file("kafka-connect-cassandra"))
         packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
       )
   )
-  .configureTestsForProject(itTestsParallel = false, testDeps = kafkaConnectCassandraTestDeps)
+  .configureTestsForProject(testDeps = kafkaConnectCassandraTestDeps, funTestsParallel = false)
   .enablePlugins(PackPlugin)
 
 addCommandAlias(

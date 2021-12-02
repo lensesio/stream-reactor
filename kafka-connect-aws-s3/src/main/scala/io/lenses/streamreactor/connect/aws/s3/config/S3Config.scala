@@ -175,6 +175,10 @@ object S3Config {
       getInt(props, HTTP_NBR_OF_RETRIES).getOrElse(HTTP_NBR_OF_RETIRES_DEFAULT),
       getLong(props, HTTP_ERROR_RETRY_INTERVAL).getOrElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT)
     ),
+    HttpTimeoutConfig(
+      getInt(props, HTTP_SOCKET_TIMEOUT),
+      getLong(props, HTTP_CONNECTION_TIMEOUT)
+    ),
   )
 
   private def getErrorPolicy(props: Map[String, _]) = {
@@ -183,6 +187,8 @@ object S3Config {
 }
 
 case class RetryConfig(numberOfRetries: Int, errorRetryInterval: Long)
+
+case class HttpTimeoutConfig(socketTimeout: Option[Int], connectionTimeout: Option[Long])
 
 case class S3Config(
                      region: Option[String],
@@ -194,4 +200,5 @@ case class S3Config(
                      errorPolicy: ErrorPolicy = ThrowErrorPolicy(),
                      connectorRetryConfig: RetryConfig = RetryConfig(NBR_OF_RETIRES_DEFAULT, ERROR_RETRY_INTERVAL_DEFAULT),
                      httpRetryConfig: RetryConfig = RetryConfig(HTTP_NBR_OF_RETIRES_DEFAULT, HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
+                     timeouts: HttpTimeoutConfig = HttpTimeoutConfig(None, None),
                    )

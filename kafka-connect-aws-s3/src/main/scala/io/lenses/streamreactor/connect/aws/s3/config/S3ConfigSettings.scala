@@ -79,4 +79,12 @@ object S3ConfigSettings {
   val HTTP_NBR_OF_RETRIES = s"$CONNECTOR_PREFIX.http.$MAX_RETRIES_PROP_SUFFIX"
   val HTTP_NBR_OF_RETRIES_DOC = "Number of times to retry the http request, in the case of a resolvable error on the server side."
   val HTTP_NBR_OF_RETIRES_DEFAULT: Int = 5
+
+  val HTTP_SOCKET_TIMEOUT = s"$CONNECTOR_PREFIX.http.socket.timeout"
+  val HTTP_SOCKET_TIMEOUT_DOC = "Socket timeout (ms)"
+  val HTTP_SOCKET_TIMEOUT_DEFAULT = 60000L
+
+  val HTTP_CONNECTION_TIMEOUT = s"$CONNECTOR_PREFIX.http.connection.timeout"
+  val HTTP_CONNECTION_TIMEOUT_DOC = "Connection timeout (ms)"
+  val HTTP_CONNECTION_TIMEOUT_DEFAULT = 60000
 }

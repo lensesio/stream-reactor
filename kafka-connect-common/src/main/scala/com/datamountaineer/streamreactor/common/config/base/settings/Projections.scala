@@ -232,7 +232,7 @@ object Projections extends StrictLogging {
       .map({
         case (source, clazz) =>
           logger.info(s"Creating converter instance for $clazz")
-          val converter = Try(Class.forName(clazz).newInstance()) match {
+          val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
             case Success(value) => value.asInstanceOf[Converter]
             case Failure(_) => throw new ConfigException(s"Invalid KCQL is invalid for [$source]. [$clazz] should have an empty ctor!")
           }

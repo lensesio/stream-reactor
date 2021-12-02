@@ -22,14 +22,13 @@ import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection,
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.config.{S3SinkConfig, SinkBucketOptions}
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContainerTest
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfig {
+class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
-  import S3ProxyContext._
   import helper._
   import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 
