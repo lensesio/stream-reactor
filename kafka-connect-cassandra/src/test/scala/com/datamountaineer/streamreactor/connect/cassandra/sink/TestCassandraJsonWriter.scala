@@ -18,8 +18,6 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-
-import java.util.UUID
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink}
 import com.datastax.driver.core.utils.UUIDs
@@ -31,8 +29,9 @@ import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
+import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Suite}
 
+import java.util.UUID
 import scala.jdk.CollectionConverters.{IterableHasAsScala, ListHasAsScala, MapHasAsJava, SeqHasAsJava}
 
 
@@ -148,6 +147,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     //get config
     val props = Map(
       CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.KEY_SPACE -> keyspace,
       CassandraConfigConstants.USERNAME -> userName,
       CassandraConfigConstants.PASSWD -> password,
@@ -230,6 +230,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
      //get config
      val props =  Map(
        CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+       CassandraConfigConstants.PORT -> strPort(),
        CassandraConfigConstants.KEY_SPACE -> keyspace,
        CassandraConfigConstants.USERNAME -> userName,
        CassandraConfigConstants.PASSWD -> password,
@@ -295,6 +296,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     //get config
     val props =  Map(
       CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.KEY_SPACE -> keyspace,
       CassandraConfigConstants.USERNAME -> userName,
       CassandraConfigConstants.PASSWD -> password,
@@ -381,6 +383,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     //get config
     val props = Map(
       CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.KEY_SPACE -> keyspace,
       CassandraConfigConstants.USERNAME -> userName,
       CassandraConfigConstants.PASSWD -> password,
@@ -431,6 +434,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     //get config
     val props =  Map(
       CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.KEY_SPACE -> keyspace,
       CassandraConfigConstants.USERNAME -> userName,
       CassandraConfigConstants.PASSWD -> password,
@@ -511,6 +515,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     //get config
     val props = Map(
       CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.KEY_SPACE -> keyspace,
       CassandraConfigConstants.USERNAME -> userName,
       CassandraConfigConstants.PASSWD -> password,
@@ -568,6 +573,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     //get config
     val props = Map(
       CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.KEY_SPACE -> keyspace,
       CassandraConfigConstants.USERNAME -> userName,
       CassandraConfigConstants.PASSWD -> password,
@@ -623,6 +629,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
       //get config
       val config =  Map(
         CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+        CassandraConfigConstants.PORT -> strPort(),
         CassandraConfigConstants.KEY_SPACE -> keyspace,
         CassandraConfigConstants.USERNAME -> userName,
         CassandraConfigConstants.PASSWD -> password,
@@ -667,6 +674,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
       //get config
       val config = Map(
         CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+        CassandraConfigConstants.PORT -> strPort(),
         CassandraConfigConstants.KEY_SPACE -> keyspace,
         CassandraConfigConstants.USERNAME -> userName,
         CassandraConfigConstants.PASSWD -> password,
@@ -725,6 +733,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
       //get config
       val config =  Map(
         CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+        CassandraConfigConstants.PORT -> strPort(),
         CassandraConfigConstants.KEY_SPACE -> keyspace,
         CassandraConfigConstants.USERNAME -> userName,
         CassandraConfigConstants.PASSWD -> password,
@@ -787,6 +796,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     val props = Map(
       CassandraConfigConstants.DELETE_ROW_STATEMENT -> s"delete from $keyspace.$table where id = ?",
       CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.KEY_SPACE -> keyspace,
       CassandraConfigConstants.USERNAME -> userName,
       CassandraConfigConstants.PASSWD -> password,
@@ -837,6 +847,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     val props = Map(
       CassandraConfigConstants.DELETE_ROW_STATEMENT -> s"delete from $keyspace.$table where id = ?",
       CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.KEY_SPACE -> keyspace,
       CassandraConfigConstants.USERNAME -> userName,
       CassandraConfigConstants.PASSWD -> password,
@@ -897,6 +908,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
       CassandraConfigConstants.DELETE_ROW_STATEMENT -> s"delete from $keyspace.$table where key1 = ? AND key2 = ?",
       CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS -> s"key1,key2",
       CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.KEY_SPACE -> keyspace,
       CassandraConfigConstants.USERNAME -> userName,
       CassandraConfigConstants.PASSWD -> password,
@@ -960,6 +972,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
       CassandraConfigConstants.DELETE_ROW_STATEMENT -> s"delete from $keyspace.$table where key1 = ? AND key2 = ?",
       CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS -> s"key1,nested.key2",
       CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.KEY_SPACE -> keyspace,
       CassandraConfigConstants.USERNAME -> userName,
       CassandraConfigConstants.PASSWD -> password,
@@ -1021,6 +1034,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
       CassandraConfigConstants.DELETE_ROW_STATEMENT -> s"delete from $keyspace.$table where key1 = ? AND key2 = ?",
       CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS -> s"key1,key2",
       CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.KEY_SPACE -> keyspace,
       CassandraConfigConstants.USERNAME -> userName,
       CassandraConfigConstants.PASSWD -> password,
@@ -1077,6 +1091,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
       CassandraConfigConstants.DELETE_ROW_STATEMENT -> s"delete from $keyspace.$table where key = ?",
       CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS -> s"key",
       CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.KEY_SPACE -> keyspace,
       CassandraConfigConstants.USERNAME -> userName,
       CassandraConfigConstants.PASSWD -> password,
@@ -1123,6 +1138,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     //get config
     val props = Map(
       CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.KEY_SPACE -> keyspace,
       CassandraConfigConstants.USERNAME -> userName,
       CassandraConfigConstants.PASSWD -> password,
@@ -1141,4 +1157,8 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     writer.close()
   }
 
+  override def withPort(port: Int): Suite = {
+    setPort(port)
+    this
+  }
 }

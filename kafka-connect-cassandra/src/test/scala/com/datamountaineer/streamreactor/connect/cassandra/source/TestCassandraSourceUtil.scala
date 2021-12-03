@@ -105,13 +105,14 @@ trait TestCassandraSourceUtil {
     task.poll()
   }  
   
-  def getCassandraConfig(keyspace: String, tableName: String, kcql: String): Map[String, String] = {
-    getCassandraConfig("localhost", "cassandra", "cassandra", keyspace, tableName, kcql)
+  def getCassandraConfig(keyspace: String, tableName: String, kcql: String, port: String): Map[String, String] = {
+    getCassandraConfig("localhost", "cassandra", "cassandra", keyspace, tableName, kcql, port)
   }
 
-  def getCassandraConfig(contactPoints: String, user: String, password: String, keyspace: String, tableName: String, kcql: String): Map[String, String] = {
+  def getCassandraConfig(contactPoints: String, user: String, password: String, keyspace: String, tableName: String, kcql: String, port: String): Map[String, String] = {
     scala.collection.immutable.Map(
       CassandraConfigConstants.CONTACT_POINTS -> contactPoints,
+      CassandraConfigConstants.PORT -> port,
       CassandraConfigConstants.KEY_SPACE -> keyspace,
       CassandraConfigConstants.USERNAME -> user,
       CassandraConfigConstants.PASSWD -> password,

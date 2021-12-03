@@ -22,7 +22,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.utils
   */
 
 import com.datastax.driver.core.{ResultSet, ResultSetFuture}
-import com.google.common.util.concurrent.{FutureCallback, Futures}
+import com.google.common.util.concurrent.{FutureCallback, Futures, MoreExecutors}
 
 import scala.concurrent.{Future, Promise}
 
@@ -41,7 +41,9 @@ object CassandraResultSetWrapper {
         def onSuccess(r: ResultSet): Unit = p success r
 
         def onFailure(t: Throwable): Unit = p failure t
-      })
+      },
+      MoreExecutors.directExecutor()
+    )
     p.future
   }
 }

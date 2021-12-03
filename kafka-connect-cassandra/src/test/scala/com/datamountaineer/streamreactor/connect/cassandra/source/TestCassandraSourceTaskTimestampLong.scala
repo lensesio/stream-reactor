@@ -26,7 +26,7 @@ import org.apache.kafka.connect.source.SourceRecord
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
+import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Suite}
 
 import java.util.concurrent.LinkedBlockingQueue
 import scala.jdk.CollectionConverters.ListHasAsScala
@@ -128,7 +128,12 @@ class TestCassandraSourceTaskTimestampLong extends AnyWordSpec
 
   private def getCassandraConfigDefault = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $tableName PK timestamp_field INCREMENTALMODE=timestamp"
-    getCassandraConfig(keyspace, tableName, myKcql)
+    getCassandraConfig(keyspace, tableName, myKcql, strPort())
+  }
+
+  override def withPort(port: Int): Suite = {
+    setPort(port)
+    this
   }
 
 }

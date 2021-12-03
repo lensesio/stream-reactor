@@ -6,6 +6,8 @@ bloopExportJarClassifiers in Global := Some(Set("sources"))
 
 ThisBuild / scalaVersion := "2.13.7"
 
+javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")
+
 lazy val root = Project("stream-reactor", file("."))
   .settings(
     publish := {},
@@ -106,7 +108,7 @@ lazy val cassandra = (project in file("kafka-connect-cassandra"))
         packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
       )
   )
-  .configureTestsForProject(testDeps = kafkaConnectCassandraTestDeps, funTestsParallel = false)
+  .configureTestsForProject(testDeps = kafkaConnectCassandraTestDeps)
   .enablePlugins(PackPlugin)
 
 addCommandAlias(

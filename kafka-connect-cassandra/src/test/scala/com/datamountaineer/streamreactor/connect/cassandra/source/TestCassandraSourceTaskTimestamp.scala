@@ -26,7 +26,7 @@ import org.apache.kafka.connect.data.Schema
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
+import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Suite}
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 
@@ -186,22 +186,27 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
 
   private def getCassandraConfigWithKcqlNoPrimaryKeyInSelect = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field FROM $tableName PK timestamp_field INCREMENTALMODE=timestamp"
-    getCassandraConfig(keyspace, tableName, myKcql)
+    getCassandraConfig(keyspace, tableName, myKcql, strPort())
   }
 
   private def getCassandraConfigWithUnwrap = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $tableName IGNORE timestamp_field PK timestamp_field WITHUNWRAP INCREMENTALMODE=timestamp"
-    getCassandraConfig(keyspace, tableName, myKcql)
+    getCassandraConfig(keyspace, tableName, myKcql, strPort())
   }
   
   private def getCassandraJsonConfigWithKeyAndUnwrap = {
     val myKcql = s"INSERT INTO sink_test SELECT id, string_field, timestamp_field FROM $tableName PK timestamp_field WITHFORMAT JSON WITHUNWRAP INCREMENTALMODE=TIMESTAMP WITHKEY(id)"
-    getCassandraConfig(keyspace, tableName, myKcql)
+    getCassandraConfig(keyspace, tableName, myKcql, strPort())
   }
 
   private def getCassandraConfigDefault = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timestamp_field, tinyint_field FROM $tableName PK timestamp_field INCREMENTALMODE=timestamp"
-    getCassandraConfig(keyspace, tableName, myKcql)
+    getCassandraConfig(keyspace, tableName, myKcql, strPort())
+  }
+
+  override def withPort(port: Int): Suite = {
+    setPort(port)
+    this
   }
 
 }

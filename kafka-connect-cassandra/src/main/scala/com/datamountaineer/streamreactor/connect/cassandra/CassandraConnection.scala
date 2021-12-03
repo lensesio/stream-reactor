@@ -60,6 +60,7 @@ object CassandraConnection extends StrictLogging {
 
     val builder: Builder = Cluster
       .builder()
+      .withoutJMXReporting()
       .addContactPoints(contactPoints.split(","): _*)
       .withPort(port)
       .withSocketOptions(new SocketOptions()

@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import org.scalatest.BeforeAndAfter
+import org.scalatest.{BeforeAndAfter, Suite}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -45,5 +45,10 @@ class TestCassandraSinkConnector extends AnyWordSpec with BeforeAndAfter with Ma
     connector.taskClass() shouldBe classOf[CassandraSinkTask]
     //connector.version() shouldBe ""
     connector.stop()
+  }
+
+  override def withPort(port: Int): Suite = {
+    setPort(port)
+    this
   }
 }

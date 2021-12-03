@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.cassandra
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink}
-import org.scalatest.DoNotDiscover
+import org.scalatest.{DoNotDiscover, Suite}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -34,6 +34,7 @@ class TestCassandraConnectionSecure extends AnyWordSpec with Matchers with TestC
   "should return a secured session" in {
     createKeySpace("connection", secure = true, ssl = false)
     val props = Map(
+      CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.CONTACT_POINTS -> "localhost",
       CassandraConfigConstants.KEY_SPACE -> "connection",
       CassandraConfigConstants.USERNAME -> "cassandra",
@@ -50,5 +51,10 @@ class TestCassandraConnectionSecure extends AnyWordSpec with Matchers with TestC
     val cluster = session.getCluster
     session.close()
     cluster.close()
+  }
+
+  override def withPort(port: Int): Suite = {
+    setPort(port)
+    this
   }
 }

@@ -89,12 +89,13 @@ object Dependencies {
     val californiumVersion = "2.0.0-M4"
     val bouncyCastleVersion = "1.54"
     val nettyVersion = "4.0.47.Final"
-    val cassandraDriverVersion = "3.7.1"
+    val dropWizardMetricsVersion = "4.0.2"
+    val cassandraDriverVersion = "4.13.0"
     val jsonPathVersion = "2.4.0"
 
     val cassandraUnitVersion = "4.3.1.0"
 
-    val azureDocumentDbVersion = "2.4.7"
+    val azureDocumentDbVersion = "2.6.4"
     val scalaParallelCollectionsVersion = "0.2.0"
     val testcontainersScalaVersion = "0.39.12"
   }
@@ -215,7 +216,7 @@ object Dependencies {
   lazy val snakeYaml = ("org.yaml" % "snakeyaml" % snakeYamlVersion)
   lazy val openCsv = ("com.opencsv" % "opencsv" % openCsvVersion)
 
-  lazy val cassandraDriver = ("com.datastax.cassandra" % "cassandra-driver-core" % cassandraDriverVersion)
+  lazy val cassandraDriver = ("com.datastax.oss" % "java-driver-core" % cassandraDriverVersion)
   lazy val jsonPath = ("com.jayway.jsonpath" % "json-path" % jsonPathVersion)
   lazy val nettyTransport = ("io.netty" % "netty-transport-native-epoll" % nettyVersion classifier "linux-x86_64")
 
@@ -225,6 +226,8 @@ object Dependencies {
   lazy val scalaParallelCollections = ("org.scala-lang.modules" %% "scala-parallel-collections" % scalaParallelCollectionsVersion)
 
   lazy val testContainers = ("com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion)
+  lazy val testContainersCassandra = ("com.dimafeng" %% "testcontainers-scala-cassandra" % testcontainersScalaVersion)
+  lazy val dropWizardMetrics = ("io.dropwizard.metrics" % "metrics-jmx" % dropWizardMetricsVersion)
 }
 
 trait Dependencies {
@@ -272,6 +275,7 @@ trait Dependencies {
     parquetHadoop,
     hadoopCommon,
     hadoopMapReduce,
+    guava
   ) ++ enumeratum ++ circe ++ http4s).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
@@ -298,7 +302,6 @@ trait Dependencies {
     jcloudsProviderS3,
     snakeYaml,
     openCsv,
-    guava,
     guice,
     guiceAssistedInject,
   ).map(_.exclude("org.slf4j", "slf4j-log4j12"))
@@ -316,11 +319,14 @@ trait Dependencies {
     jsonPath,
     nettyTransport,
     json4sNative,
+    //dropWizardMetrics
   ).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
 
-  val kafkaConnectCassandraTestDeps: Seq[ModuleID] = Seq(cassandraUnit)
+  val kafkaConnectCassandraTestDeps: Seq[ModuleID] = Seq(testContainers, testContainersCassandra)
+  //cassandraUnit
+  // )
 
   val kafkaConnectAzureDocumentDbDeps: Seq[ModuleID] = Seq(azureDocumentDb, json4sNative//, scalaParallelCollections
     )

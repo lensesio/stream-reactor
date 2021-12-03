@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import org.scalatest.DoNotDiscover
+import org.scalatest.{DoNotDiscover, Suite}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -33,6 +33,7 @@ import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 class TestCassandraSourceConnector extends AnyWordSpec with Matchers with TestConfig {
   "Should start a Cassandra Source Connector" in {
     val props =  Map(
+      CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
@@ -52,5 +53,10 @@ class TestCassandraSourceConnector extends AnyWordSpec with Matchers with TestCo
     taskConfigs.size() shouldBe 1
     connector.taskClass() shouldBe classOf[CassandraSourceTask]
     connector.stop()
+  }
+
+  override def withPort(port: Int): Suite = {
+    setPort(port)
+    this
   }
 }

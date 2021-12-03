@@ -25,7 +25,7 @@ import org.apache.kafka.connect.data.Schema
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
+import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Suite}
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 
@@ -151,17 +151,22 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
 
   private def getCassandraConfigWithKcqlNoPrimaryKeyInSelect = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field FROM $tableName PK timeuuid_field INCREMENTALMODE=timeuuid"
-    getCassandraConfig(keyspace, tableName, myKcql)
+    getCassandraConfig(keyspace, tableName, myKcql, strPort())
   }
 
   private def getCassandraConfigWithUnwrap = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timeuuid_field FROM $tableName IGNORE timeuuid_field PK timeuuid_field WITHUNWRAP INCREMENTALMODE=timeuuid"
-    getCassandraConfig(keyspace, tableName, myKcql)
+    getCassandraConfig(keyspace, tableName, myKcql, strPort())
   }
 
   private def getCassandraConfigDefault = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timeuuid_field FROM $tableName PK timeuuid_field INCREMENTALMODE=timeuuid"
-    getCassandraConfig(keyspace, tableName, myKcql)
+    getCassandraConfig(keyspace, tableName, myKcql, strPort())
+  }
+
+  override def withPort(port: Int): Suite = {
+    setPort(port)
+    this
   }
 
 }
