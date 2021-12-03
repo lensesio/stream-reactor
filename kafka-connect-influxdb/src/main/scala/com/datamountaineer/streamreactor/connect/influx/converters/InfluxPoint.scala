@@ -10,7 +10,7 @@ import org.influxdb.dto.Point
 import java.time.Instant
 import java.util.Date
 import java.util.concurrent.TimeUnit
-import scala.collection.convert.ImplicitConversions._
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.{Failure, Success, Try}
 
 object InfluxPoint {
@@ -78,7 +78,7 @@ object InfluxPoint {
 
   private[influx] def coerceTimeStamp(
       value: Any,
-      fieldPath: Traversable[String]): Try[Long] = {
+      fieldPath: Iterable[String]): Try[Long] = {
     value match {
       case b: Byte  => Try(b.toLong)
       case s: Short => Try(s.toLong)
@@ -106,7 +106,7 @@ object InfluxPoint {
     case value: Long                 => Try(builder.addField(field, value))
     case value: Int                  => Try(builder.addField(field, value))
     case value: BigInt               => Try(builder.addField(field, value))
-    case value: Byte                 => Try(builder.addField(field, value))
+    case value: Byte                 => Try(builder.addField(field, value.toShort))
     case value: Short                => Try(builder.addField(field, value))
     case value: Double               => Try(builder.addField(field, value))
     case value: Float                => Try(builder.addField(field, value))
@@ -127,7 +127,7 @@ object InfluxPoint {
    * "name": ["a", "b", "c"] => name0 = "a", name1 = "b", name3 = "c"
    */
   private def flattenArray(builder: Point.Builder)(field: String, value: java.util.List[_]) = {
-    val res = value.toList.zipWithIndex.map {
+    val res = value.asScala.zipWithIndex.map {
       case (el, i) => writeField(builder)(field + i, el)
     }
     // return first failure

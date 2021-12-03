@@ -16,19 +16,17 @@
 
 package com.datamountaineer.streamreactor.connect.influx
 
-import com.datamountaineer.streamreactor.common.errors.{ErrorPolicyEnum, RetryErrorPolicy}
+import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
 import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
-
-import java.util
 import com.datamountaineer.streamreactor.connect.influx.config.{InfluxConfig, InfluxConfigConstants, InfluxSettings}
 import com.datamountaineer.streamreactor.connect.influx.writers.{InfluxDbWriter, WriterFactoryFn}
-import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
-import scala.collection.JavaConverters._
+import java.util
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 /**
   * <h1>InfluxSinkTask</h1>
@@ -88,7 +86,7 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping InfluxDb sink.")
     writer.foreach(w => w.close())
-    progressCounter.empty
+    progressCounter.empty()
   }
 
   override def version: String = manifest.version()

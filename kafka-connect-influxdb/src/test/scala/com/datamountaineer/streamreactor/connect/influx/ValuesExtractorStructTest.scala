@@ -81,7 +81,7 @@ class ValuesExtractorStructTest extends AnyWordSpec with Matchers {
 
       val path = Vector("ts")
       val result = Try(ValuesExtractor.extract(struct, path))
-      result shouldBe 'Failure
+      result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[IllegalArgumentException]
 
 
@@ -210,7 +210,7 @@ class ValuesExtractorStructTest extends AnyWordSpec with Matchers {
 
       val path = Vector("bad")
       val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(struct, Vector("bad")), path)
-      result shouldBe 'Failure
+      result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[IllegalArgumentException]
     }
 
@@ -227,7 +227,7 @@ class ValuesExtractorStructTest extends AnyWordSpec with Matchers {
         .put("age", 30)
 
       val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(struct, Vector("bibble")), Vector("bibble"))
-      result shouldBe 'Failure
+      result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[IllegalArgumentException]
     }
   }

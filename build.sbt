@@ -142,6 +142,24 @@ lazy val hazelCast = (project in file("kafka-connect-hazelcast"))
   .configureTestsForProject()
   .enablePlugins(PackPlugin)
 
+lazy val influx = (project in file("kafka-connect-influxdb"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-influxdb",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectInfluxDbDeps,
+
+        publish / skip := true,
+        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
+        packGenerateMakefile := false,
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
+      )
+  )
+  .configureTestsForProject()
+  .enablePlugins(PackPlugin)
+
 addCommandAlias(
   "validateAll",
   ";headerCheck;test:headerCheck;fun:headerCheck;it:headerCheck;scalafmtCheck;test:scalafmtCheck;it:scalafmtCheck;fun:scalafmtCheck;e2e:scalafmtCheck"

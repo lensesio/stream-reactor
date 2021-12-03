@@ -40,7 +40,7 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
-      handleTry(
+      val _ = handleTry(
         builder
           .build(records)
           .flatMap { batchPoints =>

@@ -69,7 +69,6 @@ object InfluxSettings {
     }
 
     //TODO: common lib should not return Set[Kcql] but Seq[Kcq;
-    val kcql = config.getKCQL
     val errorPolicy = config.getErrorPolicy
     val nbrOfRetries = config.getNumberRetries
     //val fields = config.getFields()

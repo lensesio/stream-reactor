@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.node._
 import org.apache.kafka.connect.data._
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{IteratorHasAsScala, ListHasAsScala, MapHasAsScala}
 
 object ValuesExtractor {
 
@@ -146,7 +146,7 @@ object ValuesExtractor {
     * The list of keys and values. Throws [[IllegalArgumentException]] if any of the values are not primitives
     */
   def extractAllFields(struct: Struct, ignored: Set[String]): Seq[(String, Any)] = {
-    struct.schema().fields.asScala
+    struct.schema().fields.asScala.toList
       .filter(f => !ignored.contains(f.name()))
       .map { field =>
         val value = struct.get(field)
@@ -154,7 +154,7 @@ object ValuesExtractor {
           case Decimal.LOGICAL_NAME =>
             value match {
               case bd: BigDecimal => bd
-              case array: Array[Byte] => Decimal.toLogical(field.schema, value.asInstanceOf[Array[Byte]])
+              case _: Array[Byte] => Decimal.toLogical(field.schema, value.asInstanceOf[Array[Byte]])
 
             }
           case Date.LOGICAL_NAME =>
@@ -165,7 +165,7 @@ object ValuesExtractor {
             }
           case Time.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
-              case i: Int => Time.toLogical(field.schema, value.asInstanceOf[Int])
+              case _: Int => Time.toLogical(field.schema, value.asInstanceOf[Int])
               case d: java.util.Date => d
               case _ => throw new IllegalArgumentException(s"Can't convert $value to Date for schema:${field.schema().`type`()}")
             }
@@ -226,7 +226,7 @@ object ValuesExtractor {
               case bd: java.math.BigDecimal =>
                 checkValidPath()
                 bd
-              case array: Array[Byte] =>
+              case _: Array[Byte] =>
                 checkValidPath()
                 Decimal.toLogical(field.schema, value.asInstanceOf[Array[Byte]])
             }
@@ -242,7 +242,7 @@ object ValuesExtractor {
             }
           case Time.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
-              case i: Int =>
+              case _: Int =>
                 checkValidPath()
                 Time.toLogical(field.schema, value.asInstanceOf[Int])
               case d: java.util.Date =>
@@ -378,10 +378,10 @@ object ValuesExtractor {
           }
           innerExtract(m.asInstanceOf[java.util.Map[String, Any]].get(path.head), path.tail)
 
-        case l: java.util.Collection[_] =>
+        case _: java.util.Collection[_] =>
           throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is not resolving to a primitive type. It resolves to a Collection.")
 
-        case l: Array[_] =>
+        case _: Array[_] =>
           throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is not resolving to a primitive type. It resovles to an Array.")
 
         case other =>

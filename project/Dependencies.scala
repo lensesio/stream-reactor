@@ -101,6 +101,8 @@ object Dependencies {
 
     val hazelCastVersion = "3.12.6"
     val javaxCacheVersion = "1.0.0"
+
+    val influxVersion = "2.21"
   }
 
   import Versions._
@@ -173,6 +175,7 @@ object Dependencies {
 
   //lazy val avro   = "org.apache.avro"      % "avro"        % avroVersion
   lazy val avro4s = "com.sksamuel.avro4s" %% "avro4s-core" % avro4sVersion
+  lazy val avro4sJson = "com.sksamuel.avro4s" %% "avro4s-json" % avro4sVersion
 
   val `wiremock-jre8` = "com.github.tomakehurst" % "wiremock-jre8" % wiremockJre8Version
 
@@ -234,6 +237,7 @@ object Dependencies {
 
   lazy val hazelCast = ("com.hazelcast" % "hazelcast-all" % hazelCastVersion)
   lazy val javaxCache = ("javax.cache" % "cache-api" % javaxCacheVersion)
+  lazy val influx = ("org.influxdb" % "influxdb-java" % influxVersion)
 }
 
 trait Dependencies {
@@ -339,6 +343,11 @@ trait Dependencies {
 
   val kafkaConnectAzureDocumentDbDeps: Seq[ModuleID] = Seq(azureDocumentDb, json4sNative//, scalaParallelCollections
     )
+    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
+    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
+    .map(_.exclude("com.sun.jersey", "*"))
+
+  val kafkaConnectInfluxDbDeps : Seq[ModuleID] = Seq(influx, avro4s, avro4sJson)
     .map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
