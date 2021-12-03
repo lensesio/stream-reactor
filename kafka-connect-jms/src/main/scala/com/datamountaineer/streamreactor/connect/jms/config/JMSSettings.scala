@@ -27,7 +27,7 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{IterableHasAsScala, ListHasAsScala, MapHasAsScala}
 import scala.util.{Failure, Success, Try}
 
 case class JMSSetting(source: String,
@@ -100,7 +100,7 @@ object JMSSettings extends StrictLogging {
             throw new ConfigException(s"Invalid ${JMSConfigConstants.DEFAULT_CONVERTER_CONFIG}. $c is not inheriting Converter")
           }
           logger.info(s"Creating converter instance for $c")
-          val converter = Try(Class.forName(c).newInstance()) match {
+          val converter = Try(Class.forName(c).getDeclaredConstructor().newInstance()) match {
             case Success(value) => value.asInstanceOf[Converter]
             case Failure(_) => throw new ConfigException(s"${JMSConfigConstants.DEFAULT_CONVERTER_CONFIG} is invalid. $c should have an empty ctor!")
           }
@@ -119,7 +119,7 @@ object JMSSettings extends StrictLogging {
     val convertersMap = converters.map({
       case (jms_source, clazz) =>
         logger.info(s"Creating converter instance for $clazz")
-        val converter = Try(Class.forName(clazz).newInstance()) match {
+        val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
           case Success(value) => value.asInstanceOf[Converter]
           case Failure(_) => throw new ConfigException(s"Invalid ${JMSConfigConstants.KCQL} is invalid for $jms_source. $clazz should have an empty ctor!")
         }

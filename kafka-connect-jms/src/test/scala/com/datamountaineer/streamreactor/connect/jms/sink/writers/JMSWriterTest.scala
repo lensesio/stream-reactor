@@ -32,6 +32,7 @@ import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import java.io.File
 import java.util.UUID
 import javax.jms.{Message, MessageListener, Session, TextMessage}
+import scala.language.reflectiveCalls
 import scala.reflect.io.Path
 
 class JMSWriterTest extends TestBase with Using with BeforeAndAfter with ConverterUtil with BeforeAndAfterAll {
@@ -55,7 +56,7 @@ class JMSWriterTest extends TestBase with Using with BeforeAndAfter with Convert
   }
 
   override def afterAll(): Unit = {
-    Path(AVRO_FILE).delete()
+    val _ = Path(AVRO_FILE).delete()
   }
 
   "JMSWriter should route the messages to the appropriate topic and queues" in {

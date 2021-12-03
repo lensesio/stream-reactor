@@ -31,7 +31,7 @@ import org.scalatest.concurrent.Eventually
 import java.io.File
 import java.util.UUID
 import javax.jms.Session
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 import scala.reflect.io.Path
 
 /**
@@ -41,7 +41,7 @@ import scala.reflect.io.Path
 class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually with MockitoSugar {
 
   override def afterAll(): Unit = {
-    Path(AVRO_FILE).delete()
+    val _ = Path(AVRO_FILE).delete()
   }
 
 

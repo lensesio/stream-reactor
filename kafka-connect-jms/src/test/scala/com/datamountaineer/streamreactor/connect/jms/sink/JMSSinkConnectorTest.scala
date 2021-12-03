@@ -31,7 +31,7 @@ import scala.reflect.io.Path
 class JMSSinkConnectorTest extends TestBase  with BeforeAndAfterAll {
 
   override def afterAll(): Unit = {
-    Path(AVRO_FILE).delete()
+    val _ = Path(AVRO_FILE).delete()
   }
 
   "should start a JMSSinkConnector" in {

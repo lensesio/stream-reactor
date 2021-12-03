@@ -27,7 +27,7 @@ import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SeqHasAsJava}
 
 /**
  * Created by andrew@datamountaineer.com on 10/03/2017.

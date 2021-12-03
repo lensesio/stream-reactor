@@ -29,7 +29,7 @@ import org.scalatest.concurrent.Eventually
 
 import java.util.UUID
 import javax.jms.Session
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
 import scala.reflect.io.Path
 
 /**
@@ -39,7 +39,7 @@ import scala.reflect.io.Path
 class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
 
   override def afterAll(): Unit = {
-    Path(AVRO_FILE).delete()
+    val _ = Path(AVRO_FILE).delete()
   }
 
   "should read message from JMS queue without converters" in testWithBrokerOnPort { (conn, brokerUrl) =>
@@ -61,7 +61,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
     val settings = JMSSettings(config, false)
     val reader = JMSReader(settings)
 
-    eventually {
+    val _ = eventually {
       val messagesRead = reader.poll()
       messagesRead.size shouldBe messageCount
       messagesRead.head._2.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
@@ -87,7 +87,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
     val settings = JMSSettings(config, false)
     val reader = JMSReader(settings)
 
-    eventually {
+    val _ = eventually {
       val messagesRead = reader.poll().toVector
       messagesRead.nonEmpty shouldBe true
       val sourceRecord = messagesRead.head._2
@@ -138,5 +138,6 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
 
     val struct = sourceRecord.value().asInstanceOf[Struct]
     struct.getMap("properties").asScala shouldBe Map("Fruit" -> "apples")
+    ()
   }
 }

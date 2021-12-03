@@ -34,14 +34,14 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala}
 import scala.reflect.io.Path
 
 class MessageConverterTest extends AnyWordSpec with Matchers with Using with TestBase with BeforeAndAfterAll {
   val converter = new AvroMessageConverter()
 
   override def afterAll(): Unit = {
-    Path(AVRO_FILE).delete()
+    val _ = Path(AVRO_FILE).delete()
   }
 
   val connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false")

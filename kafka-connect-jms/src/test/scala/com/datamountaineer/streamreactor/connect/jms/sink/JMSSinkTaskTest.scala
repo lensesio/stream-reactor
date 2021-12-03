@@ -32,6 +32,7 @@ import java.io.File
 import java.util
 import java.util.UUID
 import javax.jms.{Message, MessageListener, Session, TextMessage}
+import scala.language.reflectiveCalls
 import scala.reflect.io.Path
 
 
@@ -47,14 +48,14 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfterAll with Mo
   val tempDir = System.getProperty(property)
   broker.setDataDirectoryFile( new File(tempDir))
 
-  override def beforeAll {
+  override def beforeAll(): Unit = {
     broker.start()
   }
 
 
   override def afterAll(): Unit = {
     broker.stop()
-    Path(AVRO_FILE).delete()
+    val _ = Path(AVRO_FILE).delete()
   }
 
   "JMSSinkTask write records to JMS" in {

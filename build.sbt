@@ -25,8 +25,8 @@ lazy val root = Project("stream-reactor", file("."))
     hazelCast,
     //hbase,
     //hive
-    //influxdb
-    //jms
+    influx,
+    jms,
     //kudu
     //mongodb
     //mqtt
@@ -158,6 +158,24 @@ lazy val influx = (project in file("kafka-connect-influxdb"))
       )
   )
   .configureTestsForProject()
+  .enablePlugins(PackPlugin)
+
+lazy val jms = (project in file("kafka-connect-jms"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-jms",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectJmsDeps,
+
+        publish / skip := true,
+        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
+        packGenerateMakefile := false,
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
+      )
+  )
+  .configureTestsForProject(testDeps = kafkaConnectJmsTestDeps)
   .enablePlugins(PackPlugin)
 
 addCommandAlias(

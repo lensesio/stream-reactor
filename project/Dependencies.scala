@@ -103,6 +103,9 @@ object Dependencies {
     val javaxCacheVersion = "1.0.0"
 
     val influxVersion = "2.21"
+
+    val jmsApiVersion = "2.0.1"
+    val activeMqVersion = "5.14.5"
   }
 
   import Versions._
@@ -238,6 +241,10 @@ object Dependencies {
   lazy val hazelCast = ("com.hazelcast" % "hazelcast-all" % hazelCastVersion)
   lazy val javaxCache = ("javax.cache" % "cache-api" % javaxCacheVersion)
   lazy val influx = ("org.influxdb" % "influxdb-java" % influxVersion)
+
+  lazy val jmsApi = ("javax.jms" % "javax.jms-api" % jmsApiVersion)
+  lazy val activeMq = ("org.apache.activemq" % "activemq-all" % activeMqVersion)
+
 }
 
 trait Dependencies {
@@ -351,6 +358,13 @@ trait Dependencies {
     .map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
+
+  val kafkaConnectJmsDeps : Seq[ModuleID] = Seq(jmsApi)
+    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
+    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
+    .map(_.exclude("com.sun.jersey", "*"))
+
+  val kafkaConnectJmsTestDeps : Seq[ModuleID] = Seq(activeMq)
 
   // build plugins
   val kindProjectorPlugin = addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion)

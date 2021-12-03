@@ -24,7 +24,7 @@ import org.apache.kafka.connect.source.SourceRecord
 
 import java.util
 import javax.jms._
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{EnumerationHasAsScala, MapHasAsJava}
 
 /**
   * Created by andrew@datamountaineer.com on 11/03/2017.

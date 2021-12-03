@@ -80,5 +80,5 @@ case class JMSWriter(settings: JMSSettings) extends AutoCloseable with Converter
     messages.foreach({ case (name, message) => producers(name).send(message)})
   }
 
-  override def close(): Unit = provider.close()
+  override def close(): Unit = {val _ = provider.close()}
 }

@@ -30,8 +30,8 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.function.BiConsumer
 import javax.jms.Message
-import scala.collection.JavaConverters._
 import scala.concurrent.duration.{FiniteDuration, _}
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -114,7 +114,7 @@ class JMSSourceTask extends SourceTask with StrictLogging {
 
   private def evictIfApplicable(record: SourceRecord, msg: MessageAndTimestamp, now: FiniteDuration): Unit = {
     if ((now - msg.timestamp).toMinutes > evictThreshold) {
-      recordsToCommit.remove(record)
+      val _ = recordsToCommit.remove(record)
     }
   }
 
