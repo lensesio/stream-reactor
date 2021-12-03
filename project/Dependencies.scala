@@ -98,6 +98,9 @@ object Dependencies {
     val azureDocumentDbVersion = "2.6.4"
     val scalaParallelCollectionsVersion = "0.2.0"
     val testcontainersScalaVersion = "0.39.12"
+
+    val hazelCastVersion = "3.12.6"
+    val javaxCacheVersion = "1.0.0"
   }
 
   import Versions._
@@ -228,6 +231,9 @@ object Dependencies {
   lazy val testContainers = ("com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion)
   lazy val testContainersCassandra = ("com.dimafeng" %% "testcontainers-scala-cassandra" % testcontainersScalaVersion)
   lazy val dropWizardMetrics = ("io.dropwizard.metrics" % "metrics-jmx" % dropWizardMetricsVersion)
+
+  lazy val hazelCast = ("com.hazelcast" % "hazelcast-all" % hazelCastVersion)
+  lazy val javaxCache = ("javax.cache" % "cache-api" % javaxCacheVersion)
 }
 
 trait Dependencies {
@@ -325,8 +331,11 @@ trait Dependencies {
     .map(_.exclude("com.sun.jersey", "*"))
 
   val kafkaConnectCassandraTestDeps: Seq[ModuleID] = Seq(testContainers, testContainersCassandra)
-  //cassandraUnit
-  // )
+
+  val kafkaConnectHazelCastDeps: Seq[ModuleID] = Seq(
+    hazelCast,
+    javaxCache
+  )
 
   val kafkaConnectAzureDocumentDbDeps: Seq[ModuleID] = Seq(azureDocumentDb, json4sNative//, scalaParallelCollections
     )

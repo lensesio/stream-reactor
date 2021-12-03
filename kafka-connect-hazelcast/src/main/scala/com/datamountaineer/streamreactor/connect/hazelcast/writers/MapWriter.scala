@@ -33,12 +33,12 @@ case class MapWriter(client: HazelcastInstance, topic: String, settings: HazelCa
     val ttl = settings.topicObject(topic).ttl
     val keys = buildPKs(record)
 
-    if (ttl > 0) {
+    val _ = if (ttl > 0) {
       mapWriter.put(keys, convert(record), ttl, TimeUnit.MILLISECONDS)
     } else {
       mapWriter.put(keys, convert(record))
     }
   }
 
-  override def close: Unit = {}
+  override def close(): Unit = {}
 }

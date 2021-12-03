@@ -18,7 +18,8 @@ package com.datamountaineer.streamreactor.connect.hazelcast.config
 
 import org.apache.kafka.common.config.SslConfigs
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 /**
   * Created by andrew@datamountaineer.com on 10/08/16. 

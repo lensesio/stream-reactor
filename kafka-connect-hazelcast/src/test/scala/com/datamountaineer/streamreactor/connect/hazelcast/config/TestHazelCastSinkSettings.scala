@@ -21,7 +21,8 @@ import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
 import com.hazelcast.config.{Config, GroupConfig}
 import com.hazelcast.core.{Hazelcast, HazelcastInstance}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 /**
   * Created by andrew@datamountaineer.com on 08/08/16. 

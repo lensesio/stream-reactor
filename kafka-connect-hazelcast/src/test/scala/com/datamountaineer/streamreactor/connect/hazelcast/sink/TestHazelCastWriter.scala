@@ -24,7 +24,8 @@ import com.hazelcast.ringbuffer.Ringbuffer
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.common.config.SslConfigs
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
+
 
 
 /**
@@ -59,7 +60,7 @@ class TestHazelCastWriter extends TestBase {
 
     //write
     writer.write(records)
-    writer.close
+    writer.close()
 
     while (!listener.gotMessage) {
      Thread.sleep(1000)
@@ -82,7 +83,7 @@ class TestHazelCastWriter extends TestBase {
 
     //write
     writer.write(records)
-    writer.close
+    writer.close()
 
     //get client and check hazelcast
     val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
@@ -111,7 +112,7 @@ class TestHazelCastWriter extends TestBase {
 
     //write
     writer.write(records)
-    writer.close
+    writer.close()
 
     while (!listener.gotMessage) {
       Thread.sleep(1000)
@@ -132,7 +133,7 @@ class TestHazelCastWriter extends TestBase {
 
     //write
     writer.write(records)
-    writer.close
+    writer.close()
 
     //get client and check hazelcast
     val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
@@ -152,7 +153,7 @@ class TestHazelCastWriter extends TestBase {
 
     //write
     writer.write(records)
-    writer.close
+    writer.close()
 
     //get client and check hazelcast
     val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
@@ -172,7 +173,7 @@ class TestHazelCastWriter extends TestBase {
 
     //write
     writer.write(records)
-    writer.close
+    writer.close()
 
     //get client and check hazelcast
     val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
@@ -192,7 +193,7 @@ class TestHazelCastWriter extends TestBase {
 
     //write
     writer.write(records)
-    writer.close
+    writer.close()
 
     //get client and check hazelcast
     val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
@@ -215,11 +216,10 @@ class TestHazelCastWriter extends TestBase {
 
     //write
     writer.write(records)
-    writer.close
+    writer.close()
     // sleep so ttl kicks in
     Thread.sleep(5010)
 
-    val key = s"${TOPIC}-${PARTITION}-1"
     //get client and check hazelcast
     val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
     val map = conn.getMap(settings.topicObject(TOPIC).name).asInstanceOf[IMap[String, String]]
@@ -237,7 +237,7 @@ class TestHazelCastWriter extends TestBase {
 
     //write
     writer.write(records)
-    writer.close
+    writer.close()
 
     //get client and check hazelcast
     val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))

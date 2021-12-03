@@ -20,6 +20,19 @@ lazy val root = Project("stream-reactor", file("."))
     azureDocumentDb,
     cassandra,
     coap,
+    //elastic7,
+    //ftp,
+    hazelCast,
+    //hbase,
+    //hive
+    //influxdb
+    //jms
+    //kudu
+    //mongodb
+    //mqtt
+    //pulsar
+    //redis
+    //testcontainers
   )
 
 lazy val common = (project in file("kafka-connect-common"))
@@ -109,6 +122,24 @@ lazy val cassandra = (project in file("kafka-connect-cassandra"))
       )
   )
   .configureTestsForProject(testDeps = kafkaConnectCassandraTestDeps)
+  .enablePlugins(PackPlugin)
+
+lazy val hazelCast = (project in file("kafka-connect-hazelcast"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-hazelcast",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectHazelCastDeps,
+
+        publish / skip := true,
+        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
+        packGenerateMakefile := false,
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
+      )
+  )
+  .configureTestsForProject()
   .enablePlugins(PackPlugin)
 
 addCommandAlias(

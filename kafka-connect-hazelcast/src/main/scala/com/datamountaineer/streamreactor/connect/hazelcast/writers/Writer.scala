@@ -34,9 +34,9 @@ import org.apache.kafka.connect.sink.SinkRecord
   */
 abstract class Writer(settings: HazelCastSinkSettings) extends ConverterUtil {
 
-  def write(record: SinkRecord)
+  def write(record: SinkRecord): Unit
 
-  def close()
+  def close(): Unit
 
   /**
     * Convert a sink record to avro or Json string bytes

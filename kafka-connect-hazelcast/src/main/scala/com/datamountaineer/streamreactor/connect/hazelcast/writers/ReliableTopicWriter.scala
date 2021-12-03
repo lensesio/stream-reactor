@@ -28,5 +28,5 @@ case class ReliableTopicWriter(client: HazelcastInstance, topic: String, setting
   val reliableTopicWriter: ITopic[Object] = client.getReliableTopic(settings.topicObject(topic).name).asInstanceOf[ITopic[Object]]
 
   override def write(record: SinkRecord): Unit = reliableTopicWriter.publish(convert(record))
-  override def close: Unit = {}
+  override def close(): Unit = {}
 }

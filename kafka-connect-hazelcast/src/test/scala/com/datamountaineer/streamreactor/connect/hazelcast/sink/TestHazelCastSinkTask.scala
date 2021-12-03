@@ -23,7 +23,8 @@ import com.hazelcast.core.{Hazelcast, ITopic}
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.SeqHasAsJava
+
 
 /**
   * Created by andrew@datamountaineer.com on 12/08/16. 

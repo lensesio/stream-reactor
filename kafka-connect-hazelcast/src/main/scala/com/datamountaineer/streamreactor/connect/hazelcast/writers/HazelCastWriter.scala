@@ -120,7 +120,7 @@ class HazelCastWriter(settings: HazelCastSinkSettings) extends StrictLogging
 
   def close(): Unit = {
     logger.info("Shutting down Hazelcast client.")
-    writers.values.foreach(_.close)
+    writers.values.foreach(_.close())
     settings.client.shutdown()
   }
 
