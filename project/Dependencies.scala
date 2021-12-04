@@ -110,6 +110,9 @@ object Dependencies {
     val kuduVersion = "1.11.1"
 
     val mqttVersion = "1.2.5"
+
+    //val pulsarVersion = "2.9.0"
+    val pulsarVersion = "1.22.0-incubating"
   }
 
   import Versions._
@@ -254,6 +257,7 @@ object Dependencies {
 
   lazy val mqttClient = ("org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % mqttVersion)
 
+  lazy val pulsar = ("org.apache.pulsar" % "pulsar-client" % pulsarVersion)
 }
 
 trait Dependencies {
@@ -386,6 +390,11 @@ trait Dependencies {
     .map(_.exclude("com.sun.jersey", "*"))
 
   val kafkaConnectMqttTestDeps : Seq[ModuleID] = Seq(json4sJackson, testContainers, testContainersToxiProxy)
+
+  val kafkaConnectPulsarDeps : Seq[ModuleID] = Seq(pulsar, avro4s, avro4sJson)
+    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
+    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
+    .map(_.exclude("com.sun.jersey", "*"))
 
   // build plugins
   val kindProjectorPlugin = addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion)

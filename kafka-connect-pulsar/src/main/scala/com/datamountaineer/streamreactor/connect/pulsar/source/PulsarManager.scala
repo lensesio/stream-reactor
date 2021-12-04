@@ -125,6 +125,6 @@ case class PulsarMessageConverter(convertersMap: Map[String, Converter],
   }
 
   def getRecords(target: util.ArrayList[SourceRecord]): Unit = {
-    QueueHelpers.drainWithTimeoutNoGauva(target, batchSize, pollingTimeout * 1000000, queue)
+    QueueHelpers.drainWithTimeoutNoGauva(target, batchSize, pollingTimeout.toLong * 1000000, queue)
   }
 }

@@ -26,7 +26,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.pulsar.client.api._
 import org.apache.pulsar.client.impl.auth.AuthenticationTls
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 import scala.util.Try
 
 
@@ -97,8 +97,8 @@ case class PulsarMessageBuilder(settings: PulsarSinkSettings) extends StrictLogg
         //for all the records in the group transform
 
         val json = ToJsonWithProjections(
-          fields,
-          ignoredFields,
+          fields.toSeq,
+          ignoredFields.toSeq,
           record.valueSchema(),
           record.value(),
           k.hasRetainStructure
@@ -131,7 +131,7 @@ case class PulsarMessageBuilder(settings: PulsarSinkSettings) extends StrictLogg
           val keyFields = partitionBy.map(FieldConverter.apply)
 
           val jsonKey = ToJsonWithProjections(
-            keyFields,
+            keyFields.toSeq,
             List.empty[Field].map(FieldConverter.apply),
             schema,
             value,
