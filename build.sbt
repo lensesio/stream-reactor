@@ -20,6 +20,7 @@ lazy val root = Project("stream-reactor", file("."))
     azureDocumentDb,
     cassandra,
     coap,
+    //elastic6,
     //elastic7,
     //ftp,
     hazelCast,

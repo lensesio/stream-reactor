@@ -18,13 +18,13 @@ for module in ${MODIFIED_MODULES}; do
   fi
 done
 
-if $BUILD_ALL; then
-    ./gradlew clean test
-else
-    GRADLE_TASKS=""
-    for module in ${MODIFIED_MODULES}; do
-        GRADLE_TASKS="${GRADLE_TASKS} :${module}:test"
-    done
-
-    ./gradlew clean ${GRADLE_TASKS}
-fi
+#if $BUILD_ALL; then
+    sbt "clean;test"
+#else
+#    GRADLE_TASKS=""
+#    for module in ${MODIFIED_MODULES}; do
+#        GRADLE_TASKS="${GRADLE_TASKS} :${module}:test"
+#    done
+#
+#    sbt clean ${GRADLE_TASKS}
+#fi
