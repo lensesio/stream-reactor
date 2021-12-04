@@ -19,20 +19,29 @@ package com.datamountaineer.streamreactor.connect.mqtt.source
 import com.datamountaineer.streamreactor.common.converters.MsgKey
 import com.datamountaineer.streamreactor.common.serialization.AvroSerializer
 import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, JsonSimpleConverter}
-import com.datamountaineer.streamreactor.connect.mqtt.MqttTestContainer
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
-import com.sksamuel.avro4s.SchemaFor
+import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
+import com.sksamuel.avro4s.{AvroSchema, RecordFormat}
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.eclipse.paho.client.mqttv3.{MqttClient, MqttMessage}
 import org.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.Paths
 import java.util.UUID
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 
-class MqttSourceTaskTest extends MqttTestContainer with MockitoSugar {
+class MqttSourceTaskTest extends AnyWordSpec with ForAllTestContainer with Matchers with MockitoSugar with StrictLogging {
+
+  private val mqttPort = 1883
+
+  override val container = GenericContainer("eclipse-mosquitto:1.4.12", exposedPorts = Seq(mqttPort))
+
+  protected def getMqttConnectionUrl = s"tcp://${container.host}:${container.mappedPort(mqttPort)}"
 
   private def getSchemaFile(schema: org.apache.avro.Schema) = {
     val schemaFile = Paths.get(UUID.randomUUID().toString)
@@ -62,7 +71,9 @@ class MqttSourceTaskTest extends MqttTestContainer with MockitoSugar {
     val target3 = "kafkaTopic3"
 
 
-    val studentSchema = SchemaFor[Student]()
+    implicit val studentSchema = AvroSchema[Student]
+    implicit val recordFormat = RecordFormat[Student]
+
     val task = new MqttSourceTask
 
     val props = Map(

@@ -17,12 +17,12 @@
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import java.util
-
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
+
 
 class MqttSourceConnectorTest extends AnyWordSpec with Matchers {
   val baseProps: Map[String, String] = Map(
@@ -76,7 +76,7 @@ class MqttSourceConnectorTest extends AnyWordSpec with Matchers {
 
         val maxTasks = 2
         val kcqls = extractKcqls(mqttSourceConnector.taskConfigs(maxTasks))
-        kcqls.flatten should have length normalKcql.length
+        kcqls.flatten should have length normalKcql.length.toLong
       }
 
       "correctly distribute instructions when there is only replicated instructions" in {
@@ -85,7 +85,7 @@ class MqttSourceConnectorTest extends AnyWordSpec with Matchers {
 
         val maxTasks = 2
         val kcqls = extractKcqls(mqttSourceConnector.taskConfigs(maxTasks))
-        all (kcqls) should have length sharedKcql.length
+        all (kcqls) should have length sharedKcql.length.toLong
       }
 
       "correctly distribute instructions when there is a mix of instructions" in {
@@ -94,7 +94,7 @@ class MqttSourceConnectorTest extends AnyWordSpec with Matchers {
 
         val maxTasks = 2
         val kcqls = extractKcqls(mqttSourceConnector.taskConfigs(maxTasks))
-        kcqls.flatten should have length(sharedKcql.length * maxTasks + normalKcql.length)
+        kcqls.flatten should have length((sharedKcql.length * maxTasks + normalKcql.length).toLong)
         all (kcqls.map(_.length)) should be >= sharedKcql.length
       }
     }
@@ -106,7 +106,7 @@ class MqttSourceConnectorTest extends AnyWordSpec with Matchers {
 
         val maxTasks = 2
         val kcqls = extractKcqls(mqttSourceConnector.taskConfigs(maxTasks))
-        kcqls.flatten should have length allKcql.length
+        kcqls.flatten should have length allKcql.length.toLong
       }
     }
   }

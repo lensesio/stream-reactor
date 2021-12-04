@@ -27,9 +27,9 @@ lazy val root = Project("stream-reactor", file("."))
     //hive
     influx,
     jms,
-    //kudu
+    kudu,
     //mongodb
-    //mqtt
+    mqtt
     //pulsar
     //redis
     //testcontainers
@@ -194,6 +194,24 @@ lazy val kudu = (project in file("kafka-connect-kudu"))
       )
   )
   .configureTestsForProject()
+  .enablePlugins(PackPlugin)
+
+lazy val mqtt = (project in file("kafka-connect-mqtt"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-mqtt",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectMqttDeps,
+
+        publish / skip := true,
+        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
+        packGenerateMakefile := false,
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
+      )
+  )
+  .configureTestsForProject(testDeps = kafkaConnectMqttTestDeps)
   .enablePlugins(PackPlugin)
 
 addCommandAlias(

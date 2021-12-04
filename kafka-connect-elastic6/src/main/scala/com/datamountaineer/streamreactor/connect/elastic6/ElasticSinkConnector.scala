@@ -14,46 +14,53 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.mqtt.sink
+package com.datamountaineer.streamreactor.connect.elastic6
 
 import com.datamountaineer.streamreactor.common.config.Helpers
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 
 import java.util
-import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSinkConfig}
+import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticConfigConstants}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
-import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
+import scala.collection.JavaConverters._
 
-
-/**
-  * Created by andrew@datamountaineer.com on 28/08/2017. 
-  * stream-reactor
-  */
-class MqttSinkConnector extends SinkConnector with StrictLogging {
-  private val configDef = MqttSinkConfig.config
-  private var configProps: Option[util.Map[String, String]] = None
+class ElasticSinkConnector extends SinkConnector with StrictLogging {
+  private var configProps : Option[util.Map[String, String]] = None
+  private val configDef = ElasticConfig.config
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
-  override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Starting Mqtt sink connector.")
-    Helpers.checkInputTopics(MqttConfigConstants.KCQL_CONFIG, props.asScala.toMap)
-    configProps = Some(props)
-  }
+  /**
+    * States which SinkTask class to use
+    * */
+  override def taskClass(): Class[_ <: Task] = classOf[ElasticSinkTask]
 
-  override def taskClass(): Class[_ <: Task] = classOf[MqttSinkTask]
-
-  override def version(): String = manifest.version()
-
-  override def stop(): Unit = {}
-
+  /**
+    * Set the configuration for each work and determine the split
+    *
+    * @param maxTasks The max number of task workers be can spawn
+    * @return a List of configuration properties per worker
+    * */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
     (1 to maxTasks).map(_ => configProps.get).toList.asJava
   }
 
+  /**
+    * Start the sink and set to configuration
+    *
+    * @param props A map of properties for the connector and worker
+    * */
+  override def start(props: util.Map[String, String]): Unit = {
+    logger.info(s"Starting Elastic sink task.")
+    Helpers.checkInputTopics(ElasticConfigConstants.KCQL, props.asScala.toMap)
+    configProps = Some(props)
+  }
+
+  override def stop(): Unit = {}
+  override def version(): String = manifest.version()
   override def config(): ConfigDef = configDef
 }

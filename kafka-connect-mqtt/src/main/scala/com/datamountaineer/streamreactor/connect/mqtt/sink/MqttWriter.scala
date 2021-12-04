@@ -28,7 +28,7 @@ import org.eclipse.paho.client.mqttv3.{MqttClient, MqttMessage}
 import org.json4s.DefaultFormats
 import org.json4s.native.JsonMethods._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
 /**
@@ -67,8 +67,8 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings,
           //for all the records in the group transform
           records.map(r => {
             val transformed = ToJsonWithProjections(
-              k.getFields.asScala.map(FieldConverter.apply),
-              k.getIgnoredFields.asScala.map(FieldConverter.apply),
+              k.getFields.asScala.map(FieldConverter.apply).toSeq,
+              k.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
               r.valueSchema(),
               r.value(),
               k.hasRetainStructure
@@ -76,12 +76,12 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings,
 
             //get kafka message key if asked for
             if (Option(k.getDynamicTarget).getOrElse("").nonEmpty) {
-              var mqtttopic = (parse(transformed.toString) \ k.getDynamicTarget).extractOrElse[String](null)
+              val mqtttopic = (parse(transformed.toString) \ k.getDynamicTarget).extractOrElse[String](null)
               if (mqtttopic.nonEmpty) {
                 mqttTarget = mqtttopic
               }
             } else if (k.getTarget == "_key") {
-              mqttTarget = r.key().toString()
+              mqttTarget = r.key().toString
             } else {
               mqttTarget = k.getTarget
             }
@@ -113,9 +113,9 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings,
     handleTry(t)
   }
 
-  def flush = {}
+  def flush() = {}
 
-  def close = {
+  def close() = {
     client.disconnect()
     client.close()
   }

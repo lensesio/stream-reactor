@@ -28,7 +28,8 @@ import org.apache.kafka.connect.source.SourceRecord
 import org.eclipse.paho.client.mqttv3._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 class MqttManager(connectionFn: MqttSourceSettings => MqttConnectOptions,
                   convertersMap: Map[String, Converter],
@@ -103,7 +104,7 @@ class MqttManager(connectionFn: MqttSourceSettings => MqttConnectOptions,
     if (!message.isDuplicate) {
       try {
         val keys = Option(kcql.getWithKeys).map { l =>
-          val scalaList: Seq[String] = l.asScala
+          val scalaList: Seq[String] = l.asScala.toSeq
           scalaList
         }.getOrElse(Seq.empty[String])
         Option(converter.convert(kafkaTopic, sourceTopic, message.getId.toString, message.getPayload, keys, kcql.getKeyDelimeter)) match {
@@ -131,7 +132,7 @@ class MqttManager(connectionFn: MqttSourceSettings => MqttConnectOptions,
   }
 
   def getRecords(target: util.Collection[SourceRecord]): Int = {
-    Option(queue.poll(settings.pollingTimeout, TimeUnit.MILLISECONDS)) match {
+    Option(queue.poll(settings.pollingTimeout.toLong, TimeUnit.MILLISECONDS)) match {
       case Some(x) =>
         target.add(x)
         queue.drainTo(target) + 1

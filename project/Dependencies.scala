@@ -108,6 +108,8 @@ object Dependencies {
     val activeMqVersion = "5.14.5"
 
     val kuduVersion = "1.11.1"
+
+    val mqttVersion = "1.2.5"
   }
 
   import Versions._
@@ -238,6 +240,7 @@ object Dependencies {
 
   lazy val testContainers = ("com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion)
   lazy val testContainersCassandra = ("com.dimafeng" %% "testcontainers-scala-cassandra" % testcontainersScalaVersion)
+  lazy val testContainersToxiProxy = ("com.dimafeng" %% "testcontainers-scala-toxiproxy" % testcontainersScalaVersion)
   lazy val dropWizardMetrics = ("io.dropwizard.metrics" % "metrics-jmx" % dropWizardMetricsVersion)
 
   lazy val hazelCast = ("com.hazelcast" % "hazelcast-all" % hazelCastVersion)
@@ -248,6 +251,8 @@ object Dependencies {
   lazy val activeMq = ("org.apache.activemq" % "activemq-all" % activeMqVersion)
 
   lazy val kuduClient = ("org.apache.kudu" % "kudu-client" % kuduVersion)
+
+  lazy val mqttClient = ("org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % mqttVersion)
 
 }
 
@@ -374,6 +379,13 @@ trait Dependencies {
     .map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
+
+  val kafkaConnectMqttDeps : Seq[ModuleID] = Seq(mqttClient, avro4s, avro4sJson) ++ bouncyCastle
+    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
+    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
+    .map(_.exclude("com.sun.jersey", "*"))
+
+  val kafkaConnectMqttTestDeps : Seq[ModuleID] = Seq(json4sJackson, testContainers, testContainersToxiProxy)
 
   // build plugins
   val kindProjectorPlugin = addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion)
