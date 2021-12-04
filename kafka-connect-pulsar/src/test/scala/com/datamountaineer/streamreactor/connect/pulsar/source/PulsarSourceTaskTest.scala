@@ -4,8 +4,8 @@ import com.datamountaineer.streamreactor.connect.converters.source.{Converter, J
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSourceConfig, PulsarSourceSettings}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import scala.jdk.CollectionConverters.MapHasAsJava
 
-import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 24/01/2018. 

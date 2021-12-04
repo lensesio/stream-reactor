@@ -21,7 +21,8 @@ import org.apache.kafka.common.config.ConfigException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
+
 
 class PulsarSourceSettingsTest extends AnyWordSpec with Matchers {
   "PulsarSourceSetting" should {
@@ -113,7 +114,7 @@ class PulsarSourceSettingsTest extends AnyWordSpec with Matchers {
           PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
           PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
         ).asJava)
-        val settings = PulsarSourceSettings(config, 2)
+        val _ = PulsarSourceSettings(config, 2)
       }
     }
   }
