@@ -178,6 +178,24 @@ lazy val jms = (project in file("kafka-connect-jms"))
   .configureTestsForProject(testDeps = kafkaConnectJmsTestDeps)
   .enablePlugins(PackPlugin)
 
+lazy val kudu = (project in file("kafka-connect-kudu"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-kudu",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectKuduDeps,
+
+        publish / skip := true,
+        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
+        packGenerateMakefile := false,
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
+      )
+  )
+  .configureTestsForProject()
+  .enablePlugins(PackPlugin)
+
 addCommandAlias(
   "validateAll",
   ";headerCheck;test:headerCheck;fun:headerCheck;it:headerCheck;scalafmtCheck;test:scalafmtCheck;it:scalafmtCheck;fun:scalafmtCheck;e2e:scalafmtCheck"

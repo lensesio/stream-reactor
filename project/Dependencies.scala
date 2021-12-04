@@ -106,6 +106,8 @@ object Dependencies {
 
     val jmsApiVersion = "2.0.1"
     val activeMqVersion = "5.14.5"
+
+    val kuduVersion = "1.11.1"
   }
 
   import Versions._
@@ -245,6 +247,8 @@ object Dependencies {
   lazy val jmsApi = ("javax.jms" % "javax.jms-api" % jmsApiVersion)
   lazy val activeMq = ("org.apache.activemq" % "activemq-all" % activeMqVersion)
 
+  lazy val kuduClient = ("org.apache.kudu" % "kudu-client" % kuduVersion)
+
 }
 
 trait Dependencies {
@@ -365,6 +369,11 @@ trait Dependencies {
     .map(_.exclude("com.sun.jersey", "*"))
 
   val kafkaConnectJmsTestDeps : Seq[ModuleID] = Seq(activeMq)
+
+  val kafkaConnectKuduDeps : Seq[ModuleID] = Seq(kuduClient, json4sNative)
+    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
+    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
+    .map(_.exclude("com.sun.jersey", "*"))
 
   // build plugins
   val kindProjectorPlugin = addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion)

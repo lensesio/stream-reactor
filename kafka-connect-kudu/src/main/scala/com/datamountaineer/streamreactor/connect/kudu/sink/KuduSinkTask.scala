@@ -28,7 +28,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.IterableHasAsScala
 
 /**
   * Created by andrew@datamountaineer.com on 22/02/16. 
@@ -81,7 +81,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping Kudu sink.")
     writer.foreach(w => w.close())
-    progressCounter.empty
+    progressCounter.empty()
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {

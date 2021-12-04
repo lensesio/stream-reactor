@@ -29,7 +29,7 @@ import org.apache.kudu.ColumnSchema
 import org.apache.kudu.client.{KuduClient, KuduTable, _}
 import org.json4s.JsonAST.JValue
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{IteratorHasAsScala, ListHasAsScala, SeqHasAsJava}
 import scala.util.{Failure, Success, Try}
 
 /**

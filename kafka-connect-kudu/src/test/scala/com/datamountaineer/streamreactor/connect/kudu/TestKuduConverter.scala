@@ -23,7 +23,8 @@ import org.apache.avro.{Schema, SchemaBuilder}
 import org.apache.kudu.client.{KuduTable, Upsert}
 import org.mockito.MockitoSugar
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
+
 
 /**
   * Created by andrew@datamountaineer.com on 04/03/16.

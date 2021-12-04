@@ -24,7 +24,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kudu.client._
 import org.mockito.MockitoSugar
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
 import scala.util.Try
 
 /**
@@ -187,7 +187,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
 
     val kuduSchema = kuduSchemas.head.schema
     val cto = new CreateTableOptions
-    val pks = settings.kcql.head.getPrimaryKeys.asScala.map(p => p.getName).asJava
+    val pks = settings.kcql.head.getPrimaryKeys.asScala.map(_.getName).asJava
     cto.addHashPartitions(pks, 10)
     when(client.createTable(TABLE, kuduSchema, cto)).thenReturn(table)
     val ctp = CreateTableProps(TABLE, kuduSchema, cto)
