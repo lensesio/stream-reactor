@@ -22,7 +22,7 @@ lazy val root = Project("stream-reactor", file("."))
     coap,
     //elastic6,
     //elastic7,
-    //ftp,
+    ftp,
     hazelCast,
     //hbase,
     //hive
@@ -231,6 +231,24 @@ lazy val pulsar = (project in file("kafka-connect-pulsar"))
       )
   )
   .configureTestsForProject()
+  .enablePlugins(PackPlugin)
+
+lazy val ftp = (project in file("kafka-connect-ftp"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-ftp",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectFtpDeps,
+
+        publish / skip := true,
+        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
+        packGenerateMakefile := false,
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
+      )
+  )
+  .configureTestsForProject(testDeps = kafkaConnectFtpTestDeps)
   .enablePlugins(PackPlugin)
 
 addCommandAlias(

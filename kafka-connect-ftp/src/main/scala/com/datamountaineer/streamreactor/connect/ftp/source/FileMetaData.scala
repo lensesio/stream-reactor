@@ -36,5 +36,5 @@ case class FileMetaData(attribs:FileAttributes, hash:String, firstFetched:Instan
 // the store where com.eneco.trading.kafka.connect.ftp.source.FileMetaData is kept and can be retrieved from
 trait FileMetaDataStore {
   def get(path:String) : Option[FileMetaData]
-  def set(path:String, fileMetaData: FileMetaData)
+  def set(path:String, fileMetaData: FileMetaData): Unit
 }

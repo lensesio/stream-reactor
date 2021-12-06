@@ -11,7 +11,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 
 class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with StrictLogging {
@@ -81,11 +81,10 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
   logger.info(s"fileContent2.size¤${fileContent2.size}")
 
   def pollUntilEnd(poller: FtpSourcePoller, expectedTopic: String): Array[Byte] = {
+    ftpServer.start()
     var cnt = 0
     logger.info(s"--------------------poll${cnt}-------------------------")
-    ftpServer.start()
     var slice = poller.poll()
-    ftpServer.stop()
     var allReadBytes = new Array[Byte](0)
     while (slice.size == 1) {
       slice.head.topic shouldBe expectedTopic
@@ -94,15 +93,14 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
       logger.info(s"bytes.size=${bytes.size}")
       cnt += 1
       logger.info(s"--------------------polll${cnt}-------------------------")
-      ftpServer.start()
       slice = poller.poll()
-      ftpServer.stop()
     }
-    return allReadBytes
+    ftpServer.stop()
+    allReadBytes
   }
 
   test("Update mode by slices mode with SimpleFileConverter : file content is ingested with no loss of data") {
-    val fs = new FileSystem(ftpServer.rootDir).clear
+    val fs = new FileSystem(ftpServer.rootDir).clear()
 
     val cfg = new FtpSourceConfig(configUpdateWithSimpleFileConverter.updated(FtpSourceConfig.KeyStyle, "struct").asJava)
 
@@ -114,24 +112,26 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     fs.applyChanges(Seq(filePathUpdate -> Append(fileContent1)))
 
     var readBytes = pollUntilEnd(poller, "update_slice")
-    readBytes.size shouldBe fileContent1.size
-    readBytes.deep shouldBe fileContent1.deep
+    val asString = new String(readBytes)
+    logger.info("BYTES AS String {}", asString)
+
+    readBytes shouldBe fileContent1
+    readBytes.length shouldBe fileContent1.length
 
     logger.info(s"===================================================")
 
     //append content to file
     fs.applyChanges(Seq(filePathUpdate -> Append(fileContent2)))
     readBytes = pollUntilEnd(poller, "update_slice")
-    //ftpServer.stop()
 
     val expectedBytes = (fileContent1 ++ fileContent2)
-    readBytes.size shouldBe expectedBytes.size
-    readBytes.deep shouldBe expectedBytes.deep
+    readBytes.length shouldBe expectedBytes.length
+    readBytes shouldBe expectedBytes
   }
 
 
   test("Tail mode by slices mode with SimpleFileConverter : file content is ingested with no loss of data") {
-    val fs = new FileSystem(ftpServer.rootDir).clear
+    val fs = new FileSystem(ftpServer.rootDir).clear()
 
     val cfg = new FtpSourceConfig(configTailWithSimpleFileConverter.updated(FtpSourceConfig.KeyStyle, "struct").asJava)
 
@@ -142,7 +142,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     fs.applyChanges(Seq(filePathTail -> Append(fileContent1)))
     var readBytes = pollUntilEnd(poller, "tail_slice")
     readBytes.size shouldBe fileContent1.size
-    readBytes.deep shouldBe fileContent1.deep
+    readBytes shouldBe fileContent1
 
     logger.info(s"===================================================")
     //append content to file
@@ -150,12 +150,13 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     readBytes = pollUntilEnd(poller, "tail_slice")
 
     readBytes.size shouldBe fileContent2.size
-    readBytes.deep shouldBe fileContent2.deep
+    readBytes shouldBe fileContent2
 
   }
 
   test("Update mode by slices with MaxLinesFileConverter : no loss of data and sent by blocs of lines to the RecordConverter") {
-    val fs = new FileSystem(ftpServer.rootDir).clear
+    ftpServer.start()
+    val fs = new FileSystem(ftpServer.rootDir).clear()
 
     val cfg = new FtpSourceConfig(configWithMaxLinesFileConverter.updated(FtpSourceConfig.KeyStyle, "struct").asJava)
 
@@ -165,9 +166,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     fs.applyChanges(Seq(filePathUpdate -> Append(fileContent1)))
 
     logger.info(s"--------------------poll-------------------------")
-    ftpServer.start()
     var slice = poller.poll()
-    ftpServer.stop()
 
     var allReadBytes = new Array[Byte](0)
     while (slice.size == 1) {
@@ -176,16 +175,15 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
       allReadBytes ++= bytes
       val lastBytes = util.Arrays.copyOfRange(bytes, bytes.size - lineSep.getBytes.size, bytes.size)
 
-      lastBytes.deep shouldBe lineSep.getBytes.deep
+      lastBytes shouldBe lineSep.getBytes
 
       logger.info(s"bytes.size=${bytes.size}")
-      logger.info(s"lastBytes=${lastBytes.deep}")
+      logger.info(s"lastBytes=${lastBytes}")
       logger.info(s"--------------------poll-------------------------")
-      ftpServer.start()
       slice = poller.poll()
-      ftpServer.stop()
     }
-    allReadBytes.deep shouldBe fileContent1.deep
+    allReadBytes shouldBe fileContent1
+    ftpServer.stop()
   }
 
   /**
@@ -222,7 +220,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
       val allReadBytes: Array[Byte] = sftpPollUntilEnd(poller)
 
       allReadBytes.length shouldBe fileContent1.size
-      allReadBytes.deep shouldBe fileContent1.deep
+      allReadBytes shouldBe fileContent1
 
       logger.info(s"===================================================")
 
@@ -233,6 +231,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
 
       //No event is generated
       allReadBytes1.length shouldBe 0
+      ()
     })
   }
 
@@ -264,7 +263,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
       val allReadBytes: Array[Byte] = sftpPollUntilEnd(poller)
 
       allReadBytes.length shouldBe fileContent1.size
-      allReadBytes.deep shouldBe fileContent1.deep
+      allReadBytes shouldBe fileContent1
 
       logger.info(s"===================================================")
 
@@ -276,6 +275,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
 
       //Only the new delta
       allReadBytes1.length shouldBe (fileContent1.size + deltaContent.size)
+      ()
     })
   }
 
@@ -307,7 +307,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
       val allReadBytes: Array[Byte] = sftpPollUntilEnd(poller)
 
       allReadBytes.length shouldBe fileContent1.size
-      allReadBytes.deep shouldBe fileContent1.deep
+      allReadBytes shouldBe fileContent1
 
       logger.info(s"===================================================")
 
@@ -319,6 +319,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
 
       //Only the new delta
       allReadBytes1.length shouldBe deltaContent.size
+      ()
     })
   }
 
@@ -339,8 +340,8 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     allReadBytes
   }
 
-  private def waitForSlice(poller: FtpSourcePoller): Stream[SourceRecord] = {
-    var slice: Stream[SourceRecord] = poller.poll()
+  private def waitForSlice(poller: FtpSourcePoller): Seq[SourceRecord] = {
+    var slice: Seq[SourceRecord] = poller.poll()
     eventually {
       Thread.sleep(500)
       slice = poller.poll()

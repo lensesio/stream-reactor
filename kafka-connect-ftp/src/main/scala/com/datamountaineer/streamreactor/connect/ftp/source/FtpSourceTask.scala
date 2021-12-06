@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.ftp.source
 
 import com.datamountaineer.streamreactor.common.utils.JarManifest
+import com.datamountaineer.streamreactor.connect.ftp.source.OpTimer.profile
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
@@ -24,8 +25,7 @@ import org.apache.kafka.connect.storage.OffsetStorageReader
 
 import java.time.Duration
 import java.util
-import scala.collection.JavaConverters._
-import scala.collection.immutable.Stream.Empty
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.{Failure, Success}
 
 // holds functions that translate a file meta+body into a source record
@@ -44,10 +44,10 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
   val maxBackoff = Duration.parse(cfg.getString(FtpSourceConfig.MaxBackoff))
 
   var backoff = new ExponentialBackOff(pollDuration, maxBackoff)
-  var buffer : Stream[SourceRecord] = Empty
+  var buffer : LazyList[SourceRecord] = LazyList.empty
 
   val ftpMonitor = {
-    val (host,optPort) = cfg.address
+    val (host,optPort) = cfg.address()
     new FtpMonitor(
     FtpMonitorSettings(
       host,
@@ -65,33 +65,37 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
     )
   }
 
-  def poll(): Stream[SourceRecord] = {
-      val stream: Stream[SourceRecord] = if (buffer.isEmpty) fetchRecords() else buffer
+  def poll(): LazyList[SourceRecord] = {
+      val stream: LazyList[SourceRecord] = if (buffer.isEmpty) fetchRecords() else buffer
       val (head, tail) = stream.splitAt(cfg.maxPollRecords)
       buffer = tail
       head
   }
 
-  def fetchRecords(): Stream[SourceRecord] = {
-    if (backoff.passed) {
-      logger.info("poll")
-      ftpMonitor.poll() match {
-        case Success(fileChanges) =>
-          backoff = backoff.nextSuccess
-          fileChangesToRecords(fileChanges)
-        case Failure(err) =>
-          logger.warn(s"ftp monitor failed: $err", err)
-          backoff = backoff.nextFailure
-          logger.info(s"let's backoff ${backoff.remaining}")
-          Empty
+  def fetchRecords(): LazyList[SourceRecord] = {
+    profile("fetchRecords", {
+      if (backoff.passed) {
+        logger.info("poll")
+        ftpMonitor.poll() match {
+          case Success(fileChanges) =>
+            backoff = backoff.nextSuccess()
+            val ret = fileChangesToRecords(fileChanges)
+            ret
+          case Failure(err) =>
+            logger.warn(s"ftp monitor failed: $err", err)
+            backoff = backoff.nextFailure()
+            logger.info(s"let's backoff ${backoff.remaining}")
+            LazyList.empty
+        }
+      } else {
+        logger.info("WE DID SLEEP... zzzzzzzzzzz")
+        Thread.sleep(1000)
+        LazyList.empty
       }
-    } else {
-      Thread.sleep(1000)
-      Empty
-    }
+    })
   }
 
-  def fileChangesToRecords(fileChanges: Stream[(FileMetaData, FileBody, MonitoredPath)]): Stream[SourceRecord] = {
+  def fileChangesToRecords(fileChanges: LazyList[(FileMetaData, FileBody, MonitoredPath)]): LazyList[SourceRecord] = {
     fileChanges.flatMap({ case (meta, body, w) =>
       logger.info(s"got some fileChanges: ${meta.attribs.path}, offset = ${meta.offset}")
       fileConverter.convert(monitor2topic(w), meta, body)
@@ -116,7 +120,7 @@ class FtpSourceTask extends SourceTask with StrictLogging {
 
     val sourceConfig = new FtpSourceConfig(conf)
 
-    sourceConfig.ftpMonitorConfigs.foreach(cfg => {
+    sourceConfig.ftpMonitorConfigs().foreach(cfg => {
       logger.info(s"config tells us to track the ${cfg.mode.toString} of files in `${cfg.path}` to topic `${cfg.topic}")
     })
     poller = Some(new FtpSourcePoller(sourceConfig, context.offsetStorageReader))

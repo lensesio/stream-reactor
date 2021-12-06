@@ -21,8 +21,8 @@ import org.apache.kafka.connect.storage.OffsetStorageReader
 
 import java.time.Instant
 import java.util
-import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
 
 // allows storage and retrieval of meta datas into connect framework
 class ConnectFileMetaDataStore(offsetStorage: OffsetStorageReader) extends FileMetaDataStore with StrictLogging {
@@ -39,6 +39,7 @@ class ConnectFileMetaDataStore(offsetStorage: OffsetStorageReader) extends FileM
   override def set(path: String, fileMetaData: FileMetaData): Unit = {
     logger.debug(s"ConnectFileMetaDataStore path = ${path}, fileMetaData.offset = ${fileMetaData.offset}, fileMetaData.attribs.size = ${fileMetaData.attribs.size}")
     cache.put(path, fileMetaData)
+    ()
   }
 
   // cache couldn't provide us the info. this is a rather expensive operation (?)
@@ -72,8 +73,8 @@ class ConnectFileMetaDataStore(offsetStorage: OffsetStorageReader) extends FileM
     )
   }
 
-  def fileMetasToConnectOffset(meta: FileMetaData): util.Map[String, Any] = {
-    Map("size" -> meta.attribs.size,
+  def fileMetasToConnectOffset(meta: FileMetaData): util.Map[String, _] = {
+    Map[String,Any]("size" -> meta.attribs.size,
       "timestamp" -> meta.attribs.timestamp.toEpochMilli,
       "hash" -> meta.hash,
       "firstfetched" -> meta.firstFetched.toEpochMilli,

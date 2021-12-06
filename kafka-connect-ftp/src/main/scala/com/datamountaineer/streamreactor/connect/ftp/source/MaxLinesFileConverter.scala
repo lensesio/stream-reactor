@@ -19,7 +19,7 @@ import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.storage.OffsetStorageReader
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
   * Writes the maximum number of found lines into a single record
@@ -30,8 +30,8 @@ class MaxLinesFileConverter(props: util.Map[String, String], offsetStorageReader
 
   val cfg = new FtpSourceConfig(props)
   val metaStore = new ConnectFileMetaDataStore(offsetStorageReader)
-  val recordConverter: SourceRecordConverter = cfg.sourceRecordConverter
-  val recordMaker: SourceRecordProducer = cfg.keyStyle match {
+  val recordConverter: SourceRecordConverter = cfg.sourceRecordConverter()
+  val recordMaker: SourceRecordProducer = cfg.keyStyle() match {
     case KeyStyle.String => SourceRecordProducers.stringKeyRecord
     case KeyStyle.Struct => SourceRecordProducers.structKeyRecord
   }
@@ -45,17 +45,17 @@ class MaxLinesFileConverter(props: util.Map[String, String], offsetStorageReader
     } else {
       val offsetInSlice = findEndPositionOfLastMatch(lineSep, body.bytes)
       // TODO : warn that no line seprator was found, suggest that the line sizes maybe exceeds the slice size
-      val offset = meta.offset - (body.bytes.size-offsetInSlice)
+      val offset = meta.offset - (body.bytes.length-offsetInSlice)
       metaStore.set(meta.attribs.path, meta.offset(offset))
       val trimmedBody = FileBody(util.Arrays.copyOfRange(body.bytes, 0, offsetInSlice), 0)
       recordConverter.convert(recordMaker(metaStore, topic, meta, trimmedBody)).asScala
     }
-  }
+  }.toSeq
 
   def findEndPositionOfLastMatch(bytesToMatch: Array[Byte], content: Array[Byte]) : Int = {
-    for (pos <- content.size to bytesToMatch.size by -1){
-      val window = util.Arrays.copyOfRange(content, pos - bytesToMatch.size, pos)
-      if (window.deep == bytesToMatch.deep) return pos
+    for (pos <- content.length to bytesToMatch.length by -1){
+      val window = util.Arrays.copyOfRange(content, pos - bytesToMatch.length, pos)
+      if (java.util.Objects.deepEquals(window, bytesToMatch)) return pos
     }
     -1
   }

@@ -113,6 +113,15 @@ object Dependencies {
 
     //val pulsarVersion = "2.9.0"
     val pulsarVersion = "1.22.0-incubating"
+
+    val commonsNetVersion = "3.8.0"
+    val commonsCodecVersion = "1.15"
+    val jschVersion = "0.1.55"
+
+    val minaVersion = "2.1.5"
+    val betterFilesVersion = "3.8.0"
+    val ftpServerVersion = "1.1.1"
+    val fakeSftpServerVersion = "2.0.0"
   }
 
   import Versions._
@@ -258,6 +267,14 @@ object Dependencies {
   lazy val mqttClient = ("org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % mqttVersion)
 
   lazy val pulsar = ("org.apache.pulsar" % "pulsar-client" % pulsarVersion)
+
+  lazy val commonsNet = ("commons-net" % "commons-net" % commonsNetVersion)
+  lazy val commonsCodec = ("commons-codec" % "commons-codec" % commonsCodecVersion)
+  lazy val jsch = ("com.jcraft" % "jsch" % jschVersion)
+  lazy val mina = ("org.apache.mina" % "mina-core" % minaVersion)
+  lazy val betterFiles = ("com.github.pathikrit" %% "better-files" % betterFilesVersion)
+  lazy val ftpServer = ("org.apache.ftpserver" % "ftpserver-core" % ftpServerVersion)
+  lazy val fakeSftpServer = ("com.github.stefanbirkner" % "fake-sftp-server-lambda" % fakeSftpServerVersion)
 }
 
 trait Dependencies {
@@ -306,7 +323,8 @@ trait Dependencies {
     hadoopCommon,
     hadoopMapReduce,
     guava
-  ) ++ enumeratum ++ circe ++ http4s).map(_.exclude("org.slf4j", "slf4j-log4j12"))
+  ) ++ enumeratum ++ circe ++ http4s)
+    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
 
@@ -392,6 +410,16 @@ trait Dependencies {
   val kafkaConnectMqttTestDeps : Seq[ModuleID] = Seq(json4sJackson, testContainers, testContainersToxiProxy)
 
   val kafkaConnectPulsarDeps : Seq[ModuleID] = Seq(pulsar, avro4s, avro4sJson)
+    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
+    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
+    .map(_.exclude("com.sun.jersey", "*"))
+
+  val kafkaConnectFtpDeps : Seq[ModuleID] = Seq(commonsNet, commonsCodec, jsch)
+    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
+    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
+    .map(_.exclude("com.sun.jersey", "*"))
+
+  val kafkaConnectFtpTestDeps : Seq[ModuleID] = Seq(mina, betterFiles, ftpServer, fakeSftpServer)
     .map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))

@@ -87,40 +87,7 @@ object Settings extends Dependencies {
       "-Xlint:type-parameter-shadow"
     )
 
-    object Scala212 {
-      val WarnUnusedImports = "-Ywarn-unused:imports"
-      val FatalWarnings     = "-Xfatal-warnings"
-      val ValueDiscard      = "-Ywarn-value-discard"
 
-      val warnings = List(
-        FatalWarnings,
-        ValueDiscard,
-        WarnUnusedImports,
-        "-Ywarn-dead-code",
-        "-Ywarn-extra-implicit",
-        "-Ywarn-self-implicit",
-        "-Ywarn-infer-any",
-        "-Ywarn-macros:after",
-        "-Ywarn-nullary-override",
-        //"-Ywarn-nullary-unit",
-        "-Ywarn-numeric-widen",
-        "-Ywarn-unused:implicits",
-        "-Ywarn-unused:locals",
-        //    "-Ywarn-unused:params", //todo this is more pain than it's worth right now
-        "-Ywarn-unused:patvars",
-        "-Ywarn-unused:privates"
-      )
-
-      val options: Seq[String] = commonOptions ++ List(
-        "-Ypartial-unification",
-        // advanced options
-        "-Xcheckinit",
-        "-Yno-adapted-args",
-        "-Xlint:by-name-right-associative",
-        "-Xlint:unsound-match",
-        "-Xlint:nullary-override"
-      ) ++ warnings ++ lintings
-    }
 
     object Scala213 {
       val WarnUnusedImports = "-Wunused:imports"
@@ -170,8 +137,8 @@ object Settings extends Dependencies {
   val settings: Seq[Setting[_]] = commonSettings ++ Seq(
     scalacOptions ++= {
       CrossVersion.partialVersion(scalaVersion.value) match {
-        case Some((2, n)) if n <= 12 =>
-          ScalacFlags.Scala212.options
+        //case Some((2, n)) if n <= 12 =>
+        //  ScalacFlags.Scala212.options
         case _ =>
           ScalacFlags.Scala213.options
       }

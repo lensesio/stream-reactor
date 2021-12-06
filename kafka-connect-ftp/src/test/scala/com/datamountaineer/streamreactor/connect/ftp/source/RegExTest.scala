@@ -20,8 +20,8 @@ class RegExTest extends AnyFunSuite with Matchers with BeforeAndAfter with Stric
   test("Matches RegEx"){
     FtpSourceConfig.fileFilter -> ".*"
 
-    var f : source.AbsoluteFtpFile = new AbsoluteFtpFile(mockFile("file.txt"),"\\");
-    f.name.matches(".*") shouldBe true
-    f.name.matches("a") shouldBe false
+    val f: source.AbsoluteFtpFile = new AbsoluteFtpFile(mockFile("file.txt"), "\\");
+    f.name().matches(".*") shouldBe true
+    f.name().matches("a") shouldBe false
   }
 }
