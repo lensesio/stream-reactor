@@ -22,7 +22,8 @@ import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 /**
   * Builds a row key for the given connect record and payload. The implementations would decide what is using and how.

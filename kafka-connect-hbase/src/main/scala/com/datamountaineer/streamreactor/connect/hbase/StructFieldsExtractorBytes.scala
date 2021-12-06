@@ -24,7 +24,7 @@ import org.apache.kafka.connect.errors.ConnectException
 
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 trait FieldsValuesExtractor {
   def get(struct: Struct): Seq[(String, Array[Byte])]
@@ -35,7 +35,7 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
   def get(struct: Struct): Seq[(String, Array[Byte])] = {
     val schema = struct.schema()
     val fields: Seq[Field] = if (includeAllFields) {
-      schema.fields().asScala
+      schema.fields().asScala.toList
     }
     else {
       val selectedFields = schema.fields().asScala.filter(f => fieldsAliasMap.contains(f.name()))
@@ -45,7 +45,7 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
         logger.error(errMsg)
         throw new ConnectException(errMsg)
       }
-      selectedFields
+      selectedFields.toList
     }
 
     val fieldsAndValues = fields.flatMap(field =>
@@ -99,6 +99,6 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
 
 object StructFieldsExtractorBytes {
   private val UTC = ZoneId.of("UTC")
-  private val DateFormat = DateTimeFormatter.ISO_INSTANT.withZone(UTC)
+  private val DateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(UTC)
   private val TimeFormat = DateTimeFormatter.ofPattern("HH:mm:ss.SSSZ").withZone(UTC)
 }

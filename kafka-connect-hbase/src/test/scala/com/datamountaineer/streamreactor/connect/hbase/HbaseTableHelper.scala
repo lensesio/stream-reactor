@@ -16,8 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.hbase
 
-import org.apache.hadoop.hbase.client.Connection
-import org.apache.hadoop.hbase.{HColumnDescriptor, HTableDescriptor, TableName}
+import org.apache.hadoop.hbase.TableName
+import org.apache.hadoop.hbase.client.{ColumnFamilyDescriptorBuilder, Connection, TableDescriptorBuilder}
 
 object HbaseTableHelper {
 
@@ -30,10 +30,9 @@ object HbaseTableHelper {
       if (admin.tableExists(tableName))
         throw new IllegalArgumentException(s"${tableName.getNameAsString}")
 
-      val descriptor = new HTableDescriptor(tableName)
-      val colFamDesc = new HColumnDescriptor(columnFamily)
-      colFamDesc.setMaxVersions(1)
-      descriptor.addFamily(colFamDesc)
+      val colFamDesc = ColumnFamilyDescriptorBuilder.newBuilder(columnFamily.getBytes).setMaxVersions(1).build()
+
+      val descriptor = TableDescriptorBuilder.newBuilder(tableName).setColumnFamily(colFamDesc).build()
 
       admin.createTable(descriptor)
     }

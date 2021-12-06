@@ -33,7 +33,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.IterableHasAsScala
 
 /**
   * <h1>HbaseSinkTask</h1>
@@ -48,7 +48,6 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
   var writer: Option[HbaseWriter] = None
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-  private var kerberosLogin = Option.empty[KerberosLogin]
 
   /**
     * Parse the configurations and setup the writer
@@ -71,7 +70,7 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
 
     val hbaseConf = ConfigurationBuilder.buildHBaseConfig(hbaseSettings)
 
-    kerberosLogin = hbaseSettings.kerberos.map { kerberos =>
+    hbaseSettings.kerberos.map { kerberos =>
       hbaseConf.withKerberos(kerberos)
       KerberosLogin.from(kerberos, hbaseConf)
     }

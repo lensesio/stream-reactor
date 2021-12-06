@@ -1,13 +1,11 @@
 package com.datamountaineer.streamreactor.connect.hbase.kerberos
 
-import java.io.File
-
 import com.datamountaineer.streamreactor.connect.hbase.config.{HBaseConfig, HBaseConfigConstants}
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class UserPasswordSettingsTest extends AnyFunSuite with Matchers with FileCreation {
   test("validate a user-password setting") {
@@ -36,6 +34,7 @@ class UserPasswordSettingsTest extends AnyFunSuite with Matchers with FileCreati
     finally {
       fileKrb5.delete()
       fileJaas.delete()
+      ()
     }
   }
 
@@ -65,6 +64,7 @@ class UserPasswordSettingsTest extends AnyFunSuite with Matchers with FileCreati
     finally {
       fileKrb5.delete()
       fileJaas.delete()
+      ()
     }
   }
 
@@ -94,6 +94,7 @@ class UserPasswordSettingsTest extends AnyFunSuite with Matchers with FileCreati
     finally {
       fileKrb5.delete()
       fileJaas.delete()
+      ()
     }
   }
 
@@ -120,12 +121,12 @@ class UserPasswordSettingsTest extends AnyFunSuite with Matchers with FileCreati
     }
     finally {
       fileJaas.delete()
+      ()
     }
   }
 
   test("raises and exception when the jaas file is not set") {
     val fileKrb5 = createFile(s"krb1.krb5")
-    val fileJaas = new File(s"jaas1.jaas")
     try {
       val user = "yoda"
       val password = "123456"
@@ -147,6 +148,7 @@ class UserPasswordSettingsTest extends AnyFunSuite with Matchers with FileCreati
     }
     finally {
       fileKrb5.delete()
+      ()
     }
   }
 }

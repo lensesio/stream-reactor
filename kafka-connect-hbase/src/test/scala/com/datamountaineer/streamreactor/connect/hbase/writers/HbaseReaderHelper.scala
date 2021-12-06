@@ -22,7 +22,8 @@ import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory, Scan}
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.hadoop.hbase.{CellUtil, HBaseConfiguration, TableName}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.IterableHasAsScala
+
 
 object HbaseReaderHelper {
   def createConnection: Connection = {

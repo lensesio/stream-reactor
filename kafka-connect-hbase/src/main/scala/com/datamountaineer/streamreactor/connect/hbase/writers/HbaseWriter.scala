@@ -29,7 +29,7 @@ import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Try
 
 class HbaseWriter(settings: HBaseSettings, hbaseConfig: Configuration) extends DbWriter

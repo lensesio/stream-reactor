@@ -69,7 +69,6 @@ object Dependencies {
 
     val wiremockJre8Version = "2.25.1"
     val parquetVersion      = "1.12.0"
-    val hadoopVersion       = "2.10.1"
 
     val jerseyCommonVersion = "2.34"
 
@@ -116,12 +115,18 @@ object Dependencies {
 
     val commonsNetVersion = "3.8.0"
     val commonsCodecVersion = "1.15"
+    val commonsIOVersion = "2.11.0"
     val jschVersion = "0.1.55"
 
     val minaVersion = "2.1.5"
     val betterFilesVersion = "3.8.0"
     val ftpServerVersion = "1.1.1"
     val fakeSftpServerVersion = "2.0.0"
+
+    val hbaseClientVersion = "2.4.8"
+    val hadoopVersion = "2.10.1"
+
+    val zookeeperServerVersion = "3.7.0"
   }
 
   import Versions._
@@ -270,11 +275,16 @@ object Dependencies {
 
   lazy val commonsNet = ("commons-net" % "commons-net" % commonsNetVersion)
   lazy val commonsCodec = ("commons-codec" % "commons-codec" % commonsCodecVersion)
+  lazy val commonsIO = ("commons-io" % "commons-io" % commonsIOVersion)
   lazy val jsch = ("com.jcraft" % "jsch" % jschVersion)
   lazy val mina = ("org.apache.mina" % "mina-core" % minaVersion)
   lazy val betterFiles = ("com.github.pathikrit" %% "better-files" % betterFilesVersion)
   lazy val ftpServer = ("org.apache.ftpserver" % "ftpserver-core" % ftpServerVersion)
   lazy val fakeSftpServer = ("com.github.stefanbirkner" % "fake-sftp-server-lambda" % fakeSftpServerVersion)
+
+  lazy val hbaseClient = "org.apache.hbase" % "hbase-client" % hbaseClientVersion
+  lazy val hadoopHdfs = "org.apache.hadoop" % "hadoop-hdfs" % hadoopVersion
+  lazy val zookeeperServer = "org.apache.zookeeper" % "zookeeper" % zookeeperServerVersion
 }
 
 trait Dependencies {
@@ -319,9 +329,9 @@ trait Dependencies {
     urlValidator,
     catsFree,
     parquetAvro,
-    parquetHadoop,
-    hadoopCommon,
-    hadoopMapReduce,
+    //parquetHadoop,
+    //hadoopCommon,
+    //hadoopMapReduce,
     guava
   ) ++ enumeratum ++ circe ++ http4s)
     .map(_.exclude("org.slf4j", "slf4j-log4j12"))
@@ -338,6 +348,7 @@ trait Dependencies {
     json4sJackson,
     jacksonDatabind,
     jacksonModuleScala,
+    zookeeperServer,
   ).map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
@@ -346,6 +357,10 @@ trait Dependencies {
 
   val kafkaConnectS3Deps: Seq[ModuleID] = Seq(
     s3Sdk,
+    parquetAvro,
+    parquetHadoop,
+    hadoopCommon,
+    hadoopMapReduce,
     jcloudsBlobstore,
     jcloudsProviderS3,
     snakeYaml,
@@ -414,7 +429,7 @@ trait Dependencies {
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
 
-  val kafkaConnectFtpDeps : Seq[ModuleID] = Seq(commonsNet, commonsCodec, jsch)
+  val kafkaConnectFtpDeps : Seq[ModuleID] = Seq(commonsNet, commonsCodec, commonsIO, jsch)
     .map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
@@ -423,6 +438,10 @@ trait Dependencies {
     .map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
+
+  val kafkaConnectHbaseDeps : Seq[ModuleID] = Seq(hadoopHdfs, hbaseClient)
+
+  val kafkaConnectHbaseTestDeps : Seq[ModuleID] = Seq()
 
   // build plugins
   val kindProjectorPlugin = addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion)
