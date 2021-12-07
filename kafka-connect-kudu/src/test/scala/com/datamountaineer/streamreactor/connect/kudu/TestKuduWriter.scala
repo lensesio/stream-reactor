@@ -30,6 +30,7 @@ import org.mockito.ArgumentMatchers.{any, eq => mockEq}
 import org.mockito.MockitoSugar
 import org.scalatest.EitherValues
 
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 
@@ -37,6 +38,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
   * Created by andrew@datamountaineer.com on 04/03/16.
   * stream-reactor
   */
+@nowarn
 class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with ConverterUtil with EitherValues {
   "A Kudu Writer should write" in {
     val kcql = mock[Kcql]
@@ -97,6 +99,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     val topic = "sink_test"
     val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
+    @nowarn
     val payload = convertFromStringAsJson(record, Map.empty, Set.empty)
 
     val kuduSchema = convertToKuduSchemaFromJson(payload.value.converted, topic)
@@ -187,6 +190,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     val topic = "sink_test"
     val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
+    @nowarn
     val payload = convertFromStringAsJson(record, Map.empty, Set.empty)
 
     val kuduSchema = convertToKuduSchemaFromJson(payload.value.converted, topic)

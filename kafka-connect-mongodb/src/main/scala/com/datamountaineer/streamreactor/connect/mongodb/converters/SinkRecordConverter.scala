@@ -30,7 +30,7 @@ import org.bson.Document
 import org.json4s.JValue
 import org.json4s.JsonAST._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{IterableHasAsScala, SetHasAsScala}
 import scala.util.Try
 
 object SinkRecordConverter extends StrictLogging {
@@ -257,6 +257,7 @@ object SinkRecordConverter extends StrictLogging {
           case JNothing => null
           case JNull => null
           case arr: JArray => convertArray(arr)
+          case _ => throw new IllegalStateException(s"No match found for $record/$array")
         }.foreach(list.add)
         list
       }
@@ -272,6 +273,7 @@ object SinkRecordConverter extends StrictLogging {
         case JNull => null
         case JString(s) => s
         case JObject(values) => values.foldLeft(new Document) { case (d, (n, j)) => convert(n, j, d) }
+        case _ => throw new IllegalStateException(s"No match found for $record/$jvalue")
       }
       Option(value).map(document.append(name, _)).getOrElse(document)
     }
@@ -294,13 +296,11 @@ object SinkRecordConverter extends StrictLogging {
     */
   def convertTimestamps(doc: Document)(implicit settings: MongoSettings): Unit = {
 
-    import scala.collection.JavaConverters._
     val fieldSet: Set[Seq[String]] = settings.jsonDateTimeFields
 
     logger.debug(s"convertTimestamps: converting document ${doc.toString}")
     logger.debug(s"convertTimestamps: using jsonDateTimeFields of ${settings.jsonDateTimeFields}")
 
-    val initialDoc = new Document()
     fieldSet.foreach{ parts =>
 
       def convertValue(
@@ -327,11 +327,11 @@ object SinkRecordConverter extends StrictLogging {
           case n: Int if (n > 1) => {
             val testVal = lastDoc.get(head.get)
             testVal match {
-              case subDoc: java.util.Map[String, Object] => // Document implements Map, HashMap is used sometimes too for subdocs
+              case subDoc: java.util.Map[String, Object] @unchecked => // Document implements Map, HashMap is used sometimes too for subdocs
                 convertValue(remainingParts.tail, subDoc)
               case subList: java.util.List[_] =>
                 subList.asScala.foreach {
-                  case d: java.util.Map[String, Object] =>
+                  case d: java.util.Map[String, Object] @unchecked =>
                     convertValue(remainingParts.tail, d)
                   case _ => // not a document, can't determine the name, do nothing
                 }
@@ -340,6 +340,7 @@ object SinkRecordConverter extends StrictLogging {
           }
           case _ => throw new Exception("somehow remainingParts is 0!")
         }
+        ()
       }
       convertValue(parts, doc)
     }

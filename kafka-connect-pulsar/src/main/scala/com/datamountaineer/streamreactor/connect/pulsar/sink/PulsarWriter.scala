@@ -26,6 +26,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.pulsar.client.api._
 import org.apache.pulsar.client.impl.auth.AuthenticationTls
 
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 import scala.util.Try
 
@@ -83,6 +84,7 @@ case class PulsarMessageBuilder(settings: PulsarSinkSettings) extends StrictLogg
 
   private val mappings: Map[String, Set[Kcql]] = settings.kcql.groupBy(k => k.getSource)
 
+  @nowarn
   def create(records: Iterable[SinkRecord]): Iterable[(String, Message)] = {
     records.flatMap{ record =>
       val topic = record.topic()

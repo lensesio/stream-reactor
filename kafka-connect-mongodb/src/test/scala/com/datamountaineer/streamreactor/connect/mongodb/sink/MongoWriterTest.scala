@@ -18,13 +18,11 @@ package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import com.datamountaineer.kcql.{Kcql, WriteModeEnum}
 import com.datamountaineer.streamreactor.common.errors.{NoopErrorPolicy, ThrowErrorPolicy}
-
 import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants, MongoSettings}
 import com.datamountaineer.streamreactor.connect.mongodb.{Json, Transaction}
-import com.mongodb.client.MongoCursor
 import com.mongodb.client.model.{Filters, InsertOneModel}
 import com.mongodb.{AuthenticationMechanism, MongoClient}
-import de.flapdoodle.embed.mongo.config.{MongodConfigBuilder, Net}
+import de.flapdoodle.embed.mongo.config.{MongodConfig, Net}
 import de.flapdoodle.embed.mongo.distribution.Version
 import de.flapdoodle.embed.mongo.{MongodExecutable, MongodProcess, MongodStarter}
 import de.flapdoodle.embed.process.runtime.Network
@@ -40,14 +38,14 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.util.UUID
-import scala.collection.JavaConverters._
 import scala.collection.immutable.{ListMap, ListSet}
+import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
 
 class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
   val starter = MongodStarter.getDefaultInstance
   val port = 12345
-  val mongodConfig = new MongodConfigBuilder()
+  val mongodConfig = MongodConfig.builder()
     .version(Version.Main.PRODUCTION)
     .net(new Net(port, Network.localhostIsIPv6()))
     .build()
@@ -69,7 +67,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
   // create SinkRecord from JSON strings, no schema
   def createSRStringJson(json: String, recordNum: Int): SinkRecord = {
-    new SinkRecord("topicA", 0, null, null, Schema.STRING_SCHEMA, json, recordNum)
+    new SinkRecord("topicA", 0, null, null, Schema.STRING_SCHEMA, json, recordNum.toLong)
   }
 
   "MongoWriter" should {
@@ -85,7 +83,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
-      val records = for (i <- 1 to 4) yield {
+      val records = for (i <- 1L to 4L) yield {
         val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath).mkString
         new SinkRecord("topicA", 0, null, null, Schema.STRING_SCHEMA, json, i)
       }
@@ -105,7 +103,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
-      val records = for (i <- 1 to 4) yield {
+      val records = for (i <- 1L to 4L) yield {
         val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath).mkString
           .replace("\"size\": 807", "\"size\": 1010" + (i - 1))
         new SinkRecord("topicA", 0, null, null, Schema.STRING_SCHEMA, json, i)
@@ -208,7 +206,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
-      val records = for (i <- 1 to 4) yield {
+      val records = for (i <- 1L to 4L) yield {
         val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath).mkString
         val tx = Json.fromJson[Transaction](json)
 
@@ -229,7 +227,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
         Map("topicA" -> Set.empty),
         ThrowErrorPolicy())
 
-      val records = for (i <- 1 to 4) yield {
+      val records = for (i <- 1L to 4L) yield {
         val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath).mkString
         val tx = Json.fromJson[Transaction](json)
 
@@ -250,7 +248,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
-      val records = for (i <- 1 to 4) yield {
+      val records = for (i <- 1L to 4L) yield {
         val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath).mkString
         val tx = Json.fromJson[Transaction](json)
 
@@ -271,7 +269,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
-      val records = for (i <- 1 to 4) yield {
+      val records = for (i <- 1L to 4L) yield {
         val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath).mkString
         val tx = Json.fromJson[Transaction](json)
 
@@ -418,7 +416,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       val settings = MongoSettings(config)
       val mongoWriter = new MongoWriter(settings, mongoClient.get)
 
-      val records = for (i <- 1 to 4) yield {
+      val records = for (i <- 1L to 4L) yield {
         val json = scala.io.Source.fromFile(getClass.getResource(s"/vehicle$i.json").toURI.getPath).mkString
         new SinkRecord("topicA", 0, null, null, Schema.STRING_SCHEMA, json, i)
       }
@@ -446,7 +444,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       val settings = MongoSettings(config)
       val mongoWriter = new MongoWriter(settings, mongoClient.get)
 
-      val records = for (i <- 1 to 4) yield {
+      val records = for (i <- 1L to 4L) yield {
         val json = scala.io.Source.fromFile(getClass.getResource(s"/vehicle$i.json").toURI.getPath).mkString
         new SinkRecord("topicA", 0, null, null, Schema.STRING_SCHEMA, json, i)
       }
@@ -579,7 +577,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
     val keys = Seq(9223372036854775807L, 427856L, 0L, 7856L)
     keys.zipWithIndex.foreach { case (k, index) =>
-      var docOption = MongoIterableFn(actualCollection.find(Filters.eq("lock_time", k))).headOption
+      val docOption = MongoIterableFn(actualCollection.find(Filters.eq("lock_time", k))).headOption
       docOption.isDefined shouldBe true
       docOption.get.get("size") shouldBe 10100 + index
     }

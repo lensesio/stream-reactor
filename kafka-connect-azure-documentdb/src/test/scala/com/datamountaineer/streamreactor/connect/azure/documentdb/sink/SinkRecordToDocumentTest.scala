@@ -26,6 +26,9 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import scala.annotation.nowarn
+
+@nowarn
 class SinkRecordToDocumentTest extends AnyWordSpec with Matchers with ConverterUtil {
   private val connection = "https://accountName.documents.azure.com:443/"
 

@@ -28,6 +28,7 @@ import org.eclipse.paho.client.mqttv3.{MqttClient, MqttMessage}
 import org.json4s.DefaultFormats
 import org.json4s.native.JsonMethods._
 
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
@@ -66,6 +67,7 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings,
         kcqls.map(k => {
           //for all the records in the group transform
           records.map(r => {
+            @nowarn
             val transformed = ToJsonWithProjections(
               k.getFields.asScala.map(FieldConverter.apply).toSeq,
               k.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,

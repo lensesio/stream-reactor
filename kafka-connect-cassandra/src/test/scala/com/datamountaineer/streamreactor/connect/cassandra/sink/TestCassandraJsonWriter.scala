@@ -32,6 +32,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Suite}
 
 import java.util.UUID
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.{IterableHasAsScala, ListHasAsScala, MapHasAsJava, SeqHasAsJava}
 
 
@@ -488,6 +489,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
       .put("decimal_field", dec)
 
     val sinkRecord = new SinkRecord("topica", 0, null, null, schema, struct, 1)
+    @nowarn
     val convertUtil = new AnyRef with ConverterUtil
     val json = convertUtil.convertValueToJson(convertR(sinkRecord, Map.empty)).toString
     val str = json.toString

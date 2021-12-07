@@ -77,6 +77,7 @@ object Dependencies {
     val jCloudsSdkVersion = "2.3.0"
     val guavaVersion = "31.0.1-jre"
     val guiceVersion = "5.0.1"
+    val javaxBindVersion = "2.3.1"
 
     val kcqlVersion = "2.8.7"
     val json4sVersion = "4.0.3"
@@ -127,6 +128,9 @@ object Dependencies {
     val hadoopVersion = "2.10.1"
 
     val zookeeperServerVersion = "3.7.0"
+
+    val mongoDbVersion = "3.12.10"
+    val mongoDbEmbeddedVersion = "3.2.0"
   }
 
   import Versions._
@@ -229,6 +233,7 @@ object Dependencies {
   lazy val calciteLinq4J = ("org.apache.calcite" % "calcite-linq4j" % calciteVersion)
 
   lazy val s3Sdk = ("software.amazon.awssdk" % "s3" % awsSdkVersion)
+  lazy val javaxBind = ("javax.xml.bind" % "jaxb-api" % javaxBindVersion)
 
   lazy val jcloudsBlobstore = ("org.apache.jclouds" % "jclouds-blobstore" % jCloudsSdkVersion)
   lazy val jcloudsProviderS3 = ("org.apache.jclouds.provider" % "aws-s3" % jCloudsSdkVersion)
@@ -285,6 +290,9 @@ object Dependencies {
   lazy val hbaseClient = "org.apache.hbase" % "hbase-client" % hbaseClientVersion
   lazy val hadoopHdfs = "org.apache.hadoop" % "hadoop-hdfs" % hadoopVersion
   lazy val zookeeperServer = "org.apache.zookeeper" % "zookeeper" % zookeeperServerVersion
+
+  lazy val mongoDb = "org.mongodb" % "mongo-java-driver" % mongoDbVersion
+  lazy val mongoDbEmbedded = "de.flapdoodle.embed" % "de.flapdoodle.embed.mongo" % mongoDbEmbeddedVersion
 }
 
 trait Dependencies {
@@ -361,6 +369,7 @@ trait Dependencies {
     parquetHadoop,
     hadoopCommon,
     hadoopMapReduce,
+    javaxBind,
     jcloudsBlobstore,
     jcloudsProviderS3,
     snakeYaml,
@@ -442,6 +451,10 @@ trait Dependencies {
   val kafkaConnectHbaseDeps : Seq[ModuleID] = Seq(hadoopHdfs, hbaseClient)
 
   val kafkaConnectHbaseTestDeps : Seq[ModuleID] = Seq()
+
+  val kafkaConnectMongoDbDeps : Seq[ModuleID] = Seq(mongoDb, json4sNative, json4sJackson)
+
+  val kafkaConnectMongoDbTestDeps : Seq[ModuleID] = Seq(mongoDbEmbedded, avro4s)
 
   // build plugins
   val kindProjectorPlugin = addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion)

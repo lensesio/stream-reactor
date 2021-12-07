@@ -32,9 +32,11 @@ import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import java.io.File
 import java.util.UUID
 import javax.jms.{Message, MessageListener, Session, TextMessage}
+import scala.annotation.nowarn
 import scala.language.reflectiveCalls
 import scala.reflect.io.Path
 
+@nowarn
 class JMSWriterTest extends TestBase with Using with BeforeAndAfter with ConverterUtil with BeforeAndAfterAll {
   val broker = new BrokerService()
   broker.setPersistent(false)

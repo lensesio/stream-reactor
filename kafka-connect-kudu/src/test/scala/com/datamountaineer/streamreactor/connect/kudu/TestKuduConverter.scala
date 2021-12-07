@@ -23,6 +23,7 @@ import org.apache.avro.{Schema, SchemaBuilder}
 import org.apache.kudu.client.{KuduTable, Upsert}
 import org.mockito.MockitoSugar
 
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
 
 
@@ -31,6 +32,7 @@ import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
   * stream-reactor
   */
 //noinspection ScalaDeprecation
+@nowarn
 class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil with MockitoSugar {
   "Should convert a SinkRecord Schema to Kudu Schema" in {
     val kcql = mock[Kcql]
@@ -60,6 +62,7 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
     val table = mock[KuduTable]
     when(table.newUpsert()).thenReturn(insert)
     when(table.getSchema).thenReturn(kuduSchema)
+    @nowarn
     val converted = convert(record, fields)
     val kuduInsert = convertToKuduUpsert(converted, table)
     kuduRow shouldBe kuduInsert.getRow
@@ -72,6 +75,7 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
     when(kcql.getBucketing).thenReturn(bucketing)
     val fields = Map("id" -> "id", "long_field" -> "new_field_name")
     val record = getTestRecords.head
+    @nowarn
     val converted = convert(record, fields)
     val kuduSchema = convertToKuduSchema(converted, kcql)
     val kuduRow = kuduSchema.newPartialRow()

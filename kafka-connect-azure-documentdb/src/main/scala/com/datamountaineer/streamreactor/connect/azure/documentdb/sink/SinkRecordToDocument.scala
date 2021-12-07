@@ -23,6 +23,9 @@ import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
+import scala.annotation.nowarn
+
+@nowarn
 object SinkRecordToDocument extends ConverterUtil {
   def apply(record: SinkRecord, keys: Set[String] = Set.empty)(implicit settings: DocumentDbSinkSettings): (Document, Iterable[(String, Any)]) = {
     val schema = record.valueSchema()
@@ -33,11 +36,13 @@ object SinkRecordToDocument extends ConverterUtil {
       value match {
         case _: java.util.Map[_, _] =>
 
+          @nowarn
           val extracted = convertSchemalessJson(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
           SinkRecordConverter.fromMap(extracted.asInstanceOf[java.util.Map[String, AnyRef]]) ->
             keys.headOption.map(_ => KeysExtractor.fromMap(extracted, keys)).getOrElse(Iterable.empty)
 
         case _: String =>
+          @nowarn
           val extracted = convertFromStringAsJson(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
           extracted match {
             case Right(r) =>
@@ -51,6 +56,7 @@ object SinkRecordToDocument extends ConverterUtil {
     } else {
       schema.`type`() match {
         case Schema.Type.STRING =>
+          @nowarn
           val extracted = convertFromStringAsJson(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
           extracted match {
             case Right(r) =>
@@ -60,9 +66,10 @@ object SinkRecordToDocument extends ConverterUtil {
           }
 
         case Schema.Type.STRUCT =>
+          @nowarn
           val extracted = convert(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
           SinkRecordConverter.fromStruct(extracted) ->
-            keys.headOption.map(_ => KeysExtractor.fromStruct(extracted.value().asInstanceOf[Struct], keys)).getOrElse(Iterable.empty)
+          keys.headOption.map(_ => KeysExtractor.fromStruct(extracted.value().asInstanceOf[Struct], keys)).getOrElse(Iterable.empty)
 
         case other => throw new ConnectException(s"[$other] schema is not supported")
       }

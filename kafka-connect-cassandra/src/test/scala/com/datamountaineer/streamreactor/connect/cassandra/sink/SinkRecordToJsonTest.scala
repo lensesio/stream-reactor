@@ -26,10 +26,11 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 
-
+@nowarn
 class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil {
   "SinkRecordToDocument" should {
     "convert Kafka Struct to a JSON" in {
@@ -50,6 +51,7 @@ class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil 
         val record = new SinkRecord("topic1", 0, null, null, Output.ConnectSchema, output.toStruct(), 0)
 
         val kcql= kcqlMap(record.topic())
+        @nowarn
         val actual = ToJsonWithProjections(
           kcql.getFields.asScala.map(FieldConverter.apply).toSeq,
           kcql.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,

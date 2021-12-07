@@ -15,13 +15,14 @@
  */
 
 package com.datamountaineer.streamreactor.connect.mongodb.config
-import scala.collection.JavaConverters._
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
 import com.mongodb.AuthenticationMechanism
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.common.config.types.Password
+
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 
 case class MongoSettings(connection: String,
@@ -113,7 +114,6 @@ object MongoSettings extends StrictLogging {
     *    )
     */
   def getJsonDateTimeFields(config: MongoConfig): Set[Seq[String]] = {
-    import scala.collection.JavaConverters._
     val set: Set[Seq[String]] =
       config.getList(MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG).
         asScala.

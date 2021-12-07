@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import java.util
-
 import com.datamountaineer.streamreactor.connect.mongodb.Json
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
@@ -26,8 +25,8 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
 import scala.collection.immutable.ListSet
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class KeysExtractorTest extends AnyWordSpec with Matchers {
   private val avroData = new AvroData(4)
@@ -61,7 +60,7 @@ class KeysExtractorTest extends AnyWordSpec with Matchers {
       val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
       val jvalue = Json.parseJson(json)
       intercept[ConfigException] {
-        val actual = KeysExtractor.fromJson(jvalue, Set("inputs"))
+        val _ = KeysExtractor.fromJson(jvalue, Set("inputs"))
       }
     }
 
@@ -71,7 +70,6 @@ class KeysExtractorTest extends AnyWordSpec with Matchers {
     }
 
     "extract embedded keys out of a Map (including Dates)" in {
-      import scala.collection.JavaConverters._
       val actual = KeysExtractor.fromMap(
         Map("A"->0, "B"->"0", "C"->Map("M"->"1000", "N"->Map("X"->new java.util.Date(10L), "Y"->100).asJava).asJava).asJava,
         ListSet( "B", "C.M", "C.N.X" ))

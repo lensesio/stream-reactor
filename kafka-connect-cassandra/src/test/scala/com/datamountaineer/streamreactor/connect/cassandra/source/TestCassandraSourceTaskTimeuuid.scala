@@ -27,9 +27,11 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Suite}
 
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 @DoNotDiscover
+@nowarn
 class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     with Matchers
     with MockitoSugar

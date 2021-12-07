@@ -42,7 +42,7 @@ object MongoConfigConstants {
     s"""
       |The authentication mechanism to use when username and password options are set. This can also be set in ${CONNECTION_CONFIG}" +
       |but requires the password to be exposed as plain text in the connection string which can leak in Connects logs."
-    """.stringPrefix
+    """.stripMargin
 
 
   val BATCH_SIZE_CONFIG_DEFAULT = 100

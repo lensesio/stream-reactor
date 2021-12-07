@@ -18,10 +18,9 @@ package com.datamountaineer.streamreactor.connect.mongodb
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.errors.NoopErrorPolicy
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.mongodb.Transaction._
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
-import com.datamountaineer.streamreactor.connect.mongodb.sink.SinkRecordToDocument
+import com.datamountaineer.streamreactor.connect.mongodb.sink.{ConverterUtilProxy, SinkRecordToDocument}
 import com.mongodb.AuthenticationMechanism
 import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.data.Schema
@@ -30,7 +29,7 @@ import org.bson.Document
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class SinkRecordToDocumentTest extends AnyWordSpec with Matchers with ConverterUtil {
+class SinkRecordToDocumentTest extends AnyWordSpec with Matchers with ConverterUtilProxy {
   "SinkRecordToDocument" should {
     "convert Kafka Struct to a Mongo Document" in {
       for (i <- 1 to 4) {

@@ -29,9 +29,11 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Suite}
 
 import java.util.concurrent.LinkedBlockingQueue
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 @DoNotDiscover
+@nowarn
 class TestCassandraSourceTaskTimestampLong extends AnyWordSpec
     with Matchers
     with MockitoSugar

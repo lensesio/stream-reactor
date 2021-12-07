@@ -17,17 +17,15 @@
 package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
-
-import java.util
 import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants}
-import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
-import scala.collection.JavaConverters._
+import java.util
+import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -80,7 +78,7 @@ class MongoSinkTask extends SinkTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping Mongo Database sink.")
     writer.foreach(w => w.close())
-    progressCounter.empty
+    progressCounter.empty()
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}

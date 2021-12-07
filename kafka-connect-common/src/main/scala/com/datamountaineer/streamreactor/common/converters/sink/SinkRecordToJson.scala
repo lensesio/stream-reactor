@@ -32,7 +32,7 @@ import scala.util.Try
   * Created by andrew@datamountaineer.com on 29/12/2016.
   * kafka-connect-common
   */
-//@deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
+@deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
 object SinkRecordToJson extends ConverterUtil {
 
   private val mapper = new ObjectMapper()

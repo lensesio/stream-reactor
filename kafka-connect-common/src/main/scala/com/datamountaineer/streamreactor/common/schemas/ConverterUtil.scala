@@ -42,7 +42,7 @@ import scala.util.{Failure, Success, Try}
   * Created by andrew@datamountaineer.com on 22/02/16.
   * stream-reactor
   */
-//@deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
+@deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
 trait ConverterUtil {
   type avroSchema = org.apache.avro.Schema
 
@@ -93,7 +93,7 @@ trait ConverterUtil {
     * @param key          - if true it will use record.key to do the transformation; if false will use record.value
     * @return
     */
-  //@deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
+  @deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
   def convertSchemalessJson(
       record: SinkRecord,
       fields: Map[String, String],
@@ -137,7 +137,7 @@ trait ConverterUtil {
     * @param ignoredFieldsValues - We need to retain the removed fields; in influxdb we might choose to set tags from ignored fields
     * @return
     */
-  //@deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
+  @deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
   def convertFromStringAsJson(record: SinkRecord,
                               fields: Map[String, String],
                               ignoreFields: Set[String] = Set.empty[String],
@@ -202,7 +202,7 @@ trait ConverterUtil {
     * @param key          Extract the fields from the key or the value of the ConnectRecord.
     * @return A new Struct with the fields specified in the fieldsMappings.
     * */
-  //@deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
+  @deprecated("Consolidated into SinkRecord.newFilteredRecord", "3.0")
   def convert(record: SinkRecord,
               fields: Map[String, String],
               ignoreFields: Set[String] = Set.empty[String],

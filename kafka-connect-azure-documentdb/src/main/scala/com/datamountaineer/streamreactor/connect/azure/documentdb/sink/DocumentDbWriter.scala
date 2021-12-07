@@ -28,6 +28,7 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTaskContext
 
+import scala.annotation.nowarn
 import scala.util.Failure
 
 /**
@@ -35,6 +36,7 @@ import scala.util.Failure
   * Azure DocumentDb Json writer for Kafka connect
   * Writes a list of Kafka connect sink records to Azure DocumentDb using the JSON support.
   */
+@nowarn
 class DocumentDbWriter(configMap: Map[String, Kcql], settings: DocumentDbSinkSettings, documentClient: DocumentClient) extends StrictLogging with ConverterUtil with ErrorHandler {
   //initialize error tracker
   initialize(settings.taskRetries, settings.errorPolicy)

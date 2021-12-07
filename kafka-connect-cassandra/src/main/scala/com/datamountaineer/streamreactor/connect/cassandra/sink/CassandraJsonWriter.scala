@@ -32,6 +32,7 @@ import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
 import java.util.concurrent.Executors
+import scala.annotation.nowarn
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.{Failure, Success, Try}
@@ -174,6 +175,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     }
   }
 
+  @nowarn
   private def insert(record: SinkRecord) = {
     val tables = preparedCache.getOrElse(record.topic(), throw new IllegalArgumentException(s"Topic ${record.topic()} doesn't have a KCQL setup"))
     tables.foreach { case (table, (statement, kcql)) =>

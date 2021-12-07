@@ -16,17 +16,16 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb.sink
 
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import com.datamountaineer.streamreactor.connect.mongodb.converters.SinkRecordConverter
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
 
+import scala.annotation.nowarn
 
-object SinkRecordToDocument extends ConverterUtil {
+object SinkRecordToDocument extends ConverterUtilProxy {
   def apply(record: SinkRecord, keys: Set[String] = Set.empty)(implicit settings: MongoSettings): (Document, Iterable[(String, Any)]) = {
     val schema = record.valueSchema()
     val value = record.value()
@@ -66,7 +65,7 @@ object SinkRecordToDocument extends ConverterUtil {
               throw new ConnectException(value)
           }
         case Schema.Type.STRUCT =>
-          val extracted = convert(
+          @nowarn val extracted = convert(
             record,
             fields,
             settings.ignoredField.getOrElse(record.topic(), Set.empty)

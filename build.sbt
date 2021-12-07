@@ -29,7 +29,7 @@ lazy val root = Project("stream-reactor", file("."))
     influx,
     jms,
     kudu,
-    //mongodb
+    mongoDb,
     mqtt,
     pulsar
     //redis
@@ -267,6 +267,24 @@ lazy val hbase = (project in file("kafka-connect-hbase"))
       )
   )
   .configureTestsForProject(testDeps = kafkaConnectHbaseTestDeps)
+  .enablePlugins(PackPlugin)
+
+lazy val mongoDb = (project in file("kafka-connect-mongodb"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-mongodb",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectMongoDbDeps,
+
+        publish / skip := true,
+        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
+        packGenerateMakefile := false,
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
+      )
+  )
+  .configureTestsForProject(testDeps = kafkaConnectMongoDbTestDeps)
   .enablePlugins(PackPlugin)
 
 addCommandAlias(

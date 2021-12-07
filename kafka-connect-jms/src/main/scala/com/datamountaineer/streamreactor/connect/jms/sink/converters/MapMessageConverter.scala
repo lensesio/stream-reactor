@@ -24,9 +24,12 @@ import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
 import javax.jms.{MapMessage, Session}
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.ListHasAsScala
 
+@nowarn
 class MapMessageConverter extends JMSMessageConverter with ConverterUtil {
+  @nowarn
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, MapMessage) = {
     val converted =  super[ConverterUtil].convert(record, setting.fields, setting.ignoreField)
     val msg = session.createMapMessage()

@@ -24,9 +24,12 @@ import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import org.apache.kafka.connect.sink.SinkRecord
 
 import javax.jms.{Message, Session}
+import scala.annotation.nowarn
 
+@nowarn
 class JsonMessageConverter extends JMSMessageConverter with ConverterUtil {
 
+  @nowarn
   override def convert(sinkRecord: SinkRecord, session: Session, setting: JMSSetting): (String, Message) = {
     val json = SinkRecordToJson(sinkRecord, Map(sinkRecord.topic() -> setting.fields), Map(sinkRecord.topic() -> setting.ignoreField))
     (setting.source, session.createTextMessage(json))
