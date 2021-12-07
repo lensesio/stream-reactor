@@ -5,7 +5,6 @@ import org.apache.hadoop.hive.ql.exec.vector.{ColumnVector, StructColumnVector}
 import org.apache.kafka.connect.data.Struct
 import org.apache.orc.TypeDescription
 
-import scala.collection.JavaConverters._
 
 class StructVectorReader(readers: IndexedSeq[OrcVectorReader[_, _]],
                          typeDescription: TypeDescription) extends OrcVectorReader[StructColumnVector, Struct] {

@@ -25,7 +25,7 @@ import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisKCQLSet
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -102,7 +102,7 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
                       if (ttl <= 0) {
                         jedis.set(key, payload)
                       } else {
-                        jedis.setex(key, ttl.toInt, payload)
+                        jedis.setex(key, ttl, payload)
                       }
 
                     case Failure(_) =>

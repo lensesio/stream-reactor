@@ -18,7 +18,6 @@ import java.sql.{Connection, DriverManager}
 import java.time.Duration
 import java.util.Properties
 import java.util.concurrent.TimeUnit
-import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 import scala.util.{Random, Try}
 

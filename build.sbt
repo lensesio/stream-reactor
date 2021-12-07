@@ -31,8 +31,8 @@ lazy val root = Project("stream-reactor", file("."))
     kudu,
     mongoDb,
     mqtt,
-    pulsar
-    //redis
+    pulsar,
+    redis,
     //testcontainers
   )
 
@@ -176,7 +176,7 @@ lazy val jms = (project in file("kafka-connect-jms"))
         packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
       )
   )
-  .configureTestsForProject(testDeps = kafkaConnectJmsTestDeps)
+  .configureTestsForProject(testDeps = kafkaConnectJmsTestDeps, itTestsParallel = false, funTestsParallel = false)
   .enablePlugins(PackPlugin)
 
 lazy val kudu = (project in file("kafka-connect-kudu"))
@@ -212,7 +212,7 @@ lazy val mqtt = (project in file("kafka-connect-mqtt"))
         packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
       )
   )
-  .configureTestsForProject(testDeps = kafkaConnectMqttTestDeps)
+  .configureTestsForProject(testDeps = kafkaConnectMqttTestDeps, itTestsParallel = false, funTestsParallel = false)
   .enablePlugins(PackPlugin)
 
 lazy val pulsar = (project in file("kafka-connect-pulsar"))
@@ -248,7 +248,7 @@ lazy val ftp = (project in file("kafka-connect-ftp"))
         packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
       )
   )
-  .configureTestsForProject(testDeps = kafkaConnectFtpTestDeps)
+  .configureTestsForProject(testDeps = kafkaConnectFtpTestDeps, itTestsParallel = false, funTestsParallel = false)
   .enablePlugins(PackPlugin)
 
 lazy val hbase = (project in file("kafka-connect-hbase"))
@@ -285,6 +285,24 @@ lazy val mongoDb = (project in file("kafka-connect-mongodb"))
       )
   )
   .configureTestsForProject(testDeps = kafkaConnectMongoDbTestDeps)
+  .enablePlugins(PackPlugin)
+
+lazy val redis =  (project in file("kafka-connect-redis"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-redis",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectRedisDeps,
+
+        publish / skip := true,
+        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
+        packGenerateMakefile := false,
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
+      )
+  )
+  .configureTestsForProject(testDeps = kafkaConnectRedisTestDeps)
   .enablePlugins(PackPlugin)
 
 addCommandAlias(

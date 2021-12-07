@@ -22,7 +22,6 @@ import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
 
 object PrimaryKeyExtractor {
   def extract(node: JsonNode, path: Vector[String]): Any = {

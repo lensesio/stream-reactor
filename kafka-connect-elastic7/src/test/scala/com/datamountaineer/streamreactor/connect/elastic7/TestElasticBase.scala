@@ -29,7 +29,6 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {

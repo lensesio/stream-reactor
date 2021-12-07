@@ -18,7 +18,6 @@ import org.mockito.MockitoSugar.{mock, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
 import scala.util.Try
 
 class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with StrictLogging {

@@ -131,6 +131,9 @@ object Dependencies {
 
     val mongoDbVersion = "3.12.10"
     val mongoDbEmbeddedVersion = "3.2.0"
+
+    val jedisVersion = "3.6.3"
+    val gsonVersion = "2.8.9"
   }
 
   import Versions._
@@ -293,6 +296,9 @@ object Dependencies {
 
   lazy val mongoDb = "org.mongodb" % "mongo-java-driver" % mongoDbVersion
   lazy val mongoDbEmbedded = "de.flapdoodle.embed" % "de.flapdoodle.embed.mongo" % mongoDbEmbeddedVersion
+
+  lazy val jedis = "redis.clients" % "jedis" % jedisVersion
+  lazy val gson = "com.google.code.gson" % "gson" % gsonVersion
 }
 
 trait Dependencies {
@@ -455,6 +461,10 @@ trait Dependencies {
   val kafkaConnectMongoDbDeps : Seq[ModuleID] = Seq(mongoDb, json4sNative, json4sJackson)
 
   val kafkaConnectMongoDbTestDeps : Seq[ModuleID] = Seq(mongoDbEmbedded, avro4s)
+
+  val kafkaConnectRedisDeps : Seq[ModuleID] = Seq(jedis)
+
+  val kafkaConnectRedisTestDeps : Seq[ModuleID] = Seq(testContainers, gson)
 
   // build plugins
   val kindProjectorPlugin = addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion)

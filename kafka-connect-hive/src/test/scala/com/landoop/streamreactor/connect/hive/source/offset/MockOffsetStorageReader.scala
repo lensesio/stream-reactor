@@ -5,7 +5,6 @@ import java.util
 import com.landoop.streamreactor.connect.hive.source.{SourceOffset, SourcePartition, fromSourceOffset, toSourcePartition}
 import org.apache.kafka.connect.storage.OffsetStorageReader
 
-import scala.collection.JavaConverters._
 
 class MockOffsetStorageReader(map: Map[SourcePartition, SourceOffset]) extends OffsetStorageReader {
 

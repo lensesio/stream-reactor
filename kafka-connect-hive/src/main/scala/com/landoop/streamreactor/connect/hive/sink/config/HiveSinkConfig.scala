@@ -11,7 +11,6 @@ import com.landoop.streamreactor.connect.hive.sink.evolution.{AddEvolutionPolicy
 import com.landoop.streamreactor.connect.hive.sink.partitioning.{DynamicPartitionHandler, PartitionHandler, StrictPartitionHandler}
 import com.landoop.streamreactor.connect.hive.sink.staging._
 
-import scala.collection.JavaConverters._
 
 case class HiveSinkConfig(dbName: DatabaseName,
                           filenamePolicy: FilenamePolicy = DefaultFilenamePolicy,

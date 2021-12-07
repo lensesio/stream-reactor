@@ -24,7 +24,6 @@ import scala.util.Try
  */
 class MetastoreSchemaAlignMapper(schema: Schema) extends StructMapper {
 
-  import scala.collection.JavaConverters._
 
   override def map(input: Struct): Struct = {
     //hive converts everything to lowercase

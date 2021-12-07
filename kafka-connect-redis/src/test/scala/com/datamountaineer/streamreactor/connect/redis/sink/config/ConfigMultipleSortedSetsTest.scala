@@ -20,8 +20,7 @@ import com.datamountaineer.streamreactor.common.rowkeys.StringStructFieldsString
 import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSupport
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala}
 
 /**
   * Using `SELECT .. FROM .. PK .. STOREAS SortedSet` we can promote the value of one field to a Redis Sorted Set (SS)

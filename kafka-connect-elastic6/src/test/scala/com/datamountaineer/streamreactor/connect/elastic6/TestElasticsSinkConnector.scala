@@ -18,7 +18,6 @@ package com.datamountaineer.streamreactor.connect.elastic6
 
 import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticConfigConstants
 
-import scala.collection.JavaConverters._
 
 class TestElasticsSinkConnector extends TestElasticBase {
   "Should start a Elastic Search Connector" in {

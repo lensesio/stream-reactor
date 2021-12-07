@@ -21,8 +21,7 @@ import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSup
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 class RedisSinkSettingsTest extends AnyWordSpec with Matchers with RedisMockSupport {
 

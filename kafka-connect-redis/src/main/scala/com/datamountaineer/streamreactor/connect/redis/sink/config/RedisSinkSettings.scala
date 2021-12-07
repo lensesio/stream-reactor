@@ -21,7 +21,8 @@ import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorP
 import com.datamountaineer.streamreactor.common.rowkeys.StringKeyBuilder
 import org.apache.kafka.common.config.{ConfigException, SslConfigs}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 // Redis connection details: host, port, password
 case class RedisConnectionInfo(host: String,

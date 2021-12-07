@@ -4,7 +4,6 @@ import org.apache.hadoop.hive.ql.exec.vector.{BytesColumnVector, ColumnVector, D
 import org.apache.orc.TypeDescription
 import org.apache.orc.TypeDescription.Category
 
-import scala.collection.JavaConverters._
 
 object OrcVectorWriter {
   def fromSchema(schema: TypeDescription): OrcVectorWriter[_ <: ColumnVector, _] = {

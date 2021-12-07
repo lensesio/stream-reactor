@@ -9,7 +9,6 @@ import org.apache.hadoop.hive.metastore.api.{FieldSchema, SerDeInfo, StorageDesc
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
 import scala.util.Try
 
 class HiveTest extends AnyFlatSpec with Matchers with HiveTestConfig {

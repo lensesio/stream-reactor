@@ -7,7 +7,6 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.ql.exec.vector.StructColumnVector
 import org.apache.kafka.connect.data.{Schema, Struct}
 
-import scala.collection.JavaConverters._
 
 class OrcSink(path: Path,
               schema: Schema,

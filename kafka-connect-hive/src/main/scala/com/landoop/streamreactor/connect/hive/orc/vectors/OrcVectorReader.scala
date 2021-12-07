@@ -4,7 +4,6 @@ import org.apache.hadoop.hive.ql.exec.vector.{BytesColumnVector, ColumnVector, D
 import org.apache.orc.TypeDescription
 import org.apache.orc.TypeDescription.Category
 
-import scala.collection.JavaConverters._
 
 object OrcVectorReader {
   def fromSchema(schema: TypeDescription): OrcVectorReader[_ <: ColumnVector, Any] = schema.getCategory match {

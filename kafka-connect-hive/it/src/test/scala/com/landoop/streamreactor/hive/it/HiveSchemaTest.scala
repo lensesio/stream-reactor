@@ -8,7 +8,6 @@ import org.scalatest.time.{Millis, Span}
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.util.concurrent.TimeUnit
-import scala.collection.JavaConverters._
 import scala.io.Source
 import scala.util.Random
 

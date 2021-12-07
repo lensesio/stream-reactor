@@ -16,7 +16,6 @@ import org.apache.orc.OrcFile
 import org.apache.orc.Reader
 import org.apache.orc.OrcFile.ReaderOptions
 
-import scala.collection.JavaConverters._
 
 class OrcSource(path: Path, config: OrcSourceConfig, ugi:UgiExecute)(implicit fs: FileSystem) extends StrictLogging {
 

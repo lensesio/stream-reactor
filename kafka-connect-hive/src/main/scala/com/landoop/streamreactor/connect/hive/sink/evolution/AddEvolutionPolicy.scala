@@ -4,7 +4,6 @@ import com.landoop.streamreactor.connect.hive.{DatabaseName, HiveSchemas, TableN
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.kafka.connect.data.Schema
 
-import scala.collection.JavaConverters._
 import scala.util.Try
 
 /**

@@ -3,7 +3,6 @@ package com.landoop.streamreactor.connect.hive.source.mapper
 import com.landoop.streamreactor.connect.hive.{Partition, StructMapper}
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 
-import scala.collection.JavaConverters._
 
 class PartitionValueMapper(partition: Partition) extends StructMapper {
   override def map(input: Struct): Struct = {

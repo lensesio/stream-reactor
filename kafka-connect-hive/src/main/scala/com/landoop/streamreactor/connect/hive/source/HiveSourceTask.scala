@@ -18,7 +18,6 @@ import org.apache.hadoop.hive.metastore.HiveMetaStoreClient
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
-import scala.collection.JavaConverters._
 import scala.util.Try
 
 class HiveSourceTask extends SourceTask with StrictLogging with UgiExecute {

@@ -22,7 +22,6 @@ import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
   */
 class DropPartitionValuesMapper(plan: PartitionPlan) extends StructMapper {
 
-  import scala.collection.JavaConverters._
 
   override def map(input: Struct): Struct = {
     val partitionKeys = plan.keys.map(_.value).toList

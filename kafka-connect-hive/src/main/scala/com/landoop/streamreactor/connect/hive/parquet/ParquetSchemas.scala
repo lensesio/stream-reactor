@@ -5,7 +5,6 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.apache.parquet.schema._
 
-import scala.collection.JavaConverters._
 
 /**
   * Conversion functions to/from parquet/kafka types.
@@ -16,8 +15,7 @@ import scala.collection.JavaConverters._
 object ParquetSchemas {
 
   def toKafkaStruct(group: GroupType): Schema = {
-    import scala.collection.JavaConverters._
-    val builder = SchemaBuilder.struct().name(group.getName)
+        val builder = SchemaBuilder.struct().name(group.getName)
     group.getFields.asScala.foreach { field =>
       builder.field(field.getName, toKafka(field))
     }

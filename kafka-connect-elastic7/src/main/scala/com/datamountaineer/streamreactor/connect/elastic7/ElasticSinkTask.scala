@@ -28,7 +28,6 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
-import scala.collection.JavaConverters._
 
 class ElasticSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[ElasticJsonWriter] = None

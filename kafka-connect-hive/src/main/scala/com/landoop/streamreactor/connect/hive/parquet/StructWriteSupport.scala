@@ -8,7 +8,6 @@ import org.apache.parquet.hadoop.api.WriteSupport.FinalizedWriteContext
 import org.apache.parquet.io.api.{Binary, RecordConsumer}
 import org.apache.parquet.schema.MessageType
 
-import scala.collection.JavaConverters._
 
 // derived from Apache Spark's parquet write support, archive and license here:
 // https://github.com/apache/spark/blob/21a7bfd5c324e6c82152229f1394f26afeae771c/sql/core/src/main/scala/org/apache/spark/sql/execution/datasources/parquet/ParquetWriteSupport.scala

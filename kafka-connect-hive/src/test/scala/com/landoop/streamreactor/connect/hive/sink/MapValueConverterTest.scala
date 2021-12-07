@@ -5,7 +5,6 @@ import org.apache.kafka.connect.data.{Schema, Struct}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
 
 class MapValueConverterTest extends AnyFunSuite with Matchers {
   test("converts nested payload") {

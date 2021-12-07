@@ -5,7 +5,6 @@ import org.apache.kafka.common.config.ConfigException
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
 
 class KeytabSettingsTest extends AnyFunSuite with Matchers with FileCreation {
   test("validate a keytab setting") {

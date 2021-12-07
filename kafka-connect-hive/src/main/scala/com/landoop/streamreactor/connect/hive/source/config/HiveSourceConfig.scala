@@ -6,7 +6,6 @@ import cats.data.NonEmptyList
 import com.landoop.streamreactor.connect.hive.{DatabaseName, HadoopConfiguration, TableName, Topic}
 import com.landoop.streamreactor.connect.hive.kerberos.Kerberos
 
-import scala.collection.JavaConverters._
 
 case class ProjectionField(name: String, alias: String)
 

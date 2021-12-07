@@ -3,7 +3,8 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 import com.datamountaineer.kcql.Kcql
 import com.typesafe.scalalogging.StrictLogging
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsScala
+
 
 trait GeoAddSupport extends StrictLogging {
 

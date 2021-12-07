@@ -8,7 +8,6 @@ import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
-import scala.collection.JavaConverters._
 
 class HiveSinkConnector extends SinkConnector {
 

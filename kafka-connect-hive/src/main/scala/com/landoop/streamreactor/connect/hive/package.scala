@@ -10,7 +10,6 @@ import org.apache.hadoop.hive.metastore.{IMetaStoreClient, TableType}
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 import scala.util.Try
 

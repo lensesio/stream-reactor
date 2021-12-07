@@ -5,7 +5,6 @@ import org.apache.kafka.connect.data.{Decimal, Schema, SchemaBuilder}
 import org.apache.orc.TypeDescription
 import org.apache.orc.TypeDescription.Category
 
-import scala.collection.JavaConverters._
 
 object OrcSchemas {
 
@@ -26,8 +25,7 @@ object OrcSchemas {
   }
 
   def toKafkaStruct(schema: TypeDescription): Schema = {
-    import scala.collection.JavaConverters._
-    val builder = SchemaBuilder.struct().name("from_orc")
+        val builder = SchemaBuilder.struct().name("from_orc")
     schema.getFieldNames.asScala.zipWithIndex.foreach { case (field, k) =>
       builder.field(field, toKafka(schema.getChildren.get(k)))
     }

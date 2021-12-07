@@ -25,7 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
 import scala.util.{Failure, Success, Try}
 
 

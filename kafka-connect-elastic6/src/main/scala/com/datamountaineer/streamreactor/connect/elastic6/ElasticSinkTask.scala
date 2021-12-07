@@ -27,7 +27,6 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
-import scala.collection.JavaConverters._
 
 class ElasticSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[ElasticJsonWriter] = None

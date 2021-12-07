@@ -3,7 +3,6 @@ package com.landoop.streamreactor.connect.hive
 import org.apache.hadoop.hive.metastore.api.{FieldSchema, Table}
 import org.apache.kafka.connect.data.{Field, Schema, SchemaBuilder}
 
-import scala.collection.JavaConverters._
 
 /**
   * Conversions to and from hive types into kafka connect types.

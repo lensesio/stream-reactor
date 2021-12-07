@@ -4,7 +4,8 @@ import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSup
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala}
+
 
 /**
   * Using `SELECT .. FROM .. PK .. STOREAS GeoAdd` we can insert a record form topic into Redis with GEOADD command
