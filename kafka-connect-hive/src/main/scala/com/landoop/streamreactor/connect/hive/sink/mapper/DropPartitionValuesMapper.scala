@@ -3,6 +3,8 @@ package com.landoop.streamreactor.connect.hive.sink.mapper
 import com.landoop.streamreactor.connect.hive.{PartitionPlan, StructMapper}
 import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
 
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 /**
   * compile of [[StructMapper]] that will strip partition values
   * from an input [[Struct]] using a supplied [[PartitionPlan]].

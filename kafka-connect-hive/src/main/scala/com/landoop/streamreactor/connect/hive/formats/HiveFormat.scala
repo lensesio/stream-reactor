@@ -1,7 +1,6 @@
 package com.landoop.streamreactor.connect.hive.formats
 
 import com.landoop.streamreactor.connect.hive.Serde
-import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
 import com.landoop.streamreactor.connect.hive.kerberos.UgiExecute
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.kafka.connect.data.{Schema, Struct}

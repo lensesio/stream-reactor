@@ -1,11 +1,10 @@
 package com.landoop.streamreactor.connect.hive.formats
 
-import com.landoop.streamreactor.connect.hive.{OrcSinkConfig, OrcSourceConfig, Serde}
-import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
 import com.landoop.streamreactor.connect.hive.kerberos.UgiExecute
 import com.landoop.streamreactor.connect.hive.orc.OrcSink
-import org.apache.hadoop.fs.{FileSystem, Path}
+import com.landoop.streamreactor.connect.hive.{OrcSinkConfig, OrcSourceConfig, Serde}
 import org.apache.hadoop.fs.permission.FsPermission
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.kafka.connect.data.{Schema, Struct}
 
 import scala.util.Try
@@ -30,7 +29,7 @@ object OrcHiveFormat extends HiveFormat {
     val cretedTimestamp: Long = System.currentTimeMillis()
     var lastKnownFileSize: Long = if (fs.exists(path)) fs.getFileStatus(path).getLen else 0L
     var readFileSize = false
-    var count = 0
+    var count = 0L
 
     override def write(struct: Struct): Long = {
       sink.write(struct)

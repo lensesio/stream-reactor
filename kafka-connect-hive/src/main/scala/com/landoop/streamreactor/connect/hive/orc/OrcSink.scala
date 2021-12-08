@@ -7,13 +7,15 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.ql.exec.vector.StructColumnVector
 import org.apache.kafka.connect.data.{Schema, Struct}
 
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 class OrcSink(path: Path,
               schema: Schema,
               config: OrcSinkConfig)(implicit fs: FileSystem) extends StrictLogging {
 
   private val typeDescription = OrcSchemas.toOrc(schema)
-  private val structWriter = new StructVectorWriter(typeDescription.getChildren.asScala.map(OrcVectorWriter.fromSchema))
+  private val structWriter = new StructVectorWriter(typeDescription.getChildren.asScala.map(OrcVectorWriter.fromSchema).toSeq)
   private val batch = typeDescription.createRowBatch(config.batchSize)
   private val vector = new StructColumnVector(batch.numCols, batch.cols: _*)
   private val orcWriter = createOrcWriter(path, typeDescription, config)

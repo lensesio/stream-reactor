@@ -1,9 +1,12 @@
 package com.landoop.streamreactor.connect.hive.sink
 
+import com.fasterxml.jackson.core.`type`.TypeReference
 import com.landoop.json.sql.JacksonJson
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 
 class MapValueConverterTest extends AnyFunSuite with Matchers {
@@ -30,7 +33,8 @@ class MapValueConverterTest extends AnyFunSuite with Matchers {
         |}
         |""".stripMargin
 
-    val map = JacksonJson.toMap[Any](json)
+   val typeRef= new TypeReference[Map[String,Object]]() {}
+    val map = JacksonJson.mapper.readValue(json, typeRef)
 
     val struct = MapValueConverter.convert(map)
     //Jackson transforming the json to Map the fields order is not retained

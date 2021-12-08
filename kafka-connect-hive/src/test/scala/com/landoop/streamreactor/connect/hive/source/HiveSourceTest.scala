@@ -1,7 +1,6 @@
 package com.landoop.streamreactor.connect.hive.source
 
 import java.util
-
 import cats.data.NonEmptyList
 import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.sink.HiveSink
@@ -18,6 +17,7 @@ import org.mockito.MockitoSugar.{mock, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 import scala.util.Try
 
 class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with StrictLogging {
@@ -65,7 +65,7 @@ class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with 
       new Struct(schema).put("name", "tom").put("title", "miss").put("salary", 395.44)
     )
     users.zipWithIndex.foreach { case (user, k) =>
-      sink.write(user, TopicPartitionOffset(Topic("mytopic"), 1, Offset(k + offsetAdd)))
+      sink.write(user, TopicPartitionOffset(Topic("mytopic"), 1, Offset((k + offsetAdd).toLong)))
     }
     sink.close()
   }

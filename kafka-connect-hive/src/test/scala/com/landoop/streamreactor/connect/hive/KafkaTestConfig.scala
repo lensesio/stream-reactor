@@ -16,5 +16,6 @@ trait KafkaTestConfig {
 
   def send(topic: String, key: String, value: String): Unit = {
     producer.send(new ProducerRecord[String, String](topic, key, value))
+    ()
   }
 }

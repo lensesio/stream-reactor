@@ -4,6 +4,8 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Field, Schema}
 import org.apache.parquet.io.api.{Converter, GroupConverter}
 
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 class NestedGroupConverter(schema: Schema,
                            field: Field,
@@ -12,6 +14,6 @@ class NestedGroupConverter(schema: Schema,
   private[parquet] val builder = scala.collection.mutable.Map.empty[String, Any]
   private val converters = schema.fields.asScala.map(Converters.get(_, builder)).toIndexedSeq
   override def getConverter(k: Int): Converter = converters(k)
-  override def start(): Unit = builder.clear()
-  override def end(): Unit = parentBuilder.put(field.name, builder.result)
+  override def start(): Unit = {val _ = builder.clear()}
+  override def end(): Unit = {val _ = parentBuilder.put(field.name, builder.result())}
 }

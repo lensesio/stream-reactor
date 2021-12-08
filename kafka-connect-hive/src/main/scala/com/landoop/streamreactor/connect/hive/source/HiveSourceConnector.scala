@@ -9,6 +9,8 @@ import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 
+import scala.jdk.CollectionConverters.SeqHasAsJava
+
 
 class HiveSourceConnector extends SourceConnector with StrictLogging {
 

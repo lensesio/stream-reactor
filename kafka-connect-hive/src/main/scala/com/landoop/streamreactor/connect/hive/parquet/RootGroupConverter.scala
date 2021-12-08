@@ -4,6 +4,8 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.parquet.io.api.{Converter, GroupConverter}
 
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 class RootGroupConverter(schema: Schema) extends GroupConverter with StrictLogging {
   require(schema.`type`() == Schema.Type.STRUCT)

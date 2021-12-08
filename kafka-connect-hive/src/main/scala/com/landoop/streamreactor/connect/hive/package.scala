@@ -10,6 +10,7 @@ import org.apache.hadoop.hive.metastore.{IMetaStoreClient, TableType}
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.errors.ConnectException
 
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SeqHasAsJava}
 import scala.util.control.NonFatal
 import scala.util.Try
 
@@ -159,7 +160,7 @@ package object hive extends StrictLogging {
   def partitions(db: DatabaseName, tableName: TableName, plan: PartitionPlan)
                 (implicit client: IMetaStoreClient): Seq[Partition] = {
     // for each partition we take the values and associate with the partition keys
-    client.listPartitions(db.value, tableName.value, Short.MaxValue).asScala.map { p =>
+    client.listPartitions(db.value, tableName.value, Short.MaxValue).asScala.toSeq.map { p =>
       val values = NonEmptyList.fromListUnsafe(p.getValues.asScala.toList)
       require(values.size == plan.keys.size, "A partition value must be defined for each partition key")
       val entries = plan.keys.zipWith(values)((a, b) => (a, b))

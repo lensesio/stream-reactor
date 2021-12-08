@@ -7,6 +7,8 @@ import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 class ParquetReaderTest extends AnyWordSpec with Matchers {
 

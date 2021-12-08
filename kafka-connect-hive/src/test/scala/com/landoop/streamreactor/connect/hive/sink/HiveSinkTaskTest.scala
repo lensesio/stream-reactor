@@ -1,7 +1,6 @@
 package com.landoop.streamreactor.connect.hive.sink
 
 import java.util
-
 import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import org.apache.hadoop.fs.Path
@@ -12,6 +11,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, SeqHasAsJava}
 import scala.util.Try
 
 class HiveSinkTaskTest extends AnyFlatSpec with Matchers with HiveTestConfig {
@@ -43,7 +43,7 @@ class HiveSinkTaskTest extends AnyFlatSpec with Matchers with HiveTestConfig {
     )
 
     val records = users.zipWithIndex.map { case (user, k) =>
-      new SinkRecord("mytopic", 1, null, null, schema, user, k)
+      new SinkRecord("mytopic", 1, null, null, schema, user, k.toLong)
     }
 
     Try {
@@ -105,7 +105,7 @@ class HiveSinkTaskTest extends AnyFlatSpec with Matchers with HiveTestConfig {
     )
 
     val records = users.zipWithIndex.map { case (user, k) =>
-      new SinkRecord("mytopic", 1, null, null, schema, user, k)
+      new SinkRecord("mytopic", 1, null, null, schema, user, k.toLong)
     }
 
     Try {

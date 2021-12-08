@@ -18,11 +18,11 @@ class ListVectorWriter[V <: ColumnVector, T](writer: OrcVectorWriter[V, T])
     // 0 in the underlying vector too
     val start = if (offset == 0) 0
     else vector.offsets(offset - 1).toInt + vector.lengths(offset - 1).toInt
-    vector.offsets(offset) = start
+    vector.offsets(offset) = start.toLong
 
     value match {
       case Some(ts) =>
-        vector.lengths(offset) = value.size
+        vector.lengths(offset) = value.size.toLong
         val elementVector = vector.child.asInstanceOf[V]
         ts.zipWithIndex.foreach { case (t, k) =>
           writer.write(elementVector, start + k, Option(t))

@@ -23,6 +23,7 @@ class FileUtilsTest extends AnyFunSuite with Matchers {
     }
     finally {
       file.delete()
+      ()
     }
   }
 
@@ -34,10 +35,11 @@ class FileUtilsTest extends AnyFunSuite with Matchers {
     }
     catch {
       case throwable: Throwable =>
-        fail("Should not raise an exception")
+        fail("Should not raise an exception", throwable)
     }
     finally {
       file.delete()
+      ()
     }
   }
 }

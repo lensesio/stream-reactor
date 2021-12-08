@@ -68,7 +68,7 @@ object Dependencies {
     val classGraphVersions    = "4.4.12"
 
     val wiremockJre8Version = "2.25.1"
-    val parquetVersion      = "1.12.0"
+    val parquetVersion      = "1.12.1"
 
     val jerseyCommonVersion = "2.34"
 
@@ -88,7 +88,9 @@ object Dependencies {
 
     val californiumVersion = "2.0.0-M4"
     val bouncyCastleVersion = "1.54"
-    val nettyVersion = "4.0.47.Final"
+    //val nettyVersion = "4.0.47.Final"
+    val nettyVersion = "4.1.52.Final"
+
     val dropWizardMetricsVersion = "4.0.2"
     val cassandraDriverVersion = "4.13.0"
     val jsonPathVersion = "2.4.0"
@@ -125,7 +127,8 @@ object Dependencies {
     val fakeSftpServerVersion = "2.0.0"
 
     val hbaseClientVersion = "2.4.8"
-    val hadoopVersion = "2.10.1"
+    //val hadoopVersion = "2.10.1"
+    val hadoopVersion = "3.3.1"
 
     val zookeeperServerVersion = "3.7.0"
 
@@ -134,6 +137,10 @@ object Dependencies {
 
     val jedisVersion = "3.6.3"
     val gsonVersion = "2.8.9"
+
+    val hiveVersion = "2.1.1"
+    val joddVersion = "4.1.4"
+
   }
 
   import Versions._
@@ -214,6 +221,8 @@ object Dependencies {
 
   lazy val parquetAvro   = "org.apache.parquet" % "parquet-avro"   % parquetVersion
   lazy val parquetHadoop = "org.apache.parquet" % "parquet-hadoop" % parquetVersion
+  lazy val parquetColumn = "org.apache.parquet" % "parquet-column" % parquetVersion
+  lazy val parquetEncoding = "org.apache.parquet" % "parquet-encoding" % parquetVersion
   lazy val hadoopCommon = ("org.apache.hadoop" % "hadoop-common" % hadoopVersion)
     .excludeAll(ExclusionRule(organization = "javax.servlet"))
     .excludeAll(ExclusionRule(organization = "javax.servlet.jsp"))
@@ -299,6 +308,14 @@ object Dependencies {
 
   lazy val jedis = "redis.clients" % "jedis" % jedisVersion
   lazy val gson = "com.google.code.gson" % "gson" % gsonVersion
+
+  lazy val nettyAll = ("io.netty" % "netty-all" % nettyVersion)
+  lazy val joddCore = ("org.jodd" % "jodd-core" % joddVersion)
+  lazy val hiveJdbc = "org.apache.hive" % "hive-jdbc" % hiveVersion
+  lazy val hiveExec = ("org.apache.hive" % "hive-exec" % hiveVersion)
+    .exclude("org.apache.calcite", "calcite-avatica")
+    .exclude("com.fasterxml.jackson.core" , "jackson-annotations")
+
 }
 
 trait Dependencies {
@@ -457,6 +474,29 @@ trait Dependencies {
   val kafkaConnectHbaseDeps : Seq[ModuleID] = Seq(hadoopHdfs, hbaseClient)
 
   val kafkaConnectHbaseTestDeps : Seq[ModuleID] = Seq()
+
+
+  /**
+        compile("org.apache.parquet:parquet-column:$parquetVersion")
+        compile("org.apache.parquet:parquet-encoding:$parquetVersion")
+        compile("org.apache.parquet:parquet-hadoop:$parquetVersion")
+        compile("org.jodd:jodd-core:$joddVersion")
+        compile("org.apache.hive:hive-jdbc:$hiveVersion")
+        compile("org.apache.hive:hive-exec:$hiveVersion"){
+            exclude group: "org.apache.calcite", module: "calcite-avatica"
+            exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
+        }
+        compile("org.apache.hadoop:hadoop-common:$hadoopVersion")
+        compile("org.apache.hadoop:hadoop-hdfs:$hadoopVersion")
+        compile("org.apache.hadoop:hadoop-mapreduce:$hadoopVersion")
+        compile("org.apache.hadoop:hadoop-mapreduce-client:$hadoopVersion")
+        compile("org.apache.hadoop:hadoop-mapreduce-client-core:$hadoopVersion")
+        compile("org.typelevel:cats-core_$scalaMajorVersion:$catsVersion")
+
+   */
+  val kafkaConnectHiveDeps : Seq[ModuleID] = Seq(nettyAll, parquetAvro, parquetColumn, parquetEncoding, parquetHadoop, joddCore, hiveJdbc, hiveExec, hadoopCommon, hadoopHdfs, hadoopMapReduce)
+
+  val kafkaConnectHiveTestDeps : Seq[ModuleID] = Seq()
 
   val kafkaConnectMongoDbDeps : Seq[ModuleID] = Seq(mongoDb, json4sNative, json4sJackson)
 

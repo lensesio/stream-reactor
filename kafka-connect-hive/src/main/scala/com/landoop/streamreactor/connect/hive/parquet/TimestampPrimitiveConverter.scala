@@ -16,7 +16,8 @@ class TimestampPrimitiveConverter(field: Field, builder: scala.collection.mutabl
     val nano = NanoTime.fromBinary(x)
     val jdt = new JDateTime()
     val f = (BigDecimal(nano.getTimeOfDayNanos) - offset) / nanosInDay
-    jdt.setJulianDate(new JulianDateStamp(nano.getJulianDay, f.doubleValue()))
+    jdt.setJulianDate(new JulianDateStamp(nano.getJulianDay, f.doubleValue))
     builder.put(field.name, jdt.convertToSqlTimestamp)
+    ()
   }
 }

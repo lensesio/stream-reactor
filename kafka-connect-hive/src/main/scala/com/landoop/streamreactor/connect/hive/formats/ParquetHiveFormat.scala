@@ -31,7 +31,7 @@ object ParquetHiveFormat extends HiveFormat {
     val createdTimestamp: Long = System.currentTimeMillis()
     var lastKnownFileSize:Long = fs.getFileStatus(path).getLen
     var readFileSize = false
-    var count = 0
+    var count = 0L
 
     override def write(struct: Struct): Long = {
       writer.write(struct)

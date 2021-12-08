@@ -8,7 +8,7 @@ object TimestampVectorWriter extends OrcVectorWriter[TimestampColumnVector, Time
   override def write(vector: TimestampColumnVector, offset: Int, value: Option[Timestamp]): Unit = {
     value match {
       case Some(ts) =>
-        vector.set(offset, value.asInstanceOf[Timestamp])
+        vector.set(offset, ts)
       case _ =>
         vector.setNullValue(offset)
         vector.noNulls = false

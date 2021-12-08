@@ -16,6 +16,7 @@ import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, ListHasAsScala, MapHasAsJava, MapHasAsScala}
 import scala.util.Try
 import scala.util.control.NonFatal
 
@@ -35,7 +36,7 @@ class HiveSinkTask extends SinkTask {
   private var config: HiveSinkConfig = _
   private var kerberosLogin = Option.empty[KerberosLogin]
 
-  def this(fs: FileSystem, client: HiveMetaStoreClient) {
+  def this(fs: FileSystem, client: HiveMetaStoreClient) = {
     this()
     this.client = client
     this.fs = fs

@@ -4,6 +4,7 @@ import com.landoop.streamreactor.connect.hive.StructMapper
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.errors.ConnectException
 
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
 /**

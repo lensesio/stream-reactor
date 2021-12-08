@@ -7,5 +7,5 @@ class DictionaryStringPrimitiveConverter(field: Field,
                                          builder: scala.collection.mutable.Map[String, Any])
   extends PrimitiveConverter
     with DictionarySupport {
-  override def addBinary(x: Binary): Unit = builder.put(field.name, x.toStringUsingUTF8)
+  override def addBinary(x: Binary): Unit = {val _ = builder.put(field.name, x.toStringUsingUTF8)}
 }

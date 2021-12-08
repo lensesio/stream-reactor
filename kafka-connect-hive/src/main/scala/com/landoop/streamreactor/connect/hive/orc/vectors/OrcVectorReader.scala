@@ -4,6 +4,8 @@ import org.apache.hadoop.hive.ql.exec.vector.{BytesColumnVector, ColumnVector, D
 import org.apache.orc.TypeDescription
 import org.apache.orc.TypeDescription.Category
 
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 object OrcVectorReader {
   def fromSchema(schema: TypeDescription): OrcVectorReader[_ <: ColumnVector, Any] = schema.getCategory match {
@@ -27,6 +29,7 @@ object OrcVectorReader {
       val readers = schema.getChildren.asScala.map(fromSchema)
       new StructVectorReader(readers.toIndexedSeq, schema)
     case Category.TIMESTAMP => TimestampVectorReader
+    case other => throw new IllegalStateException(s"No match for other $other in fromSchema")
   }
 }
 

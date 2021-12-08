@@ -9,7 +9,7 @@ package object parquet {
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
   def listFiles(path: Path)(implicit fs: FileSystem): List[Path] = {
-    if (fs.isDirectory(path)) {
+    if (fs.getFileStatus(path).isDirectory) {
       logger.debug(s"$path is a directory, reading constituent files")
       val remote = fs.listFiles(path, false)
       new Iterator[Path] {

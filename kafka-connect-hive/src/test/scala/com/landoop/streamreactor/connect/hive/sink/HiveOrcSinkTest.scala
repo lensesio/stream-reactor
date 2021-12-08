@@ -1,7 +1,6 @@
 package com.landoop.streamreactor.connect.hive.sink
 
 import java.util
-
 import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.formats.OrcHiveFormat
 import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, TableOptions}
@@ -14,6 +13,7 @@ import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
 class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
@@ -217,7 +217,7 @@ class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
 
     val sink = HiveSink.from(TableName(tableName), config)
     for (k <- 1 to 1200) {
-      sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(k)))
+      sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(k.toLong)))
     }
     fs.exists(new Path(s"hdfs://namenode:8020/user/hive/warehouse/$dbname/$tableName/.streamreactor_mytopic_1")) shouldBe true
 

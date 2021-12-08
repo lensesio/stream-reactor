@@ -1,7 +1,5 @@
 package com.landoop.streamreactor.connect.hive.sink.config
 
-import java.util.Collections
-
 import cats.data.NonEmptyList
 import com.datamountaineer.kcql.{Field, PartitioningStrategy, SchemaEvolution}
 import com.landoop.streamreactor.connect.hive._
@@ -10,6 +8,9 @@ import com.landoop.streamreactor.connect.hive.kerberos.Kerberos
 import com.landoop.streamreactor.connect.hive.sink.evolution.{AddEvolutionPolicy, EvolutionPolicy, IgnoreEvolutionPolicy, StrictEvolutionPolicy}
 import com.landoop.streamreactor.connect.hive.sink.partitioning.{DynamicPartitionHandler, PartitionHandler, StrictPartitionHandler}
 import com.landoop.streamreactor.connect.hive.sink.staging._
+
+import java.util.Collections
+import scala.jdk.CollectionConverters.{IteratorHasAsScala, ListHasAsScala, MapHasAsJava}
 
 
 case class HiveSinkConfig(dbName: DatabaseName,

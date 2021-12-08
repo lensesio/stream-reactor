@@ -1,11 +1,11 @@
 package com.landoop.streamreactor.connect.hive.kerberos
 
-import java.io.File
-
 import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfigDefBuilder, SinkConfigSettings}
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 
 class UserPasswordSettingsTest extends AnyFunSuite with Matchers with FileCreation {
@@ -38,6 +38,7 @@ class UserPasswordSettingsTest extends AnyFunSuite with Matchers with FileCreati
     finally {
       fileKrb5.delete()
       fileJaas.delete()
+      ()
     }
   }
 
@@ -70,6 +71,7 @@ class UserPasswordSettingsTest extends AnyFunSuite with Matchers with FileCreati
     finally {
       fileKrb5.delete()
       fileJaas.delete()
+      ()
     }
   }
 
@@ -102,6 +104,7 @@ class UserPasswordSettingsTest extends AnyFunSuite with Matchers with FileCreati
     finally {
       fileKrb5.delete()
       fileJaas.delete()
+      ()
     }
   }
 
@@ -131,12 +134,12 @@ class UserPasswordSettingsTest extends AnyFunSuite with Matchers with FileCreati
     }
     finally {
       fileJaas.delete()
+      ()
     }
   }
 
   test("raises and exception when the jaas file is not set") {
     val fileKrb5 = createFile(s"krb1.krb5")
-    val fileJaas = new File(s"jaas1.jaas")
     try {
       val user = "yoda"
       val password = "123456"
@@ -157,10 +160,12 @@ class UserPasswordSettingsTest extends AnyFunSuite with Matchers with FileCreati
 
       intercept[ConfigException] {
         UserPasswordSettings.from(config, SinkConfigSettings)
+        ()
       }
     }
     finally {
       fileKrb5.delete()
+      ()
     }
   }
 }

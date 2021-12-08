@@ -1,7 +1,6 @@
 package com.landoop.streamreactor.connect.hive
 
 import java.util
-
 import cats.data.NonEmptyList
 import com.landoop.streamreactor.connect.hive.formats.ParquetHiveFormat
 import org.apache.hadoop.hive.metastore.TableType
@@ -9,6 +8,7 @@ import org.apache.hadoop.hive.metastore.api.{FieldSchema, SerDeInfo, StorageDesc
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
 import scala.util.Try
 
 class HiveTest extends AnyFlatSpec with Matchers with HiveTestConfig {

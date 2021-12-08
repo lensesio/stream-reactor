@@ -5,6 +5,8 @@ import org.apache.kafka.connect.data.{Decimal, Schema, SchemaBuilder}
 import org.apache.orc.TypeDescription
 import org.apache.orc.TypeDescription.Category
 
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 object OrcSchemas {
 
@@ -22,6 +24,7 @@ object OrcSchemas {
     case Category.DATE => Schema.OPTIONAL_STRING_SCHEMA
     case Category.TIMESTAMP => Schema.OPTIONAL_STRING_SCHEMA
     case Category.STRUCT => toKafkaStruct(schema)
+    case other => throw new IllegalStateException(s"No match for other $other in toKafka")
   }
 
   def toKafkaStruct(schema: TypeDescription): Schema = {

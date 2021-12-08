@@ -25,7 +25,7 @@ lazy val root = Project("stream-reactor", file("."))
     ftp,
     hazelCast,
     hbase,
-    //hive
+    hive,
     influx,
     jms,
     kudu,
@@ -267,6 +267,24 @@ lazy val hbase = (project in file("kafka-connect-hbase"))
       )
   )
   .configureTestsForProject(testDeps = kafkaConnectHbaseTestDeps)
+  .enablePlugins(PackPlugin)
+
+lazy val hive = (project in file("kafka-connect-hive"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-hive",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectHiveDeps,
+
+        publish / skip := true,
+        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
+        packGenerateMakefile := false,
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
+      )
+  )
+  .configureTestsForProject(testDeps = kafkaConnectHiveTestDeps)
   .enablePlugins(PackPlugin)
 
 lazy val mongoDb = (project in file("kafka-connect-mongodb"))

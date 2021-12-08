@@ -18,6 +18,7 @@ import org.apache.hadoop.hive.metastore.HiveMetaStoreClient
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala, SeqHasAsJava}
 import scala.util.Try
 
 class HiveSourceTask extends SourceTask with StrictLogging with UgiExecute {
@@ -35,7 +36,7 @@ class HiveSourceTask extends SourceTask with StrictLogging with UgiExecute {
   private var lastRefresh: Instant = Instant.now()
   private var lastOffsets: Option[Map[SourcePartition, SourceOffset]] = None
 
-  def this(fs: FileSystem, client: HiveMetaStoreClient) {
+  def this(fs: FileSystem, client: HiveMetaStoreClient) = {
     this()
     this.client = client
     this.fs = fs
@@ -130,7 +131,7 @@ class HiveSourceTask extends SourceTask with StrictLogging with UgiExecute {
 
   private def refreshIfNecessary(): Unit = {
     if (config.refreshFrequency > 0) {
-      val nextRefresh = lastRefresh.plus(config.refreshFrequency, ChronoUnit.SECONDS)
+      val nextRefresh = lastRefresh.plus(config.refreshFrequency.toLong, ChronoUnit.SECONDS)
       if (Instant.now().isAfter(nextRefresh)) {
 
         val currentOffsets = originalSourceOffsets

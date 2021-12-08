@@ -5,6 +5,9 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.apache.parquet.schema._
 
+import scala.annotation.nowarn
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 /**
   * Conversion functions to/from parquet/kafka types.
@@ -54,6 +57,7 @@ object ParquetSchemas {
 
   def toKafka(t: PrimitiveType): Schema = {
 
+    @nowarn
     def int32(original: OriginalType): SchemaBuilder = original match {
       case OriginalType.INT_32 | OriginalType.UINT_32 => SchemaBuilder.`type`(Schema.Type.INT32)
       case OriginalType.UINT_16 | OriginalType.INT_16 => SchemaBuilder.`type`(Schema.Type.INT16)
@@ -62,18 +66,21 @@ object ParquetSchemas {
       case _ => SchemaBuilder.`type`(Schema.Type.INT32)
     }
 
+    @nowarn
     def int64(original: OriginalType): SchemaBuilder = original match {
       case OriginalType.UINT_64 | OriginalType.INT_64 => SchemaBuilder.`type`(Schema.Type.INT64)
       case OriginalType.TIMESTAMP_MILLIS => SchemaBuilder.`type`(Schema.Type.INT64)
       case _ => SchemaBuilder.`type`(Schema.Type.INT64)
     }
 
+    @nowarn
     def binary(original: OriginalType): SchemaBuilder = original match {
       case OriginalType.ENUM => SchemaBuilder.`type`(Schema.Type.STRING)
       case OriginalType.UTF8 => SchemaBuilder.`type`(Schema.Type.STRING)
       case _ => SchemaBuilder.`type`(Schema.Type.BYTES)
     }
 
+    @nowarn
     val builder: SchemaBuilder = t.getPrimitiveTypeName match {
       case PrimitiveTypeName.BINARY => binary(t.getOriginalType)
       case PrimitiveTypeName.BOOLEAN => SchemaBuilder.`type`(Schema.Type.BOOLEAN)
@@ -90,24 +97,24 @@ object ParquetSchemas {
 
   def toParquetMessage(struct: Schema, name: String): MessageType = {
     require(name != null, "name cannot be null")
-    val types = struct.fields.asScala.map(field => toParquetType(field.schema(), field.name()))
+    val types = struct.fields.asScala.toSeq.map(field => toParquetType(field.schema(), field.name()))
     Types.buildMessage().addFields(types: _*).named(name)
   }
 
   def toParquetGroup(struct: Schema, name: String, repetition: Type.Repetition): GroupType = {
-    val types = struct.fields.asScala.map(field => toParquetType(field.schema(), field.name()))
+    val types = struct.fields.asScala.toSeq.map(field => toParquetType(field.schema(), field.name()))
     Types.buildGroup(repetition).addFields(types: _*).named(name)
   }
 
   def toParquetType(schema: Schema, name: String): Type = {
     val repetition = if (schema.isOptional) Type.Repetition.OPTIONAL else Type.Repetition.REQUIRED
     schema.`type`() match {
-      case Schema.Type.STRING => Types.primitive(PrimitiveTypeName.BINARY, repetition).as(OriginalType.UTF8).named(name)
+      case Schema.Type.STRING => Types.primitive(PrimitiveTypeName.BINARY, repetition).as(LogicalTypeAnnotation.stringType()).named(name)
       case Schema.Type.BOOLEAN => Types.primitive(PrimitiveTypeName.BOOLEAN, repetition).named(name)
       case Schema.Type.FLOAT32 => Types.primitive(PrimitiveTypeName.FLOAT, repetition).named(name)
       case Schema.Type.FLOAT64 => Types.primitive(PrimitiveTypeName.DOUBLE, repetition).named(name)
-      case Schema.Type.INT8 => Types.primitive(PrimitiveTypeName.INT32, repetition).as(OriginalType.INT_8).named(name)
-      case Schema.Type.INT16 => Types.primitive(PrimitiveTypeName.INT32, repetition).as(OriginalType.INT_16).named(name)
+      case Schema.Type.INT8 => Types.primitive(PrimitiveTypeName.INT32, repetition).as(LogicalTypeAnnotation.intType(8, true)).named(name)
+      case Schema.Type.INT16 => Types.primitive(PrimitiveTypeName.INT32, repetition).as(LogicalTypeAnnotation.intType(16, true)).named(name)
       case Schema.Type.INT32 => Types.primitive(PrimitiveTypeName.INT32, repetition).named(name)
       case Schema.Type.INT64 => Types.primitive(PrimitiveTypeName.INT64, repetition).named(name)
       case Schema.Type.BYTES => Types.primitive(PrimitiveTypeName.BINARY, repetition).named(name)

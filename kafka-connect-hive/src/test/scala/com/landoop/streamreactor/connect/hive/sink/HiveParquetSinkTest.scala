@@ -1,7 +1,6 @@
 package com.landoop.streamreactor.connect.hive.sink
 
 import java.util
-
 import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, TableOptions}
 import com.landoop.streamreactor.connect.hive.sink.evolution.AddEvolutionPolicy
@@ -12,6 +11,7 @@ import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
 class HiveParquetSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
