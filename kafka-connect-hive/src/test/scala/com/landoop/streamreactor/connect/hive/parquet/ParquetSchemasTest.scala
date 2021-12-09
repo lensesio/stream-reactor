@@ -1,6 +1,6 @@
 package com.landoop.streamreactor.connect.hive.parquet
 
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
+import org.apache.kafka.connect.data.{Decimal, Schema, SchemaBuilder}
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.apache.parquet.schema.Type.Repetition
 import org.apache.parquet.schema.{LogicalTypeAnnotation, Types}
@@ -15,30 +15,30 @@ class ParquetSchemasTest extends AnyFlatSpec with Matchers {
 
   it should "support tinyint" in {
     ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT32).as(LogicalTypeAnnotation.intType(8, true)).named("foo")) shouldBe Schema.OPTIONAL_INT8_SCHEMA
-    ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT32).as(LogicalTypeAnnotation.intType(8, false)).named("foo")) shouldBe Schema.OPTIONAL_INT8_SCHEMA
+    ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT32).as(LogicalTypeAnnotation.intType(8, false)).named("foo")) shouldBe Schema.OPTIONAL_INT16_SCHEMA
   }
 
   it should "support smallint" in {
     ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT32).as(LogicalTypeAnnotation.intType(16, true)).named("foo")) shouldBe Schema.OPTIONAL_INT16_SCHEMA
-    ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT32).as(LogicalTypeAnnotation.intType(16, false)).named("foo")) shouldBe Schema.OPTIONAL_INT16_SCHEMA
+    ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT32).as(LogicalTypeAnnotation.intType(16, false)).named("foo")) shouldBe Schema.OPTIONAL_INT32_SCHEMA
   }
 
   it should "support 32 bit ints" in {
     ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT32).named("foo")) shouldBe Schema.OPTIONAL_INT32_SCHEMA
     ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT32).as(LogicalTypeAnnotation.intType(32, true)).named("foo")) shouldBe Schema.OPTIONAL_INT32_SCHEMA
-    ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT32).as(LogicalTypeAnnotation.intType(32, false)).named("foo")) shouldBe Schema.OPTIONAL_INT32_SCHEMA
+    ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT32).as(LogicalTypeAnnotation.intType(32, false)).named("foo")) shouldBe Schema.OPTIONAL_INT64_SCHEMA
     ParquetSchemas.toKafka(Types.required(PrimitiveTypeName.INT32).named("foo")) shouldBe Schema.INT32_SCHEMA
-    ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT32).as(LogicalTypeAnnotation.intType(32, true)).named("foo")) shouldBe Schema.INT32_SCHEMA
-    ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT32).as(LogicalTypeAnnotation.intType(32, false)).named("foo")) shouldBe Schema.INT32_SCHEMA
+    ParquetSchemas.toKafka(Types.required(PrimitiveTypeName.INT32).as(LogicalTypeAnnotation.intType(32, true)).named("foo")) shouldBe Schema.INT32_SCHEMA
+    ParquetSchemas.toKafka(Types.required(PrimitiveTypeName.INT32).as(LogicalTypeAnnotation.intType(32, false)).named("foo")) shouldBe Schema.INT64_SCHEMA
   }
 
   it should "support 64 bit longs" in {
     ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT64).named("foo")) shouldBe Schema.OPTIONAL_INT64_SCHEMA
     ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT64).as(LogicalTypeAnnotation.intType(64, true)).named("foo")) shouldBe Schema.OPTIONAL_INT64_SCHEMA
-    ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT64).as(LogicalTypeAnnotation.intType(64, false)).named("foo")) shouldBe Schema.OPTIONAL_INT64_SCHEMA
+    ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT64).as(LogicalTypeAnnotation.intType(64, false)).named("foo")) shouldBe Decimal.builder(128).optional().build()
     ParquetSchemas.toKafka(Types.required(PrimitiveTypeName.INT64).named("foo")) shouldBe Schema.INT64_SCHEMA
-    ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT64).as(LogicalTypeAnnotation.intType(64, true)).named("foo")) shouldBe Schema.INT64_SCHEMA
-    ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.INT64).as(LogicalTypeAnnotation.intType(64, false)).named("foo")) shouldBe Schema.INT64_SCHEMA
+    ParquetSchemas.toKafka(Types.required(PrimitiveTypeName.INT64).as(LogicalTypeAnnotation.intType(64, true)).named("foo")) shouldBe Schema.INT64_SCHEMA
+    ParquetSchemas.toKafka(Types.required(PrimitiveTypeName.INT64).as(LogicalTypeAnnotation.intType(64, false)).named("foo")) shouldBe Decimal.builder(128).required().build()
   }
 
   it should "support double" in {
