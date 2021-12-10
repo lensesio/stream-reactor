@@ -150,6 +150,8 @@ allprojects {
             exclude(dependency("org.apache.kafka:.*"))
             exclude(dependency("org.apache.zookeeper:.*"))
             exclude(dependency("com.google.guava:guava:28.1-android"))
+            exclude(dependency("log4j:.*"))
+            exclude(dependency("org.apache.logging.log4j:.*"))
         }
     }
 
