@@ -61,12 +61,12 @@ allprojects {
         //avroVersion="1.8.1"
         scalaLoggingVersion = '3.9.2'
         mockitoVersion = '1.13.9'
-        slf4jVersion = "1.7.7"
         json4sVersion = "3.6.7"
         gsonVersion = "2.6.2"
         kcqlVersion = "2.8.7"
         connectCLIVersion = "1.0.6"
         avro4sVersion = "1.7.0"
+        logbackVersion = "1.2.7"
 
         // The following 4 need to align to compileagainst a particular version
         confluentVersion = '5.5.0'
@@ -154,6 +154,8 @@ allprojects {
     }
 
     dependencies {
+        implementation "ch.qos.logback:logback-classic:$logbackVersion"
+        implementation "ch.qos.logback:logback-core:$logbackVersion"
 
         compile "org.scala-lang:scala-library:$scala"
         compile "org.scala-lang:scala-compiler:$scala"
@@ -162,6 +164,10 @@ allprojects {
         compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
         compile ("io.confluent:kafka-schema-registry:$confluentVersion") {
             exclude group: 'com.google.guava', module: 'guava'
+            exclude group: 'log4j', module: 'log4j'
+            exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+            exclude group: 'org.apache.logging.log4j', module: 'log4j-api'
+            exclude group: 'org.apache.logging.log4j', module: 'log4j-core'
         }
 
         compile "org.apache.calcite:calcite-linq4j:$link4jVersion"
@@ -175,7 +181,9 @@ allprojects {
         testCompile "junit:junit:$junit"
 
         testCompile 'org.pegdown:pegdown:1.1.0'
-        testCompile "com.vladsch.flexmark:flexmark-all:0.35.10"
+        testCompile ("com.vladsch.flexmark:flexmark-all:0.35.10") {
+            exclude group: "log4j", module: "log4j"
+        }
         testImplementation "org.testcontainers:testcontainers:$testcontainersVersion"
     }
 
