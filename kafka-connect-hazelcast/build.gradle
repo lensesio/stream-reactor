@@ -17,12 +17,12 @@
 project(":kafka-connect-hazelcast") {
 
     ext {
-        hazelCastVersion = "3.12.6"
+        hazelCastVersion = "3.12.12"
         javaxCacheversion = "1.0.0"
     }
 
     test {
-        systemProperty 'hazelcast.logging.type', 'log4j'
+        systemProperty 'hazelcast.logging.type', 'slf4j'
     }
 
     dependencies {

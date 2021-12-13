@@ -33,7 +33,7 @@ class TestHazelCastSinkTask extends TestBase with MockitoSugar {
 
   "should start SinkTask and write json" in {
     val configApp1 = new Config()
-    configApp1.setProperty( "hazelcast.logging.type", "log4j" )
+    configApp1.setProperty( "hazelcast.logging.type", "slf4j" )
     val gc = new  GroupConfig(TESTS_GROUP_NAME, HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DEFAULT)
     configApp1.setGroupConfig(gc)
     val instance = Hazelcast.newHazelcastInstance(configApp1)
