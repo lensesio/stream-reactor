@@ -26,11 +26,6 @@ project(":kafka-connect-pulsar") {
         compile "org.apache.pulsar:pulsar-client:$pulsarVersion"
         compile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
         compile "com.sksamuel.avro4s:avro4s-json_$scalaMajorVersion:$avro4sVersion"
-        implementation("com.landoop:kafka-connect-smt_$scalaMajorVersion:$smt") {
-            exclude group: "com.google.protobuf"
-            exclude group: "org.apache.calcite", module: "calcite-linq4j"
-            exclude group: "org.apache.httpcomponents"
-        }
 
         testCompile "org.json4s:json4s-core_$scalaMajorVersion:$json4sVersion"
         testCompile "org.json4s:json4s-jackson_$scalaMajorVersion:$json4sVersion"
