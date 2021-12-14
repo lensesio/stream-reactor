@@ -17,13 +17,13 @@
 package com.datamountaineer.streamreactor.connect.elastic6
 
 import java.util.UUID
-
 import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
 import com.sksamuel.elastic4s.embedded.LocalNode
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
 
+import scala.annotation.nowarn
 import scala.reflect.io.File
 
 
@@ -36,10 +36,11 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
     //get test records
-    val testRecords = getTestRecords
+    val testRecords = getTestRecords()
     //get config
     val config = new ElasticConfig(getElasticSinkConfigPropsSelection())
 
+    @nowarn
     val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
     val client = localNode.client(true)
     //get writer
@@ -72,6 +73,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get config
     val config = new ElasticConfig( getBaseElasticSinkConfigProps(s"INSERT INTO $INDEX SELECT id, nested.string_field FROM $TOPIC"))
 
+    @nowarn
     val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
     val client = localNode.client(true)
     //get writer
@@ -100,10 +102,11 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
     //get test records
-    val testRecords = getTestRecords
+    val testRecords = getTestRecords()
     //get config
     val config = new ElasticConfig(getElasticSinkUpdateConfigPropsSelection())
 
+    @nowarn
     val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
     val client = localNode.client(true)
     val settings = ElasticSettings(config)
@@ -147,6 +150,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get config
     val config = new ElasticConfig(getBaseElasticSinkConfigProps(s"UPSERT INTO $INDEX SELECT nested.id, string_field FROM $TOPIC PK nested.id"))
 
+    @nowarn
     val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
     val client = localNode.client(true)
     val settings = ElasticSettings(config)

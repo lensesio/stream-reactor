@@ -20,8 +20,8 @@ lazy val root = Project("stream-reactor", file("."))
     azureDocumentDb,
     cassandra,
     coap,
-    //elastic6,
-    //elastic7,
+    elastic6,
+    elastic7,
     ftp,
     hazelCast,
     hbase,
@@ -123,6 +123,24 @@ lazy val cassandra = (project in file("kafka-connect-cassandra"))
       )
   )
   .configureTestsForProject(testDeps = kafkaConnectCassandraTestDeps)
+  .enablePlugins(PackPlugin)
+
+lazy val elastic6 = (project in file("kafka-connect-elastic6"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-elastic6",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectElastic6Deps,
+
+        publish / skip := true,
+        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
+        packGenerateMakefile := false,
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
+      )
+  )
+  .configureTestsForProject(testDeps = kafkaConnectElastic6TestDeps)
   .enablePlugins(PackPlugin)
 
 lazy val elastic7 = (project in file("kafka-connect-elastic7"))
@@ -357,3 +375,7 @@ dependencyCheckNodeAnalyzerEnabled := Some(false)
 dependencyCheckNodeAuditAnalyzerEnabled := Some(false)
 dependencyCheckNPMCPEAnalyzerEnabled := Some(false)
 dependencyCheckRetireJSAnalyzerEnabled := Some(false)
+
+excludeDependencies ++= globalExcludeDeps
+
+

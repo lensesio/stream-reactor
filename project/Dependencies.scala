@@ -1,5 +1,7 @@
 import Dependencies._
+import sbt.Keys.excludeDependencies
 import sbt._
+import sbt.librarymanagement.InclExclRule
 
 import scala.collection.immutable
 
@@ -142,9 +144,21 @@ object Dependencies {
     val hiveVersion = "2.1.1"
     val joddVersion = "4.1.4"
 
-    val elastic4sVersion = "7.7.0"
-    val elasticSearchVersion = "7.7.0"
-    val jnaVersion = "4.5.1"
+    trait ElasticVersions {
+      val elastic4sVersion, elasticSearchVersion, jnaVersion: String
+    }
+
+    object Elastic6Versions extends ElasticVersions() {
+      override val elastic4sVersion: String = "6.7.8"
+      override val elasticSearchVersion: String = "6.7.2"
+      override val jnaVersion: String = "3.0.9"
+    }
+
+    object Elastic7Versions extends ElasticVersions {
+      override val elastic4sVersion: String = "7.7.0"
+      override val elasticSearchVersion: String = "7.7.0"
+      override val jnaVersion: String = "4.5.1"
+    }
 
   }
 
@@ -326,16 +340,16 @@ object Dependencies {
     .exclude("org.apache.calcite", "calcite-avatica")
     .exclude("com.fasterxml.jackson.core" , "jackson-annotations")
 
-  lazy val elastic4sCore = ("com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion)
-  lazy val elastic4sClient = ("com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % elastic4sVersion)
-  lazy val elastic4sTestKit = ("com.sksamuel.elastic4s" %% "elastic4s-testkit" % elastic4sVersion % Test)
+  def elastic4sCore(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-core" % v)
+  def elastic4sClient(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % v)
+  def elastic4sTestKit(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-testkit" % v % Test)
+  def elastic4sHttp(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-http" % v)
+  def elastic4sEmbedded(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-embedded" % v % Test)
 
-  lazy val elastic4s: Seq[ModuleID] = Seq(elastic4sCore, elastic4sClient)
+  def elasticSearch(v: String) = ("org.elasticsearch" % "elasticsearch" % v)
+  def elasticSearchAnalysis(v: String) = ("org.codelibs.elasticsearch.module" % "analysis-common" % v)
 
-  lazy val elasticSearch = ("org.elasticsearch" % "elasticsearch" % elasticSearchVersion)
-  lazy val elasticSearchAnalysis = ("org.codelibs.elasticsearch.module" % "analysis-common" % elasticSearchVersion)
-
-  lazy val jna = ("net.java.dev.jna" % "jna" % jnaVersion)
+  def jna(v: String) = ("net.java.dev.jna" % "jna" % v)
 
 }
 
@@ -482,8 +496,26 @@ trait Dependencies {
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
 
-  val kafkaConnectElastic7Deps : Seq[ModuleID] = elastic4s ++ Seq(jna, elasticSearch, elasticSearchAnalysis)
-  val kafkaConnectElastic7TestDeps : Seq[ModuleID] = Seq(elastic4sTestKit, testContainers, testContainersElasticSearch)
+  def elasticCommonDeps(v: ElasticVersions) : Seq[ModuleID] = Seq(
+    elastic4sCore(v.elastic4sVersion),
+    jna(v.jnaVersion),
+    elasticSearch(v.elasticSearchVersion),
+    elasticSearchAnalysis(v.elasticSearchVersion)
+  )
+
+  def elasticTestCommonDeps(v: ElasticVersions) : Seq[ModuleID] = Seq(
+    elastic4sTestKit(v.elastic4sVersion),
+    testContainers,
+    testContainersElasticSearch
+  )
+
+  val kafkaConnectElastic6Deps : Seq[ModuleID] = elasticCommonDeps(Elastic6Versions) ++ Seq(elastic4sHttp(Elastic6Versions.elastic4sVersion))
+
+  val kafkaConnectElastic6TestDeps : Seq[ModuleID] = elasticTestCommonDeps(Elastic6Versions) ++ Seq(elastic4sEmbedded(Elastic6Versions.elastic4sVersion))
+
+  val kafkaConnectElastic7Deps : Seq[ModuleID] = elasticCommonDeps(Elastic7Versions) ++ Seq(elastic4sClient(Elastic7Versions.elastic4sVersion))
+
+  val kafkaConnectElastic7TestDeps : Seq[ModuleID] = elasticTestCommonDeps(Elastic7Versions) ++ Seq()
 
   val kafkaConnectFtpDeps : Seq[ModuleID] = Seq(commonsNet, commonsCodec, commonsIO, jsch)
     .map(_.exclude("org.slf4j", "slf4j-log4j12"))
@@ -520,6 +552,13 @@ trait Dependencies {
   // build plugins
   val kindProjectorPlugin = addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion)
   val betterMonadicFor    = addCompilerPlugin("com.olegpy" %% "better-monadic-for" % betterMonadicForVersion)
+
+  val globalExcludeDeps : Seq[InclExclRule] = Seq(
+    "log4j" % "log4j",
+    "org.slf4j" % "slf4j-log4j12",
+    "org.apache.logging.log4j" % "log4j-api",
+    "org.apache.logging.log4j" % "log4j-core",
+  )
 
   implicit final class ProjectRoot(project: Project) {
 

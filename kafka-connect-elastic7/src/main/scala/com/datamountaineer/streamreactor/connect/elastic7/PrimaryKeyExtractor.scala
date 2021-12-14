@@ -134,9 +134,9 @@ object PrimaryKeyExtractor {
           }
         case Time.LOGICAL_NAME =>
           value.asInstanceOf[Any] match {
-            case _: Int =>
+            case i: Int =>
               checkValidPath()
-              Time.toLogical(field.schema, value.asInstanceOf[Int])
+              Time.toLogical(field.schema, i)
             case d: java.util.Date =>
               checkValidPath()
               d

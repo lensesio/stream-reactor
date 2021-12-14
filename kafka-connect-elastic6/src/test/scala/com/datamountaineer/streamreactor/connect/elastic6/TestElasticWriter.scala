@@ -18,7 +18,6 @@ package com.datamountaineer.streamreactor.connect.elastic6
 
 import java.nio.file.Paths
 import java.util.UUID
-
 import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticSettings}
 import com.sksamuel.elastic4s.embedded.LocalNode
 import com.sksamuel.elastic4s.http.ElasticClient
@@ -27,6 +26,7 @@ import org.elasticsearch.common.settings.Settings
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 
+import scala.annotation.nowarn
 import scala.reflect.io.File
 
 
@@ -54,6 +54,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
 
     def writeTestRecords(localNodeSettings: Settings, props: java.util.Map[String, String]) = {
 
+      @nowarn
       val localNode = LocalNode(localNodeSettings)
 
       val client = localNode.client(true)
