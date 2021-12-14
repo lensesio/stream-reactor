@@ -37,7 +37,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
     //get test records
-    val testRecords = getTestRecords
+    val testRecords = getTestRecords()
     //get config
     val config = new ElasticConfig(getElasticSinkConfigPropsSelection())
 
@@ -103,7 +103,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
     //get test records
-    val testRecords = getTestRecords
+    val testRecords = getTestRecords()
     //get config
     val config = new ElasticConfig(getElasticSinkUpdateConfigPropsSelection())
 

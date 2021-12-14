@@ -24,8 +24,6 @@ class TestSinkTask extends TestElasticBase with MockitoSugar {
     //mock the context to return our assignment when called
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
-    //get test records
-    val testRecords = getTestRecords
     //get config
     val config = getElasticSinkConfigProps()
     //get task

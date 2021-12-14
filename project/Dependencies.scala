@@ -142,6 +142,10 @@ object Dependencies {
     val hiveVersion = "2.1.1"
     val joddVersion = "4.1.4"
 
+    val elastic4sVersion = "7.7.0"
+    val elasticSearchVersion = "7.7.0"
+    val jnaVersion = "4.5.1"
+
   }
 
   import Versions._
@@ -278,6 +282,7 @@ object Dependencies {
   lazy val testContainers = ("com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion)
   lazy val testContainersCassandra = ("com.dimafeng" %% "testcontainers-scala-cassandra" % testcontainersScalaVersion)
   lazy val testContainersToxiProxy = ("com.dimafeng" %% "testcontainers-scala-toxiproxy" % testcontainersScalaVersion)
+  lazy val testContainersElasticSearch = ("com.dimafeng" %% "testcontainers-scala-elasticsearch" % testcontainersScalaVersion)
   lazy val dropWizardMetrics = ("io.dropwizard.metrics" % "metrics-jmx" % dropWizardMetricsVersion)
 
   lazy val hazelCast = ("com.hazelcast" % "hazelcast-all" % hazelCastVersion)
@@ -320,6 +325,18 @@ object Dependencies {
   lazy val hiveExec = ("org.apache.hive" % "hive-exec" % hiveVersion)// classifier "core"
     .exclude("org.apache.calcite", "calcite-avatica")
     .exclude("com.fasterxml.jackson.core" , "jackson-annotations")
+
+  lazy val elastic4sCore = ("com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion)
+  lazy val elastic4sClient = ("com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % elastic4sVersion)
+  lazy val elastic4sTestKit = ("com.sksamuel.elastic4s" %% "elastic4s-testkit" % elastic4sVersion % Test)
+
+  lazy val elastic4s: Seq[ModuleID] = Seq(elastic4sCore, elastic4sClient)
+
+  lazy val elasticSearch = ("org.elasticsearch" % "elasticsearch" % elasticSearchVersion)
+  lazy val elasticSearchAnalysis = ("org.codelibs.elasticsearch.module" % "analysis-common" % elasticSearchVersion)
+
+  lazy val jna = ("net.java.dev.jna" % "jna" % jnaVersion)
+
 }
 
 trait Dependencies {
@@ -464,6 +481,9 @@ trait Dependencies {
     .map(_.exclude("org.slf4j", "slf4j-log4j12"))
     .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
     .map(_.exclude("com.sun.jersey", "*"))
+
+  val kafkaConnectElastic7Deps : Seq[ModuleID] = elastic4s ++ Seq(jna, elasticSearch, elasticSearchAnalysis)
+  val kafkaConnectElastic7TestDeps : Seq[ModuleID] = Seq(elastic4sTestKit, testContainers, testContainersElasticSearch)
 
   val kafkaConnectFtpDeps : Seq[ModuleID] = Seq(commonsNet, commonsCodec, commonsIO, jsch)
     .map(_.exclude("org.slf4j", "slf4j-log4j12"))

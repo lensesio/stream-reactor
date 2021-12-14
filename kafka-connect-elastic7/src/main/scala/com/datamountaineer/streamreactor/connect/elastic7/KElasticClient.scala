@@ -32,7 +32,7 @@ import org.apache.http.impl.nio.client.HttpAsyncClientBuilder
 import scala.concurrent.Future
 
 trait KElasticClient extends AutoCloseable {
-  def index(kcql: Kcql)
+  def index(kcql: Kcql): Unit
 
   def execute(definition: BulkRequest): Future[Any]
 }
@@ -73,6 +73,7 @@ class HttpKElasticClient(client: ElasticClient) extends KElasticClient {
     client.execute {
       createIndex(indexName)
     }
+    ()
   }
 
   override def execute(definition: BulkRequest): Future[Response[BulkResponse]] = client.execute(definition)

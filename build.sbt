@@ -125,6 +125,24 @@ lazy val cassandra = (project in file("kafka-connect-cassandra"))
   .configureTestsForProject(testDeps = kafkaConnectCassandraTestDeps)
   .enablePlugins(PackPlugin)
 
+lazy val elastic7 = (project in file("kafka-connect-elastic7"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-elastic7",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectElastic7Deps,
+
+        publish / skip := true,
+        packDir := s"pack_${CrossVersion.binaryScalaVersion(scalaVersion.value)}",
+        packGenerateMakefile := false,
+        packExcludeJars := Seq("kafka-clients.*\\.jar", "kafka-clients.*\\.jar", "hadoop-yarn.*\\.jar")
+      )
+  )
+  .configureTestsForProject(testDeps = kafkaConnectElastic7TestDeps)
+  .enablePlugins(PackPlugin)
+
 lazy val hazelCast = (project in file("kafka-connect-hazelcast"))
   .dependsOn(common)
   .settings(
