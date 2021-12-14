@@ -61,7 +61,7 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
 
     AvroParquetWriter
       .builder[AnyRef](outputFile)
-      .withRowGroupSize(DEFAULT_BLOCK_SIZE.toLong)
+      .withRowGroupSize(DEFAULT_BLOCK_SIZE)
       .withPageSize(DEFAULT_PAGE_SIZE)
       .withSchema(schema)
       .build()

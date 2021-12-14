@@ -1,14 +1,14 @@
-package com.landoop.streamreactor.connect.hive.sink
+package com.landoop.streamreactor.connect.hive.it
 
-import java.util
+import com.dimafeng.testcontainers.ForAllTestContainer
 import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.formats.OrcHiveFormat
+import com.landoop.streamreactor.connect.hive.sink.HiveSink
 import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, TableOptions}
 import com.landoop.streamreactor.connect.hive.sink.evolution.AddEvolutionPolicy
 import com.landoop.streamreactor.connect.hive.sink.partitioning.StrictPartitionHandler
 import com.landoop.streamreactor.connect.hive.sink.staging.DefaultCommitPolicy
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hive.metastore.api.Database
 import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -16,7 +16,9 @@ import org.scalatest.matchers.should.Matchers
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
-class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
+class HiveOrcSinkTest extends AnyFlatSpec with Matchers with ForAllTestContainer with HiveTestConfig {
+
+  override val container = dockerContainers
 
   val schema = SchemaBuilder.struct()
     .field("name", SchemaBuilder.string().required().build())
@@ -31,15 +33,9 @@ class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
 
   val dbname = "orc_sink_test"
 
-  Try {
-    client.dropDatabase(dbname)
-  }
-
-  Try {
-    client.createDatabase(new Database(dbname, null, s"/user/hive/warehouse/$dbname", new util.HashMap()))
-  }
-
   "hive sink" should "write orc to a non partitioned table" in {
+
+    implicit val (client, fs) = testInit(dbname, container)
 
     val users = List(
       new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43),
@@ -68,6 +64,8 @@ class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
   }
 
   it should "write to a partitioned table" in {
+
+    implicit val (client, fs) = testInit(dbname)
 
     val table = "employees_partitioned"
 
@@ -98,6 +96,8 @@ class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
   }
 
   it should "create new partitions in the metastore when using dynamic partitions" in {
+
+    implicit val (client, fs) = testInit(dbname)
 
     val table = "employees_dynamic_partitions"
 
@@ -139,6 +139,8 @@ class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
 
   it should "allow setting table type of new tables" in {
 
+    implicit val (client, fs) = testInit(dbname)
+
     val users = List(new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43))
 
     val config1 = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
@@ -177,6 +179,8 @@ class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
   }
 
   it should "create staging files" in {
+    implicit val (client, fs) = testInit(dbname)
+
     val user1 = new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43)
 
     val tableName = "commit_test"
@@ -199,6 +203,8 @@ class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
   }
 
   it should "commit files when sink is closed" in {
+
+    implicit val (client, fs) = testInit(dbname)
 
     val user1 = new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43)
 
@@ -231,6 +237,8 @@ class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
 
   it should "use file per topic partition" in {
 
+    implicit val (client, fs) = testInit(dbname)
+
     val user1 = new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43)
     val user2 = new Struct(schema).put("name", "laura").put("title", "ms").put("salary", 417.61)
 
@@ -258,6 +266,8 @@ class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
 
   it should "set partition keys in the sd column descriptors" in {
 
+    implicit val (client, fs) = testInit(dbname)
+
     val users = List(new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43))
     val tableName = "partition_keys_test"
     Try {
@@ -282,6 +292,8 @@ class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
 
   it should "throw an exception if a partition doesn't exist with strict partitioning" in {
 
+    implicit val (client, fs) = testInit(dbname)
+
     val users = List(new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43))
 
     val tableName = "strict_partitioning_test"
@@ -304,6 +316,7 @@ class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
   }
 
   it should "evolve the schema by adding a missing field when evolution policy is set to add" in {
+    implicit val (client, fs) = testInit(dbname)
 
     val tableName = "add_evolution_test"
 
@@ -347,6 +360,7 @@ class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
 
 
   "hive sink" should "write orc with int schema keys" in {
+    implicit val (client, fs) = testInit(dbname)
 
     val students = List(
       new Struct(schemaIntKey).put("department_number", 1L).put("student_name", "Andy"),

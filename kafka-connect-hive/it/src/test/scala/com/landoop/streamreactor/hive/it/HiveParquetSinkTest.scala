@@ -1,12 +1,11 @@
-package com.landoop.streamreactor.connect.hive.sink
+package com.landoop.streamreactor.connect.hive.it
 
-import java.util
 import com.landoop.streamreactor.connect.hive._
+import com.landoop.streamreactor.connect.hive.sink.HiveSink
 import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, TableOptions}
 import com.landoop.streamreactor.connect.hive.sink.evolution.AddEvolutionPolicy
 import com.landoop.streamreactor.connect.hive.sink.partitioning.StrictPartitionHandler
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hive.metastore.api.Database
 import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -24,15 +23,9 @@ class HiveParquetSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig 
 
   val dbname = "sink_test"
 
-  Try {
-    client.dropDatabase(dbname)
-  }
-
-  Try {
-    client.createDatabase(new Database(dbname, null, s"/user/hive/warehouse/$dbname", new util.HashMap()))
-  }
-
   "hive sink" should "write to a non partitioned table" in {
+
+    implicit val (client, fs) = testInit(dbname)
 
     val users = List(
       new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43),
@@ -58,6 +51,8 @@ class HiveParquetSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig 
 
   it should "write to a partitioned table" in {
 
+    implicit val (client, fs) = testInit(dbname)
+
     val table = "employees_partitioned"
 
     Try {
@@ -82,6 +77,8 @@ class HiveParquetSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig 
   }
 
   it should "create new partitions in the metastore when using dynamic partitions" in {
+
+    implicit val (client, fs) = testInit(dbname)
 
     val table = "employees_dynamic_partitions"
 
@@ -122,6 +119,8 @@ class HiveParquetSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig 
 
   it should "allow setting table type of new tables" in {
 
+    implicit val (client, fs) = testInit(dbname)
+
     val users = List(new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43))
 
     val config1 = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
@@ -161,6 +160,8 @@ class HiveParquetSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig 
 
   it should "use staging file per (topic,partition)" in {
 
+    implicit val (client, fs) = testInit(dbname)
+
     val user1 = new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43)
     val user2 = new Struct(schema).put("name", "laura").put("title", "ms").put("salary", 417.61)
 
@@ -188,6 +189,8 @@ class HiveParquetSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig 
   }
 
   it should "commit files when sink is closed" in {
+
+    implicit val (client, fs) = testInit(dbname)
 
     val user1 = new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43)
     val user2 = new Struct(schema).put("name", "laura").put("title", "ms").put("salary", 417.61)
@@ -218,6 +221,8 @@ class HiveParquetSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig 
 
   it should "set partition keys in the sd column descriptors" in {
 
+    implicit val (client, fs) = testInit(dbname)
+
     val users = List(new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43))
     val tableName = "partition_keys_test"
     Try {
@@ -242,6 +247,8 @@ class HiveParquetSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig 
 
   it should "throw an exception if a partition doesn't exist with strict partitioning" in {
 
+    implicit val (client, fs) = testInit(dbname)
+
     val users = List(new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43))
 
     val tableName = "strict_partitioning_test"
@@ -264,6 +271,8 @@ class HiveParquetSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig 
   }
 
   it should "evolve the schema by adding a missing field when evolution policy is set to add" in {
+
+    implicit val (client, fs) = testInit(dbname)
 
     val tableName = "add_evolution_test"
 

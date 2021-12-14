@@ -68,7 +68,8 @@ object Dependencies {
     val classGraphVersions    = "4.4.12"
 
     val wiremockJre8Version = "2.25.1"
-    val parquetVersion      = "1.12.1"
+    val s3ParquetVersion      = "1.11.0"
+    val hiveParquetVersion      = "1.8.3"
 
     val jerseyCommonVersion = "2.34"
 
@@ -128,7 +129,7 @@ object Dependencies {
 
     val hbaseClientVersion = "2.4.8"
     //val hadoopVersion = "2.10.1"
-    val hadoopVersion = "3.3.1"
+    val hadoopVersion = "2.7.4"
 
     val zookeeperServerVersion = "3.7.0"
 
@@ -219,10 +220,12 @@ object Dependencies {
 
   val jerseyCommon = "org.glassfish.jersey.core" % "jersey-common" % jerseyCommonVersion
 
-  lazy val parquetAvro   = "org.apache.parquet" % "parquet-avro"   % parquetVersion
-  lazy val parquetHadoop = "org.apache.parquet" % "parquet-hadoop" % parquetVersion
-  lazy val parquetColumn = "org.apache.parquet" % "parquet-column" % parquetVersion
-  lazy val parquetEncoding = "org.apache.parquet" % "parquet-encoding" % parquetVersion
+  def parquetAvro(version: String)   = "org.apache.parquet" % "parquet-avro"   % version
+  def parquetHadoop(version: String) = "org.apache.parquet" % "parquet-hadoop" % version
+  def parquetColumn(version: String) = "org.apache.parquet" % "parquet-column" % version
+  def parquetEncoding(version: String) = "org.apache.parquet" % "parquet-encoding" % version
+  def parquetHadoopBundle(version: String) = "org.apache.parquet" % "parquet-hadoop-bundle" % version
+
   lazy val hadoopCommon = ("org.apache.hadoop" % "hadoop-common" % hadoopVersion)
     .excludeAll(ExclusionRule(organization = "javax.servlet"))
     .excludeAll(ExclusionRule(organization = "javax.servlet.jsp"))
@@ -231,12 +234,12 @@ object Dependencies {
     .exclude("org.apache.hadoop", "hadoop-annotations")
     .exclude("org.apache.hadoop", "hadoop-auth")
 
-  lazy val hadoopMapReduce = ("org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion)
-    .excludeAll(ExclusionRule(organization = "javax.servlet"))
-    .excludeAll(ExclusionRule(organization = "javax.servlet.jsp"))
-    .excludeAll(ExclusionRule(organization = "org.mortbay.jetty"))
-    .exclude("org.apache.hadoop", "hadoop-yarn-common")
-    .exclude("org.apache.hadoop", "hadoop-yarn-client")
+  lazy val hadoopMapReduce = ("org.apache.hadoop" % "hadoop-mapreduce" % hadoopVersion)
+
+  lazy val hadoopMapReduceClient = ("org.apache.hadoop" % "hadoop-mapreduce-client" % hadoopVersion)
+
+  lazy val hadoopMapReduceClientCore = ("org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion)
+
 
   lazy val kcql = ("com.datamountaineer" % "kcql" % kcqlVersion)
     .exclude("com.google.guava", "guava")
@@ -312,10 +315,11 @@ object Dependencies {
   lazy val nettyAll = ("io.netty" % "netty-all" % nettyVersion)
   lazy val joddCore = ("org.jodd" % "jodd-core" % joddVersion)
   lazy val hiveJdbc = "org.apache.hive" % "hive-jdbc" % hiveVersion
-  lazy val hiveExec = ("org.apache.hive" % "hive-exec" % hiveVersion)
+  lazy val hiveMetastore = "org.apache.hive" % "hive-metastore" % hiveVersion
+
+  lazy val hiveExec = ("org.apache.hive" % "hive-exec" % hiveVersion)// classifier "core"
     .exclude("org.apache.calcite", "calcite-avatica")
     .exclude("com.fasterxml.jackson.core" , "jackson-annotations")
-
 }
 
 trait Dependencies {
@@ -359,7 +363,7 @@ trait Dependencies {
     scalaLogging,
     urlValidator,
     catsFree,
-    parquetAvro,
+    //parquetAvro,
     //parquetHadoop,
     //hadoopCommon,
     //hadoopMapReduce,
@@ -388,8 +392,8 @@ trait Dependencies {
 
   val kafkaConnectS3Deps: Seq[ModuleID] = Seq(
     s3Sdk,
-    parquetAvro,
-    parquetHadoop,
+    parquetAvro(s3ParquetVersion),
+    parquetHadoop(s3ParquetVersion),
     hadoopCommon,
     hadoopMapReduce,
     javaxBind,
@@ -477,26 +481,13 @@ trait Dependencies {
 
 
   /**
-        compile("org.apache.parquet:parquet-column:$parquetVersion")
-        compile("org.apache.parquet:parquet-encoding:$parquetVersion")
-        compile("org.apache.parquet:parquet-hadoop:$parquetVersion")
-        compile("org.jodd:jodd-core:$joddVersion")
-        compile("org.apache.hive:hive-jdbc:$hiveVersion")
-        compile("org.apache.hive:hive-exec:$hiveVersion"){
-            exclude group: "org.apache.calcite", module: "calcite-avatica"
-            exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
-        }
-        compile("org.apache.hadoop:hadoop-common:$hadoopVersion")
-        compile("org.apache.hadoop:hadoop-hdfs:$hadoopVersion")
-        compile("org.apache.hadoop:hadoop-mapreduce:$hadoopVersion")
         compile("org.apache.hadoop:hadoop-mapreduce-client:$hadoopVersion")
         compile("org.apache.hadoop:hadoop-mapreduce-client-core:$hadoopVersion")
         compile("org.typelevel:cats-core_$scalaMajorVersion:$catsVersion")
-
    */
-  val kafkaConnectHiveDeps : Seq[ModuleID] = Seq(nettyAll, parquetAvro, parquetColumn, parquetEncoding, parquetHadoop, joddCore, hiveJdbc, hiveExec, hadoopCommon, hadoopHdfs, hadoopMapReduce)
+  val kafkaConnectHiveDeps : Seq[ModuleID] = Seq(nettyAll, parquetAvro(hiveParquetVersion), parquetColumn(hiveParquetVersion), parquetEncoding(hiveParquetVersion), parquetHadoop(hiveParquetVersion), parquetHadoopBundle(hiveParquetVersion), joddCore, hiveJdbc, hiveExec, hadoopCommon, hadoopHdfs, hadoopMapReduce, hadoopMapReduceClient, hadoopMapReduceClientCore)
 
-  val kafkaConnectHiveTestDeps : Seq[ModuleID] = Seq()
+  val kafkaConnectHiveTestDeps : Seq[ModuleID] = Seq(testContainers)
 
   val kafkaConnectMongoDbDeps : Seq[ModuleID] = Seq(mongoDb, json4sNative, json4sJackson)
 

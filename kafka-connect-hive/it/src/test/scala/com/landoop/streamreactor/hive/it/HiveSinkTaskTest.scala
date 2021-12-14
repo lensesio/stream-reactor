@@ -1,10 +1,9 @@
-package com.landoop.streamreactor.connect.hive.sink
+package com.landoop.streamreactor.connect.hive.it
 
-import java.util
-import com.landoop.streamreactor.connect.hive._
+import com.landoop.streamreactor.connect.hive.sink.HiveSinkTask
 import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hive.metastore.api.{Database, NoSuchObjectException}
+import org.apache.hadoop.hive.metastore.api.NoSuchObjectException
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
@@ -22,17 +21,12 @@ class HiveSinkTaskTest extends AnyFlatSpec with Matchers with HiveTestConfig {
     .field("salary", SchemaBuilder.float64().optional().build())
     .build()
 
-  val db = "hive_sink_task_test"
+  val dbname = "hive_sink_task_test"
 
-  Try {
-    client.dropDatabase(db, true, true)
-  }
-
-  Try {
-    client.createDatabase(new Database(db, null, s"/user/hive/warehouse/$db", new util.HashMap()))
-  }
 
   "HiveSinkTask" should "write to a partitioned table" in {
+
+    implicit val (client, fs) = testInit(dbname)
 
     val table = "employees"
 
@@ -47,12 +41,12 @@ class HiveSinkTaskTest extends AnyFlatSpec with Matchers with HiveTestConfig {
     }
 
     Try {
-      client.dropTable(db, table, true, true)
+      client.dropTable(dbname, table, true, true)
     }
 
     // table should not exist
     intercept[NoSuchObjectException] {
-      client.getTable(db, table)
+      client.getTable(dbname, table)
     }
 
     val task = new HiveSinkTask(fs, client)
@@ -62,7 +56,7 @@ class HiveSinkTaskTest extends AnyFlatSpec with Matchers with HiveTestConfig {
     import SinkConfigSettings._
 
     val props = Map(
-      DatabaseNameKey -> db,
+      DatabaseNameKey -> dbname,
       "connect.hive.kcql" -> "insert into employees select * from mytopic"
     ).asJava
 
@@ -81,20 +75,22 @@ class HiveSinkTaskTest extends AnyFlatSpec with Matchers with HiveTestConfig {
     task.stop()
 
     // table should have been created with data fields and partition field
-    val t = client.getTable(db, table)
+    val t = client.getTable(dbname, table)
     t.getPartitionKeys.asScala.map(_.getName) shouldBe Seq("title")
     t.getSd.getCols.asScala.map(_.getName) shouldBe Seq("name", "salary")
 
     // each partition should have a file
     fs.listFiles(new Path(t.getSd.getLocation, "title=mr"), true).next().getPath.toString shouldBe
-      s"hdfs://localhost:8020/user/hive/warehouse/$db/employees/title=mr/streamreactor_mytopic_1_0"
+      s"hdfs://localhost:8020/user/hive/warehouse/$dbname/employees/title=mr/streamreactor_mytopic_1_0"
 
     fs.listFiles(new Path(t.getSd.getLocation, "title=ms"), true).next().getPath.toString shouldBe
-      s"hdfs://localhost:8020/user/hive/warehouse/$db/employees/title=ms/streamreactor_mytopic_1_1"
+      s"hdfs://localhost:8020/user/hive/warehouse/$dbname/employees/title=ms/streamreactor_mytopic_1_1"
   }
 
   // todo
   it should "not re-write data after a rebalance" ignore {
+
+    implicit val (client, fs) = testInit(dbname)
 
     val table = "employees"
 
@@ -109,12 +105,12 @@ class HiveSinkTaskTest extends AnyFlatSpec with Matchers with HiveTestConfig {
     }
 
     Try {
-      client.dropTable(db, table, true, true)
+      client.dropTable(dbname, table, true, true)
     }
 
     // table should not exist
     intercept[NoSuchObjectException] {
-      client.getTable(db, table)
+      client.getTable(dbname, table)
     }
 
     val task = new HiveSinkTask(fs, client)
@@ -124,7 +120,7 @@ class HiveSinkTaskTest extends AnyFlatSpec with Matchers with HiveTestConfig {
     import SinkConfigSettings._
 
     val props = Map(
-      DatabaseNameKey -> db
+      DatabaseNameKey -> dbname
     ).asJava
 
     task.start(props)
@@ -142,15 +138,15 @@ class HiveSinkTaskTest extends AnyFlatSpec with Matchers with HiveTestConfig {
     task.stop()
 
     // table should have been created with data fields and partition field
-    val t = client.getTable(db, table)
+    val t = client.getTable(dbname, table)
     t.getPartitionKeys.asScala.map(_.getName) shouldBe Seq("title")
     t.getSd.getCols.asScala.map(_.getName) shouldBe Seq("name", "salary")
 
     // each partition should have a file
     fs.listFiles(new Path(t.getSd.getLocation, "title=mr"), true).next().getPath.toString shouldBe
-      s"hdfs://localhost:8020/user/hive/warehouse/$db/employees/title=mr/streamreactor_mytopic_1_0"
+      s"hdfs://localhost:8020/user/hive/warehouse/$dbname/employees/title=mr/streamreactor_mytopic_1_0"
 
     fs.listFiles(new Path(t.getSd.getLocation, "title=ms"), true).next().getPath.toString shouldBe
-      s"hdfs://localhost:8020/user/hive/warehouse/$db/employees/title=ms/streamreactor_mytopic_1_1"
+      s"hdfs://localhost:8020/user/hive/warehouse/$dbname/employees/title=ms/streamreactor_mytopic_1_1"
   }
 }

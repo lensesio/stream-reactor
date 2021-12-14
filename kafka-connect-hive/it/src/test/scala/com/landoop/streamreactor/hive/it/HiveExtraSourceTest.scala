@@ -1,15 +1,15 @@
-package com.landoop.streamreactor.connect.hive.source
+package com.landoop.streamreactor.connect.hive.it
 
-import java.util
 import cats.data.NonEmptyList
 import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.sink.HiveSink
 import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, TableOptions}
 import com.landoop.streamreactor.connect.hive.source.config.{HiveSourceConfig, ProjectionField, SourceTableOptions}
 import com.landoop.streamreactor.connect.hive.source.offset.{HiveSourceInitOffsetStorageReader, MockOffsetStorageReader}
+import com.landoop.streamreactor.connect.hive.source.{HiveSource, HiveSourceTask, SourceOffset, SourcePartition}
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hive.metastore.api.Database
+import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.hive.metastore.HiveMetaStoreClient
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
@@ -20,21 +20,9 @@ import org.scalatest.wordspec.AnyWordSpec
 import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 import scala.util.Try
 
-class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with StrictLogging {
+class HiveExtraSourceTest extends AnyWordSpec with Matchers with StrictLogging with HiveTestConfig {
 
   val dbname = "source_test2"
-
-  Try {
-    client.dropDatabase(dbname, true, true)
-  }
-
-  Try {
-    client.dropDatabase(dbname)
-  }
-
-  Try {
-    client.createDatabase(new Database(dbname, null, s"/user/hive/warehouse/$dbname", new util.HashMap()))
-  }
 
   val schema: Schema = SchemaBuilder.struct()
     .field("name", SchemaBuilder.string().required().build())
@@ -42,7 +30,7 @@ class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with 
     .field("salary", SchemaBuilder.float64().optional().build())
     .build()
 
-  def populateEmployees(table: String, partitions: Seq[PartitionField] = Nil, dropTableFirst: Boolean = true, offsetAdd: Int = 0): Unit = {
+  def populateEmployees(table: String, partitions: Seq[PartitionField] = Nil, dropTableFirst: Boolean = true, offsetAdd: Int = 0)(implicit client: HiveMetaStoreClient, fs: FileSystem): Unit = {
     if (dropTableFirst) Try {
       client.dropTable(dbname, table, true, true)
     }
@@ -75,6 +63,8 @@ class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with 
 
     "read from a non partitioned table" in {
 
+      implicit val (client, fs) = testInit(dbname)
+
       val table = "employees"
       populateEmployees(table)
 
@@ -89,6 +79,8 @@ class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with 
     }
 
     "apply a projection to the read of a non-partitioned table" in {
+
+      implicit val (client, fs) = testInit(dbname)
 
       val table = "employees"
       populateEmployees(table)
@@ -107,6 +99,8 @@ class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with 
 
     "apply a projection with aliases to the read of a non-partitioned table" in {
 
+      implicit val (client, fs) = testInit(dbname)
+
       val table = "employees"
       populateEmployees(table)
 
@@ -124,6 +118,8 @@ class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with 
 
     "read from a partitioned table" in {
 
+      implicit val (client, fs) = testInit(dbname)
+
       val table = "employees_partitioned"
       populateEmployees(table, partitions = Seq(PartitionField("title")))
 
@@ -139,6 +135,8 @@ class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with 
 
     "apply a projection to the read of a partitioned table" in {
 
+      implicit val (client, fs) = testInit(dbname)
+
       val table = "employees_partitioned"
       populateEmployees(table, partitions = Seq(PartitionField("title")))
 
@@ -153,6 +151,8 @@ class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with 
     }
 
     "adhere to a LIMIT" in {
+      implicit val (client, fs) = testInit(dbname)
+
       val table = "employees"
       populateEmployees(table)
 
@@ -168,6 +168,9 @@ class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with 
     }
 
     "set offset and partition on each record" in {
+
+      implicit val (client, fs) = testInit(dbname)
+
       val table = "employees"
       populateEmployees(table)
 
@@ -193,6 +196,8 @@ class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with 
     }
 
     "skip records based on offset storage" in {
+
+      implicit val (client, fs) = testInit(dbname)
       val table = "employees3"
       populateEmployees(table)
 
@@ -215,6 +220,8 @@ class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with 
     }
 
     "skip records based on offset storage before applying limit" in {
+
+      implicit val (client, fs) = testInit(dbname)
       val table = "employees3"
       populateEmployees(table)
 
@@ -237,6 +244,8 @@ class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with 
     }
 
     "skip file if offset is beyond file size" in {
+
+      implicit val (client, fs) = testInit(dbname)
       val table = "employees3"
       populateEmployees(table)
 
@@ -258,6 +267,8 @@ class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with 
     }
 
     "discover partitions after the source has started" in {
+
+      implicit val (client, fs) = testInit(dbname)
 
       val table = "employees"
       val tblObject = client.getTable(dbname, table)
