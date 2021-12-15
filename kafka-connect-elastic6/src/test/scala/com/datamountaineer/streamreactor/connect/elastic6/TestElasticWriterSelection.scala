@@ -16,14 +16,15 @@
 
 package com.datamountaineer.streamreactor.connect.elastic6
 
+import com.datamountaineer.streamreactor.connect.elastic6.CreateLocalNodeClientUtil.createLocalNode
+
 import java.util.UUID
-import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
-import com.sksamuel.elastic4s.embedded.LocalNode
+import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticSettings}
+import com.sksamuel.elastic4s.http.ElasticClient
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
 
-import scala.annotation.nowarn
 import scala.reflect.io.File
 
 
@@ -40,9 +41,8 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get config
     val config = new ElasticConfig(getElasticSinkConfigPropsSelection())
 
-    @nowarn
-    val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
-    val client = localNode.client(true)
+    val localNode = createLocalNode()
+    val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     //get writer
 
     val settings = ElasticSettings(config)
@@ -73,9 +73,8 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get config
     val config = new ElasticConfig( getBaseElasticSinkConfigProps(s"INSERT INTO $INDEX SELECT id, nested.string_field FROM $TOPIC"))
 
-    @nowarn
-    val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
-    val client = localNode.client(true)
+    val localNode = createLocalNode()
+    val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     //get writer
 
     val settings = ElasticSettings(config)
@@ -106,9 +105,8 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get config
     val config = new ElasticConfig(getElasticSinkUpdateConfigPropsSelection())
 
-    @nowarn
-    val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
-    val client = localNode.client(true)
+    val localNode = createLocalNode()
+    val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     val settings = ElasticSettings(config)
     val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //First run writes records to elastic
@@ -136,6 +134,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //close writer
     writer.close()
     client.close()
+    localNode.close()
     TMP.deleteRecursively()
   }
 
@@ -150,9 +149,8 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get config
     val config = new ElasticConfig(getBaseElasticSinkConfigProps(s"UPSERT INTO $INDEX SELECT nested.id, string_field FROM $TOPIC PK nested.id"))
 
-    @nowarn
-    val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
-    val client = localNode.client(true)
+    val localNode = createLocalNode()
+    val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     val settings = ElasticSettings(config)
     val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //First run writes records to elastic
@@ -180,6 +178,8 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //close writer
     writer.close()
     client.close()
+    localNode.close()
+
     TMP.deleteRecursively()
   }
 }

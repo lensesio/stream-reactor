@@ -149,7 +149,7 @@ object Dependencies {
     }
 
     object Elastic6Versions extends ElasticVersions() {
-      override val elastic4sVersion: String = "6.7.8"
+      override val elastic4sVersion: String = "6.7.4"
       override val elasticSearchVersion: String = "6.7.2"
       override val jnaVersion: String = "3.0.9"
     }
@@ -204,6 +204,8 @@ object Dependencies {
   lazy val slf4j = "org.slf4j" % "slf4j-api" % slf4jVersion
 
   lazy val kafkaConnectJson = "org.apache.kafka" % "connect-json" % kafkaVersion % "provided"
+
+  //lazy val log4jConfig = "org.apache.logging.log4j" % "log4j-config" % ""
 
   lazy val confluentAvroConverter = ("io.confluent" % "kafka-connect-avro-converter" % confluentVersion)
     .exclude("org.slf4j", "slf4j-log4j12")
@@ -344,13 +346,12 @@ object Dependencies {
   def elastic4sClient(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % v)
   def elastic4sTestKit(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-testkit" % v % Test)
   def elastic4sHttp(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-http" % v)
-  def elastic4sEmbedded(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-embedded" % v % Test)
 
   def elasticSearch(v: String) = ("org.elasticsearch" % "elasticsearch" % v)
   def elasticSearchAnalysis(v: String) = ("org.codelibs.elasticsearch.module" % "analysis-common" % v)
 
   def jna(v: String) = ("net.java.dev.jna" % "jna" % v)
-
+  lazy val log4j2Slf4j = ("org.apache.logging.log4j" % "log4j-to-slf4j" % "2.16.0")
 }
 
 trait Dependencies {
@@ -434,15 +435,11 @@ trait Dependencies {
     openCsv,
     guice,
     guiceAssistedInject,
-  ).map(_.exclude("org.slf4j", "slf4j-log4j12"))
-    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
-    .map(_.exclude("com.sun.jersey", "*"))
+  )
 
   val kafkaConnectS3TestDeps: Seq[ModuleID] = Seq(testContainers)
 
-  val kafkaConnectCoapDeps: Seq[ModuleID] = (californium ++ bouncyCastle).map(_.exclude("org.slf4j", "slf4j-log4j12"))
-    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
-    .map(_.exclude("com.sun.jersey", "*"))
+  val kafkaConnectCoapDeps: Seq[ModuleID] = (californium ++ bouncyCastle)
 
   val kafkaConnectCassandraDeps: Seq[ModuleID] = Seq(
     cassandraDriver,
@@ -450,9 +447,7 @@ trait Dependencies {
     nettyTransport,
     json4sNative,
     //dropWizardMetrics
-  ).map(_.exclude("org.slf4j", "slf4j-log4j12"))
-    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
-    .map(_.exclude("com.sun.jersey", "*"))
+  )
 
   val kafkaConnectCassandraTestDeps: Seq[ModuleID] = Seq(testContainers, testContainersCassandra)
 
@@ -463,38 +458,20 @@ trait Dependencies {
 
   val kafkaConnectAzureDocumentDbDeps: Seq[ModuleID] = Seq(azureDocumentDb, json4sNative//, scalaParallelCollections
     )
-    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
-    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
-    .map(_.exclude("com.sun.jersey", "*"))
 
   val kafkaConnectInfluxDbDeps : Seq[ModuleID] = Seq(influx, avro4s, avro4sJson)
-    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
-    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
-    .map(_.exclude("com.sun.jersey", "*"))
 
   val kafkaConnectJmsDeps : Seq[ModuleID] = Seq(jmsApi)
-    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
-    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
-    .map(_.exclude("com.sun.jersey", "*"))
 
   val kafkaConnectJmsTestDeps : Seq[ModuleID] = Seq(activeMq)
 
   val kafkaConnectKuduDeps : Seq[ModuleID] = Seq(kuduClient, json4sNative)
-    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
-    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
-    .map(_.exclude("com.sun.jersey", "*"))
 
   val kafkaConnectMqttDeps : Seq[ModuleID] = Seq(mqttClient, avro4s, avro4sJson) ++ bouncyCastle
-    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
-    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
-    .map(_.exclude("com.sun.jersey", "*"))
 
   val kafkaConnectMqttTestDeps : Seq[ModuleID] = Seq(json4sJackson, testContainers, testContainersToxiProxy)
 
   val kafkaConnectPulsarDeps : Seq[ModuleID] = Seq(pulsar, avro4s, avro4sJson)
-    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
-    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
-    .map(_.exclude("com.sun.jersey", "*"))
 
   def elasticCommonDeps(v: ElasticVersions) : Seq[ModuleID] = Seq(
     elastic4sCore(v.elastic4sVersion),
@@ -511,32 +488,20 @@ trait Dependencies {
 
   val kafkaConnectElastic6Deps : Seq[ModuleID] = elasticCommonDeps(Elastic6Versions) ++ Seq(elastic4sHttp(Elastic6Versions.elastic4sVersion))
 
-  val kafkaConnectElastic6TestDeps : Seq[ModuleID] = elasticTestCommonDeps(Elastic6Versions) ++ Seq(elastic4sEmbedded(Elastic6Versions.elastic4sVersion))
+  val kafkaConnectElastic6TestDeps : Seq[ModuleID] = elasticTestCommonDeps(Elastic6Versions) ++ Seq()
 
   val kafkaConnectElastic7Deps : Seq[ModuleID] = elasticCommonDeps(Elastic7Versions) ++ Seq(elastic4sClient(Elastic7Versions.elastic4sVersion))
 
   val kafkaConnectElastic7TestDeps : Seq[ModuleID] = elasticTestCommonDeps(Elastic7Versions) ++ Seq()
 
   val kafkaConnectFtpDeps : Seq[ModuleID] = Seq(commonsNet, commonsCodec, commonsIO, jsch)
-    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
-    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
-    .map(_.exclude("com.sun.jersey", "*"))
 
   val kafkaConnectFtpTestDeps : Seq[ModuleID] = Seq(mina, betterFiles, ftpServer, fakeSftpServer)
-    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
-    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
-    .map(_.exclude("com.sun.jersey", "*"))
 
   val kafkaConnectHbaseDeps : Seq[ModuleID] = Seq(hadoopHdfs, hbaseClient)
 
   val kafkaConnectHbaseTestDeps : Seq[ModuleID] = Seq()
 
-
-  /**
-        compile("org.apache.hadoop:hadoop-mapreduce-client:$hadoopVersion")
-        compile("org.apache.hadoop:hadoop-mapreduce-client-core:$hadoopVersion")
-        compile("org.typelevel:cats-core_$scalaMajorVersion:$catsVersion")
-   */
   val kafkaConnectHiveDeps : Seq[ModuleID] = Seq(nettyAll, parquetAvro(hiveParquetVersion), parquetColumn(hiveParquetVersion), parquetEncoding(hiveParquetVersion), parquetHadoop(hiveParquetVersion), parquetHadoopBundle(hiveParquetVersion), joddCore, hiveJdbc, hiveExec, hadoopCommon, hadoopHdfs, hadoopMapReduce, hadoopMapReduceClient, hadoopMapReduceClientCore)
 
   val kafkaConnectHiveTestDeps : Seq[ModuleID] = Seq(testContainers)
@@ -558,6 +523,8 @@ trait Dependencies {
     "org.slf4j" % "slf4j-log4j12",
     "org.apache.logging.log4j" % "log4j-api",
     "org.apache.logging.log4j" % "log4j-core",
+    "org.apache.logging.log4j" % "log4j-slf4j-impl",
+    "com.sun.jersey" % "*",
   )
 
   implicit final class ProjectRoot(project: Project) {

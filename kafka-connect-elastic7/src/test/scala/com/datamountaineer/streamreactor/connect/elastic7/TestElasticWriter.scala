@@ -54,7 +54,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
     }
 
     // TODO: Ensure these Settings properties are used
-    def writeTestRecords(localNodeSettings: Settings, props: java.util.Map[String, String]) = {
+    def writeTestRecords(props: java.util.Map[String, String]) = {
 
       val localNode = createLocalNode()
 
@@ -74,7 +74,6 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
   "A ElasticWriter should insert into Elastic Search a number of records" in new TestContext {
 
     val (node: ElasticsearchContainer, client: ElasticClient, writer: ElasticJsonWriter) = writeTestRecords(
-      DefaultSettings,
       getElasticSinkConfigProps(RandomClusterName)
     )
 
@@ -94,7 +93,6 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
 
   "A ElasticWriter should update a number of records in Elastic Search" in new TestContext {
     val (node: ElasticsearchContainer, client: ElasticClient, writer: ElasticJsonWriter) = writeTestRecords(
-      DefaultSettings,
       getElasticSinkUpdateConfigProps(RandomClusterName)
     )
 
@@ -126,7 +124,6 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
   "A ElasticWriter should update a number of records in Elastic Search with index suffix defined" in new TestContext {
 
     val (node: ElasticsearchContainer, client: ElasticClient, writer: ElasticJsonWriter) = writeTestRecords(
-      DefaultSettings,
       getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = true)
     )
 
@@ -147,14 +144,6 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
   "It should fail writing to a non-existent index when auto creation is disabled" ignore new TestContext {
 
     val (node: ElasticsearchContainer, client: ElasticClient, writer: ElasticJsonWriter) = writeTestRecords(
-      Settings
-        .builder()
-        .put("cluster.name", RandomClusterName)
-        .put("path.home", TemporaryLocalNodeDir.toString)
-        .put("path.data", Paths.get(TemporaryLocalNodeDir.toString()).resolve("data").toString)
-        .put("path.repo", Paths.get(TemporaryLocalNodeDir.toString()).resolve("repo").toString)
-        .put("action.auto_create_index", "false")
-        .build(),
       getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = false, RandomClusterName)
     )
 
@@ -183,7 +172,6 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
   "A ElasticWriter should insert into Elastic Search a number of records with the HTTP Client" in new TestContext {
 
     val (node: ElasticsearchContainer, client: ElasticClient, writer: ElasticJsonWriter) = writeTestRecords(
-      DefaultSettings,
       getElasticSinkConfigPropsHTTPClient(autoCreate = true)
     )
 
@@ -204,7 +192,6 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
   "A ElasticWriter should insert into with PK Elastic Search a number of records" in new TestContext {
 
     val (node: ElasticsearchContainer, client: ElasticClient, writer: ElasticJsonWriter) = writeTestRecords(
-      DefaultSettings,
       getElasticSinkConfigPropsPk(RandomClusterName)
     )
 
@@ -233,7 +220,6 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
   "A ElasticWriter should insert into without PK Elastic Search a number of records" in new TestContext {
 
     val (node: ElasticsearchContainer, client: ElasticClient, writer: ElasticJsonWriter) = writeTestRecords(
-      DefaultSettings,
       getElasticSinkConfigProps(RandomClusterName)
     )
 

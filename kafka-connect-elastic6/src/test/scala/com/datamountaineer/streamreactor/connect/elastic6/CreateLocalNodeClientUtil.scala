@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic7
+package com.datamountaineer.streamreactor.connect.elastic6
 
-import com.sksamuel.elastic4s.http.JavaClient
-import com.sksamuel.elastic4s.{ElasticClient, ElasticProperties}
+import com.sksamuel.elastic4s.http.{ElasticClient, ElasticProperties}
 import org.testcontainers.elasticsearch.ElasticsearchContainer
 
 object CreateLocalNodeClientUtil {
 
-  private val url = "docker.elastic.co/elasticsearch/elasticsearch:7.2.0"
+  private val url = "docker.elastic.co/elasticsearch/elasticsearch:6.8.21"
 
   def createLocalNode() = {
     val container = new ElasticsearchContainer(url)
@@ -33,6 +32,6 @@ object CreateLocalNodeClientUtil {
 
   def createLocalNodeClient(localNode: ElasticsearchContainer) = {
     val esProps = ElasticProperties(s"http://${localNode.getHttpHostAddress}")
-    ElasticClient(JavaClient(esProps))
+    ElasticClient(esProps)
   }
 }
