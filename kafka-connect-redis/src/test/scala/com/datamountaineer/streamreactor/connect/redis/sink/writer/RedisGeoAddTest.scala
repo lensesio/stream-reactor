@@ -17,9 +17,9 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
   val redisContainer: GenericContainer[_] = new GenericContainer("redis:6-alpine")
     .withExposedPorts(6379)
 
-  override def beforeAll() = redisContainer.start()
+  override def beforeAll(): Unit = redisContainer.start()
 
-  override def afterAll() = redisContainer.stop()
+  override def afterAll(): Unit = redisContainer.stop()
 
   "Redis Geo Add (GA) writer" should {
 
@@ -49,18 +49,14 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
 
       val struct1 = new Struct(schema).put("longitude", "10").put("latitude", "20").put("country", "UK").put("town", "London")
       val struct2 = new Struct(schema).put("longitude", "10").put("latitude", "20").put("country", "UK").put("town", "Liverpool")
-      val struct3 = new Struct(schema).put("country", "UK").put("town", "Manchester")
 
       val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
       val sinkRecord2 = new SinkRecord(TOPIC, 0, null, null, schema, struct2, 2)
-      val sinkRecord3 = new SinkRecord(TOPIC, 0, null, null, schema, struct3, 3)
 
       val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
       // Clean up in-memory jedis
       jedis.flushAll()
-
-      writer.write(Seq(sinkRecord1))
-      writer.write(Seq(sinkRecord2, sinkRecord3))
+      writer.write(Seq(sinkRecord1, sinkRecord2))
 
       val allrecords = jedis.georadius("UK", 10, 20, 1, GeoUnit.KM)
       val results = allrecords.asScala.toList.map(_.getMember).map(_.toList.map(_.toChar).mkString)
@@ -96,18 +92,15 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
 
       val struct1 = new Struct(schema).put("longitude", "10").put("latitude", "20").put("country", "UK").put("town", "London")
       val struct2 = new Struct(schema).put("longitude", "10").put("latitude", "20").put("country", "UK").put("town", "Liverpool")
-      val struct3 = new Struct(schema).put("country", "UK").put("town", "Manchester")
 
       val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
       val sinkRecord2 = new SinkRecord(TOPIC, 0, null, null, schema, struct2, 2)
-      val sinkRecord3 = new SinkRecord(TOPIC, 0, null, null, schema, struct3, 3)
 
       val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
       // Clean up in-memory jedis
       jedis.flushAll()
 
-      writer.write(Seq(sinkRecord1))
-      writer.write(Seq(sinkRecord2, sinkRecord3))
+      writer.write(Seq(sinkRecord1, sinkRecord2))
 
       val allrecords = jedis.georadius("cities:UK", 10, 20, 1, GeoUnit.KM)
       val results = allrecords.asScala.toList.map(_.getMember).map(_.toList.map(_.toChar).mkString)
@@ -143,18 +136,15 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
 
       val struct1 = new Struct(schema).put("lng", "10").put("lat", "20").put("country", "UK").put("town", "London")
       val struct2 = new Struct(schema).put("lng", "10").put("lat", "20").put("country", "UK").put("town", "Liverpool")
-      val struct3 = new Struct(schema).put("country", "UK").put("town", "Manchester")
 
       val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
       val sinkRecord2 = new SinkRecord(TOPIC, 0, null, null, schema, struct2, 2)
-      val sinkRecord3 = new SinkRecord(TOPIC, 0, null, null, schema, struct3, 3)
 
       val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
       // Clean up in-memory jedis
       jedis.flushAll()
 
-      writer.write(Seq(sinkRecord1))
-      writer.write(Seq(sinkRecord2, sinkRecord3))
+      writer.write(Seq(sinkRecord1, sinkRecord2))
 
       val allrecords = jedis.georadius("cities:UK", 10, 20, 1, GeoUnit.KM)
       val results = allrecords.asScala.toList.map(_.getMember).map(_.toList.map(_.toChar).mkString)

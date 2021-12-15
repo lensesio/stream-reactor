@@ -23,5 +23,8 @@ project(":kafka-connect-influxdb") {
     dependencies {
         compile project(':kafka-connect-common')
         compile("org.influxdb:influxdb-java:$influxDbVersion")
+
+        compile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
+        compile "com.sksamuel.avro4s:avro4s-json_$scalaMajorVersion:$avro4sVersion"
     }
 }

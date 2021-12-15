@@ -51,9 +51,9 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
 
     val commitPolicy = S3ConfigDefBuilder(None, props.asJava).commitPolicy(S3ConfigDefBuilder(None, props.asJava).getKCQL.head)
 
-    commitPolicy.recordCount should be (Some(S3FlushSettings.defaultFlushCount))
-    commitPolicy.fileSize should be (Some(S3FlushSettings.defaultFlushSize))
-    commitPolicy.interval should be (Some(S3FlushSettings.defaultFlushInterval))
+    commitPolicy.recordCount should be(Some(S3FlushSettings.defaultFlushCount))
+    commitPolicy.fileSize should be(Some(S3FlushSettings.defaultFlushSize))
+    commitPolicy.interval should be(Some(S3FlushSettings.defaultFlushInterval))
   }
 
   "apply" should "respect disabled flush count" in {
@@ -64,9 +64,9 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
 
     val commitPolicy = S3ConfigDefBuilder(None, props.asJava).commitPolicy(S3ConfigDefBuilder(None, props.asJava).getKCQL.head)
 
-    commitPolicy.recordCount should be (None)
-    commitPolicy.fileSize should be (Some(S3FlushSettings.defaultFlushSize))
-    commitPolicy.interval should be (Some(S3FlushSettings.defaultFlushInterval))
+    commitPolicy.recordCount should be(None)
+    commitPolicy.fileSize should be(Some(S3FlushSettings.defaultFlushSize))
+    commitPolicy.interval should be(Some(S3FlushSettings.defaultFlushInterval))
   }
 
   "apply" should "respect custom flush settings" in {
@@ -74,10 +74,18 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
 
     val commitPolicy = S3ConfigDefBuilder(None, props.asJava).commitPolicy(S3ConfigDefBuilder(None, props.asJava).getKCQL.head)
 
-    commitPolicy.recordCount should be (Some(1))
-    commitPolicy.fileSize should be (Some(3))
-    commitPolicy.interval should be (Some(2.seconds))
+    commitPolicy.recordCount should be(Some(1))
+    commitPolicy.fileSize should be(Some(3))
+    commitPolicy.interval should be(Some(2.seconds))
   }
 
+  "apply" should "respect custom batch size and limit" in {
+    val props = Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName BATCH = 150 STOREAS `CSV` LIMIT 550")
+
+    val kcql = S3ConfigDefBuilder(None, props.asJava).getKCQL
+
+    kcql.head.getBatchSize should be (150)
+    kcql.head.getLimit should be (550)
+  }
 
 }

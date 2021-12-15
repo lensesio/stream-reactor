@@ -17,14 +17,15 @@
 project(":kafka-connect-aws-s3") {
 
     ext {
-        awsSdkVersion = "1.11.762"
-        jCloudsSdkVersion = "2.2.1"
+        apacheHttpClientVersion = "4.5.13"
+        awsSdkVersion = "2.17.22"
+        jCloudsSdkVersion = "2.3.0"
         enumeratumVersion = "1.5.15"
         catsVersion = "1.2.0"
         parquetVersion = "1.11.0"
         hadoopVersion = "2.10.0"
-        s3ProxyVersion = "1.7.1"
-        guavaVersion = "18.0"
+        s3ProxyVersion = "1.8.0"
+        guavaVersion = "30.1.1-jre"
         guiceVersion = "3.0"
     }
     configurations.all {
@@ -35,6 +36,7 @@ project(":kafka-connect-aws-s3") {
         }
     }
     dependencies {
+        compile("org.scala-lang.modules:scala-collection-compat_2.12:2.5.0")
 
         compile project(':kafka-connect-common')
         compile("io.netty:netty-all:4.1.52.Final")
@@ -44,7 +46,10 @@ project(":kafka-connect-aws-s3") {
         compile("com.google.inject:guice:$guiceVersion")
         compile("com.google.inject.extensions:guice-assistedinject:$guiceVersion")
 
-        compile("com.amazonaws:aws-java-sdk-s3:$awsSdkVersion")
+        //compile("com.amazonaws:aws-java-sdk-s3:$awsSdkVersion")
+        compile("org.apache.httpcomponents:httpclient:$apacheHttpClientVersion")
+        //compile("org.apache.httpcomponents:httpcore:4.4.14")
+        compile("software.amazon.awssdk:s3:$awsSdkVersion")
         compile("org.apache.jclouds:jclouds-blobstore:$jCloudsSdkVersion")
         compile("org.apache.jclouds.provider:aws-s3:$jCloudsSdkVersion")
         compile("com.beachape:enumeratum_$scalaMajorVersion:$enumeratumVersion")

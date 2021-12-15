@@ -18,6 +18,7 @@ project(":kafka-connect-common") {
     ext {
         smt = "2.0.0"
         avroVersion = "1.8.2"
+        calciteVersion = "1.12.0"
     }
 
 
@@ -26,10 +27,6 @@ project(":kafka-connect-common") {
         implementation "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
         implementation "org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion"
         implementation "org.json4s:json4s-jackson_$scalaMajorVersion:$json4sVersion"
-        implementation("com.landoop:kafka-connect-smt_$scalaMajorVersion:$smt") {
-            exclude group: "com.google.protobuf"
-            exclude group: "org.apache.calcite", module: "calcite-linq4j"
-            exclude group: "org.apache.httpcomponents"
-        }
+        implementation "org.apache.calcite:calcite-core:$calciteVersion"
     }
 }

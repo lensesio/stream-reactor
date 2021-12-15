@@ -17,9 +17,6 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.utils
 
-import java.io.InputStream
-import java.util
-
 import com.google.common.io.ByteStreams
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import org.apache.avro.generic.{GenericData, GenericRecord}
@@ -28,6 +25,8 @@ import org.apache.kafka.connect.data.{Schema, SchemaAndValue, SchemaBuilder, Str
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 
+import java.io.InputStream
+import java.util
 import scala.collection.JavaConverters._
 
 

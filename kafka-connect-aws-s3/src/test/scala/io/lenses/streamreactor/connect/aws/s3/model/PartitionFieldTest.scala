@@ -15,6 +15,7 @@
  */
 
 package io.lenses.streamreactor.connect.aws.s3.model
+
 import com.datamountaineer.kcql.Kcql
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
@@ -59,7 +60,7 @@ class PartitionFieldTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   "partitionField.apply" should "parse nested partitions" in {
     when(kcql.getPartitionBy).thenReturn(Seq("_value.userDetails.address.houseNumber", "_value.fieldB").toIterator.asJava)
-    PartitionField(kcql) should be(Seq(ValuePartitionField(PartitionNamePath("userDetails","address","houseNumber")), ValuePartitionField(PartitionNamePath("fieldB"))))
+    PartitionField(kcql) should be(Seq(ValuePartitionField(PartitionNamePath("userDetails", "address", "houseNumber")), ValuePartitionField(PartitionNamePath("fieldB"))))
   }
 
 }

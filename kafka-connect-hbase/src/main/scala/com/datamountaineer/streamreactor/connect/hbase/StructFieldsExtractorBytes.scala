@@ -16,13 +16,14 @@
 
 package com.datamountaineer.streamreactor.connect.hbase
 
-import java.text.SimpleDateFormat
-import java.util.TimeZone
 import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
+import com.datamountaineer.streamreactor.connect.hbase.StructFieldsExtractorBytes.UTC
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.ConnectException
 
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import scala.collection.JavaConverters._
 
 trait FieldsValuesExtractor {
@@ -65,15 +66,15 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
             }
           case Time.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
-              case i: Int => StructFieldsExtractorBytes.TimeFormat.format(Time.toLogical(field.schema, i)).asInstanceOf[Any].fromString()
-              case d:java.util.Date => StructFieldsExtractorBytes.TimeFormat.format(d).asInstanceOf[Any].fromString()
+              case d:java.util.Date =>
+                val zonedTime = d.toInstant.atZone(UTC).withFixedOffsetZone()
+                StructFieldsExtractorBytes.TimeFormat.format(zonedTime).asInstanceOf[Any].fromString()
               case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
             }
 
           case Timestamp.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
-              case d:java.util.Date => StructFieldsExtractorBytes.DateFormat.format(d).asInstanceOf[Any].fromString()
-              case l: Long => StructFieldsExtractorBytes.DateFormat.format(Timestamp.toLogical(field.schema, l)).asInstanceOf[Any].fromString()
+              case d:java.util.Date => StructFieldsExtractorBytes.DateFormat.format(d.toInstant).asInstanceOf[Any].fromString()
               case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
             }
         }.getOrElse {
@@ -97,8 +98,7 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
 
 
 object StructFieldsExtractorBytes {
-  val DateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-  val TimeFormat = new SimpleDateFormat("HH:mm:ss.SSSZ")
-
-  DateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
+  private val UTC = ZoneId.of("UTC")
+  private val DateFormat = DateTimeFormatter.ISO_INSTANT.withZone(UTC)
+  private val TimeFormat = DateTimeFormatter.ofPattern("HH:mm:ss.SSSZ").withZone(UTC)
 }

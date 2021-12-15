@@ -17,40 +17,23 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import java.io.InputStream
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, RemoteRootLocation, LocalLocation}
-import org.jclouds.blobstore.domain.{MultipartPart, MultipartUpload}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 
-case class MultiPartUploadState(
-                                 upload: MultipartUpload,
-                                 parts: Vector[MultipartPart]
-                               )
+import java.io.{File, InputStream}
 
 trait StorageInterface {
 
-  def initUpload(bucketAndPath: RemotePathLocation): MultiPartUploadState
-
-  def completeUpload(state: MultiPartUploadState): Unit
-
-  def uploadPart(state: MultiPartUploadState, bytes: Array[Byte], size: Long): MultiPartUploadState
-
-  def uploadFile(initialName: LocalLocation, finalDestination: RemotePathLocation): Unit
-
-  def rename(originalFilename: RemotePathLocation, newFilename: RemotePathLocation): Unit
+  def uploadFile(source: File, target: RemoteS3PathLocation): Either[UploadError, Unit]
 
   def close(): Unit
 
-  def pathExists(bucketAndPrefix: RemoteRootLocation): Boolean
+  def pathExists(bucketAndPath: RemoteS3PathLocation): Boolean
 
-  def pathExists(bucketAndPath: RemotePathLocation): Boolean
+  def list(bucketAndPrefix: RemoteS3PathLocation): List[String]
 
-  def list(bucketAndPrefix: RemotePathLocation): List[String]
+  def getBlob(bucketAndPath: RemoteS3PathLocation): InputStream
 
-  def list(bucketAndPrefix: RemoteRootLocation): List[String]
-
-  def getBlob(bucketAndPath: RemotePathLocation): InputStream
-
-  def getBlobSize(bucketAndPath: RemotePathLocation): Long
+  def getBlobSize(bucketAndPath: RemoteS3PathLocation): Long
 
 }
 

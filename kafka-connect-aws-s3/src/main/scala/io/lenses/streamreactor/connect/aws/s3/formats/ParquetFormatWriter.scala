@@ -19,9 +19,10 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.parquet.ParquetOutputFile
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.model.{SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
-import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
+import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.{Schema => ConnectSchema}
 import org.apache.parquet.avro.AvroParquetWriter
@@ -36,17 +37,20 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
 
   private var writer: ParquetWriter[AnyRef] = _
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
-    logger.debug("AvroFormatWriter - write")
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] = {
+    Try {
 
-    val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(valueSinkData)
-    if (writer == null) {
-      writer = init(valueSinkData.schema())
-    }
 
-    writer.write(genericRecord)
-    outputStream.flush()
+      logger.debug("AvroFormatWriter - write")
 
+      val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(valueSinkData)
+      if (writer == null) {
+        writer = init(valueSinkData.schema())
+      }
+
+      writer.write(genericRecord)
+      outputStream.flush()
+    }.toEither
   }
 
   private def init(connectSchema: Option[ConnectSchema]): ParquetWriter[AnyRef] = {
@@ -66,12 +70,14 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
 
   override def rolloverFileOnSchemaChange() = true
 
-  override def close(newName: RemotePathLocation) = {
-    Try(writer.close())
-    Try(outputStream.flush())
-    Try(outputStream.complete(newName))
-    Try(outputStream.close())
+  override def complete(): Either[SinkError, Unit] = {
+    for {
+      _ <- Suppress(writer.close())
+      _ <- Suppress(outputStream.flush())
+      closed <- outputStream.complete()
+    } yield closed
   }
 
   override def getPointer: Long = outputStream.getPointer
+
 }

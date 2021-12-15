@@ -31,8 +31,12 @@ case class BytesOutputRow(
   def toByteArray: Array[Byte] = {
     val buffer = new ListBuffer[Byte]()
 
-    keySize.foreach {buffer ++= ByteArrayUtils.longToByteArray(_)}
-    valueSize.foreach {buffer ++= ByteArrayUtils.longToByteArray(_)}
+    keySize.foreach {
+      buffer ++= ByteArrayUtils.longToByteArray(_)
+    }
+    valueSize.foreach {
+      buffer ++= ByteArrayUtils.longToByteArray(_)
+    }
 
     if (key.nonEmpty) buffer ++= key
     if (value.nonEmpty) buffer ++= value

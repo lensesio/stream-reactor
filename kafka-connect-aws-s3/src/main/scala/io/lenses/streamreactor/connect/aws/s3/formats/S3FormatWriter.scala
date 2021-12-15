@@ -17,12 +17,17 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.Format._
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.aws.s3.config.{FormatOptions, FormatSelection}
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, BytesWriteMode, SinkData, Topic}
-import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreOutputStream, S3OutputStream}
-import org.apache.kafka.connect.errors.ConnectException
+import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
+import io.lenses.streamreactor.connect.aws.s3.sink.{NonFatalS3SinkError, SinkError}
+import io.lenses.streamreactor.connect.aws.s3.stream.{BuildLocalOutputStream, S3OutputStream}
+
+import java.io.File
+import scala.util.Try
 
 object S3FormatWriter {
 
@@ -31,6 +36,13 @@ object S3FormatWriter {
     formatOptions
       .headOption
       .fold[BytesWriteMode](BytesWriteMode.ValueWithSize)(fo => BytesWriteMode.withName(fo.entryName))
+  }
+
+  def apply(formatSelection: FormatSelection, path: File, topicPartition: TopicPartition): Either[SinkError, S3FormatWriter] = {
+    {for {
+      outputStream <- Try(() => new BuildLocalOutputStream(toBufferedOutputStream(path), topicPartition))
+      writer <- Try(S3FormatWriter(formatSelection, outputStream))
+    } yield writer}.toEither.leftMap(ex => NonFatalS3SinkError(ex.getMessage, ex))
   }
 
   def apply(
@@ -45,21 +57,23 @@ object S3FormatWriter {
       case Text => new TextFormatWriter(outputStreamFn)
       case Csv => new CsvFormatWriter(outputStreamFn, formatInfo.formatOptions.contains(WithHeaders))
       case Bytes => new BytesFormatWriter(outputStreamFn, convertToBytesWriteMode(formatInfo.formatOptions))
-      case _ => throw new ConnectException(s"Unsupported S3 format $formatInfo.format")
+      case _ => throw FormatWriterException(s"Unsupported S3 format $formatInfo.format")
     }
   }
 
 }
 
-trait S3FormatWriter {
+trait S3FormatWriter extends AutoCloseable {
 
   def rolloverFileOnSchemaChange(): Boolean
 
-  def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit
+  def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit]
 
   def getPointer: Long
 
-  def close(newName: RemotePathLocation)
+  def complete(): Either[SinkError, Unit]
+
+  def close() = complete()
 }
 
 

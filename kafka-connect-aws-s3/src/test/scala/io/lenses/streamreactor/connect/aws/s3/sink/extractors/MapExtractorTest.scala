@@ -23,13 +23,13 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
 
-class MapExtractorTest extends AnyFlatSpec with Matchers  {
+class MapExtractorTest extends AnyFlatSpec with Matchers {
 
   private val stringSchema = SchemaBuilder.string().build()
 
   private val mapOfMapsOfStringsSchema = SchemaBuilder
     .map(stringSchema, SchemaBuilder.map(stringSchema, stringSchema)
-    .build())
+      .build())
 
   private val mapOfMapsOfStrings = Map(
     "a" -> Map("b" -> "1").asJava,
@@ -37,6 +37,6 @@ class MapExtractorTest extends AnyFlatSpec with Matchers  {
   ).asJava
 
   "lookupFieldValueFromStruct" should "handle map of maps" in {
-    MapExtractor.extractPathFromMap(mapOfMapsOfStrings, PartitionNamePath("c","d"), mapOfMapsOfStringsSchema) should be(Right("2"))
+    MapExtractor.extractPathFromMap(mapOfMapsOfStrings, PartitionNamePath("c", "d"), mapOfMapsOfStringsSchema) should be(Right("2"))
   }
 }

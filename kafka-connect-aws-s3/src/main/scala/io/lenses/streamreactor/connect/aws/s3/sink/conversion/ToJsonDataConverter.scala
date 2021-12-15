@@ -16,15 +16,15 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
-import java.nio.ByteBuffer
-
 import io.lenses.streamreactor.connect.aws.s3.model._
+
+import java.nio.ByteBuffer
 import scala.collection.JavaConverters._
 
 object ToJsonDataConverter {
 
   def convertArray(array: Seq[SinkData]): java.util.List[Any] = array.map {
-    case data: PrimitiveSinkData => data.primVal()
+    case data: PrimitiveSinkData => data.safeVal()
     case StructSinkData(structVal) => structVal
     case MapSinkData(map, _) => convertMap(map)
     case ArraySinkData(iArray, _) => convertArray(iArray)
@@ -32,12 +32,12 @@ object ToJsonDataConverter {
     case _ => throw new IllegalArgumentException("Complex array writing not currently supported")
   }.asJava
 
-  def convertMap(map: Map[SinkData, SinkData]): java.util.Map[Any,Any] = map.map{
+  def convertMap(map: Map[SinkData, SinkData]): java.util.Map[Any, Any] = map.map {
     case (data, data1) => convert(data) -> convert(data1)
   }.asJava
 
   def convert(data: SinkData): Any = data match {
-    case data: PrimitiveSinkData => data.primVal()
+    case data: PrimitiveSinkData => data.safeVal()
     case StructSinkData(structVal) => structVal
     case MapSinkData(map, _) => convertMap(map)
     case ArraySinkData(array, _) => convertArray(array)

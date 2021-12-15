@@ -17,71 +17,72 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import com.datamountaineer.streamreactor.common.utils.JarManifest
-import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
+import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
-import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocationWithLine, RemoteS3RootLocation}
+import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither.toJavaThrowableConverter
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
-import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreStorageInterface, StorageInterface}
-import org.apache.kafka.connect.data.{Schema, SchemaAndValue}
+import io.lenses.streamreactor.connect.aws.s3.source.files.{S3SourceFileQueue, S3SourceLister}
+import io.lenses.streamreactor.connect.aws.s3.source.reader.{ReaderCreator, S3ReaderManager}
+import io.lenses.streamreactor.connect.aws.s3.storage.{AwsS3StorageInterface, JCloudsStorageInterface}
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import java.util
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class S3SourceTask extends SourceTask {
-
-  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
+class S3SourceTask extends SourceTask with LazyLogging {
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
-  private implicit var storageInterface: StorageInterface = _
+  private var readerManagers: Seq[S3ReaderManager] = _
 
-  private implicit var sourceLister: S3SourceLister = _
-
-  private var readerManagers: Seq[S3BucketReaderManager] = _
+  private var sourceName: String = _
 
   override def version(): String = manifest.version()
 
   private def propsFromContext(props: util.Map[String, String]): util.Map[String, String] = {
     Option(context)
       .flatMap(c => Option(c.configs()))
-      .filter(_.isEmpty == false)
+      .filter(!_.isEmpty)
       .getOrElse(props)
   }
 
   /**
     * Start sets up readers for every configured connection in the properties
-    **/
+    * */
   override def start(props: util.Map[String, String]): Unit = {
+    sourceName = getSourceName(props).getOrElse("MissingSourceName")
 
     logger.debug(s"Received call to S3SourceTask.start with ${props.size()} properties")
 
-    val config = S3ConfigDefBuilder(getSinkName(props), propsFromContext(props))
+    val contextFn : RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine] = new ContextReader(() => context).getCurrentOffset
 
-    val awsConfig = S3SourceConfig(config)
-
-    val awsContextCreator = new AwsContextCreator(AwsContextCreator.DefaultCredentialsFn)
-    storageInterface = new MultipartBlobStoreStorageInterface("sink", awsContextCreator.fromConfig(awsConfig.s3Config))
-    sourceLister = new S3SourceLister()
-
-
-    val offsetFn: (String, String) => Option[OffsetReaderResult] =
-      (bucket, prefix) => {
-        val key = fromSourcePartition(bucket, prefix).asJava
-        Try {
-          val matchingOffset = context.offsetStorageReader().offset(key).asScala.toMap
-
-          OffsetReaderResult(
-            matchingOffset.getOrElse("path", throw new IllegalArgumentException("Could not find path value in matching offset")).asInstanceOf[String],
-            matchingOffset.getOrElse("line", throw new IllegalArgumentException("Could not find line value in matching offset")).asInstanceOf[String],
+    val eitherErrOrReaderMan = for {
+      config <- Try(S3SourceConfig(S3ConfigDefBuilder(getSourceName(props), propsFromContext(props)))).toEither
+      authResources = new AuthResources(config.s3Config)
+      jCloudsAuth <- authResources.jClouds
+      awsAuth <- authResources.aws
+      storageInterface <- Try(new JCloudsStorageInterface(getSourceName(props).getOrElse("EmptySourceName"), jCloudsAuth)).toEither
+      sourceStorageInterface <- Try(new AwsS3StorageInterface(awsAuth)).toEither
+      readerManagers = config.bucketOptions.map(
+        bOpts =>
+          new S3ReaderManager(
+            sourceName,
+            bOpts.recordsLimit,
+            contextFn(bOpts.sourceBucketAndPrefix),
+            new S3SourceFileQueue(
+              bOpts.sourceBucketAndPrefix,
+              bOpts.filesLimit,
+              new S3SourceLister(bOpts.format.format)(sourceStorageInterface),
+            ),
+            new ReaderCreator(sourceName, bOpts.format, bOpts.targetTopic)(storageInterface).create
           )
-        }.toOption
-      }
+      )
+    } yield readerManagers
 
-    readerManagers = awsConfig.bucketOptions
-      .map(new S3BucketReaderManager(_, offsetFn))
-
+    readerManagers = eitherErrOrReaderMan.toThrowable(sourceName)
   }
 
   override def stop(): Unit = {
@@ -90,61 +91,14 @@ class S3SourceTask extends SourceTask {
     readerManagers.foreach(_.close())
   }
 
-  override def poll(): util.List[SourceRecord] = readerManagers
-    .flatMap(_.poll())
-    .flatMap(convertToSourceRecordList)
-    .asJava
-
-  private def fromSourcePartition(bucket: String, prefix: String) =
-    Map(
-      "container" -> bucket,
-      "prefix" -> prefix
-    )
-
-  private def fromSourceOffset(bucketAndPath: RemotePathLocation, offset: Long): Map[String, AnyRef] =
-    Map(
-      "path" -> bucketAndPath.path,
-      "line" -> offset.toString
-    )
-
-  private def convertToSourceRecordList(pollResults: PollResults): Vector[SourceRecord] =
-    pollResults.resultList.map(convertToSourceRecord(_, pollResults))
-
-  private def convertToSourceRecord(sourceData: SourceData, pollResults: PollResults): SourceRecord = {
-
-    val (schema: Option[Schema], value: AnyRef, key: Option[AnyRef]) = sourceData match {
-      case ByteArraySourceData(resultBytes, _) =>
-        (None, resultBytes.value, Some(resultBytes.key))
-      case SchemaAndValueSourceData(result: SchemaAndValue, _) =>
-        (Some(result.schema()), result.value(), None)
-      case StringSourceData(result: String, _) =>
-        (None, result, None)
-      case _ =>
-        throw new IllegalArgumentException(s"Unexpected type in convertToSourceRecord, ${sourceData.getClass}")
-    }
-    if (key.isDefined) {
-      new SourceRecord(
-        fromSourcePartition(pollResults.bucketAndPath.bucket, pollResults.prefix).asJava,
-        fromSourceOffset(pollResults.bucketAndPath, sourceData.getLineNumber).asJava,
-        pollResults.targetTopic,
-        null,
-        key.orNull,
-        schema.orNull,
-        value
-      )
-    } else {
-      new SourceRecord(
-        fromSourcePartition(pollResults.bucketAndPath.bucket, pollResults.prefix).asJava,
-        fromSourceOffset(pollResults.bucketAndPath, sourceData.getLineNumber).asJava,
-        pollResults.targetTopic,
-        schema.orNull,
-        value
-      )
-    }
-
+  override def poll(): util.List[SourceRecord] = {
+    readerManagers
+      .flatMap(_.poll())
+      .flatMap(_.toSourceRecordList)
+      .asJava
   }
 
-  private def getSinkName(props: util.Map[String, String]) = {
+  private def getSourceName(props: util.Map[String, String]) = {
     Option(props.get("name")).filter(_.trim.nonEmpty)
   }
 }

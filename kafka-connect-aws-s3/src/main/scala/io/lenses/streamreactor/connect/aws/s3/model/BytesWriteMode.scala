@@ -16,11 +16,10 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model
 
-import java.io.DataInputStream
-
 import enumeratum.{EnumEntry, _}
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.WithSizesBytesOutputRowReader
 
+import java.io.DataInputStream
 import scala.collection.immutable
 
 sealed trait BytesWriteMode extends EnumEntry {

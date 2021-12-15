@@ -22,6 +22,6 @@ package io.lenses.streamreactor.connect.aws.s3.config.processors
   */
 trait ConfigDefProcessor {
 
-  def process(input: Map[String, AnyRef]): Either[Throwable, Map[String, AnyRef]]
+  def process(input: Map[String, Any]): Either[Throwable, Map[String, Any]]
 
 }

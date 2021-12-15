@@ -29,7 +29,7 @@ trait PubSubSupport extends StrictLogging {
     val channelField = if (pubSubParams.keys.exists(k => k.equalsIgnoreCase("channel")))
       pubSubParams.find { case (k, _) => k.equalsIgnoreCase("channel") }.get._2
     else {
-      logger.info("You have not defined a 'channel' field. We'll try to fall back to 'channel' field")
+      logger.info("You have not defined a [channel] field. We'll try to fall back to [channel] field")
       "channel"
     }
     channelField

@@ -16,12 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.config
 
-import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, ErrorPolicySettings, KcqlSettings, NumberRetriesSettings, UserSettings}
-
-import java.util
-
+import com.datamountaineer.streamreactor.common.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
+
+import java.util
 
 object RedisConfig {
 

@@ -16,29 +16,29 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.InputStream
-
-import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, SourceData}
-import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
+import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
+import io.lenses.streamreactor.connect.aws.s3.model.SourceData
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+
+import java.io.InputStream
 
 object S3FormatStreamReader {
 
   def apply(
              inputStreamFn: () => InputStream,
              fileSizeFn: () => Long,
-             options: SourceBucketOptions,
-             bucketAndPath: RemotePathLocation
+             format: FormatSelection,
+             bucketAndPath: RemoteS3PathLocation
            ): S3FormatStreamReader[_ <: SourceData] =
-    options.format.format match {
+    format.format match {
       case Format.Avro => new AvroFormatStreamReader(inputStreamFn, bucketAndPath)
       case Format.Json => new TextFormatStreamReader(inputStreamFn, bucketAndPath)
       case Format.Text => new TextFormatStreamReader(inputStreamFn, bucketAndPath)
       case Format.Parquet => new ParquetFormatStreamReader(inputStreamFn, fileSizeFn, bucketAndPath)
-      case Format.Csv => new CsvFormatStreamReader(inputStreamFn, bucketAndPath, hasHeaders = options.format.formatOptions.contains(WithHeaders))
+      case Format.Csv => new CsvFormatStreamReader(inputStreamFn, bucketAndPath, hasHeaders = format.formatOptions.contains(WithHeaders))
       case Format.Bytes =>
-        val bytesWriteMode = S3FormatWriter.convertToBytesWriteMode(options.format.formatOptions)
+        val bytesWriteMode = S3FormatWriter.convertToBytesWriteMode(format.formatOptions)
         if (bytesWriteMode.entryName.toLowerCase.contains("size")) {
           new BytesFormatWithSizesStreamReader(inputStreamFn, fileSizeFn, bucketAndPath, bytesWriteMode)
         } else {
@@ -49,7 +49,7 @@ object S3FormatStreamReader {
 
 trait S3FormatStreamReader[R <: SourceData] extends AutoCloseable with Iterator[R] {
 
-  def getBucketAndPath: RemotePathLocation
+  def getBucketAndPath: RemoteS3PathLocation
 
   def getLineNumber: Long
 

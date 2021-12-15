@@ -48,6 +48,10 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hazelcast-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
+    if(Option(System.getProperty("hazelcast.logging.type")).isEmpty){
+      System.setProperty("hazelcast.logging.type", "slf4j")
+    }
+
     val conf = if (context.configs().isEmpty) props else context.configs()
 
     HazelCastSinkConfig.config.parse(conf)

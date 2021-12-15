@@ -16,13 +16,14 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.ByteArrayInputStream
-
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData.{checkRecord, firstUsers, topic}
-import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.io.ByteArrayInputStream
 
 class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
@@ -30,7 +31,7 @@ class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
   "read" should "read through all records" in {
 
     val byteArrayInputStream: ByteArrayInputStream = writeRecordsToOutputStream
-    val avroFormatStreamReader = new AvroFormatStreamReader(() => byteArrayInputStream, RemotePathLocation("test-bucket", "test-path"))
+    val avroFormatStreamReader = new AvroFormatStreamReader(() => byteArrayInputStream, RemoteS3PathLocation("test-bucket", "test-path"))
 
     avroFormatStreamReader.hasNext should be(true)
     checkRecord(avroFormatStreamReader.next().data, "sam", Some("mr"), 100.43)
@@ -46,7 +47,7 @@ class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
     val outputStream = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     firstUsers.foreach(str => avroFormatWriter.write(None, StructSinkData(str), topic))
-    avroFormatWriter.close(RemotePathLocation("my-bucket", "my-path"))
+    avroFormatWriter.complete()
 
     new ByteArrayInputStream(outputStream.toByteArray)
   }

@@ -16,23 +16,79 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model
 
-import org.apache.kafka.connect.data.SchemaAndValue
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.{fromSourceOffset, fromSourcePartition}
+import org.apache.kafka.connect.data.{Schema, SchemaAndValue}
+import org.apache.kafka.connect.source.SourceRecord
+
+import scala.jdk.CollectionConverters.mapAsJavaMapConverter
 
 abstract class SourceData(lineNumber: Long) {
+  def representationSchema: Option[Schema]
+
+  def representationKey: Option[AnyRef]
+
+  def representationValue: AnyRef
+
   def getLineNumber: Long = lineNumber
+
+
+  def toSourceRecord(bucketAndPath: RemoteS3PathLocation, targetTopic: String): SourceRecord = {
+
+    representationKey match {
+      case Some(key) =>
+        new SourceRecord(
+          fromSourcePartition(bucketAndPath.root()).asJava,
+          fromSourceOffset(bucketAndPath, getLineNumber).asJava,
+          targetTopic,
+          null,
+          key,
+          representationSchema.orNull,
+          representationValue
+        )
+      case None =>
+        new SourceRecord(
+          fromSourcePartition(bucketAndPath.root()).asJava,
+          fromSourceOffset(bucketAndPath, getLineNumber).asJava,
+          targetTopic,
+          representationSchema.orNull,
+          representationValue
+        )
+    }
+  }
 }
 
 case class SchemaAndValueSourceData(
                                      data: SchemaAndValue,
                                      lineNumber: Long
-                                   ) extends SourceData(lineNumber)
+                                   ) extends SourceData(lineNumber) {
+
+  override def representationSchema: Option[Schema] = Some(data.schema())
+
+  override def representationKey: Option[AnyRef] = None
+
+  override def representationValue: AnyRef = data.value()
+}
 
 case class StringSourceData(
                              data: String,
                              lineNumber: Long
-                           ) extends SourceData(lineNumber)
+                           ) extends SourceData(lineNumber) {
+  override def representationSchema: Option[Schema] = None
+
+  override def representationKey: Option[AnyRef] = None
+
+  override def representationValue: AnyRef = data
+
+}
 
 case class ByteArraySourceData(
                                 data: BytesOutputRow,
                                 lineNumber: Long
-                              ) extends SourceData(lineNumber)
+                              ) extends SourceData(lineNumber) {
+  override def representationSchema: Option[Schema] = None
+
+  override def representationKey: Option[AnyRef] = Some(data.key)
+
+  override def representationValue: AnyRef = data.value
+}

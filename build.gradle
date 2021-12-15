@@ -58,17 +58,16 @@ allprojects {
         scalaCheck = '1.14.3'
         scalaTest = '3.1.1'
         junit = '4.11'
-        testcontainersVersion = '1.15.3'
+        testcontainersVersion = '1.16.0'
         //avroVersion="1.8.1"
         scalaLoggingVersion = '3.9.2'
         mockitoVersion = '1.13.9'
-        slf4jVersion = "1.7.7"
         json4sVersion = "3.6.7"
         gsonVersion = "2.6.2"
         kcqlVersion = "2.9.1"
         connectCLIVersion = "1.0.6"
-        avro4sVersion = "1.6.4"
-        smt = "2.0.0"
+        avro4sVersion = "1.7.0"
+        logbackVersion = "1.2.7"
 
         // The following 4 need to align to compileagainst a particular version
         confluentVersion = '5.5.0'
@@ -153,10 +152,15 @@ allprojects {
             exclude(dependency("org.apache.kafka:.*"))
             exclude(dependency("org.apache.zookeeper:.*"))
             exclude(dependency("com.google.guava:guava:28.1-android"))
+            exclude(dependency("log4j:.*"))
+            exclude(dependency("org.apache.logging.log4j:.*"))
         }
     }
 
     dependencies {
+        implementation "ch.qos.logback:logback-classic:$logbackVersion"
+        implementation "ch.qos.logback:logback-core:$logbackVersion"
+
         compile "org.scala-lang:scala-library:$scala"
         compile "org.scala-lang:scala-compiler:$scala"
         compile "com.typesafe.scala-logging:scala-logging_${scalaMajorVersion}:${scalaLoggingVersion}"
@@ -165,17 +169,15 @@ allprojects {
         compile "io.confluent:kafka-connect-protobuf-converter:$confluentVersion"
         compile ("io.confluent:kafka-schema-registry:$confluentVersion") {
             exclude group: 'com.google.guava', module: 'guava'
+            exclude group: 'log4j', module: 'log4j'
+            exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+            exclude group: 'org.apache.logging.log4j', module: 'log4j-api'
+            exclude group: 'org.apache.logging.log4j', module: 'log4j-core'
         }
 
         compile "org.apache.calcite:calcite-linq4j:$link4jVersion"
         compile ("com.datamountaineer:kcql:$kcqlVersion") {
             exclude group: "com.google.guava", module: "guava"
-        }
-
-        implementation("com.landoop:kafka-connect-smt_$scalaMajorVersion:$smt") {
-            exclude group: "com.google.protobuf"
-            exclude group: "org.apache.calcite", module: "calcite-linq4j"
-            exclude group: "org.apache.httpcomponents"
         }
 
         testCompile "org.mockito:mockito-scala_$scalaMajorVersion:$mockitoVersion"
@@ -184,7 +186,9 @@ allprojects {
         testCompile "junit:junit:$junit"
 
         testCompile 'org.pegdown:pegdown:1.1.0'
-        testCompile "com.vladsch.flexmark:flexmark-all:0.35.10"
+        testCompile ("com.vladsch.flexmark:flexmark-all:0.35.10") {
+            exclude group: "log4j", module: "log4j"
+        }
         testImplementation "org.testcontainers:testcontainers:$testcontainersVersion"
     }
 

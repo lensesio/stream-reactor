@@ -20,19 +20,20 @@ package com.datamountaineer.streamreactor.common.schemas
 
 import StructHelper.StructExtension
 import com.datamountaineer.streamreactor.common.config.base.settings.Projections
-import com.datamountaineer.streamreactor.common.converters.ToJsonWithProjections.simpleJsonConverter
 import com.datamountaineer.streamreactor.connect.converters.source.JsonSimpleConverter
+import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.ConnectException
-import org.apache.kafka.connect.header.ConnectHeaders
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 object SinkRecordConverterHelper extends StrictLogging {
+
+  lazy val simpleJsonConverter = new SimpleJsonConverter()
 
   implicit final class SinkRecordExtension(val record: SinkRecord)
       extends AnyVal {
@@ -129,7 +130,7 @@ object SinkRecordConverterHelper extends StrictLogging {
     }
 
     // create a new struct with the required fields
-    private def extract(payload: Object,
+    def extract(payload: Object,
                         payloadSchema: Schema,
                         fields: Map[String, String],
                         ignoreFields: Set[String]): Struct = {

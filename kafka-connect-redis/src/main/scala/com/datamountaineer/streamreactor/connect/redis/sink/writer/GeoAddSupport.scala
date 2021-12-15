@@ -20,7 +20,7 @@ trait GeoAddSupport extends StrictLogging {
     val parameterValue = if (geoAddParams.keys.exists(k => k.equalsIgnoreCase(parameterName)))
       geoAddParams.find { case (k, _) => k.equalsIgnoreCase(parameterName) }.get._2
     else {
-      logger.info(s"You have not defined a $parameterName field. We'll try to fall back to '$defaultValue' field")
+      logger.info(s"You have not defined a [$parameterName] field. We'll try to fall back to [$defaultValue] field")
       defaultValue
     }
     parameterValue

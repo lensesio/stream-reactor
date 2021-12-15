@@ -19,9 +19,9 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.NullNode
-import io.lenses.streamreactor.connect.aws.s3.model.{ArraySinkData, MapSinkData, NullSinkData, StringSinkData, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
-import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -59,6 +59,19 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     val tree = objectMapper.readTree(outputStream.toString())
 
     tree.textValue() should be("bees")
+  }
+
+
+  "convert" should "write primitive with new line characters to single line" in {
+
+    val outputStream = new S3ByteArrayOutputStream()
+    val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
+    jsonFormatWriter.write(None, StringSinkData("apple\nbucket", None), topic)
+
+    val objectMapper = new ObjectMapper()
+    val tree = objectMapper.readTree(outputStream.toString())
+
+    tree.textValue() should be("apple\\nbucket")
   }
 
   "convert" should "write primitive to json for a single record" in {
@@ -140,6 +153,6 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     val lines = outputStream.toString().split(System.lineSeparator())
     val treeLine1 = new ObjectMapper().readTree(lines(0))
     treeLine1.get("bees").textValue() should be("sting when scared")
-    treeLine1.get("wasps") shouldBe a [NullNode]
+    treeLine1.get("wasps") shouldBe a[NullNode]
   }
 }

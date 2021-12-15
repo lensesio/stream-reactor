@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.config.processors
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.{DEP_AUTH_MODE, DEP_AWS_ACCESS_KEY, DEP_AWS_SECRET_KEY, DEP_CUSTOM_ENDPOINT, DEP_ENABLE_VIRTUAL_HOST_BUCKETS, _}
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 
 import scala.collection.immutable.ListMap
 import scala.collection.mutable
@@ -36,7 +36,7 @@ class DeprecationConfigDefProcessor extends ConfigDefProcessor with LazyLogging 
     DEP_CUSTOM_ENDPOINT -> CUSTOM_ENDPOINT
   )
 
-  override def process(input: Map[String, AnyRef]): Either[Exception, Map[String, AnyRef]] = {
+  override def process(input: Map[String, Any]): Either[Exception, Map[String, Any]] = {
 
     val mutableInput = mutable.Map(input.toSeq: _*)
     deprecatedProps.foreach {

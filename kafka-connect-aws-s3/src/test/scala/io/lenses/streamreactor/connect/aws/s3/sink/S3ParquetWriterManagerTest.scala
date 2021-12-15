@@ -21,25 +21,27 @@ import io.lenses.streamreactor.connect.aws.s3.config.Format.Parquet
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.formats.ParquetFormatReader
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.config.{S3SinkConfig, SinkBucketOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig, S3TestPayloadReader}
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
-import org.jclouds.blobstore.options.ListContainerOptions
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfig {
 
   import S3ProxyContext._
+  import helper._
 
   private val TopicName = "myTopic"
   private val PathPrefix = "streamReactorBackups"
   private val parquetFormatReader = new ParquetFormatReader
 
-  private val bucketAndPrefix = RemoteRootLocation(BucketName, Some(PathPrefix))
-  private val parquetConfig = S3SinkConfig(S3Config(
+  private val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix), allowSlash = false)
+  private def parquetConfig = S3SinkConfig(S3Config(
+    None,
     Some(Identity),
     Some(Credential),
     AuthMode.Credentials),
@@ -49,7 +51,8 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
         bucketAndPrefix,
         commitPolicy = DefaultCommitPolicy(None, None, Some(2)),
         fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Parquet)),
-        formatSelection = FormatSelection(Parquet)
+        formatSelection = FormatSelection(Parquet),
+        localStagingArea = LocalStagingArea(localRoot)
       )
     )
   )
@@ -57,7 +60,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
 
   "parquet sink" should "write 2 records to parquet format in s3" in {
 
-    val sink = S3WriterManager.from(parquetConfig,"sinkName")
+    val sink = S3WriterManager.from(parquetConfig, "sinkName")
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
@@ -65,9 +68,9 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
 
     sink.close()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    val byteArray = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/2.parquet", blobStoreContext)
+    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2.parquet")
     val genericRecords: List[GenericRecord] = parquetFormatReader.read(byteArray)
     genericRecords.size should be(2)
 
@@ -90,20 +93,20 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
       new Struct(secondSchema).put("name", "coco").put("designation", null).put("salary", 395.44)
     )
 
-    val sink = S3WriterManager.from(parquetConfig,"sinkName")
+    val sink = S3WriterManager.from(parquetConfig, "sinkName")
     firstUsers.union(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
         sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData]))
     }
     sink.close()
 
-    //val list1 = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/"))
+    //val list1 = listBucketPath(BucketName, "streamReactorBackups/myTopic/1/"))
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
     // records 1 and 2
     val genericRecords1: List[GenericRecord] = parquetFormatReader.read(
-      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/2.parquet", blobStoreContext)
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2.parquet")
     )
     genericRecords1.size should be(2)
     genericRecords1(0).get("name").toString should be("sam")
@@ -111,14 +114,14 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
 
     // record 3 only - next schema is different so ending the file
     val genericRecords2: List[GenericRecord] = parquetFormatReader.read(
-      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/3.parquet", blobStoreContext)
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/3.parquet")
     )
     genericRecords2.size should be(1)
     genericRecords2(0).get("name").toString should be("tom")
 
     // record 3 only - next schema is different so ending the file
     val genericRecords3: List[GenericRecord] = parquetFormatReader.read(
-      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/5.parquet", blobStoreContext)
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/5.parquet")
     )
     genericRecords3.size should be(2)
     genericRecords3(0).get("name").toString should be("bobo")

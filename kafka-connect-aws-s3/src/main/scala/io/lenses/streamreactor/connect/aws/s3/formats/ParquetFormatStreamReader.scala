@@ -16,18 +16,18 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.InputStream
-
 import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.aws.s3.formats.parquet.ParquetStreamingInputFile
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, SchemaAndValueSourceData}
+import io.lenses.streamreactor.connect.aws.s3.model.SchemaAndValueSourceData
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import org.apache.avro.generic.GenericRecord
 import org.apache.parquet.avro.AvroParquetReader
 import org.apache.parquet.hadoop.ParquetReader
 
+import java.io.InputStream
 import scala.util.Try
 
-class ParquetFormatStreamReader(inputStreamFn: () => InputStream, fileSizeFn: () => Long, bucketAndPath: RemotePathLocation)
+class ParquetFormatStreamReader(inputStreamFn: () => InputStream, fileSizeFn: () => Long, bucketAndPath: RemoteS3PathLocation)
   extends S3FormatStreamReader[SchemaAndValueSourceData] with Using {
 
   private val inputFile = new ParquetStreamingInputFile(inputStreamFn, fileSizeFn)
@@ -36,7 +36,7 @@ class ParquetFormatStreamReader(inputStreamFn: () => InputStream, fileSizeFn: ()
   private var lineNumber: Long = -1
   private val avroDataConverter = new AvroData(100)
 
-  override def getBucketAndPath: RemotePathLocation = bucketAndPath
+  override def getBucketAndPath: RemoteS3PathLocation = bucketAndPath
 
   override def getLineNumber: Long = lineNumber
 

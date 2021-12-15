@@ -28,8 +28,12 @@ case class PartitionNamePath(path: String*) {
     require(name != null && name.trim.nonEmpty && reservedCharacters.forall(!name.contains(_)), "Name must not be empty and must not contain a slash character")
 
   def headOption: Option[String] = path.headOption
+
   def head: String = path.head
-  def tail = PartitionNamePath(path.tail:_*)
+
+  def tail = PartitionNamePath(path.tail: _*)
+
   def hasTail = path.size > 1
+
   def size: Int = path.size
 }

@@ -268,20 +268,68 @@ An example Kcql string showing all available config options for the Sink follows
     insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_SIZE=1000 WITH_FLUSH_INTERVAL=200 WITH_FLUSH_COUNT=200
 
 
-## Write modes
+## Local File Writing
 
-There are two write modes available for the upload of files to S3.
+The connector builds complete files locally before uploading in one operation in the commit.
 
-* Sreaming (Default) - Streaming files to S3 as they are written to via Multi-part uploads, and the commit moves the file to the committed name.
-* BuildLocal - Building the file locally in completion before uploading in one operation in the commit.  This may be preferred when bucket versioning is enabled as it reduces write operations to the bucket at the expense of increasing disk space requirements locally.
-
-To configure the write modes explicitly you can use either:
-
-    connect.s3.write.mode=BuildLocal
-    connect.s3.write.mode=Streamed
-
-Also, to optionally supply a directory to write the files to locally. If none is supplied and BuildLocal mode is used, then a directory will be created in your system temporary directory (eg /tmp)
+To optionally supply a directory to write the files to locally. If none is supplied and BuildLocal mode is used, then a directory will be created in your system temporary directory (eg /tmp)
 
     connect.s3.local.tmp.directory 
 
-The new BuildLocal write mode is currently limited to 5GB as it does not use the multipart upload API.  This can be addressed in future if it is required.
+Files are currently limited to 5GB.  This can be addressed in future if it is required.
+
+
+## Error handling
+
+Various properties for managing the error handling are supplied.
+
+###### connect.s3.error.policy
+
+Specifies the action to be taken if an error occurs while inserting the data.
+There are three available options:
+    **NOOP** - the error is swallowed
+    **THROW** - the error is allowed to propagate.
+    **RETRY** - The exception causes the Connect framework to retry the message. The number of retries is set by connect.s3.max.retries.
+All errors will be logged automatically, even if the code swallows them.
+
+
+###### connect.s3.max.retries
+The maximum number of times to try the write again.
+
+
+###### connect.s3.retry.interval
+
+The time in milliseconds between retries.
+
+###### connect.s3.http.max.retries
+Number of times to retry the http request, in the case of a resolvable error on the server side.
+
+###### connect.s3.http.retry.interval
+If greater than zero, used to determine the delay after which to retry the http request in milliseconds. Based on an exponential backoff algorithm.
+
+## Custom Endpoints
+
+###### connect.s3.custom.endpoint
+
+**Default value:** Not set (automatically selects the S3 endpoint)
+For specifying a custom S3 endpoint.
+(This could be a third-party provider compatible with the S3 API or a locally running S3 mock.)
+Also can be used for targeting a specific region:
+
+    connect.s3.custom.endpoint=https://s3.eu-west-3.amazonaws.com/
+
+###### connect.s3.vhost.bucket
+
+**Default value:** false
+
+When using an endpoint that places the bucket name in the vhost, set this to true.
+
+For example:
+
+http://s3.amazonaws.com/[bucket_name]/
+
+    connect.s3.vhost.bucket=false
+
+http://[bucket_name].s3.amazonaws.com/
+
+    connect.s3.vhost.bucket=true

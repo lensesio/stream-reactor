@@ -16,13 +16,12 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
-import java.nio.ByteBuffer
-
 import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.aws.s3.model._
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.{Schema => ConnectSchema}
 
+import java.nio.ByteBuffer
 import scala.collection.JavaConverters._
 
 object ToAvroDataConverter {

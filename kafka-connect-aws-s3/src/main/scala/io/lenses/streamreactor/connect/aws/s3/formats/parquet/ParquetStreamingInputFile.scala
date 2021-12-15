@@ -16,10 +16,10 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats.parquet
 
-import java.io.InputStream
-
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.parquet.io.{InputFile, SeekableInputStream}
+
+import java.io.InputStream
 
 
 class ParquetStreamingInputFile(inputStreamFn: () => InputStream, fileSizeFn: () => Long) extends InputFile with LazyLogging {

@@ -25,7 +25,7 @@ import scala.collection.JavaConverters._
 
 class S3ConfigDefTest extends AnyFlatSpec with Matchers {
 
-  private val DeprecatedProps: Map[String,String] = Map(
+  private val DeprecatedProps: Map[String, String] = Map(
     DEP_AWS_ACCESS_KEY -> "DepAccessKey",
     DEP_AWS_SECRET_KEY -> "DepSecretKey",
     DEP_AUTH_MODE -> AuthMode.Credentials.toString,
@@ -34,7 +34,7 @@ class S3ConfigDefTest extends AnyFlatSpec with Matchers {
     KCQL_CONFIG -> "SELECT * FROM DEPRECATED",
   )
 
-  private val DefaultProps: Map[String,String]  = Map(
+  private val DefaultProps: Map[String, String] = Map(
     AWS_ACCESS_KEY -> "AccessKey",
     AWS_SECRET_KEY -> "SecretKey",
     AUTH_MODE -> AuthMode.Default.toString,
@@ -46,21 +46,21 @@ class S3ConfigDefTest extends AnyFlatSpec with Matchers {
   "S3ConfigDef" should "parse original properties" in {
     val resultMap = S3ConfigDef.config.parse(DefaultProps.asJava).asScala
     resultMap should have size (14)
-    DeprecatedProps.filterNot{case(k, _) => k == KCQL_CONFIG}.foreach{case (k,_) => resultMap.get(k) should be (None)}
-    DefaultProps.foreach{case (k, _) => resultMap.keySet.contains(k) should be (true)}
+    DeprecatedProps.filterNot { case (k, _) => k == KCQL_CONFIG }.foreach { case (k, _) => resultMap.get(k) should be(None) }
+    DefaultProps.foreach { case (k, _) => resultMap.keySet.contains(k) should be(true) }
   }
 
   "S3ConfigDef" should "parse deprecated properties" in {
     val resultMap = S3ConfigDef.config.parse(DeprecatedProps.asJava).asScala
     resultMap should have size (14)
-    DeprecatedProps.filterNot{case(k, _) => k == KCQL_CONFIG}.foreach{case (k,_) => resultMap.get(k) should be (None)}
-    DefaultProps.foreach{case (k, _) => resultMap.keySet.contains(k) should be (true)}
+    DeprecatedProps.filterNot { case (k, _) => k == KCQL_CONFIG }.foreach { case (k, _) => resultMap.get(k) should be(None) }
+    DefaultProps.foreach { case (k, _) => resultMap.keySet.contains(k) should be(true) }
   }
 
   "S3ConfigDef" should "parse merged properties" in {
     val mergedProps = DefaultProps.combine(DeprecatedProps)
     val resultMap = S3ConfigDef.config.parse(mergedProps.asJava).asScala
-    DeprecatedProps.filterNot{case(k, _) => k == KCQL_CONFIG}.foreach{case (k,_) => resultMap.get(k) should be (None)}
-    DefaultProps.foreach{case (k, _) => resultMap.keySet.contains(k) should be (true)}
+    DeprecatedProps.filterNot { case (k, _) => k == KCQL_CONFIG }.foreach { case (k, _) => resultMap.get(k) should be(None) }
+    DefaultProps.foreach { case (k, _) => resultMap.keySet.contains(k) should be(true) }
   }
 }

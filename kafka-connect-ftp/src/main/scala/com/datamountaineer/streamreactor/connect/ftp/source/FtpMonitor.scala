@@ -50,9 +50,11 @@ case class FtpMonitorSettings(host:String, port:Option[Int], user:String, pass:S
 class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) extends StrictLogging {
   val MaxAge = settings.maxAge.getOrElse(Duration.ofDays(Long.MaxValue))
 
-  val ftp = settings.protocol match {
+  val ftp: FTPClient = settings.protocol match {
     case FtpProtocol.FTP => new FTPClient()
     case FtpProtocol.FTPS => new FTPSClient()
+    case FtpProtocol.SFTP => new SFTPClient()
+
   }
 
   val sliceSize = settings.sliceSize

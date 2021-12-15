@@ -37,7 +37,7 @@ object PartitionField {
       }).toSeq
 
   def apply(valuePartitionPath: Seq[String]): PartitionField = {
-    ValuePartitionField(PartitionNamePath(valuePartitionPath:_*))
+    ValuePartitionField(PartitionNamePath(valuePartitionPath: _*))
   }
 
   def apply(partitionSpecifier: PartitionSpecifier): PartitionField = {
@@ -52,9 +52,9 @@ object PartitionField {
 
   def apply(partitionSpecifier: PartitionSpecifier, path: Seq[String]): PartitionField = {
     partitionSpecifier match {
-      case PartitionSpecifier.Key => KeyPartitionField(PartitionNamePath(path:_*))
-      case PartitionSpecifier.Value => ValuePartitionField(PartitionNamePath(path:_*))
-      case PartitionSpecifier.Header => HeaderPartitionField(PartitionNamePath(path:_*))
+      case PartitionSpecifier.Key => KeyPartitionField(PartitionNamePath(path: _*))
+      case PartitionSpecifier.Value => ValuePartitionField(PartitionNamePath(path: _*))
+      case PartitionSpecifier.Header => HeaderPartitionField(PartitionNamePath(path: _*))
       case PartitionSpecifier.Topic => throw new IllegalArgumentException("partitioning by topic requires no path")
       case PartitionSpecifier.Partition => throw new IllegalArgumentException("partitioning by partition requires no path")
     }

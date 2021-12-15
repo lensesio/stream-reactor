@@ -16,10 +16,10 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats.parquet
 
-import java.io.ByteArrayInputStream
-
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.io.ByteArrayInputStream
 
 class ParquetSeekableInputStreamTest extends AnyFlatSpec with Matchers {
 
