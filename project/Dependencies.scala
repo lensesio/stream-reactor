@@ -130,8 +130,8 @@ object Dependencies {
     val fakeSftpServerVersion = "2.0.0"
 
     val hbaseClientVersion = "2.4.8"
-    //val hadoopVersion = "2.10.1"
-    val hadoopVersion = "2.7.4"
+    val s3HadoopVersion = "2.10.0"
+    val hiveHadoopVersion = "2.7.4"
 
     val zookeeperServerVersion = "3.7.0"
 
@@ -246,7 +246,7 @@ object Dependencies {
   def parquetEncoding(version: String) = "org.apache.parquet" % "parquet-encoding" % version
   def parquetHadoopBundle(version: String) = "org.apache.parquet" % "parquet-hadoop-bundle" % version
 
-  lazy val hadoopCommon = ("org.apache.hadoop" % "hadoop-common" % hadoopVersion)
+  def hadoopCommon(version: String) = ("org.apache.hadoop" % "hadoop-common" % version)
     .excludeAll(ExclusionRule(organization = "javax.servlet"))
     .excludeAll(ExclusionRule(organization = "javax.servlet.jsp"))
     .excludeAll(ExclusionRule(organization = "org.mortbay.jetty"))
@@ -254,11 +254,14 @@ object Dependencies {
     .exclude("org.apache.hadoop", "hadoop-annotations")
     .exclude("org.apache.hadoop", "hadoop-auth")
 
-  lazy val hadoopMapReduce = ("org.apache.hadoop" % "hadoop-mapreduce" % hadoopVersion)
+  def hadoopMapReduce(version: String) = ("org.apache.hadoop" % "hadoop-mapreduce" % version)
 
-  lazy val hadoopMapReduceClient = ("org.apache.hadoop" % "hadoop-mapreduce-client" % hadoopVersion)
+  def hadoopMapReduceClient(version: String) = ("org.apache.hadoop" % "hadoop-mapreduce-client" % version)
 
-  lazy val hadoopMapReduceClientCore = ("org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion)
+  def hadoopMapReduceClientCore(version: String) = ("org.apache.hadoop" % "hadoop-mapreduce-client-core" % version)
+
+  def hadoopExec(version: String) = ("org.apache.hadoop" % "hadoop-exec" % version)
+  def hadoopHdfs(version: String) = ("org.apache.hadoop" % "hadoop-hdfs" % version)
 
 
   lazy val kcql = ("com.datamountaineer" % "kcql" % kcqlVersion)
@@ -324,7 +327,6 @@ object Dependencies {
   lazy val fakeSftpServer = ("com.github.stefanbirkner" % "fake-sftp-server-lambda" % fakeSftpServerVersion)
 
   lazy val hbaseClient = "org.apache.hbase" % "hbase-client" % hbaseClientVersion
-  lazy val hadoopHdfs = "org.apache.hadoop" % "hadoop-hdfs" % hadoopVersion
   lazy val zookeeperServer = "org.apache.zookeeper" % "zookeeper" % zookeeperServerVersion
 
   lazy val mongoDb = "org.mongodb" % "mongo-java-driver" % mongoDbVersion
@@ -401,9 +403,6 @@ trait Dependencies {
     //hadoopMapReduce,
     guava
   ) ++ enumeratum ++ circe ++ http4s)
-    .map(_.exclude("org.slf4j", "slf4j-log4j12"))
-    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
-    .map(_.exclude("com.sun.jersey", "*"))
 
   //Specific modules dependencies
   val kafkaConnectCommonDeps: Seq[ModuleID] = Seq(
@@ -416,9 +415,7 @@ trait Dependencies {
     jacksonDatabind,
     jacksonModuleScala,
     zookeeperServer,
-  ).map(_.exclude("org.slf4j", "slf4j-log4j12"))
-    .map(_.exclude("org.apache.logging.log4j", "log4j-slf4j-impl"))
-    .map(_.exclude("com.sun.jersey", "*"))
+  )
 
   //Specific modules dependencies
 
@@ -426,8 +423,10 @@ trait Dependencies {
     s3Sdk,
     parquetAvro(s3ParquetVersion),
     parquetHadoop(s3ParquetVersion),
-    hadoopCommon,
-    hadoopMapReduce,
+    hadoopCommon(s3HadoopVersion),
+    hadoopMapReduce(s3HadoopVersion),
+    hadoopMapReduceClient(s3HadoopVersion),
+    hadoopMapReduceClientCore(s3HadoopVersion),
     javaxBind,
     jcloudsBlobstore,
     jcloudsProviderS3,
@@ -498,11 +497,11 @@ trait Dependencies {
 
   val kafkaConnectFtpTestDeps : Seq[ModuleID] = Seq(mina, betterFiles, ftpServer, fakeSftpServer)
 
-  val kafkaConnectHbaseDeps : Seq[ModuleID] = Seq(hadoopHdfs, hbaseClient)
+  val kafkaConnectHbaseDeps : Seq[ModuleID] = Seq(hadoopHdfs(s3HadoopVersion), hbaseClient)
 
   val kafkaConnectHbaseTestDeps : Seq[ModuleID] = Seq()
 
-  val kafkaConnectHiveDeps : Seq[ModuleID] = Seq(nettyAll, parquetAvro(hiveParquetVersion), parquetColumn(hiveParquetVersion), parquetEncoding(hiveParquetVersion), parquetHadoop(hiveParquetVersion), parquetHadoopBundle(hiveParquetVersion), joddCore, hiveJdbc, hiveExec, hadoopCommon, hadoopHdfs, hadoopMapReduce, hadoopMapReduceClient, hadoopMapReduceClientCore)
+  val kafkaConnectHiveDeps : Seq[ModuleID] = Seq(nettyAll, parquetAvro(hiveParquetVersion), parquetColumn(hiveParquetVersion), parquetEncoding(hiveParquetVersion), parquetHadoop(hiveParquetVersion), parquetHadoopBundle(hiveParquetVersion), joddCore, hiveJdbc, hiveExec, hadoopCommon(hiveHadoopVersion), hadoopHdfs(hiveHadoopVersion), hadoopMapReduce(hiveHadoopVersion), hadoopMapReduceClient(hiveHadoopVersion), hadoopMapReduceClientCore(hiveHadoopVersion))
 
   val kafkaConnectHiveTestDeps : Seq[ModuleID] = Seq(testContainers)
 
