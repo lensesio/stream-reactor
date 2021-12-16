@@ -45,8 +45,6 @@ project(":kafka-connect-elastic7") {
         compile "org.elasticsearch:elasticsearch:$elasticSearchVersion"
         compile "org.codelibs.elasticsearch.module:analysis-common:$elasticSearchVersion"
 
-        compile'org.apache.logging.log4j:log4j-core:2.11.1'
-
         testCompile("com.sksamuel.elastic4s:elastic4s-testkit_$scalaMajorVersion:$elastic4sVersion")
         testCompile "org.testcontainers:elasticsearch:1.15.1"
 
