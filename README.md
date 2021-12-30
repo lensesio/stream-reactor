@@ -156,13 +156,8 @@ You must supply the following environment variables in order to run the tests:
 
 - `$KCBQ_TEST_PROJECT`: The name of the BigQuery project to use for the test
 - `$KCBQ_TEST_DATASET`: The name of the BigQuery dataset to use for the test
-- `$KCBQ_TEST_KEYFILE`: The key (either file or raw contents) used to authenticate with BigQuery
-during the test
+- `$KCBQ_TEST_KEYFILE`: The key file used to authenticate with BigQuery during the test
 - `$KCBQ_TEST_BUCKET`: The name of the GCS bucket to use (for testing the GCS batch loading feature)
-
-Optionally, the `$KCBQ_TEST_KEYSOURCE` variable can be supplied to specify whether the value of
-`$KCBQ_TEST_KEYFILE` is a path to a key file (if set to `FILE`) or the raw contents of a key file
-(if set to `JSON`). The default is `FILE`.
 
 The `$KCBQ_TEST_FOLDER` variable can be supplied to specify which subfolder of the GCS bucket should
 be used when testing the GCS batch loading feature; if not supplied, the top-level folder will be

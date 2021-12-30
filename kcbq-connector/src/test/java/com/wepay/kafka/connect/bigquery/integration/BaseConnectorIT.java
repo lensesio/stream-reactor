@@ -80,7 +80,6 @@ public abstract class BaseConnectorIT {
   private static final String KEYFILE_ENV_VAR = "KCBQ_TEST_KEYFILE";
   private static final String PROJECT_ENV_VAR = "KCBQ_TEST_PROJECT";
   private static final String DATASET_ENV_VAR = "KCBQ_TEST_DATASET";
-  private static final String KEYSOURCE_ENV_VAR = "KCBQ_TEST_KEYSOURCE";
   private static final String GCS_BUCKET_ENV_VAR = "KCBQ_TEST_BUCKET";
   private static final String GCS_FOLDER_ENV_VAR = "KCBQ_TEST_FOLDER";
   private static final String TEST_NAMESPACE_ENV_VAR = "KCBQ_TEST_TABLE_SUFFIX";
@@ -370,7 +369,7 @@ public abstract class BaseConnectorIT {
   }
 
   protected String keySource() {
-    return readEnvVar(KEYSOURCE_ENV_VAR, BigQuerySinkConfig.KEY_SOURCE_DEFAULT);
+    return BigQuerySinkConfig.KEY_SOURCE_DEFAULT;
   }
 
   protected String gcsBucket() {
