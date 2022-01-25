@@ -118,11 +118,11 @@ public abstract class BigQueryWriter {
               rows.size() - failedRowsMap.size(), failedRowsMap.size());
           // update insert rows and retry in case of partial failure
           rows = getFailedRows(rows, failedRowsMap.keySet(), table);
-          mostRecentException = new BigQueryConnectException(failedRowsMap);
+          mostRecentException = new BigQueryConnectException(table.toString(), failedRowsMap);
           retryCount++;
         } else {
           // throw an exception in case of complete failure
-          throw new BigQueryConnectException(failedRowsMap);
+          throw new BigQueryConnectException(table.toString(), failedRowsMap);
         }
       } catch (BigQueryException err) {
         mostRecentException = err;
