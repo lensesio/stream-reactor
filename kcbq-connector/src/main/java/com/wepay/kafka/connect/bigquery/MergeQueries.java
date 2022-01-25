@@ -187,11 +187,11 @@ public class MergeQueries {
       )
       ON `<destinationTable>`.<keyField>=src.key
       WHEN MATCHED AND src.value IS NOT NULL
-        THEN UPDATE SET <valueField>=src.value.<field>[, <valueField>=src.value.<field>...]
+        THEN UPDATE SET `<valueField>`=src.value.<field>[, `<valueField>`=src.value.<field>...]
       WHEN MATCHED AND src.value IS NULL
         THEN DELETE
       WHEN NOT MATCHED AND src.value IS NOT NULL
-        THEN INSERT (<keyField>, [_PARTITIONTIME, ]<valueField>[, <valueField>])
+        THEN INSERT (`<keyField>`, [_PARTITIONTIME, ]`<valueField>`[, `<valueField>`])
         VALUES (
           src.key,
           [CAST(CAST(DATE(src.partitionTime) AS DATE) AS TIMESTAMP),]
@@ -226,14 +226,15 @@ public class MergeQueries {
         + ") "
         + "ON `" + destinationTable.getTable() + "`." + keyFieldName + "=src." + key + " "
         + "WHEN MATCHED AND src." + value + " IS NOT NULL "
-          + "THEN UPDATE SET " + valueColumns.stream().map(col -> col + "=src." + value + "." + col).collect(Collectors.joining(", ")) + " "
+          + "THEN UPDATE SET " + valueColumns.stream().map(col -> "`" + col + "`=src." + value + "." + col).collect(Collectors.joining(", ")) + " "
         + "WHEN MATCHED AND src." + value + " IS NULL "
           + "THEN DELETE "
         + "WHEN NOT MATCHED AND src." + value + " IS NOT NULL "
-          + "THEN INSERT ("
-            + keyFieldName + ", "
+          + "THEN INSERT (`"
+            + keyFieldName + "`, "
             + partitionTimePseudoColumn()
-            + String.join(", ", valueColumns) + ") "
+            + "`"
+            + String.join("`, `", valueColumns) + "`) "
           + "VALUES ("
             + "src." + key + ", "
             + partitionTimeValue()
@@ -255,9 +256,9 @@ public class MergeQueries {
       )
       ON `<destinationTable>`.<keyField>=src.key
       WHEN MATCHED
-        THEN UPDATE SET <valueField>=src.value.<field>[, <valueField=`src.value.<field>...]
+        THEN UPDATE SET `<valueField>`=src.value.<field>[, `<valueField>`=src.value.<field>...]
       WHEN NOT MATCHED
-        THEN INSERT (<keyField, [_PARTITIONTIME, ]<valueField[, <valueField])
+        THEN INSERT (`<keyField>`, [_PARTITIONTIME, ]`<valueField>`[, `<valueField>`])
         VALUES (
           src.key,
           [CAST(CAST(DATE(src.partitionTime) AS DATE) AS TIMESTAMP),]
@@ -292,12 +293,13 @@ public class MergeQueries {
         + ") "
         + "ON `" + destinationTable.getTable() + "`." + keyFieldName + "=src." + key + " "
         + "WHEN MATCHED "
-          + "THEN UPDATE SET " + valueColumns.stream().map(col -> col + "=src." + value + "." + col).collect(Collectors.joining(", ")) + " "
+          + "THEN UPDATE SET " + valueColumns.stream().map(col -> "`" + col + "`=src." + value + "." + col).collect(Collectors.joining(", ")) + " "
         + "WHEN NOT MATCHED "
-          + "THEN INSERT ("
-            + keyFieldName + ", "
+          + "THEN INSERT (`"
+            + keyFieldName + "`, "
             + partitionTimePseudoColumn()
-            + String.join(", ", valueColumns) + ") "
+            + "`"
+            + String.join("`, `", valueColumns) + "`) "
           + "VALUES ("
             + "src." + key + ", "
             + partitionTimeValue()
@@ -350,7 +352,7 @@ public class MergeQueries {
       WHEN MATCHED
         THEN DELETE
       WHEN NOT MATCHED AND src.value IS NOT NULL
-      THEN INSERT (<keyField>, [_PARTITIONTIME, ]<valueField>[, <valueField>])
+      THEN INSERT (`<keyField>`, [_PARTITIONTIME, ]`<valueField>`[, `<valueField>`])
       VALUES (
         src.key,
         [CAST(CAST(DATE(src.partitionTime) AS DATE) AS TIMESTAMP),]
@@ -397,10 +399,11 @@ public class MergeQueries {
         + "WHEN MATCHED "
           + "THEN DELETE "
         + "WHEN NOT MATCHED AND src." + value + " IS NOT NULL "
-          + "THEN INSERT ("
-            + keyFieldName + ", "
+          + "THEN INSERT (`"
+            + keyFieldName + "`, "
             + partitionTimePseudoColumn()
-            + String.join(", ", valueColumns) + ") "
+            + "`"
+            + String.join("`, `", valueColumns) + "`) "
           + "VALUES ("
             + "src." + key + ", "
             + partitionTimeValue()
