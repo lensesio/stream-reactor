@@ -37,6 +37,7 @@ import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.convert.KafkaDataBuilder;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
+import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import com.wepay.kafka.connect.bigquery.utils.TableNameUtils;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -66,6 +67,7 @@ public class SchemaManager {
   private final boolean allowNewBQFields;
   private final boolean allowBQRequiredFieldRelaxation;
   private final boolean allowSchemaUnionization;
+  private final boolean sanitizeFieldNames;
   private final Optional<String> kafkaKeyFieldName;
   private final Optional<String> kafkaDataFieldName;
   private final Optional<String> timestampPartitionFieldName;
@@ -83,6 +85,7 @@ public class SchemaManager {
    * @param allowNewBQFields If set to true, allows new fields to be added to BigQuery Schema.
    * @param allowBQRequiredFieldRelaxation If set to true, allows changing field mode from REQUIRED to NULLABLE
    * @param allowSchemaUnionization If set to true, allows existing and new schemas to be unionized
+   * @param sanitizeFieldNames If true, sanitizes field names to adhere to BigQuery column name restrictions
    * @param kafkaKeyFieldName The name of kafka key field to be used in BigQuery.
    *                          If set to null, Kafka Key Field will not be included in BigQuery.
    * @param kafkaDataFieldName The name of kafka data field to be used in BigQuery.
@@ -100,6 +103,7 @@ public class SchemaManager {
       boolean allowNewBQFields,
       boolean allowBQRequiredFieldRelaxation,
       boolean allowSchemaUnionization,
+      boolean sanitizeFieldNames,
       Optional<String> kafkaKeyFieldName,
       Optional<String> kafkaDataFieldName,
       Optional<String> timestampPartitionFieldName,
@@ -111,6 +115,7 @@ public class SchemaManager {
         allowNewBQFields,
         allowBQRequiredFieldRelaxation,
         allowSchemaUnionization,
+        sanitizeFieldNames,
         kafkaKeyFieldName,
         kafkaDataFieldName,
         timestampPartitionFieldName,
@@ -128,6 +133,7 @@ public class SchemaManager {
       boolean allowNewBQFields,
       boolean allowBQRequiredFieldRelaxation,
       boolean allowSchemaUnionization,
+      boolean sanitizeFieldNames,
       Optional<String> kafkaKeyFieldName,
       Optional<String> kafkaDataFieldName,
       Optional<String> timestampPartitionFieldName,
@@ -142,6 +148,7 @@ public class SchemaManager {
     this.allowNewBQFields = allowNewBQFields;
     this.allowBQRequiredFieldRelaxation = allowBQRequiredFieldRelaxation;
     this.allowSchemaUnionization = allowSchemaUnionization;
+    this.sanitizeFieldNames = sanitizeFieldNames;
     this.kafkaKeyFieldName = kafkaKeyFieldName;
     this.kafkaDataFieldName = kafkaDataFieldName;
     this.timestampPartitionFieldName = timestampPartitionFieldName;
@@ -160,6 +167,7 @@ public class SchemaManager {
         allowNewBQFields,
         allowBQRequiredFieldRelaxation,
         allowSchemaUnionization,
+        sanitizeFieldNames,
         kafkaKeyFieldName,
         kafkaDataFieldName,
         timestampPartitionFieldName,
@@ -603,7 +611,9 @@ public class SchemaManager {
 
     List<Field> valueFields = new ArrayList<>(valueSchema.getFields());
     if (kafkaDataFieldName.isPresent()) {
-      Field kafkaDataField = KafkaDataBuilder.buildKafkaDataField(kafkaDataFieldName.get());
+      String dataFieldName = sanitizeFieldNames ?
+          FieldNameSanitizer.sanitizeName(kafkaDataFieldName.get()) : kafkaDataFieldName.get();
+      Field kafkaDataField = KafkaDataBuilder.buildKafkaDataField(dataFieldName);
       valueFields.add(kafkaDataField);
     }
 
@@ -645,14 +655,20 @@ public class SchemaManager {
     List<Field> result = new ArrayList<>(valueSchema.getFields());
 
     if (kafkaDataFieldName.isPresent()) {
-      Field kafkaDataField = KafkaDataBuilder.buildKafkaDataField(kafkaDataFieldName.get());
+      String dataFieldName = sanitizeFieldNames ?
+          FieldNameSanitizer.sanitizeName(kafkaDataFieldName.get()) : kafkaDataFieldName.get();
+      Field kafkaDataField = KafkaDataBuilder.buildKafkaDataField(dataFieldName);
       result.add(kafkaDataField);
     }
 
     if (kafkaKeyFieldName.isPresent()) {
       com.google.cloud.bigquery.Schema keySchema = schemaConverter.convertSchema(kafkaKeySchema);
-      Field kafkaKeyField = Field.newBuilder(kafkaKeyFieldName.get(), LegacySQLTypeName.RECORD, keySchema.getFields())
-          .setMode(Field.Mode.NULLABLE).build();
+      String keyFieldName = sanitizeFieldNames ?
+          FieldNameSanitizer.sanitizeName(kafkaKeyFieldName.get()) : kafkaKeyFieldName.get();
+      Field kafkaKeyField = Field.newBuilder(
+          keyFieldName,
+          LegacySQLTypeName.RECORD,
+          keySchema.getFields()).setMode(Field.Mode.NULLABLE).build();
       result.add(kafkaKeyField);
     }
 
