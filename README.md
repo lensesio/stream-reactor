@@ -41,7 +41,7 @@ The following connectors have been deprecated and are no longer included in any 
 |----------------|--------|-----------------------------------------------------------------------------------------------|------|
 | AWS S3         | Sink   | Copy data from Kafka to AWS S3.                                                     | [Docs](https://docs.lenses.io/4.0/integrations/connectors/stream-reactor/sinks/s3sinkconnector/)             |
 | AzureDocumentDb| Sink   | Copy data from Kafka and Azure Document Db.                                          | [Docs](https://docs.lenses.io/connectors/sink/azuredocdb.html)             |
-| Cassandra      | Source | Copy data from Cassandra and Kafka.                          | [Docs](https://docs.lenses.io/connectors/source/cassandra.html)            |
+| Cassandra      | Source | Copy data from Cassandra to Kafka.                          | [Docs](https://docs.lenses.io/connectors/source/cassandra.html)            |
 | *Cassandra     | Sink   | Certified DSE Cassandra, copy data from Kafka to Cassandra.   | [Docs](https://docs.lenses.io/connectors/sink/cassandra.html)              |
 | Coap           | Source | Copy data from IoT Coap endpoints (using Californium) to Kafka.                  | [Docs](https://docs.lenses.io/connectors/source/coap.html)                 |
 | Coap           | Sink   | Copy data from Kafka to IoT Coap endpoints.| [Docs](https://docs.lenses.io/connectors/sink/coap.html)                   |
