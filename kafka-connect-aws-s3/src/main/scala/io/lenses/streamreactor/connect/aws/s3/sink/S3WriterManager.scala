@@ -65,7 +65,8 @@ class S3WriterManager(
       .collect {
         case (key, writer) if key.topicPartition == topicPartition && writer.getCommittedOffset.nonEmpty => writer
       }
-      .maxBy(_.getCommittedOffset)
+      .toList
+      .sortBy(_.getCommittedOffset).headOption
   }
 
   def commitAllWritersIfFlushRequired(): Either[BatchS3SinkError, Unit] = {
@@ -238,11 +239,12 @@ class S3WriterManager(
   }
 
   def preCommit(currentOffsets: immutable.Map[TopicPartition, OffsetAndMetadata]): immutable.Map[TopicPartition, OffsetAndMetadata] = {
-    currentOffsets
-      .collect {
-        case (topicPartition, offsetAndMetadata) =>
-          (topicPartition, createOffsetAndMetadata(offsetAndMetadata, writerForTopicPartitionWithMaxOffset(topicPartition)))
-      }
+    currentOffsets.map {
+      case (tp, offsetAndMetadata) =>
+        tp -> writerForTopicPartitionWithMaxOffset(tp)
+          .map(createOffsetAndMetadata(offsetAndMetadata, _))
+          .getOrElse(offsetAndMetadata)
+    }
   }
 
   private def createOffsetAndMetadata(offsetAndMetadata: OffsetAndMetadata, writer: S3Writer) = {
