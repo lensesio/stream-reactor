@@ -36,12 +36,17 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
     val blobStream = new BuildLocalOutputStream( toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
     parquetFormatWriter.write(None, StructSinkData(users.head), topic)
+    parquetFormatWriter.getPointer should be (21)
+    parquetFormatWriter.write(None, StructSinkData(users(1)), topic)
+    parquetFormatWriter.getPointer should be (44)
+    parquetFormatWriter.write(None, StructSinkData(users(2)), topic)
+    parquetFormatWriter.getPointer should be (59)
     parquetFormatWriter.complete() should be (Right(()))
 
     val bytes = localFileAsBytes(localFile)
 
     val genericRecords = parquetFormatReader.read(bytes)
-    genericRecords.size should be(1)
+    genericRecords.size should be(3)
     checkRecord(genericRecords.head, "sam", "mr", 100.43)
 
   }

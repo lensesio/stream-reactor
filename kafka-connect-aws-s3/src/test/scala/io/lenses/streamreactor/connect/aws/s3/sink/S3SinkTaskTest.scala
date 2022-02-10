@@ -32,6 +32,7 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.{ConnectException, RetriableException}
 import org.apache.kafka.connect.header.{ConnectHeaders, Header}
+import org.apache.kafka.connect.json.JsonConverter
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
@@ -39,6 +40,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.StringReader
 import java.nio.file.Files
+import java.util.UUID
 import java.{lang, util}
 import scala.collection.JavaConverters._
 
@@ -194,6 +196,37 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
     remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1.json") should be("""{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}""")
+
+  }
+
+  "S3SinkTask" should "flush on configured file size for Parquet" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `Parquet` WITH_FLUSH_SIZE = 20"
+        )
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(records.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
+    getFileSize(BucketName, "streamReactorBackups/myTopic/1/0.parquet") should be(941)
+    getFileSize(BucketName, "streamReactorBackups/myTopic/1/1.parquet") should be(954)
+
+    var genericRecords = parquetFormatReader.read(remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/0.parquet"))
+    genericRecords.size should be (1)
+    checkRecord(genericRecords.head, "sam", "mr", 100.43)
+
+    genericRecords = parquetFormatReader.read(remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/1.parquet"))
+    genericRecords.size should be (1)
+    checkRecord(genericRecords.head, "laura", "ms", 429.06)
 
   }
 
