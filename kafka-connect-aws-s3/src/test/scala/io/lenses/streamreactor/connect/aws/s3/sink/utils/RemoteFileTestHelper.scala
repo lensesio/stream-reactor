@@ -32,6 +32,10 @@ class RemoteFileTestHelper(implicit storageInterface: StorageInterface) {
     }
   }
 
+  def getFileSize(bucketName: String, fileName: String): Long = {
+    storageInterface.getBlobSize(RemoteS3PathLocation(bucketName, fileName))
+  }
+
   def remoteFileAsBytes(bucketName: String, fileName: String): Array[Byte] = {
     streamToByteArray(remoteFileAsStream(bucketName, fileName))
   }
