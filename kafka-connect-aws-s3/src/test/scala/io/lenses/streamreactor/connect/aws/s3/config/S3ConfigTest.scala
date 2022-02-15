@@ -115,4 +115,5 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
         ).httpRetryConfig should be(result)
     }
   }
+
 }
