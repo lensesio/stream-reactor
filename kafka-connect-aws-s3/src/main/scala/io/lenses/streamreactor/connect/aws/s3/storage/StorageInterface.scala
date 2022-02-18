@@ -20,6 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 
 import java.io.{File, InputStream}
+import java.time.{Instant, LocalDateTime}
 
 trait StorageInterface {
 
@@ -36,6 +37,8 @@ trait StorageInterface {
   def getBlobAsString(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, String]
 
   def getBlobSize(bucketAndPath: RemoteS3PathLocation): Long
+
+  def getBlobModified(location: RemoteS3PathLocation): Instant
 
   def writeStringToFile(target: RemoteS3PathLocation, data: String): Either[UploadError, Unit]
 

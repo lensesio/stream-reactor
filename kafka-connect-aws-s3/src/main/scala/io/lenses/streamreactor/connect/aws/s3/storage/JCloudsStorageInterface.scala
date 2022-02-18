@@ -26,6 +26,7 @@ import org.jclouds.blobstore.domain.StorageType
 import org.jclouds.blobstore.options.ListContainerOptions
 
 import java.io.{File, InputStream}
+import java.time.{Instant, LocalDateTime}
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -142,4 +143,7 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
     }.toEither.leftMap(FileLoadError(_, bucketAndPath.path))
   }
 
+  override def getBlobModified(location: RemoteS3PathLocation): Instant = {
+    blobStore.blobMetadata(location.bucket, location.path).getLastModified.toInstant
+  }
 }
