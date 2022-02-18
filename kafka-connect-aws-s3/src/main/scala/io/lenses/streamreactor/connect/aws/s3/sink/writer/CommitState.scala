@@ -54,11 +54,11 @@ case class CommitState(
 
 object CommitState {
 
-  def apply(tp: TopicPartition): CommitState = {
+  def apply(tp: TopicPartition, seekedOffset: Option[Offset]): CommitState = {
     CommitState(
       topicPartition = tp,
       createdTimestamp = System.currentTimeMillis(),
-      committedOffset = None,
+      committedOffset = seekedOffset,
       lastFlushedTime = None,
       recordCount = 0,
       lastKnownFileSize = 0,

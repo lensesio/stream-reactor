@@ -34,7 +34,7 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
     jsonFormatWriter.write(None, StringSinkData("Sausages"), topic)
 
     outputStream.toString should be("Sausages\n")
-    outputStream.getPointer should be (8)
+    outputStream.getPointer should be (9L)
 
   }
 
