@@ -23,6 +23,7 @@ import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.sink._
+import io.lenses.streamreactor.connect.aws.s3.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.aws.s3.storage.{NonExistingFileError, StorageInterface, UploadFailedError, ZeroByteFileError}
 import org.apache.kafka.connect.data.Schema
 
@@ -34,6 +35,7 @@ class S3Writer(
                 sinkName: String,
                 topicPartition: TopicPartition,
                 commitPolicy: CommitPolicy,
+                indexManager: IndexManager,
                 stagingFilenameFn: () => Either[SinkError, File],
                 finalFilenameFn: Offset => Either[SinkError, RemoteS3PathLocation],
                 formatWriterFn: File => Either[SinkError, S3FormatWriter],
@@ -99,12 +101,14 @@ class S3Writer(
       case uploadState@Uploading(commitState, file, uncommittedOffset) =>
         for {
           finalFileName <- finalFilenameFn(uncommittedOffset)
+          indexFileName <- indexManager.write(topicPartition.withOffset(uncommittedOffset), finalFileName)
           _ <- storageInterface.uploadFile(file, finalFileName).recover {
             case _: NonExistingFileError => ()
             case _: ZeroByteFileError => ()
           }.leftMap {
             case UploadFailedError(exception, _) => NonFatalS3SinkError(exception.getMessage, exception)
           }
+          clean <- indexManager.clean(indexFileName, topicPartition)
           stateReset <- Try {
             logger.debug(s"[{}] S3Writer.resetState: Resetting state $writeState", sinkName)
             writeState = uploadState.toNoWriter()
@@ -113,7 +117,7 @@ class S3Writer(
           }.toEither.leftMap(e => FatalS3SinkError(e.getMessage, commitState.topicPartition))
         } yield stateReset
       case other =>
-        FatalS3SinkError(s"Other ${other} error detected, abort", topicPartition).asLeft
+        FatalS3SinkError(s"Other $other error detected, abort", topicPartition).asLeft
 
     }
   }
@@ -167,7 +171,7 @@ class S3Writer(
 
       def logSkipOutcome(currentOffset: Offset, latestOffset: Option[Offset], skipRecord: Boolean): Unit = {
         val skipping = if (skipRecord) "SKIPPING" else "PROCESSING"
-        logger.debug(s"[$sinkName] current=${currentOffset.value} latest=${latestOffset} - $skipping")
+        logger.debug(s"[$sinkName] current=${currentOffset.value} latest=$latestOffset - $skipping")
       }
 
       val shouldSkip = if (latestOffset.isEmpty) {

@@ -27,13 +27,18 @@ trait StorageInterface {
 
   def close(): Unit
 
-  def pathExists(bucketAndPath: RemoteS3PathLocation): Boolean
+  def pathExists(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, Boolean]
 
-  def list(bucketAndPrefix: RemoteS3PathLocation): List[String]
+  def list(bucketAndPrefix: RemoteS3PathLocation): Either[FileListError, List[String]]
 
   def getBlob(bucketAndPath: RemoteS3PathLocation): InputStream
 
+  def getBlobAsString(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, String]
+
   def getBlobSize(bucketAndPath: RemoteS3PathLocation): Long
 
+  def writeStringToFile(target: RemoteS3PathLocation, data: String): Either[UploadError, Unit]
+
+  def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit]
 }
 

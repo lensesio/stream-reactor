@@ -333,3 +333,26 @@ http://s3.amazonaws.com/[bucket_name]/
 http://[bucket_name].s3.amazonaws.com/
 
     connect.s3.vhost.bucket=true
+
+
+## Seek Configuration
+
+This version of the connector changes to a new offset seek algorithm that performs the offset seek efficiently.  It does this by keeping new index files within the S3 bucket.
+
+###### connect.s3.seek.max.files
+
+The default is _5_.
+
+This specifies the maximum number of index files to keep per topic/partition before raising an error.
+
+If the index files keep accumulating then it means there is an error in the cleanup so the sink cannot continue.
+
+###### connect.s3.seek.migration.enabled
+
+The default is _false_.
+
+If you are upgrading a connector from a previous version of the sink, then you will need to specify this property to enable migration.
+
+This option is intended for one-time upgrade usage and will be deprecated in future releases of the connector.
+
+On the first run of any connector then the old slow offset seek will be performed, however the index files will be written so performance will recover after the first offset seek.

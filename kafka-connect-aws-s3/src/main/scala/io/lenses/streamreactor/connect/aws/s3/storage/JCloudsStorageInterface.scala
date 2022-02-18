@@ -20,6 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import org.apache.commons.io.IOUtils
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.blobstore.domain.StorageType
 import org.jclouds.blobstore.options.ListContainerOptions
@@ -42,14 +43,13 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
       ZeroByteFileError(source).asLeft
     } else {
       Try {
-        val blob = blobStore
-          .blobBuilder(target.path)
-          .payload(source)
-          .contentLength(source.length())
-          .build()
-
-        blobStore.putBlob(target.bucket, blob)
-        ()
+        blobStore.putBlob(
+          target.bucket,
+          blobStore.blobBuilder(target.path)
+            .payload(source)
+            .contentLength(source.length())
+            .build()
+        )
       } match {
         case Failure(exception) =>
           logger.error(s"[{}] Failed upload from local {} to s3 {}", sinkName, source, target, exception)
@@ -59,37 +59,67 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
           ().asRight
       }
     }
+  }
 
+  override def writeStringToFile(target: RemoteS3PathLocation, data: String): Either[UploadError, Unit] = {
+    logger.debug(s"[{}] Uploading file from data string ({}) to s3 {}", sinkName, data, target)
 
+    if(data.isEmpty){
+      EmptyContentsStringError(data).asLeft
+    } else {
+      Try {
+        blobStore.putBlob(
+          target.bucket,
+          blobStore.blobBuilder(target.path)
+            .payload(data)
+            .contentLength(data.length())
+            .build()
+        )
+      } match {
+        case Failure(exception) =>
+          logger.error(s"[{}] Failed upload from data string ({}) to s3 {}", sinkName, data, target, exception)
+          FileCreateError(exception, data).asLeft
+        case Success(_) =>
+          logger.debug(s"[{}] Completed upload from data string ({}) to s3 {}", sinkName, data, target)
+          ().asRight
+      }
+    }
   }
 
   override def close(): Unit = blobStoreContext.close()
 
-  override def pathExists(bucketAndPath: RemoteS3PathLocation): Boolean =
+  def pathExistsInternal(bucketAndPath: RemoteS3PathLocation): Boolean =
     blobStore.list(bucketAndPath.bucket, ListContainerOptions.Builder.prefix(bucketAndPath.path)).size() > 0
 
-  override def list(bucketAndPath: RemoteS3PathLocation): List[String] = {
+  override def pathExists(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, Boolean] = {
+    Try {
+      pathExistsInternal(bucketAndPath)
+    }.toEither.leftMap(FileLoadError(_, bucketAndPath.path))
+  }
+
+  private def listInternal(bucketAndPath: RemoteS3PathLocation): List[String] = {
 
     val options = ListContainerOptions.Builder.recursive().prefix(bucketAndPath.path).maxResults(awsMaxKeys)
 
     var pageSetStrings: List[String] = List()
     var nextMarker: Option[String] = None
     do {
-      if (nextMarker.nonEmpty) {
-        options.afterMarker(nextMarker.get)
-      }
+      nextMarker.foreach(options.afterMarker)
       val pageSet = blobStore.list(bucketAndPath.bucket, options)
       nextMarker = Option(pageSet.getNextMarker)
       pageSetStrings ++= pageSet
         .asScala
-        .filter(_.getType == StorageType.BLOB)
-        .map(
-          storageMetadata => storageMetadata.getName
-        )
-        .toList
-
+        .collect{
+          case blobOnly if blobOnly.getType == StorageType.BLOB => blobOnly.getName
+        }
     } while (nextMarker.nonEmpty)
     pageSetStrings
+  }
+
+  override def list(bucketAndPrefix: RemoteS3PathLocation): Either[FileListError, List[String]] = {
+    Try (listInternal(bucketAndPrefix))
+      .toEither
+      .leftMap(e => FileListError(e, bucketAndPrefix.path))
   }
 
   override def getBlob(bucketAndPath: RemoteS3PathLocation): InputStream = {
@@ -98,6 +128,18 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
 
   override def getBlobSize(bucketAndPath: RemoteS3PathLocation): Long = {
     blobStore.getBlob(bucketAndPath.bucket, bucketAndPath.path).getMetadata.getSize
+  }
+
+  override def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = {
+    Try (blobStore.removeBlobs(bucket, files.asJava))
+        .toEither
+        .leftMap(e => FileDeleteError(e, s"issue while deleting $files"))
+  }
+
+  override def getBlobAsString(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, String] = {
+    Try {
+      IOUtils.toString(getBlob(bucketAndPath))
+    }.toEither.leftMap(FileLoadError(_, bucketAndPath.path))
   }
 
 }

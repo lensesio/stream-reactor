@@ -22,7 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection,
 import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
-import io.lenses.streamreactor.connect.aws.s3.sink.config.{S3SinkConfig, SinkBucketOptions}
+import io.lenses.streamreactor.connect.aws.s3.sink.config.{OffsetSeekerOptions, S3SinkConfig, SinkBucketOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
 import org.apache.avro.generic.GenericRecord
@@ -40,12 +40,13 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
   private val avroFormatReader = new AvroFormatReader
 
   private val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix), false)
-  private def avroConfig = S3SinkConfig(S3Config(
-    None,
-    Some(Identity),
-    Some(Credential),
-    AuthMode.Credentials,
-  ),
+  private def avroConfig = S3SinkConfig(
+    S3Config(
+      None,
+      Some(Identity),
+      Some(Credential),
+      AuthMode.Credentials,
+    ),
     bucketOptions = Set(
       SinkBucketOptions(
         TopicName,
@@ -53,9 +54,10 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
         commitPolicy = DefaultCommitPolicy(None, None, Some(2)),
         formatSelection = FormatSelection(Avro),
         fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Avro)),
-        localStagingArea = LocalStagingArea(localRoot)
+        localStagingArea = LocalStagingArea(localRoot),
       )
-    )
+    ),
+    offsetSeekerOptions = OffsetSeekerOptions(5, true)
   )
 
   "avro sink" should "write 2 records to avro format in s3" in {
