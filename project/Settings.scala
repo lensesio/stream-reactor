@@ -1,16 +1,29 @@
-import java.util.Calendar
-import Dependencies.FunctionalTest
-import Dependencies.ItTest
-import Dependencies.E2ETest
+import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
+import sbt.Keys._
 import sbt._
-import sbt.Keys.semanticdbEnabled
+import sbt.internal.ProjectMatrix
+import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
+import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import sbt.Keys._
 import sbt.TestFrameworks.ScalaTest
-import scoverage._
-import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
+import sbt._
+import sbtassembly.AssemblyKeys.assembly
+import sbtassembly.AssemblyKeys.assemblyExcludedJars
+import sbtassembly.AssemblyKeys.assemblyMergeStrategy
+import sbtassembly.MergeStrategy
+import sbtassembly.PathList
 import scalafix.sbt.ScalafixPlugin.autoImport.scalafixConfigSettings
 import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
-import bloop.integrations.sbt.BloopDefaults
+import scoverage._
+
+import java.util.Calendar
+import java.util.Calendar
+import sbtassembly.AssemblyKeys.assembly
+import sbtassembly.AssemblyKeys.assemblyExcludedJars
+import sbtassembly.AssemblyKeys.assemblyMergeStrategy
+import sbtassembly.MergeStrategy
+import sbtassembly.PathList
+
 
 object Settings extends Dependencies {
   // keep the SNAPSHOT version numerically higher than the latest release.
@@ -29,11 +42,8 @@ object Settings extends Dependencies {
     }
   }
 
-  import scala.sys.process._
-
   val manifestSection: Package.JarManifest = {
-    import java.util.jar.Attributes
-    import java.util.jar.Manifest
+    import java.util.jar.{Attributes, Manifest}
     val manifest      = new Manifest
     val newAttributes = new Attributes()
     newAttributes.put(new Attributes.Name("version"), majorVersion)
@@ -71,7 +81,7 @@ object Settings extends Dependencies {
     )
 
     val lintings = List(
-      "-Xlint:adapted-args", //TODO kept commented when streaming was merged in. Review.
+      "-Xlint:adapted-args",
       "-Xlint:constant",
       "-Xlint:delayedinit-select",
       "-Xlint:doc-detached",
@@ -80,7 +90,7 @@ object Settings extends Dependencies {
       "-Xlint:missing-interpolator",
       "-Xlint:nullary-unit",
       "-Xlint:option-implicit",
-      //"-Xlint:package-object-classes", //TODO kept commented when streaming was merged in. Review.
+      "-Xlint:package-object-classes",
       "-Xlint:poly-implicit-overload",
       "-Xlint:private-shadow",
       "-Xlint:stars-align",
@@ -106,15 +116,10 @@ object Settings extends Dependencies {
         "-Wunused:locals",
         "-Wunused:patvars",
         "-Wunused:privates"
-        //    "-Wself-implicit"
-        //    "-Wunused:params", //todo this is more pain than it's worth right now
       )
 
       val options: Seq[String] = commonOptions ++ List(
-        // advanced options
         "-Xcheckinit"
-        // TODO Verify whether this is right...
-        //"-Wconf:msg=import scala\\.collection\\.compat\\._:s"
       ) ++ warnings ++ lintings
     }
   }
@@ -127,7 +132,6 @@ object Settings extends Dependencies {
     headerLicense := Some(HeaderLicense.Custom(licenseHeader)),
     headerEmptyLine := false,
     isSnapshot := artifactVersion.contains("SNAPSHOT"),
-    //publishTo := artifactoryRepo,
     kindProjectorPlugin,
     betterMonadicFor,
     semanticdbEnabled := true,
@@ -146,85 +150,47 @@ object Settings extends Dependencies {
     Compile / console / scalacOptions := ScalacFlags.commonOptions,
     Global / cancelable := true,
     Compile / fork := true,
-    Compile / trapExit := false,
     Compile / connectInput := true,
     Compile / outputStrategy := Some(StdoutOutput),
     resolvers ++= projectResolvers,
-    //libraryDependencies ++= mainDeps,
-    crossScalaVersions := supportedScalaVersionsUsed
-    /*Global / concurrentRestrictions := {
-      val max = java.lang.Runtime.getRuntime.availableProcessors
-      Seq(
-        Tags.limit(Tags.Test, 4),
-        Tags.limitAll(if (parallelExecution.value) math.max(max - 2, 1) else 1)
-      )
-    }*/
+    crossScalaVersions := supportedScalaVersionsUsed,
   )
 
-  def bloopConfigToConfig(config: Configuration) = inConfig(config)(BloopDefaults.configSettings)
+  implicit final class ParallelDestroyer(project: ProjectMatrix) {
+    def disableParallel() : ProjectMatrix = {
+      project.settings(settings ++ Seq(
 
-  private val testSettings =
-    inConfig(Test)(
-      Defaults.testSettings ++
-        Seq(
-          Test / fork := false,
-          Test / scalaSource := baseDirectory.value / s"src/${Test.name}/scala",
-          Test / testFrameworks := Seq(ScalaTest),
-          // This might fix an issue we are having in CI quite often
-          Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
-        )
-    )
+        Test / parallelExecution := false
+      )
+      )
 
-  private def itSettings(parallel: Boolean) =
-    inConfig(ItTest)(
-      Defaults.testSettings ++
-        Seq(
-          ItTest / fork := false,
-          ItTest / parallelExecution := parallel,
-          ItTest / scalaSource := baseDirectory.value / s"src/${ItTest.name}/scala",
-          ItTest / testFrameworks := Seq(ScalaTest),
-          // This might fix an issue we are having in CI quite often
-          ItTest / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
-        ) ++ scalafixConfigSettings(ItTest)
-    )
-
-  private def funSettings(parallel: Boolean) =
-    inConfig(FunctionalTest)(
-      Defaults.testSettings ++
-        Seq(
-          FunctionalTest / fork := false,
-          FunctionalTest / parallelExecution := parallel,
-          FunctionalTest / scalaSource := baseDirectory.value / s"src/${FunctionalTest.name}/scala",
-          FunctionalTest / testFrameworks := Seq(ScalaTest),
-          // This might fix an issue we are having in CI quite often
-          FunctionalTest / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
-        ) ++ scalafixConfigSettings(FunctionalTest)
-    )
-
-  private def e2eSettings(parallel: Boolean) =
-    inConfig(E2ETest)(
-      Defaults.testSettings ++
-        Seq(
-          E2ETest / fork := false,
-          E2ETest / parallelExecution := parallel,
-          E2ETest / scalaSource := baseDirectory.value / s"src/${E2ETest.name}/scala",
-          E2ETest / testFrameworks := Seq(ScalaTest),
-          // This might fix an issue we are having in CI quite often
-          E2ETest / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
-        ) ++ scalafixConfigSettings(E2ETest)
-    )
-
-  /**
-   *
-   * @param project the project that will be configured with Test, ItTest, FunctionalTest and E2ETest configurations
-   */
-  implicit final class ProjectTestsConfigurator(project: Project) {
-    def configureTestsForProject(itTestsParallel: Boolean = true, funTestsParallel: Boolean = true, e2eTestsParallel: Boolean = true, testDeps: Seq[ModuleID] = Seq.empty): Project =
-      project
-        .configs(Test, ItTest, FunctionalTest, E2ETest)
-        .settings(bloopConfigToConfig(Test) ++ bloopConfigToConfig(ItTest) ++ bloopConfigToConfig(FunctionalTest) ++ bloopConfigToConfig(E2ETest))
-        .settings( testSettings ++ itSettings(itTestsParallel) ++ funSettings(funTestsParallel) ++ e2eSettings(e2eTestsParallel) : _*)
-        .settings(libraryDependencies ++= baseTestDeps ++ testDeps)
-        .enablePlugins(ScoverageSbtPlugin)
+    }
   }
+
+  implicit final class AssemblyConfigurator(project: ProjectMatrix) {
+
+    val excludePatterns = Set("kafka-client","hadoop-yarn","org.apache.avro","org.apache.kafka", "io.confluent", "org.apache.zookeeper", "com.google.guava", "log4j", "org.apache.logging.log4j")
+
+    def configureAssembly(): ProjectMatrix = {
+      project.settings(
+        settings ++ Seq(
+          assembly / assemblyExcludedJars := {
+            val cp: Classpath = (assembly / fullClasspath).value
+            cp filter { f =>
+              excludePatterns.exists(f.data.getName.contains)
+            }
+          },
+          assembly / assemblyMergeStrategy := {
+            case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
+            case PathList("META-INF", "*.SF") => MergeStrategy.discard
+            case PathList("META-INF", "*.DSA") => MergeStrategy.discard
+            case PathList("META-INF", "*.RSA") => MergeStrategy.discard
+            case PathList(ps @ _*) if ps.last == "module-info.class" => MergeStrategy.discard
+            case _ => MergeStrategy.first
+          }
+        )
+      )
+    }
+  }
+
 }

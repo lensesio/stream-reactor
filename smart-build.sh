@@ -19,7 +19,7 @@ for module in ${MODIFIED_MODULES}; do
 done
 
 #if $BUILD_ALL; then
-    sbt "clean;test"
+    sbt assembly
 #else
 #    GRADLE_TASKS=""
 #    for module in ${MODIFIED_MODULES}; do

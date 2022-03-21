@@ -7,17 +7,21 @@ import scala.collection.immutable
 
 object Dependencies {
 
+  val globalExcludeDeps : Seq[InclExclRule] = Seq(
+    "log4j" % "log4j",
+    "org.slf4j" % "slf4j-log4j12",
+    "org.apache.logging.log4j" % "log4j-api",
+    "org.apache.logging.log4j" % "log4j-core",
+    "org.apache.logging.log4j" % "log4j-slf4j-impl",
+    "com.sun.jersey" % "*",
+    ExclusionRule(organization = "com.fasterxml.jackson.core"),
+    ExclusionRule(organization = "com.fasterxml.jackson.module"),
+  )
+
   // scala versions
   val scalaOrganization      = "org.scala-lang"
   val scala213Version        = "2.13.5"
   val supportedScalaVersions = List(scala213Version)
-
-  val FunctionalTest: Configuration = config("fun") extend Test describedAs "Runs functional tests"
-  val ItTest:         Configuration = config("it").extend(Test).describedAs("Runs integration tests")
-  val E2ETest:        Configuration = config("e2e").extend(Test).describedAs("Runs E2E tests")
-
-  val testConfigurationsMap =
-    Map(Test.name -> Test, FunctionalTest.name -> FunctionalTest, ItTest.name -> ItTest, E2ETest.name -> E2ETest)
 
   val commonResolvers = Seq(
     Resolver sonatypeRepo "public",
@@ -84,7 +88,6 @@ object Dependencies {
 
     val kcqlVersion = "2.8.7"
     val json4sVersion = "4.0.3"
-    val jacksonVersion = "2.12.3"
     val mockitoScalaVersion = "1.16.46"
     val snakeYamlVersion = "1.29"
     val openCsvVersion = "5.5.2"
@@ -207,7 +210,7 @@ object Dependencies {
 
   //lazy val log4jConfig = "org.apache.logging.log4j" % "log4j-config" % ""
 
-  lazy val confluentAvroConverter = ("io.confluent" % "kafka-connect-avro-converter" % confluentVersion)
+  def confluentAvroConverter(confluentVersion: String) = ("io.confluent" % "kafka-connect-avro-converter" % confluentVersion)
     .exclude("org.slf4j", "slf4j-log4j12")
     .exclude("org.apache.kafka", "kafka-clients")
     .exclude("javax.ws.rs", "javax.ws.rs-api")
@@ -215,6 +218,9 @@ object Dependencies {
     //.exclude("io.confluent", "kafka-schema-serializer")
     .excludeAll(ExclusionRule(organization = "io.swagger"))
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.core"))
+    .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson"))
+    .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.databind"))
+
 
   val http4sDsl         = "org.http4s" %% "http4s-dsl"               % http4sVersion
   val http4sAsyncClient = "org.http4s" %% "http4s-async-http-client" % http4sVersion
@@ -281,10 +287,10 @@ object Dependencies {
 
 
 
-  lazy val json4sNative = ("org.json4s" %% "json4s-native" % json4sVersion)
-  lazy val json4sJackson = ("org.json4s" %% "json4s-jackson" % json4sVersion)
-  lazy val jacksonDatabind = ("com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion)
-  lazy val jacksonModuleScala = ("com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion)
+  def json4sNative(json4sVersion: String) = ("org.json4s" %% "json4s-native" % json4sVersion)
+  def json4sJackson(json4sVersion: String) = ("org.json4s" %% "json4s-jackson" % json4sVersion)
+  def jacksonDatabind(jacksonVersion: String) = ("com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion)
+  def jacksonModuleScala(jacksonVersion: String) = ("com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion)
 
   lazy val snakeYaml = ("org.yaml" % "snakeyaml" % snakeYamlVersion)
   lazy val openCsv = ("com.opencsv" % "opencsv" % openCsvVersion)
@@ -300,8 +306,11 @@ object Dependencies {
 
   lazy val testContainers = ("com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion)
   lazy val testContainersCassandra = ("com.dimafeng" %% "testcontainers-scala-cassandra" % testcontainersScalaVersion)
+  lazy val testContainersMongoDb = ("com.dimafeng" %% "testcontainers-scala-mongodb" % testcontainersScalaVersion)
   lazy val testContainersToxiProxy = ("com.dimafeng" %% "testcontainers-scala-toxiproxy" % testcontainersScalaVersion)
   lazy val testContainersElasticSearch = ("com.dimafeng" %% "testcontainers-scala-elasticsearch" % testcontainersScalaVersion)
+  lazy val testContainersDebezium = ( "io.debezium" % "debezium-testing-testcontainers" % "1.4.2.Final")
+
   lazy val dropWizardMetrics = ("io.dropwizard.metrics" % "metrics-jmx" % dropWizardMetricsVersion)
 
   lazy val hazelCast = ("com.hazelcast" % "hazelcast-all" % hazelCastVersion)
@@ -344,6 +353,9 @@ object Dependencies {
     .exclude("org.apache.calcite", "calcite-avatica")
     .exclude("com.fasterxml.jackson.core" , "jackson-annotations")
 
+  // testcontainers module only
+  lazy val festAssert = ("org.easytesting" % "fest-assert" % "1.4")
+
   def elastic4sCore(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-core" % v)
   def elastic4sClient(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % v)
   def elastic4sTestKit(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-testkit" % v % Test)
@@ -380,14 +392,12 @@ trait Dependencies {
     `wiremock-jre8`,
     jerseyCommon,
     avro4s,
-  ) ++ enumeratum ++ circe ++ http4s).map(_ exclude ("org.slf4j", "slf4j-log4j12")).map(
-    _ % testConfigurationsMap.keys.mkString(","),
-  )
+  ) ++ enumeratum ++ circe ++ http4s)
+    .map(_ exclude ("org.slf4j", "slf4j-log4j12"))
 
   //Specific modules dependencies
   val baseDeps: Seq[ModuleID] = (Seq(
     kafkaConnectJson,
-    confluentAvroConverter,
     cats,
     catsLaws,
     catsEffect,
@@ -397,10 +407,6 @@ trait Dependencies {
     scalaLogging,
     urlValidator,
     catsFree,
-    //parquetAvro,
-    //parquetHadoop,
-    //hadoopCommon,
-    //hadoopMapReduce,
     guava
   ) ++ enumeratum ++ circe ++ http4s)
 
@@ -410,10 +416,6 @@ trait Dependencies {
     kcql,
     calciteCore,
     calciteLinq4J,
-    json4sNative,
-    json4sJackson,
-    jacksonDatabind,
-    jacksonModuleScala,
     zookeeperServer,
   )
 
@@ -436,7 +438,7 @@ trait Dependencies {
     guiceAssistedInject,
   )
 
-  val kafkaConnectS3TestDeps: Seq[ModuleID] = Seq(testContainers)
+  val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainers)
 
   val kafkaConnectCoapDeps: Seq[ModuleID] = (californium ++ bouncyCastle)
 
@@ -444,31 +446,31 @@ trait Dependencies {
     cassandraDriver,
     jsonPath,
     nettyTransport,
-    json4sNative,
     //dropWizardMetrics
   )
 
-  val kafkaConnectCassandraTestDeps: Seq[ModuleID] = Seq(testContainers, testContainersCassandra)
+  val kafkaConnectCassandraTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainers, testContainersCassandra)
 
   val kafkaConnectHazelCastDeps: Seq[ModuleID] = Seq(
     hazelCast,
     javaxCache
   )
 
-  val kafkaConnectAzureDocumentDbDeps: Seq[ModuleID] = Seq(azureDocumentDb, json4sNative//, scalaParallelCollections
+  val kafkaConnectAzureDocumentDbDeps: Seq[ModuleID] = Seq(azureDocumentDb,
+    //, scalaParallelCollections
     )
 
   val kafkaConnectInfluxDbDeps : Seq[ModuleID] = Seq(influx, avro4s, avro4sJson)
 
   val kafkaConnectJmsDeps : Seq[ModuleID] = Seq(jmsApi)
 
-  val kafkaConnectJmsTestDeps : Seq[ModuleID] = Seq(activeMq)
+  val kafkaConnectJmsTestDeps : Seq[ModuleID] = baseTestDeps ++ Seq(activeMq)
 
-  val kafkaConnectKuduDeps : Seq[ModuleID] = Seq(kuduClient, json4sNative)
+  val kafkaConnectKuduDeps : Seq[ModuleID] = Seq(kuduClient)
 
   val kafkaConnectMqttDeps : Seq[ModuleID] = Seq(mqttClient, avro4s, avro4sJson) ++ bouncyCastle
 
-  val kafkaConnectMqttTestDeps : Seq[ModuleID] = Seq(json4sJackson, testContainers, testContainersToxiProxy)
+  val kafkaConnectMqttTestDeps : Seq[ModuleID] = baseTestDeps ++ Seq(testContainers, testContainersToxiProxy)
 
   val kafkaConnectPulsarDeps : Seq[ModuleID] = Seq(pulsar, avro4s, avro4sJson)
 
@@ -487,75 +489,61 @@ trait Dependencies {
 
   val kafkaConnectElastic6Deps : Seq[ModuleID] = elasticCommonDeps(Elastic6Versions) ++ Seq(elastic4sHttp(Elastic6Versions.elastic4sVersion))
 
-  val kafkaConnectElastic6TestDeps : Seq[ModuleID] = elasticTestCommonDeps(Elastic6Versions) ++ Seq()
+  val kafkaConnectElastic6TestDeps : Seq[ModuleID] = baseTestDeps ++ elasticTestCommonDeps(Elastic6Versions) ++ Seq()
 
   val kafkaConnectElastic7Deps : Seq[ModuleID] = elasticCommonDeps(Elastic7Versions) ++ Seq(elastic4sClient(Elastic7Versions.elastic4sVersion))
 
-  val kafkaConnectElastic7TestDeps : Seq[ModuleID] = elasticTestCommonDeps(Elastic7Versions) ++ Seq()
+  val kafkaConnectElastic7TestDeps : Seq[ModuleID] = baseTestDeps ++ elasticTestCommonDeps(Elastic7Versions) ++ Seq()
 
   val kafkaConnectFtpDeps : Seq[ModuleID] = Seq(commonsNet, commonsCodec, commonsIO, jsch)
 
-  val kafkaConnectFtpTestDeps : Seq[ModuleID] = Seq(mina, betterFiles, ftpServer, fakeSftpServer)
+  val kafkaConnectFtpTestDeps : Seq[ModuleID] = baseTestDeps ++ Seq(mina, betterFiles, ftpServer, fakeSftpServer)
 
   val kafkaConnectHbaseDeps : Seq[ModuleID] = Seq(hadoopHdfs(s3HadoopVersion), hbaseClient)
 
-  val kafkaConnectHbaseTestDeps : Seq[ModuleID] = Seq()
+  val kafkaConnectHbaseTestDeps : Seq[ModuleID] = baseTestDeps ++ Seq()
 
   val kafkaConnectHiveDeps : Seq[ModuleID] = Seq(nettyAll, parquetAvro(hiveParquetVersion), parquetColumn(hiveParquetVersion), parquetEncoding(hiveParquetVersion), parquetHadoop(hiveParquetVersion), parquetHadoopBundle(hiveParquetVersion), joddCore, hiveJdbc, hiveExec, hadoopCommon(hiveHadoopVersion), hadoopHdfs(hiveHadoopVersion), hadoopMapReduce(hiveHadoopVersion), hadoopMapReduceClient(hiveHadoopVersion), hadoopMapReduceClientCore(hiveHadoopVersion))
 
-  val kafkaConnectHiveTestDeps : Seq[ModuleID] = Seq(testContainers)
+  val kafkaConnectHiveTestDeps : Seq[ModuleID] = baseTestDeps ++ Seq(testContainers)
 
-  val kafkaConnectMongoDbDeps : Seq[ModuleID] = Seq(mongoDb, json4sNative, json4sJackson)
+  val kafkaConnectMongoDbDeps : Seq[ModuleID] = Seq(mongoDb)
 
-  val kafkaConnectMongoDbTestDeps : Seq[ModuleID] = Seq(mongoDbEmbedded, avro4s)
+  val kafkaConnectMongoDbTestDeps : Seq[ModuleID] = baseTestDeps ++ Seq(mongoDbEmbedded, avro4s)
 
   val kafkaConnectRedisDeps : Seq[ModuleID] = Seq(jedis)
 
-  val kafkaConnectRedisTestDeps : Seq[ModuleID] = Seq(testContainers, gson)
+  val kafkaConnectRedisTestDeps : Seq[ModuleID] = baseTestDeps ++ Seq(testContainers, gson)
+
+  /*
+
+        testImplementation group: 'com.jayway.jsonpath', name: 'json-path', version: '2.4.0'
+        testImplementation group: 'org.easytesting', name: 'fest-assert', version: '1.4'
+
+        testImplementation group: 'redis.clients', name: 'jedis', version: '3.3.0'
+        testImplementation group: 'org.mongodb', name: 'mongo-java-driver', version: '3.4.1'
+
+        testImplementation group: 'org.apache.avro', name: 'avro', version: '1.10.0'
+        testImplementation group: 'io.confluent', name: 'kafka-avro-serializer', version: "$confluentSerializerVersion"
+        testImplementation group: 'io.confluent', name: 'kafka-json-serializer', version: "$confluentSerializerVersion"
+  * */
+
+  val kafkaConnectTestContainersDeps : Seq[ModuleID] = baseTestDeps ++ Seq(
+    testContainers,
+    testContainersCassandra,
+    testContainersMongoDb,
+    testContainersElasticSearch,
+    testContainersDebezium,
+    jsonPath,
+    festAssert,
+    jedis,
+    mongoDb,
+    avro4s,
+    //confluentAvroConverter,
+  )
 
   // build plugins
   val kindProjectorPlugin = addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion)
   val betterMonadicFor    = addCompilerPlugin("com.olegpy" %% "better-monadic-for" % betterMonadicForVersion)
 
-  val globalExcludeDeps : Seq[InclExclRule] = Seq(
-    "log4j" % "log4j",
-    "org.slf4j" % "slf4j-log4j12",
-    "org.apache.logging.log4j" % "log4j-api",
-    "org.apache.logging.log4j" % "log4j-core",
-    "org.apache.logging.log4j" % "log4j-slf4j-impl",
-    "com.sun.jersey" % "*",
-  )
-
-  implicit final class ProjectRoot(project: Project) {
-
-    def root: Project = project in file(".")
-  }
-
-  implicit final class ProjectFrom(project: Project) {
-
-    private val commonDir = "modules"
-
-    def from(dir: String): Project = project in file(s"$commonDir/$dir")
-  }
-
-  implicit final class DependsOnProject(project: Project) {
-    private def findCompileAndTestConfigs(p: Project) =
-      findTestConfigs(p) + "compile"
-
-    private def findTestConfigs(p: Project) =
-      p.configurations.map(_.name).toSet.intersect(testConfigurationsMap.keys.toSet)
-
-    private val thisProjectsConfigs = findCompileAndTestConfigs(project)
-    private def generateDepsForProject(p: Project, withCompile: Boolean) =
-      p % thisProjectsConfigs
-        .intersect(if (withCompile) findCompileAndTestConfigs(p) else findTestConfigs(p))
-        .map(c => s"$c->$c")
-        .mkString(";")
-
-    def compileAndTestDependsOn(projects: Project*): Project =
-      project.dependsOn(projects.map(generateDepsForProject(_, true)): _*)
-
-    def testsDependOn(projects: Project*): Project =
-      project.dependsOn(projects.map(generateDepsForProject(_, false)): _*)
-  }
 }
