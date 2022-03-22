@@ -1,13 +1,15 @@
 package com.datamountaineer.streamreactor.connect.pulsar.sink
 
-import java.util
+import com.datamountaineer.streamreactor.connect.pulsar.SlowTest
 
+import java.util
 import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarConfigConstants
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 
@@ -19,7 +21,7 @@ class PulsarSinkTaskTest extends AnyWordSpec with Matchers with MockitoSugar {
 
   val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
 
-  "should start a Sink" in {
+  "should start a Sink" taggedAs SlowTest in {
     val props = Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
       PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER = SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY = 1000"

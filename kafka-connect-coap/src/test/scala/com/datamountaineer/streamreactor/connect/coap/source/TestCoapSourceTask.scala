@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.coap.source
 
-import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
+import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase, SlowTest}
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.eclipse.californium.core.{CaliforniumLogger, CoapClient}
@@ -74,7 +74,7 @@ class TestCoapSourceTask extends AnyWordSpec with BeforeAndAfter with TestBase w
 //    task.stop
 //  }
 
-  "should create a task and receive messages" in {
+  "should create a task and receive messages" taggedAs SlowTest in {
       val props = getPropsInsecure
       val task = new CoapSourceTask()
       val context = mock[SourceTaskContext]

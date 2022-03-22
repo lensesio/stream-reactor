@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.mqtt.source
 import com.datamountaineer.streamreactor.common.converters.MsgKey
 import com.datamountaineer.streamreactor.common.serialization.AvroSerializer
 import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, Converter, JsonSimpleConverter}
+import com.datamountaineer.streamreactor.connect.mqtt.SlowTest
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
 import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
@@ -77,7 +78,7 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
 
   "MqttManager" should {
 
-    "dynamically set the target kafka topic to the topic from the mqtt topic on wildcards" in {
+    "dynamically set the target kafka topic to the topic from the mqtt topic on wildcards" taggedAs SlowTest in {
       val source = "/mqttSourceTopic/+/test"
       val target = "`$`"
       val sourcesToConvMap = Map(source -> new BytesConverter)
@@ -144,7 +145,7 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
     }
 
 
-    "process the messages on topic A and create source records with Bytes schema with Wildcards" in {
+    "process the messages on topic A and create source records with Bytes schema with Wildcards" taggedAs SlowTest in {
       val source = "/mqttSourceTopic/+/test"
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
@@ -211,7 +212,7 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
     }
 
 
-    "process the messages on topic A and create source records with Bytes schema" in {
+    "process the messages on topic A and create source records with Bytes schema" taggedAs SlowTest in {
       val source = "/mqttSourceTopic"
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
@@ -277,7 +278,7 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
 
     }
 
-    "process the messages published before subscribing" in {
+    "process the messages published before subscribing" taggedAs SlowTest in {
       val source = "/mqttSourceTopic"
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
@@ -333,7 +334,7 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
 
     }
 
-    "handle each mqtt source based on the converter" in {
+    "handle each mqtt source based on the converter" taggedAs SlowTest in {
       val source1 = "/mqttSource1"
       val source2 = "/mqttSource2"
       val source3 = "/mqttSource3"
@@ -444,7 +445,7 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
   }
 
   "MqttManager" should {
-    "process the messages on shared mqtt topic and create source records with Bytes schema with Wildcards" in {
+    "process the messages on shared mqtt topic and create source records with Bytes schema with Wildcards" taggedAs SlowTest in {
       val sourceTopic = "$share/connect/mqttSourceTopic"
       val sourceKCQL = "`$share/connect/mqttSourceTopic`" // same with sourceTopic but with quotes
       val target = "kafkaTopic"

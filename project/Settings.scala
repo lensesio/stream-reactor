@@ -2,27 +2,11 @@ import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import sbt.Keys._
 import sbt._
 import sbt.internal.ProjectMatrix
+import sbtassembly.AssemblyKeys.{assembly, assemblyExcludedJars, assemblyMergeStrategy}
+import sbtassembly.{MergeStrategy, PathList}
 import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
-import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
-import sbt.Keys._
-import sbt.TestFrameworks.ScalaTest
-import sbt._
-import sbtassembly.AssemblyKeys.assembly
-import sbtassembly.AssemblyKeys.assemblyExcludedJars
-import sbtassembly.AssemblyKeys.assemblyMergeStrategy
-import sbtassembly.MergeStrategy
-import sbtassembly.PathList
-import scalafix.sbt.ScalafixPlugin.autoImport.scalafixConfigSettings
-import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
-import scoverage._
 
 import java.util.Calendar
-import java.util.Calendar
-import sbtassembly.AssemblyKeys.assembly
-import sbtassembly.AssemblyKeys.assemblyExcludedJars
-import sbtassembly.AssemblyKeys.assemblyMergeStrategy
-import sbtassembly.MergeStrategy
-import sbtassembly.PathList
 
 
 object Settings extends Dependencies {
@@ -193,4 +177,22 @@ object Settings extends Dependencies {
     }
   }
 
+  val testConfigurationsMap =
+    Map(Test.name -> Test)
+
+  implicit final class TestConfigurator(project: ProjectMatrix) {
+
+    def configureTests(testDependencies: Seq[ModuleID]): ProjectMatrix = {
+      project
+        .configs(
+          Test
+        )
+        .settings(
+          libraryDependencies ++= testDependencies.map(
+            _ % Test
+          ),
+          testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-l", "io.lenses.tags.SlowTest")
+        )
+    }
+  }
 }

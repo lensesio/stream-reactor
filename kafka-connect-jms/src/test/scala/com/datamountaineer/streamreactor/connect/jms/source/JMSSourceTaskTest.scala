@@ -18,7 +18,7 @@
 
 package com.datamountaineer.streamreactor.connect.jms.source
 
-import com.datamountaineer.streamreactor.connect.jms.TestBase
+import com.datamountaineer.streamreactor.connect.jms.{SlowTest, TestBase}
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
@@ -45,7 +45,7 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually 
   }
 
 
-  "should start a JMSSourceTask, read records and ack messages" in {
+  "should start a JMSSourceTask, read records and ack messages" taggedAs SlowTest in {
     implicit val broker = new BrokerService()
     broker.setPersistent(false)
     broker.setUseJmx(true)

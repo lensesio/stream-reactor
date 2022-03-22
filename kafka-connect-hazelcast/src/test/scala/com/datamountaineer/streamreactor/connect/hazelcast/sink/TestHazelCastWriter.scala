@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSinkConfig, HazelCastSinkConfigConstants, HazelCastSinkSettings}
 import com.datamountaineer.streamreactor.connect.hazelcast.writers.HazelCastWriter
-import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, MessageListenerImplAvro, MessageListenerImplJson, TestBase}
+import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, MessageListenerImplAvro, MessageListenerImplJson, SlowTest, TestBase}
 import com.hazelcast.core._
 import com.hazelcast.ringbuffer.Ringbuffer
 import org.apache.avro.generic.GenericRecord
@@ -43,7 +43,7 @@ class TestHazelCastWriter extends TestBase {
     instance.shutdown()
   }
 
-  "should write avro to hazelcast reliable topic" in {
+  "should write avro to hazelcast reliable topic" taggedAs SlowTest in {
 
     val props = getProps
     val config = new HazelCastSinkConfig(props)
@@ -73,7 +73,7 @@ class TestHazelCastWriter extends TestBase {
     conn.shutdown()
    }
 
-  "should write avro to hazelcast ringbuffer" in {
+  "should write avro to hazelcast ringbuffer" taggedAs SlowTest in {
 
     val props = getPropsRB
     val config = new HazelCastSinkConfig(props)
@@ -95,7 +95,7 @@ class TestHazelCastWriter extends TestBase {
   }
 
 
-  "should write json to hazelcast reliable topic" in {
+  "should write json to hazelcast reliable topic" taggedAs SlowTest in {
 
     val props = getPropsJson
     val config = new HazelCastSinkConfig(props)
@@ -123,7 +123,7 @@ class TestHazelCastWriter extends TestBase {
     conn.shutdown()
   }
 
-  "should write json to hazelcast queue" in {
+  "should write json to hazelcast queue" taggedAs SlowTest in {
 
     val props = getPropsJsonQueue
     val config = new HazelCastSinkConfig(props)
@@ -143,7 +143,7 @@ class TestHazelCastWriter extends TestBase {
     conn.shutdown()
   }
 
-  "should write json to hazelcast set" in {
+  "should write json to hazelcast set" taggedAs SlowTest in {
 
     val props = getPropsJsonSet
     val config = new HazelCastSinkConfig(props)
@@ -163,7 +163,7 @@ class TestHazelCastWriter extends TestBase {
     conn.shutdown()
   }
 
-  "should write json to hazelcast list" in {
+  "should write json to hazelcast list" taggedAs SlowTest in {
 
     val props = getPropsJsonList
     val config = new HazelCastSinkConfig(props)
@@ -183,7 +183,7 @@ class TestHazelCastWriter extends TestBase {
     conn.shutdown()
   }
 
-  "should write json to hazelcast map default pks" in {
+  "should write json to hazelcast map default pks" taggedAs SlowTest in {
 
     val props = getPropsJsonMapDefaultPKS
     val config = new HazelCastSinkConfig(props)
@@ -203,7 +203,7 @@ class TestHazelCastWriter extends TestBase {
     conn.shutdown()
   }
 
-  "should write json to hazelcast map default pks and TTL" in {
+  "should write json to hazelcast map default pks and TTL" taggedAs SlowTest in {
 
     val props = Map(HazelCastSinkConfigConstants.KCQL->s"INSERT INTO ${TABLE}_multi SELECT * FROM $TOPIC WITHFORMAT json STOREAS IMAP TTL=5000",
       HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
@@ -227,7 +227,7 @@ class TestHazelCastWriter extends TestBase {
     conn.shutdown()
   }
 
-  "should write json to hazelcast multi map default pks" in {
+  "should write json to hazelcast multi map default pks" taggedAs SlowTest in {
 
     val props = getPropsJsonMultiMapDefaultPKS
     val config = new HazelCastSinkConfig(props)
@@ -248,7 +248,7 @@ class TestHazelCastWriter extends TestBase {
   }
 
 
-  "Should set SSL system props" in {
+  "Should set SSL system props" taggedAs SlowTest in {
 
     val truststoreFilePath = getClass.getResource("/truststore.jks").getPath
     val keystoreFilePath = getClass.getResource("/keystore.jks").getPath

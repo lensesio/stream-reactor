@@ -29,7 +29,7 @@ import scala.reflect.io.File
 
 
 class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
-  "A ElasticWriter should insert into Elastic Search a number of records" in {
+  "A ElasticWriter should insert into Elastic Search a number of records" taggedAs SlowTest in {
 
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
@@ -63,7 +63,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     TMP.deleteRecursively()
   }
 
-  "A ElasticWriter should insert into Elastic Search a number of records when nested fields are selected" in {
+  "A ElasticWriter should insert into Elastic Search a number of records when nested fields are selected" taggedAs SlowTest in {
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
     //mock the context to return our assignment when called
@@ -96,7 +96,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     TMP.deleteRecursively()
   }
 
-  "A ElasticWriter should update records in Elastic Search" in {
+  "A ElasticWriter should update records in Elastic Search" taggedAs SlowTest in {
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
     //mock the context to return our assignment when called
@@ -140,7 +140,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     TMP.deleteRecursively()
   }
 
-  "A ElasticWriter should update records in Elastic Search with PK nested field" in {
+  "A ElasticWriter should update records in Elastic Search with PK nested field" taggedAs SlowTest in {
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
     //mock the context to return our assignment when called

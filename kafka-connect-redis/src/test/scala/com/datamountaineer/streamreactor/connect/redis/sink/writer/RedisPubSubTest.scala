@@ -16,6 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
+import com.datamountaineer.streamreactor.connect.redis.sink.SlowTest
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
 import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
 import com.typesafe.scalalogging.LazyLogging
@@ -39,7 +40,7 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with MockitoSugar with L
 
   "Redis PUBSUB writer" should {
 
-    "write Kafka records to a Redis PubSub" in {
+    "write Kafka records to a Redis PubSub" taggedAs SlowTest in {
 
       val TOPIC = "cpuTopic"
       val KCQL = s"SELECT * from $TOPIC STOREAS PubSub (channel=type)"

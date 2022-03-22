@@ -17,6 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import io.lenses.streamreactor.connect.aws.s3.SlowTest
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Parquet
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.formats.ParquetFormatReader
@@ -57,7 +58,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
   )
 
 
-  "parquet sink" should "write 2 records to parquet format in s3" in {
+  "parquet sink" should "write 2 records to parquet format in s3"  taggedAs SlowTest in {
 
     val sink = S3WriterManager.from(parquetConfig, "sinkName")
     firstUsers.zipWithIndex.foreach {
@@ -78,7 +79,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
 
   }
 
-  "parquet sink" should "write start a new file in case of schema change" in {
+  "parquet sink" should "write start a new file in case of schema change" taggedAs SlowTest  in {
 
     val secondSchema: Schema = SchemaBuilder.struct()
       .field("name", SchemaBuilder.string().required().build())

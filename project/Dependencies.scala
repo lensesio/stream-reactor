@@ -1,5 +1,4 @@
 import Dependencies._
-import sbt.Keys.excludeDependencies
 import sbt._
 import sbt.librarymanagement.InclExclRule
 
@@ -98,7 +97,7 @@ object Dependencies {
     val nettyVersion = "4.1.52.Final"
 
     val dropWizardMetricsVersion = "4.0.2"
-    val cassandraDriverVersion = "4.13.0"
+    val cassandraDriverVersion = "3.7.1"
     val jsonPathVersion = "2.4.0"
 
     val cassandraUnitVersion = "4.3.1.0"
@@ -295,7 +294,7 @@ object Dependencies {
   lazy val snakeYaml = ("org.yaml" % "snakeyaml" % snakeYamlVersion)
   lazy val openCsv = ("com.opencsv" % "opencsv" % openCsvVersion)
 
-  lazy val cassandraDriver = ("com.datastax.oss" % "java-driver-core" % cassandraDriverVersion)
+  lazy val cassandraDriver = ("com.datastax.cassandra" % "cassandra-driver-core" % cassandraDriverVersion)
   lazy val jsonPath = ("com.jayway.jsonpath" % "json-path" % jsonPathVersion)
   lazy val nettyTransport = ("io.netty" % "netty-transport-native-epoll" % nettyVersion classifier "linux-x86_64")
 
@@ -358,7 +357,7 @@ object Dependencies {
 
   def elastic4sCore(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-core" % v)
   def elastic4sClient(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-client-esjava" % v)
-  def elastic4sTestKit(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-testkit" % v % Test)
+  def elastic4sTestKit(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-testkit" % v)
   def elastic4sHttp(v: String) = ("com.sksamuel.elastic4s" %% "elastic4s-http" % v)
 
   def elasticSearch(v: String) = ("org.elasticsearch" % "elasticsearch" % v)
@@ -511,9 +510,13 @@ trait Dependencies {
 
   val kafkaConnectMongoDbTestDeps : Seq[ModuleID] = baseTestDeps ++ Seq(mongoDbEmbedded, avro4s)
 
+
   val kafkaConnectRedisDeps : Seq[ModuleID] = Seq(jedis)
 
-  val kafkaConnectRedisTestDeps : Seq[ModuleID] = baseTestDeps ++ Seq(testContainers, gson)
+  val kafkaConnectRedisTestDeps : Seq[ModuleID] = (baseTestDeps ++ Seq(testContainers, gson))
+    .map {
+      moduleId: ModuleID => moduleId.extra("scope" -> "test")
+    }
 
   /*
 

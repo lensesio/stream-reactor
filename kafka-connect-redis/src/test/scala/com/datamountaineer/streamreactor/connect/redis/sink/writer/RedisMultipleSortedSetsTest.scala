@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.streamreactor.connect.redis.sink.RedisSinkTask
+import com.datamountaineer.streamreactor.connect.redis.sink.{RedisSinkTask, SlowTest}
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
 import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -84,7 +84,7 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with Mockito
 
     }
 
-    "multiple sorted sets task check" in {
+    "multiple sorted sets task check" taggedAs SlowTest in {
       val TOPIC = "sensorsTopic"
       val KCQL = s"SELECT temperature, humidity FROM $TOPIC PK sensorID STOREAS SortedSet(score=ts)"
 

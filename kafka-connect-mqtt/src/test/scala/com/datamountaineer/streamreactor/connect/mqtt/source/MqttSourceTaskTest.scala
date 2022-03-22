@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.mqtt.source
 import com.datamountaineer.streamreactor.common.converters.MsgKey
 import com.datamountaineer.streamreactor.common.serialization.AvroSerializer
 import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, JsonSimpleConverter}
+import com.datamountaineer.streamreactor.connect.mqtt.SlowTest
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
 import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
 import com.sksamuel.avro4s.{AvroSchema, RecordFormat}
@@ -60,7 +61,7 @@ class MqttSourceTaskTest extends AnyWordSpec with ForAllTestContainer with Match
     writeSchema(schema)
   }
 
-  "should start a task and subscribe to the topics provided" in {
+  "should start a task and subscribe to the topics provided" taggedAs SlowTest in {
 
     val source1 = "/mqttSource1"
     val source2 = "/mqttSource2"

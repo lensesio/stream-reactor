@@ -1,6 +1,7 @@
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import com.datamountaineer.streamreactor.connect.converters.source.BytesConverter
+import com.datamountaineer.streamreactor.connect.mqtt.SlowTest
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
 import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer, MultipleContainers, ToxiproxyContainer}
@@ -29,7 +30,7 @@ class MqttManagerConnectionFailureTest extends AnyWordSpec with ForAllTestContai
 
   "MqttManager" should {
 
-        "resubscribe after losing the connection with the broker" in {
+        "resubscribe after losing the connection with the broker" taggedAs SlowTest in {
 
           // mqtt broker port will be mapped to a different host network port upon restart
           // using a proxy container to overcome this

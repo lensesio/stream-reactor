@@ -2,6 +2,7 @@ package io.lenses.streamreactor.connect.aws.s3.source
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.SlowTest
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Bytes
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.{KeyAndValueWithSizes, ValueOnly}
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
@@ -13,6 +14,7 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
+
 import java.util
 import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 
@@ -54,7 +56,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTe
     }
   }
 
-  "task" should "read stored files continuously" in {
+  "task" should "read stored files continuously" taggedAs SlowTest  in {
     forAll(formats) {
       (format, formatOptions, dir) =>
         val t1 = System.currentTimeMillis()
@@ -101,7 +103,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTe
     }
   }
 
-  "task" should "resume from a specific offset through initialize" in {
+  "task" should "resume from a specific offset through initialize" taggedAs SlowTest  in {
     forAll(formats) {
       (format, formatOptions, dir) =>
         val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
@@ -156,7 +158,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTe
     }
   }
 
-  "task" should "read stored bytes files continuously" in {
+  "task" should "read stored bytes files continuously" taggedAs SlowTest  in {
     val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.ValueOnly))
     val dir = "bytesval"
 
@@ -185,7 +187,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTe
 
   }
 
-  "task" should "read stored bytes key/value files continuously" in {
+  "task" should "read stored bytes key/value files continuously" taggedAs SlowTest  in {
     val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.KeyAndValueWithSizes))
 
     val dir = "byteskv"

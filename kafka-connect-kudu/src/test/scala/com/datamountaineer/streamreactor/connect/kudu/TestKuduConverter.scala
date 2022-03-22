@@ -34,7 +34,7 @@ import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
 //noinspection ScalaDeprecation
 @nowarn
 class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil with MockitoSugar {
-  "Should convert a SinkRecord Schema to Kudu Schema" in {
+  "Should convert a SinkRecord Schema to Kudu Schema" taggedAs SlowTest in {
     val kcql = mock[Kcql]
     val bucketing = mock[Bucketing]
     when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
@@ -48,7 +48,7 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
     columns.size() shouldBe connectFields.size()
   }
 
-  "Should convert a SinkRecord into a Kudu Insert operation" in {
+  "Should convert a SinkRecord into a Kudu Insert operation" taggedAs SlowTest in {
     val kcql = mock[Kcql]
     val bucketing = mock[Bucketing]
     when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
@@ -68,7 +68,7 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
     kuduRow shouldBe kuduInsert.getRow
   }
 
-  "Should convert a SinkRecord into a Kudu Insert operation with Field Selection" in {
+  "Should convert a SinkRecord into a Kudu Insert operation with Field Selection" taggedAs SlowTest in {
     val kcql = mock[Kcql]
     val bucketing = mock[Bucketing]
     when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
@@ -89,7 +89,7 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
   }
 
 
-  "Should convert an Avro to Kudu" in {
+  "Should convert an Avro to Kudu" taggedAs SlowTest in {
     val stringSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.STRING)).asJava)
     val intSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.INT)).asJava)
     val booleanSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.BOOLEAN)).asJava)

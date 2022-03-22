@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
+import com.datamountaineer.streamreactor.connect.cassandra.{SlowTest, TestConfig}
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink}
 import com.datastax.driver.core.utils.UUIDs
 import com.datastax.driver.core.{ConsistencyLevel, Session}
@@ -92,7 +92,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     }
   }
 
-  "Cassandra JsonWriter should write records to two Cassandra tables" in {
+  "Cassandra JsonWriter should write records to two Cassandra tables"  taggedAs SlowTest in  {
 
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
     val table1 = "B" + UUID.randomUUID().toString.replace("-", "_")
@@ -185,7 +185,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     writer.close()
   }
 
-   "Cassandra JsonWriter should write records from two topics to one Cassandra table" in {
+   "Cassandra JsonWriter should write records from two topics to one Cassandra table"  taggedAs SlowTest in  {
       val table = "A" + UUID.randomUUID().toString.replace("-", "_")
 
      session.execute(
@@ -251,7 +251,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
      writer.close()
    }
 
-  "Cassandra JsonWriter should write records using nested fields in Cassandra tables - STRING SCHEMA" in {
+  "Cassandra JsonWriter should write records using nested fields in Cassandra tables - STRING SCHEMA"  taggedAs SlowTest in  {
 
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
 
@@ -324,7 +324,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     writer.close()
   }
 
-  "Cassandra JsonWriter should write records using nested fields in Cassandra tables - STRUCT SCHEMA" in {
+  "Cassandra JsonWriter should write records using nested fields in Cassandra tables - STRUCT SCHEMA"  taggedAs SlowTest in  {
 
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
 
@@ -412,7 +412,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     writer.close()
   }
 
-  "Cassandra JsonWriter should write records to Cassandra with field selection" in {
+  "Cassandra JsonWriter should write records to Cassandra with field selection"  taggedAs SlowTest in  {
 
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
 
@@ -496,7 +496,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     str.contains("\"decimal_field\":1373563.1563")
   }
   
-  "Cassandra JsonWriter with Retry should throw Retriable Exception" in {
+  "Cassandra JsonWriter with Retry should throw Retriable Exception" taggedAs SlowTest in {
 
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
     val kcql = s"INSERT INTO $table SELECT * FROM TOPICA"
@@ -554,7 +554,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     writer.close()
   }
 
-  "Cassandra JsonWriter with Noop should throw Cassandra exception and keep going" in {
+  "Cassandra JsonWriter with Noop should throw Cassandra exception and keep going"  taggedAs SlowTest in  {
 
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
     val kcql = s"INSERT INTO $table SELECT * FROM TOPICA"
@@ -608,7 +608,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     writer.close()
   }
 
-  "Cassandra sink should start and write records to Cassandra" in {
+  "Cassandra sink should start and write records to Cassandra"  taggedAs SlowTest in  {
 
       val table = "A" + UUID.randomUUID().toString.replace("-", "_")
 
@@ -654,7 +654,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
       res.all().size() shouldBe testRecords.size
   }
 
-  "Cassandra sink should  start and write records to Cassandra using ONE as consistency level" in {
+  "Cassandra sink should  start and write records to Cassandra using ONE as consistency level"  taggedAs SlowTest in  {
 
       val table = "A" + UUID.randomUUID().toString.replace("-", "_")
       val kcql = s"INSERT INTO $table SELECT * FROM TOPICA"
@@ -701,7 +701,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
       res.all().size() shouldBe testRecords.size
   }
 
-  "Cassandra sink should start and write records to Cassandra using TTL" in {
+  "Cassandra sink should start and write records to Cassandra using TTL"  taggedAs SlowTest in  {
       val table = "A" + UUID.randomUUID().toString.replace("-", "_")
       val table2 = "B" + UUID.randomUUID().toString.replace("-", "_")
 
@@ -768,7 +768,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
       two shouldBe 0
   }
 
-  "Cassandra JSONWriter should handle deletion of records - Key isPrimitive, INT" in {
+  "Cassandra JSONWriter should handle deletion of records - Key isPrimitive, INT"  taggedAs SlowTest in  {
 
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
 
@@ -819,7 +819,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     writer.close()
   }
 
-  "Cassandra JSONWriter should handle deletion of records - Key isPrimitive, STRING and DELETE_ROW_STRUCT_FLDS is empty" in {
+  "Cassandra JSONWriter should handle deletion of records - Key isPrimitive, STRING and DELETE_ROW_STRUCT_FLDS is empty"  taggedAs SlowTest in  {
 
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
 
@@ -870,7 +870,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     writer.close()
   }
 
-  "Cassandra JSONWriter should handle deletion of records - Key isPrimitive, STRING and DELETE_ROW_STRUCT_FLDS is non-empty" in {
+  "Cassandra JSONWriter should handle deletion of records - Key isPrimitive, STRING and DELETE_ROW_STRUCT_FLDS is non-empty"  taggedAs SlowTest in  {
 
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
     val kql = s"INSERT INTO $table SELECT id, long_field FROM TOPIC"
@@ -932,7 +932,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     writer.close()
   }
 
-  "Cassandra JSONWriter should handle deletion of records - Key isPrimitive, STRING with Complex Type" in {
+  "Cassandra JSONWriter should handle deletion of records - Key isPrimitive, STRING with Complex Type"  taggedAs SlowTest in  {
 
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
     val kql = s"INSERT INTO $table SELECT id, long_field FROM TOPIC"
@@ -997,7 +997,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
   }
 
 
-  "Cassandra JSONWriter should handle deletion of records - Key is STRUCT, flat" in {
+  "Cassandra JSONWriter should handle deletion of records - Key is STRUCT, flat"  taggedAs SlowTest in  {
 
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
     val kql = s"INSERT INTO $table SELECT id, long_field FROM TOPIC"
@@ -1058,7 +1058,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     writer.close()
   }
 
-  "Cassandra JSONWriter should handle deletion of records - Key is STRUCT, flat, long as key, but in range of int" in {
+  "Cassandra JSONWriter should handle deletion of records - Key is STRUCT, flat, long as key, but in range of int"  taggedAs SlowTest in  {
 
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
     val kql = s"INSERT INTO $table SELECT id, long_field FROM TOPIC"
@@ -1115,7 +1115,7 @@ class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSuga
     writer.close()
   }
 
-  "Cassandra JSONWriter should log table name on encountering an error" in {
+  "Cassandra JSONWriter should log table name on encountering an error"  taggedAs SlowTest in  {
 
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
     session.execute(

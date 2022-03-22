@@ -4,6 +4,7 @@ import com.landoop.streamreactor.connect.hive
 import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.formats.{HiveFormat, HiveReader, Record}
 import com.landoop.streamreactor.connect.hive.kerberos.{KerberosExecute, UgiExecute}
+import com.landoop.streamreactor.connect.hive.source.SourcePartition.{fromSourceOffset, fromSourcePartition}
 import com.landoop.streamreactor.connect.hive.source.config.{HiveSourceConfig, SourceTableOptions}
 import com.landoop.streamreactor.connect.hive.source.mapper.{PartitionValueMapper, ProjectionMapper}
 import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceOffsetStorageReader

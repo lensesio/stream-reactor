@@ -19,7 +19,7 @@
 package com.datamountaineer.streamreactor.connect.jms.source
 
 import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
-import com.datamountaineer.streamreactor.connect.jms.TestBase
+import com.datamountaineer.streamreactor.connect.jms.{SlowTest, TestBase}
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
@@ -97,7 +97,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
     }
   }
 
-  "should read messages from JMS queue with message selector" in testWithBrokerOnPort { (conn, brokerUrl) =>
+  "should read messages from JMS queue with message selector" taggedAs SlowTest in testWithBrokerOnPort { (conn, brokerUrl) =>
     val messageCount = 10
 
     val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"

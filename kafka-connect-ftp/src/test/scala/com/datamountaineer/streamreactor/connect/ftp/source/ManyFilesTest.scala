@@ -39,7 +39,7 @@ class ManyFilesTest extends AnyFunSuite with Matchers with BeforeAndAfter with S
   )
 
 
-  test("Read only FtpMaxPollRecords even if using MonitorSliceSize") {
+  test("Read only FtpMaxPollRecords even if using MonitorSliceSize", SlowTest) {
     val fs = new FileSystem(ftpServer.rootDir).clear()
     val cfg = new FtpSourceConfig(sourceConfig.asJava)
     val offsets = new DummyOffsetStorage

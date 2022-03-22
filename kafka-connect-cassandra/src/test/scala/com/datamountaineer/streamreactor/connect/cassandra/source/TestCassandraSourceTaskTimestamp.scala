@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 
 
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
+import com.datamountaineer.streamreactor.connect.cassandra.{SlowTest, TestConfig}
 import com.datastax.driver.core.Session
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import org.apache.kafka.common.config.ConfigException
@@ -55,7 +55,7 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
     session.getCluster.close()
   }
 
-  "A Cassandra SourceTask should read in incremental mode with timestamp and time slices" in {
+  "A Cassandra SourceTask should read in incremental mode with timestamp and time slices"  taggedAs SlowTest in  {
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigDefault
     val task = new CassandraSourceTask()
@@ -89,7 +89,7 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
     task.stop()
   }
 
-  "A Cassandra SourceTask should read in incremental mode with timestamp and time slices and use ignore and unwrap" in {
+  "A Cassandra SourceTask should read in incremental mode with timestamp and time slices and use ignore and unwrap"  taggedAs SlowTest in  {
 
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigWithUnwrap
@@ -112,7 +112,7 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
     task.stop()
   }
 
-  "A Cassandra SourceTask should read in incremental mode with fetchSize" in {
+  "A Cassandra SourceTask should read in incremental mode with fetchSize"  taggedAs SlowTest in  {
 
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigDefault
@@ -137,7 +137,7 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
     task.stop()
   }
   
-  "A Cassandra SourceTask should read in incremental mode with timestamp and time slices and use json format with key and unwrap" in {
+  "A Cassandra SourceTask should read in incremental mode with timestamp and time slices and use json format with key and unwrap"  taggedAs SlowTest in  {
 
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraJsonConfigWithKeyAndUnwrap
@@ -168,7 +168,7 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
     task.stop()
   }
 
-  "A Cassandra SourceTask should throw exception when timestamp column is not specified" in {
+  "A Cassandra SourceTask should throw exception when timestamp column is not specified"  taggedAs SlowTest in  {
 
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigWithKcqlNoPrimaryKeyInSelect

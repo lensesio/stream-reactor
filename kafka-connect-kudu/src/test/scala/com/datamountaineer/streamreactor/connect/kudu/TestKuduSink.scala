@@ -28,7 +28,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
   * stream-reactor
   */
 class TestKuduSink extends TestBase with MockitoSugar {
-  "Should start a Kudu Sink" in {
+  "Should start a Kudu Sink" taggedAs SlowTest in {
     val config = getConfig
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)

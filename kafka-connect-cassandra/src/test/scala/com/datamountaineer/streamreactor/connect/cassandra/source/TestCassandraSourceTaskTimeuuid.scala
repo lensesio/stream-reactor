@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
+import com.datamountaineer.streamreactor.connect.cassandra.{SlowTest, TestConfig}
 import com.datastax.driver.core.Session
 import com.fasterxml.jackson.databind.JsonNode
 import org.apache.kafka.common.config.ConfigException
@@ -54,7 +54,7 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     session.getCluster.close()
   }
 
-  "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices" in {
+  "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices"  taggedAs SlowTest in  {
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigDefault
     val task = new CassandraSourceTask()
@@ -88,7 +88,7 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     task.stop()
   }
 
-  "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices and use ignore and unwrap" in {
+  "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices and use ignore and unwrap"  taggedAs SlowTest in  {
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigWithUnwrap
     val task = new CassandraSourceTask()
@@ -110,7 +110,7 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     task.stop()
   }
 
-  "A Cassandra SourceTask should read in incremental mode with fetchSize" in {
+  "A Cassandra SourceTask should read in incremental mode with fetchSize"  taggedAs SlowTest in  {
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigWithUnwrap
     val task = new CassandraSourceTask()
@@ -134,7 +134,7 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     task.stop()
   }
 
-  "A Cassandra SourceTask should throw exception when timeuuid column is not specified" in {
+  "A Cassandra SourceTask should throw exception when timeuuid column is not specified"  taggedAs SlowTest in  {
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigWithKcqlNoPrimaryKeyInSelect
     val task = new CassandraSourceTask()

@@ -114,7 +114,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     cols.get(7).getDefaultValue.toString shouldBe "10.0"
   }
 
-  "Should build a insert table cache" in {
+  "Should build a insert table cache" taggedAs SlowTest in {
 
     val table = mock[KuduTable]
     val client = mock[KuduClient]
@@ -133,7 +133,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     cache(TOPIC) shouldBe table
   }
 
-  "Should throw table not found when building insert cache" in {
+  "Should throw table not found when building insert cache" taggedAs SlowTest in {
 
     val table = mock[KuduTable]
     val client = mock[KuduClient]
@@ -154,7 +154,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     }
   }
 
-  "Should create table" in {
+  "Should create table" taggedAs SlowTest in {
     val rawSchema =
       """
         |{"type":"record","name":"myrecord",
@@ -195,7 +195,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     ret shouldBe table
   }
 
-  "should alter table" in {
+  "should alter table" taggedAs SlowTest in {
     //mock out kudu client
     val client = mock[KuduClient]
     val table = mock[KuduTable]
@@ -209,7 +209,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     ret.isInstanceOf[KuduTable] shouldBe true
   }
 
-  "should create table from sinkRecord" in {
+  "should create table from sinkRecord" taggedAs SlowTest in {
     val client = mock[KuduClient]
 
     val record: SinkRecord = getTestRecords.head
@@ -219,7 +219,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     ret.isInstanceOf[Try[KuduTable]] shouldBe true
   }
 
-  "Should not create table as it already exists" in {
+  "Should not create table as it already exists" taggedAs SlowTest in {
     //set up configs
     val config = new KuduConfig(getConfigAutoCreate("http://localhost:8081"))
     val settings = KuduSettings(config)

@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import com.datamountaineer.streamreactor.common.queues.QueueHelpers
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
+import com.datamountaineer.streamreactor.connect.cassandra.{SlowTest, TestConfig}
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigSource, CassandraSettings}
 import com.datastax.driver.core.Session
 import com.fasterxml.jackson.databind.JsonNode
@@ -56,7 +56,7 @@ class TestCassandraSourceTaskTimeuuidLong extends AnyWordSpec
     session.getCluster.close()
   }
 
-  "CassandraReader should read in incremental mode with timeuuid and time slices (long)" in {
+  "CassandraReader should read in incremental mode with timeuuid and time slices (long)"  taggedAs SlowTest in  {
     val taskContext = getSourceTaskContextDefault
     val taskConfig = new CassandraConfigSource(getCassandraConfigDefault)
 

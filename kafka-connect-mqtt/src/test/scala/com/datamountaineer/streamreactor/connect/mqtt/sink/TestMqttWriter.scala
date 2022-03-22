@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.mqtt.sink
 
 import com.datamountaineer.streamreactor.common.converters.sink.Converter
+import com.datamountaineer.streamreactor.connect.mqtt.SlowTest
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSinkConfig, MqttSinkSettings}
 import com.dimafeng.testcontainers.{ForEachTestContainer, GenericContainer}
 import com.typesafe.scalalogging.StrictLogging
@@ -166,7 +167,7 @@ class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestConta
     out.toByteArray
   }
 
-  "writer should writer all fields" in {
+  "writer should writer all fields"  taggedAs SlowTest in {
     val props = Map(
       MqttConfigConstants.HOSTS_CONFIG -> getMqttConnectionUrl,
       MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $TARGET SELECT * FROM $TOPIC;INSERT INTO $TARGET SELECT * FROM $TOPIC2",
@@ -217,7 +218,7 @@ class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestConta
     }
   }
 
-  "writer should writer all fields in avro" in {
+  "writer should writer all fields in avro" taggedAs SlowTest in {
 
     val res = getClass.getClassLoader.getResource("test.avsc")
     val schemaPath = Paths.get(res.toURI).toFile.getAbsolutePath

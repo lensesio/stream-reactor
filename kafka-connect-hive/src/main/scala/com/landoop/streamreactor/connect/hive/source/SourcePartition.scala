@@ -1,11 +1,14 @@
-package com.landoop.streamreactor.connect.hive
+package com.landoop.streamreactor.connect.hive.source
 
+import com.landoop.streamreactor.connect.hive.{DatabaseName, TableName, Topic}
 import org.apache.hadoop.fs.Path
 
-package object source {
 
   case class SourcePartition(db: DatabaseName, tableName: TableName, topic: Topic, path: Path)
+
   case class SourceOffset(rowNumber: Int)
+
+object SourcePartition {
 
   def fromSourcePartition(partition: SourcePartition): Map[String, AnyRef] =
     Map[String, AnyRef](

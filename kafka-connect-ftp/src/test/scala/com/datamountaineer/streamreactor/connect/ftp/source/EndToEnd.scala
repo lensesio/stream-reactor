@@ -29,6 +29,7 @@ import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.storage.OffsetStorageReader
 import org.scalatest.BeforeAndAfter
+import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -192,7 +193,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   val fileToTopic = Map(t0 -> "tails", t1 -> "tails", u0 -> "updates", u1 -> "updates")
 
-  test("Happy flow: file updates are properly reflected by corresponding SourceRecords with structured keys") {
+  test("Happy flow: file updates are properly reflected by corresponding SourceRecords with structured keys", SlowTest) {
 
 
     val fs = new FileSystem(server.rootDir).clear()
@@ -213,7 +214,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
   }
 
 
-  test("Happy flow: file updates are properly reflected by corresponding SourceRecords with stringed keys") {
+  test("Happy flow: file updates are properly reflected by corresponding SourceRecords with stringed keys", SlowTest) {
     val fs = new FileSystem(server.rootDir).clear()
     server.start()
 
@@ -231,7 +232,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
     server.stop()
   }
 
-  test("Streaming flow: files are only fetched when the records are polled") {
+  test("Streaming flow: files are only fetched when the records are polled", SlowTest) {
     logger.info("Start test")
     val fs = new FileSystem(server.rootDir).clear()
     server.start()
@@ -258,7 +259,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
     server.stop()
   }
 
-  test("SFTP Happy flow: files on sftp server are properly reflected by corresponding SourceRecords with structured keys") {
+  test("SFTP Happy flow: files on sftp server are properly reflected by corresponding SourceRecords with structured keys", SlowTest) {
     withSftpServer(server => {
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
@@ -278,14 +279,15 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
       val cfg = new FtpSourceConfig(configMap.asJava)
       val offsets = new DummyOffsetStorage
       val poller = new FtpSourcePoller(cfg, offsets)
-      Thread.sleep(1000)
-      poller.poll().size shouldBe 2
+      eventually {
+        poller.poll().size shouldBe 2
+      }
       ()
     })
   }
 
 
-  test("SFTP Happy flow: explicit port in communication") {
+  test("SFTP Happy flow: explicit port in communication", SlowTest) {
     withSftpServer(server => {
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
@@ -310,7 +312,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
     })
   }
 
-  test("SFTP Streaming flow: files are only fetched when the records are polled") {
+  test("SFTP Streaming flow: files are only fetched when the records are polled", SlowTest) {
     withSftpServer(server => {
       server.addUser("demo", "password")
       server.createDirectory("/directory/")
@@ -338,7 +340,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   }
 
-  test("SFTP Ugly flow: wrong address in SFTP connection") {
+  test("SFTP Ugly flow: wrong address in SFTP connection", SlowTest) {
     withSftpServer(server => {
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
@@ -363,7 +365,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
     })
   }
 
-  test("SFTP Ugly flow: wrong credentials in SFTP connection") {
+  test("SFTP Ugly flow: wrong credentials in SFTP connection", SlowTest) {
     withSftpServer(server => {
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
@@ -389,7 +391,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   }
 
-  test("SFTP Ugly flow: wrong directory in SFTP connection") {
+  test("SFTP Ugly flow: wrong directory in SFTP connection", SlowTest) {
     withSftpServer(server => {
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
@@ -414,7 +416,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
     })
   }
 
-  test("SFTP Ugly flow: timeout in SFTP connection") {
+  test("SFTP Ugly flow: timeout in SFTP connection", SlowTest) {
     withSftpServer(server => {
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())

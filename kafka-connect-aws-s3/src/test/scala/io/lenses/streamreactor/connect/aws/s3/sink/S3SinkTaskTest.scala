@@ -19,6 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import com.opencsv.CSVReader
 import cats.implicits._
+import io.lenses.streamreactor.connect.aws.s3.SlowTest
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config.processors.ClasspathResourceResolver
@@ -98,7 +99,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     new SinkRecord(TopicName, 1, null, createKey(keySchema, ("phonePrefix", "+49"), ("region", 5)), null, users(2), 2, null, null)
   )
 
-  "S3SinkTask" should "flush on configured flush time intervals" in {
+  "S3SinkTask" should "flush on configured flush time intervals" taggedAs SlowTest in {
 
     val task = new S3SinkTask()
 
@@ -145,7 +146,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "flush for every record when configured flush count size of 1" in {
+  "S3SinkTask" should "flush for every record when configured flush count size of 1"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
 
@@ -173,7 +174,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     * We're going to set the threshold to 80 - so once we've written 2 records to a file then the
     * second file should only contain a single record.  This second file won't have been written yet.
     */
-  "S3SinkTask" should "flush on configured file size" in {
+  "S3SinkTask" should "flush on configured file size"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
 
@@ -200,7 +201,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     * The difference in this test is that the sink is opened again, which will cause the offsets to be copied to the
     * context
     */
-  "S3SinkTask" should "put existing offsets to the context" in {
+  "S3SinkTask" should "put existing offsets to the context"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
 
@@ -229,7 +230,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     verify(sinkTaskContext).offset(new TopicPartition("myTopic", 1), 2)
   }
 
-  "S3SinkTask" should "write to parquet format" in {
+  "S3SinkTask" should "write to parquet format"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
 
@@ -254,7 +255,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "write to avro format" in {
+  "S3SinkTask" should "write to avro format"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
 
@@ -300,7 +301,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.stop()
   }
 
-  "S3SinkTask" should "write to text format" in {
+  "S3SinkTask" should "write to text format" taggedAs SlowTest  in {
 
     val textRecords = List(
       new SinkRecord(TopicName, 1, null, null, null, "Sausages", 0),
@@ -331,7 +332,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "write to csv format with headers" in {
+  "S3SinkTask" should "write to csv format with headers"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
 
@@ -374,7 +375,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     file2CsvReader.readNext() should be(null)
   }
 
-  "S3SinkTask" should "write to csv format without headers" in {
+  "S3SinkTask" should "write to csv format without headers"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
 
@@ -415,7 +416,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     file2CsvReader.readNext() should be(null)
   }
 
-  "S3SinkTask" should "use custom partitioning scheme and flush for every record" in {
+  "S3SinkTask" should "use custom partitioning scheme and flush for every record"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
 
@@ -446,7 +447,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     * files are written instead of 2, as there are 2 points at which the write is triggered and the half-full files must
     * be written as well as those reaching the threshold.
     */
-  "S3SinkTask" should "use custom partitioning scheme and flush after two written records" in {
+  "S3SinkTask" should "use custom partitioning scheme and flush after two written records"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
 
@@ -483,7 +484,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "use custom partitioning with value display only" in {
+  "S3SinkTask" should "use custom partitioning with value display only"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
 
@@ -509,7 +510,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "write to bytes format and combine files" in {
+  "S3SinkTask" should "write to bytes format and combine files"  taggedAs SlowTest in {
 
     val stream = classOf[BytesFormatWriter].getResourceAsStream("/streamreactor-logo.png")
     val bytes: Array[Byte] = IOUtils.toByteArray(stream)
@@ -540,7 +541,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
   }
 
 
-  "S3SinkTask" should "support header values for data partitioning" in {
+  "S3SinkTask" should "support header values for data partitioning"  taggedAs SlowTest in {
 
     val textRecords = List(
       new SinkRecord(TopicName, 1, null, null, null, users(0), 0, null, null, createHeaders(("phonePrefix", "+44"), ("region", "8"))),
@@ -575,7 +576,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     file3CsvReader.readNext() should be(null)
   }
 
-  "S3SinkTask" should "combine header and value-extracted partition" in {
+  "S3SinkTask" should "combine header and value-extracted partition"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
 
@@ -632,7 +633,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "support numeric header data types" in {
+  "S3SinkTask" should "support numeric header data types" taggedAs SlowTest  in {
 
     val textRecords = List(
       createSinkRecord(1, users(0), 0, createHeaders(("intheader", 1), ("longheader", 2L))),
@@ -662,7 +663,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     )
   }
 
-  "S3SinkTask" should "partition by whole of kafka message key with key label" in {
+  "S3SinkTask" should "partition by whole of kafka message key with key label"  taggedAs SlowTest in {
 
     val keyPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
       new SinkRecord(TopicName, 1, null, (k % 2).toString, schema, user, k.toLong, null, null)
@@ -694,7 +695,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     )
   }
 
-  "S3SinkTask" should "partition by whole of kafka message key without key label" in {
+  "S3SinkTask" should "partition by whole of kafka message key without key label"  taggedAs SlowTest in {
 
     val keyPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
       new SinkRecord(TopicName, 1, null, (k % 2).toString, schema, user, k.toLong, null, null)
@@ -726,7 +727,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     )
   }
 
-  "S3SinkTask" should "partition by custom partitioning with topic/partition/offset" in {
+  "S3SinkTask" should "partition by custom partitioning with topic/partition/offset"  taggedAs SlowTest  in {
 
     val keyPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
       new SinkRecord(TopicName, 1, null, (k % 2).toString, schema, user, k.toLong, null, null)
@@ -786,7 +787,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "allow a primitive int key for _key partitioning" in {
+  "S3SinkTask" should "allow a primitive int key for _key partitioning"  taggedAs SlowTest in {
 
     val keyPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
       new SinkRecord(TopicName, 1, null, k % 2, schema, user, k.toLong, null, null)
@@ -818,7 +819,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     )
   }
 
-  "S3SinkTask" should "allow partitioning by complex key" in {
+  "S3SinkTask" should "allow partitioning by complex key"  taggedAs SlowTest  in {
 
     val task = new S3SinkTask()
 
@@ -860,7 +861,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "allow partitioning by complex key and values" in {
+  "S3SinkTask" should "allow partitioning by complex key and values" taggedAs SlowTest  in {
 
     val task = new S3SinkTask()
 
@@ -888,7 +889,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
   /**
     * This should write partition 1 but not partition 0
     */
-  "S3SinkTask" should "write multiple partitions independently" in {
+  "S3SinkTask" should "write multiple partitions independently"  taggedAs SlowTest in {
 
     val kafkaPartitionedRecords = List(
       new SinkRecord(TopicName, 0, null, null, schema, users(0), 0),
@@ -923,7 +924,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     )
   }
 
-  "S3SinkTask" should "process and partition records by a map value" in {
+  "S3SinkTask" should "process and partition records by a map value"  taggedAs SlowTest in {
 
     val map = Map(
       "jedi" -> 1,
@@ -961,7 +962,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     )
   }
 
-  "S3SinkTask" should "process and partition records by an array value json" in {
+  "S3SinkTask" should "process and partition records by an array value json" taggedAs SlowTest  in {
 
     val array = Array(
       "jedi",
@@ -998,7 +999,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "process and partition records by an array value avro" in {
+  "S3SinkTask" should "process and partition records by an array value avro"  taggedAs SlowTest in {
 
     val array = List(
       "jedi",
@@ -1037,7 +1038,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     checkArray(genericRecords.head.asInstanceOf[GenericData.Array[Utf8]], "jedi", "klingons", "cylons")
   }
 
-  "S3SinkTask" should "process a map of structs avro" in {
+  "S3SinkTask" should "process a map of structs avro"  taggedAs SlowTest in {
 
     val map = Map(
       "jedi" -> users(0),
@@ -1082,7 +1083,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "process a map of structs with nulls avro" in {
+  "S3SinkTask" should "process a map of structs with nulls avro"  taggedAs SlowTest  in {
 
     val map = Map(
       "jedi" -> users(0),
@@ -1132,7 +1133,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "process a map of structs with nulls json" in {
+  "S3SinkTask" should "process a map of structs with nulls json"  taggedAs SlowTest in {
 
     val keySchema = Schema.STRING_SCHEMA
     val valSchema = SchemaBuilder.struct()
@@ -1180,7 +1181,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "process and map of arrays avro" in {
+  "S3SinkTask" should "process and map of arrays avro"  taggedAs SlowTest in {
 
     val map = Map(
       "jedi" -> Array("bob", "john"),
@@ -1270,7 +1271,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
   /**
     * This should write partition 1 but not partition 0
     */
-  "S3SinkTask" should "partition by nested value fields" in {
+  "S3SinkTask" should "partition by nested value fields"  taggedAs SlowTest in {
 
     val kafkaPartitionedRecords = List(
       new SinkRecord(TopicName, 0, null, null, schema, nested(0), 0),
@@ -1311,7 +1312,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
   /**
     * This should write partition 1 but not partition 0
     */
-  "S3SinkTask" should "partition by nested key fields" in {
+  "S3SinkTask" should "partition by nested key fields"  taggedAs SlowTest in {
 
     val favsSchema: Schema = SchemaBuilder.map(SchemaBuilder.string().build(), SchemaBuilder.string().build())
 
@@ -1392,7 +1393,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
   /**
     * This should write partition 1 but not partition 0
     */
-  "S3SinkTask" should "partition by nested header fields" in {
+  "S3SinkTask" should "partition by nested header fields"  taggedAs SlowTest in {
 
     val kafkaPartitionedRecords = List(
       new SinkRecord(TopicName, 0, null, null, SchemaBuilder.int32().build(), 0, 0, null, null, createHeaders("header1" -> nested(0))),
@@ -1429,7 +1430,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     )
   }
 
-  "S3SinkTask" should "flush for every record when configured flush count size of 1 with build local write mode" in {
+  "S3SinkTask" should "flush for every record when configured flush count size of 1 with build local write mode"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
 
@@ -1461,7 +1462,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.stop()
   }
 
-  "S3SinkTask" should "flush for every record when configured flush count size of 1 with build local write mode and specifying dir" in {
+  "S3SinkTask" should "flush for every record when configured flush count size of 1 with build local write mode and specifying dir"  taggedAs SlowTest in {
 
     val tempDir = Files.createTempDirectory("tempdirtest")
 
@@ -1491,7 +1492,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "read from profile" in {
+  "S3SinkTask" should "read from profile"  taggedAs SlowTest in {
 
     val profileDir = ClasspathResourceResolver.getResourcesDirectory() match {
       case Left(ex) => fail("cannot get resources dir", ex)
@@ -1520,7 +1521,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
   }
 
 
-  "S3SinkTask" should "not write duplicate offsets" in {
+  "S3SinkTask" should "not write duplicate offsets"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
 
@@ -1548,7 +1549,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
   }
 
 
-  "S3SinkTask" should "recover after a failure" in {
+  "S3SinkTask" should "recover after a failure"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
     val context = mock[SinkTaskContext]
@@ -1590,7 +1591,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "recover after a failure for single record commits" in {
+  "S3SinkTask" should "recover after a failure for single record commits"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
     val context = mock[SinkTaskContext]
@@ -1634,7 +1635,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "continue processing records when a source file has been deleted" in {
+  "S3SinkTask" should "continue processing records when a source file has been deleted"  taggedAs SlowTest in {
 
     val task = new S3SinkTask()
     val context = mock[SinkTaskContext]

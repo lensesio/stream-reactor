@@ -31,7 +31,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 @DoNotDiscover
 class TestCassandraConnectionSecure extends AnyWordSpec with Matchers with TestConfig {
 
-  "should return a secured session" in {
+  "should return a secured session"  taggedAs SlowTest in  {
     createKeySpace("connection", secure = true, ssl = false)
     val props = Map(
       CassandraConfigConstants.PORT -> strPort(),
