@@ -13,7 +13,7 @@ jobs:
           java-version: '8'
           distribution: 'adopt'
       - name: Test
-        run: ./smart-build.sh
+        run: sbt test
         env:
           JVM_OPTS: -Xmx3200m
       - name: Publish Unit Test Results
@@ -21,3 +21,13 @@ jobs:
         if: always()
         with:
           files: "**/target/**/test-reports/*.xml"
+#      - name: Assembly
+#        run: sbt "set assembly / test := {}" assembly
+#        env:
+#          JVM_OPTS: -Xmx3200m
+#      - name: Upload Artifact
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: "**/target/**/*.jar"
+#          path: assembly
+#          retention-days: 5
