@@ -64,14 +64,6 @@ class S3WriterManager(
 
   private val seekedOffsets = mutable.Map.empty[TopicPartition, Offset]
 
-  private def writerForTopicPartitionWithMaxOffset(topicPartition: TopicPartition) = {
-    writers
-      .collect {
-        case (key, writer) if key.topicPartition == topicPartition && writer.getCommittedOffset.nonEmpty => writer
-      }
-      .maxBy(_.getCommittedOffset)
-  }
-
   def commitAllWritersIfFlushRequired(): Either[BatchS3SinkError, Unit] = {
     if (writers.values.exists(_.shouldFlush)) {
       commitAllWriters()
@@ -243,18 +235,34 @@ class S3WriterManager(
 
   def preCommit(currentOffsets: immutable.Map[TopicPartition, OffsetAndMetadata]): immutable.Map[TopicPartition, OffsetAndMetadata] = {
     currentOffsets
-      .collect {
-        case (topicPartition, offsetAndMetadata) =>
-          (topicPartition, Try(createOffsetAndMetadata(offsetAndMetadata, writerForTopicPartitionWithMaxOffset(topicPartition))).getOrElse(null))
+      .map {
+        case (tp, offAndMeta) => (tp, getOffsetAndMeta(tp, offAndMeta))
+      }
+      .collect{
+        case (k,v) if v.nonEmpty => (k,v.get)
       }
   }
 
-  private def createOffsetAndMetadata(offsetAndMetadata: OffsetAndMetadata, writer: S3Writer) = {
-    new OffsetAndMetadata(
-      writer.getCommittedOffset.get.value,
-      offsetAndMetadata.leaderEpoch(),
-      offsetAndMetadata.metadata()
-    )
+  private def writerForTopicPartitionWithMaxOffset(topicPartition: TopicPartition): Option[S3Writer] = {
+    Try(
+      writers.collect {
+        case (key, writer) if key.topicPartition == topicPartition && writer.getCommittedOffset.nonEmpty => writer
+      }
+      .maxBy(_.getCommittedOffset)
+    ).toOption
+  }
+
+  private def getOffsetAndMeta(topicPartition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = {
+    for {
+      writer <- writerForTopicPartitionWithMaxOffset(topicPartition)
+      offsetAndMeta <- Try {
+        new OffsetAndMetadata(
+          writer.getCommittedOffset.get.value,
+          offsetAndMetadata.leaderEpoch(),
+          offsetAndMetadata.metadata()
+        )
+      }.toOption
+    } yield offsetAndMeta
   }
 
   def cleanUp(topicPartition: TopicPartition): Unit = {
