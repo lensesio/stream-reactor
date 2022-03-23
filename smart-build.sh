@@ -18,13 +18,13 @@ for module in ${MODIFIED_MODULES}; do
   fi
 done
 
-#if $BUILD_ALL; then
+if $BUILD_ALL; then
     sbt assembly
-#else
-#    GRADLE_TASKS=""
-#    for module in ${MODIFIED_MODULES}; do
-#        GRADLE_TASKS="${GRADLE_TASKS} :${module}:test"
-#    done
-#
-#    sbt clean ${GRADLE_TASKS}
-#fi
+else
+    GRADLE_TASKS=""
+    for module in ${MODIFIED_MODULES}; do
+        GRADLE_TASKS="${GRADLE_TASKS} :${module}:test"
+    done
+
+    sbt clean ${GRADLE_TASKS}
+fi

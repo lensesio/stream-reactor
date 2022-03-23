@@ -2,10 +2,37 @@ import Dependencies.globalExcludeDeps
 import KafkaVersionAxis.ProjectExtension
 import sbt._
 import Settings._
+import sbt.internal.ProjectMatrix.projectMatrixToLocalProjectMatrix
+import sbt.internal.{ProjectMatrix, ProjectMatrixReference}
 
 ThisBuild / scalaVersion := "2.13.8"
 
 javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")
+
+
+lazy val subProjects: Seq[ProjectMatrix] = Seq(
+  common,
+  awsS3,
+  azureDocumentDb,
+  cassandra,
+  coap,
+  elastic6,
+  elastic7,
+  ftp,
+  hazelCast,
+  hbase,
+  hive,
+  influx,
+  jms,
+  kudu,
+  mongoDb,
+  mqtt,
+  pulsar,
+  redis
+)
+lazy val subProjectsRefs: Seq[ProjectMatrixReference] = subProjects.map(projectMatrixToLocalProjectMatrix)
+
+
 
 lazy val root = (projectMatrix in file("."))
   .settings(
@@ -14,25 +41,7 @@ lazy val root = (projectMatrix in file("."))
     name := "stream-reactor"
   )
   .aggregate(
-    common,
-    awsS3,
-    azureDocumentDb,
-    cassandra,
-    coap,
-    elastic6,
-    elastic7,
-    ftp,
-    hazelCast,
-    hbase,
-    hive,
-    influx,
-    jms,
-    kudu,
-    mongoDb,
-    mqtt,
-    pulsar,
-    redis,
-    //testContainers,
+    subProjectsRefs:_*
   )
 
 lazy val common = (projectMatrix in file("kafka-connect-common"))
@@ -357,4 +366,13 @@ dependencyCheckRetireJSAnalyzerEnabled := Some(false)
 
 excludeDependencies ++= globalExcludeDeps
 
+
+
+
+val generateModulesList = taskKey[Seq[File]]("generateModulesList")
+
+Compile / generateModulesList :=
+  new FileWriter(subProjects).generate( (Compile / resourceManaged).value / "modules.txt")
+
+Compile / sourceGenerators += (Compile / generateModulesList)
 
