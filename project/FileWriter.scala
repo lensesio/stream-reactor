@@ -7,11 +7,10 @@ class FileWriter(projects: Seq[ProjectMatrix]) {
     val contents = projects
       .flatMap(_.allProjects())
       .map(_._1.id)
-      .zipWithIndex
-      .map{case (s, i) => s""""$i": "$s""""}
+      .map(s => s""""$s"""")
       .mkString(",")
 
-    IO.write(file, "{" + contents + "}")
+    IO.write(file, "[" + contents + "]")
     Seq(file)
   }
 }

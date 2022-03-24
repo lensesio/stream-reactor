@@ -191,7 +191,7 @@ object Settings extends Dependencies {
           libraryDependencies ++= testDependencies.map(
             _ % Test
           ),
-          testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-l", "io.lenses.tags.SlowTest")
+          //testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-l", "io.lenses.tags.SlowTest")
         )
     }
   }

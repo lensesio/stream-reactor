@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        modules: ${{fromJSON(needs.initiate.outputs.matrix)}}
+        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
     steps:
       - uses: actions/checkout@master
       - name: Set up JDK 8
@@ -35,17 +35,16 @@ jobs:
         with:
           java-version: '8'
           distribution: 'adopt'
-      - name: Echo the build
-        run: echo ${{ matrix }}
-#      - name: Test
-#        run: sbt test
-#        env:
-#          JVM_OPTS: -Xmx3200m
-#      - name: Publish Unit Test Results
-#        uses: EnricoMi/publish-unit-test-result-action@v1
-#        if: always()
-#        with:
-#          files: "**/target/**/test-reports/*.xml"
+      - name: Test
+        run: sbt "project ${{ matrix.module }}" test
+        env:
+          JVM_OPTS: -Xmx3200m
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: "**/target/**/test-reports/*.xml"
+          check_name: ${{ matrix.module }}
 #      - name: Assembly
 #        run: sbt "set assembly / test := {}" assembly
 #        env:
