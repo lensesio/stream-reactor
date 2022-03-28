@@ -55,9 +55,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            project/target
-            target
-            kafka-connect-common/target
+            **/target
           key: target-${{github.run_number}}-${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
       - name: Cache SBT
         uses: actions/cache@v3
