@@ -1,14 +1,14 @@
 import Dependencies.globalExcludeDeps
 import KafkaVersionAxis.ProjectExtension
-import sbt._
 import Settings._
+import sbt.Keys.libraryDependencies
+import sbt._
 import sbt.internal.ProjectMatrix.projectMatrixToLocalProjectMatrix
 import sbt.internal.{ProjectMatrix, ProjectMatrixReference}
 
 ThisBuild / scalaVersion := "2.13.8"
 
 javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")
-
 
 lazy val subProjects: Seq[ProjectMatrix] = Seq(
   common,
@@ -32,8 +32,6 @@ lazy val subProjects: Seq[ProjectMatrix] = Seq(
 )
 lazy val subProjectsRefs: Seq[ProjectMatrixReference] = subProjects.map(projectMatrixToLocalProjectMatrix)
 
-
-
 lazy val root = (projectMatrix in file("."))
   .settings(
     publish := {},
@@ -41,8 +39,15 @@ lazy val root = (projectMatrix in file("."))
     name := "stream-reactor"
   )
   .aggregate(
-    subProjectsRefs:_*
+    subProjectsRefs: _*
   )
+  .dependsOn(cassandra, elastic6, mongoDb, redis)
+  .settings(
+    E2ETest / testOptions := Seq(Tests.Argument(TestFrameworks.JUnit, "-a", "-q", "-v"))
+  )
+  .kafka2Row()
+  .kafka3Row()
+  .configureE2ETests()
 
 lazy val common = (projectMatrix in file("kafka-connect-common"))
   .settings(
@@ -116,7 +121,7 @@ lazy val cassandra = (projectMatrix in file("kafka-connect-cassandra"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectCassandraDeps,
         publish / skip := true,
-     )
+      )
   )
   .kafka2Row()
   .kafka3Row()
@@ -318,7 +323,7 @@ lazy val mongoDb = (projectMatrix in file("kafka-connect-mongodb"))
   .configureAssembly()
   .configureTests(kafkaConnectMongoDbTestDeps)
 
-lazy val redis =  (projectMatrix in file("kafka-connect-redis"))
+lazy val redis = (projectMatrix in file("kafka-connect-redis"))
   .dependsOn(common)
   .settings(
     settings ++
@@ -333,19 +338,6 @@ lazy val redis =  (projectMatrix in file("kafka-connect-redis"))
   .kafka3Row()
   .configureAssembly()
   .configureTests(kafkaConnectRedisTestDeps)
-
-/*lazy val testContainers = (projectMatrix in file("kafka-connect-testcontainers"))
-  .dependsOn(cassandra, elastic6, mongoDb, redis)
-  .settings(
-    settings ++
-      Seq(
-        name := "kafka-connect-testcontainers",
-        description := "Integration testing project",
-      )
-  )
-  .kafka2Row()
-  .kafka3Row()
-  .settings(libraryDependencies ++= kafkaConnectTestContainersDeps)*/
 
 addCommandAlias(
   "validateAll",
@@ -366,13 +358,10 @@ dependencyCheckRetireJSAnalyzerEnabled := Some(false)
 
 excludeDependencies ++= globalExcludeDeps
 
-
-
-
 val generateModulesList = taskKey[Seq[File]]("generateModulesList")
 
 Compile / generateModulesList :=
-  new FileWriter(subProjects).generate( (Compile / resourceManaged).value / "modules.txt")
+  new FileWriter(subProjects).generate((Compile / resourceManaged).value / "modules.txt")
 
-Compile / sourceGenerators += (Compile / generateModulesList)
+Compile / resourceGenerators += (Compile / generateModulesList)
 

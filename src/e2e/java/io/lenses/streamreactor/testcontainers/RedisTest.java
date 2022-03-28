@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
 
-public class RedisIntegrationTest extends AbstractStreamReactorTest {
+public class RedisTest extends AbstractStreamReactorTest {
 
     private static final KafkaConnectContainer connectContainer = connectContainer("redis");
 

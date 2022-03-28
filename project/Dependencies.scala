@@ -146,6 +146,9 @@ object Dependencies {
     val hiveVersion = "2.1.1"
     val joddVersion = "4.1.4"
 
+    val junitVersion = "4.11"
+    val junitInterfaceVersion = "0.11"
+
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
     }
@@ -191,7 +194,8 @@ object Dependencies {
     "org.scalatestplus" %% "scalatestplus-scalacheck" % scalatestPlusScalaCheckVersion
   val scalaCheck      = "org.scalacheck"    %% "scalacheck"  % scalaCheckVersion
   val `mockito-scala` = "org.mockito" %% "mockito-scala" % mockitoScalaVersion
-
+  val junit = "junit" % "junit" % junitVersion
+  val `junit-interface` = "com.novocode" % "junit-interface" % junitInterfaceVersion
 
   lazy val pegDown = "org.pegdown" % "pegdown" % "1.6.0"
 
@@ -284,8 +288,6 @@ object Dependencies {
   lazy val guice = ("com.google.inject" % "guice" % guiceVersion)
   lazy val guiceAssistedInject = ("com.google.inject.extensions" % "guice-assistedinject" % guiceVersion)
 
-
-
   def json4sNative(json4sVersion: String) = ("org.json4s" %% "json4s-native" % json4sVersion)
   def json4sJackson(json4sVersion: String) = ("org.json4s" %% "json4s-jackson" % json4sVersion)
   def jacksonDatabind(jacksonVersion: String) = ("com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion)
@@ -365,6 +367,9 @@ object Dependencies {
 
   def jna(v: String) = ("net.java.dev.jna" % "jna" % v)
   lazy val log4j2Slf4j = ("org.apache.logging.log4j" % "log4j-to-slf4j" % "2.16.0")
+
+  lazy val kafkaClients             = "org.apache.kafka"          % "kafka-clients"          % Versions.kafkaVersion
+  lazy val kafkaJsonSchemaSerializer = "io.confluent" % "kafka-json-schema-serializer" % confluentVersion
 }
 
 trait Dependencies {
@@ -510,26 +515,12 @@ trait Dependencies {
 
   val kafkaConnectMongoDbTestDeps : Seq[ModuleID] = baseTestDeps ++ Seq(mongoDbEmbedded, avro4s)
 
-
   val kafkaConnectRedisDeps : Seq[ModuleID] = Seq(jedis)
 
   val kafkaConnectRedisTestDeps : Seq[ModuleID] = (baseTestDeps ++ Seq(testContainers, gson))
     .map {
       moduleId: ModuleID => moduleId.extra("scope" -> "test")
     }
-
-  /*
-
-        testImplementation group: 'com.jayway.jsonpath', name: 'json-path', version: '2.4.0'
-        testImplementation group: 'org.easytesting', name: 'fest-assert', version: '1.4'
-
-        testImplementation group: 'redis.clients', name: 'jedis', version: '3.3.0'
-        testImplementation group: 'org.mongodb', name: 'mongo-java-driver', version: '3.4.1'
-
-        testImplementation group: 'org.apache.avro', name: 'avro', version: '1.10.0'
-        testImplementation group: 'io.confluent', name: 'kafka-avro-serializer', version: "$confluentSerializerVersion"
-        testImplementation group: 'io.confluent', name: 'kafka-json-serializer', version: "$confluentSerializerVersion"
-  * */
 
   val kafkaConnectTestContainersDeps : Seq[ModuleID] = baseTestDeps ++ Seq(
     testContainers,
@@ -542,7 +533,10 @@ trait Dependencies {
     jedis,
     mongoDb,
     avro4s,
-    //confluentAvroConverter,
+    kafkaClients,
+    kafkaJsonSchemaSerializer,
+    junit,
+    `junit-interface`
   )
 
   // build plugins

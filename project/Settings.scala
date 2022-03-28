@@ -8,12 +8,10 @@ import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
 
 import java.util.Calendar
 
-
 object Settings extends Dependencies {
   // keep the SNAPSHOT version numerically higher than the latest release.
   val majorVersion  = "1.0"
   val nextSnapshotVersion = "1.1"
-
 
   val artifactVersion: String = {
     val maybeGithubRunId   = sys.env.get("github_run_id")
@@ -80,8 +78,6 @@ object Settings extends Dependencies {
       "-Xlint:stars-align",
       "-Xlint:type-parameter-shadow"
     )
-
-
 
     object Scala213 {
       val WarnUnusedImports = "-Wunused:imports"
@@ -177,22 +173,39 @@ object Settings extends Dependencies {
     }
   }
 
-  val testConfigurationsMap =
-    Map(Test.name -> Test)
+  val E2ETest: Configuration = config("e2e").extend(Test).describedAs("Runs only E2E tests")
 
-  implicit final class TestConfigurator(project: ProjectMatrix) {
+  sealed abstract class TestConfigurator(
+                                          project:         ProjectMatrix,
+                                          config:          Configuration,
+                                          defaultSettings: Seq[Def.Setting[_]] = Defaults.testSettings,
+                                        ) {
 
-    def configureTests(testDependencies: Seq[ModuleID]): ProjectMatrix = {
+    protected def configure(requiresFork: Boolean, testDeps: Seq[ModuleID]): ProjectMatrix =
       project
-        .configs(
-          Test
-        )
+        .configs(config)
         .settings(
-          libraryDependencies ++= testDependencies.map(
-            _ % Test
+          libraryDependencies ++= testDeps.map(d => d % config),
+          inConfig(config)(
+            defaultSettings ++ Seq(
+              fork := requiresFork,
+              testFrameworks := Seq(sbt.TestFrameworks.ScalaTest, sbt.TestFrameworks.JUnit),
+              classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
+            ),
           ),
-          //testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-l", "io.lenses.tags.SlowTest")
         )
-    }
   }
+
+  implicit final class UnitTestConfigurator(project: ProjectMatrix) extends TestConfigurator(project, Test) {
+
+    def configureTests(testDeps: Seq[ModuleID]): ProjectMatrix =
+      configure(false, testDeps)
+  }
+
+  implicit final class E2ETestConfigurator(project: ProjectMatrix) extends TestConfigurator(project, E2ETest) {
+
+    def configureE2ETests(): ProjectMatrix =
+      configure(false, kafkaConnectTestContainersDeps)
+  }
+
 }
