@@ -3,7 +3,7 @@ import sbt.Keys._
 import sbt.VirtualAxis._
 import sbt.internal.ProjectMatrix
 import sbt._
-import sbtprojectmatrix.ProjectMatrixKeys._
+import Settings.E2ETest
 
 //2.8.1, 3.1.0
 
@@ -27,16 +27,11 @@ case class KafkaVersionAxis(kafkaVersion: String) extends WeakAxis {
     case _ => throw new IllegalStateException("unexpected kafka version")
   }
 
-  //private val javaVersion: String = kafkaVersion match {
-
-  //}
-
-
   private val kafkaVersionCompat: String = kafkaVersion.split("\\.", 3).take(2).mkString("-")
 
   override val directorySuffix = s"-kafka-${kafkaVersionCompat}"
 
-  override val idSuffix: String = directorySuffix.replaceAll("\\W+", "_")
+  override val idSuffix: String = directorySuffix.replaceAll("\\W+", "-")
 
   def deps(): Seq[ModuleID] = Seq(
     json4sNative(json4sVersion),
@@ -52,7 +47,6 @@ case class KafkaVersionAxis(kafkaVersion: String) extends WeakAxis {
 object KafkaVersionAxis {
 
   implicit class ProjectExtension(val p: ProjectMatrix) extends AnyVal {
-
 
     def isScala2_13(axes: Seq[VirtualAxis]): Boolean = {
       axes.collectFirst { case ScalaVersionAxis(_, scalaVersionCompat) => scalaVersionCompat }.forall(_ == "2.13")
@@ -72,10 +66,11 @@ object KafkaVersionAxis {
         axisValues = Seq(kafkaVersionAxis, VirtualAxis.jvm),
         _
           .settings(
+            E2ETest / envVars := Map("KAFKA_VERSION_DIRECTORY_SUFFIX" -> kafkaVersionAxis.directorySuffix),
             name := name.value + kafkaVersionAxis.directorySuffix,
             moduleName := moduleName.value + kafkaVersionAxis.directorySuffix,
             libraryDependencies ++= kafkaVersionAxis.deps(),
-            dependencyOverrides ++= kafkaVersionAxis.deps(),
+            dependencyOverrides ++= kafkaVersionAxis.deps()
           )
           .settings(settings: _*)
       )

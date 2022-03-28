@@ -12,20 +12,20 @@ javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")
 
 lazy val subProjects: Seq[ProjectMatrix] = Seq(
   common,
-  awsS3,
-  azureDocumentDb,
+  `aws-s3`,
+  `azure-documentdb`,
   cassandra,
   coap,
   elastic6,
   elastic7,
   ftp,
-  hazelCast,
+  hazelcast,
   hbase,
   hive,
-  influx,
+  influxdb,
   jms,
   kudu,
-  mongoDb,
+  mongodb,
   mqtt,
   pulsar,
   redis
@@ -41,8 +41,9 @@ lazy val root = (projectMatrix in file("."))
   .aggregate(
     subProjectsRefs: _*
   )
-  .dependsOn(cassandra, elastic6, mongoDb, redis)
+  .dependsOn(cassandra, elastic6, mongodb, redis)
   .settings(
+    E2ETest / baseDirectory := (LocalRootProject/baseDirectory).value,
     E2ETest / testOptions := Seq(Tests.Argument(TestFrameworks.JUnit, "-a", "-q", "-v"))
   )
   .kafka2Row()
@@ -64,7 +65,7 @@ lazy val common = (projectMatrix in file("kafka-connect-common"))
   .configureAssembly()
   .configureTests(baseTestDeps)
 
-lazy val awsS3 = (projectMatrix in file("kafka-connect-aws-s3"))
+lazy val `aws-s3` = (projectMatrix in file("kafka-connect-aws-s3"))
   .dependsOn(common)
   .settings(
     settings ++
@@ -80,7 +81,7 @@ lazy val awsS3 = (projectMatrix in file("kafka-connect-aws-s3"))
   .configureAssembly()
   .configureTests(kafkaConnectS3TestDeps)
 
-lazy val azureDocumentDb = (projectMatrix in file("kafka-connect-azure-documentdb"))
+lazy val `azure-documentdb` = (projectMatrix in file("kafka-connect-azure-documentdb"))
   .dependsOn(common)
   .settings(
     settings ++
@@ -160,7 +161,7 @@ lazy val elastic7 = (projectMatrix in file("kafka-connect-elastic7"))
   .configureAssembly()
   .configureTests(kafkaConnectElastic7TestDeps)
 
-lazy val hazelCast = (projectMatrix in file("kafka-connect-hazelcast"))
+lazy val hazelcast = (projectMatrix in file("kafka-connect-hazelcast"))
   .dependsOn(common)
   .settings(
     settings ++
@@ -176,7 +177,7 @@ lazy val hazelCast = (projectMatrix in file("kafka-connect-hazelcast"))
   .configureAssembly()
   .configureTests(baseTestDeps)
 
-lazy val influx = (projectMatrix in file("kafka-connect-influxdb"))
+lazy val influxdb = (projectMatrix in file("kafka-connect-influxdb"))
   .dependsOn(common)
   .settings(
     settings ++
@@ -307,7 +308,7 @@ lazy val hive = (projectMatrix in file("kafka-connect-hive"))
   .configureAssembly()
   .configureTests(kafkaConnectHiveTestDeps)
 
-lazy val mongoDb = (projectMatrix in file("kafka-connect-mongodb"))
+lazy val mongodb = (projectMatrix in file("kafka-connect-mongodb"))
   .dependsOn(common)
   .settings(
     settings ++

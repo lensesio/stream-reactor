@@ -205,7 +205,7 @@ object Settings extends Dependencies {
   implicit final class E2ETestConfigurator(project: ProjectMatrix) extends TestConfigurator(project, E2ETest) {
 
     def configureE2ETests(): ProjectMatrix =
-      configure(false, kafkaConnectTestContainersDeps)
+      configure(true, kafkaConnectTestContainersDeps)
   }
 
 }

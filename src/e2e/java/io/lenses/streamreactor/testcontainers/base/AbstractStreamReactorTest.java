@@ -29,21 +29,23 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.Map;
+import java.io.IOException;
 
 import static io.lenses.streamreactor.testcontainers.containers.KafkaConnectContainer.CONNECT_PLUGIN_PATH;
 
 public abstract class AbstractStreamReactorTest {
 
     public static final String CONFLUENT_PLATFORM_VERSION = Optional.ofNullable(System.getenv("CONFLUENT_VERSION"))
-            .orElse("5.5.0");
+            .orElse("6.2.0");
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractStreamReactorTest.class);
 
@@ -140,23 +142,34 @@ public abstract class AbstractStreamReactorTest {
     }
 
     /**
-     * Download connector archive and extract it under home path.
-     * Skip if connector already there.
+     * Resolve the connector path using the connector name and kafka version directory suffix.
      *
      * @param connector the connector name.
-     * @return the connect path.
+     * @return the connector path.
      */
     public static Path connectorPath(String connector) {
-        Path targetPath = Paths.get(String.join(File.separator,
-                System.getProperty("user.dir"),
-                "kafka-connect-" + connector),
-                "target",
-                "plugins"); // FIXME Hard-coded path for testing
+        Map<String, String> env = System.getenv();
+        env.forEach((k, v) -> System.out.println(">>>>>>>>>>>>>" + k + ":" + v));
 
-        if (Files.notExists(targetPath)) {
-            // FIXME Create a shell script that extracts the archive to an appropriate folder
-            throw new RuntimeException("Please run `sbt \"project " + connector + "<kafka_2_8 | kafka_3_1>\" assembly`");
+        final String directorySuffix =
+                Optional.ofNullable(System.getenv("KAFKA_VERSION_DIRECTORY_SUFFIX"))
+                        .orElseThrow(
+                                () -> new IllegalArgumentException("Please define the KAFKA_VERSION_DIRECTORY_SUFFIX environment variable."));
+        final String regex = String.format(".*%s%s.*.jar", connector, directorySuffix);
+
+        try {
+            final List<Path> files = Files.find(Paths.get(String.join(File.separator, System.getProperty("user.dir"),
+                            "kafka-connect-" + connector,
+                            "target")),
+                    2,
+                    (path, basicFileAttributes) -> path.toFile().getName().matches(regex)
+            ).collect(Collectors.toList());
+            if (files.isEmpty()) {
+                throw new RuntimeException(String.format("Please run `sbt \"project %s%s\" assembly`", connector, directorySuffix));
+            }
+            return files.get(0).getParent();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        return targetPath;
     }
 }
