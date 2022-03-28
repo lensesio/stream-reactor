@@ -14,6 +14,13 @@ jobs:
         with:
           java-version: '8'
           distribution: 'adopt'
+      - name: Cache SBT
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
       - name: Generate Modules List
         run: sbt generateModulesList
         env:
@@ -35,6 +42,13 @@ jobs:
         with:
           java-version: '8'
           distribution: 'adopt'
+      - name: Cache SBT
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
       - name: Test
         run: sbt "project ${{ matrix.module }}" test
         env:
