@@ -4,6 +4,7 @@ name: CI
 on: [pull_request]
 jobs:
   initiate:
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.read-mods.outputs.matrix }}
@@ -14,6 +15,20 @@ jobs:
         with:
           java-version: '8'
           distribution: 'adopt'
+      - name: Cache Target
+        uses: actions/cache@v3
+        with:
+          path: |
+            project/target
+            target
+          key: target-${{github.run_number}}-${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+      - name: Cache SBT
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
       - name: Generate Modules List
         run: sbt generateModulesList
         env:
@@ -24,6 +39,7 @@ jobs:
           echo "::set-output name=matrix::$(cat ./target/scala-2.13/resource_managed/main/modules.txt)"
   test:
     needs: initiate
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -35,6 +51,21 @@ jobs:
         with:
           java-version: '8'
           distribution: 'adopt'
+      - name: Cache Target
+        uses: actions/cache@v3
+        with:
+          path: |
+            project/target
+            target
+            kafka-connect-common/target
+          key: target-${{github.run_number}}-${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+      - name: Cache SBT
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
       - name: Test
         run: sbt "project ${{ matrix.module }}" test
         env:
