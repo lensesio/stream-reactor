@@ -148,9 +148,6 @@ public abstract class AbstractStreamReactorTest {
      * @return the connector path.
      */
     public static Path connectorPath(String connector) {
-        Map<String, String> env = System.getenv();
-        env.forEach((k, v) -> System.out.println(">>>>>>>>>>>>>" + k + ":" + v));
-
         final String directorySuffix =
                 Optional.ofNullable(System.getenv("KAFKA_VERSION_DIRECTORY_SUFFIX"))
                         .orElseThrow(
