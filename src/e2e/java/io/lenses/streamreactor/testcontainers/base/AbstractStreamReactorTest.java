@@ -149,13 +149,13 @@ public abstract class AbstractStreamReactorTest {
     public static Path connectorPath(String connector) {
         Path targetPath = Paths.get(String.join(File.separator,
                 System.getProperty("user.dir"),
-                "..",
                 "kafka-connect-" + connector),
-                "build",
-                "libs");
+                "target",
+                "plugins"); // FIXME Hard-coded path for testing
 
         if (Files.notExists(targetPath)) {
-            throw new RuntimeException("Please run `gradle :kafka-connect-" + connector + ":shadowJar`");
+            // FIXME Create a shell script that extracts the archive to an appropriate folder
+            throw new RuntimeException("Please run `sbt \"project " + connector + "<kafka_2_8 | kafka_3_1>\" assembly`");
         }
         return targetPath;
     }

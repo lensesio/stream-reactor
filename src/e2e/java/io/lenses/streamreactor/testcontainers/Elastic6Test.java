@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 import static org.fest.assertions.Assertions.assertThat;
 
 @Ignore("Temporary ignore as it fails on CI but runs successfully locally")
-public class Elastic6IntegrationTest extends AbstractStreamReactorTest {
+public class Elastic6Test extends AbstractStreamReactorTest {
 
     private static final KafkaConnectContainer connectContainer = connectContainer("elastic6");
 

@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
 
-public class MongodbIntegrationTest extends AbstractStreamReactorTest {
+public class MongodbTest extends AbstractStreamReactorTest {
 
     private static final KafkaConnectContainer connectContainer = connectContainer("mongodb");
 

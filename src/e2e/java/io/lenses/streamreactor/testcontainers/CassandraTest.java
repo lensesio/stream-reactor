@@ -28,7 +28,7 @@ import java.util.stream.Stream;
 
 import static org.fest.assertions.Assertions.assertThat;
 
-public class CassandraIntegrationTest extends AbstractStreamReactorTest {
+public class CassandraTest extends AbstractStreamReactorTest {
 
     private static final KafkaConnectContainer connectContainer = connectContainer("cassandra");
 
