@@ -2,7 +2,7 @@ import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import sbt.Keys._
 import sbt._
 import sbt.internal.ProjectMatrix
-import sbtassembly.AssemblyKeys.{assembly, assemblyExcludedJars, assemblyMergeStrategy}
+import sbtassembly.AssemblyKeys.{assembly, assemblyExcludedJars, assemblyJarName, assemblyMergeStrategy, assemblyOutputPath}
 import sbtassembly.{MergeStrategy, PathList}
 import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
 
@@ -154,6 +154,7 @@ object Settings extends Dependencies {
     def configureAssembly(): ProjectMatrix = {
       project.settings(
         settings ++ Seq(
+          assembly / assemblyOutputPath := file(target.value + "/libs/" + (assembly / assemblyJarName).value),
           assembly / assemblyExcludedJars := {
             val cp: Classpath = (assembly / fullClasspath).value
             cp filter { f =>

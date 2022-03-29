@@ -29,7 +29,7 @@ case class KafkaVersionAxis(kafkaVersion: String) extends WeakAxis {
 
   private val kafkaVersionCompat: String = kafkaVersion.split("\\.", 3).take(2).mkString("-")
 
-  override val directorySuffix = s"-kafka-${kafkaVersionCompat}"
+  override val directorySuffix = s"-kafka-$kafkaVersionCompat"
 
   override val idSuffix: String = directorySuffix.replaceAll("\\W+", "-")
 

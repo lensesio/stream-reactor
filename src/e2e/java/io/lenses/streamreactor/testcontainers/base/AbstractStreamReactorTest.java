@@ -23,6 +23,7 @@ import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -38,14 +39,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.Map;
-import java.io.IOException;
 
 import static io.lenses.streamreactor.testcontainers.containers.KafkaConnectContainer.CONNECT_PLUGIN_PATH;
 
 public abstract class AbstractStreamReactorTest {
 
     public static final String CONFLUENT_PLATFORM_VERSION = Optional.ofNullable(System.getenv("CONFLUENT_VERSION"))
-            .orElse("6.2.0");
+            .orElse("5.5.0");
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractStreamReactorTest.class);
 
@@ -76,7 +76,9 @@ public abstract class AbstractStreamReactorTest {
         return new KafkaConnectContainer("confluentinc/cp-kafka-connect-base:" + CONFLUENT_PLATFORM_VERSION)
                 .withNetwork(network)
                 .withKafka(kafkaContainer)
-                .withFileSystemBind(connectorPath.toString(), CONNECT_PLUGIN_PATH, BindMode.READ_ONLY)
+                .withFileSystemBind(connectorPath.toString(),
+                        CONNECT_PLUGIN_PATH,
+                        BindMode.READ_ONLY)
                 .withLogConsumer(new Slf4jLogConsumer(LOGGER))
                 .dependsOn(kafkaContainer);
     }
@@ -152,13 +154,12 @@ public abstract class AbstractStreamReactorTest {
                 Optional.ofNullable(System.getenv("KAFKA_VERSION_DIRECTORY_SUFFIX"))
                         .orElseThrow(
                                 () -> new IllegalArgumentException("Please define the KAFKA_VERSION_DIRECTORY_SUFFIX environment variable."));
-        final String regex = String.format(".*%s%s.*.jar", connector, directorySuffix);
 
         try {
-            final List<Path> files = Files.find(Paths.get(String.join(File.separator, System.getProperty("user.dir"),
-                            "kafka-connect-" + connector,
-                            "target")),
-                    2,
+            final String regex = String.format(".*%s%s.*.jar", connector, directorySuffix);
+            final List<Path> files = Files.find(Paths.get(String.join(File.separator,
+                            System.getProperty("user.dir"), "kafka-connect-" + connector, "target")),
+                    3,
                     (path, basicFileAttributes) -> path.toFile().getName().matches(regex)
             ).collect(Collectors.toList());
             if (files.isEmpty()) {
