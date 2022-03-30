@@ -47,6 +47,7 @@ public class KafkaConnectContainer extends GenericContainer<KafkaConnectContaine
         this.withEnv("CONNECT_VALUE_CONVERTER", "org.apache.kafka.connect.storage.StringConverter");
         this.withEnv("CONNECT_REST_ADVERTISED_HOST_NAME", this.getHost());
         this.withEnv("CONNECT_PLUGIN_PATH", CONNECT_PLUGIN_PATH);
+        this.withEnv("CONNECT_LOG4J_ROOT_LOGLEVEL", "DEBUG");
         this.withExposedPorts(KAFKA_CONNECT_PORT);
     }
 

@@ -149,7 +149,13 @@ object Settings extends Dependencies {
 
   implicit final class AssemblyConfigurator(project: ProjectMatrix) {
 
-    val excludePatterns = Set("kafka-client","hadoop-yarn","org.apache.avro","org.apache.kafka", "io.confluent", "org.apache.zookeeper", "com.google.guava", "log4j", "org.apache.logging.log4j")
+    val excludeFilePatterns = Set(".MF", ".RSA", ".DSA", ".SF")
+
+    def excludeFileFilter(p : String): Boolean = {
+        excludeFilePatterns.exists(p.endsWith)
+    }
+
+    val excludePatterns = Set("kafka-client","hadoop-yarn","org.apache.avro","org.apache.kafka", "io.confluent", "org.apache.zookeeper", "log4j", "org.apache.logging.log4j", "junit", "org.junit")
 
     def configureAssembly(): ProjectMatrix = {
       project.settings(
@@ -163,9 +169,7 @@ object Settings extends Dependencies {
           },
           assembly / assemblyMergeStrategy := {
             case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
-            case PathList("META-INF", "*.SF") => MergeStrategy.discard
-            case PathList("META-INF", "*.DSA") => MergeStrategy.discard
-            case PathList("META-INF", "*.RSA") => MergeStrategy.discard
+            case p if excludeFileFilter(p) => MergeStrategy.discard
             case PathList(ps @ _*) if ps.last == "module-info.class" => MergeStrategy.discard
             case _ => MergeStrategy.first
           }

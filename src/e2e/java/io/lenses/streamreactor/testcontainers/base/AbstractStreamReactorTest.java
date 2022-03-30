@@ -45,7 +45,7 @@ import static io.lenses.streamreactor.testcontainers.containers.KafkaConnectCont
 public abstract class AbstractStreamReactorTest {
 
     public static final String CONFLUENT_PLATFORM_VERSION = Optional.ofNullable(System.getenv("CONFLUENT_VERSION"))
-            .orElse("5.5.0");
+            .orElse("6.2.2");
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractStreamReactorTest.class);
 
@@ -162,6 +162,7 @@ public abstract class AbstractStreamReactorTest {
                     3,
                     (path, basicFileAttributes) -> path.toFile().getName().matches(regex)
             ).collect(Collectors.toList());
+            LOGGER.info("Files: " + files.stream().map(file -> String.join("::", file.toString())).collect(Collectors.toList()));
             if (files.isEmpty()) {
                 throw new RuntimeException(String.format("Please run `sbt \"project %s%s\" assembly`", connector, directorySuffix));
             }
