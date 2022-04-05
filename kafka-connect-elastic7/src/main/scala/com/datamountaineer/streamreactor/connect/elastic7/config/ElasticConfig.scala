@@ -99,7 +99,7 @@ object ElasticConfig {
       ElasticConfigConstants.BATCH_SIZE_DISPLAY)
     .define(
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME,
-      Type.STRING,
+      Type.PASSWORD,
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
       Importance.LOW,
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DOC,
@@ -109,7 +109,7 @@ object ElasticConfig {
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME)
     .define(
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD,
-      Type.STRING,
+      Type.PASSWORD,
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT,
       Importance.LOW,
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DOC,
@@ -170,6 +170,27 @@ object ElasticConfig {
       1,
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
+    .define(
+      ElasticConfigConstants.AWS_REGION,
+      Type.STRING,
+      null,
+      Importance.HIGH,
+      ElasticConfigConstants.AWS_REGION_DOC
+    )
+    .define(
+      ElasticConfigConstants.AWS_ACCESS_KEY,
+      Type.PASSWORD,
+      "",
+      Importance.HIGH,
+      ElasticConfigConstants.AWS_ACCESS_KEY_DOC
+    )
+    .define(
+      ElasticConfigConstants.AWS_SECRET_KEY,
+      Type.PASSWORD,
+      "",
+      Importance.HIGH,
+      ElasticConfigConstants.AWS_SECRET_KEY_DOC
+    )
 }
 
 /**

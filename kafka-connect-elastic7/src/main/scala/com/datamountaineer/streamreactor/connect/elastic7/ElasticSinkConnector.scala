@@ -45,7 +45,7 @@ class ElasticSinkConnector extends SinkConnector with StrictLogging {
     * @return a List of configuration properties per worker
     * */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
-    logger.info(s"Setting task configurations for $maxTasks workers.")
+    logger.info(s"Setting task configurations for [$maxTasks] workers.")
     (1 to maxTasks).map(_ => configProps.get).toList.asJava
   }
 

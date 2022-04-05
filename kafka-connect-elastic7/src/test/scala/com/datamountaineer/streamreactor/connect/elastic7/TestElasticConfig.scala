@@ -28,7 +28,7 @@ class TestElasticConfig extends TestElasticBase {
 
   "A ElasticConfig should return the http basic auth username and password when set" in {
     val config = new ElasticConfig(getElasticSinkConfigPropsHTTPClient(autoCreate = false, auth = true))
-    config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME) shouldBe BASIC_AUTH_USERNAME
-    config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD) shouldBe BASIC_AUTH_PASSWORD
+    config.getPassword(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME).value() shouldBe BASIC_AUTH_USERNAME
+    config.getPassword(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD).value() shouldBe BASIC_AUTH_PASSWORD
   }
 }

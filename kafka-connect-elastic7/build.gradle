@@ -22,6 +22,7 @@ project(":kafka-connect-elastic7") {
     ext {
         elastic4sVersion = '7.7.0'
         elasticSearchVersion = '7.7.0'
+        elastic4sAWSVersion = '6.7.8'
         jnaVersion = '4.5.1'
     }
 
@@ -37,6 +38,11 @@ project(":kafka-connect-elastic7") {
         }
 
         compile("com.sksamuel.elastic4s:elastic4s-client-esjava_$scalaMajorVersion:$elastic4sVersion") {
+            exclude group: "org.scala-lang", module: "scala-library"
+            exclude group: "org.scalactic", module: "scalactic_2.11"
+        }
+
+        compile("com.sksamuel.elastic4s:elastic4s-aws_$scalaMajorVersion:$elastic4sAWSVersion") {
             exclude group: "org.scala-lang", module: "scala-library"
             exclude group: "org.scalactic", module: "scalactic_2.11"
         }

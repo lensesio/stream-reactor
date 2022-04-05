@@ -42,8 +42,8 @@ object ElasticSettings {
     val writeTimeout = config.getWriteTimeout
     val errorPolicy = config.getErrorPolicy
     val retries = config.getNumberRetries
-    val httpBasicAuthUsername = config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME)
-    val httpBasicAuthPassword = config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD)
+    val httpBasicAuthUsername = config.getPassword(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME).value()
+    val httpBasicAuthPassword = config.getPassword(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD).value()
 
     val batchSize = config.getInt(ElasticConfigConstants.BATCH_SIZE_CONFIG)
 
