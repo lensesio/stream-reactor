@@ -32,11 +32,11 @@ trait StorageInterface {
 
   def list(bucketAndPrefix: RemoteS3PathLocation): Either[FileListError, List[String]]
 
-  def getBlob(bucketAndPath: RemoteS3PathLocation): InputStream
+  def getBlob(bucketAndPath: RemoteS3PathLocation): Either[String, InputStream]
 
   def getBlobAsString(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, String]
 
-  def getBlobSize(bucketAndPath: RemoteS3PathLocation): Long
+  def getBlobSize(bucketAndPath: RemoteS3PathLocation): Either[String,Long]
 
   def getBlobModified(location: RemoteS3PathLocation): Instant
 

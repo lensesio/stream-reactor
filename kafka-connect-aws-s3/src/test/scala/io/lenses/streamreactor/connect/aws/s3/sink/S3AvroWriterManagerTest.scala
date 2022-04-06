@@ -18,7 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Avro
-import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection, S3Config}
+import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, AwsClient, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
@@ -39,13 +39,13 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   private val avroFormatReader = new AvroFormatReader
 
   private val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix), false)
-  private def avroConfig = S3SinkConfig(
-    S3Config(
-      None,
-      Some(Identity),
-      Some(Credential),
-      AuthMode.Credentials,
-    ),
+  private def avroConfig = S3SinkConfig(S3Config(
+    None,
+    Some(Identity),
+    Some(Credential),
+    AwsClient.Aws,
+    AuthMode.Credentials,
+  ),
     bucketOptions = Set(
       SinkBucketOptions(
         TopicName,

@@ -19,10 +19,15 @@ package io.lenses.streamreactor.connect.aws.s3.auth
 import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, S3Config}
 import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, AwsCredentials, AwsCredentialsProvider, DefaultCredentialsProvider}
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration
+import software.amazon.awssdk.core.retry.RetryPolicy
+import software.amazon.awssdk.core.retry.backoff.FixedDelayBackoffStrategy
+import software.amazon.awssdk.http.apache.ApacheHttpClient
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.{S3Client, S3Configuration}
 
 import java.net.URI
+import java.time.Duration
 import scala.util.{Failure, Success, Try}
 
 class AwsS3ClientCreator(config: S3Config) {
@@ -34,18 +39,38 @@ class AwsS3ClientCreator(config: S3Config) {
   def createS3Client() : Either[String, S3Client] = {
     Try {
 
+      val retryPolicy = RetryPolicy
+        .builder()
+        .numRetries(config.httpRetryConfig.numberOfRetries)
+        .backoffStrategy(
+          FixedDelayBackoffStrategy.create(Duration.ofMillis(config.httpRetryConfig.errorRetryInterval))
+        )
+        .build()
+
+      val overrideConfig = ClientOverrideConfiguration.builder().retryPolicy(retryPolicy).build()
+
       val s3Config = S3Configuration
         .builder
         .pathStyleAccessEnabled(config.enableVirtualHostBuckets)
         .build
 
+
+      val apacheHttpClientBuilder = ApacheHttpClient.builder()
+      config.timeouts.socketTimeout.foreach(t => apacheHttpClientBuilder.socketTimeout(Duration.ofMillis(t.toLong)))
+      config.timeouts.connectionTimeout.foreach(t => apacheHttpClientBuilder.connectionTimeout(Duration.ofMillis(t.toLong)))
+
+
       val s3ClientBuilder = credentialsProvider match {
         case Left(err) => return err.asLeft
         case Right(credsProv) => S3Client
           .builder()
+          .overrideConfiguration(overrideConfig)
           .serviceConfiguration(s3Config)
           .credentialsProvider(credsProv)
+          .httpClient(apacheHttpClientBuilder.build())
+
       }
+
 
       config
         .region

@@ -41,6 +41,13 @@ object S3ConfigDef {
       "AWS region"
     )
     .define(
+      AWS_CLIENT,
+      Type.STRING,
+      "JCLOUDS",
+      Importance.LOW,
+      "Which client library to use to connect to AWS.  'JCLOUDS' or 'AWS'."
+    )
+    .define(
       AWS_ACCESS_KEY,
       Type.PASSWORD,
       "",

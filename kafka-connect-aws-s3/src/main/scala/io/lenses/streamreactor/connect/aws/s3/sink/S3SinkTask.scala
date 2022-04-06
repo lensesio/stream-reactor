@@ -26,7 +26,6 @@ import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither.toJavaThrowableConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.{HeaderToStringConverter, ValueToSinkDataConverter}
-import io.lenses.streamreactor.connect.aws.s3.storage.JCloudsStorageInterface
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
@@ -54,8 +53,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
     val errOrWriterMan = for {
       config <- S3SinkConfig(S3ConfigDefBuilder(getSinkName(props), propsFromContext(props)))
       authResources = new AuthResources(config.s3Config)
-      jCloudsAuth <- authResources.jClouds
-      storageInterface <- Try {new JCloudsStorageInterface(sinkName, jCloudsAuth)}.toEither
+      storageInterface <- config.s3Config.awsClient.createStorageInterface(sinkName, authResources)
       _ <- Try {setErrorRetryInterval(config.s3Config)} .toEither
       writerManager <- Try {S3WriterManager.from(config, sinkName)(storageInterface)}.toEither
       _ <- Try(initialize(

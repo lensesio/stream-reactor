@@ -16,7 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.auth
 
-import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, S3Config}
+import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, AwsClient, S3Config}
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.providers.ProviderMetadata
 import org.jclouds.rest.internal.ApiContextImpl
@@ -47,7 +47,7 @@ class JCloudsS3ContextCreatorTest extends AnyFlatSpec with MockitoSugar with Mat
     when(credentialsProviderFn.apply()).thenReturn(credentialsProvider)
 
     val blobStoreContext = target.fromConfig(
-      S3Config(None, None, None, AuthMode.Default)
+      S3Config(None, None, None, AwsClient.Aws, AuthMode.Default)
     )
 
     getIdentityFromContext(blobStoreContext) should be(AWS_ACCESS_KEY_ID)
@@ -61,6 +61,7 @@ class JCloudsS3ContextCreatorTest extends AnyFlatSpec with MockitoSugar with Mat
         None,
         Some("CONFIGURED_ACCESS_KEY_ID"),
         Some("CONFIGURED_SECRET"),
+        AwsClient.Aws,
         AuthMode.Credentials
       )
     )
@@ -73,7 +74,7 @@ class JCloudsS3ContextCreatorTest extends AnyFlatSpec with MockitoSugar with Mat
   "fromConfig" should "fail when auth mode is 'Credentials' but no credentials are supplied" in {
 
     val blobStoreContext = target.fromConfig(
-      S3Config(None, None, None, AuthMode.Credentials)
+      S3Config(None, None, None, AwsClient.Aws, AuthMode.Credentials)
     )
 
     intercept[IllegalArgumentException] {
@@ -89,7 +90,7 @@ class JCloudsS3ContextCreatorTest extends AnyFlatSpec with MockitoSugar with Mat
     when(credentialsProvider.resolveCredentials()).thenReturn(null)
     when(credentialsProviderFn.apply()).thenReturn(credentialsProvider)
 
-    val blobStoreContext = target.fromConfig(S3Config(None, None, None, AuthMode.Default))
+    val blobStoreContext = target.fromConfig(S3Config(None, None, None, AwsClient.Aws, AuthMode.Default))
 
     intercept[IllegalStateException] {
       getIdentityFromContext(blobStoreContext)
@@ -103,7 +104,7 @@ class JCloudsS3ContextCreatorTest extends AnyFlatSpec with MockitoSugar with Mat
   "fromConfig" should "fail when empty string credentials are provided" in {
 
     val blobStoreContext = target.fromConfig(
-      S3Config(None, Some(""), Some(""), AuthMode.Credentials)
+      S3Config(None, Some(""), Some(""), AwsClient.Aws, AuthMode.Credentials)
     )
 
     intercept[IllegalArgumentException] {

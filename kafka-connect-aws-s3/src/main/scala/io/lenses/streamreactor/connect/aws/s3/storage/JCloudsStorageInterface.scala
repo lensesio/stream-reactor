@@ -116,7 +116,7 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
         }
     } while (nextMarker.nonEmpty)
     pageSetStrings
-  }
+  }.toEither.leftMap(_.getMessage)
 
   override def list(bucketAndPrefix: RemoteS3PathLocation): Either[FileListError, List[String]] = {
     Try (listInternal(bucketAndPrefix))
@@ -126,10 +126,12 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
 
   override def getBlob(bucketAndPath: RemoteS3PathLocation): InputStream = {
     blobStore.getBlob(bucketAndPath.bucket, bucketAndPath.path).getPayload.openStream()
+  override def getBlob(bucketAndPath: RemoteS3PathLocation): Either[String,InputStream] = {
+    Try(blobStore.getBlob(bucketAndPath.bucket, bucketAndPath.path).getPayload.openStream()).toEither.leftMap(_.getMessage)
   }
 
-  override def getBlobSize(bucketAndPath: RemoteS3PathLocation): Long = {
-    blobStore.getBlob(bucketAndPath.bucket, bucketAndPath.path).getMetadata.getSize
+  override def getBlobSize(bucketAndPath: RemoteS3PathLocation): Either[String,Long] = {
+    Try(blobStore.getBlob(bucketAndPath.bucket, bucketAndPath.path).getMetadata.getSize.toLong).toEither.leftMap(_.getMessage)
   }
 
   override def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = {

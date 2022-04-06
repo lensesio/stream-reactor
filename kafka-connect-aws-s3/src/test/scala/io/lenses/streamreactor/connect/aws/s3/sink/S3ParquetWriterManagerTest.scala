@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3.SlowTest
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Parquet
-import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection, S3Config}
+import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, AwsClient, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.formats.ParquetFormatReader
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
@@ -44,6 +44,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
     None,
     Some(Identity),
     Some(Credential),
+    AwsClient.Aws,
     AuthMode.Credentials),
     bucketOptions = Set(
       SinkBucketOptions(

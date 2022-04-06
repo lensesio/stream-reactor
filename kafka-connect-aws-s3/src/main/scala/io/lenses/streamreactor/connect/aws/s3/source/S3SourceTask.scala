@@ -64,8 +64,8 @@ class S3SourceTask extends SourceTask with LazyLogging {
       authResources = new AuthResources(config.s3Config)
       jCloudsAuth <- authResources.jClouds
       awsAuth <- authResources.aws
-      storageInterface <- Try(new JCloudsStorageInterface(getSourceName(props).getOrElse("EmptySourceName"), jCloudsAuth)).toEither
-      sourceStorageInterface <- Try(new AwsS3StorageInterface(awsAuth)).toEither
+      storageInterface <- Try(new JCloudsStorageInterface(getConnectorName(props), jCloudsAuth)).toEither
+      sourceStorageInterface <- Try(new AwsS3StorageInterface(getConnectorName(props), awsAuth)).toEither
       readerManagers = config.bucketOptions.map(
         bOpts =>
           new S3ReaderManager(
@@ -83,6 +83,10 @@ class S3SourceTask extends SourceTask with LazyLogging {
     } yield readerManagers
 
     readerManagers = eitherErrOrReaderMan.toThrowable(sourceName)
+  }
+
+  private def getConnectorName(props: util.Map[String, String]) = {
+    getSourceName(props).getOrElse("EmptySourceName")
   }
 
   override def stop(): Unit = {

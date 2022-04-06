@@ -16,12 +16,44 @@
 
 package io.lenses.streamreactor.connect.aws.s3.config
 
+import cats.implicits.{catsSyntaxEitherId, toBifunctorOps}
 import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
 import enumeratum.{Enum, EnumEntry}
+import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import io.lenses.streamreactor.connect.aws.s3.storage.{AwsS3StorageInterface, JCloudsStorageInterface, StorageInterface}
 import org.apache.kafka.common.config.types.Password
 
 import scala.collection.immutable
+import scala.util.Try
+
+sealed trait AwsClient extends EnumEntry {
+  def createStorageInterface(connectorName: String, authResources: AuthResources): Either[String, StorageInterface]
+}
+
+object AwsClient extends Enum[AwsClient] {
+
+  override val values: immutable.IndexedSeq[AwsClient] = findValues
+
+  case object Aws extends AwsClient {
+    override def createStorageInterface(connectorName: String, authResources: AuthResources): Either[String,StorageInterface] = {
+      for {
+        s3Client <- authResources.aws
+        si <- {new AwsS3StorageInterface(connectorName, s3Client)}.asRight
+      } yield si
+    }
+  }
+
+  case object JClouds extends AwsClient {
+    override def createStorageInterface(connectorName: String, authResources: AuthResources): Either[String, StorageInterface] = {
+      for {
+        blobStore <- authResources.jClouds
+        si <- Try {new JCloudsStorageInterface(connectorName, blobStore)}.toEither.leftMap(_.getMessage)
+      } yield si
+    }
+  }
+
+}
 
 sealed trait AuthMode extends EnumEntry
 
@@ -161,6 +193,9 @@ object S3Config {
     getString(props, AWS_REGION),
     getPassword(props, AWS_ACCESS_KEY),
     getPassword(props, AWS_SECRET_KEY),
+    AwsClient.withNameInsensitive(
+      getString(props, AWS_CLIENT).getOrElse(AwsClient.Aws.toString),
+    ),
     AuthMode.withNameInsensitive(
       getString(props, AUTH_MODE).getOrElse(AuthMode.Default.toString)
     ),
@@ -194,6 +229,7 @@ case class S3Config(
                      region: Option[String],
                      accessKey: Option[String],
                      secretKey: Option[String],
+                     awsClient: AwsClient,
                      authMode: AuthMode,
                      customEndpoint: Option[String] = None,
                      enableVirtualHostBuckets: Boolean = false,
