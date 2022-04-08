@@ -112,5 +112,11 @@ jobs:
         run: sbt e2e:test
         env:
           JVM_OPTS: -Xmx3200m
-
-  # TODO Delete the assembly artifact on failure.
+      - name: Delete Artifact on failure
+        if: success() || failure()
+        uses: jimschubert/delete-artifacts-action@v1
+        with:
+          log_level: 'debug'
+          min_bytes: '0'
+          artifact_name: assembly
+          run_id: ${{ github.run_id }}
