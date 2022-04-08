@@ -15,13 +15,13 @@ jobs:
         with:
           java-version: '8'
           distribution: 'adopt'
-      - name: Cache Target
-        uses: actions/cache@v3
-        with:
-          path: |
-            project/target
-            target
-          key: target-${{github.run_number}}-${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+#      - name: Cache Target
+#        uses: actions/cache@v3
+#        with:
+#          path: |
+#            project/target
+#            target
+#          key: target-${{github.run_number}}-${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
       - name: Cache SBT
         uses: actions/cache@v3
         with:
@@ -52,12 +52,12 @@ jobs:
         with:
           java-version: '8'
           distribution: 'adopt'
-      - name: Cache Target
-        uses: actions/cache@v3
-        with:
-          path: |
-            **/target
-          key: target-${{github.run_number}}-${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+#      - name: Cache Target
+#        uses: actions/cache@v3
+#        with:
+#          path: |
+#            **/target
+#          key: target-${{github.run_number}}-${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
       - name: Cache SBT
         uses: actions/cache@v3
         with:
@@ -113,7 +113,7 @@ jobs:
         env:
           JVM_OPTS: -Xmx3200m
       - name: Delete Artifact on failure
-        if: success() || failure()
+        if: success() || failure() || cancelled()
         uses: jimschubert/delete-artifacts-action@v1
         with:
           log_level: 'debug'
