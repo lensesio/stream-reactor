@@ -157,9 +157,8 @@ public abstract class AbstractStreamReactorTest {
 
         try {
             final String regex = String.format(".*%s%s.*.jar", connector, directorySuffix);
-            final List<Path> files = Files.find(Paths.get(String.join(File.separator,
-                            System.getProperty("user.dir"), "kafka-connect-" + connector, "target")),
-                    3,
+            final List<Path> files = Files.find(Paths.get(System.getProperty("user.dir")),
+                    5,
                     (path, basicFileAttributes) -> path.toFile().getName().matches(regex)
             ).collect(Collectors.toList());
             LOGGER.info("Files: " + files.stream().map(file -> String.join("::", file.toString())).collect(Collectors.toList()));

@@ -57,7 +57,7 @@ jobs:
         with:
           path: |
             **/target
-          key: target-${{github.run_number}}-${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+          key: target-${{github.run_number}}-${{ runner.os }}-${{ matrix.module }}-${{ hashFiles('**/build.sbt') }}
       - name: Cache SBT
         uses: actions/cache@v3
         with:
@@ -79,6 +79,10 @@ jobs:
         run: sbt "project ${{ matrix.module }};set assembly / test := {}" assembly
         env:
           JVM_OPTS: -Xmx3200m
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          path: target/**/*.jar
 
   test:
     needs: build
@@ -91,12 +95,10 @@ jobs:
         with:
           java-version: '8'
           distribution: 'adopt'
-      - name: Cache Target
-        uses: actions/cache@v3
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
         with:
-          path: |
-            **/target
-          key: target-${{github.run_number}}-${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+          path: target
       - name: E2E Test
         run: sbt e2e:test
         env:
