@@ -106,8 +106,6 @@ jobs:
     if: success() || failure() || cancelled()
     steps:
       - name: Delete Artifact on failure or cancelled
-        uses: jimschubert/delete-artifacts-action@v1
+        uses: geekyeggo/delete-artifact@v1
         with:
-          log_level: 'debug'
-          min_bytes: '0'
-          artifact_name: assembly-${{ github.run_id }}
+          name: assembly-${{ github.run_id }}
