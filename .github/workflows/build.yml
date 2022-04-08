@@ -37,7 +37,8 @@ jobs:
         id: read-mods
         run: |
           echo "::set-output name=matrix::$(cat ./target/scala-2.13/resource_managed/main/modules.txt)"
-  test:
+
+  build:
     needs: initiate
     timeout-minutes: 30
     runs-on: ubuntu-latest
@@ -74,10 +75,44 @@ jobs:
         with:
           files: "**/target/**/test-reports/*.xml"
           check_name: ${{ matrix.module }}
-#      - name: Assembly
-#        run: sbt "set assembly / test := {}" assembly
-#        env:
-#          JVM_OPTS: -Xmx3200m
+      - name: Assembly
+        run: sbt "project ${{ matrix.module }};set assembly / test := {}" assembly
+        env:
+          JVM_OPTS: -Xmx3200m
+
+  test:
+    needs: build
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+      - name: Cache Target
+        uses: actions/cache@v3
+        with:
+          path: |
+            **/target
+          key: target-${{github.run_number}}-${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+      - name: E2E Test
+        run: sbt e2e:test
+        env:
+          JVM_OPTS: -Xmx3200m
+
+#  publish:
+#    needs: test
+#    timeout-minutes: 30
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@master
+#      - name: Set up JDK 8
+#        uses: actions/setup-java@v2
+#        with:
+#          java-version: '8'
+#          distribution: 'adopt'
 #      - name: Upload Artifact
 #        uses: actions/upload-artifact@v3
 #        with:

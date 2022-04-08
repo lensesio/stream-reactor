@@ -1,15 +1,15 @@
-import Dependencies.{confluentAvroConverter, jacksonDatabind, jacksonModuleScala, json4sJackson, json4sNative}
+import Dependencies._
+import Settings.E2ETest
 import sbt.Keys._
 import sbt.VirtualAxis._
-import sbt.internal.ProjectMatrix
 import sbt._
-import Settings.E2ETest
+import sbt.internal.ProjectMatrix
 
 //2.8.1, 3.1.0
 
 case class KafkaVersionAxis(kafkaVersion: String) extends WeakAxis {
 
-  private val json4sVersion : String = kafkaVersion match {
+  private val json4sVersion: String = kafkaVersion match {
     //case "2.8.1" => "3.6.7"
     //case "3.1.0" => "4.0.4"
     case _ => "4.0.4"
@@ -41,7 +41,7 @@ case class KafkaVersionAxis(kafkaVersion: String) extends WeakAxis {
     confluentAvroConverter(confluentPlatformVersion)
   )
 
-  def ideEnable() : Boolean = kafkaVersion == "3.1.0"
+  def ideEnable(): Boolean = kafkaVersion == "3.1.0"
 }
 
 object KafkaVersionAxis {
@@ -52,12 +52,12 @@ object KafkaVersionAxis {
       axes.collectFirst { case ScalaVersionAxis(_, scalaVersionCompat) => scalaVersionCompat }.forall(_ == "2.13")
     }
 
-    def kafka2Row( settings: Def.SettingsDefinition*): ProjectMatrix = {
-      kafkaRow(KafkaVersionAxis("2.8.1"), scalaVersions = Seq("2.13.8"), settings:_*)
+    def kafka2Row(settings: Def.SettingsDefinition*): ProjectMatrix = {
+      kafkaRow(KafkaVersionAxis("2.8.1"), scalaVersions = Seq("2.13.8"), settings: _*)
     }
 
-    def kafka3Row( settings: Def.SettingsDefinition*): ProjectMatrix = {
-      kafkaRow(KafkaVersionAxis("3.1.0"), scalaVersions = Seq("2.13.8"), settings:_*)
+    def kafka3Row(settings: Def.SettingsDefinition*): ProjectMatrix = {
+      kafkaRow(KafkaVersionAxis("3.1.0"), scalaVersions = Seq("2.13.8"), settings: _*)
     }
 
     def kafkaRow(kafkaVersionAxis: KafkaVersionAxis, scalaVersions: Seq[String], settings: Def.SettingsDefinition*): ProjectMatrix =
@@ -66,7 +66,10 @@ object KafkaVersionAxis {
         axisValues = Seq(kafkaVersionAxis, VirtualAxis.jvm),
         _
           .settings(
-            E2ETest / envVars := Map("KAFKA_VERSION_DIRECTORY_SUFFIX" -> kafkaVersionAxis.directorySuffix),
+            E2ETest / envVars := Map(
+              "KAFKA_VERSION_DIRECTORY_SUFFIX" -> kafkaVersionAxis.directorySuffix,
+              "CONFLUENT_VERSION" -> kafkaVersionAxis.confluentPlatformVersion
+            ),
             name := name.value + kafkaVersionAxis.directorySuffix,
             moduleName := moduleName.value + kafkaVersionAxis.directorySuffix,
             libraryDependencies ++= kafkaVersionAxis.deps(),
