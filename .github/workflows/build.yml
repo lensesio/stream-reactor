@@ -64,7 +64,7 @@ jobs:
           check_name: ${{ matrix.module }}
 
   build-and-upload-assembly:
-    needs: test
+    needs: initiate
     timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
@@ -95,7 +95,7 @@ jobs:
           path: "**/target/**/*.jar"
 
   e2e-test:
-    needs: build-and-upload-assembly
+    needs: [ test, build-and-upload-assembly ]
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
