@@ -57,7 +57,7 @@ jobs:
         with:
           path: |
             **/target
-          key: target-${{github.run_number}}-${{ runner.os }}-${{ matrix.module }}-${{ hashFiles('**/build.sbt') }}
+          key: target-${{github.run_number}}-${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
       - name: Cache SBT
         uses: actions/cache@v3
         with:
@@ -97,6 +97,13 @@ jobs:
         with:
           java-version: '8'
           distribution: 'adopt'
+      - name: Cache SBT
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
       - name: Download Artifacts
         uses: actions/download-artifact@v3
         with:
@@ -105,4 +112,5 @@ jobs:
         run: sbt e2e:test
         env:
           JVM_OPTS: -Xmx3200m
-      # Delete the assembly artifact on failure
+
+  # TODO Delete the assembly artifact on failure.
