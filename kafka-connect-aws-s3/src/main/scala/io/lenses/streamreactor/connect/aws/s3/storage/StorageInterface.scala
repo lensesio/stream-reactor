@@ -20,7 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 
 import java.io.{File, InputStream}
-import java.time.{Instant, LocalDateTime}
+import java.time.Instant
 
 trait StorageInterface {
 

@@ -237,11 +237,11 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTe
     val dir = "nested/byteskv"
     val task = new S3SourceTask()
 
-    val formatExtensionString = generateFormatString(formatOptions)
+    val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
 
     val props = DefaultProps
       .combine(
-        Map("connect.s3.kcql" -> s"insert into $TopicName select * from $BucketName:$PrefixName/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
+        Map("connect.s3.kcql" -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
       ).asJava
 
     task.start(props)
@@ -264,11 +264,11 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTe
     sourceRecords7 should have size 0
 
     sourceRecords1.asScala
-      .union(sourceRecords2.asScala)
-      .union(sourceRecords3.asScala)
-      .union(sourceRecords4.asScala)
-      .union(sourceRecords5.asScala)
-      .union(sourceRecords6.asScala)
+      .concat(sourceRecords2.asScala)
+      .concat(sourceRecords3.asScala)
+      .concat(sourceRecords4.asScala)
+      .concat(sourceRecords5.asScala)
+      .concat(sourceRecords6.asScala)
       .toSet should have size 1000
 
     sourceRecords1.get(0).key should be("myKey".getBytes)

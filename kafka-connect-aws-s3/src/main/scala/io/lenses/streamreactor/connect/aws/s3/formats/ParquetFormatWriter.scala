@@ -29,7 +29,6 @@ import org.apache.parquet.avro.AvroParquetWriter
 import org.apache.parquet.hadoop.ParquetWriter
 import org.apache.parquet.hadoop.ParquetWriter.{DEFAULT_BLOCK_SIZE, DEFAULT_PAGE_SIZE}
 
-import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
 import scala.util.Try
 
 class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter with LazyLogging {

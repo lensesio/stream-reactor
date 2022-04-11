@@ -6,7 +6,7 @@ import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
 import io.lenses.streamreactor.connect.aws.s3.sink.seek.IndexManager
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestConfig
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContainerTest
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
@@ -15,7 +15,7 @@ import org.scalatest.matchers.should.Matchers
 import java.io.File
 import scala.concurrent.duration.{FiniteDuration, SECONDS}
 
-class S3WriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfig with MockitoSugar {
+class S3WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with MockitoSugar {
 
   private val topicPartition = Topic("topic").withPartition(10)
 

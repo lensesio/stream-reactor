@@ -22,7 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 import java.io.{File, InputStream}
 import java.nio.file.Files
-import java.time.{Instant, LocalDateTime}
+import java.time.Instant
 
 class RemoteFileTestHelper(implicit storageInterface: StorageInterface) {
 

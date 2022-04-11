@@ -240,38 +240,38 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task
   }
 
-     /**
-      * The difference in this test is that the sink is opened again, which will cause the offsets to be copied to the
-      * context
-      */
-    "S3SinkTask" should "put existing offsets to the context"  taggedAs SlowTest in {
+  /**
+    * The difference in this test is that the sink is opened again, which will cause the offsets to be copied to the
+    * context
+    */
+  "S3SinkTask" should "put existing offsets to the context" taggedAs SlowTest in {
 
-      val task = new S3SinkTask()
+    val task = new S3SinkTask()
 
-      val props = DefaultProps
-        .combine(
-          Map(
-            "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1"
-          )
-        ).asJava
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1"
+        )
+      ).asJava
 
-      val sinkTaskContext = mock[SinkTaskContext]
-      task.initialize(sinkTaskContext)
-      task.start(props)
-      task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
-      task.put(records.asJava)
-      task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
-      task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
-      task.stop()
+    val sinkTaskContext = mock[SinkTaskContext]
+    task.initialize(sinkTaskContext)
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(records.asJava)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
 
-      listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-      remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/0.json") should be("""{"name":"sam","title":"mr","salary":100.43}""")
-      remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1.json") should be("""{"name":"laura","title":"ms","salary":429.06}""")
-      remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/2.json") should be("""{"name":"tom","title":null,"salary":395.44}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/0.json") should be("""{"name":"sam","title":"mr","salary":100.43}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1.json") should be("""{"name":"laura","title":"ms","salary":429.06}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/2.json") should be("""{"name":"tom","title":null,"salary":395.44}""")
 
-      verify(sinkTaskContext).offset(new TopicPartition("myTopic", 1), 2)
-    }
+    verify(sinkTaskContext).offset(new TopicPartition("myTopic", 1), 2)
+  }
 
   "S3SinkTask" should "skip when kafka connect resends the same offsets after opening" in {
 
@@ -295,7 +295,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     list.size should be(1)
     list should contain("streamReactorBackups/myTopic/1/1.parquet")
 
-    val modificationDate = getModificationDate(BucketName, "streamReactorBackups/mytopic/1/1.parquet")
+    val modificationDate = getModificationDate(BucketName, "streamReactorBackups/myTopic/1/1.parquet")
 
     task = createTask(context, props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -305,7 +305,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
     // file should not have been overwritten
-    getModificationDate(BucketName, "streamReactorBackups/mytopic/1/1.parquet") should be (modificationDate)
+    getModificationDate(BucketName, "streamReactorBackups/myTopic/1/1.parquet") should be (modificationDate)
 
     task.close(Seq(new TopicPartition("myTopic", 1)).asJava)
     task.stop()
@@ -316,17 +316,13 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     // only 1 "real" record so should leave it hanging again
     task.put(List(records(1), records(2)).asJava)
 
-
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
     // file should not have been overwritten
-    getModificationDate(BucketName, "streamReactorBackups/mytopic/1/1.parquet") should be (modificationDate)
+    getModificationDate(BucketName, "streamReactorBackups/myTopic/1/1.parquet") should be (modificationDate)
 
     task.close(Seq(new TopicPartition("myTopic", 1)).asJava)
     task.stop()
-
-
-
 
     task = createTask(context, props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -342,7 +338,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
 
     // file should not have been overwritten
-    getModificationDate(BucketName, "streamReactorBackups/mytopic/1/1.parquet") should be (modificationDate)
+    getModificationDate(BucketName, "streamReactorBackups/myTopic/1/1.parquet") should be (modificationDate)
 
     task.close(Seq(new TopicPartition("myTopic", 1)).asJava)
     task.stop()
@@ -398,8 +394,6 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     checkRecord(genericRecords.head, "sam", "mr", 100.43)
 
   }
-
-
 
   "S3SinkTask" should "error when trying to write AVRO to text format" in {
 
