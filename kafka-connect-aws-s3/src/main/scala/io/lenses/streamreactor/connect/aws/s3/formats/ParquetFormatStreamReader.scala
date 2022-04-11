@@ -32,7 +32,7 @@ class ParquetFormatStreamReader(inputStreamFn: () => InputStream, fileSizeFn: ()
 
   private val inputFile = new ParquetStreamingInputFile(inputStreamFn, fileSizeFn)
   private val avroParquetReader: ParquetReader[GenericRecord] = AvroParquetReader.builder[GenericRecord](inputFile).build()
-  private val iterator = new ParquetReaderIteratorAdaptor(avroParquetReader)
+  private val parquetReaderIteratorAdaptor = new ParquetReaderIteratorAdaptor(avroParquetReader)
   private var lineNumber: Long = -1
   private val avroDataConverter = new AvroData(100)
 
@@ -40,14 +40,16 @@ class ParquetFormatStreamReader(inputStreamFn: () => InputStream, fileSizeFn: ()
 
   override def getLineNumber: Long = lineNumber
 
-  override def close(): Unit = Try(avroParquetReader.close())
+  override def close(): Unit = {
+    val _ = Try(avroParquetReader.close())
+  }
 
-  override def hasNext: Boolean = iterator.hasNext
+  override def hasNext: Boolean = parquetReaderIteratorAdaptor.hasNext
 
   override def next(): SchemaAndValueSourceData = {
 
     lineNumber += 1
-    val nextRec = iterator.next()
+    val nextRec = parquetReaderIteratorAdaptor.next()
 
     val asConnect = avroDataConverter.toConnectData(nextRec.getSchema, nextRec)
     SchemaAndValueSourceData(asConnect, lineNumber)

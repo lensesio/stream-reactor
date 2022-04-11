@@ -30,7 +30,7 @@ class TextFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: Re
   protected val sourceLines = source.getLines()
   protected var lineNumber: Long = -1
 
-  override def close(): Unit = Try(source.close())
+  override def close(): Unit = {val _ = Try(source.close())}
 
   override def hasNext: Boolean = sourceLines.hasNext
 

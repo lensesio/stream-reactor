@@ -27,8 +27,10 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 
 import javax.jms._
+import scala.annotation.nowarn
 import scala.util.{Failure, Success, Try}
 
+@nowarn
 case class JMSWriter(settings: JMSSettings) extends AutoCloseable with ConverterUtil with ErrorHandler with StrictLogging {
 
   val provider: JMSSessionProvider = JMSSessionProvider(settings, sink = true)
@@ -80,5 +82,5 @@ case class JMSWriter(settings: JMSSettings) extends AutoCloseable with Converter
     messages.foreach({ case (name, message) => producers(name).send(message)})
   }
 
-  override def close(): Unit = provider.close()
+  override def close(): Unit = {val _ = provider.close()}
 }

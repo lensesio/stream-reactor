@@ -18,19 +18,18 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.microsoft.azure.documentdb._
-import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
+import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.ArgumentMatchers.{any, eq => mockEq}
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
+
 
 class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoSugar with MatchingArgument {
   private val connection = "https://accountName.documents.azure.com:443/"
-  private val avroData = new AvroData(4)
 
   "DocumentDbSinkTask" should {
     "handle json INSERTS with default consistency level" in {

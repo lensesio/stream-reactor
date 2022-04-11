@@ -23,15 +23,18 @@ import org.apache.avro.{Schema, SchemaBuilder}
 import org.apache.kudu.client.{KuduTable, Upsert}
 import org.mockito.MockitoSugar
 
-import scala.collection.JavaConverters._
+import scala.annotation.nowarn
+import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
+
 
 /**
   * Created by andrew@datamountaineer.com on 04/03/16.
   * stream-reactor
   */
 //noinspection ScalaDeprecation
+@nowarn
 class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil with MockitoSugar {
-  "Should convert a SinkRecord Schema to Kudu Schema" in {
+  "Should convert a SinkRecord Schema to Kudu Schema" taggedAs SlowTest in {
     val kcql = mock[Kcql]
     val bucketing = mock[Bucketing]
     when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
@@ -45,7 +48,7 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
     columns.size() shouldBe connectFields.size()
   }
 
-  "Should convert a SinkRecord into a Kudu Insert operation" in {
+  "Should convert a SinkRecord into a Kudu Insert operation" taggedAs SlowTest in {
     val kcql = mock[Kcql]
     val bucketing = mock[Bucketing]
     when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
@@ -59,18 +62,20 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
     val table = mock[KuduTable]
     when(table.newUpsert()).thenReturn(insert)
     when(table.getSchema).thenReturn(kuduSchema)
+    @nowarn
     val converted = convert(record, fields)
     val kuduInsert = convertToKuduUpsert(converted, table)
     kuduRow shouldBe kuduInsert.getRow
   }
 
-  "Should convert a SinkRecord into a Kudu Insert operation with Field Selection" in {
+  "Should convert a SinkRecord into a Kudu Insert operation with Field Selection" taggedAs SlowTest in {
     val kcql = mock[Kcql]
     val bucketing = mock[Bucketing]
     when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
     when(kcql.getBucketing).thenReturn(bucketing)
     val fields = Map("id" -> "id", "long_field" -> "new_field_name")
     val record = getTestRecords.head
+    @nowarn
     val converted = convert(record, fields)
     val kuduSchema = convertToKuduSchema(converted, kcql)
     val kuduRow = kuduSchema.newPartialRow()
@@ -84,7 +89,7 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
   }
 
 
-  "Should convert an Avro to Kudu" in {
+  "Should convert an Avro to Kudu" taggedAs SlowTest in {
     val stringSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.STRING)).asJava)
     val intSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.INT)).asJava)
     val booleanSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.BOOLEAN)).asJava)

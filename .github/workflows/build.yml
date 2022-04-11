@@ -3,7 +3,100 @@ name: CI
 
 on: [pull_request]
 jobs:
+  initiate:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.read-mods.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@master
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+      - name: Cache SBT
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+      - name: Generate Modules List
+        run: sbt generateModulesList
+        env:
+          JVM_OPTS: -Xmx3200m
+      - name: Read Modules List
+        id: read-mods
+        run: |
+          echo "::set-output name=matrix::$(cat ./target/scala-2.13/resource_managed/main/modules.txt)"
+
   test:
+    needs: initiate
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
+    steps:
+      - uses: actions/checkout@master
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+      - name: Cache SBT
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+      - name: Test
+        run: sbt "project ${{ matrix.module }}" test
+        env:
+          JVM_OPTS: -Xmx3200m
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: "**/target/**/test-reports/*.xml"
+          check_name: ${{ matrix.module }}
+
+  build-and-upload-assembly:
+    needs: initiate
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
+    steps:
+      - uses: actions/checkout@master
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+      - name: Cache SBT
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+      - name: Assembly
+        run: sbt "project ${{ matrix.module }};set assembly / test := {}" assembly
+        env:
+          JVM_OPTS: -Xmx3200m
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: assembly-${{ github.run_id }}
+          path: "**/target/**/*.jar"
+
+  e2e-test:
+    needs: [ test, build-and-upload-assembly ]
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
@@ -12,7 +105,28 @@ jobs:
         with:
           java-version: '8'
           distribution: 'adopt'
-      - name: Test
-        run: ./smart-build.sh
+      - name: Cache SBT
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: assembly-${{ github.run_id }}
+      - name: E2E Test
+        run: sbt e2e:test
         env:
           JVM_OPTS: -Xmx3200m
+
+  post:
+    needs: [ build-and-upload-assembly, e2e-test ]
+    runs-on: ubuntu-latest
+    if: failure() || cancelled()
+    steps:
+      - name: Delete Artifact on failure or cancelled
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: assembly-${{ github.run_id }}

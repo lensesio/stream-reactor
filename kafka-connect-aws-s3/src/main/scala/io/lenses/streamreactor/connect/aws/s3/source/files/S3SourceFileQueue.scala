@@ -24,7 +24,7 @@ import scala.collection.mutable.ListBuffer
 
 trait SourceFileQueue {
 
-  def init(initFile: RemoteS3PathLocationWithLine)
+  def init(initFile: RemoteS3PathLocationWithLine): Unit
 
   def next(): Either[Throwable, Option[RemoteS3PathLocationWithLine]]
 
@@ -73,6 +73,6 @@ class S3SourceFileQueue(
   }
 
   override def init(initFile: RemoteS3PathLocationWithLine): Unit = {
-    files += initFile
+    val _ = {files += initFile}
   }
 }

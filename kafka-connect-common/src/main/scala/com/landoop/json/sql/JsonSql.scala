@@ -20,8 +20,8 @@ import com.fasterxml.jackson.databind.node._
 import com.landoop.sql.{Field, SqlContext}
 import org.apache.calcite.sql.SqlSelect
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
+import scala.jdk.CollectionConverters.{IteratorHasAsScala, SeqHasAsJava}
 import scala.util.{Failure, Success, Try}
 
 object JsonSql {
@@ -45,7 +45,7 @@ object JsonSql {
       val select = Try(parser.parseQuery()) match {
         case Failure(e) => throw new IllegalArgumentException(s"Query is not valid.${e.getMessage}")
         case Success(sqlSelect: SqlSelect) => sqlSelect
-        case Success(sqlNode) => throw new IllegalArgumentException("Only `select` statements are allowed")
+        case Success(_) => throw new IllegalArgumentException("Only `select` statements are allowed")
       }
       this.sql(select, !withStructure)
     }
@@ -76,7 +76,7 @@ object JsonSql {
 
     def kcqlFlatten(fields: Seq[Field]): JsonNode = {
       def addNode(source: JsonNode, target: ObjectNode, nodeName: String, select: String): Unit = {
-        source match {
+        val _ = source match {
           case b: BinaryNode => target.put(nodeName, b.binaryValue())
           case b: BooleanNode => target.put(nodeName, b.booleanValue())
           case i: BigIntegerNode => target.put(nodeName, i.bigIntegerValue().longValue())
@@ -87,10 +87,10 @@ object JsonSql {
           case l: LongNode => target.put(nodeName, l.longValue())
           case s: ShortNode => target.put(nodeName, s.shortValue())
           case t: TextNode => target.put(nodeName, t.textValue())
-          case o: ObjectNode => target.set(nodeName, o).asInstanceOf[ObjectNode]
-          case _: NullNode =>
-          case _: MissingNode =>
-          case other => throw new IllegalArgumentException(s"Invalid path $select")
+          case o: ObjectNode => target.set[ObjectNode](nodeName, o)
+          case _: NullNode => ()
+          case _: MissingNode => ()
+          case _ => throw new IllegalArgumentException(s"Invalid path $select")
         }
       }
 
@@ -177,7 +177,7 @@ object JsonSql {
   private def from(json: JsonNode, parents: Seq[String])(implicit kcqlContext: SqlContext): JsonNode = {
     def checkFieldsAndReturn() = {
       val fields = kcqlContext.getFieldsForPath(parents)
-      require(fields.isEmpty || (fields.size == 1 && fields.head.isLeft && fields.head.left.get.name == "*"),
+      require(fields.isEmpty || (fields.size == 1 && fields.head.isLeft && fields.head.left.exists(_.name == "*")),
         s"You can't select a field from a ${json.getNodeType.toString}.")
       json
     }
@@ -210,7 +210,7 @@ object JsonSql {
     if (fields.nonEmpty) {
       fields.foreach {
         case Right(parent) => Option(node.get(parent)).foreach { node =>
-          newNode.set(parent, from(node, parents :+ parent)).asInstanceOf[JsonNode]
+          newNode.set[JsonNode](parent, from(node, parents :+ parent))
         }
         case Left(parent) if parent.name == "*" =>
           node.fieldNames().asScala.withFilter { f =>
@@ -219,23 +219,22 @@ object JsonSql {
               case _ => false
             }
           }.foreach { field =>
-            newNode.set(field, from(node.get(field), parents :+ parent.name))
-              .asInstanceOf[JsonNode]
+            newNode.set[JsonNode](field, from(node.get(field), parents :+ parent.name))
           }
 
         case Left(parent) => Option(node.get(parent.name)).foreach { node =>
-          newNode.set(parent.alias, from(node, parents :+ parent.name)).asInstanceOf[JsonNode]
+          newNode.set[JsonNode](parent.alias, from(node, parents :+ parent.name))
         }
       }
     }
     else {
       node.fieldNames()
         .asScala.foreach { field =>
-          newNode.set(
+          newNode.set[JsonNode](
             field,
             from(node.get(field), parents :+ field)
-          ).asInstanceOf[JsonNode]
-        }
+          )
+      }
     }
     newNode
   }
@@ -245,7 +244,7 @@ object JsonSql {
       array
     } else {
       val fields = kcqlContext.getFieldsForPath(parents)
-      if (fields.size == 1 && fields.head.isLeft && fields.head.left.get.name == "*") {
+      if (fields.size == 1 && fields.head.isLeft && fields.head.left.exists(_.name == "*")) {
         array
       } else {
         val newElements = array.elements().asScala.map(from(_, parents)).toList.asJava

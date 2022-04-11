@@ -5,8 +5,8 @@ import org.apache.pulsar.client.api.CompressionType
 import org.apache.pulsar.client.api.ProducerConfiguration.MessageRoutingMode
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import scala.jdk.CollectionConverters.MapHasAsJava
 
-import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 23/01/2018. 

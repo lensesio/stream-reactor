@@ -27,6 +27,6 @@ import org.apache.kafka.connect.sink.SinkRecord
 case class SetWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
   val setWriter: ISet[Object] = client.getSet(settings.topicObject(topic).name).asInstanceOf[ISet[Object]]
 
-  override def write(record: SinkRecord): Unit = setWriter.add(convert(record))
-  override def close: Unit = {}
+  override def write(record: SinkRecord): Unit = {val _ = setWriter.add(convert(record))}
+  override def close(): Unit = {}
 }

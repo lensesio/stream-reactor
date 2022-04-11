@@ -16,7 +16,7 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
  * limitations under the License.
  */
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar
@@ -26,7 +26,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.{Jedis, StreamEntryID}
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class RedisStreamTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 //

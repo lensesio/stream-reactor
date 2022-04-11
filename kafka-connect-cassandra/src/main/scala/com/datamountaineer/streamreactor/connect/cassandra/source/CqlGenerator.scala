@@ -20,14 +20,14 @@ import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConf
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLogging {
 
   private val kcql = setting.kcql
   private val table = kcql.getSource
   private val keySpace = setting.keySpace
-  private val selectColumns = getSelectColumns
+  private val selectColumns = getSelectColumns()
   private val incrementMode = setting.timestampColType
   private val limitRowsSize = if (kcql.getBatchSize == 0) CassandraConfigConstants.BATCH_SIZE_DEFAULT else kcql.getBatchSize
   private val defaultTimestamp = setting.initialOffset

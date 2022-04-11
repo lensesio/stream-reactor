@@ -24,7 +24,8 @@ import com.datamountaineer.streamreactor.connect.hbase.kerberos.Kerberos
 import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, RowKeyBuilderBytes, StructFieldsExtractorBytes, StructFieldsRowKeyBuilderBytes}
 import org.apache.kafka.common.config.ConfigException
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 case class HBaseSettings(columnFamilyMap: String,
                          rowKeyModeMap: Map[String, RowKeyBuilderBytes],

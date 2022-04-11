@@ -22,7 +22,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.util.Collections
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.IteratorHasAsJava
 
 class PartitionFieldTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
@@ -39,27 +39,27 @@ class PartitionFieldTest extends AnyFlatSpec with MockitoSugar with Matchers {
   }
 
   "partitionField.apply" should "parse partitions by whole key" in {
-    when(kcql.getPartitionBy).thenReturn(Seq("_key").toIterator.asJava)
+    when(kcql.getPartitionBy).thenReturn(Seq("_key").iterator.asJava)
     PartitionField(kcql) should be(Seq(WholeKeyPartitionField()))
   }
 
   "partitionField.apply" should "parse partitions by keys" in {
-    when(kcql.getPartitionBy).thenReturn(Seq("_key.fieldA", "_key.fieldB", "_key.field_c").toIterator.asJava)
+    when(kcql.getPartitionBy).thenReturn(Seq("_key.fieldA", "_key.fieldB", "_key.field_c").iterator.asJava)
     PartitionField(kcql) should be(Seq(KeyPartitionField(PartitionNamePath("fieldA")), KeyPartitionField(PartitionNamePath("fieldB")), KeyPartitionField(PartitionNamePath("field_c"))))
   }
 
   "partitionField.apply" should "parse partitions by values by default" in {
-    when(kcql.getPartitionBy).thenReturn(Seq("fieldA", "fieldB", "field_c").toIterator.asJava)
+    when(kcql.getPartitionBy).thenReturn(Seq("fieldA", "fieldB", "field_c").iterator.asJava)
     PartitionField(kcql) should be(Seq(ValuePartitionField(PartitionNamePath("fieldA")), ValuePartitionField(PartitionNamePath("fieldB")), ValuePartitionField(PartitionNamePath("field_c"))))
   }
 
   "partitionField.apply" should "parse partitions by values" in {
-    when(kcql.getPartitionBy).thenReturn(Seq("_value.fieldA", "_value.fieldB").toIterator.asJava)
+    when(kcql.getPartitionBy).thenReturn(Seq("_value.fieldA", "_value.fieldB").iterator.asJava)
     PartitionField(kcql) should be(Seq(ValuePartitionField(PartitionNamePath("fieldA")), ValuePartitionField(PartitionNamePath("fieldB"))))
   }
 
   "partitionField.apply" should "parse nested partitions" in {
-    when(kcql.getPartitionBy).thenReturn(Seq("_value.userDetails.address.houseNumber", "_value.fieldB").toIterator.asJava)
+    when(kcql.getPartitionBy).thenReturn(Seq("_value.userDetails.address.houseNumber", "_value.fieldB").iterator.asJava)
     PartitionField(kcql) should be(Seq(ValuePartitionField(PartitionNamePath("userDetails", "address", "houseNumber")), ValuePartitionField(PartitionNamePath("fieldB"))))
   }
 

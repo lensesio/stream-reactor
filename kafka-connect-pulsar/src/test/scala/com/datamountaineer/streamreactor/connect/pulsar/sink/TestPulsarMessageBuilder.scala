@@ -24,7 +24,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class TestPulsarMessageBuilder extends AnyWordSpec with Matchers with BeforeAndAfterAll with StrictLogging {
 

@@ -16,7 +16,7 @@ object KeyUtils {
     */
   def keysFromJson(json: String, fieldNames: Seq[String]): Seq[Object] = {
     val document = Configuration.defaultConfiguration.jsonProvider.parse(json)
-    fieldNames map { f => JsonPath.read(document, f).asInstanceOf[Object] }
+    fieldNames map { f => JsonPath.read[Object](document, f) }
   }
 
 

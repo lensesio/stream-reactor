@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.config.processors.kcql
 import cats.implicits.catsSyntaxEitherId
 
 import java.util
-import scala.jdk.CollectionConverters.mapAsScalaMapConverter
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 object YamlToKcqlMapConverter {
 
@@ -30,11 +30,11 @@ object YamlToKcqlMapConverter {
       case (k: String, v: String) => (KcqlProp.withName(k), v).asRight
       case other => new IllegalArgumentException("Invalid value for other " + other).asLeft
     }
-    val (l, r) = mapped.partition(_.isLeft)
+    val (l, r) = mapped.partitionMap(identity)
     if (l.nonEmpty) {
-      r.head.left.get.asLeft
+      l.head.asLeft
     } else {
-      r.map(_.right.get).toMap.asRight
+      r.toMap.asRight
     }
   }
 }

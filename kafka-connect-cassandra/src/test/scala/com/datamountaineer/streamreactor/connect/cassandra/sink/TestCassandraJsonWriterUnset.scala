@@ -1,7 +1,6 @@
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import java.util.UUID
-
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
 import com.datastax.driver.core.Session
@@ -13,7 +12,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
+
 
 @DoNotDiscover
 class TestCassandraJsonWriterUnset
@@ -29,7 +29,7 @@ class TestCassandraJsonWriterUnset
   val password = "cassandra"
   var session : Session = _
 
-  override def beforeAll {
+  override def beforeAll(): Unit = {
     session = createKeySpace(keyspace ,secure = true, ssl = false)
   }
 

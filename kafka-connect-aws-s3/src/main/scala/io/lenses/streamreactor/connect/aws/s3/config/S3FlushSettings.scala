@@ -54,7 +54,7 @@ trait S3FlushSettings extends BaseSettings {
   }
 
   private def flushSize(kcql: Kcql): Option[Long] = {
-    Option(kcql.getWithFlushSize).filter(_ > 0).orElse(Some(defaultFlushSize))
+    Option(kcql.getWithFlushSize).filter(_ > 0).orElse(Some(defaultFlushSize.toLong))
   }
 
   private def flushCount(kcql: Kcql): Option[Long] = {

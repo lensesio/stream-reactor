@@ -9,12 +9,14 @@ import org.apache.pulsar.client.api.MessageBuilder
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.annotation.nowarn
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
   * Created by andrew@datamountaineer.com on 24/01/2018. 
   * stream-reactor
   */
+@nowarn
 class PulsarMessageConverterTest extends AnyWordSpec with Matchers with ConverterUtil {
 
   val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"

@@ -39,8 +39,7 @@
 //import org.mockito.MockitoSugar
 //import org.scalatest.{DoNotDiscover, Matchers, WordSpec}
 //
-//import scala.collection.JavaConverters._
-//import com.datastax.driver.core.Session
+////import com.datastax.driver.core.Session
 //import org.apache.kafka.connect.source.SourceRecord
 //
 ///**

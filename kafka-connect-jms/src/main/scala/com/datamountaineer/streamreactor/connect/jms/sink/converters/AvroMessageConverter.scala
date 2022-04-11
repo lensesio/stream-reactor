@@ -25,9 +25,12 @@ import org.apache.kafka.connect.sink.SinkRecord
 
 import java.io.ByteArrayOutputStream
 import javax.jms.{BytesMessage, Session}
+import scala.annotation.nowarn
 
+@nowarn
 class AvroMessageConverter extends JMSMessageConverter with ConverterUtil {
 
+  @nowarn
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, BytesMessage) = {
     val converted =  super[ConverterUtil].convert(record, setting.fields, setting.ignoreField)
     val avroRecord = convertValueToGenericAvro(converted)

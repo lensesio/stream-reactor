@@ -37,8 +37,8 @@ class AvroFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: Re
   private var lineNumber: Long = -1
 
   override def close(): Unit = {
-    Try(stream.close())
-    Try(inputStream.close())
+    val _ = Try(stream.close())
+    val _ = Try(inputStream.close())
   }
 
   override def hasNext: Boolean = stream.hasNext

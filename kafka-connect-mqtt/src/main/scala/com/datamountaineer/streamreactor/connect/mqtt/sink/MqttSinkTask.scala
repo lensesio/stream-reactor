@@ -30,7 +30,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{IterableHasAsScala, MapHasAsScala}
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -68,11 +68,10 @@ class MqttSinkTask extends SinkTask with StrictLogging {
       if (clazz == null) {
         topic -> null
       } else {
-        val converter = Try(Class.forName(clazz).newInstance()) match {
+        val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
           case Success(value) => value.asInstanceOf[Converter]
           case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
         }
-        import scala.collection.JavaConverters._
         converter.initialize(conf.asScala.toMap)
         topic -> converter
       }
@@ -97,13 +96,13 @@ class MqttSinkTask extends SinkTask with StrictLogging {
     * */
   override def stop(): Unit = {
     logger.info("Stopping Mqtt sink.")
-    writer.foreach(w => w.close)
+    writer.foreach(w => w.close())
     progressCounter.empty()
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w => w.flush)
+    writer.foreach(w => w.flush())
   }
 
   override def version: String = manifest.version()

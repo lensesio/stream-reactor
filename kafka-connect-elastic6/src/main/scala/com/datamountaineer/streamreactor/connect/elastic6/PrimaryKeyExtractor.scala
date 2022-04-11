@@ -22,7 +22,7 @@ import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{IteratorHasAsScala, ListHasAsScala}
 
 object PrimaryKeyExtractor {
   def extract(node: JsonNode, path: Vector[String]): Any = {
@@ -36,7 +36,7 @@ object PrimaryKeyExtractor {
 
       n match {
         case null => null
-        case bn: BinaryNode =>
+        case _: BinaryNode =>
           checkValidPath()
           n.binaryValue()
 
@@ -84,7 +84,7 @@ object PrimaryKeyExtractor {
           }
 
           innerExtract(childNode, p.tail)
-        case array: ArrayNode =>
+        case _: ArrayNode =>
           throw new IllegalArgumentException(s"Invalid field selection for '${path.mkString(".")}'. The path is involving an array structure")
 
         case other =>
@@ -118,7 +118,7 @@ object PrimaryKeyExtractor {
             case bd: BigDecimal =>
               checkValidPath()
               bd
-            case array: Array[Byte] =>
+            case _: Array[Byte] =>
               checkValidPath()
               Decimal.toLogical(field.schema, value.asInstanceOf[Array[Byte]])
           }
@@ -136,7 +136,7 @@ object PrimaryKeyExtractor {
           value.asInstanceOf[Any] match {
             case i: Int =>
               checkValidPath()
-              Time.toLogical(field.schema, value.asInstanceOf[Int])
+              Time.toLogical(field.schema, i)
             case d: java.util.Date =>
               checkValidPath()
               d

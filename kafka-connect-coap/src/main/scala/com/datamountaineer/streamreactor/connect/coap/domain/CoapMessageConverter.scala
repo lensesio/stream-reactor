@@ -20,7 +20,7 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.source.SourceRecord
 import org.eclipse.californium.core.coap.{MediaTypeRegistry, Response}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, SeqHasAsJava}
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 
@@ -87,7 +87,7 @@ case class CoapMessageConverter() {
     val sourcePartition = Map.empty[String, String]
     val offset = Map.empty[String, String]
     val options = response.getOptions
-    val etags = options.getETags.asScala.map(e => new String(e)).asJava
+    val etags = options.getETags.asScala.map(new String(_)).asJava
     val payload =  if (response.getPayloadSize() > 0 && MediaTypeRegistry.isPrintable(response.getOptions().getContentFormat())) {
       response.getPayloadString
     } else {

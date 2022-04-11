@@ -51,14 +51,14 @@ class SFTPClient extends FTPClient with StrictLogging {
   /**
     * Max Timeout in Ms to open a session with SFTP Server
     */
-  override def setConnectTimeout(timeoutMs: Int) {
+  override def setConnectTimeout(timeoutMs: Int): Unit = {
     maybeConnectTimeout = Some(timeoutMs)
   }
 
   /**
     * Max Timeout in Ms to connect a channel with SFTP Server
     */
-  override def setDataTimeout(timeoutMs: Int) {
+  override def setDataTimeout(timeoutMs: Int): Unit = {
     maybeDataTimeout = Some(timeoutMs)
   }
 

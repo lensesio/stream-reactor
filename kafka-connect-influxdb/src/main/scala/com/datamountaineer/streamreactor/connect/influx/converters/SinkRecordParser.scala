@@ -58,6 +58,7 @@ object SinkRecordParser {
     val key = Option(record.keySchema()).map(_.`type`()) match {
       case Some(Schema.Type.STRING) => Try(JsonSinkRecord(JacksonJson.asJson(record.key().asInstanceOf[String])))
       case Some(Schema.Type.STRUCT) => Try(StructSinkRecord(record.key().asInstanceOf[Struct]))
+      case Some(other) => throw new IllegalStateException(s"Unexpected $other")
       case None => Try(MapSinkRecord(record.key().asInstanceOf[java.util.Map[String, Any]]))
     }
 
@@ -66,6 +67,8 @@ object SinkRecordParser {
         Try(require(record.value() != null && record.value().getClass == classOf[String], "The SinkRecord payload should be of type String")).flatMap(_ => Try(JsonSinkRecord(JacksonJson.asJson(record.value().asInstanceOf[String]))))
       case Some(Schema.Type.STRUCT) =>
         Try(require(record.value() != null && record.value().getClass == classOf[Struct], "The SinkRecord payload should be of type Struct")).flatMap(_ => Try(StructSinkRecord(record.value().asInstanceOf[Struct])))
+      case Some(other) =>
+        throw new IllegalStateException(s"unexpected match for $other")
       case None =>
         Try(require(record.value() != null && record.value().isInstanceOf[java.util.Map[_, _]], "The SinkRecord payload should be of type java.util.Map[String, Any]")).flatMap(_ => Try(MapSinkRecord(record.value().asInstanceOf[java.util.Map[String, Any]])))
     }

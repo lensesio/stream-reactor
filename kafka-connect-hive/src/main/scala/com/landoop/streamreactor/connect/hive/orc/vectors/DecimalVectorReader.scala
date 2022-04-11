@@ -4,7 +4,10 @@ import org.apache.hadoop.hive.ql.exec.vector.DecimalColumnVector
 
 object DecimalVectorReader extends OrcVectorReader[DecimalColumnVector, BigDecimal] {
   override def read(offset: Int, vector: DecimalColumnVector): Option[BigDecimal] = {
-    if (vector.isNull(offset)) None
-    Option(vector.vector(offset).getHiveDecimal.bigDecimalValue)
+    if (vector.isNull(offset)) {
+      None
+    } else {
+      Option(BigDecimal(vector.vector(offset).getHiveDecimal.bigDecimalValue))
+    }
   }
 }

@@ -18,9 +18,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import com.datamountaineer.streamreactor.common.queues.QueueHelpers
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-
-import java.util.concurrent.LinkedBlockingQueue
-import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
+import com.datamountaineer.streamreactor.connect.cassandra.{SlowTest, TestConfig}
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigSource, CassandraSettings}
 import com.datastax.driver.core.Session
 import com.fasterxml.jackson.databind.JsonNode
@@ -28,11 +26,14 @@ import org.apache.kafka.connect.source.SourceRecord
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
+import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Suite}
 
-import scala.collection.JavaConverters._
+import java.util.concurrent.LinkedBlockingQueue
+import scala.annotation.nowarn
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 @DoNotDiscover
+@nowarn
 class TestCassandraSourceTaskTimestampLong extends AnyWordSpec
     with Matchers
     with MockitoSugar
@@ -45,7 +46,7 @@ class TestCassandraSourceTaskTimestampLong extends AnyWordSpec
   val keyspace = "source"
   var tableName: String = _
 
-  override def beforeAll {
+  override def beforeAll(): Unit = {
     session = createKeySpace(keyspace, secure = true)
     tableName = createTimestampTable(session, keyspace)
   }
@@ -55,7 +56,7 @@ class TestCassandraSourceTaskTimestampLong extends AnyWordSpec
     session.getCluster.close()
   }
 
-  "CassandraReader should read in incremental mode with timestamp and time slices (long)" in {
+  "CassandraReader should read in incremental mode with timestamp and time slices (long)"  taggedAs SlowTest in  {
     val taskContext = getSourceTaskContextDefault
     val taskConfig = new CassandraConfigSource(getCassandraConfigDefault)
 
@@ -129,7 +130,12 @@ class TestCassandraSourceTaskTimestampLong extends AnyWordSpec
 
   private def getCassandraConfigDefault = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $tableName PK timestamp_field INCREMENTALMODE=timestamp"
-    getCassandraConfig(keyspace, tableName, myKcql)
+    getCassandraConfig(keyspace, tableName, myKcql, strPort())
+  }
+
+  override def withPort(port: Int): Suite = {
+    setPort(port)
+    this
   }
 
 }

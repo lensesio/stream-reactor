@@ -24,7 +24,7 @@ import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 
@@ -57,7 +57,7 @@ class CoapSourceTask extends SourceTask with StrictLogging {
   override def poll(): util.List[SourceRecord] = {
     val records = new util.ArrayList[SourceRecord]()
 
-    QueueHelpers.drainWithTimeoutNoGauva(records, batchSize, lingerTimeout * 1000000 , queue)
+    QueueHelpers.drainWithTimeoutNoGauva(records, batchSize, lingerTimeout.toLong * 1000000L, queue)
 
     if (enableProgress) {
       progressCounter.update(records.asScala.toVector)
@@ -68,7 +68,7 @@ class CoapSourceTask extends SourceTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping Coap source and closing connections.")
     readers.foreach(_.stop())
-    progressCounter.empty
+    progressCounter.empty()
   }
 
   override def version: String = manifest.version()

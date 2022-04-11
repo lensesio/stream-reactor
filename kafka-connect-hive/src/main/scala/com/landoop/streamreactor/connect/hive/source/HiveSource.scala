@@ -2,16 +2,11 @@ package com.landoop.streamreactor.connect.hive.source
 
 import com.landoop.streamreactor.connect.hive
 import com.landoop.streamreactor.connect.hive._
-import com.landoop.streamreactor.connect.hive.formats.HiveFormat
-import com.landoop.streamreactor.connect.hive.formats.HiveReader
-import com.landoop.streamreactor.connect.hive.formats.Record
-import com.landoop.streamreactor.connect.hive.kerberos.KerberosExecute
-import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
-import com.landoop.streamreactor.connect.hive.kerberos.UgiExecute
-import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
-import com.landoop.streamreactor.connect.hive.source.config.SourceTableOptions
-import com.landoop.streamreactor.connect.hive.source.mapper.PartitionValueMapper
-import com.landoop.streamreactor.connect.hive.source.mapper.ProjectionMapper
+import com.landoop.streamreactor.connect.hive.formats.{HiveFormat, HiveReader, Record}
+import com.landoop.streamreactor.connect.hive.kerberos.{KerberosExecute, UgiExecute}
+import com.landoop.streamreactor.connect.hive.source.SourcePartition.{fromSourceOffset, fromSourcePartition}
+import com.landoop.streamreactor.connect.hive.source.config.{HiveSourceConfig, SourceTableOptions}
+import com.landoop.streamreactor.connect.hive.source.mapper.{PartitionValueMapper, ProjectionMapper}
 import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceOffsetStorageReader
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
@@ -19,8 +14,8 @@ import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
   * A [[HiveSource]] will read files from a single hive table and generate
@@ -77,18 +72,18 @@ class HiveSource(db: DatabaseName,
     }
   }
 
-  private val iterator: Iterator[Record] = ugi.execute {
+  private val recordIterator: Iterator[Record] = ugi.execute {
     readers.map(_.iterator).reduceOption(_ ++ _)
-      .fold(List.empty[Record].toIterator)(_.take(tableConfig.limit))
+      .fold(List.empty[Record].iterator)(_.take(tableConfig.limit))
   }
 
   override def hasNext: Boolean = ugi.execute {
-    iterator.hasNext
+    recordIterator.hasNext
   }
 
   override def next(): SourceRecord = ugi.execute {
 
-    val record = iterator.next
+    val record = recordIterator.next()
     val sourcePartition = SourcePartition(db, tableName, topic, record.path)
     val offset = SourceOffset(record.offset)
     offsets.put(sourcePartition, offset)

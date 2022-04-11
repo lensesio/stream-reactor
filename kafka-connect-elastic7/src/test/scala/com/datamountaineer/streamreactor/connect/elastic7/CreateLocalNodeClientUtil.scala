@@ -33,7 +33,6 @@ object CreateLocalNodeClientUtil {
 
   def createLocalNodeClient(localNode: ElasticsearchContainer) = {
     val esProps = ElasticProperties(s"http://${localNode.getHttpHostAddress}")
-    val client = ElasticClient(JavaClient(esProps))
-    client
+    ElasticClient(JavaClient(esProps))
   }
 }

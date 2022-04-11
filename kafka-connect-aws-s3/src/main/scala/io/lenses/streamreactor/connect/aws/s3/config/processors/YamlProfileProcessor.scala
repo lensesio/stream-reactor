@@ -121,7 +121,7 @@ class YamlProfileProcessor extends ConfigDefProcessor with LazyLogging {
 
     configSets.flatMap {
       _.flatMap {
-        case (k: String, v: AnyRef) => Some(k, v)
+        case (k: String, v: AnyRef) => Some((k, v))
         case _ => None
       }
     }.toMap.asRight

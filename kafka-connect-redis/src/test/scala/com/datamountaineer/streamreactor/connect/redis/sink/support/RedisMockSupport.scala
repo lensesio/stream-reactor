@@ -19,15 +19,17 @@ package com.datamountaineer.streamreactor.connect.redis.sink.support
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants}
 import org.mockito.MockitoSugar
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
+
 
 trait RedisMockSupport extends MockitoSugar {
 
   def getRedisSinkConfig(password: Boolean, KCQL: Option[String], pkDelimiter: Option[String] = None): RedisConfig = {
 
-    var baseProps = scala.collection.mutable.Map[String, String]()
-    baseProps += (RedisConfigConstants.REDIS_HOST -> "localhost", RedisConfigConstants.REDIS_PORT -> "8453")
-
+    val baseProps = scala.collection.mutable.Map[String, String](
+      RedisConfigConstants.REDIS_HOST -> "localhost",
+      RedisConfigConstants.REDIS_PORT -> "8453"
+    )
 
     if (password) {
       baseProps += RedisConfigConstants.REDIS_PASSWORD -> "secret"

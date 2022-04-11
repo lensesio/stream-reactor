@@ -24,7 +24,7 @@ object ProducerConfigFactory extends StrictLogging {
         conf.setBatchingMaxMessages(kcql.getBatchSize)
 
         if (kcql.getWithDelay > 0) {
-          conf.setBatchingMaxPublishDelay(kcql.getWithDelay, TimeUnit.MILLISECONDS)
+          conf.setBatchingMaxPublishDelay(kcql.getWithDelay.toLong, TimeUnit.MILLISECONDS)
         }
       }
 

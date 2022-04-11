@@ -5,7 +5,8 @@ import org.apache.kafka.common.config.ConfigException
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
+
 
 class KeytabSettingsTest extends AnyFunSuite with Matchers with FileCreation {
   test("validate a keytab setting") {
@@ -30,13 +31,13 @@ class KeytabSettingsTest extends AnyFunSuite with Matchers with FileCreation {
     }
     finally {
       file.delete()
+      ()
     }
   }
 
   test("throws an exception when principal is not set") {
     val file = createFile("keytab2.keytab")
     try {
-      val principal = "hdfs-user@MYCORP.NET"
       val config = HiveSinkConfigDefBuilder(
         Map(
           "connect.hive.database.name" -> "mydatabase",
@@ -55,6 +56,7 @@ class KeytabSettingsTest extends AnyFunSuite with Matchers with FileCreation {
     }
     finally {
       file.delete()
+      ()
     }
   }
 

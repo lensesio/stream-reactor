@@ -21,7 +21,7 @@ package com.datamountaineer.streamreactor.connect.jms.sink.writers
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.IteratorToSeqFn
-import com.datamountaineer.streamreactor.connect.jms.{TestBase, Using}
+import com.datamountaineer.streamreactor.connect.jms.{SlowTest, TestBase, Using}
 import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
@@ -32,8 +32,11 @@ import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import java.io.File
 import java.util.UUID
 import javax.jms.{Message, MessageListener, Session, TextMessage}
+import scala.annotation.nowarn
+import scala.language.reflectiveCalls
 import scala.reflect.io.Path
 
+@nowarn
 class JMSWriterTest extends TestBase with Using with BeforeAndAfter with ConverterUtil with BeforeAndAfterAll {
   val broker = new BrokerService()
   broker.setPersistent(false)
@@ -55,10 +58,10 @@ class JMSWriterTest extends TestBase with Using with BeforeAndAfter with Convert
   }
 
   override def afterAll(): Unit = {
-    Path(AVRO_FILE).delete()
+    val _ = Path(AVRO_FILE).delete()
   }
 
-  "JMSWriter should route the messages to the appropriate topic and queues" in {
+  "JMSWriter should route the messages to the appropriate topic and queues" taggedAs SlowTest in {
     val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
     val kafkaTopic2 = s"kafka-${UUID.randomUUID().toString}"
     val queueName = s"queue-${UUID.randomUUID().toString}"

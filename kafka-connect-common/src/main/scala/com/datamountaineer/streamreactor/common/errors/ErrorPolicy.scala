@@ -35,7 +35,7 @@ object ErrorPolicyEnum extends Enumeration {
 case class ErrorTracker(retries: Int, maxRetries: Int, lastErrorMessage: String, lastErrorTimestamp: Date, policy: ErrorPolicy)
 
 trait ErrorPolicy extends StrictLogging {
-  def handle(error: Throwable, sink: Boolean = true, retryCount: Int = 0)
+  def handle(error: Throwable, sink: Boolean = true, retryCount: Int = 0): Unit
 }
 
 object ErrorPolicy extends StrictLogging {
@@ -49,13 +49,13 @@ object ErrorPolicy extends StrictLogging {
 }
 
 case class NoopErrorPolicy() extends ErrorPolicy {
-  override def handle(error: Throwable, sink: Boolean = true, retryCount: Int = 0){
+  override def handle(error: Throwable, sink: Boolean = true, retryCount: Int = 0): Unit = {
     logger.warn(s"Error policy NOOP: [${error.getMessage}]. Processing continuing.")
   }
 }
 
 case class ThrowErrorPolicy() extends ErrorPolicy {
-  override def handle(error: Throwable, sink: Boolean = true, retryCount: Int = 0){
+  override def handle(error: Throwable, sink: Boolean = true, retryCount: Int = 0): Unit = {
     throw new ConnectException(error)
   }
 }

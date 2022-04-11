@@ -21,6 +21,8 @@ import com.datamountaineer.streamreactor.connect.coap.configs.CoapSetting
 import com.typesafe.scalalogging.StrictLogging
 import org.eclipse.californium.core.{CoapClient, CoapResponse}
 
+import scala.jdk.CollectionConverters.SetHasAsScala
+
 
 /**
   * Created by andrew@datamountaineer.com on 29/12/2016. 
@@ -28,12 +30,11 @@ import org.eclipse.californium.core.{CoapClient, CoapResponse}
   */
 abstract class CoapManager(setting: CoapSetting) extends StrictLogging {
 
-  val client: CoapClient = buildClient
+  val client: CoapClient = buildClient()
 
   def buildClient(): CoapClient = {
     val client = DTLSConnectionFn(setting)
 
-    import scala.collection.JavaConverters._
     //discover and check the requested resources
     Option(client.discover())
       .map(_.asScala)

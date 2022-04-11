@@ -16,10 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra
 
-import java.text.SimpleDateFormat
-import java.util
-import java.util.{Collections, Date}
-
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
 import com.datastax.driver.core.Cluster.Builder
 import com.datastax.driver.core._
@@ -30,10 +26,14 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
-import org.cassandraunit.utils.EmbeddedCassandraServerHelper
 import org.mockito.MockitoSugar
+import org.scalatest.Suite
 
-import scala.collection.JavaConverters._
+import java.text.SimpleDateFormat
+import java.util
+import java.util.{Collections, Date}
+import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
+
 
 /**
   * Created by andrew@datamountaineer.com on 14/04/16. 
@@ -76,9 +76,10 @@ trait TestConfig extends MockitoSugar {
   ASSIGNMENT.add(TOPIC_PARTITION)
   ASSIGNMENT.add(TOPIC_PARTITION2)
 
-  def getCassandraConfigSourcePropsTimeuuidIncr = {
+  def getCassandraConfigSourcePropsTimeuuidIncr(port: String) = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.PORT -> port,
       CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
@@ -88,9 +89,10 @@ trait TestConfig extends MockitoSugar {
     ).asJava
   }
   
-  def getCassandraConfigSourcePropsTimestampIncr = {
+  def getCassandraConfigSourcePropsTimestampIncr(port: String) = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.PORT -> port,
       CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
@@ -100,13 +102,13 @@ trait TestConfig extends MockitoSugar {
     ).asJava
   }  
 
-  def createKeySpace(keyspace: String, secure: Boolean = false, ssl: Boolean = false, port: Int = CASSANDRA_PORT): Session = {
+  def createKeySpace(keyspace: String, secure: Boolean = false, ssl: Boolean = false): Session = {
 
     val cluster: Builder = Cluster
       .builder()
+      .withoutJMXReporting()
       .addContactPoints(CONTACT_POINT)
-      .withPort(port)
-
+      .withPort(port())
 
     if (secure) cluster.withCredentials(USERNAME.trim, PASSWD.trim)
     if (ssl) {
@@ -160,12 +162,12 @@ trait TestConfig extends MockitoSugar {
 
     (1 to 7).map(i => {
       val record: Struct = createRecord(schema, table + "-" + i + "-" + i)
-      new SinkRecord(table, i, Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.LOG_APPEND_TIME)
+      new SinkRecord(table, i, Schema.STRING_SCHEMA, "key", schema, record, i.toLong, System.currentTimeMillis(), TimestampType.LOG_APPEND_TIME)
     })
   }
 
 
-  def getSourceTaskContext(lookupPartitionKey: String, offsetValue: String, offsetColumn: String, table: String) = {
+  def getSourceTaskContext(lookupPartitionKey: String, offsetValue: String, offsetColumn: String, table: String): SourceTaskContext = {
     /**
       * offset holds a map of map[string, something],map[identifier, value]
       *
@@ -198,20 +200,14 @@ trait TestConfig extends MockitoSugar {
     getSourceTaskContext(lookupPartitionKey, offsetValue, offsetColumn, table)
   }
 
-  def startEmbeddedCassandraSecure() = {
-    EmbeddedCassandraServerHelper.startEmbeddedCassandra("cassandra-username.yaml")
-    Thread.sleep(10000)
-  }
 
-  def startEmbeddedCassandra(yamlFile: String) = {
-    EmbeddedCassandraServerHelper.startEmbeddedCassandra(yamlFile, "cass-test", 25000)
-  }
+  private var optPort : Option[Int] = None
 
-  def startEmbeddedCassandra() = {
-    EmbeddedCassandraServerHelper.startEmbeddedCassandra("cassandra.yaml", 30000)
-  }
+  def withPort(port: Int) : Suite = throw new NotImplementedError("Live test needs to implement withPort")
 
-  def stopEmbeddedCassandra() = {
-    EmbeddedCassandraServerHelper.cleanEmbeddedCassandra()
-  }
+  def setPort(port: Int): Unit = optPort = Some(port)
+
+  def port() : Int = optPort.getOrElse(CASSANDRA_PORT)
+
+  def strPort(): String = port().toString
 }

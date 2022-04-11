@@ -20,7 +20,7 @@ import com.datamountaineer.kcql.Kcql
 import enumeratum._
 
 import scala.collection.immutable
-import scala.jdk.CollectionConverters.asScalaIteratorConverter
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 /**
   * KcqlProp is an enum that represents a Kcql Property
@@ -56,9 +56,9 @@ object KcqlProp extends Enum[KcqlProp] {
 
   case object FlushCount extends KcqlProp("flush_count", k => fromLong(k.getWithFlushCount))
 
-  case object BatchSize extends KcqlProp("batch_size", k => fromLong(k.getBatchSize))
+  case object BatchSize extends KcqlProp("batch_size", k => fromLong(k.getBatchSize.toLong))
 
-  case object Limit extends KcqlProp("limit", k => fromLong(k.getLimit))
+  case object Limit extends KcqlProp("limit", k => fromLong(k.getLimit.toLong))
 
   private def fromString(source: String): Option[String] = Option(source).filter(_.nonEmpty)
 

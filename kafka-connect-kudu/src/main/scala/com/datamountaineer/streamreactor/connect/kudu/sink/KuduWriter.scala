@@ -28,8 +28,9 @@ import org.apache.kudu.client.SessionConfiguration.FlushMode
 import org.apache.kudu.client._
 import org.json4s.JsonAST.JValue
 
-import scala.collection.JavaConverters._
+import scala.annotation.nowarn
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
 import scala.util.{Failure, Success, Try}
 
 case class SchemaMap(version: Int, schema: Schema)
@@ -48,6 +49,7 @@ object KuduWriter extends StrictLogging {
   }
 }
 
+@nowarn
 class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLogging with KuduConverter
   with ErrorHandler with ConverterUtil {
   logger.info("Initialising Kudu writer")

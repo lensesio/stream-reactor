@@ -33,7 +33,7 @@ object CassandraConfigConstants {
   val USERNAME_PASSWORD = "username_password"
   val NONE = "none"
   val PAYLOAD = "payload"
-  val DEFAULT_POLL_INTERVAL = 1000
+  val DEFAULT_POLL_INTERVAL = 1000L
 
   val POLL_INTERVAL = s"$CONNECTOR_PREFIX.import.poll.interval"
   val POLL_INTERVAL_DOC = "The polling interval between queries against tables for bulk mode."
@@ -100,7 +100,7 @@ object CassandraConfigConstants {
 
   val TIME_SLICE_MILLIS = s"$CONNECTOR_PREFIX.time.slice.ms"
   val TIME_SLICE_MILLIS_DOC = "The range of time in milliseconds the source task the timestamp/timeuuid will use for query"
-  val TIME_SLICE_MILLIS_DEFAULT = 10000
+  val TIME_SLICE_MILLIS_DEFAULT = 10000L
 
   val ALLOW_FILTERING = s"$CONNECTOR_PREFIX.import.allow.filtering"
   val ALLOW_FILTERING_DOC = "Enable ALLOW FILTERING in incremental selects."
@@ -178,11 +178,11 @@ object CassandraConfigConstants {
   val DELETE_ROW_STRUCT_FLDS_DISPLAY = "Field names in Key Struct"
 
   val TIMESLICE_DURATION = s"$CONNECTOR_PREFIX.slice.duration"
-  val TIMESLICE_DURATION_DEFAULT = 10000
+  val TIMESLICE_DURATION_DEFAULT = 10000L
   val TIMESLICE_DURATION_DOC = "Duration to query for in target Cassandra table. Used to restrict query timestamp span"
 
   val TIMESLICE_DELAY = s"$CONNECTOR_PREFIX.slice.delay.ms"
-  val TIMESLICE_DELAY_DEFAULT = 30000
+  val TIMESLICE_DELAY_DEFAULT = 30000L
   val TIMESLICE_DELAY_DOC = "The delay between the current time and the time range of the query. Used to insure all of the data in the time slice is available"
 
   val INITIAL_OFFSET = s"$CONNECTOR_PREFIX.initial.offset"

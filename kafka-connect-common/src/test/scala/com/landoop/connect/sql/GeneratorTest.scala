@@ -2,21 +2,21 @@ package com.landoop.connect.sql
 
 import java.text.SimpleDateFormat
 import java.util.Date
-
 import com.landoop.json.sql.JacksonJson
-import com.sksamuel.avro4s.SchemaFor
-import org.scalatest.{Matchers, WordSpec}
+import com.sksamuel.avro4s.AvroSchema
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.Random
 
 /**
   * Created by stefan on 17/04/2017.
   */
-class GeneratorTest extends WordSpec with Matchers {
+class GeneratorTest extends AnyWordSpec with Matchers {
   "Generator" should {
     "generate schema" in {
-      val sql = Sql.parse("SELECT * FROM `order-topic`")
-      val schema = SchemaFor[Product]()
+      val _ = Sql.parse("SELECT * FROM `order-topic`")
+      val schema = AvroSchema[Product]
       val str = schema.toString
       println(str)
     }

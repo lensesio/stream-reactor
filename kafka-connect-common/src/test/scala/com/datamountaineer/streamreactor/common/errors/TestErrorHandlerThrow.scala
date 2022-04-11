@@ -32,7 +32,7 @@ class TestErrorHandlerThrow extends TestUtilsBase with ErrorHandler {
 
     intercept[RuntimeException] {
       try {
-        1 / 0
+        throw new ArithmeticException("Divide by zero")
       } catch {
         case t: Throwable => {
           handleTry(Failure(t))

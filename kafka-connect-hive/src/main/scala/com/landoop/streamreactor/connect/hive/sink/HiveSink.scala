@@ -2,10 +2,9 @@ package com.landoop.streamreactor.connect.hive.sink
 
 import com.landoop.streamreactor.connect.hive
 import com.landoop.streamreactor.connect.hive._
-import com.landoop.streamreactor.connect.hive.formats.HiveWriter
 import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, TableOptions}
 import com.landoop.streamreactor.connect.hive.sink.partitioning.CachedPartitionHandler
-import com.landoop.streamreactor.connect.hive.sink.staging.{CommitContext, CommitPolicy, StageManager}
+import com.landoop.streamreactor.connect.hive.sink.staging.{CommitContext, StageManager}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.kafka.connect.data.Struct

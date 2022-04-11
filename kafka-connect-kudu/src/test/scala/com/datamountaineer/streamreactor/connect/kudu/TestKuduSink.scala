@@ -20,14 +20,15 @@ import com.datamountaineer.streamreactor.connect.kudu.sink.KuduSinkTask
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.MockitoSugar
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.SeqHasAsJava
+
 
 /**
   * Created by andrew@datamountaineer.com on 04/03/16.
   * stream-reactor
   */
 class TestKuduSink extends TestBase with MockitoSugar {
-  "Should start a Kudu Sink" in {
+  "Should start a Kudu Sink" taggedAs SlowTest in {
     val config = getConfig
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
@@ -36,7 +37,7 @@ class TestKuduSink extends TestBase with MockitoSugar {
     //initialise the tasks context
     task.initialize(context)
 
-    val recs = List.empty[SinkRecord].asJavaCollection
+    val recs = List.empty[SinkRecord].asJava
     //start task
     task.start(config)
     task.put(recs)

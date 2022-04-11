@@ -28,15 +28,18 @@ import org.apache.avro.reflect.ReflectDatumWriter
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
+import scala.annotation.nowarn
+
 /**
   * Created by andrew@datamountaineer.com on 02/12/2016. 
   * stream-reactor
   */
+@nowarn
 abstract class Writer(settings: HazelCastSinkSettings) extends ConverterUtil {
 
-  def write(record: SinkRecord)
+  def write(record: SinkRecord): Unit
 
-  def close()
+  def close(): Unit
 
   /**
     * Convert a sink record to avro or Json string bytes
@@ -77,6 +80,7 @@ abstract class Writer(settings: HazelCastSinkSettings) extends ConverterUtil {
     *
     * @param record A sink records to convert.
     **/
+  @nowarn
   def toJson(record: SinkRecord): JsonNode = {
     val extracted = convert(record, settings.fieldsMap(record.topic()), settings.ignoreFields(record.topic()))
     convertValueToJson(extracted)
@@ -87,6 +91,7 @@ abstract class Writer(settings: HazelCastSinkSettings) extends ConverterUtil {
     *
     * @param record A sink records to convert.
     **/
+  @nowarn
   def toAvro(record: SinkRecord): GenericRecord = {
     val extracted = convert(record, settings.fieldsMap(record.topic()), settings.ignoreFields(record.topic()))
     convertValueToGenericAvro(extracted)

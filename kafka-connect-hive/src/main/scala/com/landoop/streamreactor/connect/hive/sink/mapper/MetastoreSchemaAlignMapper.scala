@@ -4,6 +4,7 @@ import com.landoop.streamreactor.connect.hive.StructMapper
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.errors.ConnectException
 
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
 /**
@@ -24,7 +25,6 @@ import scala.util.Try
  */
 class MetastoreSchemaAlignMapper(schema: Schema) extends StructMapper {
 
-  import scala.collection.JavaConverters._
 
   override def map(input: Struct): Struct = {
     //hive converts everything to lowercase

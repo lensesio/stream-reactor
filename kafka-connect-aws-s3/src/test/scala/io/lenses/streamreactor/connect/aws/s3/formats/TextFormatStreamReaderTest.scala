@@ -34,11 +34,11 @@ class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
     val avroFormatStreamReader = new TextFormatStreamReader(() => byteArrayInputStream, RemoteS3PathLocation("test-bucket", "test-path"))
 
     avroFormatStreamReader.hasNext should be(true)
-    avroFormatStreamReader.next should be(StringSourceData(TestSampleSchemaAndData.recordsAsJson(0), 0))
+    avroFormatStreamReader.next() should be(StringSourceData(TestSampleSchemaAndData.recordsAsJson(0), 0))
     avroFormatStreamReader.hasNext should be(true)
-    avroFormatStreamReader.next should be(StringSourceData(TestSampleSchemaAndData.recordsAsJson(1), 1))
+    avroFormatStreamReader.next() should be(StringSourceData(TestSampleSchemaAndData.recordsAsJson(1), 1))
     avroFormatStreamReader.hasNext should be(true)
-    avroFormatStreamReader.next should be(StringSourceData(TestSampleSchemaAndData.recordsAsJson(2), 2))
+    avroFormatStreamReader.next() should be(StringSourceData(TestSampleSchemaAndData.recordsAsJson(2), 2))
     avroFormatStreamReader.hasNext should be(false)
 
   }

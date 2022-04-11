@@ -63,7 +63,7 @@ object FutureAwaitWithFailFastFn extends StrictLogging {
         throw t
 
       case _ =>
-        executorService.awaitTermination(1, TimeUnit.MINUTES)
+        val _ = executorService.awaitTermination(1, TimeUnit.MINUTES)
     }
   }
 

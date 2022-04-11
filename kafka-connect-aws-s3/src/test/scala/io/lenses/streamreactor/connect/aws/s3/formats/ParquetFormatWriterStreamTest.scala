@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestConfig
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.stream.BuildLocalOutputStream
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
@@ -27,7 +27,7 @@ import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3TestConfig with EitherValues {
+class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with EitherValues {
   import helper._
 
   val parquetFormatReader = new ParquetFormatReader()
@@ -65,7 +65,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
       parquetFormatWriter.write(
         None,
         ArraySinkData(
-          Array(
+          Seq(
             StringSinkData("batman"),
             StringSinkData("robin"),
             StringSinkData("alfred")

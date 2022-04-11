@@ -3,8 +3,8 @@ package com.datamountaineer.streamreactor.connect.pulsar.config
 import com.datamountaineer.kcql.CompressionType
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import scala.jdk.CollectionConverters.MapHasAsJava
 
-import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 22/01/2018. 

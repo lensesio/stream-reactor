@@ -23,7 +23,7 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceConnector
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.{Failure, Try}
 
 class FtpSourceConnector extends SourceConnector with StrictLogging {

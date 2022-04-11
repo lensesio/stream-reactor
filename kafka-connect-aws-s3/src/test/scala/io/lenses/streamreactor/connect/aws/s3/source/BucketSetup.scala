@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.source
 
 import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatOptions}
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestConfig
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.scalatest.matchers.should.Matchers
 
@@ -51,7 +51,7 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
           s"/${format.entryName.toLowerCase}${generateFormatString(formatOption)}/$fileNum.${format.entryName.toLowerCase}",
         )
     }
-  }.seq.sum
+  }.sum
 
   def generateFormatString(formatOptions: Option[FormatOptions]): String = {
     formatOptions.fold("")(option => s"_${option.entryName.toLowerCase}")
@@ -61,7 +61,7 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
                        resourceSourceFilename: String
                      ): Int = {
 
-    val inputStream = classOf[S3TestConfig].getResourceAsStream(resourceSourceFilename)
+    val inputStream = classOf[S3ProxyContainerTest].getResourceAsStream(resourceSourceFilename)
     require(inputStream != null)
     inputStream.available()
   }
@@ -72,9 +72,9 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
                             blobStoreTargetFilename: String,
                           ): Unit = {
 
-    val resource = classOf[S3TestConfig].getResource(resourceSourceFilename)
+    val resource = classOf[S3ProxyContainerTest].getResource(resourceSourceFilename)
     require(resource != null)
-    storageInterface.uploadFile(
+    val _ = storageInterface.uploadFile(
       new File(resource.getFile),
       RemoteS3PathLocation(blobStoreContainerName, blobStoreTargetFilename)
     )

@@ -5,7 +5,8 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.apache.parquet.schema._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 /**
   * Conversion functions to/from parquet/kafka types.
@@ -16,8 +17,7 @@ import scala.collection.JavaConverters._
 object ParquetSchemas {
 
   def toKafkaStruct(group: GroupType): Schema = {
-    import scala.collection.JavaConverters._
-    val builder = SchemaBuilder.struct().name(group.getName)
+        val builder = SchemaBuilder.struct().name(group.getName)
     group.getFields.asScala.foreach { field =>
       builder.field(field.getName, toKafka(field))
     }
@@ -92,12 +92,12 @@ object ParquetSchemas {
 
   def toParquetMessage(struct: Schema, name: String): MessageType = {
     require(name != null, "name cannot be null")
-    val types = struct.fields.asScala.map(field => toParquetType(field.schema(), field.name()))
+    val types = struct.fields.asScala.toSeq.map(field => toParquetType(field.schema(), field.name()))
     Types.buildMessage().addFields(types: _*).named(name)
   }
 
   def toParquetGroup(struct: Schema, name: String, repetition: Type.Repetition): GroupType = {
-    val types = struct.fields.asScala.map(field => toParquetType(field.schema(), field.name()))
+    val types = struct.fields.asScala.toSeq.map(field => toParquetType(field.schema(), field.name()))
     Types.buildGroup(repetition).addFields(types: _*).named(name)
   }
 

@@ -17,7 +17,7 @@ package com.landoop.sql
 
 import org.apache.calcite.sql._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.IterableHasAsScala
 
 case class Field(name: String, alias: String, parents: Vector[String]) {
   def hasParents: Boolean = parents != null && parents.nonEmpty
@@ -27,7 +27,7 @@ object Field {
   def from(sql: SqlSelect): Seq[Field] = {
     sql.getSelectList.asScala.map {
       case id: SqlIdentifier =>
-        val parents = (0 until id.names.asScala.length - 1).foldLeft(Vector.empty[String]) { (acc, i) =>
+        val parents = (0 until id.names.asScala.toList.length - 1).foldLeft(Vector.empty[String]) { (acc, i) =>
           val parent = id.names.get(i)
           acc :+ parent
         }
@@ -39,15 +39,15 @@ object Field {
       case as: SqlCall if as.getKind == SqlKind.AS && as.operandCount() == 2 =>
         val left: SqlIdentifier = as.operand[SqlNode](0) match {
           case id: SqlIdentifier => id
-          case other => throw new IllegalArgumentException(s"$as [${as.getClass.getCanonicalName}] is not handled for now!")
+          case _ => throw new IllegalArgumentException(s"$as [${as.getClass.getCanonicalName}] is not handled for now!")
         }
 
         val right: SqlIdentifier = as.operand[SqlNode](1) match {
           case id: SqlIdentifier => id
-          case other => throw new IllegalArgumentException(s"$as [${as.getClass.getCanonicalName}] is not handled for now!")
+          case _ => throw new IllegalArgumentException(s"$as [${as.getClass.getCanonicalName}] is not handled for now!")
         }
 
-        val parents = (0 until left.names.asScala.length - 1).foldLeft(Vector.empty[String]) { (acc, i) =>
+        val parents = (0 until left.names.asScala.toList.length - 1).foldLeft(Vector.empty[String]) { (acc, i) =>
           val parent = left.names.get(i)
           acc :+ parent
         }

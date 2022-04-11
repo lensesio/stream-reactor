@@ -6,4 +6,3 @@ connect.s3.aws.access.key: identity
 connect.s3.aws.secret.key: credential
 
 connect.s3.vhost.bucket: true
-connect.s3.custom.endpoint: http://127.0.0.1:8099

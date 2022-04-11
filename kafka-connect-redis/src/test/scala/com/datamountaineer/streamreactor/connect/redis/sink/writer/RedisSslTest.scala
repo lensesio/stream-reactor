@@ -28,7 +28,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.Jedis
 
 import java.net.URI
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
 
 /*
 README BEFORE THE TEST
@@ -82,10 +82,12 @@ class RedisSslTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with
 
     "establish ssl connection" in {
 
+      if(!runTests) cancel("runTests is disabled")
+
       val truststoreFilePath = getClass.getResource("/truststore.jks").getPath
       val keystoreFilePath = getClass.getResource("/keystore.jks").getPath
 
-      val map = Map(RedisConfigConstants.REDIS_HOST -> "rediss://localhost",
+      val map = Map(RedisConfigConstants.REDIS_HOST -> "rediss://0.0.0.0",
         RedisConfigConstants.REDIS_PORT -> "8453",
         RedisConfigConstants.KCQL_CONFIG -> "SELECT * FROM topicA PK firstName, child.firstName",
         RedisConfigConstants.ERROR_POLICY -> "THROW",

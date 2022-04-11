@@ -28,5 +28,5 @@ case class QueueWriter(client: HazelcastInstance, topic: String, settings: Hazel
   val queueWriter: IQueue[Object] = client.getQueue(settings.topicObject(topic).name).asInstanceOf[IQueue[Object]]
 
   override def write(record: SinkRecord): Unit = queueWriter.put(convert(record))
-  override def close: Unit = {}
+  override def close(): Unit = {}
 }

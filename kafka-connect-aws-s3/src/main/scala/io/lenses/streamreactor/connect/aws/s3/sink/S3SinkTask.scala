@@ -31,7 +31,7 @@ import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsJava, MapHasAsScala}
 import scala.util.Try
 
 class S3SinkTask extends SinkTask with ErrorHandler {
@@ -129,7 +129,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
 
-    handleTry {
+    val _ = handleTry {
       Try {
         val recordsStats = buildLogForRecords(records.asScala)
           .toList.sortBy(_._1).map { case (k, v) => s"$k=$v" }.mkString(";")

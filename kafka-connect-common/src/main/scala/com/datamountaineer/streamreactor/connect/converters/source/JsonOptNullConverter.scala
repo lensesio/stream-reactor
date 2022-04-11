@@ -106,6 +106,7 @@ object JsonOptNullConverter {
         fields.foreach { case (field, v) => struct.put(field, v) }
 
         new SchemaAndValue(schema, struct)
+      case other => throw new IllegalStateException(s"Cannot match $other")
     }
   }
 }

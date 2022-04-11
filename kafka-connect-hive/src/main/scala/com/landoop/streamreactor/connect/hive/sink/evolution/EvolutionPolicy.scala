@@ -4,7 +4,7 @@ import com.landoop.streamreactor.connect.hive.{DatabaseName, TableName}
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.kafka.connect.data.Schema
 
-import scala.util.{Failure, Try}
+import scala.util.Try
 
 /**
   * When preparing to write data to hive, the incoming records may have a

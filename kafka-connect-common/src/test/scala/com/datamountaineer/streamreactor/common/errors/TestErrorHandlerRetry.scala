@@ -33,7 +33,7 @@ class TestErrorHandlerRetry extends TestUtilsBase with ErrorHandler {
 
     intercept[RetriableException] {
       try {
-        1 / 0
+        throw new ArithmeticException("Divide by zero")
       } catch {
         case t: Throwable => {
           handleTry(Failure(t))

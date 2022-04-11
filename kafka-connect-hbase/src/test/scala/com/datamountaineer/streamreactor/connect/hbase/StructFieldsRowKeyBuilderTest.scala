@@ -51,7 +51,7 @@ class StructFieldsRowKeyBuilderTest extends AnyWordSpec with Matchers {
 
       //val field = Field("firstName", "firstName", true)
       val sinkRecord = new SinkRecord("sometopic", 1, null, null, schema, struct, 1)
-      StructFieldsRowKeyBuilderBytes(List("firstName")).build(sinkRecord, null) shouldBe "Alex".fromString
+      StructFieldsRowKeyBuilderBytes(List("firstName")).build(sinkRecord, null) shouldBe "Alex".fromString()
     }
 
     "create the row key based on more thant one field in the struct" in {

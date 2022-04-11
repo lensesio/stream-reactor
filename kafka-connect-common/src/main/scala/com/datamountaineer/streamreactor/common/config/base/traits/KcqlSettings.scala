@@ -23,8 +23,8 @@ import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigCon
 import com.datamountaineer.streamreactor.common.rowkeys.{StringGenericRowKeyBuilder, StringKeyBuilder, StringStructFieldsStringKeyBuilder}
 import org.apache.kafka.common.config.ConfigException
 
-import scala.collection.JavaConverters._
 import scala.collection.immutable.ListSet
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 trait KcqlSettings extends BaseSettings {
   val kcqlConstant: String = s"$connectorPrefix.$KCQL_PROP_SUFFIX"
@@ -56,11 +56,11 @@ trait KcqlSettings extends BaseSettings {
   }
 
   def getFields(kcql: Set[Kcql] = getKCQL): Map[String, Seq[Field]] = {
-    kcql.toList.map(rm => (rm.getSource, rm.getFields.asScala)).toMap
+    kcql.toList.map(rm => (rm.getSource, rm.getFields.asScala.toSeq)).toMap
   }
 
   def getIgnoreFields(kcql: Set[Kcql] = getKCQL): Map[String, Seq[Field]] = {
-    kcql.toList.map(rm => (rm.getSource, rm.getIgnoredFields.asScala)).toMap
+    kcql.toList.map(rm => (rm.getSource, rm.getIgnoredFields.asScala.toSeq)).toMap
   }
 
   def getFieldsAliases(kcql: Set[Kcql] = getKCQL): List[Map[String, String]] = {
@@ -78,7 +78,7 @@ trait KcqlSettings extends BaseSettings {
 
   def getPrimaryKeys(kcql: Set[Kcql] = getKCQL): Map[String, Set[String]] = {
     kcql.toList.map { r =>
-      val names: Seq[String] = r.getPrimaryKeys.asScala.map(f => f.getName)
+      val names: Seq[String] = r.getPrimaryKeys.asScala.map(f => f.getName).toSeq
       val set: Set[String] = ListSet(names.reverse: _*)
       (r.getSource, set)
     }.toMap
@@ -143,12 +143,12 @@ trait KcqlSettings extends BaseSettings {
       .filter(c => c.getWriteMode == WriteModeEnum.UPSERT)
       .map { r =>
         val keys: Set[String] = ListSet(
-          r.getPrimaryKeys.asScala
+          r.getPrimaryKeys.asScala.toSeq
             .map(key =>
               preserveFullKeys match {
                 case false => key.getName
-                case true  => key.toString
-            })
+                case true => key.toString
+              })
             .reverse: _*)
         if (keys.isEmpty)
           throw new ConfigException(
@@ -174,7 +174,7 @@ trait KcqlSettings extends BaseSettings {
 
   def getRowKeyBuilders(kcql: Set[Kcql] = getKCQL): List[StringKeyBuilder] = {
     kcql.toList.map { k =>
-      val keys = k.getPrimaryKeys.asScala.map(k => k.getName)
+      val keys = k.getPrimaryKeys.asScala.map(k => k.getName).toSeq
       // No PK => 'topic|par|offset' builder else generic-builder
       if (keys.nonEmpty) StringStructFieldsStringKeyBuilder(keys)
       else new StringGenericRowKeyBuilder()
@@ -185,7 +185,7 @@ trait KcqlSettings extends BaseSettings {
     kcql.toList
       .map(k =>
         (k.getSource,
-         ListSet(k.getPrimaryKeys.asScala.map(p => p.getName).reverse: _*).toSet))
+         ListSet(k.getPrimaryKeys.asScala.map(p => p.getName).reverse.toSeq: _*).toSet))
       .toMap
   }
 

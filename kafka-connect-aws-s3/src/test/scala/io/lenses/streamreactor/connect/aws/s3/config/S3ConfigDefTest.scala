@@ -21,7 +21,8 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
+
 
 class S3ConfigDefTest extends AnyFlatSpec with Matchers {
 
@@ -45,14 +46,14 @@ class S3ConfigDefTest extends AnyFlatSpec with Matchers {
 
   "S3ConfigDef" should "parse original properties" in {
     val resultMap = S3ConfigDef.config.parse(DefaultProps.asJava).asScala
-    resultMap should have size (16)
+    resultMap should have size 18
     DeprecatedProps.filterNot { case (k, _) => k == KCQL_CONFIG }.foreach { case (k, _) => resultMap.get(k) should be(None) }
     DefaultProps.foreach { case (k, _) => resultMap.keySet.contains(k) should be(true) }
   }
 
   "S3ConfigDef" should "parse deprecated properties" in {
     val resultMap = S3ConfigDef.config.parse(DeprecatedProps.asJava).asScala
-    resultMap should have size (16)
+    resultMap should have size 18
     DeprecatedProps.filterNot { case (k, _) => k == KCQL_CONFIG }.foreach { case (k, _) => resultMap.get(k) should be(None) }
     DefaultProps.foreach { case (k, _) => resultMap.keySet.contains(k) should be(true) }
   }

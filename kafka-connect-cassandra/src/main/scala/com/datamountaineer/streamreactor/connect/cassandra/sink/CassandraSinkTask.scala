@@ -26,7 +26,7 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.{Failure, Success, Try}
 
 
@@ -83,7 +83,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
     logger.info("Stopping Cassandra sink.")
     writer.foreach(w => w.close())
     if (enableProgress) {
-      progressCounter.empty
+      progressCounter.empty()
     }
   }
 

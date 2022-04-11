@@ -18,7 +18,7 @@
 
 package com.datamountaineer.streamreactor.connect.jms.sink
 
-import com.datamountaineer.streamreactor.connect.jms.{TestBase, Using}
+import com.datamountaineer.streamreactor.connect.jms.{SlowTest, TestBase, Using}
 import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
@@ -32,6 +32,7 @@ import java.io.File
 import java.util
 import java.util.UUID
 import javax.jms.{Message, MessageListener, Session, TextMessage}
+import scala.language.reflectiveCalls
 import scala.reflect.io.Path
 
 
@@ -47,17 +48,17 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfterAll with Mo
   val tempDir = System.getProperty(property)
   broker.setDataDirectoryFile( new File(tempDir))
 
-  override def beforeAll {
+  override def beforeAll(): Unit = {
     broker.start()
   }
 
 
   override def afterAll(): Unit = {
     broker.stop()
-    Path(AVRO_FILE).delete()
+    val _ = Path(AVRO_FILE).delete()
   }
 
-  "JMSSinkTask write records to JMS" in {
+  "JMSSinkTask write records to JMS" taggedAs SlowTest in {
 
       val kafkaTopic1 = s"kafka1-${UUID.randomUUID().toString}"
       val kafkaTopic2 = s"kafka2-${UUID.randomUUID().toString}"

@@ -1,0 +1,4 @@
+-Xmx4G
+-Xms512m 
+-Xss2m 
+-XX:MaxInlineLevel=18

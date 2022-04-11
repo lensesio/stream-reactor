@@ -28,14 +28,18 @@ import org.apache.kudu.client.SessionConfiguration.FlushMode
 import org.apache.kudu.client._
 import org.mockito.ArgumentMatchers.{any, eq => mockEq}
 import org.mockito.MockitoSugar
+import org.scalatest.EitherValues
 
-import scala.collection.JavaConverters._
+import scala.annotation.nowarn
+import scala.jdk.CollectionConverters.SeqHasAsJava
+
 
 /**
   * Created by andrew@datamountaineer.com on 04/03/16.
   * stream-reactor
   */
-class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with ConverterUtil {
+@nowarn
+class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with ConverterUtil with EitherValues {
   "A Kudu Writer should write" in {
     val kcql = mock[Kcql]
     val bucketing = mock[Bucketing]
@@ -95,9 +99,10 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     val topic = "sink_test"
     val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
+    @nowarn
     val payload = convertFromStringAsJson(record, Map.empty, Set.empty)
 
-    val kuduSchema = convertToKuduSchemaFromJson(payload.right.get.converted, topic)
+    val kuduSchema = convertToKuduSchemaFromJson(payload.value.converted, topic)
     val kuduRow = kuduSchema.newPartialRow()
 
     //mock out kudu client
@@ -185,9 +190,10 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     val topic = "sink_test"
     val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
+    @nowarn
     val payload = convertFromStringAsJson(record, Map.empty, Set.empty)
 
-    val kuduSchema = convertToKuduSchemaFromJson(payload.right.get.converted, topic)
+    val kuduSchema = convertToKuduSchemaFromJson(payload.value.converted, topic)
     val kuduRow = kuduSchema.newPartialRow()
 
     //mock out kudu client

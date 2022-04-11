@@ -5,7 +5,8 @@ import org.apache.pulsar.client.api.SubscriptionType
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
+
 
 /**
   * Created by andrew@datamountaineer.com on 23/01/2018. 

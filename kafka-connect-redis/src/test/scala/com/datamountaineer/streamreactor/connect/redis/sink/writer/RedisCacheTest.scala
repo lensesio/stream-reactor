@@ -27,10 +27,13 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.testcontainers.containers.{FixedHostPortGenericContainer, GenericContainer}
 import redis.clients.jedis.Jedis
 
-import scala.collection.JavaConverters._
+import scala.annotation.nowarn
+import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
+
 
 class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
+  @nowarn
   val redisContainer: GenericContainer[_] = new FixedHostPortGenericContainer("redis:6-alpine")
     .withFixedExposedPort(6379, 6379)
 
@@ -245,7 +248,7 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
       writer.createClient(settings)
       writer.write(Seq(nickRecord))
 
-      val key = nick.get("firstName") + RedisConfigConstants.REDIS_PK_DELIMITER_DEFAULT_VALUE + nickJr.get("firstName")
+      val key = nick.get("firstName").toString + RedisConfigConstants.REDIS_PK_DELIMITER_DEFAULT_VALUE + nickJr.get("firstName").toString
       val nickValue = jedis.get(key)
       key shouldBe "Nick.Nick_Junior"
       nickValue should not be null
@@ -262,7 +265,7 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
 
       writer.write(Seq(nickRecord))
 
-      val key = nick.get("firstName") + delimiter + nickJr.get("firstName")
+      val key = nick.get("firstName").toString + delimiter + nickJr.get("firstName").toString
       val nickValue = jedis.get(key)
       key shouldBe "Nick-Nick_Junior"
       nickValue should not be null
@@ -279,7 +282,7 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
 
       writer.write(Seq(nickRecord))
 
-      val key = nick.get("firstName") + delimiter + nickJr.get("firstName")
+      val key = nick.get("firstName").toString + delimiter + nickJr.get("firstName").toString
       val nickValue = jedis.get(key)
       key shouldBe "Nick$Nick_Junior"
       nickValue shouldBe null

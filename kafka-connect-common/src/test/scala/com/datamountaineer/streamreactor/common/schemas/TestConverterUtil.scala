@@ -16,7 +16,6 @@
 
 package com.datamountaineer.streamreactor.common.schemas
 
-import com.datamountaineer.kcql.WriteModeEnum
 import com.datamountaineer.streamreactor.common.TestUtilsBase
 import com.datamountaineer.streamreactor.common.config.base.settings.Projections
 import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
@@ -27,12 +26,14 @@ import org.apache.kafka.connect.json.JsonConverter
 import org.apache.kafka.connect.sink.SinkRecord
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.annotation.nowarn
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SeqHasAsJava}
 
 /**
   * Created by andrew@datamountaineer.com on 29/02/16.
   * stream-reactor
   */
+@nowarn
 class TestConverterUtil extends TestUtilsBase with ConverterUtil {
 
   "ConverterUtil" should {

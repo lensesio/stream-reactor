@@ -9,7 +9,7 @@ import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisKCQLSet
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.control.Exception.allCatch
 import scala.util.{Failure, Success, Try}
 

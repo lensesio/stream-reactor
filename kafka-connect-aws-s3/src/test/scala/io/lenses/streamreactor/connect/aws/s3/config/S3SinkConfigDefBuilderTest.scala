@@ -20,8 +20,8 @@ import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
 import scala.concurrent.duration.DurationInt
+import scala.jdk.CollectionConverters.{IteratorHasAsScala, MapHasAsJava}
 
 class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 

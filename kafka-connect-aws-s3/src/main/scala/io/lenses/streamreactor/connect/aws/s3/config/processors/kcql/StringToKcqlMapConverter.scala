@@ -41,7 +41,7 @@ object StringToKcqlMapConverter {
         kcqlProp => kcqlProp.kcqlToString(kcql) match {
           case Some("use_profile") => None
           case Some("USE_PROFILE") => None
-          case Some(value) => Some(kcqlProp, value)
+          case Some(value) => Some((kcqlProp, value))
           case None => None
         }
       )

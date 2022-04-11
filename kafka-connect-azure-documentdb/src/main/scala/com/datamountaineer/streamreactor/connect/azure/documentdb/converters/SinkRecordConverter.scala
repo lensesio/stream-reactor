@@ -28,7 +28,7 @@ import java.text.SimpleDateFormat
 import java.util
 import java.util.TimeZone
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 object SinkRecordConverter {
   private val ISO_DATE_FORMAT: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -128,7 +128,7 @@ object SinkRecordConverter {
     if (objectMode) {
 
       val obj: Document = new Document()
-      buildContentForMapSource(schema, map) { case (key, value) =>
+      buildContentForMapSource(schema, map) { case (_, value) =>
         obj.set(map.toString, value)
       }
       obj
@@ -138,7 +138,7 @@ object SinkRecordConverter {
         val innerArray = new util.ArrayList[Any]()
         innerArray.add(key)
         innerArray.add(value)
-        list.add(innerArray)
+        val _ = list.add(innerArray)
       }
       list
     }
@@ -194,6 +194,7 @@ object SinkRecordConverter {
           case JLong(l) => l
           case JString(s) => s
           case arr: JArray => convertArray(arr)
+          case other => throw new NotImplementedError(s"match for $other (${other.getClass}) type not implemented")
         }.foreach(list.add)
         list
       }
@@ -209,6 +210,7 @@ object SinkRecordConverter {
         case JNull => null
         case JString(s) => s
         case JObject(values) => values.foldLeft(new Document) { case (d, (n, j)) => convert(n, j, d) }
+        case other => throw new NotImplementedError(s"match for $other (${other.getClass}) type not implemented")
       }
       Option(value).map { v =>
         document.set(name, v)
@@ -218,7 +220,10 @@ object SinkRecordConverter {
 
     record match {
       case jobj: JObject =>
-        jobj.obj.foldLeft(new Document) { case (d, JField(n, j)) => convert(n, j, d) }
+        jobj.obj.foldLeft(new Document) {
+          case (d, JField(n, j)) => convert(n, j, d)
+          case other => throw new NotImplementedError(s"match for $other (${other.getClass}) type not implemented")
+        }
       case _ => throw new IllegalArgumentException("Can't convert invalid json!")
     }
   }

@@ -24,7 +24,9 @@ import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.annotation.nowarn
+import scala.jdk.CollectionConverters.SetHasAsJava
+
 
 /**
   * Created by andrew@datamountaineer.com on 29/12/2016.
@@ -47,6 +49,7 @@ class TestCoapSink extends AnyWordSpec  with BeforeAndAfter with TestBase with M
     task.start(props)
     val records = getTestRecords(10)
 
+    @nowarn
     val json = records.map(r => SinkRecordToJson(r, Map.empty, Map.empty))
     task.put(records.asJava)
     val client = new CoapClient(s"$SINK_URI_INSECURE/$RESOURCE_INSECURE")

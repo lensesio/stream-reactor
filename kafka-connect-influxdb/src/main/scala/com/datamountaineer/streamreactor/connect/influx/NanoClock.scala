@@ -8,8 +8,8 @@ import java.time.{Clock, Instant, ZoneId}
   * @param clock
   */
 class NanoClock(val clock: Clock){
-  private var initialNanos = getSystemNanos
-  private var initialInstant:Instant = clock.instant()
+  private val initialNanos = getSystemNanos
+  private val initialInstant:Instant = clock.instant()
 
   def this() = {
     this(Clock.systemUTC)
@@ -21,9 +21,9 @@ class NanoClock(val clock: Clock){
 
   def withZone(zone: ZoneId) = new NanoClock(clock.withZone(zone))
 
-  def getEpochNanos = {
+  def getEpochNanos: Long = {
     val now = instant
-    now.toEpochMilli * 1000000l + (now.getLong(ChronoField.NANO_OF_SECOND)%1000000)
+    now.toEpochMilli * 1000000L + (now.getLong(ChronoField.NANO_OF_SECOND)%1000000)
   }
   private def getSystemNanos = System.nanoTime
 }

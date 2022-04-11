@@ -28,7 +28,7 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.util.{Failure, Success, Try}
 
 object SinkRecordConverterHelper extends StrictLogging {
@@ -172,7 +172,7 @@ object SinkRecordConverterHelper extends StrictLogging {
     //handle json no schema
     private def toStructFromJson(payload: Object): Struct = {
       Try(payload.asInstanceOf[java.util.HashMap[String, Any]]) match {
-        case Success(map) =>
+        case Success(_) =>
           convert(new ObjectMapper().writeValueAsString(payload))
 
         case Failure(_) =>

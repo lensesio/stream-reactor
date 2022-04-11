@@ -1,6 +1,6 @@
 package com.landoop.streamreactor.connect.hive.sink.staging
 
-import com.landoop.streamreactor.connect.hive.{Offset, Topic, TopicPartitionOffset}
+import com.landoop.streamreactor.connect.hive.{Offset, SlowTest, Topic, TopicPartitionOffset}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, LocalFileSystem, Path}
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -27,7 +27,7 @@ class DefaultCommitPolicyTest extends AnyWordSpec with Matchers {
   }
 
   "DefaultCommitPolicy" should {
-    "roll over after interval" in {
+    "roll over after interval" taggedAs SlowTest in {
 
       val policy = DefaultCommitPolicy(None, Option(2.seconds), None)
       val path = new Path("foo")

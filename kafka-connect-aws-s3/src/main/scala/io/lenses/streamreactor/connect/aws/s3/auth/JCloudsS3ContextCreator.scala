@@ -82,6 +82,12 @@ class JCloudsS3ContextCreator(credentialsProviderFn: () => AwsCredentialsProvide
     }
     overrides.put(org.jclouds.Constants.PROPERTY_MAX_RETRIES, awsConfig.httpRetryConfig.numberOfRetries.toString)
     overrides.put(org.jclouds.Constants.PROPERTY_RETRY_DELAY_START, awsConfig.httpRetryConfig.errorRetryInterval.toString)
+    awsConfig.timeouts.socketTimeout.foreach{
+      overrides.put(org.jclouds.Constants.PROPERTY_SO_TIMEOUT, _)
+    }
+    awsConfig.timeouts.connectionTimeout.foreach{
+      overrides.put(org.jclouds.Constants.PROPERTY_CONNECTION_TIMEOUT, _)
+    }
     overrides
   }
 

@@ -70,48 +70,62 @@ Please see the *[Stream Reactor Release Notes at Lenses Documentation](https://d
 
 ### Building
 
-***Requires gradle 6.0 to build.***
-
-To build
+To build:
 
 ```bash
-gradle compile
+sbt clean compile
 ```
 
-To test
+To test:
 
 ```bash
-gradle test
+sbt test
 ```
 
-To create a fat jar
+To create assemblies:
 
 ```bash
-gradle shadowJar
+sbt assembly
 ```
 
-You can also use the gradle wrapper
+To build a particular project:
 
-```
-./gradlew shadowJar
-```
-
-To view dependency trees
-
-```
-gradle dependencies # or
-gradle :kafka-connect-cassandra:dependencies
+```bash
+sbt "project cassandra-kafka-2-8" compile
 ```
 
-To build a particular project
+To test a particular project:
 
+```bash
+sbt "project cassandra-kafka-2-8" test
 ```
-gradle :kafka-connect-elastic5:build
-```
+
 To create a jar of a particular project:
 
+```bash
+sbt "project cassandra-kafka-2-8" assembly
 ```
-gradle :kafka-connect-elastic5:shadowJar
+
+### Running E2E tests
+
+If not already built, you must first build the connector archives:
+
+```bash
+sbt "project cassandra-kafka-2-8" assembly
+sbt "project elastic6-kafka-2-8" assembly 
+sbt "project mongodb-kafka-2-8" assembly
+sbt "project redis-kafka-2-8" assembly
+
+sbt "project cassandra-kafka-3-1" assembly 
+sbt "project elastic6-kafka-3-1" assembly 
+sbt "project mongodb-kafka-3-1" assembly 
+sbt "project redis-kafka-3-1" assembly
+```
+
+To run the tests:
+
+```bash
+sbt e2e:test
 ```
 
 ## Contributing

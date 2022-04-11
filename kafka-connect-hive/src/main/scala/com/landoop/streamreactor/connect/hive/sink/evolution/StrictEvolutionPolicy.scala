@@ -5,7 +5,7 @@ import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
 /**

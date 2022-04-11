@@ -21,15 +21,14 @@ import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.aws.s3.sink.config.{OffsetSeekerOptions, S3SinkConfig, SinkBucketOptions}
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfig {
+class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
-  import S3ProxyContext._
   import helper._
   import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 
@@ -89,7 +88,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
     val sink = S3WriterManager.from(config, "sinkName")
     firstUsers.zipWithIndex.foreach {
-      case (struct: Struct, index: Int) => sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
+      case (struct: Struct, index: Int) => sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
     }
 
     sink.close()

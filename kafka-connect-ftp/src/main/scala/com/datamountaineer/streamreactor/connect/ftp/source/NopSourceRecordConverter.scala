@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.ftp.source
 import org.apache.kafka.connect.source.SourceRecord
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
   * Created by andrew@datamountaineer.com on 31/08/2017. 

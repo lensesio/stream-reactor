@@ -226,12 +226,6 @@ public class SimpleJsonConverter {
     }
   }
 
-
-
-  private interface JsonToConnectTypeConverter {
-    Object convert(Schema schema, JsonNode value);
-  }
-
   private interface LogicalTypeConverter {
     Object convert(Schema schema, Object value);
   }

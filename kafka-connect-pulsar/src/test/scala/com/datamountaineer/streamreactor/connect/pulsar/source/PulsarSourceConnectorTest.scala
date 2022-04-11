@@ -5,7 +5,7 @@ import org.apache.kafka.common.config.ConfigException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
   * Created by andrew@datamountaineer.com on 24/01/2018. 

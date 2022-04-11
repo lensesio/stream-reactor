@@ -28,6 +28,8 @@ import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
 
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 /**
   * Experimental
   */
@@ -116,7 +118,6 @@ object JsonConverterWithSchemaEvolution {
         }.toMap
         val schema = builder.build()
 
-        import scala.collection.JavaConverters._
         aggregatedSchema
           .foreach { schema =>
             schema.fields().asScala
@@ -130,6 +131,7 @@ object JsonConverterWithSchemaEvolution {
         fields.foreach { case (field, v) => struct.put(field, v) }
 
         new SchemaAndValue(schema, struct)
+      case other => throw new IllegalStateException(s"Unexpected state: $other")
     }
   }
 }

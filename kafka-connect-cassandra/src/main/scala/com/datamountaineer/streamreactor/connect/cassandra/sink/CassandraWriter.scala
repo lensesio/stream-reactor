@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
-import com.datamountaineer.streamreactor.common.errors.{ErrorPolicyEnum, RetryErrorPolicy}
+import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink, CassandraSettings}
 import com.typesafe.scalalogging.StrictLogging

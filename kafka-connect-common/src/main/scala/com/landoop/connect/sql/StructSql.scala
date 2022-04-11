@@ -16,14 +16,13 @@
 package com.landoop.connect.sql
 
 import java.util
-
 import com.landoop.connect.sql.StructSchemaSql._
 import com.landoop.sql.{Field, SqlContext}
 import org.apache.calcite.sql.SqlSelect
 import org.apache.kafka.connect.data.{Schema, Struct}
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.{Failure, Success, Try}
 
 object StructSql extends FieldValueGetter {
@@ -119,7 +118,7 @@ object StructSql extends FieldValueGetter {
       }
 
       val newStruct = new Struct(newSchema)
-      fields.zipWithIndex.foreach { case (field, index) =>
+      fields.zipWithIndex.foreach { case (field, _) =>
         if (field.name == "*") {
           val sourceFields = struct.schema().getFields(Option(field.parents).getOrElse(Seq.empty))
           val key = Option(field.parents).map(_.mkString(".")).getOrElse("")
@@ -222,7 +221,7 @@ object StructSql extends FieldValueGetter {
         //check if there are keys for this
         val fields = sqlContext.getFieldsForPath(parents)
         val initialMap = {
-          if (fields.exists(f => f.isLeft && f.left.get.name == "*")) {
+          if (fields.exists(f => f.isLeft && f.left.exists(_.name == "*"))) {
             map.keySet().asScala.map(k => k.toString -> k.toString).toMap
           } else {
             Map.empty[String, String]
@@ -230,14 +229,14 @@ object StructSql extends FieldValueGetter {
         }
 
         fields.headOption.map { _ =>
-          fields.filterNot(f => f.isLeft && f.left.get.name != "*")
+          fields.filterNot(f => f.isLeft && f.left.exists(_.name != "*"))
             .foldLeft(initialMap) {
               case (m, Left(f)) => m + (f.name -> f.alias)
               case (m, Right(f)) => m + (f -> f)
             }
         }
           .getOrElse(map.keySet().asScala.map(k => k.toString -> k.toString).toMap)
-          .foreach { case (key, alias) =>
+          .foreach { case (key, _) =>
             Option(map.get(key)).foreach { v =>
               newMap.put(
                 from(key, Schema.STRING_SCHEMA, Schema.STRING_SCHEMA, null).asInstanceOf[String],
@@ -253,7 +252,6 @@ object StructSql extends FieldValueGetter {
              targetSchema: Schema,
              parents: Seq[String])(implicit kcqlContext: SqlContext): Any = {
       Option(from).map { _ =>
-        implicit val s = fromSchema
         fromSchema.`type`() match {
           case Schema.Type.BOOLEAN |
                Schema.Type.FLOAT64 | Schema.Type.FLOAT32 |

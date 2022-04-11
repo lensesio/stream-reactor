@@ -3,7 +3,8 @@ package com.landoop.streamreactor.connect.hive
 import org.apache.hadoop.hive.metastore.api.{FieldSchema, Table}
 import org.apache.kafka.connect.data.{Field, Schema, SchemaBuilder}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 /**
   * Conversions to and from hive types into kafka connect types.
@@ -35,7 +36,7 @@ object HiveSchemas {
 
   def toFieldSchemas(schema: Schema): Seq[FieldSchema] = {
     require(schema.`type`() == Schema.Type.STRUCT)
-    schema.fields.asScala.map(toFieldSchema)
+    schema.fields.asScala.map(toFieldSchema).toSeq
   }
 
   def toFieldSchema(field: Field): FieldSchema = new FieldSchema(field.name, toHiveType(field.schema), null)
@@ -58,7 +59,7 @@ object HiveSchemas {
     }
   }
 
-  def toKafka(table: Table): Schema = toKafka(table.getSd.getCols.asScala, table.getPartitionKeys.asScala, table.getTableName)
+  def toKafka(table: Table): Schema = toKafka(table.getSd.getCols.asScala.toSeq, table.getPartitionKeys.asScala.toSeq, table.getTableName)
 
   def toKafka(cols: Seq[FieldSchema], partitionKeys: Seq[FieldSchema], name: String): Schema = {
     val builder = SchemaBuilder.struct.name(name).optional()

@@ -80,6 +80,14 @@ object S3ConfigSettings {
   val HTTP_NBR_OF_RETRIES_DOC = "Number of times to retry the http request, in the case of a resolvable error on the server side."
   val HTTP_NBR_OF_RETIRES_DEFAULT: Int = 5
 
+  val HTTP_SOCKET_TIMEOUT = s"$CONNECTOR_PREFIX.http.socket.timeout"
+  val HTTP_SOCKET_TIMEOUT_DOC = "Socket timeout (ms)"
+  val HTTP_SOCKET_TIMEOUT_DEFAULT = 60000L
+
+  val HTTP_CONNECTION_TIMEOUT = s"$CONNECTOR_PREFIX.http.connection.timeout"
+  val HTTP_CONNECTION_TIMEOUT_DOC = "Connection timeout (ms)"
+  val HTTP_CONNECTION_TIMEOUT_DEFAULT = 60000
+  
   val SEEK_MIGRATION = s"$CONNECTOR_PREFIX.seek.migration.enabled"
   val SEEK_MIGRATION_DOC = "Migration mode, from legacy to optimised sink seek method.  This will be deprecated and removed in a future version."
   val SEEK_MIGRATION_DEFAULT = false
@@ -87,4 +95,5 @@ object S3ConfigSettings {
   val SEEK_MAX_INDEX_FILES = s"$CONNECTOR_PREFIX.seek.max.files"
   val SEEK_MAX_INDEX_FILES_DOC = s"Maximum index files to allow per topic/partition.  Advisable to not raise this: if a large number of files build up this means there is a problem with file deletion."
   val SEEK_MAX_INDEX_FILES_DEFAULT = 5
+  
 }

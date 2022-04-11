@@ -4,14 +4,15 @@ import com.sksamuel.avro4s.{RecordFormat, SchemaFor, ToRecord}
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
   * Created by stefan on 16/04/2017.
   */
-class TransformationTests extends WordSpec with Matchers {
+class TransformationTests extends AnyWordSpec with Matchers {
   "Transformation" should {
     "handle records for which we haven't specified SQL" in {
       val t = new Transformation[SinkRecord]
@@ -33,11 +34,11 @@ class TransformationTests extends WordSpec with Matchers {
 
       val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
-      val toRecord = ToRecord[Pizza]
+      implicit val toRecord = ToRecord[LocalPizzaS]
       val record = RecordFormat[Pizza].to(pepperoni)
 
       val avroData = new AvroData(4)
-      val struct = avroData.toConnectData(SchemaFor[Pizza](), record).value.asInstanceOf[Struct]
+      val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
       val sr1 = new SinkRecord(topic1, 1, struct.schema(), struct, struct.schema(), struct, 991)
       val sr2 = new SinkRecord(topic2, 1, struct.schema(), struct, struct.schema(), struct, 128)
@@ -67,11 +68,11 @@ class TransformationTests extends WordSpec with Matchers {
 
       val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
-      val toRecord = ToRecord[Pizza]
+      implicit val toRecord = ToRecord[LocalPizzaS]
       val record = RecordFormat[Pizza].to(pepperoni)
 
       val avroData = new AvroData(4)
-      val struct = avroData.toConnectData(SchemaFor[Pizza](), record).value.asInstanceOf[Struct]
+      val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
       val sr1 = new SinkRecord(topic1, 1, struct.schema(), struct, struct.schema(), struct, 991)
       val sr2 = new SinkRecord(topic2, 1, struct.schema(), struct, struct.schema(), struct, 128)
@@ -94,13 +95,13 @@ class TransformationTests extends WordSpec with Matchers {
 
   private def compare[T](actual: Struct, t: T)(implicit schemaFor: SchemaFor[T], toRecord: ToRecord[T]) = {
     val avroData = new AvroData(4)
-    val expectedSchema = avroData.toConnectSchema(schemaFor()).toString
+    val expectedSchema = avroData.toConnectSchema(schemaFor.schema).toString
       .replace("LocalPizzaS", "Pizza")
       .replace("LocalIngredientS", "Ingredient")
 
     actual.schema.toString shouldBe expectedSchema
 
-    val expectedRecord = avroData.toConnectData(schemaFor(), toRecord.apply(t)).value()
+    val expectedRecord = avroData.toConnectData(schemaFor.schema, toRecord.to(t)).value()
 
     actual.toString shouldBe expectedRecord.toString
   }

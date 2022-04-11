@@ -33,7 +33,7 @@ case class ICacheWriter(client: HazelcastInstance, topic: String, settings: Haze
 
   override def write(record: SinkRecord): Unit = cacheWriter.put(buildPKs(record), convert(record))
 
-  override def close: Unit = {
+  override def close(): Unit = {
     cacheWriter.close()
     cacheManager.close()
   }

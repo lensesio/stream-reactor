@@ -21,18 +21,18 @@ import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticSettings
 import com.datamountaineer.streamreactor.connect.elastic6.indexname.CreateIndex.getIndexName
 import com.sksamuel.elastic4s.bulk.BulkRequest
 import com.sksamuel.elastic4s.http.bulk.BulkResponse
-import com.sksamuel.elastic4s.http.{ElasticClient, ElasticNodeEndpoint, ElasticProperties, Response}
+import com.sksamuel.elastic4s.http._
 import com.sksamuel.elastic4s.mappings.MappingDefinition
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.http.auth.{AuthScope, UsernamePasswordCredentials}
-import org.apache.http.client.config.RequestConfig.Builder
 import org.apache.http.impl.client.BasicCredentialsProvider
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder
+import org.elasticsearch.client.RestClientBuilder.HttpClientConfigCallback
 
 import scala.concurrent.Future
 
 trait KElasticClient extends AutoCloseable {
-  def index(kcql: Kcql)
+  def index(kcql: Kcql): Unit
 
   def execute(definition: BulkRequest): Future[Any]
 }
@@ -48,11 +48,15 @@ object KElasticClient extends StrictLogging {
         provider.setCredentials(AuthScope.ANY, credentials)
         provider
       }
-
+      val callback = new HttpClientConfigCallback {
+        override def customizeHttpClient(httpClientBuilder: HttpAsyncClientBuilder): HttpAsyncClientBuilder = {
+          httpClientBuilder.setDefaultCredentialsProvider(provider)
+        }
+      }
       val client: ElasticClient = ElasticClient(
         ElasticProperties(endpoints),
-        (requestConfigBuilder: Builder) => requestConfigBuilder,
-        (httpClientBuilder: HttpAsyncClientBuilder) => httpClientBuilder.setDefaultCredentialsProvider(provider)
+        requestConfigCallback = NoOpRequestConfigCallback,
+        httpClientConfigCallback = callback
       )
       new HttpKElasticClient(client)
     } else {
@@ -76,6 +80,7 @@ class HttpKElasticClient(client: ElasticClient) extends KElasticClient {
         case Some(documentType) => createIndex(indexName).mappings(MappingDefinition(documentType))
       }
     }
+    ()
   }
 
   override def execute(definition: BulkRequest): Future[Response[BulkResponse]] = client.execute(definition)

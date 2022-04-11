@@ -17,13 +17,14 @@
 package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSinkConfig, HazelCastSinkConfigConstants}
-import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, MessageListenerImplJson, TestBase}
+import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, MessageListenerImplJson, SlowTest, TestBase}
 import com.hazelcast.config.{Config, GroupConfig}
 import com.hazelcast.core.{Hazelcast, ITopic}
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.SeqHasAsJava
+
 
 /**
   * Created by andrew@datamountaineer.com on 12/08/16. 
@@ -31,7 +32,7 @@ import scala.collection.JavaConverters._
   */
 class TestHazelCastSinkTask extends TestBase with MockitoSugar {
 
-  "should start SinkTask and write json" in {
+  "should start SinkTask and write json" taggedAs SlowTest in {
     val configApp1 = new Config()
     configApp1.setProperty( "hazelcast.logging.type", "slf4j" )
     val gc = new  GroupConfig(TESTS_GROUP_NAME, HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DEFAULT)

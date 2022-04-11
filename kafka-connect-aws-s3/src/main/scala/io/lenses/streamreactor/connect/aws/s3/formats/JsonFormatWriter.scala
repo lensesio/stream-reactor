@@ -24,7 +24,7 @@ import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.kafka.connect.json.JsonConverter
 
 import java.nio.charset.StandardCharsets
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
 
 class JsonFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter {

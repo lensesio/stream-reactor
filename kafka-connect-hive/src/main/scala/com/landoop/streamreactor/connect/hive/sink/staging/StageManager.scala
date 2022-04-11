@@ -1,6 +1,5 @@
 package com.landoop.streamreactor.connect.hive.sink.staging
 
-import com.landoop.streamreactor.connect.hive.formats.HiveWriter
 import com.landoop.streamreactor.connect.hive.{TopicPartition, TopicPartitionOffset}
 import org.apache.hadoop.fs.{FileSystem, Path}
 

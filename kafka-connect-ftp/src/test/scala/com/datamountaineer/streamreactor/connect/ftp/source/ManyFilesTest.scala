@@ -7,7 +7,8 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
+
 
 
 class ManyFilesTest extends AnyFunSuite with Matchers with BeforeAndAfter with StrictLogging {
@@ -38,7 +39,7 @@ class ManyFilesTest extends AnyFunSuite with Matchers with BeforeAndAfter with S
   )
 
 
-  test("Read only FtpMaxPollRecords even if using MonitorSliceSize") {
+  test("Read only FtpMaxPollRecords even if using MonitorSliceSize", SlowTest) {
     val fs = new FileSystem(ftpServer.rootDir).clear()
     val cfg = new FtpSourceConfig(sourceConfig.asJava)
     val offsets = new DummyOffsetStorage

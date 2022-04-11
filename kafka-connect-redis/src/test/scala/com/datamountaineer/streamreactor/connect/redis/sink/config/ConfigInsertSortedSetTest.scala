@@ -20,7 +20,8 @@ import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSup
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala}
+
 
 /**
   * Using INSERT we can store data from one Kafka topic into one Redis Sorted Set (SS)

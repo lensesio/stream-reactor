@@ -29,7 +29,7 @@ import org.influxdb.dto.{BatchPoints, Point}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala, SeqHasAsJava}
 import scala.util.Try
 
 
@@ -94,7 +94,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
         query = s"INSERT INTO $measurement SELECT * FROM $topic"
       )
 
-      f.batchPoints shouldBe 'Success
+      f.batchPoints.isSuccess shouldBe (true)
       val points = f.batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -307,7 +307,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
 
       val result = builder.build(Seq(record))
-      result shouldBe 'Failure
+      result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[RuntimeException]
     }
 
@@ -486,7 +486,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
         s"INSERT INTO $measurement SELECT * FROM $topic"
       )
 
-      f.batchPoints shouldBe 'Failure
+      f.batchPoints shouldBe Symbol("Failure")
       f.batchPoints.failed.get shouldBe a[RuntimeException]
     }
 
@@ -511,7 +511,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
         jsonPayload,
         s"INSERT INTO $measurement SELECT * FROM $topic"
       )
-      f.batchPoints shouldBe 'Failure
+      f.batchPoints shouldBe Symbol("Failure")
       f.batchPoints.failed.get shouldBe a[RuntimeException]
     }
 
@@ -541,7 +541,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       )
 
       val result = f.batchPoints
-      result shouldBe 'Failure
+      result shouldBe Symbol("Failure")
       result.failed.get shouldBe an[IllegalArgumentException]
     }
 
@@ -936,7 +936,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
         s"INSERT INTO $measurement SELECT * FROM $topic"
       )
       val result = f.batchPoints
-      result shouldBe 'Failure
+      result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[RuntimeException]
     }
 
@@ -964,7 +964,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
         s"INSERT INTO $measurement SELECT * FROM $topic"
       )
       val result = f.batchPoints
-      result shouldBe 'Failure
+      result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[RuntimeException]
     }
 
@@ -1027,7 +1027,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       map("_id") shouldBe "580151bca6f3a2f0577baaac"
       map("renamed") shouldBe 0
       map("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
-      map.get("index") shouldBe 'Empty
+      map.get("index") shouldBe Symbol("Empty")
     }
 
     "correctly select the field if body and key have the same field name" in {
@@ -1088,7 +1088,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
 
       map("_id") shouldBe "580151bca6f3a2f0577baaac"
       map("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
-      map.get("index") shouldBe 'Empty
+      map.get("index") shouldBe Symbol("Empty")
     }
 
     "allow ignoring fully qualified key fields" in {
@@ -1118,7 +1118,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
 
       map("_id") shouldBe "580151bca6f3a2f0577baaac"
       map("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
-      map.get("index") shouldBe 'Empty
+      map.get("index") shouldBe Symbol("Empty")
     }
 
     "flatten sink record arrays" in {
@@ -1148,7 +1148,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
 
       val result = builder.build(Seq(sinkRecord, sinkRecordEmptyArray))
-      result shouldBe 'Success
+      result shouldBe Symbol("Success")
       val points = result.get.getPoints
       points.size shouldBe 2
 

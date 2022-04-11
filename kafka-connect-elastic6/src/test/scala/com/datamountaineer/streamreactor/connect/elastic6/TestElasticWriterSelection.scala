@@ -16,10 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.elastic6
 
-import java.util.UUID
+import com.datamountaineer.streamreactor.connect.elastic6.CreateLocalNodeClientUtil.createLocalNode
 
-import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
-import com.sksamuel.elastic4s.embedded.LocalNode
+import java.util.UUID
+import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticSettings}
+import com.sksamuel.elastic4s.http.ElasticClient
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
@@ -28,7 +29,7 @@ import scala.reflect.io.File
 
 
 class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
-  "A ElasticWriter should insert into Elastic Search a number of records" in {
+  "A ElasticWriter should insert into Elastic Search a number of records" taggedAs SlowTest in {
 
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
@@ -36,12 +37,12 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
     //get test records
-    val testRecords = getTestRecords
+    val testRecords = getTestRecords()
     //get config
     val config = new ElasticConfig(getElasticSinkConfigPropsSelection())
 
-    val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
-    val client = localNode.client(true)
+    val localNode = createLocalNode()
+    val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     //get writer
 
     val settings = ElasticSettings(config)
@@ -61,7 +62,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     TMP.deleteRecursively()
   }
 
-  "A ElasticWriter should insert into Elastic Search a number of records when nested fields are selected" in {
+  "A ElasticWriter should insert into Elastic Search a number of records when nested fields are selected" taggedAs SlowTest in {
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
     //mock the context to return our assignment when called
@@ -72,8 +73,8 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get config
     val config = new ElasticConfig( getBaseElasticSinkConfigProps(s"INSERT INTO $INDEX SELECT id, nested.string_field FROM $TOPIC"))
 
-    val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
-    val client = localNode.client(true)
+    val localNode = createLocalNode()
+    val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     //get writer
 
     val settings = ElasticSettings(config)
@@ -93,19 +94,19 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     TMP.deleteRecursively()
   }
 
-  "A ElasticWriter should update records in Elastic Search" in {
+  "A ElasticWriter should update records in Elastic Search" taggedAs SlowTest  in {
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
     //mock the context to return our assignment when called
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
     //get test records
-    val testRecords = getTestRecords
+    val testRecords = getTestRecords()
     //get config
     val config = new ElasticConfig(getElasticSinkUpdateConfigPropsSelection())
 
-    val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
-    val client = localNode.client(true)
+    val localNode = createLocalNode()
+    val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     val settings = ElasticSettings(config)
     val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //First run writes records to elastic
@@ -133,10 +134,11 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //close writer
     writer.close()
     client.close()
+    localNode.close()
     TMP.deleteRecursively()
   }
 
-  "A ElasticWriter should update records in Elastic Search with PK nested field" in {
+  "A ElasticWriter should update records in Elastic Search with PK nested field" taggedAs SlowTest in {
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
     //mock the context to return our assignment when called
@@ -147,8 +149,8 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get config
     val config = new ElasticConfig(getBaseElasticSinkConfigProps(s"UPSERT INTO $INDEX SELECT nested.id, string_field FROM $TOPIC PK nested.id"))
 
-    val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
-    val client = localNode.client(true)
+    val localNode = createLocalNode()
+    val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     val settings = ElasticSettings(config)
     val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //First run writes records to elastic
@@ -176,6 +178,8 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //close writer
     writer.close()
     client.close()
+    localNode.close()
+
     TMP.deleteRecursively()
   }
 }

@@ -21,7 +21,7 @@ import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 object MonitorMode extends Enumeration {
   type MonitorMode = Value
@@ -92,7 +92,7 @@ class FtpSourceConfig(props: util.Map[String, String])
     lazy val topicPathRegex = "([^:]*):(.*)".r
     getList(FtpSourceConfig.MonitorTail).asScala.map { case topicPathRegex(path, topic) => MonitorConfig(topic, path, mode = MonitorMode.Tail) } ++
       getList(FtpSourceConfig.MonitorUpdate).asScala.map { case topicPathRegex(path, topic) => MonitorConfig(topic, path, mode = MonitorMode.Update) }
-  }
+  }.toSeq
 
   def address(): (String, Option[Int]) = {
     lazy val hostIpRegex = "([^:]*):?([0-9]*)".r

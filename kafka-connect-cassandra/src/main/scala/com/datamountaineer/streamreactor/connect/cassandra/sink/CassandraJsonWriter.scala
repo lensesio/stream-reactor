@@ -32,8 +32,9 @@ import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
 import java.util.concurrent.Executors
-import scala.collection.JavaConverters._
+import scala.annotation.nowarn
 import scala.concurrent.duration._
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -54,7 +55,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
   CassandraUtils.checkCassandraTables(session.getCluster, settings.kcqls, session.getLoggedKeyspace)
   private var preparedCache = cachePreparedStatements
 
-  private var deleteCache = cacheDeleteStatement
+  private val deleteCache = cacheDeleteStatement
 
   private val deleteStructFields = settings.deleteStructFields
 
@@ -80,7 +81,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
           val table = k.getTarget
           val ttl = k.getTTL
           logger.info(s"Preparing statements for $topic->$table")
-          map + (table -> (getPreparedStatement(table, ttl).get, k))
+          map + (table -> ((getPreparedStatement(table, ttl).get, k)))
         }
 
         topic -> innerMap
@@ -101,7 +102,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     **/
   private def getPreparedStatement(table: String, ttl: Long): Option[PreparedStatement] = {
     val t: Try[PreparedStatement] = Try {
-      val sb = StringBuilder.newBuilder
+      val sb = new StringBuilder()
       sb.append(s"INSERT INTO ${session.getLoggedKeyspace}.$table JSON ?")
 
       if (settings.defaultValueStrategy.getOrElse(DefaultValueServeStrategy.NULL) == DefaultValueServeStrategy.UNSET)
@@ -134,7 +135,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
         preparedCache = cachePreparedStatements
       }
 
-      write(records.groupBy(r => new TopicPartition(r.topic(), r.kafkaPartition())))
+      val _ = write(records.groupBy(r => new TopicPartition(r.topic(), r.kafkaPartition())))
     }
   }
 
@@ -174,12 +175,13 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     }
   }
 
+  @nowarn
   private def insert(record: SinkRecord) = {
     val tables = preparedCache.getOrElse(record.topic(), throw new IllegalArgumentException(s"Topic ${record.topic()} doesn't have a KCQL setup"))
     tables.foreach { case (table, (statement, kcql)) =>
       val json = ToJsonWithProjections(
-        kcql.getFields.asScala.map(FieldConverter.apply),
-        kcql.getIgnoredFields.asScala.map(FieldConverter.apply),
+        kcql.getFields.asScala.map(FieldConverter.apply).toSeq,
+        kcql.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
         record.valueSchema(),
         record.value(),
         kcql.hasRetainStructure()).toString

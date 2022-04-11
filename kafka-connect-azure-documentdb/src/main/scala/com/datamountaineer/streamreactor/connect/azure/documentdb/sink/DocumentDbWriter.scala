@@ -28,6 +28,7 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTaskContext
 
+import scala.annotation.nowarn
 import scala.util.Failure
 
 /**
@@ -35,6 +36,7 @@ import scala.util.Failure
   * Azure DocumentDb Json writer for Kafka connect
   * Writes a list of Kafka connect sink records to Azure DocumentDb using the JSON support.
   */
+@nowarn
 class DocumentDbWriter(configMap: Map[String, Kcql], settings: DocumentDbSinkSettings, documentClient: DocumentClient) extends StrictLogging with ConverterUtil with ErrorHandler {
   //initialize error tracker
   initialize(settings.taskRetries, settings.errorPolicy)
@@ -49,7 +51,7 @@ class DocumentDbWriter(configMap: Map[String, Kcql], settings: DocumentDbSinkSet
     * */
   def write(records: Seq[SinkRecord]): Unit = {
     if (records.nonEmpty) {
-      insert(records)
+      val _ = insert(records)
     }
   }
 
@@ -75,6 +77,10 @@ class DocumentDbWriter(configMap: Map[String, Kcql], settings: DocumentDbSinkSet
 
             case WriteModeEnum.UPSERT =>
               documentClient.upsertDocument(s"dbs/${settings.database}/colls/${config.getTarget}", document, requestOptionsInsert, key.nonEmpty).getResource
+
+            case WriteModeEnum.UPDATE =>
+              // TODO: What behaviour?  Currently this was producing a matcher error
+              throw new NotImplementedError("this behaviour hasn't been implemented yet")
           }
         }
     }

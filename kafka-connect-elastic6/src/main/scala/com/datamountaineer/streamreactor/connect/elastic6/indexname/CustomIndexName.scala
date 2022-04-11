@@ -46,6 +46,7 @@ object CustomIndexName {
       case Vector() =>
         val maybeCurrentFragment = currentFragment.mkString.toOption
         (results :+ maybeCurrentFragment.map(TextFragment.apply)).flatten
+      case other => throw new IllegalStateException(s"Invalid match for $other")
     }
 
   def parseIndexName(indexName: String): CustomIndexName =

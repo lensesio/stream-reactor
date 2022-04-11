@@ -85,10 +85,11 @@ object MapValueConverter extends ValueConverter[Map[_, _]] {
 
   def convert(map: Map[_, _], optional: Boolean): Struct = {
     val builder = SchemaBuilder.struct()
-    val values = map.map { case (k, v) =>
-      val key = k.toString
-      val value = convertValue(v, key, builder)
-      key -> value
+    val values = map.map[String, Any] {
+      case (k, v) =>
+        val key = k.toString
+        val value = convertValue(v, key, builder)
+        key -> value
     }.toList
     if (optional) builder.optional()
     val schema = builder.build

@@ -23,7 +23,6 @@ package com.datamountaineer.streamreactor.connect.kudu
 
 import java.nio.ByteBuffer
 import java.util
-
 import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfigConstants
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
@@ -35,8 +34,8 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsScala}
 
 trait TestBase extends AnyWordSpec with BeforeAndAfter with Matchers {
   val TOPIC = "sink_test"
@@ -294,7 +293,7 @@ trait TestBase extends AnyWordSpec with BeforeAndAfter with Matchers {
     assignment.flatMap(a => {
       (1 to 1).map(i => {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i.toLong, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toSet
   }

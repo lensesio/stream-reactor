@@ -23,12 +23,11 @@ import java.io.File
 import java.util
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
-import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala}
 import scala.util.{Failure, Success, Try}
 
 class MqttSourceTask extends SourceTask with StrictLogging {
@@ -66,11 +65,10 @@ class MqttSourceTask extends SourceTask with StrictLogging {
 
     val convertersMap = settings.sourcesToConverters.map { case (topic, clazz) =>
       logger.info(s"Creating converter instance for $clazz")
-      val converter = Try(Class.forName(clazz).newInstance()) match {
+      val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
         case Success(value) => value.asInstanceOf[Converter]
         case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
       }
-      import scala.collection.JavaConverters._
       converter.initialize(conf.asScala.toMap)
       topic -> converter
     }
@@ -103,7 +101,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping Mqtt source.")
     mqttManager.foreach(_.close())
-    progressCounter.empty
+    progressCounter.empty()
   }
 
   override def version: String = manifest.version()

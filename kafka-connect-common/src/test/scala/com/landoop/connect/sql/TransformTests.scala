@@ -1,17 +1,17 @@
 package com.landoop.connect.sql
 
 import java.nio.ByteBuffer
-
 import com.landoop.json.sql.JacksonJson
-import com.sksamuel.avro4s.{RecordFormat, SchemaFor, ToRecord}
+import com.sksamuel.avro4s.{AvroSchema, RecordFormat, SchemaFor, ToRecord}
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.{Schema, Struct}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 /**
   * Will not test Kcql and Json-KCQL since it is covered already.
   */
-class TransformTests extends WordSpec with Matchers {
+class TransformTests extends AnyWordSpec with Matchers {
 
   private val avroData = new AvroData(2)
   "Transform" should {
@@ -260,12 +260,12 @@ class TransformTests extends WordSpec with Matchers {
     "handle struct" in {
       val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
-      val toRecord = ToRecord[Pizza]
+      implicit val toRecord = ToRecord[LocalPizzaS]
       val record = RecordFormat[Pizza].to(pepperoni)
 
-      val struct = avroData.toConnectData(SchemaFor[Pizza](), record).value.asInstanceOf[Struct]
+      val struct = avroData.toConnectData(AvroSchema[Pizza], record).value.asInstanceOf[Struct]
       val sql = Sql.parse("SELECT *, name as fieldName FROM topic withstructure")
-      val (schema, actual) = Transform(
+      val (_, actual) = Transform(
         sql,
         struct.schema(),
         struct,
@@ -280,13 +280,13 @@ class TransformTests extends WordSpec with Matchers {
   }
 
   private def compare[T](actual: Struct, t: T)(implicit schemaFor: SchemaFor[T], toRecord: ToRecord[T]) = {
-    val expectedSchema = avroData.toConnectSchema(schemaFor()).toString
+    val expectedSchema = avroData.toConnectSchema(schemaFor.schema).toString
       .replace("LocalPizzaS", "Pizza")
       .replace("LocalIngredientS", "Ingredient")
 
     actual.schema.toString shouldBe expectedSchema
 
-    val expectedRecord = avroData.toConnectData(schemaFor(), toRecord.apply(t)).value()
+    val expectedRecord = avroData.toConnectData(schemaFor.schema, toRecord.to(t)).value()
 
     actual.toString shouldBe expectedRecord.toString
   }

@@ -19,7 +19,6 @@ package com.datamountaineer.streamreactor.connect.elastic6
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter._
 import java.util
-
 import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticConfigConstants
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
@@ -29,8 +28,8 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsScala}
 
 trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
   val ELASTIC_SEARCH_HOSTNAMES = "localhost:9300"
@@ -121,7 +120,7 @@ trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
     assignment.flatMap(a => {
       (1 to 7).map(i => {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i.toLong, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toVector
   }
@@ -133,7 +132,7 @@ trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
     assignment.flatMap(a => {
       (1 to 7).map(i => {
         val record: Struct = createRecordNested(a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i.toLong, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toVector
   }
@@ -145,7 +144,7 @@ trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
     assignment.flatMap(a => {
       (1 to 2).map(i => {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i.toLong, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toVector
   }
@@ -157,7 +156,7 @@ trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
     assignment.flatMap(a => {
       (1 to 2).map(i => {
         val record: Struct = createRecordNested(a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i.toLong, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toVector
   }

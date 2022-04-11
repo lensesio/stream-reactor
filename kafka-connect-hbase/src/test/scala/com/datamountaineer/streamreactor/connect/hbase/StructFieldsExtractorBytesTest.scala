@@ -19,12 +19,12 @@ package com.datamountaineer.streamreactor.connect.hbase
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.generic.GenericData
 import org.apache.hadoop.hbase.util.Bytes
-import org.apache.kafka.connect.data.{Date, Schema, SchemaAndValue, SchemaBuilder, Struct, Time, Timestamp}
+import org.apache.kafka.connect.data._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDate, LocalDateTime, LocalTime, ZoneId, ZoneOffset, ZonedDateTime}
+import java.time.{LocalDate, LocalDateTime, LocalTime, ZoneId}
 
 class StructFieldsExtractorBytesTest extends AnyWordSpec with Matchers {
   "StructFieldsExtractor" should {
@@ -71,7 +71,6 @@ class StructFieldsExtractorBytesTest extends AnyWordSpec with Matchers {
     }
 
     "handle bytes" in {
-      val avroSchema = org.apache.avro.Schema.createRecord("test", "", "n1", false)
       val fields = new java.util.ArrayList[org.apache.avro.Schema.Field]
       fields.add(new org.apache.avro.Schema.Field("data", org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BYTES), null, null))
       val schema = org.apache.avro.Schema.createRecord("Data", "", "avro.test", false)
@@ -130,27 +129,25 @@ class StructFieldsExtractorBytesTest extends AnyWordSpec with Matchers {
 
   "format timestamp field in struct as UTC" in {
 
-    val zonedDateTime = LocalDateTime
-      .now()
-      .atZone(ZoneId.of("GMT"))
+    val date = java.util.Date.from(
+      LocalDateTime
+        .of(2012, 6, 28, 5, 59, 1, 500000000)
+        .atZone(ZoneId.of("GMT")).toInstant
+    )
 
-    val isoFormatted = DateTimeFormatter.ISO_INSTANT
-      .withZone(ZoneId.of("UTC"))
-      .format(zonedDateTime)
+    val isoFormatted = "2012-06-28T05:59:01.500Z"
 
     val schema = SchemaBuilder.struct().name("com.example.Person")
       .field("myTimestamp", Timestamp.SCHEMA)
       .build()
-
-    val struct = new Struct(schema)
-      .put("myTimestamp", java.util.Date.from(zonedDateTime.toInstant))
 
     val map = StructFieldsExtractorBytes(
       includeAllFields = false,
       Map(
         "myTimestamp" -> "myTimestamp"
       )
-    ).get(struct).toMap
+    ).get(new Struct(schema)
+      .put("myTimestamp", date)).toMap
 
     map.size shouldBe 1
     Bytes.toString(map("myTimestamp")) shouldBe (isoFormatted)

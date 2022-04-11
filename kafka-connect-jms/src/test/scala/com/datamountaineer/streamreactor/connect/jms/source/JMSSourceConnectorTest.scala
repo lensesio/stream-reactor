@@ -23,7 +23,7 @@ import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
 import org.scalatest.BeforeAndAfterAll
 
 import java.util.UUID
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala}
 import scala.reflect.io.Path
 
 /**
@@ -33,7 +33,7 @@ import scala.reflect.io.Path
 class JMSSourceConnectorTest extends TestBase with BeforeAndAfterAll {
 
   override def afterAll(): Unit = {
-    Path(AVRO_FILE).delete()
+    val _ = Path(AVRO_FILE).delete()
   }
 
   "should start a JMS Source Connector" in {
@@ -67,7 +67,7 @@ class JMSSourceConnectorTest extends TestBase with BeforeAndAfterAll {
 
     val connector = new JMSSourceConnector()
     connector.start(props = props.asJava)
-    val configs = connector.taskConfigs(3).asScala.toList match {
+    val _ = connector.taskConfigs(3).asScala.toList match {
       case l@List(_, _, _) =>
         l.foreach {
           _.get(JMSConfigConstants.KCQL) shouldEqual kcql

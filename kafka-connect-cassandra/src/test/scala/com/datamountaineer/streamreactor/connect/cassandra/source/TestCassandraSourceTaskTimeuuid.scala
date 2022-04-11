@@ -17,19 +17,21 @@
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
+import com.datamountaineer.streamreactor.connect.cassandra.{SlowTest, TestConfig}
 import com.datastax.driver.core.Session
 import com.fasterxml.jackson.databind.JsonNode
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Schema
 import org.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Suite}
 
-import scala.collection.JavaConverters._
+import scala.annotation.nowarn
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 @DoNotDiscover
+@nowarn
 class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     with Matchers
     with MockitoSugar
@@ -42,7 +44,7 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
   val keyspace = "source"
   var tableName: String = _
 
-  override def beforeAll {
+  override def beforeAll(): Unit = {
     session = createKeySpace(keyspace, secure = true)
     tableName = createTimeuuidTable(session, keyspace)
   }
@@ -52,7 +54,7 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     session.getCluster.close()
   }
 
-  "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices" in {
+  "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices"  taggedAs SlowTest in  {
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigDefault
     val task = new CassandraSourceTask()
@@ -86,7 +88,7 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     task.stop()
   }
 
-  "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices and use ignore and unwrap" in {
+  "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices and use ignore and unwrap"  taggedAs SlowTest in  {
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigWithUnwrap
     val task = new CassandraSourceTask()
@@ -108,7 +110,7 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     task.stop()
   }
 
-  "A Cassandra SourceTask should read in incremental mode with fetchSize" in {
+  "A Cassandra SourceTask should read in incremental mode with fetchSize"  taggedAs SlowTest in  {
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigWithUnwrap
     val task = new CassandraSourceTask()
@@ -132,7 +134,7 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     task.stop()
   }
 
-  "A Cassandra SourceTask should throw exception when timeuuid column is not specified" in {
+  "A Cassandra SourceTask should throw exception when timeuuid column is not specified"  taggedAs SlowTest in  {
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigWithKcqlNoPrimaryKeyInSelect
     val task = new CassandraSourceTask()
@@ -151,17 +153,22 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
 
   private def getCassandraConfigWithKcqlNoPrimaryKeyInSelect = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field FROM $tableName PK timeuuid_field INCREMENTALMODE=timeuuid"
-    getCassandraConfig(keyspace, tableName, myKcql)
+    getCassandraConfig(keyspace, tableName, myKcql, strPort())
   }
 
   private def getCassandraConfigWithUnwrap = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timeuuid_field FROM $tableName IGNORE timeuuid_field PK timeuuid_field WITHUNWRAP INCREMENTALMODE=timeuuid"
-    getCassandraConfig(keyspace, tableName, myKcql)
+    getCassandraConfig(keyspace, tableName, myKcql, strPort())
   }
 
   private def getCassandraConfigDefault = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timeuuid_field FROM $tableName PK timeuuid_field INCREMENTALMODE=timeuuid"
-    getCassandraConfig(keyspace, tableName, myKcql)
+    getCassandraConfig(keyspace, tableName, myKcql, strPort())
+  }
+
+  override def withPort(port: Int): Suite = {
+    setPort(port)
+    this
   }
 
 }

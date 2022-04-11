@@ -17,10 +17,8 @@
 package com.datamountaineer.streamreactor.connect.influx
 
 import com.datamountaineer.streamreactor.connect.influx.converters.InfluxPoint
-import com.datamountaineer.streamreactor.connect.influx.data.{Foo, FooInner}
 import com.datamountaineer.streamreactor.connect.influx.writers.ValuesExtractor
 import com.landoop.json.sql.JacksonJson
-import com.sksamuel.avro4s.RecordFormat
 import com.typesafe.scalalogging.LazyLogging
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.generic.GenericData
@@ -88,7 +86,7 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging
       val json = JacksonJson.asJson(avroData.fromConnectData(schema, struct).toString)
       val path = Vector("ts")
       val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(json, path), path)
-      result shouldBe 'Failure
+      result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[IllegalArgumentException]
 
     }
@@ -159,10 +157,14 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging
 
     "extract from Struct when map is involved" in {
 
-      val s = RecordFormat[Foo]
-      val avro = s.to(Foo(100, Map("key1" -> FooInner("value1", 1.4), "key2" -> FooInner("value2", 0.11))))
+      //val s = RecordFormat[Foo]
+      //val avro = s.to(Foo(100, Map("key1" -> FooInner("value1", 1.4), "key2" -> FooInner("value2", 0.11))))
+      //val avroAsString = avro.toString
 
-      val json = JacksonJson.asJson(avro.toString)
+      // TODO: The behaviour of avro.toString has changed so it no longer converts to JSON, breaking this test.
+
+      val avroAsString = """{"v": 100, "map": {"key1": {"s": "value1", "t": 1.4}, "key2": {"s": "value2", "t": 0.11}}}"""
+      val json = JacksonJson.asJson(avroAsString)
 
       ValuesExtractor.extract(json, Vector("map", "key1", "s")) shouldBe "value1"
       ValuesExtractor.extract(json, Vector("map", "key2", "t")) shouldBe 0.11
@@ -219,7 +221,7 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging
       InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(json, Vector("millis")), Vector("millis")) shouldBe Success(1483228800123L)
 
       val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(json, Vector("bad")), Vector("bad"))
-      result shouldBe 'Failure
+      result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[IllegalArgumentException]
     }
 
@@ -241,8 +243,8 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging
           // Therefore the string below is hard-coded for the time being
           //val json = avroData.toString
           val json = JacksonJson.asJson("{\"bibble\": {\"bytes\": \"\\u0001y\\u0091\"}}")
-          val result = Try(ValuesExtractor.extract(json, Vector("bibble")), Vector("bibble"))
-          result shouldBe 'Failure
+          val result: Try[(Any, Vector[String])] = Try((ValuesExtractor.extract(json, Vector("bibble")), Vector("bibble")))
+          result shouldBe Symbol("Failure")
           result.failed.get shouldBe a[IllegalArgumentException]
 
         case _ => fail("Should have been a GenericData.Record");

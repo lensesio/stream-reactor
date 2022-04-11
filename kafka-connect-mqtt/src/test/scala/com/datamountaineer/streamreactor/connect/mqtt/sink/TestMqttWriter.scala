@@ -17,8 +17,9 @@
 package com.datamountaineer.streamreactor.connect.mqtt.sink
 
 import com.datamountaineer.streamreactor.common.converters.sink.Converter
-import com.datamountaineer.streamreactor.connect.mqtt.MqttTestContainer
+import com.datamountaineer.streamreactor.connect.mqtt.SlowTest
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSinkConfig, MqttSinkSettings}
+import com.dimafeng.testcontainers.{ForEachTestContainer, GenericContainer}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
 import org.apache.avro.io.EncoderFactory
@@ -27,29 +28,36 @@ import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
+import org.eclipse.paho.client.mqttv3._
 import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence
-import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttConnectOptions, MqttMessage}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.file.Paths
-import java.util
 import java.util.UUID
-import java.util.concurrent.LinkedBlockingQueue
-import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.util.{Failure, Success, Try}
+import scala.io.Source
+import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
+import scala.util.{Failure, Success, Try, Using}
 
 /**
   * Created by andrew@datamountaineer.com on 27/08/2017.
   * stream-reactor
   */
-class TestMqttWriter extends MqttTestContainer with MqttCallback with StrictLogging {
+class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestContainer with Matchers with StrictLogging {
+
+  private val mqttPort = 1883
+
+  override val container: GenericContainer = GenericContainer("eclipse-mosquitto:1.4.12", exposedPorts = Seq(mqttPort))
+
+  protected def getMqttConnectionUrl = s"tcp://${container.host}:${container.mappedPort(mqttPort)}"
 
   val mqttUser = "user"
   val mqttPassword = "passwd"
 
-  val queue = new LinkedBlockingQueue[MqttMessage](10)
+  val queue : mutable.Queue[MqttMessage] = mutable.Queue()
 
   val JSON = "{\"id\":\"kafka_topic2-12-1\",\"int_field\":12,\"long_field\":12,\"string_field\":\"foo\",\"float_field\":0.1,\"float64_field\":0.199999,\"boolean_field\":true,\"byte_field\":\"Ynl0ZXM=\"}"
   val JSON_IGNORE_ID = "{\"id\":\"kafka_topic2-12-1\"}}"
@@ -62,12 +70,8 @@ class TestMqttWriter extends MqttTestContainer with MqttCallback with StrictLogg
   protected val TOPIC_PARTITION: TopicPartition = new TopicPartition(TOPIC, PARTITION)
   protected val TOPIC_PARTITION2: TopicPartition = new TopicPartition(TOPIC, PARTITION2)
   protected val TOPIC_PARTITION3: TopicPartition = new TopicPartition(TOPIC2, PARTITION)
-  protected val ASSIGNMENT: util.Set[TopicPartition] = new util.HashSet[TopicPartition]
   //Set topic assignments
-  ASSIGNMENT.add(TOPIC_PARTITION)
-  ASSIGNMENT.add(TOPIC_PARTITION2)
-  ASSIGNMENT.add(TOPIC_PARTITION3)
-
+  protected val ASSIGNMENT : Set[TopicPartition] = Set(TOPIC_PARTITION, TOPIC_PARTITION2, TOPIC_PARTITION3)
 
   private def withSubscribedMqttClient(fun: => Any): Unit = {
     val conOpt = new MqttConnectOptions
@@ -123,21 +127,21 @@ class TestMqttWriter extends MqttTestContainer with MqttCallback with StrictLogg
   //generate some test records
   def getTestRecords: Set[SinkRecord] = {
     val schema = createSchema
-    val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
+    val assignment: Set[TopicPartition] = ASSIGNMENT
 
     assignment.flatMap(a => {
       (1 to 1).map(i => {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i.toLong, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
-    }).toSet
+    })
   }
 
   // create a avro record of the test data
   def createAvroRecord(avro_schema_file: String): Array[Byte] = {
 
     // Avro schema
-    val avro_schema_source = scala.io.Source.fromFile(avro_schema_file).mkString
+    val avro_schema_source = Using(Source.fromFile(avro_schema_file)) {_.mkString}.getOrElse(fail("Unable to load schema file"))
     val avro_schema = new org.apache.avro.Schema.Parser().parse(avro_schema_source)
 
     // Generic Record
@@ -163,12 +167,7 @@ class TestMqttWriter extends MqttTestContainer with MqttCallback with StrictLogg
     out.toByteArray
   }
 
-  //get the assignment of topic partitions for the sinkTask
-  def getAssignment: util.Set[TopicPartition] = {
-    ASSIGNMENT
-  }
-
-  "writer should writer all fields" in {
+  "writer should writer all fields"  taggedAs SlowTest in {
     val props = Map(
       MqttConfigConstants.HOSTS_CONFIG -> getMqttConnectionUrl,
       MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $TARGET SELECT * FROM $TOPIC;INSERT INTO $TARGET SELECT * FROM $TOPIC2",
@@ -189,9 +188,9 @@ class TestMqttWriter extends MqttTestContainer with MqttCallback with StrictLogg
         if (clazz == null) {
           topic -> null
         } else {
-          val converter = Try(Class.forName(clazz).newInstance()) match {
-            case Success(value) => value.asInstanceOf[Converter]
-            case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
+          val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
+            case Success(value: Converter) => value
+            case _ => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
           }
           converter.initialize(props)
           topic -> converter
@@ -205,15 +204,21 @@ class TestMqttWriter extends MqttTestContainer with MqttCallback with StrictLogg
       writer.write(records)
       Thread.sleep(2000)
 
-      queue.size() shouldBe 3
-      val message = new String(queue.asScala.take(1).head.getPayload)
+      queue.size shouldBe 3
+
+      // val message = new String(queue.asScala.take(1).head.getPayload)
+      // message shouldBe JSON
+      // TODO: this is not correct as the input to the writer is a Set, so the order is not
+      // guaranteed. Whilst the behaviour seemed to be consistent prior to 2.13 this was
+      // simply luck that set ordering was retained by default.
+      // Writer should take in a Seq and retain the ordering through processing.
+      queue.map(msg => new String(msg.getPayload)) should contain(JSON)
       queue.clear()
-      message shouldBe JSON
-      writer.close
+      writer.close()
     }
   }
 
-  "writer should writer all fields in avro" in {
+  "writer should writer all fields in avro" taggedAs SlowTest in {
 
     val res = getClass.getClassLoader.getResource("test.avsc")
     val schemaPath = Paths.get(res.toURI).toFile.getAbsolutePath
@@ -238,7 +243,7 @@ class TestMqttWriter extends MqttTestContainer with MqttCallback with StrictLogg
 
     val convertersMap = settings.sinksToConverters.map { case (topic, clazz) =>
       logger.info(s"Creating converter instance for $clazz")
-      val converter = Try(Class.forName(clazz).newInstance()) match {
+      val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
         case Success(value) => value.asInstanceOf[Converter]
         case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
       }
@@ -254,19 +259,20 @@ class TestMqttWriter extends MqttTestContainer with MqttCallback with StrictLogg
       writer.write(records)
       Thread.sleep(2000)
 
-      queue.size() shouldBe 3
+      queue.size shouldBe 3
 
       val message = createAvroRecord(s"$schemaPath")
+      queue.map(msg => msg.getPayload) should contain(message)
 
-      queue.asScala.take(1).head.getPayload shouldBe message
+      // queue.asScala.take(1).head.getPayload shouldBe message
       queue.clear()
-      writer.close
+      writer.close()
     }
   }
 
   override def messageArrived(topic: String, message: MqttMessage): Unit = {
     logger.info(s"Received message on topic $topic")
-    queue.put(message)
+    queue.addOne(message)
   }
 
   override def deliveryComplete(token: IMqttDeliveryToken): Unit = {}

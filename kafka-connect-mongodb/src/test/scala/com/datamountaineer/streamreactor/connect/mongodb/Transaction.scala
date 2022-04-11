@@ -18,9 +18,10 @@ package com.datamountaineer.streamreactor.connect.mongodb
 
 import java.util
 import java.util.Collections
-
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.source.SourceRecord
+
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 case class Transaction(lock_time: Long,
                        ver: Int,
@@ -104,7 +105,6 @@ object Transaction {
         .put("relayed_by", tx.relayed_by)
 
       tx.out.headOption.foreach { _ =>
-        import scala.collection.JavaConverters._
         struct.put("out", tx.out.map(_.toStruct()).asJava)
       }
       tx.rbf.foreach(struct.put("rbf", _))

@@ -58,7 +58,7 @@ class S3ReaderManager(
           logger.debug(s"[$sourceName] readNextFile - Next file ($nextFile) found")
           readerFn(nextFile) match {
             case Right(reader) => toInitialisedState(reader)
-            case Left(exception: Exception) => toExceptionState(exception)
+            case Left(exception) => toExceptionState(exception)
           }
         case Right(None) =>
           logger.debug(s"[$sourceName] readNextFile - No next file found")

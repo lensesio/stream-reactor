@@ -22,11 +22,13 @@ import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.annotation.nowarn
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
  *
  */
+@nowarn
 class TestCqlGenerator extends AnyWordSpec
     with Matchers 
     with MockitoSugar 

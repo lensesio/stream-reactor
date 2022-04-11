@@ -44,7 +44,7 @@ object ElasticWriter {
     val settings = ElasticSettings(config)
 
     new ElasticJsonWriter(
-      KElasticClient.createHttpClient(settings, endpoints(hostNames, protocol, port, prefix)),
+      KElasticClient.createHttpClient(settings, endpoints(hostNames, protocol, port, prefix).toIndexedSeq),
       settings
     )
   }

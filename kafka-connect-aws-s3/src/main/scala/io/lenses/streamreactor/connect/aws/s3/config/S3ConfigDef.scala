@@ -141,6 +141,18 @@ object S3ConfigDef {
       ConfigDef.Width.LONG,
       HTTP_ERROR_RETRY_INTERVAL)
 
+    .define(HTTP_SOCKET_TIMEOUT,
+      Type.LONG,
+      HTTP_SOCKET_TIMEOUT_DEFAULT,
+      Importance.LOW,
+      HTTP_SOCKET_TIMEOUT_DOC)
+
+    .define(HTTP_CONNECTION_TIMEOUT,
+      Type.INT,
+      HTTP_CONNECTION_TIMEOUT_DEFAULT,
+      Importance.LOW,
+      HTTP_CONNECTION_TIMEOUT_DOC)
+
     .define(SEEK_MIGRATION,
       Type.BOOLEAN,
       SEEK_MIGRATION_DEFAULT,

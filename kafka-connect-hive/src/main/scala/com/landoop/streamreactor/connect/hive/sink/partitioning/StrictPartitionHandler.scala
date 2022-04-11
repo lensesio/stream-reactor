@@ -4,7 +4,7 @@ import com.landoop.streamreactor.connect.hive.{DatabaseName, Partition, TableNam
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 

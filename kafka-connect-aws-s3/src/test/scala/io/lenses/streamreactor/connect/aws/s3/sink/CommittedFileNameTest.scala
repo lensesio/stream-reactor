@@ -36,7 +36,7 @@ class CommittedFileNameTest extends AnyFlatSpecLike with Matchers {
   class PartitionedAvroTestContext extends TestContext(new PartitionedS3FileNamingStrategy(FormatSelection(Avro), partitions))
 
   "unapply" should "recognise hierarchical filenames in prefix/topic/927/77.json format" in new HierarchicalJsonTestContext {
-    CommittedFileName.unapply("prefix/topic/927/77.json") should be(Some(Topic("topic"), 927, Offset(77), Json))
+    CommittedFileName.unapply("prefix/topic/927/77.json") should be(Some((Topic("topic"), 927, Offset(77), Json)))
   }
 
   "unapply" should "not recognise hierarchical filenames other formats" in new HierarchicalJsonTestContext {
@@ -52,9 +52,9 @@ class CommittedFileNameTest extends AnyFlatSpecLike with Matchers {
   }
 
   "unapply" should "recognise partitioned filenames in prefix/topic/927/77.json format" in new PartitionedAvroTestContext {
-    CommittedFileName.unapply("prefix/partition1=something/topic(927_77).json") should be(Some(Topic("topic"), 927, Offset(77), Json))
-    CommittedFileName.unapply("prefix/partition1=something/partition2=else/topic(927_77).json") should be(Some(Topic("topic"), 927, Offset(77), Json))
-    CommittedFileName.unapply("prefix/partition1=something/partition2=else/partition3=sausages/topic(927_77).json") should be(Some(Topic("topic"), 927, Offset(77), Json))
+    CommittedFileName.unapply("prefix/partition1=something/topic(927_77).json") should be(Some((Topic("topic"), 927, Offset(77), Json)))
+    CommittedFileName.unapply("prefix/partition1=something/partition2=else/topic(927_77).json") should be(Some((Topic("topic"), 927, Offset(77), Json)))
+    CommittedFileName.unapply("prefix/partition1=something/partition2=else/partition3=sausages/topic(927_77).json") should be(Some((Topic("topic"), 927, Offset(77), Json)))
   }
 
   "unapply" should "not recognise partitioned filenames other formats" in new PartitionedAvroTestContext {

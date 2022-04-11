@@ -22,6 +22,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
 import java.io.{ByteArrayInputStream, DataInputStream}
+import java.util
 
 object BytesOutputRowTest extends Matchers {
 
@@ -48,8 +49,8 @@ object BytesOutputRowTest extends Matchers {
   def checkEqualsByteArrayValue(res: BytesOutputRow, expected: BytesOutputRow): Any = {
     res.keySize should be(expected.keySize)
     res.valueSize should be(expected.valueSize)
-    res.key.deep should be(expected.key.deep)
-    res.value.deep should be(expected.value.deep)
+    util.Objects.deepEquals(res.key, expected.key) should be (true)
+    util.Objects.deepEquals(res.value, expected.value) should be (true)
   }
 }
 

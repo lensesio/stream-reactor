@@ -2,12 +2,12 @@ package io.lenses.streamreactor.connect.aws.s3.source
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.SlowTest
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Bytes
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.{KeyAndValueWithSizes, ValueOnly}
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, Format, FormatOptions}
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContext._
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContainerTest
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
 import org.scalatest.BeforeAndAfter
@@ -16,19 +16,19 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 
-class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with LazyLogging with BeforeAndAfter {
+class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with LazyLogging with BeforeAndAfter {
 
-  val bucketSetup = new BucketSetup()
-  import bucketSetup._
+  var bucketSetupOpt: Option[BucketSetup] = None
+  def bucketSetup : BucketSetup = bucketSetupOpt.getOrElse(throw new IllegalStateException("Not initialised"))
 
-  val DefaultProps = Map(
+  def DefaultProps = Map(
     AWS_ACCESS_KEY -> Identity,
     AWS_SECRET_KEY -> Credential,
     AWS_REGION -> "eu-west-1",
     AUTH_MODE -> AuthMode.Credentials.toString,
-    CUSTOM_ENDPOINT -> S3ProxyContext.Uri,
+    CUSTOM_ENDPOINT -> uri(),
     ENABLE_VIRTUAL_HOST_BUCKETS -> "true"
   )
 
@@ -45,7 +45,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
 
   "blobstore get input stream" should "reveal availability" in {
 
-    val inputStream = helper.remoteFileAsStream(BucketName, s"$PrefixName/json/$TopicName/0/399.json")
+    val inputStream = helper.remoteFileAsStream(BucketName, s"${bucketSetup.PrefixName}/json/${bucketSetup.TopicName}/0/399.json")
     val initialAvailable = inputStream.available()
 
     var expectedAvailable = initialAvailable
@@ -56,18 +56,18 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
     }
   }
 
-  "task" should "read stored files continuously" in {
+  "task" should "read stored files continuously" taggedAs SlowTest  in {
     forAll(formats) {
       (format, formatOptions, dir) =>
         val t1 = System.currentTimeMillis()
 
         val task = new S3SourceTask()
 
-        val formatExtensionString = generateFormatString(formatOptions)
+        val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
 
         val props = DefaultProps
           .combine(
-            Map("connect.s3.kcql" -> s"insert into $TopicName select * from $BucketName:$PrefixName/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
+            Map("connect.s3.kcql" -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
           ).asJava
 
         task.start(props)
@@ -90,11 +90,11 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
         sourceRecords7 should have size 0
 
         sourceRecords1.asScala
-          .union(sourceRecords2.asScala)
-          .union(sourceRecords3.asScala)
-          .union(sourceRecords4.asScala)
-          .union(sourceRecords5.asScala)
-          .union(sourceRecords6.asScala)
+          .concat(sourceRecords2.asScala)
+          .concat(sourceRecords3.asScala)
+          .concat(sourceRecords4.asScala)
+          .concat(sourceRecords5.asScala)
+          .concat(sourceRecords6.asScala)
           .toSet should have size 1000
 
         val t2 = System.currentTimeMillis()
@@ -103,10 +103,10 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
     }
   }
 
-  "task" should "resume from a specific offset through initialize" in {
+  "task" should "resume from a specific offset through initialize" taggedAs SlowTest  in {
     forAll(formats) {
       (format, formatOptions, dir) =>
-        val formatExtensionString = generateFormatString(formatOptions)
+        val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
 
         val task = new S3SourceTask()
 
@@ -115,7 +115,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
 
           override def offsetStorageReader(): OffsetStorageReader = new OffsetStorageReader {
             override def offset[T](partition: util.Map[String, T]): util.Map[String, AnyRef] = Map(
-              "path" -> s"$PrefixName/$dir/$TopicName/0/399.${format.entryName.toLowerCase}",
+              "path" -> s"${bucketSetup.PrefixName}/$dir/${bucketSetup.TopicName}/0/399.${format.entryName.toLowerCase}",
               "line" -> "9".asInstanceOf[Object]
             ).asJava
 
@@ -126,7 +126,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
 
         val props = DefaultProps
           .combine(
-            Map("connect.s3.kcql" -> s"insert into $TopicName select * from $BucketName:$PrefixName/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
+            Map("connect.s3.kcql" -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
           ).asJava
 
         task.start(props)
@@ -149,26 +149,26 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
         sourceRecords7 should have size 0
 
         sourceRecords1.asScala
-          .union(sourceRecords2.asScala)
-          .union(sourceRecords3.asScala)
-          .union(sourceRecords4.asScala)
-          .union(sourceRecords5.asScala)
-          .union(sourceRecords6.asScala)
+          .concat(sourceRecords2.asScala)
+          .concat(sourceRecords3.asScala)
+          .concat(sourceRecords4.asScala)
+          .concat(sourceRecords5.asScala)
+          .concat(sourceRecords6.asScala)
           .toSet should have size 790
     }
   }
 
-  "task" should "read stored bytes files continuously" in {
+  "task" should "read stored bytes files continuously" taggedAs SlowTest  in {
     val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.ValueOnly))
     val dir = "bytesval"
 
     val task = new S3SourceTask()
 
-    val formatExtensionString = generateFormatString(formatOptions)
+    val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
 
     val props = DefaultProps
       .combine(
-        Map("connect.s3.kcql" -> s"insert into $TopicName select * from $BucketName:$PrefixName/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
+        Map("connect.s3.kcql" -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
       ).asJava
 
     task.start(props)
@@ -180,24 +180,24 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
     sourceRecords1 should have size 5
     sourceRecords2 should have size 0
 
-    val expectedLength = totalFileLengthBytes(format, formatOptions)
+    val expectedLength = bucketSetup.totalFileLengthBytes(format, formatOptions)
     val allLength = sourceRecords1.asScala.map(_.value().asInstanceOf[Array[Byte]].length).sum
 
     allLength should be(expectedLength)
 
   }
 
-  "task" should "read stored bytes key/value files continuously" in {
+  "task" should "read stored bytes key/value files continuously" taggedAs SlowTest  in {
     val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.KeyAndValueWithSizes))
 
     val dir = "byteskv"
     val task = new S3SourceTask()
 
-    val formatExtensionString = generateFormatString(formatOptions)
+    val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
 
     val props = DefaultProps
       .combine(
-        Map("connect.s3.kcql" -> s"insert into $TopicName select * from $BucketName:$PrefixName/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
+        Map("connect.s3.kcql" -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
       ).asJava
 
     task.start(props)
@@ -220,11 +220,11 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
     sourceRecords7 should have size 0
 
     sourceRecords1.asScala
-      .union(sourceRecords2.asScala)
-      .union(sourceRecords3.asScala)
-      .union(sourceRecords4.asScala)
-      .union(sourceRecords5.asScala)
-      .union(sourceRecords6.asScala)
+      .concat(sourceRecords2.asScala)
+      .concat(sourceRecords3.asScala)
+      .concat(sourceRecords4.asScala)
+      .concat(sourceRecords5.asScala)
+      .concat(sourceRecords6.asScala)
       .toSet should have size 1000
 
     sourceRecords1.get(0).key should be("myKey".getBytes)
@@ -234,12 +234,15 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
   override def cleanUpEnabled: Boolean = false
 
   override def setUpTestData(): Unit = {
+    if (bucketSetupOpt.isEmpty) {
+      bucketSetupOpt = Some(new BucketSetup()(storageInterface))
+    }
     formats.foreach{
       case (format: Format, formatOptions: Option[FormatOptions], dir: String) =>
-        setUpBucketData(BucketName, format, formatOptions, dir)
+        bucketSetup.setUpBucketData(BucketName, format, formatOptions, dir)
     }
 
-    setUpBucketData(BucketName, Bytes, Some(KeyAndValueWithSizes), "byteskv")
-    setUpBucketData(BucketName, Bytes, Some(ValueOnly), "bytesval")
+    bucketSetup.setUpBucketData(BucketName, Bytes, Some(KeyAndValueWithSizes), "byteskv")
+    bucketSetup.setUpBucketData(BucketName, Bytes, Some(ValueOnly), "bytesval")
   }
 }

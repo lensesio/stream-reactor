@@ -17,6 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import io.lenses.streamreactor.connect.aws.s3.SlowTest
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Parquet
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.formats.ParquetFormatReader
@@ -24,15 +25,14 @@ import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.config.{OffsetSeekerOptions, S3SinkConfig, SinkBucketOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContainerTest
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfig {
+class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
-  import S3ProxyContext._
   import helper._
 
   private val TopicName = "myTopic"
@@ -59,12 +59,12 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
   )
 
 
-  "parquet sink" should "write 2 records to parquet format in s3" in {
+  "parquet sink" should "write 2 records to parquet format in s3"  taggedAs SlowTest in {
 
     val sink = S3WriterManager.from(parquetConfig, "sinkName")
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
-        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
+        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
     }
 
     sink.close()
@@ -80,7 +80,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
 
   }
 
-  "parquet sink" should "write start a new file in case of schema change" in {
+  "parquet sink" should "write start a new file in case of schema change" taggedAs SlowTest  in {
 
     val secondSchema: Schema = SchemaBuilder.struct()
       .field("name", SchemaBuilder.string().required().build())
@@ -95,9 +95,9 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
     )
 
     val sink = S3WriterManager.from(parquetConfig, "sinkName")
-    firstUsers.union(usersWithNewSchema).zipWithIndex.foreach {
+    firstUsers.concat(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
-        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData]))
+        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)), MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData]))
     }
     sink.close()
 

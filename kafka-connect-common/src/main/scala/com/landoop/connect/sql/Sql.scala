@@ -25,7 +25,7 @@ object Sql {
     val select = Try(parser.parseQuery()) match {
       case Failure(e) => throw new IllegalArgumentException(s"Query is not valid.${e.getMessage}")
       case Success(sqlSelect: SqlSelect) => sqlSelect
-      case Success(sqlNode) => throw new IllegalArgumentException("Only `select` statements are allowed")
+      case Success(sqlNode@_) => throw new IllegalArgumentException("Only `select` statements are allowed")
     }
     Sql(select, !withStructure)
   }

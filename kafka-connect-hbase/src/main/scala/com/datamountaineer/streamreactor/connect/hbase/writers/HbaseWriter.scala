@@ -29,9 +29,11 @@ import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConverters._
+import scala.annotation.nowarn
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Try
 
+@nowarn
 class HbaseWriter(settings: HBaseSettings, hbaseConfig: Configuration) extends DbWriter
   with StrictLogging with ConverterUtil with ErrorHandler {
 

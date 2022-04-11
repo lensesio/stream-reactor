@@ -18,8 +18,10 @@ package com.datamountaineer.streamreactor.connect.ftp.source
 
 import com.datamountaineer.streamreactor.connect.ftp.source.FtpProtocol.FtpProtocol
 import com.datamountaineer.streamreactor.connect.ftp.source.MonitorMode.MonitorMode
+import com.datamountaineer.streamreactor.connect.ftp.source.OpTimer.profile
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.codec.digest.DigestUtils
+import org.apache.commons.io.IOUtils
 import org.apache.commons.net.ftp.{FTP, FTPClient, FTPReply, FTPSClient}
 import org.apache.commons.net.{ProtocolCommandEvent, ProtocolCommandListener}
 
@@ -27,7 +29,7 @@ import java.io.ByteArrayOutputStream
 import java.nio.file.Paths
 import java.time.{Duration, Instant}
 import java.util
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success, Try, Using}
 
 // a full downloaded file
 case class FetchedFile(meta:FileMetaData, body: Array[Byte])
@@ -62,13 +64,13 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
   val isBySlices = settings.isBySlices
 
   def requiresFetch(file: AbsoluteFtpFile, metadata: Option[FileMetaData]): Boolean = metadata match {
-    case None => logger.debug(s"${file.name} hasn't been seen before"); true
+    case None => logger.debug(s"${file.name()} hasn't been seen before"); true
     case Some(known) if known.attribs.size != file.ftpFile.getSize => {
-      logger.debug(s"${file.name} size changed ${known.attribs.size} => ${file.size}")
+      logger.debug(s"${file.name()} size changed ${known.attribs.size} => ${file.size()}")
       true
     }
-    case Some(known) if known.attribs.timestamp != file.timestamp => {
-      logger.debug(s"${file.name} is newer ${known.attribs.timestamp} => ${file.timestamp}")
+    case Some(known) if known.attribs.timestamp != file.timestamp() => {
+      logger.debug(s"${file.name()} is newer ${known.attribs.timestamp} => ${file.timestamp()}")
       true
     }
     case _ => false
@@ -77,18 +79,18 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
   def bySlicesRequiresFetch(file: AbsoluteFtpFile, metadata: Option[FileMetaData]): Boolean = {
     metadata match {
       case None =>
-        logger.info(s"${file.name} hasn't been seen before")
+        logger.info(s"${file.name()} hasn't been seen before")
         true
       case Some(previous) if previous.attribs.size != file.ftpFile.getSize => {
-        logger.info(s"${file.name} size changed ${previous.attribs.size} => ${file.size}")
+        logger.info(s"${file.name()} size changed ${previous.attribs.size} => ${file.size()}")
         true
       }
-      case Some(previous) if previous.attribs.timestamp != file.timestamp => {
-        logger.info(s"${file.name} is newer ${previous.attribs.timestamp} => ${file.timestamp}")
+      case Some(previous) if previous.attribs.timestamp != file.timestamp() => {
+        logger.info(s"${file.name()} is newer ${previous.attribs.timestamp} => ${file.timestamp()}")
         true
       }
       case Some(previous) if previous.offset != file.ftpFile.getSize => {
-        logger.info(s"${file.name} was not completely read & committed ${previous.offset} => ${file.ftpFile.getSize}")
+        logger.info(s"${file.name()} was not completely read & committed ${previous.offset} => ${file.ftpFile.getSize}")
         true
       }
       case _ =>
@@ -99,22 +101,26 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
 
   // Retrieves the FtpAbsoluteFile and returns a new or updated KnownFile
   def fetch(file: AbsoluteFtpFile, prevFetch: Option[FileMetaData]): Option[(Option[FileMetaData], FetchedFile)] = {
-    logger.info(s"fetching ${file.path}")
-    val baos = new ByteArrayOutputStream()
+    logger.info(s"fetching ${file.path()}")
 
-    if (ftp.retrieveFile(file.path, baos)) {
-      val bytes = baos.toByteArray
-      baos.close()
-      val hash = DigestUtils.sha256Hex(bytes)
-      val attributes = new FileAttributes(file.path, file.ftpFile.getSize, file.ftpFile.getTimestamp.toInstant)
-      val meta = prevFetch match {
-        case None => FileMetaData(attributes, hash, Instant.now, Instant.now, Instant.now)
-        case Some(old) => FileMetaData(attributes, hash, old.firstFetched, old.lastModified, Instant.now)
-      }
-      Option(prevFetch, FetchedFile(meta, bytes))
-    } else {
-      logger.warn(s"failed to fetch ${file.path}: ${ftp.getReplyString}")
-      None
+    val baosOrError = Using(new ByteArrayOutputStream()) {
+      baos =>
+        ftp.retrieveFile(file.path(), baos)
+        baos.toByteArray
+    }
+
+    baosOrError match {
+      case Failure(exception) =>
+        logger.warn(s"failed to fetch ${file.path()}: ${ftp.getReplyString}", exception)
+        None
+      case Success(bytes) =>
+        val hash = DigestUtils.sha256Hex(bytes)
+        val attributes = FileAttributes(file.path(), file.ftpFile.getSize, file.ftpFile.getTimestamp.toInstant)
+        val meta = prevFetch match {
+          case None => FileMetaData(attributes, hash, Instant.now, Instant.now, Instant.now)
+          case Some(old) => FileMetaData(attributes, hash, old.firstFetched, old.lastModified, Instant.now)
+        }
+        Option((prevFetch, FetchedFile(meta, bytes)))
     }
   }
 
@@ -125,7 +131,7 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
     case (Some(previous),_) if previous.offset == -1 =>
       logger.info(s"First time file is read")
       0
-    case (Some(previous),MonitorMode.Update) if (previous.attribs.timestamp != file.timestamp || previous.attribs.size != file.size) =>
+    case (Some(previous),MonitorMode.Update) if (previous.attribs.timestamp != file.timestamp() || previous.attribs.size != file.size()) =>
       logger.info(s"We are in Update mode && File was updated, restart reading from offset 0")
       0
     case (Some(previous),_) =>
@@ -134,52 +140,40 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
   }
 
   def bySlicesFetch(mode: MonitorMode, file: AbsoluteFtpFile, prevFetch: Option[FileMetaData]): Option[(Option[FileMetaData], FetchedFile)] = {
-    logger.info(s"fetching ${file.path}")
 
     val offsetToReadFrom = bySlicesGetOffsetToReadFrom(mode, file, prevFetch)
-    logger.info(s"offset to read from = ${offsetToReadFrom}")
 
-    val outputStream = new ByteArrayOutputStream
-    val bufferLength=4096
-    val buffer = new Array[Byte](if (bufferLength > sliceSize) sliceSize else bufferLength)
+    val errOrBytes = Using(new ByteArrayOutputStream) {
+      outputStream =>
 
-    logger.info(s"sliceSize=${sliceSize}")
-    logger.info(s"buffer.length=${buffer.length}")
+        connectFtp()
 
-    connectFtp()
-    ftp.enterLocalPassiveMode()
-    ftp.setRestartOffset(offsetToReadFrom)
-
-    val inputStream = ftp.retrieveFileStream(file.path)
-    logger.info(s"inputStream=${inputStream}")
-
-    var allBytesRead = 0
-    var keepGoing = true
-    do{
-      keepGoing = inputStream.read(buffer, 0, Math.min(buffer.length, sliceSize - allBytesRead)) match {
-        case -1 => false
-        case bufferBytesRead: Int => {
-          allBytesRead += bufferBytesRead
-          outputStream.write(buffer, 0, bufferBytesRead)
-          allBytesRead < sliceSize
+        ftp.setRestartOffset(offsetToReadFrom)
+        Using(ftp.retrieveFileStream(file.path())) {
+          inputStream =>
+            IOUtils.copyLarge(inputStream, outputStream, 0, sliceSize.toLong)
         }
-      }
-    }while(keepGoing)
-    logger.info(s"allBytesRead=${allBytesRead}")
+        if (outputStream.size() > 0) Some(outputStream.toByteArray) else None
+    }
 
-    inputStream.close()
-    logger.info(s"inputStream.close()")
+    val attributes = profile("createAttributes", FileAttributes(file.path(), file.ftpFile.getSize, file.ftpFile.getTimestamp.toInstant))
 
-    val bytes = outputStream.toByteArray()
-    outputStream.close()
-
-    val attributes = new FileAttributes(file.path, file.ftpFile.getSize, file.ftpFile.getTimestamp.toInstant)
-
-    val meta = prevFetch match {
+    val meta = profile("metaDataCreate", prevFetch match {
       case None => FileMetaData(attributes, "", Instant.now, Instant.now, Instant.now)
       case Some(old) => FileMetaData(attributes, "", old.firstFetched, old.lastModified, Instant.now)
+    })
+
+    errOrBytes match {
+      case Failure(exception) =>
+        logger.error(s"fetching ${file.path()} from offset ${offsetToReadFrom} to ${offsetToReadFrom + sliceSize} -EXCEPTION", exception)
+        throw exception
+      case Success(Some(bytes)) =>
+        logger.info(s"fetching ${file.path()} from offset ${offsetToReadFrom} to ${offsetToReadFrom + sliceSize} - BYTES")
+        Option((prevFetch, FetchedFile(meta, bytes)))
+      case Success(None) =>
+        logger.info(s"fetching ${file.path()} from offset ${offsetToReadFrom} to ${offsetToReadFrom + sliceSize} - EMPTY")
+        Option.empty
     }
-    Option(prevFetch, FetchedFile(meta, bytes))
   }
 
   // translates a MonitoredDirectory and previously known FileMetaData into a FileMetaData and FileBody
@@ -226,7 +220,7 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
     prevFetch match {
       case Some(previous) if mode == MonitorMode.Update && current.meta.hasChangedSince(previous) =>
         logger.info(s"distant file was modified since last fetch, previously timestamp=${previous.attribs.timestamp}, current timestamp=${current.meta.attribs.timestamp}")
-        val nextOffsetToReadFrom = current.body.length
+        val nextOffsetToReadFrom = current.body.length.toLong
         (current.meta.inspectedNow().offset(nextOffsetToReadFrom), FileBody(current.body, 0))
       case Some(previous) =>
         logger.info(s"fetched ${current.meta.attribs.path}, bytes read= ${current.body.length} , from offset=${previous.offset}")
@@ -235,46 +229,50 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
       case None =>
         // slice is new
         logger.info(s"fetched ${current.meta.attribs.path}, bytes read= ${current.body.length} , from offset=0")
-        val nextOffsetToReadFrom = current.body.length
+        val nextOffsetToReadFrom = current.body.length.toLong
         (current.meta.inspectedNow().offset(nextOffsetToReadFrom), FileBody(current.body, nextOffsetToReadFrom))
     }
   }
 
   def listFilesToFetchFrom(monitoredPath: MonitoredPath): Seq[AbsoluteFtpFile] = {
-    val files = FtpFileLister(ftp).listFiles(monitoredPath.p.toString).filter(f => !MaxAge.minus(f.age).isNegative && f.name.matches(settings.filter) )
-    logger.info(s"Found ${files.length} items in ${monitoredPath.p}")
-    files
+    profile("listFilesToFetchFrom",
+      FtpFileLister(ftp).listFiles(monitoredPath.p.toString).filter(f => !MaxAge.minus(f.age()).isNegative && f.name().matches(settings.filter) )
+    )
   }
 
   // fetches files from a monitored directory when needed
-  def fetchFromMonitoredPlaces(monitoredPath: MonitoredPath): Stream[(FileMetaData, FileBody)] = {
-    fetchFromFiles(listFilesToFetchFrom(monitoredPath), monitoredPath.mode)
+  def fetchFromMonitoredPlaces(monitoredPath: MonitoredPath): LazyList[(FileMetaData, FileBody)] = {
+    profile("fetchFromMonitoredPlaces", {
+      fetchFromFiles(listFilesToFetchFrom(monitoredPath), monitoredPath.mode)
+    })
   }
 
-  def fetchFromFiles(files: Seq[AbsoluteFtpFile], mode: MonitorMode): Stream[(FileMetaData, FileBody)] = {
+  def fetchFromFiles(files: Seq[AbsoluteFtpFile], mode: MonitorMode): LazyList[(FileMetaData, FileBody)] = {
+    profile("fetchFromFiles",
     if(!isBySlices) {
       files
-        // sort ?
-        .toStream
+        .to(LazyList)
         // Get the metadata from the offset store
-        .map(file => (file, fileConverter.getFileOffset(file.path)))
+        .map(file => profile("mapFileConverter1", (file, fileConverter.getFileOffset(file.path()))))
         // Filter out the files that do not need to be fetched
-        .filter { case (file, prevFetch) => requiresFetch(file, prevFetch) }
+        .filter { case (file, prevFetch) => profile("requiresFetch", requiresFetch(file, prevFetch)) }
         // Fetch the latest file contents
-        .flatMap { case (file, prevFetch) => fetch(file, prevFetch) }
+        .flatMap { case (file, prevFetch) => profile("fetchFile", fetch(file, prevFetch)) }
         // Extract the file changes depending on the tracking mode
-        .map { case (prevFile, currentFile) => handleFetchedFile(mode == MonitorMode.Tail, prevFile, currentFile) }
+        .map { case (prevFile, currentFile) => profile("handleFetchedFile", handleFetchedFile(mode == MonitorMode.Tail, prevFile, currentFile)) }
     } else {
-      files.toStream
+      files
+        .to(LazyList)
         // Get the metadata from the offset store
-        .map(file => (file, fileConverter.getFileOffset(file.path)))
+        .map(file => (file, profile("mapFileConverter2", fileConverter.getFileOffset(file.path()))))
         // Filter out the files that do not need to be fetched
-        .filter { case (file, prevFetch) => bySlicesRequiresFetch(file, prevFetch) }
+        .filter { case (file, prevFetch) => profile("bySlicesRequiresFetch", bySlicesRequiresFetch(file, prevFetch)) }
         // Fetch the latest file contents
-        .flatMap { case (file, prevFetch) => bySlicesFetch(mode, file, prevFetch) }
+        .flatMap { case (file, prevFetch) => profile("bySlicesFetch", bySlicesFetch(mode, file, prevFetch) )}
         // Extract the file changes depending on the tracking mode
-        .map { case (prevFile, currentFile) => bySlicesHandleFetchedFile(mode, prevFile, currentFile) }
+        .map { case (prevFile, currentFile) => profile("bySlicesHandleFetchedFile", bySlicesHandleFetchedFile(mode, prevFile, currentFile) )}
     }
+    )
   }
 
   def connectFtp(): Try[FTPClient] = {
@@ -309,22 +307,23 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
         return Failure(new Exception("cannot connect to ftp because of some unreported error"))
       }
       logger.info("successfully connected to the ftp server and logged in")
-      if(ftp.isInstanceOf[FTPSClient]) {
-            logger.info("FTPS Connection needed, setting appropriate settings")
-            ftp.asInstanceOf[FTPSClient].execPBSZ(0)
-            ftp.asInstanceOf[FTPSClient].execPROT("P")
+      ftp match {
+        case client: FTPSClient =>
+          logger.info("FTPS Connection needed, setting appropriate settings")
+          client.execPBSZ(0)
+          client.execPROT("P")
+        case _ =>
       }
       ftp.enterLocalPassiveMode()
-      logger.info("passive we are")
       ftp.setFileType(FTP.BINARY_FILE_TYPE)
       ftp.setControlKeepAliveTimeout(15) //send NOOP every [seconds]
     }
     Success(ftp)
   }
 
-  def poll(): Try[Stream[(FileMetaData, FileBody, MonitoredPath)]] = connectFtp() match {
+  def poll(): Try[LazyList[(FileMetaData, FileBody, MonitoredPath)]] = connectFtp() match {
       case Success(_) =>
-        Try(settings.directories.toStream.flatMap(dir =>
+        Try(settings.directories.to(LazyList).flatMap(dir =>
           fetchFromMonitoredPlaces(dir).map { case (meta, body) => (meta, body, dir) }))
       case Failure(err) => logger.warn(s"cannot connect to ftp: ${err.toString}")
         Failure(err)

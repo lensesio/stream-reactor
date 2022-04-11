@@ -44,7 +44,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
       targetPath
     )
 
-    res.right.value should be(indexPath)
+    res.value should be(indexPath)
     verify(storageInterface).writeStringToFile(indexPath, "myPrefix/myTopic/5/100.json")
   }
 
@@ -66,7 +66,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     when(storageInterface.list(any[RemoteS3PathLocation])).thenReturn(existingIndexes.asRight)
     when(storageInterface.deleteFiles(anyString, any[Seq[String]])).thenReturn(().asRight)
 
-    indexManager.clean(indexPath, topicPartition).right.value should be(2)
+    indexManager.clean(indexPath, topicPartition).value should be(2)
 
     val cleanInOrder = inOrder(storageInterface)
     cleanInOrder.verify(storageInterface).list(topicPartitionRoot)
@@ -109,7 +109,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     when(storageInterface.list(any[RemoteS3PathLocation])).thenReturn(existingIndexes.asRight)
     when(storageInterface.deleteFiles(anyString(), any[Seq[String]])).thenReturn(FileDeleteError(new IllegalArgumentException("Well, this was a disaster"), "myFilename").asLeft)
 
-    indexManager.clean(indexPath, topicPartition).right.value should be(0)
+    indexManager.clean(indexPath, topicPartition).value should be(0)
 
     val cleanInOrder = inOrder(storageInterface)
     cleanInOrder.verify(storageInterface).list(topicPartitionRoot)
@@ -123,7 +123,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     when(storageInterface.list(any[RemoteS3PathLocation])).thenReturn(existingIndexes.map(_._1).toList.asRight)
     when(storageInterface.deleteFiles(eqTo(bucketName), any[List[String]])).thenReturn(().asRight)
     val seekRes = indexManager.seek(topicPartition, fileNamingStrategy, targetRoot)
-    seekRes.right.value should be(Some(topicPartition.withOffset(70)))
+    seekRes.value should be(Some(topicPartition.withOffset(70)))
 
     val seekInOrder = inOrder(storageInterface)
     seekInOrder.verify(storageInterface).list(topicPartitionRoot)
@@ -156,11 +156,11 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
   "seek" should "fallback to legacy seeker when configured in legacy mode" in {
 
     when(storageInterface.list(any[RemoteS3PathLocation])).thenReturn(List.empty.asRight)
-    when(legacyOffsetSeeker.seek(topicPartition, fileNamingStrategy, targetRoot)).thenReturn(Some(topicPartition.withOffset(123), targetRoot.withPath("/my/returned/location")).asRight)
+    when(legacyOffsetSeeker.seek(topicPartition, fileNamingStrategy, targetRoot)).thenReturn(Some((topicPartition.withOffset(123), targetRoot.withPath("/my/returned/location"))).asRight)
     when(storageInterface.writeStringToFile(any[RemoteS3PathLocation], anyString())).thenReturn(().asRight)
 
     val offset: Either[SinkError, Option[TopicPartitionOffset]] = indexManagerLegacySeeker.seek(topicPartition, fileNamingStrategy, targetRoot)
-    offset.right.value.value should be(topicPartition.withOffset(123))
+    offset.value.value should be(topicPartition.withOffset(123))
 
     val seekInOrder = inOrder(storageInterface, legacyOffsetSeeker, fileNamingStrategy)
     seekInOrder.verify(storageInterface).list(topicPartitionRoot)

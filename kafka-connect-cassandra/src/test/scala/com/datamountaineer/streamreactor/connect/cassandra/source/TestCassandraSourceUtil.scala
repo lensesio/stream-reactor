@@ -6,7 +6,7 @@ import java.util.{Date, Map, UUID}
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
 import com.datastax.driver.core._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 trait TestCassandraSourceUtil {
 
@@ -35,7 +35,7 @@ trait TestCassandraSourceUtil {
                                stringValue: String,
                                formattedTimestamp: String,
                                tinyint_field: Byte
-                              ) {
+                              ): Unit = {
     val sql = s"""INSERT INTO $keyspace.$tableName
       (id, int_field, long_field, string_field, timestamp_field, timeuuid_field, tinyint_field)
       VALUES
@@ -73,7 +73,7 @@ trait TestCassandraSourceUtil {
     println(s"truncate table $keySpace.$table")
   }
 
-  def insertIntoTimeuuidTable(session: Session, keyspace: String, tableName: String, anId: String, stringValue: String) {
+  def insertIntoTimeuuidTable(session: Session, keyspace: String, tableName: String, anId: String, stringValue: String): Unit = {
     val sql = s"""INSERT INTO $keyspace.$tableName
       (id, int_field, long_field, string_field, timeuuid_field)
       VALUES
@@ -105,13 +105,14 @@ trait TestCassandraSourceUtil {
     task.poll()
   }  
   
-  def getCassandraConfig(keyspace: String, tableName: String, kcql: String): Map[String, String] = {
-    getCassandraConfig("localhost", "cassandra", "cassandra", keyspace, tableName, kcql)
+  def getCassandraConfig(keyspace: String, tableName: String, kcql: String, port: String): Map[String, String] = {
+    getCassandraConfig("localhost", "cassandra", "cassandra", keyspace, tableName, kcql, port)
   }
 
-  def getCassandraConfig(contactPoints: String, user: String, password: String, keyspace: String, tableName: String, kcql: String): Map[String, String] = {
+  def getCassandraConfig(contactPoints: String, user: String, password: String, keyspace: String, tableName: String, kcql: String, port: String): Map[String, String] = {
     scala.collection.immutable.Map(
       CassandraConfigConstants.CONTACT_POINTS -> contactPoints,
+      CassandraConfigConstants.PORT -> port,
       CassandraConfigConstants.KEY_SPACE -> keyspace,
       CassandraConfigConstants.USERNAME -> user,
       CassandraConfigConstants.PASSWD -> password,

@@ -33,9 +33,9 @@ import StructHelper._
 import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.collection.JavaConverters._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, SetHasAsScala}
 import scala.util.{Failure, Success, Try}
 
 /**

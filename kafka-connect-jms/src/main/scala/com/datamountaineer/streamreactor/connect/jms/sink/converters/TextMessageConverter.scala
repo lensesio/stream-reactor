@@ -23,7 +23,9 @@ import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import org.apache.kafka.connect.sink.SinkRecord
 
 import javax.jms.{Message, Session}
+import scala.annotation.nowarn
 
+@nowarn
 class TextMessageConverter extends JMSMessageConverter with ConverterUtil {
 
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, Message) = {

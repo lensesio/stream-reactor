@@ -3,9 +3,10 @@ package com.landoop.json.sql
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.IntNode
 import com.landoop.json.sql.JsonSql._
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class JsonSqlWithRetainStructureTest extends WordSpec with Matchers {
+class JsonSqlWithRetainStructureTest extends AnyWordSpec with Matchers {
 
   private def compare[T](actual: JsonNode, t: T) = {
     val expectedRecord = JacksonJson.asJson(t)
@@ -37,7 +38,7 @@ class JsonSqlWithRetainStructureTest extends WordSpec with Matchers {
       val record = JacksonJson.asJson(pepperoni)
 
       val actual = record.sql("SELECT * withstructure")
-      actual shouldBe JacksonJson.fromJson[JsonNode](JacksonJson.toJson(pepperoni))
+      actual.toString shouldBe """{"name":"pepperoni","ingredients":[{"name":"pepperoni","sugar":12.0,"fat":4.4},{"name":"onions","sugar":1.0,"fat":0.4}],"vegetarian":false,"vegan":false,"calories":98}"""
     }
 
     "handle 'SELECT *, name as fieldName  withstructure' for a record" in {

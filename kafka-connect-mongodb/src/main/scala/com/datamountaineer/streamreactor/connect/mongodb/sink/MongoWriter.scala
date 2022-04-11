@@ -28,7 +28,8 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.bson.Document
 
-import scala.collection.JavaConverters._
+import scala.annotation.nowarn
+import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
 import scala.util.{Failure, Try}
 
 /**
@@ -36,7 +37,7 @@ import scala.util.{Failure, Try}
   * Mongo Json writer for Kafka connect
   * Writes a list of Kafka connect sink records to Mongo using the JSON support.
   */
-class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends StrictLogging with ConverterUtil with ErrorHandler {
+class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends StrictLogging with ConverterUtil @nowarn with ErrorHandler {
   logger.info(s"Obtaining the database information for ${settings.database}")
   private val database = mongoClient.getDatabase(settings.database)
 
@@ -64,6 +65,7 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
       logger.debug(s"Received ${records.size} records.")
       insert(records)
     }
+    ()
   }
 
   /**
@@ -96,7 +98,6 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
           
           config.getWriteMode match {
             case WriteModeEnum.INSERT => new InsertOneModel[Document](document)
-
             case WriteModeEnum.UPSERT =>
 
               require(keysAndValues.nonEmpty, "Need to provide keys and values to identify the record to upsert")
@@ -121,6 +122,8 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
                 filter,
                 document,
                 MongoWriter.ReplaceOptions.upsert(true))
+
+            case WriteModeEnum.UPDATE => throw new IllegalStateException("Update not available")
           }
         }.grouped(batchSize)
           .foreach { batch =>
@@ -184,6 +187,7 @@ object MongoClientProvider extends StrictLogging {
     }
   }
 
+  @nowarn
   private def getCredentials(settings: MongoSettings): MongoCredential = {
     val authenticationMechanism = settings.authenticationMechanism
     authenticationMechanism match {
@@ -222,5 +226,7 @@ object MongoClientProvider extends StrictLogging {
 
       case None =>
     }
+
+    ()
   }
 }

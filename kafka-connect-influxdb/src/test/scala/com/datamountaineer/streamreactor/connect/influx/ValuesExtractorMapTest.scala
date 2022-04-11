@@ -21,7 +21,7 @@ import com.datamountaineer.streamreactor.connect.influx.data.{Foo, FooInner}
 import com.datamountaineer.streamreactor.connect.influx.writers.ValuesExtractor
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -65,7 +65,7 @@ class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
 
       val path = Vector("ts")
       val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, path), path)
-      result shouldBe 'Failure
+      result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[IllegalArgumentException]
     }
 
@@ -136,17 +136,6 @@ class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
     }
 
     "does not throw an exception if the 'select * from' excludes the complex type" in {
-      val schema = SchemaBuilder.struct().name("com.example.Person")
-        .field("firstName", Schema.STRING_SCHEMA)
-        .field("lastName", Schema.STRING_SCHEMA)
-        .field("age", Schema.INT32_SCHEMA).build()
-
-      val schemaParent = SchemaBuilder.struct().name("com.example.Person")
-        .field("firstName", Schema.STRING_SCHEMA)
-        .field("lastName", Schema.STRING_SCHEMA)
-        .field("age", Schema.INT32_SCHEMA)
-        .field("dependant", schema)
-        .build()
 
       val dependant = new java.util.HashMap[String, Any]()
       dependant.put("firstName", "Alex")
@@ -179,7 +168,7 @@ class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
       InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("millis")), Vector("millis")) shouldBe Success(1483228800123L)
 
       val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("bad")), Vector("bad"))
-      result shouldBe 'Failure
+      result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[IllegalArgumentException]
     }
 
@@ -193,14 +182,14 @@ class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
 
     }
 
-    "throw an excception if a field is in bytes" in {
+    "throw an exception if a field is in bytes" in {
       val payload = new java.util.HashMap[String, Any]()
       payload.put("firstName", "Alex")
       payload.put("bibble", Array(1.toByte, 121.toByte, -111.toByte))
       payload.put("age", 30)
 
-      val result = Try(ValuesExtractor.extract(payload, Vector("bibble")), Vector("bibble"))
-      result shouldBe 'Failure
+      val result = Try((ValuesExtractor.extract(payload, Vector("bibble")), Vector("bibble")))
+      result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[IllegalArgumentException]
 
     }

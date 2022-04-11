@@ -4,7 +4,8 @@ import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 class MetastoreSchemaAlignMapperTest extends AnyFunSuite with Matchers {
 

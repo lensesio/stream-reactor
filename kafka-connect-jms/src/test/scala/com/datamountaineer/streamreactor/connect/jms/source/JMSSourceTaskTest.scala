@@ -18,7 +18,7 @@
 
 package com.datamountaineer.streamreactor.connect.jms.source
 
-import com.datamountaineer.streamreactor.connect.jms.TestBase
+import com.datamountaineer.streamreactor.connect.jms.{SlowTest, TestBase}
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
@@ -31,7 +31,7 @@ import org.scalatest.concurrent.Eventually
 import java.io.File
 import java.util.UUID
 import javax.jms.Session
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 import scala.reflect.io.Path
 
 /**
@@ -41,11 +41,11 @@ import scala.reflect.io.Path
 class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually with MockitoSugar {
 
   override def afterAll(): Unit = {
-    Path(AVRO_FILE).delete()
+    val _ = Path(AVRO_FILE).delete()
   }
 
 
-  "should start a JMSSourceTask, read records and ack messages" in {
+  "should start a JMSSourceTask, read records and ack messages" taggedAs SlowTest in {
     implicit val broker = new BrokerService()
     broker.setPersistent(false)
     broker.setUseJmx(true)

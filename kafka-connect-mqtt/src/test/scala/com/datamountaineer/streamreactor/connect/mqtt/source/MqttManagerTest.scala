@@ -19,21 +19,31 @@ package com.datamountaineer.streamreactor.connect.mqtt.source
 import com.datamountaineer.streamreactor.common.converters.MsgKey
 import com.datamountaineer.streamreactor.common.serialization.AvroSerializer
 import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, Converter, JsonSimpleConverter}
-import com.datamountaineer.streamreactor.connect.mqtt.MqttTestContainer
+import com.datamountaineer.streamreactor.connect.mqtt.SlowTest
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
-import com.sksamuel.avro4s.SchemaFor
+import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
+import com.sksamuel.avro4s.{AvroSchema, RecordFormat}
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.source.SourceRecord
 import org.eclipse.paho.client.mqttv3.{MqttClient, MqttMessage}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.Paths
 import java.util
 import java.util.UUID
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 
-class MqttManagerTest extends MqttTestContainer {
+class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers with StrictLogging {
+
+  private val mqttPort = 1883
+
+  override val container = GenericContainer("eclipse-mosquitto:1.4.12", exposedPorts = Seq(mqttPort))
+
+  protected def getMqttConnectionUrl = s"tcp://${container.host}:${container.mappedPort(mqttPort)}"
 
   val clientId = "MqttManagerTest"
   val clientPersistentId = "MqttManagerTestDisableClean"
@@ -61,14 +71,14 @@ class MqttManagerTest extends MqttTestContainer {
       ))
     }
     finally {
-      schemaFile.toFile.delete()
+      val _ = schemaFile.toFile.delete()
     }
 
   }
 
   "MqttManager" should {
 
-    "dynamically set the target kafka topic to the topic from the mqtt topic on wildcards" in {
+    "dynamically set the target kafka topic to the topic from the mqtt topic on wildcards" taggedAs SlowTest in {
       val source = "/mqttSourceTopic/+/test"
       val target = "`$`"
       val sourcesToConvMap = Map(source -> new BytesConverter)
@@ -135,7 +145,7 @@ class MqttManagerTest extends MqttTestContainer {
     }
 
 
-    "process the messages on topic A and create source records with Bytes schema with Wildcards" in {
+    "process the messages on topic A and create source records with Bytes schema with Wildcards" taggedAs SlowTest in {
       val source = "/mqttSourceTopic/+/test"
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
@@ -202,7 +212,7 @@ class MqttManagerTest extends MqttTestContainer {
     }
 
 
-    "process the messages on topic A and create source records with Bytes schema" in {
+    "process the messages on topic A and create source records with Bytes schema" taggedAs SlowTest in {
       val source = "/mqttSourceTopic"
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
@@ -268,7 +278,7 @@ class MqttManagerTest extends MqttTestContainer {
 
     }
 
-    "process the messages published before subscribing" in {
+    "process the messages published before subscribing" taggedAs SlowTest in {
       val source = "/mqttSourceTopic"
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
@@ -324,7 +334,7 @@ class MqttManagerTest extends MqttTestContainer {
 
     }
 
-    "handle each mqtt source based on the converter" in {
+    "handle each mqtt source based on the converter" taggedAs SlowTest in {
       val source1 = "/mqttSource1"
       val source2 = "/mqttSource2"
       val source3 = "/mqttSource3"
@@ -334,7 +344,9 @@ class MqttManagerTest extends MqttTestContainer {
       val target3 = "kafkaTopic3"
 
       val avroConverter = new AvroConverter
-      val studentSchema = SchemaFor[Student]()
+
+      implicit val studentSchema = AvroSchema[Student]
+      implicit val recordFormat = RecordFormat[Student]
       initializeConverter(source3, avroConverter, studentSchema)
       val sourcesToConvMap: Map[String, Converter] = Map(source1 -> new BytesConverter,
         source2 -> new JsonSimpleConverter,
@@ -433,7 +445,7 @@ class MqttManagerTest extends MqttTestContainer {
   }
 
   "MqttManager" should {
-    "process the messages on shared mqtt topic and create source records with Bytes schema with Wildcards" in {
+    "process the messages on shared mqtt topic and create source records with Bytes schema with Wildcards" taggedAs SlowTest in {
       val sourceTopic = "$share/connect/mqttSourceTopic"
       val sourceKCQL = "`$share/connect/mqttSourceTopic`" // same with sourceTopic but with quotes
       val target = "kafkaTopic"

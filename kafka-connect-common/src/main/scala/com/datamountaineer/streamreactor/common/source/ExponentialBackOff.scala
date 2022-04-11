@@ -44,7 +44,7 @@ class ExponentialBackOff(step: Duration, cap: Duration, iteration: Int = 0, cloc
   }
 
   private def exponentialInterval(i: Int): Duration = {
-    if (first) Duration.ofMillis(-1) else Duration.ofMillis(Math.min(cap.toMillis, step.toMillis * Math.pow(2, i).toLong))
+    if (first) Duration.ofMillis(-1) else Duration.ofMillis(Math.min(cap.toMillis, step.toMillis * Math.pow(2.toDouble, i.toDouble).toLong))
   }
 }
 

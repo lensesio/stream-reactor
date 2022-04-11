@@ -185,6 +185,6 @@ case class ElasticConfig(props: util.Map[String, String])
   val kcqlConstant: String = ElasticConfigConstants.KCQL
 
   def getKcql(): Seq[Kcql] = {
-    getString(kcqlConstant).split(";").filter(_.trim.nonEmpty).map(Kcql.parse)
+    getString(kcqlConstant).split(";").filter(_.trim.nonEmpty).map(Kcql.parse).toIndexedSeq
   }
 }

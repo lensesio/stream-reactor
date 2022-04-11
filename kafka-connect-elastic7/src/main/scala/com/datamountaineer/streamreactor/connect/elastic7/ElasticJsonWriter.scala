@@ -30,12 +30,14 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConverters._
+import scala.annotation.nowarn
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
+@nowarn
 class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
   extends ErrorHandler with StrictLogging with ConverterUtil {
 
@@ -52,13 +54,13 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
   private val kcqlMap = new util.IdentityHashMap[Kcql, KcqlValues]()
   settings.kcqls.foreach { kcql =>
     kcqlMap.put(kcql,
-      KcqlValues(
-        kcql.getFields.asScala.map(FieldConverter.apply),
-        kcql.getIgnoredFields.asScala.map(FieldConverter.apply),
+    KcqlValues(
+        kcql.getFields.asScala.map(FieldConverter.apply).toSeq,
+        kcql.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
         kcql.getPrimaryKeys.asScala.map { pk =>
           val path = Option(pk.getParentFields).map(_.asScala.toVector).getOrElse(Vector.empty)
           path :+ pk.getName
-        }
+        }.toSeq
       ))
 
   }
@@ -102,7 +104,6 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
         //we might have multiple inserts from the same Kafka Message
         kcqls.flatMap { kcql =>
           val i = CreateIndex.getIndexName(kcql)
-          val documentType = Option(kcql.getDocType).getOrElse(i)
           val kcqlValue = kcqlMap.get(kcql)
           sinkRecords.grouped(settings.batchSize)
             .map { batch =>
@@ -150,6 +151,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
         Await.result(Future.sequence(fut), settings.writeTimeout.seconds)
       )
     )
+    ()
   }
 
   /**
@@ -158,7 +160,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
     * @param record One SinkRecord
     **/
   def autoGenId(record: SinkRecord): String = {
-    val pks = Seq(record.topic(), record.kafkaPartition(), record.kafkaOffset())
+    val pks: Seq[Any] = Seq(record.topic(), record.kafkaPartition(), record.kafkaOffset())
     pks.mkString(settings.pkJoinerSeparator)
   }
 

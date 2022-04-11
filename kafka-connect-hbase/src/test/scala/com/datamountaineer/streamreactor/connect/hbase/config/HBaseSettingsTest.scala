@@ -22,7 +22,8 @@ import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
+
 
 class HBaseSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
 

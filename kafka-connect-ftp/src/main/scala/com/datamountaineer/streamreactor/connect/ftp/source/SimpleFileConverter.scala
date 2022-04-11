@@ -21,7 +21,7 @@ import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.storage.OffsetStorageReader
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
   * Simple file converter. Writes the complete file into a single record
@@ -32,8 +32,8 @@ class SimpleFileConverter(props: util.Map[String, String], offsetStorageReader :
 
   val cfg = new FtpSourceConfig(props)
   val metaStore = new ConnectFileMetaDataStore(offsetStorageReader)
-  val recordConverter: SourceRecordConverter = cfg.sourceRecordConverter
-  val recordMaker: SourceRecordProducer = cfg.keyStyle match {
+  val recordConverter: SourceRecordConverter = cfg.sourceRecordConverter()
+  val recordMaker: SourceRecordProducer = cfg.keyStyle() match {
     case KeyStyle.String => SourceRecordProducers.stringKeyRecord
     case KeyStyle.Struct => SourceRecordProducers.structKeyRecord
   }
@@ -41,7 +41,7 @@ class SimpleFileConverter(props: util.Map[String, String], offsetStorageReader :
   override def convert(topic: String, meta: FileMetaData, body: FileBody): Seq[SourceRecord] = {
     metaStore.set(meta.attribs.path, meta)
     recordConverter.convert(recordMaker(metaStore, topic, meta, body)).asScala
-  }
+  }.toSeq
 
   override def getFileOffset(path: String): Option[FileMetaData] = metaStore.get(path)
 }

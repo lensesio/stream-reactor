@@ -24,8 +24,8 @@ import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 
-import scala.collection.JavaConverters._
 import scala.collection.immutable.ListSet
+import scala.jdk.CollectionConverters.{IteratorHasAsScala, ListHasAsScala}
 import scala.util.{Failure, Success, Try}
 
 case class Projections(targets: Map[String, String], // source -> target
@@ -95,7 +95,7 @@ object Projections extends StrictLogging {
     kcql.toList
       .map(k =>
         (k.getSource,
-          ListSet(k.getPrimaryKeys.asScala.map(p => p.getName).reverse: _*).toSet))
+          ListSet(k.getPrimaryKeys.asScala.map(p => p.getName).reverse.toSeq: _*)))
       .toMap
   }
 
@@ -124,7 +124,7 @@ object Projections extends StrictLogging {
               } else {
                 key.getName
               })
-            .reverse: _*)
+            .reverse.toSeq: _*)
         if (keys.isEmpty)
           throw new ConfigException(
             s"[${r.getTarget}] is set up with upsert, you need to set primary keys")
@@ -232,7 +232,7 @@ object Projections extends StrictLogging {
       .map({
         case (source, clazz) =>
           logger.info(s"Creating converter instance for $clazz")
-          val converter = Try(Class.forName(clazz).newInstance()) match {
+          val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
             case Success(value) => value.asInstanceOf[Converter]
             case Failure(_) => throw new ConfigException(s"Invalid KCQL is invalid for [$source]. [$clazz] should have an empty ctor!")
           }

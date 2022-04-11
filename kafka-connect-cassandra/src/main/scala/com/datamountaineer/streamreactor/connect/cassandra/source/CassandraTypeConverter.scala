@@ -18,7 +18,6 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import java.math.RoundingMode
 import java.util.Date
-
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSourceSetting
 import com.datastax.driver.core.ColumnDefinitions.Definition
 import com.datastax.driver.core.{CodecRegistry, _}
@@ -27,7 +26,8 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{IterableHasAsScala, SeqHasAsJava}
+
 
 /**
   * Created by caio@caiooliveira.eti.br on 17/01/18.

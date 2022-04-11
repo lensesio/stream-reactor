@@ -21,7 +21,7 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class ValueToSinkDataConverterTest extends AnyFlatSpec with Matchers {
 

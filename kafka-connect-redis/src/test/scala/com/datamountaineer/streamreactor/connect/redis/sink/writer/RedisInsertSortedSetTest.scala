@@ -17,25 +17,24 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
+import com.dimafeng.testcontainers
+import com.dimafeng.testcontainers.ForAllTestContainer
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.testcontainers.containers.GenericContainer
 import redis.clients.jedis.Jedis
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsScala}
 
-class RedisInsertSortedSetTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
-  val redisContainer: GenericContainer[_] = new GenericContainer("redis:6-alpine")
-    .withExposedPorts(6379)
+class RedisInsertSortedSetTest extends AnyWordSpec with Matchers with MockitoSugar with ForAllTestContainer {
 
-  override def beforeAll(): Unit = redisContainer.start()
-
-  override def afterAll(): Unit = redisContainer.stop()
+  override val container = testcontainers.GenericContainer(
+    dockerImage = "redis:6-alpine",
+    exposedPorts = Seq(6379)
+  )
 
   "Redis INSERT into Sorted Set (SS) writer" should {
 
@@ -46,12 +45,12 @@ class RedisInsertSortedSetTest extends AnyWordSpec with Matchers with BeforeAndA
       println("Testing KCQL : " + KCQL)
       val props = Map(
         RedisConfigConstants.REDIS_HOST-> "localhost",
-        RedisConfigConstants.REDIS_PORT-> redisContainer.getMappedPort(6379).toString,
+        RedisConfigConstants.REDIS_PORT-> container.mappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG-> KCQL
       ).asJava
 
       val config = RedisConfig(props)
-      val connectionInfo = new RedisConnectionInfo("localhost", redisContainer.getMappedPort(6379), None)
+      val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisInsertSortedSet(settings)
       writer.createClient(settings)

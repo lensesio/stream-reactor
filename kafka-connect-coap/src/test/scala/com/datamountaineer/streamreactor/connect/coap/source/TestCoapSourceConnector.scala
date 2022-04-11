@@ -20,7 +20,8 @@ import com.datamountaineer.streamreactor.connect.coap.TestBase
 import com.datamountaineer.streamreactor.connect.coap.configs.CoapConstants
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 /**
   * Created by andrew@datamountaineer.com on 28/12/2016. 

@@ -20,17 +20,15 @@ package com.datamountaineer.streamreactor.connect.converters.source
 
 import com.datamountaineer.streamreactor.common.converters.MsgKey
 import com.typesafe.scalalogging.StrictLogging
-
-import java.nio.charset.Charset
-import java.util
-import java.util.Collections
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
 import org.json4s
 import org.json4s.native.JsonParser
 
-import scala.annotation.tailrec
+import java.nio.charset.Charset
+import java.util
+import java.util.Collections
 import scala.util.{Failure, Success, Try}
 
 class JsonSimpleConverter extends Converter {
@@ -115,6 +113,7 @@ object JsonSimpleConverter extends StrictLogging {
         new SchemaAndValue(Schema.OPTIONAL_STRING_SCHEMA, null)
       case JString(s)      => new SchemaAndValue(Schema.OPTIONAL_STRING_SCHEMA, s)
       case JObject(values) => handleObject(name, values)
+      case other => throw new IllegalStateException(s"$other Not handled in match")
     }
   }
   private def handleArray(name: String,

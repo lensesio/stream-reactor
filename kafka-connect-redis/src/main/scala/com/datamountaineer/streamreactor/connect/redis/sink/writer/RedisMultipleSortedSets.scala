@@ -24,7 +24,7 @@ import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisKCQLSet
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -105,6 +105,7 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
 
                     val score = helper.extractValueFromPath(scoreField) match {
                       case Right(Some(v: java.lang.Long)) => v.toDouble
+                      case Right(other) => throw new ConnectException(s"Unable to find score field, or score field in unexpected format, $other, [$scoreField] in record in topic [${record.topic()}], ")
                       case Left(e) => throw new ConnectException(s"Unable to find score field [$scoreField] in record in topic [${record.topic()}], " +
                         s"partition [${record.kafkaPartition()}], offset [${record.kafkaOffset()}], ${e.msg}")
                     }
@@ -114,7 +115,7 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
                     if (response == 1) {
                       val ttl = KCQL.kcqlConfig.getTTL
                       if (ttl > 0) {
-                        jedis.expire(sortedSetName, ttl.toInt)
+                        jedis.expire(sortedSetName, ttl)
                       }
                     }
 

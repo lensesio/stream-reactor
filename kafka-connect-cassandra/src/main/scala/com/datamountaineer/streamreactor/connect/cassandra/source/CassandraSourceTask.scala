@@ -27,8 +27,8 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
 import scala.util.{Failure, Success, Try}
 
 
@@ -39,7 +39,7 @@ import scala.util.{Failure, Success, Try}
 
 
 class CassandraSourceTask extends SourceTask with StrictLogging {
-  private var queues = mutable.Map.empty[String, LinkedBlockingQueue[SourceRecord]]
+  private val queues = mutable.Map.empty[String, LinkedBlockingQueue[SourceRecord]]
   private val readers = mutable.Map.empty[String, CassandraTableReader]
   private val stopControl = new Object()
   private var taskConfig: Option[CassandraConfigSource] = None
@@ -119,7 +119,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     * Waiting Poll Interval
     *
     */
-  private def waitPollInterval = {
+  private def waitPollInterval() = {
     val now = System.currentTimeMillis()
     if (tracker + pollInterval <= now) {
       tracker = now
@@ -152,7 +152,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     // than we are putting data into it
 
     if (!reader.isQuerying) {
-      waitPollInterval
+      waitPollInterval()
       // start another query
       reader.read()
     } else {

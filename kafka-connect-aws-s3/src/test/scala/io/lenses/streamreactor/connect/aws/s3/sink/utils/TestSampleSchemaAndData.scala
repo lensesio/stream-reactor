@@ -27,8 +27,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.InputStream
 import java.util
-import scala.collection.JavaConverters._
-
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 object TestSampleSchemaAndData extends Matchers {
 

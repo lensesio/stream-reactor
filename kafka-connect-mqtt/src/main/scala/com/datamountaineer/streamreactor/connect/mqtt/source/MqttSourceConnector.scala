@@ -26,7 +26,7 @@ import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
 
 class MqttSourceConnector extends SourceConnector with StrictLogging {
   private val configDef = MqttSourceConfig.config
@@ -63,7 +63,6 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
         .zipWithIndex
         .map { case (p, index) =>
           val map = settings.copy(kcql = p, clientId = settings.clientId + "-" + index).asMap()
-          import scala.collection.JavaConverters._
           configProps.asScala
             .filterNot { case (k, _) => map.containsKey(k) }
             .foreach { case (k, v) => map.put(k, v) }

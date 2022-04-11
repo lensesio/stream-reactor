@@ -5,7 +5,7 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.hadoop.hive.metastore.api.{StorageDescriptor, Table}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.{Failure, Success, Try}
 
 /**

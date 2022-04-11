@@ -21,8 +21,8 @@ package com.datamountaineer.streamreactor.common.schemas
 import com.typesafe.scalalogging.StrictLogging
 import io.confluent.kafka.schemaregistry.client.rest.RestService
 
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.{Failure, Success, Try}
-import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 13/06/16. 
@@ -60,7 +60,7 @@ object SchemaRegistry extends StrictLogging {
     val registry = new RestService(url)
     val schemas: List[String] = Try(registry.getAllSubjects.asScala.toList) match {
       case Success(s) => s
-      case Failure(f) => {
+      case Failure(_) => {
         logger.warn("Unable to connect to the Schema registry. An attempt will be made to create the table" +
           " on receipt of the first records.")
         List.empty[String]

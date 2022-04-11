@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.redis.sink.config
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class RedisConfigTest extends AnyWordSpec with Matchers {
 
@@ -38,7 +38,7 @@ class RedisConfigTest extends AnyWordSpec with Matchers {
 
   }
 
-  val propsWithoutPass = Map(RedisConfigConstants.REDIS_HOST -> "localhost",
+  val propsWithoutPass : Map[String,_] = Map(RedisConfigConstants.REDIS_HOST -> "localhost",
     RedisConfigConstants.REDIS_PORT -> 8453,
     RedisConfigConstants.KCQL_CONFIG -> "SELECT * FROM topicA",
     RedisConfigConstants.ERROR_POLICY -> "THROW")

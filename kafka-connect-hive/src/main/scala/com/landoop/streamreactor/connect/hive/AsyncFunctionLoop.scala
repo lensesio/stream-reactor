@@ -34,6 +34,7 @@ class AsyncFunctionLoop(interval: Duration, description: String)(thunk: => Unit)
         }
       }
     })
+    ()
   }
 
   override def close(): Unit = {
@@ -41,5 +42,6 @@ class AsyncFunctionLoop(interval: Duration, description: String)(thunk: => Unit)
       executorService.shutdownNow()
       executorService.awaitTermination(10000, TimeUnit.MILLISECONDS)
     }
+    ()
   }
 }

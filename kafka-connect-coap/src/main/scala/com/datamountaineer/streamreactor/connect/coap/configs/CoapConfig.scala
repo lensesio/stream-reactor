@@ -21,7 +21,7 @@ import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 
@@ -81,18 +81,20 @@ object CoapConfig {
 
     .define(CoapConstants.SOURCE_LINGER_MS, Type.INT, CoapConstants.SOURCE_LINGER_MS_DEFAULT, Importance.MEDIUM, CoapConstants.SOURCE_LINGER_MS_DOC,
       "Metrics", 3, ConfigDef.Width.MEDIUM, CoapConstants.SOURCE_LINGER_MS)
-}
 
-object CoapSinkConfig {
-  val base: ConfigDef = CoapConfig.config
-
-  val config: ConfigDef = base
     .define(CoapConstants.ERROR_POLICY, Type.STRING, CoapConstants.ERROR_POLICY_DEFAULT, Importance.HIGH, CoapConstants.ERROR_POLICY_DOC,
       "Error", 1, ConfigDef.Width.LONG, CoapConstants.ERROR_POLICY)
     .define(CoapConstants.NBR_OF_RETRIES, Type.INT, CoapConstants.NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, CoapConstants.NBR_OF_RETRIES_DOC,
       "Error", 2, ConfigDef.Width.LONG, CoapConstants.NBR_OF_RETRIES)
     .define(CoapConstants.ERROR_RETRY_INTERVAL, Type.INT, CoapConstants.ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, CoapConstants.ERROR_RETRY_INTERVAL_DOC,
       "Error", 3, ConfigDef.Width.LONG, CoapConstants.ERROR_RETRY_INTERVAL)
+}
+
+object CoapSinkConfig {
+  val base: ConfigDef = CoapConfig.config
+
+  val config: ConfigDef = base
+
 }
 
 object CoapSourceConfig {

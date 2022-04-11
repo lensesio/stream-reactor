@@ -19,12 +19,12 @@ for module in ${MODIFIED_MODULES}; do
 done
 
 if $BUILD_ALL; then
-    ./gradlew clean test
+    sbt assembly
 else
     GRADLE_TASKS=""
     for module in ${MODIFIED_MODULES}; do
         GRADLE_TASKS="${GRADLE_TASKS} :${module}:test"
     done
 
-    ./gradlew clean ${GRADLE_TASKS}
+    sbt clean ${GRADLE_TASKS}
 fi

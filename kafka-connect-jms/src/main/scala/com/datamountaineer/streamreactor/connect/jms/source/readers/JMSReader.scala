@@ -52,8 +52,8 @@ class JMSReader(settings: JMSSettings) extends StrictLogging {
   }
 
   def convert(source: String, target: String, message: Message): SourceRecord = {
-    convertersMap(source).getOrElse(None) match {
-      case c: Converter => c.convert(target, source, message.getJMSMessageID, JMSStructMessage.getPayload(message))
+    convertersMap(source) match {
+      case Some(c) => c.convert(target, source, message.getJMSMessageID, JMSStructMessage.getPayload(message))
       case None => JMSStructMessage.getStruct(target, message)
     }
   }

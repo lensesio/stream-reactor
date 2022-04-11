@@ -26,6 +26,7 @@ import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSink
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 
+import scala.annotation.nowarn
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -40,6 +41,7 @@ object HazelCastWriter {
   }
 }
 
+@nowarn
 class HazelCastWriter(settings: HazelCastSinkSettings) extends StrictLogging
   with ConverterUtil with ErrorHandler {
   logger.info("Initialising Hazelcast writer.")
@@ -120,7 +122,7 @@ class HazelCastWriter(settings: HazelCastSinkSettings) extends StrictLogging
 
   def close(): Unit = {
     logger.info("Shutting down Hazelcast client.")
-    writers.values.foreach(_.close)
+    writers.values.foreach(_.close())
     settings.client.shutdown()
   }
 

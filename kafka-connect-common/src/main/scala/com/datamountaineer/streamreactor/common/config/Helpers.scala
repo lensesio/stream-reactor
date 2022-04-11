@@ -38,7 +38,7 @@ object Helpers extends StrictLogging {
     * @return a Map of table->topic.
     * */
   def buildRouteMaps(input: String, filterTable: List[String]) : Map[String, String] = {
-    tableTopicParser(input).filter({ case (k, v) => filterTable.contains(k)})
+    tableTopicParser(input).filter({ case (k, _) => filterTable.contains(k)})
   }
 
   //{table:f1,f2}

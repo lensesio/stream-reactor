@@ -16,27 +16,25 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.streamreactor.connect.redis.sink.RedisSinkTask
+import com.datamountaineer.streamreactor.connect.redis.sink.{RedisSinkTask, SlowTest}
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
+import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.MockitoSugar
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.testcontainers.containers.GenericContainer
 import redis.clients.jedis.Jedis
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava, SetHasAsScala}
 
-class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
-  val redisContainer: GenericContainer[_] = new GenericContainer("redis:6-alpine")
-    .withExposedPorts(6379)
+class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with MockitoSugar with ForAllTestContainer {
 
-  override def beforeAll(): Unit = redisContainer.start()
-
-  override def afterAll(): Unit = redisContainer.stop()
+  override val container = GenericContainer(
+    dockerImage = "redis:6-alpine",
+    exposedPorts = Seq(6379)
+  )
 
   "Redis INSERT into Multiple Sorted Sets (SS) writer" should {
 
@@ -47,13 +45,13 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with BeforeA
 
       val props = Map(
         RedisConfigConstants.REDIS_HOST -> "localhost",
-        RedisConfigConstants.REDIS_PORT -> redisContainer.getMappedPort(6379).toString,
+        RedisConfigConstants.REDIS_PORT -> container.mappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG -> KCQL
       ).asJava
 
       val config = RedisConfig(props)
 
-      val connectionInfo = new RedisConnectionInfo("localhost", redisContainer.getMappedPort(6379), None)
+      val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisMultipleSortedSets(settings)
       writer.createClient(settings)
@@ -86,13 +84,13 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with BeforeA
 
     }
 
-    "multiple sorted sets task check" in {
+    "multiple sorted sets task check" taggedAs SlowTest in {
       val TOPIC = "sensorsTopic"
       val KCQL = s"SELECT temperature, humidity FROM $TOPIC PK sensorID STOREAS SortedSet(score=ts)"
 
       val props = Map(
         RedisConfigConstants.REDIS_HOST -> "localhost",
-        RedisConfigConstants.REDIS_PORT -> redisContainer.getMappedPort(6379).toString,
+        RedisConfigConstants.REDIS_PORT -> container.mappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG -> KCQL
       ).asJava
 
@@ -113,7 +111,7 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with BeforeA
 
       task.put(List(sinkRecord1).asJava)
 
-      val connectionInfo = new RedisConnectionInfo("localhost", redisContainer.getMappedPort(6379), None)
+      val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
       val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
       jedis.zcard("sensor-sink-task") shouldBe 1
     }
@@ -124,7 +122,7 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with BeforeA
 
       val props = Map(
         RedisConfigConstants.REDIS_HOST -> "localhost",
-        RedisConfigConstants.REDIS_PORT -> redisContainer.getMappedPort(6379).toString,
+        RedisConfigConstants.REDIS_PORT -> container.mappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG -> KCQL
       ).asJava
 
@@ -145,7 +143,7 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with BeforeA
 
       task.put(List(sinkRecord1).asJava)
 
-      val connectionInfo = new RedisConnectionInfo("localhost", redisContainer.getMappedPort(6379), None)
+      val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
       val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
       jedis.zcard("PREFIX-sensor-sink-task-prefix") shouldBe 1
     }
@@ -156,7 +154,7 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with BeforeA
 
       val props = Map(
         RedisConfigConstants.REDIS_HOST -> "localhost",
-        RedisConfigConstants.REDIS_PORT -> redisContainer.getMappedPort(6379).toString,
+        RedisConfigConstants.REDIS_PORT -> container.mappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG -> KCQL
       ).asJava
 
@@ -184,7 +182,7 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with BeforeA
 
       task.put(List(sinkRecord1).asJava)
 
-      val connectionInfo = new RedisConnectionInfo("localhost", redisContainer.getMappedPort(6379), None)
+      val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
       val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
       jedis.zcard("sensor-sink-task.random") shouldBe 1
     }

@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
 import java.util
-
 import com.datamountaineer.streamreactor.connect.azure.documentdb.Json
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
@@ -26,7 +25,9 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
+
+
 
 class KeysExtractorTest extends AnyWordSpec with Matchers {
   private val avroData = new AvroData(4)
@@ -48,7 +49,7 @@ class KeysExtractorTest extends AnyWordSpec with Matchers {
       val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
       val jvalue = Json.parseJson(json)
       intercept[ConfigException] {
-        val actual = KeysExtractor.fromJson(jvalue, Set("inputs"))
+        val _ = KeysExtractor.fromJson(jvalue, Set("inputs"))
       }
     }
 

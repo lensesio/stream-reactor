@@ -22,11 +22,10 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.util
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 
 class KcqlSettingsTest extends AnyWordSpec with Matchers {
-
-  import scala.collection.JavaConverters._
 
   case class KS(kcql: String) extends KcqlSettings {
 

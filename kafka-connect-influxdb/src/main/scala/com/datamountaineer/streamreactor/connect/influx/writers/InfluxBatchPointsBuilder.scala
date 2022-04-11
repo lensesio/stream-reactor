@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.influx.writers
 
 import java.util.concurrent.TimeUnit
-
 import com.datamountaineer.kcql.{Kcql, Tag}
 import com.datamountaineer.streamreactor.connect.influx.NanoClock
 import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
@@ -29,7 +28,7 @@ import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.influxdb.dto.{BatchPoints, Point}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.{Failure, Success, Try}
 
 

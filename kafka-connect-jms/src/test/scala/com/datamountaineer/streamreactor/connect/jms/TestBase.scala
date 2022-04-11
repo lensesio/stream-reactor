@@ -20,7 +20,7 @@ package com.datamountaineer.streamreactor.connect.jms
 
 
 import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, JMSConfigConstants}
-import com.sksamuel.avro4s.{AvroOutputStream, SchemaFor}
+import com.sksamuel.avro4s.{AvroOutputStream, AvroSchema, Encoder}
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
 import org.apache.activemq.jndi.ActiveMQInitialContextFactory
@@ -36,7 +36,7 @@ import java.nio.file.Paths
 import java.util
 import java.util.UUID
 import javax.jms.{BytesMessage, Connection, Session, TextMessage}
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
 
 /**
   * Created by andrew@datamountaineer.com on 14/03/2017. 
@@ -65,7 +65,7 @@ trait TestBase extends AnyWordSpec with Matchers with MockitoSugar {
 
   def getSchemaFile(): String = {
     val schemaFile = Paths.get(UUID.randomUUID().toString)
-    val schema = SchemaFor[Student]()
+    val schema = AvroSchema[Student]
     val bw = new BufferedWriter(new FileWriter(schemaFile.toFile))
     bw.write(schema.toString)
     bw.close()
@@ -144,7 +144,8 @@ trait TestBase extends AnyWordSpec with Matchers with MockitoSugar {
 
   def getAvro(s: Student): Array[Byte] = {
     val baos = new ByteArrayOutputStream()
-    val output = AvroOutputStream.binary[Student](baos)
+    val studentEncoder = Encoder[Student]
+    val output = AvroOutputStream.binary[Student](studentEncoder).to(baos).build()
     output.write(s)
     output.close()
     baos.toByteArray
@@ -163,14 +164,15 @@ trait TestBase extends AnyWordSpec with Matchers with MockitoSugar {
 
   def testWithBrokerOnPort(test: (Connection, String) => Unit): Unit = testWithBrokerOnPort()(test)
 
-  def testWithBrokerOnPort(port: Int = getFreePort)(test: (Connection, String) => Unit): Unit =
-    testWithBroker(port, None) { brokerUrl =>
+  def testWithBrokerOnPort(port: Int = getFreePort)(test: (Connection, String) => Unit): Unit = {
+    val _ = testWithBroker(port, None) { brokerUrl =>
       val connectionFactory = new ActiveMQConnectionFactory()
       connectionFactory.setBrokerURL(brokerUrl)
       val conn = connectionFactory.createConnection()
       conn.start()
       test(conn, brokerUrl)
     }
+  }
 
   def testWithBroker(port: Int = getFreePort, clientID: Option[String])(test: String => Unit): BrokerService = {
     val broker = new BrokerService()

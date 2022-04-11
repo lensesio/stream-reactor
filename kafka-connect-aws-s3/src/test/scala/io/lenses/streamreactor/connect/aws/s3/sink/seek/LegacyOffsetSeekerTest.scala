@@ -49,14 +49,14 @@ class LegacyOffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers
 
     when(storageInterface.list(bucketAndPath)).thenReturn(List().asRight)
 
-    offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).right.value should be(None)
+    offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).value should be(None)
   }
 
   "seek" should "return expected offsets for 1 filename" in {
 
     when(storageInterface.list(bucketAndPath)).thenReturn(List("path/myTopic/0/100.json").asRight)
 
-    offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).right.value.value should be(
+    offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).value.value should be(
       (
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(100)),
         bucketAndPrefix.withPath("path/myTopic/0/100.json")
@@ -72,7 +72,7 @@ class LegacyOffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers
       List("path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json").asRight
     )
 
-    offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).right.value.value should be(
+    offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).value.value should be(
       (
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(300)),
         bucketAndPrefix.withPath("path/myTopic/0/300.json")
@@ -88,7 +88,7 @@ class LegacyOffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers
         "path/notMyTopic/0/300.json", "path/notMyTopic/0/200.json", "path/notMyTopic/0/100.json").asRight
     )
 
-    offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).right.value.value should be(
+    offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).value.value should be(
       (
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(300)),
         bucketAndPrefix.withPath("path/myTopic/0/300.json")
@@ -105,7 +105,7 @@ class LegacyOffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers
       ).asRight
     )
 
-    offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).right.value.value should be(
+    offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).value.value should be(
       (
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(200)),
         bucketAndPrefix.withPath("path/myTopic/0/200.json")
@@ -122,7 +122,7 @@ class LegacyOffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers
       ).asRight
     )
 
-    offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).right.value.value should be(
+    offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).value.value should be(
       (
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(200)),
         bucketAndPrefix.withPath("path/myTopic/0/200.json")
@@ -140,7 +140,7 @@ class LegacyOffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers
       ).asRight
     )
 
-    offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).right.value.value should be(
+    offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).value.value should be(
       (
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(200)),
         bucketAndPrefix.withPath("path/myTopic/0/200.json")

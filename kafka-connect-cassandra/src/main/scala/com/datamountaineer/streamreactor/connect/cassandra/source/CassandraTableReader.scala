@@ -16,11 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
-import java.text.SimpleDateFormat
-import java.time.Instant
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-import java.util.{Collections, Date}
 import com.datamountaineer.kcql.FormatType
 import com.datamountaineer.streamreactor.common.offsets.OffsetHandler
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting, TimestampType}
@@ -34,9 +29,14 @@ import org.apache.kafka.connect.source.{SourceRecord, SourceTaskContext}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
 
-import scala.collection.JavaConverters._
+import java.text.SimpleDateFormat
+import java.time.Instant
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+import java.util.{Collections, Date}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, SeqHasAsJava}
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -52,7 +52,26 @@ class CassandraTableReader(private val name: String,
   private val config = setting.kcql
   private val cqlGenerator = new CqlGenerator(setting)
 
-  private val dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'")
+  class CassandraDateFormatter {
+    private val dateFormatPattern = "yyyy-MM-dd HH:mm:ss.SSS'Z'"
+
+    def parse(date: String) : Date = {
+      val dateFormatter = new SimpleDateFormat(dateFormatPattern)
+      dateFormatter.parse(date)
+    }
+
+    def format(date: Date): String = {
+      val dateFormatter = new SimpleDateFormat(dateFormatPattern)
+      dateFormatter.format(date)
+    }
+
+    def getYear(date: Date): Option[Int] = {
+      val dateFormatter = new SimpleDateFormat("yyyy");
+      dateFormatter.format(date).toIntOption
+    }
+  }
+
+  private val dateFormatter = new CassandraDateFormatter()
   private val primaryKeyCol = setting.primaryKeyColumn.getOrElse("")
   private val querying = new AtomicBoolean(false)
   private val stop = new AtomicBoolean(false)
@@ -126,7 +145,7 @@ class CassandraTableReader(private val name: String,
       // bulk
       resultSetFutureToScala(fireQuery(preparedStatement))
     } else if (isTokenBased) {
-      // token based 
+      // token based
       tableOffset match {
         // use offset/token to page thru results
         case Some(tableOffset) => resultSetFutureToScala(bindAndFireTokenQuery(tableOffset))
@@ -150,18 +169,19 @@ class CassandraTableReader(private val name: String,
     */
   private def bindAndFireTimebasedQuery() = {
     // get the lower bound for the timebased query
-    // using either the default value or the timestamp of the last 
+    // using either the default value or the timestamp of the last
     // row that was processed (captured in the offset)
     val previousDate = dateFormatter.parse(cqlGenerator.getDefaultOffsetValue(tableOffset).get)
     val previous = previousDate.toInstant
     // we want to manage how close our query is to the "present"
-    // so we don't miss data 
+    // so we don't miss data
     // and we also don't want to have the upper bound
     // be less than the last offset (previous)
     val nowWithDelay = Instant.now().minusMillis(timeSliceDelay)
     val potentialUpperBound = if (nowWithDelay.compareTo(previous) <= 0) previous else nowWithDelay
-    
-    val upperBound = if (previousDate.getYear == 0) {
+
+    val year = dateFormatter.getYear(previousDate)
+    val upperBound = if (year.contains(1900) || year.isEmpty) {
       // TODO: we can't do small time slices if default is Jan 1, 1900
       // so for now advance to current date time
       potentialUpperBound
@@ -279,7 +299,7 @@ class CassandraTableReader(private val name: String,
         reset(tableOffset)
     }
   }
-  
+
   private def alterTimeSliceValueBasedOnRowsProcessess(rowsProcessed: Int) = {
     // if no rows are processed using the timebased approach
     // we want to increase the range of time we look for and
@@ -391,7 +411,7 @@ class CassandraTableReader(private val name: String,
     *
     * @param offset the date to set the offset to
     */
-  private def reset(offset: Option[String]) = {
+  private def reset(offset: Option[String]): Unit = {
     //set the offset to the 'now' bind value
     val table = config.getTarget
     logger.debug(s"Connector $name setting offset for $keySpace.$table to $offset.")

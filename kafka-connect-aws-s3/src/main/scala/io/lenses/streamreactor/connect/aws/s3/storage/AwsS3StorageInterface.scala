@@ -20,7 +20,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocati
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 
-import scala.jdk.CollectionConverters.asScalaBufferConverter
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
 class AwsS3StorageInterface(s3Client: S3Client) extends SourceStorageInterface with LazyLogging {

@@ -21,7 +21,8 @@ import io.lenses.streamreactor.connect.aws.s3.model.SinkData
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.IterableHasAsScala
+
 
 object HeaderToStringConverter {
 

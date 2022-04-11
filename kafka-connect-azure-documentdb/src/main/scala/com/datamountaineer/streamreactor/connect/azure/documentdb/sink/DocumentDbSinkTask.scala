@@ -25,7 +25,7 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.{Failure, Success, Try}
 
 /**

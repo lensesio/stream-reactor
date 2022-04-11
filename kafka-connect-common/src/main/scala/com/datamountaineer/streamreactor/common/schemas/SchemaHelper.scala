@@ -21,7 +21,8 @@ package com.datamountaineer.streamreactor.common.schemas
 import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Schema
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 object SchemaHelper {
   implicit final class SchemaExtensions(val schema: Schema) extends AnyVal {

@@ -19,7 +19,8 @@ package com.datamountaineer.streamreactor.connect.kudu
 import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfigConstants
 import com.datamountaineer.streamreactor.connect.kudu.sink.{KuduSinkConnector, KuduSinkTask}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.ListHasAsScala
+
 
 
 /**

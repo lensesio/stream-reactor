@@ -1,41 +1,41 @@
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import com.datamountaineer.streamreactor.connect.converters.source.BytesConverter
+import com.datamountaineer.streamreactor.connect.mqtt.SlowTest
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
+import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer, MultipleContainers, ToxiproxyContainer}
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.source.SourceRecord
 import org.eclipse.paho.client.mqttv3.{MqttClient, MqttMessage}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.testcontainers.containers.{GenericContainer, Network, ToxiproxyContainer}
+import org.testcontainers.containers.Network
 
-import java.util.UUID
 import java.util
+import java.util.UUID
 
-class MqttManagerConnectionFailureTest extends AnyWordSpec with Matchers {
+class MqttManagerConnectionFailureTest extends AnyWordSpec with ForAllTestContainer with Matchers {
+
+  val mqttPort = 1883
+  val cNetwork = Network.newNetwork
+
+  val mqttContainer = GenericContainer("eclipse-mosquitto:1.4.12", exposedPorts = Seq(mqttPort))
+  mqttContainer.container.setNetwork(cNetwork)
+
+  val toxiProxyContainer = ToxiproxyContainer()
+  toxiProxyContainer.container.setNetwork(cNetwork)
+
+  override val container: MultipleContainers = MultipleContainers(mqttContainer, toxiProxyContainer)
 
   "MqttManager" should {
 
-        "resubscribe after losing the connection with the broker" in {
-
-          val mqttPort = 1883
-
-          val network = Network.newNetwork
-
-          val mqttContainer : GenericContainer[_] = new GenericContainer("eclipse-mosquitto:1.4.12")
-            .withExposedPorts(1883)
-          mqttContainer.setNetwork(network)
-
-          val toxiproxy = new ToxiproxyContainer("shopify/toxiproxy:2.1.0")
-            .withNetwork(network)
-
-          mqttContainer.start()
-          toxiproxy.start()
+        "resubscribe after losing the connection with the broker" taggedAs SlowTest in {
 
           // mqtt broker port will be mapped to a different host network port upon restart
           // using a proxy container to overcome this
-          val proxy = toxiproxy.getProxy(mqttContainer, mqttPort)
+          val proxy = toxiProxyContainer.container.getProxy(mqttContainer.container, mqttPort)
+
           val mqttProxyUrl = s"tcp://${proxy.getContainerIpAddress}:${proxy.getProxyPort}"
 
           val source = "mqttSourceTopic"

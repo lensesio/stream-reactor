@@ -16,45 +16,43 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
+import com.datamountaineer.streamreactor.connect.redis.sink.SlowTest
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
+import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.testcontainers.containers.GenericContainer
 import redis.clients.jedis.{Jedis, JedisPubSub}
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
+import scala.jdk.CollectionConverters.MapHasAsJava
 
-class RedisPubSubTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar with LazyLogging {
+class RedisPubSubTest extends AnyWordSpec with Matchers with MockitoSugar with LazyLogging with ForAllTestContainer {
 
-  val redisContainer: GenericContainer[_] = new GenericContainer("redis:6-alpine")
-    .withExposedPorts(6379)
-
-  override def beforeAll(): Unit = redisContainer.start()
-
-  override def afterAll(): Unit = redisContainer.stop()
+  override val container = GenericContainer(
+    dockerImage = "redis:6-alpine",
+    exposedPorts = Seq(6379)
+  )
 
   "Redis PUBSUB writer" should {
 
-    "write Kafka records to a Redis PubSub" in {
+    "write Kafka records to a Redis PubSub" taggedAs SlowTest in {
 
       val TOPIC = "cpuTopic"
       val KCQL = s"SELECT * from $TOPIC STOREAS PubSub (channel=type)"
       println("Testing KCQL : " + KCQL)
       val props = Map(
         RedisConfigConstants.REDIS_HOST -> "localhost",
-        RedisConfigConstants.REDIS_PORT -> redisContainer.getMappedPort(6379).toString,
+        RedisConfigConstants.REDIS_PORT -> container.mappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG -> KCQL
       ).asJava
 
       val config = RedisConfig(props)
-      val connectionInfo = new RedisConnectionInfo("localhost", redisContainer.getMappedPort(6379), None)
+      val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisPubSub(settings)
       writer.createClient(settings)
@@ -86,7 +84,10 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
               case Some(msgs) =>
                 logger.info("Receiving message!")
                 messagesMap.put(channel, msgs += message)
-              case None => messagesMap.put(channel, ListBuffer(message))
+                ()
+              case None =>
+                messagesMap.put(channel, ListBuffer(message))
+                ()
             }
           }
         }

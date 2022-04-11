@@ -26,7 +26,8 @@ import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SeqHasAsJava}
+
 
 /**
   * <h1>CassandraSourceConnector</h1>

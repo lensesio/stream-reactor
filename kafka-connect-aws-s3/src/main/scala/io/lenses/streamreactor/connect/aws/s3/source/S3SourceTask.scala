@@ -29,7 +29,7 @@ import io.lenses.streamreactor.connect.aws.s3.storage.{AwsS3StorageInterface, JC
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Try
 
 class S3SourceTask extends SourceTask with LazyLogging {

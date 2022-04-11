@@ -27,6 +27,6 @@ import org.apache.kafka.connect.sink.SinkRecord
 case class MultiMapWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
   val multiMapWriter: MultiMap[String, Object] = client.getMultiMap(settings.topicObject(topic).name).asInstanceOf[MultiMap[String, Object]]
 
-  override def write(record: SinkRecord): Unit = multiMapWriter.put(buildPKs(record), convert(record))
-  override def close: Unit = {}
+  override def write(record: SinkRecord): Unit = {val _ = multiMapWriter.put(buildPKs(record), convert(record))}
+  override def close(): Unit = {}
 }

@@ -42,8 +42,7 @@
 //import org.scalatest.matchers.should.Matchers
 //import org.scalatest.wordspec.AnyWordSpec
 //
-//import scala.collection.JavaConverters._
-//
+////
 //class HbaseWriterTest
 //    extends AnyWordSpec
 //    with Matchers

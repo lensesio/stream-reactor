@@ -24,15 +24,14 @@ import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.config.{OffsetSeekerOptions, S3SinkConfig, SinkBucketOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContainerTest
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfig {
+class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
-  import S3ProxyContext._
   import helper._
 
   private val TopicName = "myTopic"
@@ -65,7 +64,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         val writeRes = sink.write(
-          TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
+          TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
         writeRes.isRight should be (true)
     }
 
@@ -97,9 +96,9 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
     )
 
     val sink = S3WriterManager.from(avroConfig, "sinkName")
-    firstUsers.union(usersWithNewSchema).zipWithIndex.foreach {
+    firstUsers.concat(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
-        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData]))
+        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)), MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData]))
     }
     sink.close()
 
