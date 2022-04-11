@@ -21,8 +21,8 @@ import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
-import io.lenses.streamreactor.connect.aws.s3.sink.config.{S3SinkConfig, SinkBucketOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.aws.s3.sink.config.{OffsetSeekerOptions, S3SinkConfig, SinkBucketOptions}
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -50,7 +50,9 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json)),
           localStagingArea = LocalStagingArea(localRoot)
         ) // JsonS3Format
-      )
+      ),
+      offsetSeekerOptions = OffsetSeekerOptions(5, true)
+
     )
 
     val sink = S3WriterManager.from(config, "sinkName")
@@ -79,7 +81,9 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json)), // JsonS3Format
           localStagingArea = LocalStagingArea(localRoot),
         )
-      )
+      ),
+      offsetSeekerOptions = OffsetSeekerOptions(5, true)
+
     )
 
     val sink = S3WriterManager.from(config, "sinkName")

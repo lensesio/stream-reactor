@@ -17,6 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+
 import cats.implicits._
 import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
@@ -24,6 +25,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.Offset.orderingByOffsetValue
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
 import io.lenses.streamreactor.connect.aws.s3.sink.config.{S3SinkConfig, SinkBucketOptions}
+import io.lenses.streamreactor.connect.aws.s3.sink.seek._
 import io.lenses.streamreactor.connect.aws.s3.sink.writer.S3Writer
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -31,7 +33,6 @@ import org.apache.kafka.connect.data.Schema
 
 import java.io.File
 import scala.collection.{immutable, mutable}
-import scala.util.Try
 
 case class MapKey(topicPartition: TopicPartition, partitionValues: immutable.Map[PartitionField, String])
 
@@ -52,6 +53,7 @@ class S3WriterManager(
                        stagingFilenameFn: (TopicPartition, immutable.Map[PartitionField, String]) => Either[SinkError, File],
                        finalFilenameFn: (TopicPartition, immutable.Map[PartitionField, String], Offset) => Either[SinkError, RemoteS3PathLocation],
                        formatWriterFn: (TopicPartition, File) => Either[SinkError, S3FormatWriter],
+                       indexManager: IndexManager,
                      )
                      (
                        implicit storageInterface: StorageInterface
@@ -95,14 +97,14 @@ class S3WriterManager(
     logger.debug(s"[{}] Received call to S3WriterManager.commitWritersWithFilter (w, tp {})", sinkName, topicPartition)
     if (writer.shouldFlush) {
       commitWritersWithFilter(
-        (kv: (MapKey, S3Writer)) => (kv._1.topicPartition == topicPartition)
+        (kv: (MapKey, S3Writer)) => kv._1.topicPartition == topicPartition
       )
     } else {
       ().asRight
     }
   }
 
-  private def commitWritersWithFilter(keyValueFilterFn: (((MapKey, S3Writer)) => Boolean)): Either[BatchS3SinkError, Unit] = {
+  private def commitWritersWithFilter(keyValueFilterFn: ((MapKey, S3Writer)) => Boolean): Either[BatchS3SinkError, Unit] = {
 
     logger.debug(s"[{}] Received call to S3WriterManager.commitWritersWithFilter (filter)", sinkName)
     val writerCommitErrors = writers
@@ -140,12 +142,8 @@ class S3WriterManager(
       for {
         fileNamingStrategy <- fileNamingStrategyFn(topicPartition)
         bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
-        topicPartitionPrefix <- Try(fileNamingStrategy.topicPartitionPrefix(bucketAndPrefix, topicPartition)).toEither.leftMap(ex => FatalS3SinkError(ex.getMessage, ex, topicPartition))
-      } yield {
-        new OffsetSeeker(sinkName, fileNamingStrategy)
-          .seek(topicPartitionPrefix)
-          .find(_.toTopicPartition == topicPartition)
-      }
+        offset <- indexManager.seek(topicPartition, fileNamingStrategy, bucketAndPrefix)
+      } yield offset
   }
 
   def close(): Unit = {
@@ -229,6 +227,7 @@ class S3WriterManager(
         sinkName,
         topicPartition,
         commitPolicy,
+        indexManager,
         () => stagingFilenameFn(topicPartition, partitionValues),
         finalFilenameFn.curried(topicPartition)(partitionValues),
         formatWriterFn.curried(topicPartition),
@@ -318,6 +317,10 @@ object S3WriterManager extends LazyLogging {
         case None => FatalS3SinkError("Can't find format choice in config", topicPartition).asLeft
       }
 
+    // TODO: use Option.when when we get to 2.13
+    val maybeLegacyOffsetSeeker = if(config.offsetSeekerOptions.migrate) Some(new LegacyOffsetSeeker(sinkName)) else None
+    val indexManager = new IndexManager(sinkName, config.offsetSeekerOptions.maxIndexFiles, maybeLegacyOffsetSeeker)
+
     new S3WriterManager(
       sinkName,
       commitPolicyFn,
@@ -326,6 +329,7 @@ object S3WriterManager extends LazyLogging {
       stagingFilenameFn,
       finalFilenameFn,
       formatWriterFn,
+      indexManager
     )
   }
 

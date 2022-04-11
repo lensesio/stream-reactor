@@ -26,7 +26,10 @@ import java.nio.file.Files
 class RemoteFileTestHelper(implicit storageInterface: StorageInterface) {
 
   def listBucketPath(bucketName: String, prefix: String): List[String] = {
-    storageInterface.list(RemoteS3PathLocation(bucketName, prefix))
+    storageInterface.list(RemoteS3PathLocation(bucketName, prefix)) match {
+      case Left(err) => throw err.exception
+      case Right(fileList) => fileList
+    }
   }
 
   def remoteFileAsBytes(bucketName: String, fileName: String): Array[Byte] = {

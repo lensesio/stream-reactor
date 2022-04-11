@@ -23,7 +23,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection,
 import io.lenses.streamreactor.connect.aws.s3.formats.ParquetFormatReader
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
-import io.lenses.streamreactor.connect.aws.s3.sink.config.{S3SinkConfig, SinkBucketOptions}
+import io.lenses.streamreactor.connect.aws.s3.sink.config.{OffsetSeekerOptions, S3SinkConfig, SinkBucketOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContainerTest
 import org.apache.avro.generic.GenericRecord
@@ -54,7 +54,8 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         formatSelection = FormatSelection(Parquet),
         localStagingArea = LocalStagingArea(localRoot)
       )
-    )
+    ),
+    offsetSeekerOptions = OffsetSeekerOptions(5, true)
   )
 
 
