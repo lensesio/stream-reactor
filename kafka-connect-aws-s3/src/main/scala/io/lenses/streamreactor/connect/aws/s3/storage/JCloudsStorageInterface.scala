@@ -26,7 +26,7 @@ import org.jclouds.blobstore.domain.StorageType
 import org.jclouds.blobstore.options.ListContainerOptions
 
 import java.io.{File, InputStream}
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, SeqHasAsJava}
 import scala.util.{Failure, Success, Try}
 
 class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreContext) extends StorageInterface with LazyLogging {
@@ -72,7 +72,7 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
           target.bucket,
           blobStore.blobBuilder(target.path)
             .payload(data)
-            .contentLength(data.length())
+            .contentLength(data.length().toLong)
             .build()
         )
       } match {
