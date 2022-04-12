@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.hazelcast.writers
 
 import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
-import com.hazelcast.core.{HazelcastInstance, ITopic}
+import com.hazelcast.topic.ITopic
+import com.hazelcast.core.HazelcastInstance
 import org.apache.kafka.connect.sink.SinkRecord
 
 /**

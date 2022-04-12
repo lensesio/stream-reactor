@@ -20,7 +20,7 @@ import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.util
 import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfigConstants
-import com.hazelcast.core.{Message, MessageListener}
+import com.hazelcast.topic.{Message, MessageListener}
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 import org.apache.avro.io.DecoderFactory
 import org.apache.kafka.common.TopicPartition
@@ -53,7 +53,7 @@ trait TestBase extends AnyWordSpec with BeforeAndAfter with Matchers {
   val KCQL_MAP_JSON=s"INSERT INTO $TABLE SELECT * FROM $TOPIC WITHFORMAT json"
   val KCQL_MAP_SELECTION = s"INSERT INTO $TABLE SELECT a, b, c FROM $TOPIC"
   val KCQL_MAP_IGNORED = s"INSERT INTO $TABLE SELECT * FROM $TOPIC IGNORE a"
-  val TESTS_GROUP_NAME = "dev"
+  val TESTS_CLUSTER_NAME = "dev"
   val json = "{\"id\":\"sink_test-12-1\",\"int_field\":12,\"long_field\":12,\"string_field\":\"foo\",\"float_field\":0.1,\"float64_field\":0.199999,\"boolean_field\":true,\"byte_field\":\"Ynl0ZXM=\"}"
 
   protected val PARTITION: Int = 12
@@ -66,63 +66,63 @@ trait TestBase extends AnyWordSpec with BeforeAndAfter with Matchers {
     Map(
       "topics" -> TOPIC,
       HazelCastSinkConfigConstants.KCQL->KCQL_MAP,
-      HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_NAME->TESTS_CLUSTER_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsRB = {
     Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_RB,
-      HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_NAME->TESTS_CLUSTER_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonQueue = {
     Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_JSON_QUEUE,
-      HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_NAME->TESTS_CLUSTER_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonSet = {
     Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_JSON_SET,
-      HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_NAME->TESTS_CLUSTER_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonList = {
     Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_JSON_LIST,
-      HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_NAME->TESTS_CLUSTER_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonMultiMapDefaultPKS = {
     Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_MULTIMAP_DEFAULT_PK,
-      HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_NAME->TESTS_CLUSTER_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonICache = {
     Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_JSON_ICACHE,
-      HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_NAME->TESTS_CLUSTER_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonMapDefaultPKS = {
     Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_IMAP_DEFAULT_PK,
-      HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_NAME->TESTS_CLUSTER_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJson = {
     Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_JSON,
-      HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_NAME->TESTS_CLUSTER_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
 
     ).asJava
@@ -130,7 +130,7 @@ trait TestBase extends AnyWordSpec with BeforeAndAfter with Matchers {
 
   def getPropsSelection = {
     Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_SELECTION,
-      HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_NAME->TESTS_CLUSTER_NAME,
         HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
 
     ).asJava
@@ -138,7 +138,7 @@ trait TestBase extends AnyWordSpec with BeforeAndAfter with Matchers {
 
   def getPropsIgnored = {
     Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_IGNORED,
-      HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_NAME->TESTS_CLUSTER_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }

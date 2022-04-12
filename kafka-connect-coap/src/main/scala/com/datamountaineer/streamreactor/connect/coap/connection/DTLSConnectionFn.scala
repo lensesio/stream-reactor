@@ -24,8 +24,10 @@ import org.eclipse.californium.core.network.CoapEndpoint
 import org.eclipse.californium.core.network.config.NetworkConfig
 import org.eclipse.californium.scandium.DTLSConnector
 import org.eclipse.californium.scandium.config.DtlsConnectorConfig
+import org.eclipse.californium.scandium.dtls.CertificateType
 import org.eclipse.californium.scandium.dtls.cipher.CipherSuite
-import org.eclipse.californium.scandium.dtls.pskstore.InMemoryPskStore
+import org.eclipse.californium.scandium.dtls.pskstore.AdvancedMultiPskStore
+import org.eclipse.californium.scandium.dtls.x509.StaticNewAdvancedCertificateVerifier
 
 import java.io.FileInputStream
 import java.net.{ConnectException, InetAddress, InetSocketAddress, URI}
@@ -70,23 +72,28 @@ object DTLSConnectionFn extends StrictLogging {
         val privateKey = keyStore.getKey(setting.chainKey, setting.keyStorePass.value().toCharArray).asInstanceOf[PrivateKey]
         val certChain = keyStore.getCertificateChain(setting.chainKey)
 
-        builder.setIdentity(privateKey, certChain, true)
-        builder.setTrustStore(certificates)
-
+        builder.setIdentity(privateKey, certChain, CertificateType.RAW_PUBLIC_KEY, CertificateType.X_509)
+        builder.setAdvancedCertificateVerifier(StaticNewAdvancedCertificateVerifier
+          .builder()
+          .setTrustedCertificates(certificates: _*)
+          .build())
       } else {
 
-        val psk = new InMemoryPskStore()
+        val psk = new AdvancedMultiPskStore()
         psk.setKey(setting.identity, setting.secret.value().getBytes())
         psk.addKnownPeer(addr, setting.identity, setting.secret.value().getBytes())
-        builder.setPskStore(psk)
+        builder.setAdvancedPskStore(psk)
 
         if (setting.privateKey.isDefined) {
-          builder.setSupportedCipherSuites(Array[CipherSuite](CipherSuite.TLS_PSK_WITH_AES_128_CCM_8, CipherSuite.TLS_PSK_WITH_AES_128_CBC_SHA256))
+          builder.setSupportedCipherSuites(CipherSuite.TLS_PSK_WITH_AES_128_CCM_8, CipherSuite.TLS_PSK_WITH_AES_128_CBC_SHA256)
           builder.setIdentity(setting.privateKey.get, setting.publicKey.get)
         }
       }
 
-      client.setEndpoint(new CoapEndpoint(new DTLSConnector(builder.build()), NetworkConfig.getStandard))
+      client.setEndpoint(new CoapEndpoint.Builder()
+        .setConnector(new DTLSConnector(builder.build()))
+        .setNetworkConfig(NetworkConfig.getStandard)
+        .build())
     }
     client.setURI(s"${setting.uri}/${setting.target}")
   }

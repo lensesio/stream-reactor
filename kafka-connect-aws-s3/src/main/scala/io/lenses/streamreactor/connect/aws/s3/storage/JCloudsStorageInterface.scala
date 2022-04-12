@@ -26,6 +26,7 @@ import org.jclouds.blobstore.domain.StorageType
 import org.jclouds.blobstore.options.ListContainerOptions
 
 import java.io.{File, InputStream}
+import java.nio.charset.Charset
 import java.time.Instant
 import scala.jdk.CollectionConverters.{CollectionHasAsScala, SeqHasAsJava}
 import scala.util.{Failure, Success, Try}
@@ -139,7 +140,7 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
 
   override def getBlobAsString(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, String] = {
     Try {
-      IOUtils.toString(getBlob(bucketAndPath))
+      IOUtils.toString(getBlob(bucketAndPath), Charset.forName("UTF-8"))
     }.toEither.leftMap(FileLoadError(_, bucketAndPath.path))
   }
 

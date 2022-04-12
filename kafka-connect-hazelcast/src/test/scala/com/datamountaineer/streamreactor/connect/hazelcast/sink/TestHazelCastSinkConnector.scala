@@ -33,7 +33,7 @@ class TestHazelCastSinkConnector extends TestBase {
     connector.start(props)
     val taskConfigs = connector.taskConfigs(1)
     taskConfigs.asScala.head.get(HazelCastSinkConfigConstants.KCQL) shouldBe KCQL_MAP
-    taskConfigs.asScala.head.get(HazelCastSinkConfigConstants.GROUP_NAME) shouldBe TESTS_GROUP_NAME
+    taskConfigs.asScala.head.get(HazelCastSinkConfigConstants.CLUSTER_NAME) shouldBe TESTS_CLUSTER_NAME
     connector.stop()
   }
 }

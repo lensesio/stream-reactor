@@ -34,12 +34,8 @@ object HazelCastSinkConfigConstants {
       |it is recommended that you give the addresses for all the nodes.""".stripMargin
   val CLUSTER_MEMBERS_DEFAULT = "localhost"
 
-  val GROUP_NAME = s"$HAZELCAST_CONNECTOR_PREFIX.group.name"
+  val CLUSTER_NAME = s"$HAZELCAST_CONNECTOR_PREFIX.cluster.name"
   val SINK_GROUP_NAME_DOC = "The group name of the connector in the target Hazelcast cluster."
-
-  val GROUP_PASSWORD = s"$HAZELCAST_CONNECTOR_PREFIX.group.password"
-  val SINK_GROUP_PASSWORD_DOC: String = """The password for the group name.""".stripMargin
-  val SINK_GROUP_PASSWORD_DEFAULT = "dev-pass"
 
   val PARALLEL_WRITE = s"$HAZELCAST_CONNECTOR_PREFIX.$ALLOW_PARALLEL_WRITE_PROP_SUFFIX"
   val PARALLEL_WRITE_DOC = "All the sink to write in parallel the records received from Kafka on each poll."

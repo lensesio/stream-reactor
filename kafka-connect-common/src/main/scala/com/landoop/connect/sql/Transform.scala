@@ -16,13 +16,12 @@
 package com.landoop.connect.sql
 
 import java.nio.ByteBuffer
-
 import com.fasterxml.jackson.databind.JsonNode
 import com.landoop.connect.sql.StructSql._
 import com.landoop.json.sql.JacksonJson
 import com.landoop.json.sql.JsonSql._
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.calcite.sql.SqlDialect
+import org.apache.calcite.sql.dialect.AnsiSqlDialect
 import org.apache.kafka.connect.data.{Schema, Struct}
 
 import scala.util.{Failure, Success, Try}
@@ -39,7 +38,7 @@ private object Transform extends StrictLogging {
         s"""
            |$msg
            |Sql
-           | ${sql.select.toSqlString(SqlDialect.DUMMY)}
+           | ${sql.select.toSqlString(AnsiSqlDialect.DEFAULT)}
            |Record
            | topic=$topic; partition=$partition""".stripMargin
 
