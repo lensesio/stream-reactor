@@ -56,7 +56,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     )
 
     val sink = S3WriterManager.from(config, "sinkName")
-    sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(1)), MessageDetail(None, StructSinkData(users.head), Map.empty[String, SinkData]))
+    sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(1)), MessageDetail(None, StructSinkData(users.head), Map.empty[String, SinkData], None))
     sink.close()
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
@@ -88,7 +88,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     val sink = S3WriterManager.from(config, "sinkName")
     firstUsers.zipWithIndex.foreach {
-      case (struct: Struct, index: Int) => sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
+      case (struct: Struct, index: Int) => sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index.toLong + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData], None))
     }
 
     sink.close()

@@ -17,6 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import cats.implicits._
 import com.datamountaineer.streamreactor.common.errors.{ErrorHandler, RetryErrorPolicy}
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
@@ -30,6 +31,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
+import java.time.Instant
 import java.util
 import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsJava, MapHasAsScala}
 import scala.util.Try
@@ -127,6 +129,17 @@ class S3SinkTask extends SinkTask with ErrorHandler {
     }
   }
 
+  def parseTime(timestamp: Option[Long]): Option[Instant] = {
+    Try(timestamp.map(Instant.ofEpochMilli))
+      .toEither
+      .leftMap {
+        throwable: Throwable =>
+          logger.error("Error parsing time:", throwable)
+          None
+      }
+      .merge
+  }
+
   override def put(records: util.Collection[SinkRecord]): Unit = {
 
     val _ = handleTry {
@@ -146,7 +159,8 @@ class S3SinkTask extends SinkTask with ErrorHandler {
               MessageDetail(
                 keySinkData = Option(record.key()).fold(Option.empty[SinkData])(key => Option(ValueToSinkDataConverter(key, Option(record.keySchema())))),
                 valueSinkData = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
-                headers = HeaderToStringConverter(record)
+                headers = HeaderToStringConverter(record),
+                parseTime(Option(record.timestamp().toLong))
               )
             ))
         }

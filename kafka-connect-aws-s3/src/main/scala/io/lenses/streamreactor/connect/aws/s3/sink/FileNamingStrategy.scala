@@ -147,6 +147,10 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
           case partition@WholeKeyPartitionField() => partition -> getPartitionByWholeKeyValue(messageDetail.keySinkData)
           case partition@TopicPartitionField() => partition -> topicPartition.topic.value
           case partition@PartitionPartitionField() => partition -> topicPartition.partition.toString
+          case partition@DatePartitionField(_) => partition ->
+            messageDetail.time.fold(
+              throw new IllegalArgumentException("No valid timestamp parsed from kafka connect message, however date partitioning was requested")
+            )(partition.formatter.format)
         }
         .toMap[PartitionField, String]
     }.toEither.left.map(ex => FatalS3SinkError(ex.getMessage, ex, topicPartition))
