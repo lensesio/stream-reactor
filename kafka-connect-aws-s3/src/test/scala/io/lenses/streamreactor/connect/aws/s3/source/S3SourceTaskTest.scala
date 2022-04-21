@@ -231,6 +231,50 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTe
     sourceRecords1.get(0).value() should be("somestring".getBytes)
   }
 
+  "task" should "read stored nested bytes key/value files continuously" in {
+    val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.KeyAndValueWithSizes))
+
+    val dir = "nested/byteskv"
+    val task = new S3SourceTask()
+
+    val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
+      ).asJava
+
+    task.start(props)
+    val sourceRecords1 = task.poll()
+    val sourceRecords2 = task.poll()
+    val sourceRecords3 = task.poll()
+    val sourceRecords4 = task.poll()
+    val sourceRecords5 = task.poll()
+    val sourceRecords6 = task.poll()
+    val sourceRecords7 = task.poll()
+
+    task.stop()
+
+    sourceRecords1 should have size 190
+    sourceRecords2 should have size 190
+    sourceRecords3 should have size 190
+    sourceRecords4 should have size 190
+    sourceRecords5 should have size 190
+    sourceRecords6 should have size 50
+    sourceRecords7 should have size 0
+
+    sourceRecords1.asScala
+      .concat(sourceRecords2.asScala)
+      .concat(sourceRecords3.asScala)
+      .concat(sourceRecords4.asScala)
+      .concat(sourceRecords5.asScala)
+      .concat(sourceRecords6.asScala)
+      .toSet should have size 1000
+
+    sourceRecords1.get(0).key should be("myKey".getBytes)
+    sourceRecords1.get(0).value() should be("somestring".getBytes)
+  }
+
   override def cleanUpEnabled: Boolean = false
 
   override def setUpTestData(): Unit = {
@@ -244,5 +288,6 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTe
 
     bucketSetup.setUpBucketData(BucketName, Bytes, Some(KeyAndValueWithSizes), "byteskv")
     bucketSetup.setUpBucketData(BucketName, Bytes, Some(ValueOnly), "bytesval")
+    bucketSetup.setUpBucketData(BucketName, Bytes, Some(KeyAndValueWithSizes), "nested/byteskv")
   }
 }

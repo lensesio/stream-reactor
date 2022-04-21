@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 import java.io.{File, InputStream}
 import java.nio.file.Files
+import java.time.Instant
 
 class RemoteFileTestHelper(implicit storageInterface: StorageInterface) {
 
@@ -30,6 +31,14 @@ class RemoteFileTestHelper(implicit storageInterface: StorageInterface) {
       case Left(err) => throw err.exception
       case Right(fileList) => fileList
     }
+  }
+
+  def getFileSize(bucketName: String, fileName: String): Long = {
+    storageInterface.getBlobSize(RemoteS3PathLocation(bucketName, fileName))
+  }
+
+  def getModificationDate(bucketName: String, fileName: String): Instant = {
+    storageInterface.getBlobModified(RemoteS3PathLocation(bucketName, fileName))
   }
 
   def remoteFileAsBytes(bucketName: String, fileName: String): Array[Byte] = {

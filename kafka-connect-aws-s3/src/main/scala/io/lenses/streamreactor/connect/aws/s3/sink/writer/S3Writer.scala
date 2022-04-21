@@ -39,12 +39,13 @@ class S3Writer(
                 stagingFilenameFn: () => Either[SinkError, File],
                 finalFilenameFn: Offset => Either[SinkError, RemoteS3PathLocation],
                 formatWriterFn: File => Either[SinkError, S3FormatWriter],
+                lastSeekedOffset: Option[Offset],
               )
               (
                 implicit storageInterface: StorageInterface
               ) extends LazyLogging {
 
-  private var writeState: WriteState = NoWriter(CommitState(topicPartition))
+  private var writeState: WriteState = NoWriter(CommitState(topicPartition, lastSeekedOffset))
 
 
   def write(messageDetail: MessageDetail, o: Offset): Either[SinkError, Unit] = {
@@ -171,7 +172,7 @@ class S3Writer(
 
       def logSkipOutcome(currentOffset: Offset, latestOffset: Option[Offset], skipRecord: Boolean): Unit = {
         val skipping = if (skipRecord) "SKIPPING" else "PROCESSING"
-        logger.debug(s"[$sinkName] current=${currentOffset.value} latest=$latestOffset - $skipping")
+        logger.debug(s"[$sinkName] lastSeeked=${lastSeekedOffset} current=${currentOffset.value} latest=$latestOffset - $skipping")
       }
 
       val shouldSkip = if (latestOffset.isEmpty) {

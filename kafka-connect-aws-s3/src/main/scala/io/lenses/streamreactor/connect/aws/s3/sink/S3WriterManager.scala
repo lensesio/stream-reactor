@@ -33,6 +33,7 @@ import org.apache.kafka.connect.data.Schema
 
 import java.io.File
 import scala.collection.{immutable, mutable}
+import scala.util.Try
 
 case class MapKey(topicPartition: TopicPartition, partitionValues: immutable.Map[PartitionField, String])
 
@@ -61,13 +62,7 @@ class S3WriterManager(
 
   private val writers = mutable.Map.empty[MapKey, S3Writer]
 
-  private def writerForTopicPartitionWithMaxOffset(topicPartition: TopicPartition) = {
-    writers
-      .collect {
-        case (key, writer) if key.topicPartition == topicPartition && writer.getCommittedOffset.nonEmpty => writer
-      }
-      .maxBy(_.getCommittedOffset)
-  }
+  private val seekedOffsets = mutable.Map.empty[TopicPartition, Offset]
 
   def commitAllWritersIfFlushRequired(): Either[BatchS3SinkError, Unit] = {
     if (writers.values.exists(_.shouldFlush)) {
@@ -128,12 +123,14 @@ class S3WriterManager(
     partitions
       .map(seekOffsetsForTopicPartition)
       .partitionMap(identity)
-      match {
-        case (throwables, _) if throwables.nonEmpty => BatchS3SinkError(throwables).asLeft
-        case (_, offsets) =>
-          offsets.flatten.map(
-            _.toTopicPartitionOffsetTuple
-          ).toMap.asRight
+    match {
+      case (throwables, _) if throwables.nonEmpty => BatchS3SinkError(throwables).asLeft
+      case (_, offsets) =>
+        val seeked = offsets.flatten.map(
+          _.toTopicPartitionOffsetTuple
+        ).toMap
+        seekedOffsets ++= seeked
+        seeked.asRight
     }
   }
 
@@ -231,24 +228,41 @@ class S3WriterManager(
         () => stagingFilenameFn(topicPartition, partitionValues),
         finalFilenameFn.curried(topicPartition)(partitionValues),
         formatWriterFn.curried(topicPartition),
+        seekedOffsets.get(topicPartition),
       )
     }
   }
 
   def preCommit(currentOffsets: immutable.Map[TopicPartition, OffsetAndMetadata]): immutable.Map[TopicPartition, OffsetAndMetadata] = {
     currentOffsets
-      .collect {
-        case (topicPartition, offsetAndMetadata) =>
-          (topicPartition, createOffsetAndMetadata(offsetAndMetadata, writerForTopicPartitionWithMaxOffset(topicPartition)))
+      .map {
+        case (tp, offAndMeta) => (tp, getOffsetAndMeta(tp, offAndMeta))
+      }
+      .collect{
+        case (k,v) if v.nonEmpty => (k,v.get)
       }
   }
 
-  private def createOffsetAndMetadata(offsetAndMetadata: OffsetAndMetadata, writer: S3Writer) = {
-    new OffsetAndMetadata(
-      writer.getCommittedOffset.get.value,
-      offsetAndMetadata.leaderEpoch(),
-      offsetAndMetadata.metadata()
-    )
+  private def writerForTopicPartitionWithMaxOffset(topicPartition: TopicPartition): Option[S3Writer] = {
+    Try(
+      writers.collect {
+        case (key, writer) if key.topicPartition == topicPartition && writer.getCommittedOffset.nonEmpty => writer
+      }
+      .maxBy(_.getCommittedOffset)
+    ).toOption
+  }
+
+  private def getOffsetAndMeta(topicPartition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = {
+    for {
+      writer <- writerForTopicPartitionWithMaxOffset(topicPartition)
+      offsetAndMeta <- Try {
+        new OffsetAndMetadata(
+          writer.getCommittedOffset.get.value,
+          offsetAndMetadata.leaderEpoch(),
+          offsetAndMetadata.metadata()
+        )
+      }.toOption
+    } yield offsetAndMeta
   }
 
   def cleanUp(topicPartition: TopicPartition): Unit = {

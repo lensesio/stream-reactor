@@ -17,8 +17,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import com.opencsv.CSVReader
 import cats.implicits._
+import com.opencsv.CSVReader
 import io.lenses.streamreactor.connect.aws.s3.SlowTest
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
@@ -85,6 +85,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
   }
 
   private val records = firstUsers.zipWithIndex.map { case (user, k) =>
+    toSinkRecord(user, k)
+  }
+
+  private def toSinkRecord(user: Struct, k: Int) = {
     new SinkRecord(TopicName, 1, null, null, schema, user, k.toLong)
   }
 
@@ -197,11 +201,50 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
+  "S3SinkTask" should "flush on configured file size for Parquet" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `Parquet` WITH_FLUSH_SIZE = 20"
+        )
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(records.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
+    getFileSize(BucketName, "streamReactorBackups/myTopic/1/0.parquet") should be(941)
+    getFileSize(BucketName, "streamReactorBackups/myTopic/1/1.parquet") should be(954)
+
+    var genericRecords = parquetFormatReader.read(remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/0.parquet"))
+    genericRecords.size should be (1)
+    checkRecord(genericRecords.head, "sam", "mr", 100.43)
+
+    genericRecords = parquetFormatReader.read(remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/1.parquet"))
+    genericRecords.size should be (1)
+    checkRecord(genericRecords.head, "laura", "ms", 429.06)
+
+  }
+
+  def createTask(context: SinkTaskContext, props: util.Map[String,String]): S3SinkTask = {
+    reset(context)
+    val task: S3SinkTask = new S3SinkTask()
+    task.initialize(context)
+    task.start(props)
+    task
+  }
+
   /**
     * The difference in this test is that the sink is opened again, which will cause the offsets to be copied to the
     * context
     */
-  "S3SinkTask" should "put existing offsets to the context"  taggedAs SlowTest in {
+  "S3SinkTask" should "put existing offsets to the context" taggedAs SlowTest in {
 
     val task = new S3SinkTask()
 
@@ -228,6 +271,78 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/2.json") should be("""{"name":"tom","title":null,"salary":395.44}""")
 
     verify(sinkTaskContext).offset(new TopicPartition("myTopic", 1), 2)
+  }
+
+  "S3SinkTask" should "skip when kafka connect resends the same offsets after opening" in {
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `Parquet` WITH_FLUSH_COUNT = 2"
+        )
+      ).asJava
+    val context = mock[SinkTaskContext]
+
+    var task: S3SinkTask = createTask(context, props)
+
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    verify(context, never).offset(new TopicPartition("myTopic", 1), 0)
+    task.put(records.asJava)
+    task.close(Seq(new TopicPartition("myTopic", 1)).asJava)
+    task.stop()
+
+    val list = listBucketPath(BucketName, "streamReactorBackups/myTopic/1/")
+    list.size should be(1)
+    list should contain("streamReactorBackups/myTopic/1/1.parquet")
+
+    val modificationDate = getModificationDate(BucketName, "streamReactorBackups/myTopic/1/1.parquet")
+
+    task = createTask(context, props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    verify(context).offset(new TopicPartition("myTopic", 1), 1)
+    task.put(records.asJava)
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
+
+    // file should not have been overwritten
+    getModificationDate(BucketName, "streamReactorBackups/myTopic/1/1.parquet") should be (modificationDate)
+
+    task.close(Seq(new TopicPartition("myTopic", 1)).asJava)
+    task.stop()
+
+    task = createTask(context, props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    verify(context).offset(new TopicPartition("myTopic", 1), 1)
+    // only 1 "real" record so should leave it hanging again
+    task.put(List(records(1), records(2)).asJava)
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
+
+    // file should not have been overwritten
+    getModificationDate(BucketName, "streamReactorBackups/myTopic/1/1.parquet") should be (modificationDate)
+
+    task.close(Seq(new TopicPartition("myTopic", 1)).asJava)
+    task.stop()
+
+    task = createTask(context, props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    verify(context).offset(new TopicPartition("myTopic", 1), 1)
+
+    // this time we have an unseen record (3), which should be processed alongside (2) to give us a new file
+    task.put(List(
+      records(1),
+      records(2),
+      toSinkRecord(users(3), 3)
+    ).asJava)
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
+
+    // file should not have been overwritten
+    getModificationDate(BucketName, "streamReactorBackups/myTopic/1/1.parquet") should be (modificationDate)
+
+    task.close(Seq(new TopicPartition("myTopic", 1)).asJava)
+    task.stop()
+
   }
 
   "S3SinkTask" should "write to parquet format"  taggedAs SlowTest in {
@@ -279,8 +394,6 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     checkRecord(genericRecords.head, "sam", "mr", 100.43)
 
   }
-
-
 
   "S3SinkTask" should "error when trying to write AVRO to text format" in {
 
@@ -336,8 +449,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
     val task = new S3SinkTask()
 
-    val extraRecord = new SinkRecord(TopicName, 1, null, null, schema,
-      new Struct(schema).put("name", "bob").put("title", "mr").put("salary", 200.86), 3)
+    val extraRecord = toSinkRecord(new Struct(schema).put("name", "bob").put("title", "mr").put("salary", 200.86), 3)
 
     val allRecords: List[SinkRecord] = records :+ extraRecord
 
@@ -379,8 +491,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
     val task = new S3SinkTask()
 
-    val extraRecord = new SinkRecord(TopicName, 1, null, null, schema,
-      new Struct(schema).put("name", "bob").put("title", "mr").put("salary", 200.86), 3)
+    val extraRecord = toSinkRecord(new Struct(schema).put("name", "bob").put("title", "mr").put("salary", 200.86), 3)
 
     val allRecords: List[SinkRecord] = records :+ extraRecord
 
@@ -461,7 +572,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     )
 
     val records = partitionedData.zipWithIndex.map { case (user, k) =>
-      new SinkRecord(TopicName, 1, null, null, schema, user, k.toLong)
+      toSinkRecord(user, k)
     }
 
     val props = DefaultProps
@@ -893,8 +1004,8 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
     val kafkaPartitionedRecords = List(
       new SinkRecord(TopicName, 0, null, null, schema, users(0), 0),
-      new SinkRecord(TopicName, 1, null, null, schema, users(1), 0),
-      new SinkRecord(TopicName, 1, null, null, schema, users(2), 1)
+      toSinkRecord(users(1), 0),
+      toSinkRecord(users(2), 1)
     )
 
     val topicPartitionsToManage = Seq(
@@ -1275,8 +1386,8 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
     val kafkaPartitionedRecords = List(
       new SinkRecord(TopicName, 0, null, null, schema, nested(0), 0),
-      new SinkRecord(TopicName, 1, null, null, schema, nested(1), 0),
-      new SinkRecord(TopicName, 1, null, null, schema, nested(2), 1)
+      toSinkRecord(nested(1), 0),
+      toSinkRecord(nested(2), 1)
     )
 
     val topicPartitionsToManage = Seq(

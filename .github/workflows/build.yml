@@ -62,6 +62,7 @@ jobs:
         with:
           files: "**/target/**/test-reports/*.xml"
           check_name: ${{ matrix.module }}
+          comment_mode: off
 
   build-and-upload-assembly:
     needs: initiate
