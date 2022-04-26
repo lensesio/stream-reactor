@@ -237,10 +237,6 @@ object Dependencies {
   val http4sCirce       = "org.http4s" %% "http4s-circe"             % http4sVersion
   val http4s            = Seq(http4sDsl, http4sAsyncClient, http4sBlazeServer, http4sCirce)
 
-  val californiumCore =   "org.eclipse.californium" % "californium-core" % californiumVersion
-  val scandium = "org.eclipse.californium" % "scandium" % californiumVersion
-  val californium = Seq(californiumCore, scandium)
-
   val bouncyProv = "org.bouncycastle" % "bcprov-jdk15on" % bouncyCastleVersion
   val bouncyUtil = "org.bouncycastle" % "bcutil-jdk15on" % bouncyCastleVersion
   val bouncyPkix = "org.bouncycastle" % "bcpkix-jdk15on" % bouncyCastleVersion
@@ -482,8 +478,6 @@ trait Dependencies {
   )
 
   val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainers)
-
-  val kafkaConnectCoapDeps: Seq[ModuleID] = californium ++ bouncyCastle
 
   val kafkaConnectCassandraDeps: Seq[ModuleID] = Seq(
     cassandraDriver,

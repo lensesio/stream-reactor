@@ -15,7 +15,6 @@ lazy val subProjects: Seq[ProjectMatrix] = Seq(
   `aws-s3`,
   `azure-documentdb`,
   cassandra,
-  coap,
   elastic6,
   elastic7,
   ftp,
@@ -92,23 +91,6 @@ lazy val `azure-documentdb` = (projectMatrix in file("kafka-connect-azure-docume
         name := "kafka-connect-azure-documentdb",
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectAzureDocumentDbDeps,
-        publish / skip := true,
-        dependencyOverrides ++= nettyOverrides
-      )
-  )
-  .kafka2Row()
-  .kafka3Row()
-  .configureAssembly()
-  .configureTests(baseTestDeps)
-
-lazy val coap = (projectMatrix in file("kafka-connect-coap"))
-  .dependsOn(common)
-  .settings(
-    settings ++
-      Seq(
-        name := "kafka-connect-coap",
-        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= baseDeps ++ kafkaConnectCoapDeps,
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides
       )
