@@ -16,18 +16,25 @@
 
 package com.datamountaineer.streamreactor.connect.coap;
 
+import com.google.common.collect.Lists;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.io.pem.PemReader;
-import org.eclipse.californium.core.CaliforniumLogger;
 import org.eclipse.californium.core.CoapServer;
 import org.eclipse.californium.core.network.CoapEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
-import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.network.interceptors.MessageTracer;
+import org.eclipse.californium.elements.config.Configuration;
 import org.eclipse.californium.scandium.DTLSConnector;
-import org.eclipse.californium.scandium.ScandiumLogger;
+import org.eclipse.californium.scandium.config.DtlsConfig;
 import org.eclipse.californium.scandium.config.DtlsConnectorConfig;
-import org.eclipse.californium.scandium.dtls.pskstore.InMemoryPskStore;
+import org.eclipse.californium.scandium.dtls.CertificateType;
+import org.eclipse.californium.scandium.dtls.cipher.CipherSuite;
+import org.eclipse.californium.scandium.dtls.cipher.DefaultCipherSuiteSelector;
+import org.eclipse.californium.scandium.dtls.pskstore.AdvancedSinglePskStore;
+import org.eclipse.californium.scandium.dtls.x509.CertificateConfigurationHelper;
+import org.eclipse.californium.scandium.dtls.x509.NewAdvancedCertificateVerifier;
+import org.eclipse.californium.scandium.dtls.x509.SingleCertificateProvider;
+import org.eclipse.californium.scandium.dtls.x509.StaticNewAdvancedCertificateVerifier;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -35,20 +42,16 @@ import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.security.*;
+import java.security.KeyFactory;
+import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.Security;
 import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.logging.Level;
+import java.util.List;
 
 public class Server {
-
-  static {
-    CaliforniumLogger.initialize();
-    CaliforniumLogger.setLevel(Level.CONFIG);
-    ScandiumLogger.initialize();
-    ScandiumLogger.setLevel(Level.FINER);
-  }
 
   private CoapServer server;
   ClassLoader classLoader = getClass().getClassLoader();
@@ -62,7 +65,10 @@ public class Server {
   Integer key;
 
   public Server(Integer securePort, Integer insecurePort, Integer keyport) {
-    Security.addProvider(new BouncyCastleProvider());
+    //Security.addProvider(new BouncyCastleProvider());
+    Security.removeProvider("BC");
+    BouncyCastleProvider bouncyCastleProvider = new BouncyCastleProvider();
+    Security.insertProviderAt(bouncyCastleProvider, 1);
     server = new CoapServer();
     server.add(new ObservableResource("secure"));
     server.add(new ObservableResource("insecure"));
@@ -76,10 +82,20 @@ public class Server {
     DTLSConnector keyConnector = getConnectorKeys(key);
 
     //add secure
-    server.addEndpoint(new CoapEndpoint(sslConnector, NetworkConfig.getStandard()));
+    server.addEndpoint(
+            new CoapEndpoint
+                    .Builder()
+                    .setConnector(sslConnector)
+                    .build()
+    );
 
     //add key
-    server.addEndpoint(new CoapEndpoint(keyConnector, NetworkConfig.getStandard()));
+    server.addEndpoint(
+            new CoapEndpoint
+                    .Builder()
+                    .setConnector(keyConnector)
+                    .build()
+    );
 
     //add unsecure
     InetSocketAddress addr = null;
@@ -88,7 +104,7 @@ public class Server {
     } catch (UnknownHostException e) {
       e.printStackTrace();
     }
-    server.addEndpoint(new CoapEndpoint(addr));
+    server.addEndpoint(new CoapEndpoint.Builder().setInetSocketAddress(addr).build());
 
     // add special interceptor for message traces
     for (Endpoint ep : server.getEndpoints()) {
@@ -103,15 +119,8 @@ public class Server {
     return factory.generatePrivate(content);
   }
 
-  public static PublicKey loadPublicKey(String path) throws Exception {
-    KeyFactory factory = KeyFactory.getInstance("RSA");
-    PemReader pemReader = new PemReader(new InputStreamReader(new FileInputStream(path)));
-    X509EncodedKeySpec content = new X509EncodedKeySpec(pemReader.readPemObject().getContent());
-    return factory.generatePublic(content);
-  }
-
   private DTLSConnector getConnectorKeys(Integer port)  {
-    DtlsConnectorConfig.Builder config = new DtlsConnectorConfig.Builder();
+    DtlsConnectorConfig.Builder config = new DtlsConnectorConfig.Builder(Configuration.getStandard());
     InetSocketAddress addr = null;
     try {
       addr = new InetSocketAddress(InetAddress.getByName("localhost"), port);
@@ -124,12 +133,8 @@ public class Server {
     try {
       String PRIVATE_KEY = classLoader.getResource("keys/privatekey-pkcs8.pem").getPath();
       String PUBLIC_KEY = classLoader.getResource("keys/publickey.pem").getPath();
-     // config.setIdentity(loadPrivateKey(PRIVATE_KEY), loadPublicKey(PUBLIC_KEY));
-     // config.setSupportedCipherSuites(new CipherSuite[]{CipherSuite.TLS_PSK_WITH_AES_128_CCM_8, CipherSuite.TLS_PSK_WITH_AES_128_CBC_SHA256});
-      InMemoryPskStore psk = new InMemoryPskStore();
-      psk.setKey("andrew","kebab".getBytes());
-      psk.addKnownPeer(addr, "andrew","kebab".getBytes());
-      config.setPskStore(psk);
+      AdvancedSinglePskStore psk = new AdvancedSinglePskStore("andrew","kebab".getBytes());
+      config.setAdvancedPskStore(psk);
 
       return new DTLSConnector(config.build());
     } catch (Exception e) {
@@ -140,7 +145,7 @@ public class Server {
 
 
   private DTLSConnector getConnectorSSL(Integer port) {
-    DtlsConnectorConfig.Builder config = new DtlsConnectorConfig.Builder();
+    DtlsConnectorConfig.Builder config = new DtlsConnectorConfig.Builder(Configuration.getStandard());
     InetSocketAddress addr = null;
     try {
       addr = new InetSocketAddress(InetAddress.getByName("localhost"), port);
@@ -155,18 +160,41 @@ public class Server {
       trustStore.load(inTrust, TRUST_STORE_PASSWORD.toCharArray());
 
       // You can load multiple certificates if needed
-      Certificate[] trustedCertificates = new Certificate[1];
-      trustedCertificates[0] = trustStore.getCertificate("root");
+      X509Certificate[] trustedCertificates = new X509Certificate[1];
+      trustedCertificates[0] = (X509Certificate) trustStore.getCertificate("root");
 
       // load the key store
       KeyStore keyStore = KeyStore.getInstance("JKS");
       InputStream in = Server.class.getClassLoader().getResourceAsStream(KEY_STORE_LOCATION);
       keyStore.load(in, KEY_STORE_PASSWORD.toCharArray());
 
-      config.setIdentity((PrivateKey)keyStore.getKey("server", KEY_STORE_PASSWORD.toCharArray()),
-          keyStore.getCertificateChain("server"), true);
-
-      config.setTrustStore(trustedCertificates);
+      PrivateKey privateKey = (PrivateKey)keyStore.getKey("server", KEY_STORE_PASSWORD.toCharArray());
+      Certificate[] certChain = keyStore.getCertificateChain("server");
+      config.setCertificateIdentityProvider(
+              new SingleCertificateProvider(privateKey, certChain, CertificateType.RAW_PUBLIC_KEY, CertificateType.OPEN_PGP, CertificateType.X_509)
+      );
+      config.setCipherSuiteSelector(new DefaultCipherSuiteSelector());
+      List<CertificateType> certificateTypeList = Lists.newArrayList(
+              CertificateType.RAW_PUBLIC_KEY,
+              CertificateType.OPEN_PGP,
+              CertificateType.X_509
+      );
+      config.setAdvancedCertificateVerifier(
+              StaticNewAdvancedCertificateVerifier
+                      .builder()
+                      .setTrustAllRPKs()
+                      .build()
+      );
+      config.setAdvancedCertificateVerifier(
+              new StaticNewAdvancedCertificateVerifier(
+              trustedCertificates,
+              null,
+              certificateTypeList
+      ));
+      config.set(
+              DtlsConfig.DTLS_CIPHER_SUITES,
+              Lists.newArrayList((CipherSuite.getCipherSuites(false, false)))
+      );
       return new DTLSConnector(config.build());
     } catch (Exception e) {
       e.printStackTrace();

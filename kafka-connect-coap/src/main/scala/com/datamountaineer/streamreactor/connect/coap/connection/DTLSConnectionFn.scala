@@ -17,20 +17,22 @@
 package com.datamountaineer.streamreactor.connect.coap.connection
 
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSetting}
+import com.google.common.collect.Lists
 import com.typesafe.scalalogging.StrictLogging
+import org.apache.kafka.connect.errors.ConnectException
 import org.eclipse.californium.core.CoapClient
 import org.eclipse.californium.core.coap.CoAP
 import org.eclipse.californium.core.network.CoapEndpoint
-import org.eclipse.californium.core.network.config.NetworkConfig
+import org.eclipse.californium.elements.config.Configuration
 import org.eclipse.californium.scandium.DTLSConnector
-import org.eclipse.californium.scandium.config.DtlsConnectorConfig
+import org.eclipse.californium.scandium.config.{DtlsConfig, DtlsConnectorConfig}
 import org.eclipse.californium.scandium.dtls.CertificateType
 import org.eclipse.californium.scandium.dtls.cipher.CipherSuite
 import org.eclipse.californium.scandium.dtls.pskstore.AdvancedMultiPskStore
-import org.eclipse.californium.scandium.dtls.x509.StaticNewAdvancedCertificateVerifier
+import org.eclipse.californium.scandium.dtls.x509.{SingleCertificateProvider, StaticNewAdvancedCertificateVerifier}
 
 import java.io.FileInputStream
-import java.net.{ConnectException, InetAddress, InetSocketAddress, URI}
+import java.net.{InetAddress, InetSocketAddress, URI}
 import java.security.cert.Certificate
 import java.security.{KeyStore, PrivateKey}
 
@@ -51,8 +53,7 @@ object DTLSConnectionFn extends StrictLogging {
 
     val client: CoapClient = new CoapClient(uri)
     val addr = new InetSocketAddress(InetAddress.getByName(setting.bindHost), setting.bindPort)
-    val builder = new DtlsConnectorConfig.Builder
-    builder.setAddress(addr)
+    val builder = DtlsConnectorConfig.builder(Configuration.getStandard).setAddress(addr)
 
     if (uri.getScheme.equals(CoAP.COAP_SECURE_URI_SCHEME)) {
 
@@ -72,7 +73,9 @@ object DTLSConnectionFn extends StrictLogging {
         val privateKey = keyStore.getKey(setting.chainKey, setting.keyStorePass.value().toCharArray).asInstanceOf[PrivateKey]
         val certChain = keyStore.getCertificateChain(setting.chainKey)
 
-        builder.setIdentity(privateKey, certChain, CertificateType.RAW_PUBLIC_KEY, CertificateType.X_509)
+        builder.setCertificateIdentityProvider(
+          new SingleCertificateProvider(privateKey, certChain, CertificateType.RAW_PUBLIC_KEY, CertificateType.X_509)
+        )
         builder.setAdvancedCertificateVerifier(StaticNewAdvancedCertificateVerifier
           .builder()
           .setTrustedCertificates(certificates: _*)
@@ -85,14 +88,24 @@ object DTLSConnectionFn extends StrictLogging {
         builder.setAdvancedPskStore(psk)
 
         if (setting.privateKey.isDefined) {
-          builder.setSupportedCipherSuites(CipherSuite.TLS_PSK_WITH_AES_128_CCM_8, CipherSuite.TLS_PSK_WITH_AES_128_CBC_SHA256)
-          builder.setIdentity(setting.privateKey.get, setting.publicKey.get)
+          builder.set(DtlsConfig.DTLS_CIPHER_SUITES, Lists.newArrayList(CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, CipherSuite.TLS_PSK_WITH_AES_128_CCM_8, CipherSuite.TLS_PSK_WITH_AES_128_CBC_SHA256))
+          builder.setCertificateIdentityProvider(
+            new SingleCertificateProvider(
+              setting.privateKey.get,
+              setting.publicKey.get
+            )
+          )
+          import org.eclipse.californium.scandium.dtls.x509.StaticNewAdvancedCertificateVerifier
+          val verifier = StaticNewAdvancedCertificateVerifier.builder.setTrustAllRPKs.build
+          builder.setAdvancedCertificateVerifier(verifier)
+          //builder.setAdvancedCertificateVerifier(StaticNewAdvancedCertificateVerifier.builder()
+          //  .setTrustedRPKs(new RawPublicKeyIdentity(setting.publicKey.get)).build());
         }
+
       }
 
       client.setEndpoint(new CoapEndpoint.Builder()
         .setConnector(new DTLSConnector(builder.build()))
-        .setNetworkConfig(NetworkConfig.getStandard)
         .build())
     }
     client.setURI(s"${setting.uri}/${setting.target}")
@@ -112,11 +125,11 @@ object DTLSConnectionFn extends StrictLogging {
     val response = client.get()
 
     if (response != null) {
-      logger.info(s"Discovered Server ${response.advanced().getSource.toString}.")
+      logger.info(s"Discovered Server ${response.advanced().getSourceContext.toString}.")
       new URI(uri.getScheme,
         uri.getUserInfo,
-        response.advanced().getSource.getHostName,
-        response.advanced().getSourcePort,
+        response.advanced().getSourceContext.getPeerAddress.getHostName,
+        response.advanced().getSourceContext.getPeerAddress.getPort,
         uri.getPath,
         uri.getQuery,
         uri.getFragment)

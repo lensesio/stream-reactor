@@ -89,7 +89,7 @@ object Dependencies {
     val snakeYamlVersion = "1.30"
     val openCsvVersion = "5.6"
 
-    val californiumVersion = "2.6.5"
+    val californiumVersion = "3.5.0"
     val bouncyCastleVersion = "1.70"
     //val nettyVersion = "4.0.47.Final"
     val nettyVersion = "4.1.71.Final"
@@ -242,9 +242,11 @@ object Dependencies {
   val californium = Seq(californiumCore, scandium)
 
   val bouncyProv = "org.bouncycastle" % "bcprov-jdk15on" % bouncyCastleVersion
+  val bouncyUtil = "org.bouncycastle" % "bcutil-jdk15on" % bouncyCastleVersion
   val bouncyPkix = "org.bouncycastle" % "bcpkix-jdk15on" % bouncyCastleVersion
   val bouncyBcpg = "org.bouncycastle" % "bcpg-jdk15on" % bouncyCastleVersion
-  val bouncyCastle = Seq(bouncyProv, bouncyPkix, bouncyBcpg)
+  val bouncyTls = "org.bouncycastle" % "bctls-jdk15on" % bouncyCastleVersion
+  val bouncyCastle = Seq(bouncyProv, bouncyUtil, bouncyPkix, bouncyBcpg, bouncyTls)
 
   //lazy val avro   = "org.apache.avro"      % "avro"        % avroVersion
   lazy val avro4s = "com.sksamuel.avro4s" %% "avro4s-core" % avro4sVersion

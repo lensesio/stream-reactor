@@ -16,16 +16,14 @@
 
 package com.datamountaineer.streamreactor.connect.coap.source
 
-import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase, SlowTest}
+import com.datamountaineer.streamreactor.connect.coap.{Server, SlowTest, TestBase}
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceTaskContext
-import org.eclipse.californium.core.{CaliforniumLogger, CoapClient}
-import org.eclipse.californium.scandium.ScandiumLogger
+import org.eclipse.californium.core.CoapClient
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.wordspec.AnyWordSpec
 
-import java.util.logging.Level
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
@@ -43,11 +41,6 @@ class TestCoapSourceTask extends AnyWordSpec with BeforeAndAfter with TestBase w
   after {
     server.stop()
   }
-
-  CaliforniumLogger.initialize()
-  CaliforniumLogger.setLevel(Level.INFO)
-  ScandiumLogger.initialize()
-  ScandiumLogger.setLevel(Level.INFO)
 
 //  "should create a secure task and read a message" in {
 //    val props = getPropsSecure

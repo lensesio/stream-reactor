@@ -20,7 +20,8 @@ import com.datamountaineer.streamreactor.connect.coap.TestBase
 import com.datamountaineer.streamreactor.connect.coap.configs.CoapConstants
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.jdk.CollectionConverters.ListHasAsScala
+import java.util
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 
 
 /**
@@ -53,4 +54,16 @@ class TestCoapSourceConnector extends AnyWordSpec with TestBase {
     taskConfigs.asScala.head.get(CoapConstants.COAP_URI) shouldBe SOURCE_URI_SECURE
     connector.taskClass() shouldBe classOf[CoapSourceTask]
   }
+
+  def getPropsSecureMultipleKCQL: util.Map[String, String] = {
+    Map(CoapConstants.COAP_KCQL->s"$SOURCE_KCQL_SECURE;$SOURCE_KCQL_INSECURE",
+      CoapConstants.COAP_URI->SOURCE_URI_SECURE,
+      CoapConstants.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
+      CoapConstants.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
+      CoapConstants.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
+      CoapConstants.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
+      CoapConstants.COAP_DTLS_BIND_PORT->"9998"
+    ).asJava
+  }
+
 }

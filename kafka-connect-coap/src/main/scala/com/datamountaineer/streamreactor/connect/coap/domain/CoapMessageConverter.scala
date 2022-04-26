@@ -21,6 +21,7 @@ import org.apache.kafka.connect.source.SourceRecord
 import org.eclipse.californium.core.coap.{MediaTypeRegistry, Response}
 
 import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, SeqHasAsJava}
+import scala.util.Try
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 
@@ -94,7 +95,7 @@ case class CoapMessageConverter() {
       ""
     }
 
-    val source = if (response.getSource != null) s"${response.getSource.getHostName}:${response.getSourcePort}" else ""
+    val source = Try(s"${response.getSourceContext.getPeerAddress.getHostName}:${response.getSourceContext.getPeerAddress.getPort}").getOrElse("")
 
     val key = new Struct(keySchema)
       .put("source", source)
@@ -107,7 +108,7 @@ case class CoapMessageConverter() {
       .put("type", response.getType.toString)
       .put("code", response.getCode.toString)
       .put("raw_code", response.getRawCode)
-      .put("rtt", response.getRTT)
+      .put("rtt", response.getApplicationRttNanos)
       .put("is_notification", response.isNotification)
       .put("source", source)
       .put("destination", if (response.getDestinationContext != null) s"${response.getDestinationContext.getVirtualHost}:${response.getDestinationContext.getPeerAddress.getPort}" else "")
@@ -128,8 +129,8 @@ case class CoapMessageConverter() {
       .put("max_age", options.getMaxAge)
       .put("observe", options.getObserve)
       .put("proxy_uri", if (options.getProxyUri == null) options.getProxyUri else "")
-      .put("size_1", options.getSize1)
-      .put("size_2", options.getSize2)
+      .put("size_1", Try(options.getSize1.toString).getOrElse(""))
+      .put("size_2", Try(options.getSize2.toString).getOrElse(""))
       .put("uri_host", if (options.getUriHost == null) options.getUriHost else "")
       .put("uri_port", options.getUriPort)
       .put("uri_path", if (options.getUriPathString == null) options.getUriPathString else "")

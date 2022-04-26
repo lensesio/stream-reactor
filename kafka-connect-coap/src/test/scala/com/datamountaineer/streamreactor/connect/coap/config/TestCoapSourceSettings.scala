@@ -17,9 +17,12 @@
 package com.datamountaineer.streamreactor.connect.coap.config
 
 import com.datamountaineer.streamreactor.connect.coap.TestBase
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSinkConfig, CoapSourceConfig}
+import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSettings, CoapSinkConfig, CoapSourceConfig}
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.wordspec.AnyWordSpec
+
+import java.util
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
   * Created by andrew@datamountaineer.com on 28/12/2016. 
@@ -65,4 +68,26 @@ class TestCoapSourceSettings extends AnyWordSpec with TestBase {
       CoapSettings(config)
     }
   }
+
+  def getPropsSecureTrustNotFound: util.Map[String, String] = {
+    Map(CoapConstants.COAP_KCQL->SOURCE_KCQL_SECURE,
+      CoapConstants.COAP_URI->SOURCE_URI_SECURE,
+      CoapConstants.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
+      CoapConstants.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
+      CoapConstants.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
+      CoapConstants.COAP_TRUST_STORE_PATH->"blah"
+    ).asJava
+  }
+
+
+  def getPropsSecureKeyNotFound: util.Map[String, String] = {
+    Map(CoapConstants.COAP_KCQL->SOURCE_KCQL_SECURE,
+      CoapConstants.COAP_URI->SOURCE_URI_SECURE,
+      CoapConstants.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
+      CoapConstants.COAP_KEY_STORE_PATH->"blah",
+      CoapConstants.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
+      CoapConstants.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH
+    ).asJava
+  }
+
 }

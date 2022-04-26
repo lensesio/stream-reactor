@@ -20,8 +20,8 @@ import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.io.pem.PemReader
+import org.eclipse.californium.elements.util.JceProviderUtil
 
 import java.io.{File, FileInputStream, InputStreamReader}
 import java.security._
@@ -87,7 +87,14 @@ object CoapSettings {
     val publicKeyPathStr = config.getString(CoapConstants.COAP_PUBLIC_KEY_FILE)
 
     val factory = KeyFactory.getInstance("RSA")
-    Security.addProvider(new BouncyCastleProvider)
+    import org.bouncycastle.jce.provider.BouncyCastleProvider
+    import java.security.Security
+    Security.removeProvider("BC")
+    val bouncyCastleProvider = new BouncyCastleProvider
+    Security.insertProviderAt(bouncyCastleProvider, 1)
+    //Security.addProvider(new BouncyCastleProvider)
+    JceProviderUtil.init();
+
 
     val privateKey = if (privateKeyPathStr.nonEmpty) {
       if (!new File(privateKeyPathStr).exists()) {
