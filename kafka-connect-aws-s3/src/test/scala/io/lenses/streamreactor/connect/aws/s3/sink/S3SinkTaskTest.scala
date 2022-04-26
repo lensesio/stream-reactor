@@ -222,8 +222,8 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.stop()
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
-    getFileSize(BucketName, "streamReactorBackups/myTopic/1/0.parquet") should be(941)
-    getFileSize(BucketName, "streamReactorBackups/myTopic/1/1.parquet") should be(954)
+    getFileSize(BucketName, "streamReactorBackups/myTopic/1/0.parquet") should be >= 941L
+    getFileSize(BucketName, "streamReactorBackups/myTopic/1/1.parquet") should be >= 954L
 
     var genericRecords = parquetFormatReader.read(remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/0.parquet"))
     genericRecords.size should be (1)
