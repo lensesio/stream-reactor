@@ -168,6 +168,7 @@ lazy val hazelcast = (projectMatrix in file("kafka-connect-hazelcast"))
   .kafka3Row()
   .configureAssembly()
   .configureTests(baseTestDeps)
+  .disableParallel()
 
 lazy val influxdb = (projectMatrix in file("kafka-connect-influxdb"))
   .dependsOn(common)
