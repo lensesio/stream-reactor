@@ -20,6 +20,7 @@ import com.google.common.io.ByteStreams
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither._
+
 import java.io.{File, InputStream}
 import java.nio.file.Files
 import java.time.Instant
@@ -52,6 +53,16 @@ class RemoteFileTestHelper(implicit storageInterface: StorageInterface) {
 
   private def streamToByteArray(inputStream: InputStream): Array[Byte] = {
     ByteStreams.toByteArray(inputStream)
+  }
+
+  def getFileSize(bucket: String, path: String) : Long = {
+    storageInterface.getBlobSize(RemoteS3PathLocation(bucket, path)).
+      toThrowable("unit-tests")
+  }
+
+  def getModificationDate(bucket: String, path: String) : Instant = {
+    storageInterface.getBlobModified(RemoteS3PathLocation(bucket, path)).
+      toThrowable("unit-tests")
   }
 
 }

@@ -60,6 +60,8 @@ trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with Laz
       "S3PROXY_AUTHORIZATION" -> "none",
       "S3PROXY_IDENTITY" -> Identity,
       "S3PROXY_CREDENTIAL" -> Credential,
+      // using the AWS library requires this to be set for testing
+      "S3PROXY_IGNORE_UNKNOWN_HEADERS" -> "true",
     ),
     waitStrategy = Wait.forListeningPort()
   )

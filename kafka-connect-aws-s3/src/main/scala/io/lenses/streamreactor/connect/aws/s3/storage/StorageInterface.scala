@@ -38,7 +38,7 @@ trait StorageInterface {
 
   def getBlobSize(bucketAndPath: RemoteS3PathLocation): Either[String,Long]
 
-  def getBlobModified(location: RemoteS3PathLocation): Instant
+  def getBlobModified(location: RemoteS3PathLocation): Either[String,Instant]
 
   def writeStringToFile(target: RemoteS3PathLocation, data: String): Either[UploadError, Unit]
 

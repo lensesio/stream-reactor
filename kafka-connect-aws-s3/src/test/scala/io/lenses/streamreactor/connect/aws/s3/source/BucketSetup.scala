@@ -21,7 +21,6 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocatio
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.scalatest.matchers.should.Matchers
-import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither._
 import java.io.File
 
 

@@ -25,7 +25,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither.toJavaThrowab
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
 import io.lenses.streamreactor.connect.aws.s3.source.files.{S3SourceFileQueue, S3SourceLister}
 import io.lenses.streamreactor.connect.aws.s3.source.reader.{ReaderCreator, S3ReaderManager}
-import io.lenses.streamreactor.connect.aws.s3.storage.{AwsS3StorageInterface, JCloudsStorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import java.util
@@ -62,9 +62,8 @@ class S3SourceTask extends SourceTask with LazyLogging {
     val eitherErrOrReaderMan = for {
       config <- Try(S3SourceConfig(S3ConfigDefBuilder(getSourceName(props), propsFromContext(props)))).toEither
       authResources = new AuthResources(config.s3Config)
-      jCloudsAuth <- authResources.jClouds
       awsAuth <- authResources.aws
-      storageInterface <- Try(new JCloudsStorageInterface(getConnectorName(props), jCloudsAuth)).toEither
+      storageInterface <- config.s3Config.awsClient.createStorageInterface(sourceName, authResources)
       sourceStorageInterface <- Try(new AwsS3StorageInterface(getConnectorName(props), awsAuth)).toEither
       readerManagers = config.bucketOptions.map(
         bOpts =>
