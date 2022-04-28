@@ -117,7 +117,7 @@ public class BigQueryErrorResponsesIT extends BaseConnectorIT {
           // Try to write to it...
           try {
             bigQuery.insertAll(InsertAllRequest.of(table, RowToInsert.of(Collections.singletonMap("f1", "v1"))));
-            return false;
+            return true;
           } catch (BigQueryException e) {
             logger.debug("Recreated table write error", e);
             return BigQueryErrorResponses.isNonExistentTableError(e);
