@@ -25,4 +25,5 @@ common {
   secret_file_list = [
           ['gcp/kcbq', 'creds',   '/tmp/creds.json', 'KCBQ_TEST_KEYFILE']
   ]
+  timeoutHours = 2
 }
