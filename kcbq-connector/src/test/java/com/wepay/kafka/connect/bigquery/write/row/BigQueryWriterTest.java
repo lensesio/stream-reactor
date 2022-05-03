@@ -275,7 +275,7 @@ public class BigQueryWriterTest {
     testTask.put(sinkRecordList);
     Exception expectedEx =  assertThrows(BigQueryConnectException.class, 
                                         () -> testTask.flush(Collections.emptyMap())); 
-    assertTrue(expectedEx.getMessage().contains("test_topic"));
+    assertTrue(expectedEx.getCause().getMessage().contains("test_topic"));
   }
   /**
    * Utility method for making and retrieving properties based on provided parameters.

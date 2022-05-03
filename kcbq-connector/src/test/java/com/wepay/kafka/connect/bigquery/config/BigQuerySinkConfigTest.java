@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.CONNECTOR_RUNTIME_PROVIDER_CONFIG;
+import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.CONNECTOR_RUNTIME_PROVIDER_DEFAULT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -213,5 +215,21 @@ public class BigQuerySinkConfigTest {
 
     configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, "fortnight");
     new BigQuerySinkConfig(configProperties);
+  }
+
+  @Test
+  public void testKafkaProviderConfigDefaultValue() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    BigQuerySinkConfig config = new BigQuerySinkConfig(configProperties);
+    assertEquals(CONNECTOR_RUNTIME_PROVIDER_DEFAULT, config.getString(CONNECTOR_RUNTIME_PROVIDER_CONFIG));
+  }
+
+  @Test
+  public void testKafkaProviderConfig() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    String testKafkaProvider = "testProvider";
+    configProperties.put(CONNECTOR_RUNTIME_PROVIDER_CONFIG, testKafkaProvider);
+    BigQuerySinkConfig config = new BigQuerySinkConfig(configProperties);
+    assertEquals(testKafkaProvider, config.getString(CONNECTOR_RUNTIME_PROVIDER_CONFIG));
   }
 }

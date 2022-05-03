@@ -19,6 +19,8 @@
 
 package com.wepay.kafka.connect.bigquery;
 
+import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.CONNECTOR_RUNTIME_PROVIDER_CONFIG;
+import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.CONNECTOR_RUNTIME_PROVIDER_DEFAULT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
@@ -48,7 +50,6 @@ import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.write.batch.MergeBatches;
-import org.apache.kafka.common.config.ConfigException;
 
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
@@ -737,6 +738,20 @@ public class BigQuerySinkTaskTest {
     verify(bigQuery, times(1)).insertAll(any(InsertAllRequest.class));
 
     testTask.put(Collections.singletonList(spoofSinkRecord(topic)));
+  }
+
+  @Test
+  public void testKafkaProviderConfigInvalidValue() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    String testKafkaProvider = "testProvider";
+    configProperties.put(CONNECTOR_RUNTIME_PROVIDER_CONFIG, testKafkaProvider);
+    BigQuerySinkConfig config = new BigQuerySinkConfig(configProperties);
+
+    GcpClientBuilder<BigQuery> clientBuilder = new GcpClientBuilder.BigQueryBuilder().withConfig(config);
+    assertTrue(clientBuilder.getHeaderProvider().getHeaders().get("user-agent").contains(CONNECTOR_RUNTIME_PROVIDER_DEFAULT));
+
+    GcpClientBuilder<Storage> storageBuilder = new GcpClientBuilder.GcsBuilder().withConfig(config);
+    assertTrue(storageBuilder.getHeaderProvider().getHeaders().get("user-agent").contains(CONNECTOR_RUNTIME_PROVIDER_DEFAULT));
   }
 
   /**

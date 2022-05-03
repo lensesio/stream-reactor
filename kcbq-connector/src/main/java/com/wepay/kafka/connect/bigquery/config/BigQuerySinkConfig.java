@@ -458,6 +458,15 @@ public class BigQuerySinkConfig extends AbstractConfig {
           + "older than the specified partition expiration time will be permanently deleted. "
           + "Existing tables will not be altered to use this partition expiration time.";
 
+  //This config determines where the connector is hosted (Confluent Cloud or Confluent Platform).
+  //This is not enforced and defaulted to "Confluent Platform". Currently, it is only used for user-agent tracking in GCP.
+  public static final String CONNECTOR_RUNTIME_PROVIDER_CONFIG = "runtimeProvider";
+  private static final ConfigDef.Type CONNECTOR_RUNTIME_PROVIDER_TYPE = ConfigDef.Type.STRING;
+  public static final String CONNECTOR_RUNTIME_PROVIDER_DEFAULT = "Confluent Platform";
+  private static final ConfigDef.Importance CONNECTOR_RUNTIME_PROVIDER_IMPORTANCE = ConfigDef.Importance.LOW;
+  public static final List<String> CONNECTOR_RUNTIME_PROVIDER_TYPES = Stream.of("Confluent Platform", "Confluent Cloud")
+          .collect(Collectors.toList());
+
   /**
    * Return the ConfigDef object used to define this config's fields.
    *
@@ -738,6 +747,11 @@ public class BigQuerySinkConfig extends AbstractConfig {
             BIGQUERY_PARTITION_EXPIRATION_VALIDATOR,
             BIGQUERY_PARTITION_EXPIRATION_IMPORTANCE,
             BIGQUERY_PARTITION_EXPIRATION_DOC
+        ).defineInternal(
+                    CONNECTOR_RUNTIME_PROVIDER_CONFIG,
+                    CONNECTOR_RUNTIME_PROVIDER_TYPE,
+                    CONNECTOR_RUNTIME_PROVIDER_DEFAULT,
+                    CONNECTOR_RUNTIME_PROVIDER_IMPORTANCE
         );
   }
 
