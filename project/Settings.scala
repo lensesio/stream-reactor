@@ -155,7 +155,15 @@ object Settings extends Dependencies {
         excludeFilePatterns.exists(p.endsWith)
     }
 
-    val excludePatterns = Set("kafka-client","hadoop-yarn","org.apache.avro","org.apache.kafka", "io.confluent", "org.apache.zookeeper", "log4j", "org.apache.logging.log4j", "junit", "org.junit")
+    val excludePatterns = Set(
+      "kafka-client",
+      "hadoop-yarn",
+      "avro",
+      "kafka",
+      "confluent",
+      "zookeeper",
+      "log4j",
+      "junit")
 
     def configureAssembly(): ProjectMatrix = {
       project.settings(

@@ -9,11 +9,6 @@ import sbt.internal.ProjectMatrix
 
 case class KafkaVersionAxis(kafkaVersion: String) extends WeakAxis {
 
-  private val json4sVersion: String = kafkaVersion match {
-    //case "2.8.1" => "3.6.7"
-    //case "3.1.0" => "4.0.4"
-    case _ => "4.0.4"
-  }
 
   private val confluentPlatformVersion: String = kafkaVersion match {
     case "2.8.1" => "6.2.2"
@@ -27,18 +22,31 @@ case class KafkaVersionAxis(kafkaVersion: String) extends WeakAxis {
     case _ => throw new IllegalStateException("unexpected kafka version")
   }
 
+  private val jacksonDatabindVersion: String = if (jacksonVersion == "2.12.6") "2.12.6.1" else "2.10.5.1"
+
   private val kafkaVersionCompat: String = kafkaVersion.split("\\.", 3).take(2).mkString("-")
 
   override val directorySuffix = s"-kafka-$kafkaVersionCompat"
 
   override val idSuffix: String = directorySuffix.replaceAll("\\W+", "-")
 
+  def e2eDeps(): Seq[ModuleID] = Seq(
+    kafkaClients(kafkaVersion),
+    confluentJsonSchemaSerializer(confluentPlatformVersion),
+  )
+
   def deps(): Seq[ModuleID] = Seq(
-    json4sNative(json4sVersion),
-    json4sJackson(json4sVersion),
-    jacksonDatabind(jacksonVersion),
+    kafkaConnectJson(kafkaVersion),
+    confluentAvroConverter(confluentPlatformVersion),
+    jacksonDatabind(jacksonDatabindVersion),
     jacksonModuleScala(jacksonVersion),
-    confluentAvroConverter(confluentPlatformVersion)
+  )
+
+  def fixedDeps(): Seq[ModuleID] = Seq(
+    jacksonCore(jacksonVersion),
+    jacksonDatabind(jacksonDatabindVersion),
+    jacksonDataformatCbor(jacksonVersion),
+    jacksonModuleScala(jacksonVersion),
   )
 
   def ideEnable(): Boolean = kafkaVersion == "3.1.0"
@@ -73,8 +81,8 @@ object KafkaVersionAxis {
             name := name.value + kafkaVersionAxis.directorySuffix,
             moduleName := moduleName.value + kafkaVersionAxis.directorySuffix,
             libraryDependencies ++= kafkaVersionAxis.deps(),
-            dependencyOverrides ++= kafkaVersionAxis.deps()
-          )
+            dependencyOverrides ++= kafkaVersionAxis.fixedDeps(),
+      )
           .settings(settings: _*)
       )
   }

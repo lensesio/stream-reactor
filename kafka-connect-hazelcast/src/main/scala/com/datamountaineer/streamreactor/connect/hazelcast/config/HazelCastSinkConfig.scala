@@ -45,10 +45,8 @@ object HazelCastSinkConfig {
       "Connection", 6, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.LINGER_SECONDS)
     .define(HazelCastSinkConfigConstants.BUFFER_SIZE, Type.INT, HazelCastSinkConfigConstants.BUFFER_SIZE_DEFAULT, Importance.LOW, HazelCastSinkConfigConstants.BUFFER_SIZE_DOC,
       "Connection", 7, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.BUFFER_SIZE)
-    .define(HazelCastSinkConfigConstants.GROUP_NAME, Type.STRING, Importance.HIGH, HazelCastSinkConfigConstants.SINK_GROUP_NAME_DOC,
-      "Connection", 8, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.GROUP_NAME)
-    .define(HazelCastSinkConfigConstants.GROUP_PASSWORD, Type.PASSWORD, HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DEFAULT, Importance.MEDIUM, HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DOC,
-      "Connection", 9, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.GROUP_PASSWORD)
+    .define(HazelCastSinkConfigConstants.CLUSTER_NAME, Type.STRING, Importance.HIGH, HazelCastSinkConfigConstants.SINK_GROUP_NAME_DOC,
+      "Connection", 8, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.CLUSTER_NAME)
     .define(HazelCastSinkConfigConstants.KCQL, Type.STRING, Importance.HIGH, HazelCastSinkConfigConstants.KCQL,
       "Target", 1, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.KCQL)
     .define(HazelCastSinkConfigConstants.ERROR_POLICY, Type.STRING, HazelCastSinkConfigConstants.ERROR_POLICY_DEFAULT, Importance.HIGH, HazelCastSinkConfigConstants.ERROR_POLICY_DOC,

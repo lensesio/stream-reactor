@@ -19,7 +19,8 @@ package com.datamountaineer.streamreactor.connect.hazelcast.writers
 import java.util.concurrent.TimeUnit
 
 import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
-import com.hazelcast.core.{HazelcastInstance, IMap}
+import com.hazelcast.core.HazelcastInstance
+import com.hazelcast.map.IMap
 import org.apache.kafka.connect.sink.SinkRecord
 
 /**

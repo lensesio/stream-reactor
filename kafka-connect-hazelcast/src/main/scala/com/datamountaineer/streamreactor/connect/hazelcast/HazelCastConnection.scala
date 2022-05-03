@@ -23,7 +23,7 @@ import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConn
 import com.hazelcast.cache.HazelcastCachingProvider
 import com.hazelcast.client.HazelcastClient
 import com.hazelcast.client.config.{ClientConfig, ClientNetworkConfig, SocketOptions}
-import com.hazelcast.config.{GroupConfig, SSLConfig}
+import com.hazelcast.config.SSLConfig
 import com.hazelcast.core.HazelcastInstance
 
 import javax.cache.{CacheManager, Caching}
@@ -45,11 +45,10 @@ object HazelCastConnection {
    }
     networkConfig.setAddresses(config.members.toList.asJava)
 
-    val groupConfig = new GroupConfig(config.group, config.pass)
-    clientConfig.setGroupConfig(groupConfig)
+    clientConfig.setClusterName(config.clusterName)
 
     buildSocketOptions(networkConfig, config.socketConfig)
-    clientConfig.setInstanceName(config.group + "-kafka-connect-" + UUID.randomUUID().toString)
+    clientConfig.setInstanceName(config.clusterName + "-kafka-connect-" + UUID.randomUUID().toString)
     HazelcastClient.newHazelcastClient(clientConfig)
   }
 

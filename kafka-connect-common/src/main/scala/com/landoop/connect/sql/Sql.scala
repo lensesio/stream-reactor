@@ -10,11 +10,10 @@ object Sql {
   def parse(query:String): Sql ={
     import org.apache.calcite.config.Lex
     import org.apache.calcite.sql.parser.SqlParser
-    val config = SqlParser.configBuilder
-      .setLex(Lex.MYSQL)
-      .setCaseSensitive(false)
-      .setIdentifierMaxLength(250)
-      .build
+    val config = SqlParser.config
+      .withLex(Lex.MYSQL)
+      .withCaseSensitive(false)
+      .withIdentifierMaxLength(250)
 
     val withStructure: Boolean = query.trim.toLowerCase().endsWith("withstructure")
     val sql = if (withStructure) {

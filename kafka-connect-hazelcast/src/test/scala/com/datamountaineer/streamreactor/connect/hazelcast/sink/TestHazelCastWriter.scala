@@ -20,6 +20,10 @@ import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConn
 import com.datamountaineer.streamreactor.connect.hazelcast.writers.HazelCastWriter
 import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, MessageListenerImplAvro, MessageListenerImplJson, SlowTest, TestBase}
 import com.hazelcast.core._
+import com.hazelcast.map.IMap
+import com.hazelcast.multimap.MultiMap
+import com.hazelcast.collection._
+import com.hazelcast.topic.ITopic
 import com.hazelcast.ringbuffer.Ringbuffer
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.common.config.SslConfigs
@@ -206,7 +210,7 @@ class TestHazelCastWriter extends TestBase {
   "should write json to hazelcast map default pks and TTL" taggedAs SlowTest in {
 
     val props = Map(HazelCastSinkConfigConstants.KCQL->s"INSERT INTO ${TABLE}_multi SELECT * FROM $TOPIC WITHFORMAT json STOREAS IMAP TTL=5000",
-      HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_NAME->TESTS_CLUSTER_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     )
     val config = new HazelCastSinkConfig(props.asJava)
@@ -255,7 +259,7 @@ class TestHazelCastWriter extends TestBase {
 
     val ssl = Map(
       HazelCastSinkConfigConstants.KCQL->KCQL_MAP_IGNORED,
-      HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_NAME->TESTS_CLUSTER_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost",
       HazelCastSinkConfigConstants.SSL_ENABLED -> "true",
       SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG -> truststoreFilePath,

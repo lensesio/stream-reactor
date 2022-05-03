@@ -15,7 +15,6 @@ lazy val subProjects: Seq[ProjectMatrix] = Seq(
   `aws-s3`,
   `azure-documentdb`,
   cassandra,
-  coap,
   elastic6,
   elastic7,
   ftp,
@@ -42,6 +41,7 @@ lazy val root = (projectMatrix in file("."))
     subProjectsRefs: _*
   )
   .dependsOn(cassandra, elastic6, mongodb, redis)
+  .disablePlugins(AssemblyPlugin)
   .settings(
     E2ETest / baseDirectory := (LocalRootProject/baseDirectory).value,
     E2ETest / testOptions := Seq(Tests.Argument(TestFrameworks.JUnit, "-a", "-q", "-v"))
@@ -56,8 +56,9 @@ lazy val common = (projectMatrix in file("kafka-connect-common"))
       Seq(
         name := "kafka-connect-common",
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= baseDeps ++ kafkaConnectCommonDeps,
+        libraryDependencies ++= baseDeps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()
@@ -74,6 +75,7 @@ lazy val `aws-s3` = (projectMatrix in file("kafka-connect-aws-s3"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectS3Deps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()
@@ -90,22 +92,7 @@ lazy val `azure-documentdb` = (projectMatrix in file("kafka-connect-azure-docume
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectAzureDocumentDbDeps,
         publish / skip := true,
-      )
-  )
-  .kafka2Row()
-  .kafka3Row()
-  .configureAssembly()
-  .configureTests(baseTestDeps)
-
-lazy val coap = (projectMatrix in file("kafka-connect-coap"))
-  .dependsOn(common)
-  .settings(
-    settings ++
-      Seq(
-        name := "kafka-connect-coap",
-        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= baseDeps ++ kafkaConnectCoapDeps,
-        publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()
@@ -122,6 +109,7 @@ lazy val cassandra = (projectMatrix in file("kafka-connect-cassandra"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectCassandraDeps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()
@@ -138,6 +126,7 @@ lazy val elastic6 = (projectMatrix in file("kafka-connect-elastic6"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectElastic6Deps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()
@@ -154,6 +143,7 @@ lazy val elastic7 = (projectMatrix in file("kafka-connect-elastic7"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectElastic7Deps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()
@@ -170,6 +160,8 @@ lazy val hazelcast = (projectMatrix in file("kafka-connect-hazelcast"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectHazelCastDeps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides ++ kafkaConnectHazelCastDeps
+        
       )
   )
   .kafka2Row()
@@ -186,6 +178,7 @@ lazy val influxdb = (projectMatrix in file("kafka-connect-influxdb"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectInfluxDbDeps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()
@@ -202,6 +195,7 @@ lazy val jms = (projectMatrix in file("kafka-connect-jms"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectJmsDeps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()
@@ -219,6 +213,7 @@ lazy val kudu = (projectMatrix in file("kafka-connect-kudu"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectKuduDeps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()
@@ -235,6 +230,7 @@ lazy val mqtt = (projectMatrix in file("kafka-connect-mqtt"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectMqttDeps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()
@@ -252,6 +248,7 @@ lazy val pulsar = (projectMatrix in file("kafka-connect-pulsar"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectPulsarDeps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()
@@ -268,6 +265,7 @@ lazy val ftp = (projectMatrix in file("kafka-connect-ftp"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectFtpDeps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()
@@ -285,6 +283,7 @@ lazy val hbase = (projectMatrix in file("kafka-connect-hbase"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectHbaseDeps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()
@@ -301,6 +300,7 @@ lazy val hive = (projectMatrix in file("kafka-connect-hive"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectHiveDeps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()
@@ -317,6 +317,7 @@ lazy val mongodb = (projectMatrix in file("kafka-connect-mongodb"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectMongoDbDeps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()
@@ -333,6 +334,7 @@ lazy val redis = (projectMatrix in file("kafka-connect-redis"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectRedisDeps,
         publish / skip := true,
+        dependencyOverrides ++= nettyOverrides
       )
   )
   .kafka2Row()

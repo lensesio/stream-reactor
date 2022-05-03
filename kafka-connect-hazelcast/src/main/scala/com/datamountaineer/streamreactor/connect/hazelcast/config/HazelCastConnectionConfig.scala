@@ -25,12 +25,11 @@ import scala.jdk.CollectionConverters.ListHasAsScala
   * Created by andrew@datamountaineer.com on 10/08/16. 
   * stream-reactor
   */
-case class HazelCastConnectionConfig(group: String,
+case class HazelCastConnectionConfig(clusterName: String,
                                      members: Set[String],
                                      redo: Boolean = true,
                                      connectionAttempts: Int,
                                      connectionTimeouts: Long,
-                                     pass: String,
                                      socketConfig: HazelCastSocketConfig,
                                      sslEnabled: Boolean = false,
                                      trustStoreType: Option[String] = None,
@@ -60,8 +59,7 @@ object HazelCastConnectionConfig {
     val linger = config.getInt(HazelCastSinkConfigConstants.LINGER_SECONDS)
     val buffer = config.getInt(HazelCastSinkConfigConstants.BUFFER_SIZE)
     val socketConfig = HazelCastSocketConfig(keepAlive, tcpNoDelay, reuse, linger, buffer)
-    val pass = config.getPassword(HazelCastSinkConfigConstants.GROUP_PASSWORD).value()
-    val group = config.getString(HazelCastSinkConfigConstants.GROUP_NAME)
+    val clusterName = config.getString(HazelCastSinkConfigConstants.CLUSTER_NAME)
     val ssl = config.getBoolean(HazelCastSinkConfigConstants.SSL_ENABLED)
 
     val trustStoreType = Option(config.getString(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG))
@@ -79,12 +77,11 @@ object HazelCastConnectionConfig {
     }
 
     new HazelCastConnectionConfig(
-      group,
+      clusterName,
       members,
       redo,
       connectionAttempts,
       connectionTimeouts,
-      pass,
       socketConfig,
       ssl,
       trustStoreType,
