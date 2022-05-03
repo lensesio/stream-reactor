@@ -72,6 +72,8 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     CUSTOM_ENDPOINT -> uri(),
     ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
     "name" -> "s3SinkTaskBuildLocalTest",
+    AWS_CLIENT -> "AWS",
+    AWS_REGION -> "eu-west-1",
   )
 
   private val partitionedData: List[Struct] = List(
@@ -1763,6 +1765,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
           "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `json` WITH_FLUSH_COUNT = 1",
           ERROR_POLICY -> "RETRY",
           ERROR_RETRY_INTERVAL -> "10",
+          HTTP_NBR_OF_RETRIES -> "5",
           "connect.s3.local.tmp.directory" -> tmpDir.getAbsolutePath,
           HTTP_SOCKET_TIMEOUT -> "200",
           HTTP_CONNECTION_TIMEOUT -> "200",

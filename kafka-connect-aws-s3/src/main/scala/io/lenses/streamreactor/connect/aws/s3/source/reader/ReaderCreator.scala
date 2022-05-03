@@ -7,7 +7,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.SourceData
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.apache.kafka.common.errors.OffsetOutOfRangeException
-
+import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither._
 import scala.util.Try
 
 class ReaderCreator(
@@ -25,8 +25,8 @@ class ReaderCreator(
 
   private def createInner(pathWithLine: RemoteS3PathLocationWithLine): S3FormatStreamReader[_ <: SourceData] = {
     val file = pathWithLine.file
-    val inputStreamFn = () => storageInterface.getBlob(file)
-    val fileSizeFn = () => storageInterface.getBlobSize(file)
+    val inputStreamFn = () => storageInterface.getBlob(file).toThrowable(sourceName)
+    val fileSizeFn = () => storageInterface.getBlobSize(file).toThrowable(sourceName)
     logger.info(s"[$sourceName] Reading next file: ${pathWithLine.file} from line ${pathWithLine.line}")
 
     val reader = S3FormatStreamReader(inputStreamFn, fileSizeFn, format, file)

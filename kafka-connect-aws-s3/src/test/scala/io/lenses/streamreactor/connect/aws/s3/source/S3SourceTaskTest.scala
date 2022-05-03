@@ -29,7 +29,8 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTe
     AWS_REGION -> "eu-west-1",
     AUTH_MODE -> AuthMode.Credentials.toString,
     CUSTOM_ENDPOINT -> uri(),
-    ENABLE_VIRTUAL_HOST_BUCKETS -> "true"
+    ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
+    AWS_CLIENT -> "aws",
   )
 
   private val formats = Table(

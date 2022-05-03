@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink.utils
 import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
-import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, S3Config}
+import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, AwsClient, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither._
 import io.lenses.streamreactor.connect.aws.s3.storage.{JCloudsStorageInterface, StorageInterface}
 import org.scalatest.BeforeAndAfter
@@ -60,6 +60,8 @@ trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with Laz
       "S3PROXY_AUTHORIZATION" -> "none",
       "S3PROXY_IDENTITY" -> Identity,
       "S3PROXY_CREDENTIAL" -> Credential,
+      // using the AWS library requires this to be set for testing
+      "S3PROXY_IGNORE_UNKNOWN_HEADERS" -> "true",
     ),
     waitStrategy = Wait.forListeningPort()
   )
@@ -106,6 +108,7 @@ trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with Laz
     region = Some("us-east-1"),
     accessKey = Some(Identity),
     secretKey = Some(Credential),
+    AwsClient.Aws,
     authMode = AuthMode.Credentials,
     customEndpoint = Some(uri()),
     enableVirtualHostBuckets = true,

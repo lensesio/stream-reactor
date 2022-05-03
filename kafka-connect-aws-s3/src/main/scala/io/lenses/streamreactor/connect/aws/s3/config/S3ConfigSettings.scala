@@ -36,6 +36,7 @@ object S3ConfigSettings {
   val AUTH_MODE: String = s"$CONNECTOR_PREFIX.aws.auth.mode"
   val CUSTOM_ENDPOINT: String = s"$CONNECTOR_PREFIX.custom.endpoint"
   val ENABLE_VIRTUAL_HOST_BUCKETS: String = s"$CONNECTOR_PREFIX.vhost.bucket"
+  val AWS_CLIENT: String = s"$CONNECTOR_PREFIX.aws.client"
 
   val DISABLE_FLUSH_COUNT: String = s"$CONNECTOR_PREFIX.disable.flush.count"
   val LOCAL_TMP_DIRECTORY: String = s"$CONNECTOR_PREFIX.local.tmp.directory"

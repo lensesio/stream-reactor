@@ -18,7 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection, S3Config}
+import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, AwsClient, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContainerTest
@@ -43,6 +43,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       None,
       Some(Identity),
       Some(Credential),
+      AwsClient.Aws,
       AuthMode.Credentials),
       bucketOptions = Set(
         SinkBucketOptions(TopicName, bucketAndPrefix, commitPolicy = DefaultCommitPolicy(None, None, Some(1)),
@@ -71,6 +72,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       None,
       Some(Identity),
       Some(Credential),
+      AwsClient.Aws,
       AuthMode.Credentials),
       bucketOptions = Set(
         SinkBucketOptions(

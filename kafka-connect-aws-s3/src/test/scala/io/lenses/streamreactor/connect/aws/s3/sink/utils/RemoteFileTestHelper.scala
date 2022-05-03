@@ -19,6 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink.utils
 import com.google.common.io.ByteStreams
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither._
 
 import java.io.{File, InputStream}
 import java.nio.file.Files
@@ -27,18 +28,7 @@ import java.time.Instant
 class RemoteFileTestHelper(implicit storageInterface: StorageInterface) {
 
   def listBucketPath(bucketName: String, prefix: String): List[String] = {
-    storageInterface.list(RemoteS3PathLocation(bucketName, prefix)) match {
-      case Left(err) => throw err.exception
-      case Right(fileList) => fileList
-    }
-  }
-
-  def getFileSize(bucketName: String, fileName: String): Long = {
-    storageInterface.getBlobSize(RemoteS3PathLocation(bucketName, fileName))
-  }
-
-  def getModificationDate(bucketName: String, fileName: String): Instant = {
-    storageInterface.getBlobModified(RemoteS3PathLocation(bucketName, fileName))
+    storageInterface.list(RemoteS3PathLocation(bucketName, prefix)).toThrowable("unit-tests")
   }
 
   def remoteFileAsBytes(bucketName: String, fileName: String): Array[Byte] = {
@@ -50,7 +40,7 @@ class RemoteFileTestHelper(implicit storageInterface: StorageInterface) {
   }
 
   def remoteFileAsStream(bucketName: String, fileName: String): InputStream = {
-    storageInterface.getBlob(RemoteS3PathLocation(bucketName, fileName))
+    storageInterface.getBlob(RemoteS3PathLocation(bucketName, fileName)).toThrowable("unit-tests")
   }
 
   def remoteFileAsString(bucketName: String, fileName: String): String = {
@@ -63,6 +53,16 @@ class RemoteFileTestHelper(implicit storageInterface: StorageInterface) {
 
   private def streamToByteArray(inputStream: InputStream): Array[Byte] = {
     ByteStreams.toByteArray(inputStream)
+  }
+
+  def getFileSize(bucket: String, path: String) : Long = {
+    storageInterface.getBlobSize(RemoteS3PathLocation(bucket, path)).
+      toThrowable("unit-tests")
+  }
+
+  def getModificationDate(bucket: String, path: String) : Instant = {
+    storageInterface.getBlobModified(RemoteS3PathLocation(bucket, path)).
+      toThrowable("unit-tests")
   }
 
 }
