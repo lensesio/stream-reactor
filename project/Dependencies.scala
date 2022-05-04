@@ -117,7 +117,7 @@ object Dependencies {
     val jmsApiVersion = "2.0.1"
     val activeMqVersion = "5.14.5"
 
-    val kuduVersion = "1.11.1"
+    val kuduVersion = "1.16.0"
 
     val mqttVersion = "1.2.5"
 

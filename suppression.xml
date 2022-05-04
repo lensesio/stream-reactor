@@ -58,4 +58,14 @@
         <sha1>7036f443754737ebe2715bcc6b37f48e89097139</sha1>
         <cve>CVE-2016-10750</cve>
     </suppress>
+
+    <!-- Module: Kudu -->
+    <!-- This is a false positive.  It appears to be identifying a different async project. -->
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-kudu-kafka-3-1-assembly-1.1-SNAPSHOT.jar (shaded: com.stumbleupon:async:1.4.1)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.stumbleupon/async@.*$</packageUrl>
+        <cve>CVE-2021-43138</cve>
+    </suppress>
 </suppressions>
