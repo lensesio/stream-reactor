@@ -1,7 +1,9 @@
 package com.datamountaineer.streamreactor.connect.pulsar
 
 import com.datamountaineer.streamreactor.connect.pulsar.config._
-import org.apache.pulsar.client.api.SubscriptionType
+import org.apache.pulsar.client.api.{ConsumerBuilder, PulsarClient, SubscriptionType}
+import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -12,8 +14,19 @@ import scala.jdk.CollectionConverters.MapHasAsJava
   * Created by andrew@datamountaineer.com on 23/01/2018. 
   * stream-reactor
   */
-class ConsumerConfigFactoryTest extends AnyWordSpec with Matchers {
+class ConsumerConfigFactoryTest extends AnyWordSpec with Matchers with MockitoSugar with BeforeAndAfter {
+  val pulsarClient = mock[PulsarClient]
   val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
+
+  val consumerBuilder = mock[ConsumerBuilder[Array[Byte]]]
+  val consumerFactory = new ConsumerConfigFactory(pulsarClient)
+
+  before {
+    reset(pulsarClient, consumerBuilder)
+
+    when(pulsarClient.newConsumer()).thenReturn(consumerBuilder)
+
+  }
 
   "should create a config with batch settings" in {
 
@@ -24,11 +37,13 @@ class ConsumerConfigFactoryTest extends AnyWordSpec with Matchers {
       PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
     ).asJava)
 
-
     val settings = PulsarSourceSettings(config, 1)
-    val consumerConfig = ConsumerConfigFactory("test", settings.kcql)
-    consumerConfig(pulsarTopic).getReceiverQueueSize shouldBe 10
-    consumerConfig(pulsarTopic).getConsumerName shouldBe "test"
+    val consumerConfig = consumerFactory("test", settings.kcql)
+
+    verify(pulsarClient, times(1)).newConsumer()
+
+    verify(consumerConfig(pulsarTopic)).receiverQueueSize(10)
+    verify(consumerConfig(pulsarTopic)).consumerName("test")
   }
 
   "should create a config with Failover mode" in {
@@ -40,12 +55,15 @@ class ConsumerConfigFactoryTest extends AnyWordSpec with Matchers {
       PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
     ).asJava)
 
-
     val settings = PulsarSourceSettings(config, 2)
-    val consumerConfig = ConsumerConfigFactory("test", settings.kcql)
-    consumerConfig(pulsarTopic).getReceiverQueueSize shouldBe 10
-    consumerConfig(pulsarTopic).getConsumerName shouldBe "test"
-    consumerConfig(pulsarTopic).getSubscriptionType shouldBe SubscriptionType.Failover
+    val consumerConfig = consumerFactory("test", settings.kcql)
+
+    verify(pulsarClient, times(1)).newConsumer()
+
+    verify(consumerConfig(pulsarTopic)).receiverQueueSize(10)
+    verify(consumerConfig(pulsarTopic)).consumerName("test")
+    verify(consumerConfig(pulsarTopic)).subscriptionType(SubscriptionType.Failover)
+
   }
 
   "should create a config with exclusive mode" in {
@@ -58,10 +76,11 @@ class ConsumerConfigFactoryTest extends AnyWordSpec with Matchers {
 
 
     val settings = PulsarSourceSettings(config, 1)
-    val consumerConfig = ConsumerConfigFactory("test", settings.kcql)
-    consumerConfig(pulsarTopic).getReceiverQueueSize shouldBe 10
-    consumerConfig(pulsarTopic).getConsumerName shouldBe "test"
-    consumerConfig(pulsarTopic).getSubscriptionType shouldBe SubscriptionType.Exclusive
+    val consumerConfig = consumerFactory("test", settings.kcql)
+
+    verify(consumerConfig(pulsarTopic)).receiverQueueSize(10)
+    verify(consumerConfig(pulsarTopic)).consumerName("test")
+    verify(consumerConfig(pulsarTopic)).subscriptionType(SubscriptionType.Exclusive)
 
   }
 
@@ -75,10 +94,12 @@ class ConsumerConfigFactoryTest extends AnyWordSpec with Matchers {
 
 
     val settings = PulsarSourceSettings(config, 2)
-    val consumerConfig = ConsumerConfigFactory("test", settings.kcql)
-    consumerConfig(pulsarTopic).getReceiverQueueSize shouldBe 10
-    consumerConfig(pulsarTopic).getConsumerName shouldBe "test"
-    consumerConfig(pulsarTopic).getSubscriptionType shouldBe SubscriptionType.Shared
+    val consumerConfig = consumerFactory("test", settings.kcql)
+
+    verify(consumerConfig(pulsarTopic)).receiverQueueSize(10)
+    verify(consumerConfig(pulsarTopic)).consumerName("test")
+    verify(consumerConfig(pulsarTopic)).subscriptionType(SubscriptionType.Shared)
+
   }
 
 }

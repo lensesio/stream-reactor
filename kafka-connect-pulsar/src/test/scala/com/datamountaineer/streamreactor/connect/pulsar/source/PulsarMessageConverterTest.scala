@@ -1,14 +1,14 @@
 package com.datamountaineer.streamreactor.connect.pulsar.source
 
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-
-import java.util
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSourceConfig, PulsarSourceSettings}
 import org.apache.kafka.connect.source.SourceRecord
-import org.apache.pulsar.client.api.MessageBuilder
+import org.apache.pulsar.client.api.{Message, MessageId}
+import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.util
 import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.MapHasAsJava
 
@@ -17,7 +17,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
   * stream-reactor
   */
 @nowarn
-class PulsarMessageConverterTest extends AnyWordSpec with Matchers with ConverterUtil {
+class PulsarMessageConverterTest extends AnyWordSpec with Matchers with ConverterUtil with MockitoSugar {
 
   val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
   val jsonMessage = "{\"int8\":12,\"int16\":12,\"int32\":12,\"int64\":12,\"float32\":12.2,\"float64\":12.2,\"boolean\":true,\"string\":\"foo\"}"
@@ -39,13 +39,11 @@ class PulsarMessageConverterTest extends AnyWordSpec with Matchers with Converte
 
     val converter = PulsarMessageConverter(convertersMap, settings.kcql, false, 100, 100)
 
-    val message = MessageBuilder
-      .create
-      .setContent(jsonMessage.getBytes)
-      .setKey("landoop")
-      .setSequenceId(1)
-      .build()
-
+    val message = mock[Message[Array[Byte]]]
+    when(message.getKey).thenReturn("landoop")
+    when(message.getData).thenReturn(jsonMessage.getBytes)
+    when(message.getSequenceId).thenReturn(1)
+    when(message.getMessageId).thenReturn(MessageId.latest)
 
     // pulsar message
     converter.convertMessages(message, pulsarTopic)

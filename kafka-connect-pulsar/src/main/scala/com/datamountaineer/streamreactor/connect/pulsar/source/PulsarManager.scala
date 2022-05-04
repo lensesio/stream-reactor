@@ -38,10 +38,11 @@ class PulsarManager(client: PulsarClient,
                     messageConverter: PulsarMessageConverter) extends AutoCloseable with StrictLogging {
   private val executor = Executors.newFixedThreadPool(1)
 
-  val configs = ConsumerConfigFactory(name, kcql)
+  val consumerFactory = new ConsumerConfigFactory(client)
+  val configs = consumerFactory(name, kcql)
 
   // Once the consumer is created, it can be used for the entire application life-cycle
-  private val consumersMap = kcql.map(c => c.getSource -> client.subscribe(c.getSource, name, configs(c.getSource))).toMap
+  private val consumersMap = kcql.map(c => c.getSource -> configs(c.getSource).subscribe()).toMap
 
   @volatile private var stop = false
 
@@ -83,7 +84,7 @@ case class PulsarMessageConverter(convertersMap: Map[String, Converter],
 
   private val queue = new LinkedBlockingQueue[SourceRecord]()
 
-  def convertMessages(msg: Message, pulsarTopic: String) = {
+  def convertMessages(msg: Message[Array[Byte]], pulsarTopic: String) = {
     if (msg != null) {
       val matched = sourceToTopicMap
         .filter(t => compareTopic(pulsarTopic, t._1))
