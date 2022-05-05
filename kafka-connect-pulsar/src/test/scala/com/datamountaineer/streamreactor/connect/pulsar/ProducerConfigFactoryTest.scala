@@ -1,10 +1,14 @@
 package com.datamountaineer.streamreactor.connect.pulsar
 
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSinkConfig, PulsarSinkSettings}
-import org.apache.pulsar.client.api.CompressionType
-import org.apache.pulsar.client.api.ProducerConfiguration.MessageRoutingMode
+import org.apache.pulsar.client.api.{CompressionType, MessageRoutingMode, ProducerBuilder, PulsarClient}
+import org.mockito.ArgumentMatchersSugar.any
+import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
+import java.util.concurrent.TimeUnit
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 
@@ -12,9 +16,20 @@ import scala.jdk.CollectionConverters.MapHasAsJava
   * Created by andrew@datamountaineer.com on 23/01/2018. 
   * stream-reactor
   */
-class ProducerConfigFactoryTest extends AnyWordSpec with Matchers {
+class ProducerConfigFactoryTest extends AnyWordSpec with Matchers with MockitoSugar with BeforeAndAfter {
 
+  val pulsarClient = mock[PulsarClient]
   val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
+
+  val producerBuilder = mock[ProducerBuilder[Array[Byte]]]
+  val producerConfigFactory = new ProducerConfigFactory(pulsarClient)
+
+  before {
+    reset(pulsarClient, producerBuilder)
+
+    when(pulsarClient.newProducer()).thenReturn(producerBuilder)
+
+  }
 
   "should create a SinglePartition with batching" in {
     val config = PulsarSinkConfig(Map(
@@ -22,15 +37,15 @@ class ProducerConfigFactoryTest extends AnyWordSpec with Matchers {
       PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER = SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY = 1000"
     ).asJava)
 
-
     val settings = PulsarSinkSettings(config)
-    val producerConfig = ProducerConfigFactory("test", settings.kcql)
-    producerConfig(pulsarTopic).getBatchingEnabled shouldBe true
-    producerConfig(pulsarTopic).getBatchingMaxMessages shouldBe 10
-    producerConfig(pulsarTopic).getBatchingMaxPublishDelayMs shouldBe 1000
+    val producerConfig = producerConfigFactory("test", settings.kcql)
 
-    producerConfig(pulsarTopic).getCompressionType shouldBe CompressionType.ZLIB
-    producerConfig(pulsarTopic).getMessageRoutingMode shouldBe MessageRoutingMode.SinglePartition
+    verify(producerConfig(pulsarTopic)).enableBatching(true)
+    verify(producerConfig(pulsarTopic)).batchingMaxMessages(10)
+    verify(producerConfig(pulsarTopic)).batchingMaxPublishDelay(1000, TimeUnit.MILLISECONDS)
+
+    verify(producerConfig(pulsarTopic)).compressionType(CompressionType.ZLIB)
+    verify(producerConfig(pulsarTopic)).messageRoutingMode(MessageRoutingMode.SinglePartition)
   }
 
   "should create a CustomPartition with no batching and no compression" in {
@@ -39,12 +54,12 @@ class ProducerConfigFactoryTest extends AnyWordSpec with Matchers {
       PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic WITHPARTITIONER = CustomPartition"
     ).asJava)
 
-
     val settings = PulsarSinkSettings(config)
-    val producerConfig = ProducerConfigFactory("test", settings.kcql)
-    producerConfig(pulsarTopic).getBatchingEnabled shouldBe false
-    producerConfig(pulsarTopic).getCompressionType shouldBe CompressionType.NONE
-    producerConfig(pulsarTopic).getMessageRoutingMode shouldBe MessageRoutingMode.CustomPartition
+    val producerConfig = producerConfigFactory("test", settings.kcql)
+
+    verify(producerConfig(pulsarTopic), never).enableBatching(true)
+    verify(producerConfig(pulsarTopic), never).compressionType(any[CompressionType])
+    verify(producerConfig(pulsarTopic)).messageRoutingMode(MessageRoutingMode.CustomPartition)
   }
 
   "should create a roundrobin with batching and no compression no delay" in {
@@ -53,15 +68,14 @@ class ProducerConfigFactoryTest extends AnyWordSpec with Matchers {
       PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH  = 10 WITHPARTITIONER = ROUNDROBINPARTITION"
     ).asJava)
 
-
     val settings = PulsarSinkSettings(config)
-    val producerConfig = ProducerConfigFactory("test", settings.kcql)
-    producerConfig(pulsarTopic).getBatchingEnabled shouldBe true
-    producerConfig(pulsarTopic).getBatchingEnabled shouldBe true
-    producerConfig(pulsarTopic).getBatchingMaxMessages shouldBe 10
-    producerConfig(pulsarTopic).getBatchingMaxPublishDelayMs shouldBe 10
+    val producerConfig = producerConfigFactory("test", settings.kcql)
 
-    producerConfig(pulsarTopic).getCompressionType shouldBe CompressionType.NONE
-    producerConfig(pulsarTopic).getMessageRoutingMode shouldBe MessageRoutingMode.RoundRobinPartition
+    verify(producerConfig(pulsarTopic)).enableBatching(true)
+    verify(producerConfig(pulsarTopic)).batchingMaxMessages(10)
+
+    verify(producerConfig(pulsarTopic), never).batchingMaxPublishDelay(any[Long], any[TimeUnit])
+    verify(producerConfig(pulsarTopic), never).compressionType(CompressionType.NONE)
+    verify(producerConfig(pulsarTopic)).messageRoutingMode(MessageRoutingMode.RoundRobinPartition)
   }
 }

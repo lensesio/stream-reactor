@@ -21,12 +21,13 @@ import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSourceConfig, PulsarSourceSettings}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
-import org.apache.pulsar.client.api.{ClientConfiguration, PulsarClient}
+import org.apache.pulsar.client.api.PulsarClient
 import org.apache.pulsar.client.impl.auth.AuthenticationTls
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
 import java.util
 import java.util.UUID
+import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala}
 import scala.util.{Failure, Success, Try}
 
@@ -36,6 +37,7 @@ class PulsarSourceTask extends SourceTask with StrictLogging {
   private var pulsarManager: Option[PulsarManager] = None
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
+  @nowarn
   override def start(props: util.Map[String, String]): Unit = {
 
     logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/pulsar-source-ascii.txt")).mkString + s" $version")
@@ -56,17 +58,19 @@ class PulsarSourceTask extends SourceTask with StrictLogging {
       settings.pollingTimeout,
       settings.batchSize)
 
-    val clientConf = new ClientConfiguration()
+    val clientConf = PulsarClient.builder()
+
 
     settings.sslCACertFile.foreach(f => {
-      clientConf.setUseTls(true)
-      clientConf.setTlsTrustCertsFilePath(f)
 
       val authParams = settings.sslCertFile.map(f => ("tlsCertFile", f)).toMap ++ settings.sslCertKeyFile.map(f => ("tlsKeyFile", f)).toMap
-      clientConf.setAuthentication(classOf[AuthenticationTls].getName, authParams.asJava)
+
+      clientConf.enableTls(true)
+        .tlsTrustCertsFilePath(f)
+        .authentication(classOf[AuthenticationTls].getName, authParams.asJava)
     })
 
-    pulsarManager = Some(new PulsarManager(PulsarClient.create(settings.connection, clientConf), name, settings.kcql, messageConverter))
+    pulsarManager = Some(new PulsarManager(clientConf.serviceUrl(settings.connection).build(), name, settings.kcql, messageConverter))
     enableProgress = settings.enableProgress
   }
 

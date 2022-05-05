@@ -1,30 +1,30 @@
 package com.datamountaineer.streamreactor.connect.pulsar
 
-import java.util.concurrent.TimeUnit
-
 import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.streamreactor.connect.pulsar.config.KcqlMessageRouting
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.pulsar.client.api.ProducerConfiguration.MessageRoutingMode
-import org.apache.pulsar.client.api.{CompressionType, ProducerConfiguration}
+import org.apache.pulsar.client.api.{CompressionType, ProducerBuilder, PulsarClient}
+
+import java.util.concurrent.TimeUnit
 
 /**
   * Created by andrew@datamountaineer.com on 22/01/2018. 
   * stream-reactor
   */
-object ProducerConfigFactory extends StrictLogging {
-  def apply(name: String, kcqls : Set[Kcql]): Map[String, ProducerConfiguration] = {
+class ProducerConfigFactory(pulsarClient: PulsarClient) extends StrictLogging {
+  def apply(name: String, kcqls : Set[Kcql]): Map[String, ProducerBuilder[Array[Byte]]] = {
 
 
     kcqls.map(kcql => {
-      val conf = new ProducerConfiguration()
+      val conf = pulsarClient.newProducer()
 
       // set batching
       if (kcql.getBatchSize > 0) {
-        conf.setBatchingEnabled(true)
-        conf.setBatchingMaxMessages(kcql.getBatchSize)
+        conf.enableBatching(true)
+        conf.batchingMaxMessages(kcql.getBatchSize)
 
         if (kcql.getWithDelay > 0) {
-          conf.setBatchingMaxPublishDelay(kcql.getWithDelay.toLong, TimeUnit.MILLISECONDS)
+          conf.batchingMaxPublishDelay(kcql.getWithDelay.toLong, TimeUnit.MILLISECONDS)
         }
       }
 
@@ -39,39 +39,15 @@ object ProducerConfigFactory extends StrictLogging {
             CompressionType.LZ4
         }
 
-        conf.setCompressionType(compressionType)
+        conf.compressionType(compressionType)
       }
 
       // set routing mode
-      conf.setMessageRoutingMode(getMessageRouting(kcql))
-      conf.setProducerName(name)
+      conf.messageRoutingMode(KcqlMessageRouting(kcql))
+      conf.producerName(name)
 
       (kcql.getTarget, conf)
     }).toMap
   }
 
-  def getMessageRouting(kcql: Kcql): MessageRoutingMode = {
-    // set routing mode
-    // match on strings as not enums and Puslar are camelcase
-    if (kcql.getWithPartitioner != null) {
-      kcql.getWithPartitioner.trim.toUpperCase match {
-        case "SINGLEPARTITION" =>
-          MessageRoutingMode.SinglePartition
-
-        case "ROUNDROBINPARTITION" =>
-          MessageRoutingMode.RoundRobinPartition
-
-        case "CUSTOMPARTITION" =>
-          MessageRoutingMode.CustomPartition
-
-        case _ =>
-          logger.error(s"Unknown message routing mode ${kcql.getWithType}. Defaulting to SinglePartition")
-          MessageRoutingMode.SinglePartition
-      }
-
-    } else {
-      logger.info(s"Defaulting to SinglePartition message routing mode")
-      MessageRoutingMode.SinglePartition
-    }
-  }
 }

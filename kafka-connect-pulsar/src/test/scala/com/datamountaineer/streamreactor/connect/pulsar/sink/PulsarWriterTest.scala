@@ -1,14 +1,13 @@
 package com.datamountaineer.streamreactor.connect.pulsar.sink
 
-import com.datamountaineer.streamreactor.connect.pulsar.ProducerConfigFactory
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSinkConfig, PulsarSinkSettings}
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.apache.pulsar.client.api.{Message, MessageId, Producer, PulsarClient}
-import org.mockito.ArgumentMatchers.any
-import org.mockito.MockitoSugar
+import org.apache.pulsar.client.api.{Producer, ProducerBuilder, PulsarClient}
+import org.mockito.{Answers, MockitoSugar}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 
@@ -45,7 +44,6 @@ class PulsarWriterTest extends AnyWordSpec with MockitoSugar with Matchers {
       .put("string", "foo")
   }
 
-
   "should write messages" in {
 
     val config = PulsarSinkConfig(Map(
@@ -58,16 +56,15 @@ class PulsarWriterTest extends AnyWordSpec with MockitoSugar with Matchers {
     val record1 = new SinkRecord("kafka_topic", 0, null, null, schema, struct, 1)
 
     val settings = PulsarSinkSettings(config)
-    val producerConfig = ProducerConfigFactory("test", settings.kcql)
 
     val client = mock[PulsarClient]
-    val producer = mock[Producer]
-    val messageId = mock[MessageId]
 
-    when(client.createProducer(pulsarTopic, producerConfig(pulsarTopic))).thenReturn(producer)
-    when(producer.send(any[Message])).thenReturn(messageId)
+    val producer = mock[Producer[Array[Byte]]](Answers.RETURNS_DEEP_STUBS)
 
-    val writer = PulsarWriter(client, "test", settings)
+    val producerBuilder = mock[ProducerBuilder[Array[Byte]]]
+    when(producerBuilder.create()).thenReturn(producer)
+
+    val writer = new PulsarWriter(() => client.close(), () => Map("persistent://landoop/standalone/connect/kafka-topic" -> producerBuilder), settings)
     writer.write(List(record1))
   }
 }

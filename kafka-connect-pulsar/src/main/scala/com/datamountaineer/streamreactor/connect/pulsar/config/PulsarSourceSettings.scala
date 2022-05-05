@@ -18,7 +18,6 @@ package com.datamountaineer.streamreactor.connect.pulsar.config
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.{BytesConverter, Converter}
-import com.datamountaineer.streamreactor.connect.pulsar.ConsumerConfigFactory
 import org.apache.kafka.common.config.ConfigException
 import org.apache.pulsar.client.api.SubscriptionType
 
@@ -76,7 +75,7 @@ object PulsarSourceSettings {
     val pollingTimeout = config.getInt(PulsarConfigConstants.POLLING_TIMEOUT_CONFIG)
 
     kcql.map( k => {
-      val subscriptionType = ConsumerConfigFactory.getSubscriptionType(k)
+      val subscriptionType = KcqlSubscriptionType(k)
       if (maxTasks > 1 && subscriptionType == SubscriptionType.Exclusive) {
         throw new ConfigException("Subscription mode set to Exclusive and max tasks greater than 1. Each task gets all KCQLs. " +
           "Multiple subscriptions to the same topic are not allowed in Exclusive mode.")
