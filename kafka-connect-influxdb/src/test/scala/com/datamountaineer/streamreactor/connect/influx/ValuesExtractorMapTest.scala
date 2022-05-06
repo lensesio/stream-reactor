@@ -172,13 +172,13 @@ class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
       result.failed.get shouldBe a[IllegalArgumentException]
     }
 
-    "assume unix timestamp in seconds if type is double and coerce to Long in milliseconds" in {
+    "assume unix timestamp in seconds if type is double and coerce to Long in microseconds" in {
 
       val payload = new java.util.HashMap[String, Any]()
 
-      payload.put("double", 1.56937031387E9)
+      payload.put("double", 1651794924.081999)
 
-      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("double")),Vector("double")) shouldBe Success(1569370313870L)
+      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("double")),Vector("double")) shouldBe Success(1651794924081999L)
 
     }
 
