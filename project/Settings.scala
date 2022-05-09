@@ -116,8 +116,6 @@ object Settings extends Dependencies {
     headerLicense := Some(HeaderLicense.Custom(licenseHeader)),
     headerEmptyLine := false,
     isSnapshot := artifactVersion.contains("SNAPSHOT"),
-    kindProjectorPlugin,
-    betterMonadicFor,
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision,
   )

@@ -38,7 +38,7 @@ object Dependencies {
     val scalatestVersion               = "3.2.9" // Higher versions result in org.scala-lang.modules:scala-xml conflicts
     val scalaCheckPlusVersion          = "3.1.0.0"
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
-    val scalaCheckVersion              = "1.15.4"
+    val scalaCheckVersion              = "1.16.0"
     val randomDataGeneratorVersion     = "2.8"
 
     val enumeratumVersion = "1.7.0"
@@ -61,30 +61,29 @@ object Dependencies {
 
     // build plugins versions
     val silencerVersion         = "1.7.1"
-    val kindProjectorVersion    = "0.10.3"
+    val kindProjectorVersion    = "0.13.2"
     val betterMonadicForVersion = "0.3.1"
 
     val slf4jVersion = "1.7.36"
 
     val logbackVersion      = "1.2.11"
     val scalaLoggingVersion = "3.9.4"
-    val classGraphVersions  = "4.8.143"
+    val classGraphVersions  = "4.8.146"
 
-    val wiremockJre8Version = "2.33.0"
-    val s3ParquetVersion    = "1.12.2"
-    val hiveParquetVersion  = "1.8.3"
+    val wiremockJre8Version = "2.33.2"
+    val parquetVersion      = "1.12.2"
 
     val jerseyCommonVersion = "3.0.4"
 
     val calciteVersion    = "1.30.0"
-    val awsSdkVersion     = "2.17.165"
+    val awsSdkVersion     = "2.17.174"
     val jCloudsSdkVersion = "2.5.0"
     val guavaVersion      = "31.0.1-jre"
     val guiceVersion      = "5.1.0"
     val javaxBindVersion  = "2.3.1"
 
     val kcqlVersion         = "2.8.7"
-    val json4sVersion       = "4.0.4"
+    val json4sVersion       = "4.0.5"
     val mockitoScalaVersion = "1.16.55"
     val snakeYamlVersion    = "1.30"
     val openCsvVersion      = "5.6"
@@ -105,7 +104,7 @@ object Dependencies {
     val testcontainersScalaVersion      = "0.40.5"
     val testcontainersVersion           = "1.16.2"
 
-    val hazelCastVersion          = "4.2.4"
+    val hazelCastVersion          = "4.2.5"
     val hazelCastAzureVersion     = "2.1.2"
     val hazelCastGcpVersion       = "2.1"
     val hazelCastHibernateVersion = "2.2.1"
@@ -116,7 +115,7 @@ object Dependencies {
     val influxVersion = "2.22"
 
     val jmsApiVersion   = "2.0.1"
-    val activeMqVersion = "5.14.5"
+    val activeMqVersion = "5.16.5"
 
     val kuduVersion = "1.16.0"
 
@@ -136,11 +135,7 @@ object Dependencies {
     val ftpServerVersion      = "1.2.0"
     val fakeSftpServerVersion = "2.0.0"
 
-    val hbaseClientVersion = "2.4.8"
-    val s3HadoopVersion    = "3.2.3"
-    val hiveHadoopVersion  = "2.7.4"
-
-    val zookeeperServerVersion = "3.7.0"
+    val zookeeperServerVersion = "3.8.0"
 
     val mongoDbVersion         = "3.12.10"
     val mongoDbEmbeddedVersion = "3.4.5"
@@ -148,10 +143,14 @@ object Dependencies {
     val jedisVersion = "3.6.3"
     val gsonVersion  = "2.9.0"
 
-    val hiveVersion = "2.1.1"
-    val joddVersion = "4.1.4"
+    val hbaseClientVersion = "2.4.11"
 
-    val junitVersion          = "4.13.2"
+    val nimbusJoseJwtVersion = "9.22"
+    val hiveVersion          = "3.1.3"
+    val hadoopVersion        = "3.2.3"
+    val joddVersion          = "4.1.4"
+
+    val junitVersion = "4.13.2"
 
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
@@ -196,9 +195,9 @@ object Dependencies {
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
   val scalatestPlusScalaCheck =
     "org.scalatestplus" %% "scalatestplus-scalacheck" % scalatestPlusScalaCheckVersion
-  val scalaCheck        = "org.scalacheck" %% "scalacheck"      % scalaCheckVersion
-  val `mockito-scala`   = "org.mockito"    %% "mockito-scala"   % mockitoScalaVersion
-  val junit             = "junit"           % "junit"           % junitVersion
+  val scalaCheck      = "org.scalacheck" %% "scalacheck"    % scalaCheckVersion
+  val `mockito-scala` = "org.mockito"    %% "mockito-scala" % mockitoScalaVersion
+  val junit           = "junit"           % "junit"         % junitVersion
 
   lazy val pegDown = "org.pegdown" % "pegdown" % "1.6.0"
 
@@ -253,13 +252,13 @@ object Dependencies {
 
   val jerseyCommon = "org.glassfish.jersey.core" % "jersey-common" % jerseyCommonVersion
 
-  def parquetAvro(version:         String): ModuleID = "org.apache.parquet" % "parquet-avro"          % version
-  def parquetHadoop(version:       String): ModuleID = "org.apache.parquet" % "parquet-hadoop"        % version
-  def parquetColumn(version:       String): ModuleID = "org.apache.parquet" % "parquet-column"        % version
-  def parquetEncoding(version:     String): ModuleID = "org.apache.parquet" % "parquet-encoding"      % version
-  def parquetHadoopBundle(version: String): ModuleID = "org.apache.parquet" % "parquet-hadoop-bundle" % version
+  lazy val parquetAvro:         ModuleID = "org.apache.parquet" % "parquet-avro"          % parquetVersion
+  lazy val parquetHadoop:       ModuleID = "org.apache.parquet" % "parquet-hadoop"        % parquetVersion
+  lazy val parquetColumn:       ModuleID = "org.apache.parquet" % "parquet-column"        % parquetVersion
+  lazy val parquetEncoding:     ModuleID = "org.apache.parquet" % "parquet-encoding"      % parquetVersion
+  lazy val parquetHadoopBundle: ModuleID = "org.apache.parquet" % "parquet-hadoop-bundle" % parquetVersion
 
-  def hadoopCommon(version: String): ModuleID = ("org.apache.hadoop" % "hadoop-common" % version)
+  lazy val hadoopCommon: ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-common" % hadoopVersion)
     .excludeAll(ExclusionRule(organization = "javax.servlet"))
     .excludeAll(ExclusionRule(organization = "javax.servlet.jsp"))
     .excludeAll(ExclusionRule(organization = "org.mortbay.jetty"))
@@ -271,31 +270,31 @@ object Dependencies {
     .exclude("org.apache.hadoop", "hadoop-auth")
     .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
 
-  def hadoopMapReduce(version: String): ModuleID = ("org.apache.hadoop" % "hadoop-mapreduce" % version)
-    .exclude("io.netty", "netty")
-    .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
+  lazy val hadoopAuth: ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-auth" % hadoopVersion)
 
-  def hadoopMapReduceClient(version: String): ModuleID = ("org.apache.hadoop" % "hadoop-mapreduce-client" % version)
-    .exclude("io.netty", "netty")
-    .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
-
-  def hadoopMapReduceClientCore(version: String): ModuleID =
-    ("org.apache.hadoop" % "hadoop-mapreduce-client-core" % version)
-      .exclude("io.netty", "netty")
-      .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
-
-  def hadoopExec(version: String): ModuleID = ("org.apache.hadoop" % "hadoop-exec" % version)
-    .exclude("io.netty", "netty")
-    .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
-
-  def hadoopHdfs(version: String): ModuleID = ("org.apache.hadoop" % "hadoop-hdfs" % version)
-    .exclude("io.netty", "netty")
-    .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
+  lazy val hadoopClient: ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-client" % hadoopVersion)
+  lazy val hadoopDistCp: ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-distcp" % hadoopVersion)
+  lazy val hadoopMapreduceClientApp: ModuleID =
+    hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client-app" % hadoopVersion)
+  lazy val hadoopMapreduceClientCommon: ModuleID =
+    hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client-common" % hadoopVersion)
+  lazy val hadoopMapreduceClientJobClient: ModuleID =
+    hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client-jobclient" % hadoopVersion)
+  lazy val hadoopMapreduceClientShuffle: ModuleID =
+    hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client-shuffle" % hadoopVersion)
+  lazy val hadoopMapReduce: ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce" % hadoopVersion)
+  lazy val hadoopMapReduceClient: ModuleID =
+    hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client" % hadoopVersion)
+  lazy val hadoopMapReduceClientCore: ModuleID =
+    hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion)
+  lazy val hadoopExec:       ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-exec" % hadoopVersion)
+  lazy val hadoopHdfs:       ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-hdfs" % hadoopVersion)
+  lazy val hadoopHdfsClient: ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-hdfs-client" % hadoopVersion)
 
   lazy val kcql = ("com.datamountaineer" % "kcql" % kcqlVersion)
     .exclude("com.google.guava", "guava")
 
-  lazy val calciteCore = ("org.apache.calcite" % "calcite-core" % calciteVersion)
+  lazy val calciteCore = hiveExcludes("org.apache.calcite" % "calcite-core" % calciteVersion)
     .excludeAll(ExclusionRule(organization = "io.swagger"))
     .excludeAll(ExclusionRule(organization = "io.netty"))
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.core"))
@@ -393,8 +392,13 @@ object Dependencies {
   lazy val ftpServer        = "org.apache.ftpserver"      % "ftpserver-core"          % ftpServerVersion
   lazy val fakeSftpServer   = "com.github.stefanbirkner"  % "fake-sftp-server-lambda" % fakeSftpServerVersion
 
-  lazy val hbaseClient     = "org.apache.hbase"     % "hbase-client" % hbaseClientVersion
-  lazy val zookeeperServer = "org.apache.zookeeper" % "zookeeper"    % zookeeperServerVersion
+  lazy val hbaseClient = ("org.apache.hbase" % "hbase-client" % hbaseClientVersion)
+    .excludeAll(ExclusionRule(organization = "org.apache.hadoop"))
+    .excludeAll(ExclusionRule(organization = "org.mortbay.jetty"))
+    .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
+    .excludeAll(ExclusionRule(organization = "io.netty"))
+
+  lazy val zookeeperServer = "org.apache.zookeeper" % "zookeeper" % zookeeperServerVersion
 
   lazy val mongoDb         = "org.mongodb"         % "mongo-java-driver"         % mongoDbVersion
   lazy val mongoDbEmbedded = "de.flapdoodle.embed" % "de.flapdoodle.embed.mongo" % mongoDbEmbeddedVersion
@@ -402,13 +406,24 @@ object Dependencies {
   lazy val jedis = "redis.clients"        % "jedis" % jedisVersion
   lazy val gson  = "com.google.code.gson" % "gson"  % gsonVersion
 
-  lazy val joddCore      = "org.jodd"        % "jodd-core"      % joddVersion
-  lazy val hiveJdbc      = "org.apache.hive" % "hive-jdbc"      % hiveVersion
-  lazy val hiveMetastore = "org.apache.hive" % "hive-metastore" % hiveVersion
+  def hiveExcludes(moduleID: ModuleID): ModuleID =
+    moduleID
+      .excludeAll(ExclusionRule(organization = "org.mortbay.jetty"))
+      .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
+      .excludeAll(ExclusionRule(organization = "org.apache.calcite"))
+      .excludeAll(ExclusionRule(organization = "org.apache.parquet"))
+      .excludeAll(ExclusionRule(organization = "org.apache.calcite.avatica"))
+      .excludeAll(ExclusionRule(organization = "org.apache.hbase"))
+      .excludeAll(ExclusionRule(organization = "org.apache.hadoop"))
+      .excludeAll(ExclusionRule(organization = "io.netty"))
+      .excludeAll(ExclusionRule(organization = "com.nibusds"))
+      .exclude("com.fasterxml.jackson.core", "jackson-annotations")
 
-  lazy val hiveExec = ("org.apache.hive" % "hive-exec" % hiveVersion) // classifier "core"
-    .exclude("org.apache.calcite", "calcite-avatica")
-    .exclude("com.fasterxml.jackson.core", "jackson-annotations")
+  lazy val joddCore      = "org.jodd" % "jodd-core" % joddVersion
+  lazy val nimbusJoseJwt = hiveExcludes("com.nimbusds" % "nimbus-jose-jwt" % nimbusJoseJwtVersion)
+  lazy val hiveJdbc      = hiveExcludes("org.apache.hive" % "hive-jdbc" % hiveVersion)
+  lazy val hiveMetastore = hiveExcludes("org.apache.hive" % "hive-metastore" % hiveVersion)
+  lazy val hiveExec      = hiveExcludes("org.apache.hive" % "hive-exec" % hiveVersion classifier "core")
 
   // testcontainers module only
   lazy val festAssert = "org.easytesting" % "fest-assert" % "1.4"
@@ -422,7 +437,7 @@ object Dependencies {
   def elasticSearchAnalysis(v: String): ModuleID = "org.codelibs.elasticsearch.module" % "analysis-common" % v
 
   def jna(v: String): ModuleID = "net.java.dev.jna" % "jna" % v
-  lazy val log4j2Slf4j = "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.16.0"
+  lazy val log4j2Slf4j = "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.17.2"
 }
 
 trait Dependencies {
@@ -481,12 +496,12 @@ trait Dependencies {
   val kafkaConnectS3Deps: Seq[ModuleID] = Seq(
     s3Sdk,
     stsSdk,
-    parquetAvro(s3ParquetVersion),
-    parquetHadoop(s3ParquetVersion),
-    hadoopCommon(s3HadoopVersion),
-    hadoopMapReduce(s3HadoopVersion),
-    hadoopMapReduceClient(s3HadoopVersion),
-    hadoopMapReduceClientCore(s3HadoopVersion),
+    parquetAvro,
+    parquetHadoop,
+    hadoopCommon,
+    hadoopMapReduce,
+    hadoopMapReduceClient,
+    hadoopMapReduceClientCore,
     javaxBind,
     jcloudsBlobstore,
     jcloudsProviderS3,
@@ -557,23 +572,39 @@ trait Dependencies {
 
   val kafkaConnectFtpTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(mina, betterFiles, ftpServer, fakeSftpServer)
 
-  val kafkaConnectHbaseDeps: Seq[ModuleID] = Seq(hadoopHdfs(s3HadoopVersion), hbaseClient)
+  val kafkaConnectHbaseDeps: Seq[ModuleID] = Seq(
+    nettyAll,
+    hadoopCommon,
+    hadoopHdfs,
+    hadoopHdfsClient,
+    hbaseClient,
+    nimbusJoseJwt,
+  )
 
   val kafkaConnectHiveDeps: Seq[ModuleID] = Seq(
     nettyAll,
-    parquetAvro(hiveParquetVersion),
-    parquetColumn(hiveParquetVersion),
-    parquetEncoding(hiveParquetVersion),
-    parquetHadoop(hiveParquetVersion),
-    parquetHadoopBundle(hiveParquetVersion),
+    parquetAvro,
+    parquetColumn,
+    parquetEncoding,
+    parquetHadoop,
+    parquetHadoopBundle,
     joddCore,
     hiveJdbc,
     hiveExec,
-    hadoopCommon(hiveHadoopVersion),
-    hadoopHdfs(hiveHadoopVersion),
-    hadoopMapReduce(hiveHadoopVersion),
-    hadoopMapReduceClient(hiveHadoopVersion),
-    hadoopMapReduceClientCore(hiveHadoopVersion),
+    hadoopCommon,
+    hadoopAuth,
+    hadoopHdfs,
+    hadoopHdfsClient,
+    hadoopMapReduce,
+    hadoopMapReduceClient,
+    hadoopMapReduceClientCore,
+    hadoopClient,
+    hadoopDistCp,
+    hadoopMapreduceClientApp,
+    hadoopMapreduceClientCommon,
+    hadoopMapreduceClientJobClient,
+    hadoopMapreduceClientShuffle,
+    nimbusJoseJwt,
   )
 
   val kafkaConnectHiveTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainersScala)
@@ -618,9 +649,5 @@ trait Dependencies {
     avro,
     avroProtobuf,
   )
-
-  // build plugins
-  val kindProjectorPlugin = addCompilerPlugin("org.typelevel" %% "kind-projector" % kindProjectorVersion)
-  val betterMonadicFor    = addCompilerPlugin("com.olegpy" %% "better-monadic-for" % betterMonadicForVersion)
 
 }

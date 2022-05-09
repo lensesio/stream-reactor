@@ -56,33 +56,33 @@ object ParquetSchemas {
 
   def toKafka(t: PrimitiveType): Schema = {
 
-    def int32(original: OriginalType): SchemaBuilder = original match {
-      case OriginalType.INT_32 | OriginalType.UINT_32 => SchemaBuilder.`type`(Schema.Type.INT32)
-      case OriginalType.UINT_16 | OriginalType.INT_16 => SchemaBuilder.`type`(Schema.Type.INT16)
-      case OriginalType.UINT_8 | OriginalType.INT_8 => SchemaBuilder.`type`(Schema.Type.INT8)
-      case OriginalType.DATE => SchemaBuilder.`type`(Schema.Type.INT32)
+    def int32(original: LogicalTypeAnnotation): SchemaBuilder = original match {
+      case lta : LogicalTypeAnnotation.IntLogicalTypeAnnotation if lta.getBitWidth == 32 => SchemaBuilder.`type`(Schema.Type.INT32)
+      case lta : LogicalTypeAnnotation.IntLogicalTypeAnnotation if lta.getBitWidth == 16 => SchemaBuilder.`type`(Schema.Type.INT16)
+      case lta : LogicalTypeAnnotation.IntLogicalTypeAnnotation if lta.getBitWidth == 8 => SchemaBuilder.`type`(Schema.Type.INT8)
+      case _ : LogicalTypeAnnotation.DateLogicalTypeAnnotation => SchemaBuilder.`type`(Schema.Type.INT32)
       case _ => SchemaBuilder.`type`(Schema.Type.INT32)
     }
 
-    def int64(original: OriginalType): SchemaBuilder = original match {
-      case OriginalType.UINT_64 | OriginalType.INT_64 => SchemaBuilder.`type`(Schema.Type.INT64)
-      case OriginalType.TIMESTAMP_MILLIS => SchemaBuilder.`type`(Schema.Type.INT64)
+    def int64(original: LogicalTypeAnnotation): SchemaBuilder = original match {
+      case lta : LogicalTypeAnnotation.IntLogicalTypeAnnotation if lta.getBitWidth == 64 => SchemaBuilder.`type`(Schema.Type.INT64)
+      case _ : LogicalTypeAnnotation.TimestampLogicalTypeAnnotation => SchemaBuilder.`type`(Schema.Type.INT64)
       case _ => SchemaBuilder.`type`(Schema.Type.INT64)
     }
 
-    def binary(original: OriginalType): SchemaBuilder = original match {
-      case OriginalType.ENUM => SchemaBuilder.`type`(Schema.Type.STRING)
-      case OriginalType.UTF8 => SchemaBuilder.`type`(Schema.Type.STRING)
+    def binary(original: LogicalTypeAnnotation): SchemaBuilder = original match {
+      case _ : LogicalTypeAnnotation.EnumLogicalTypeAnnotation => SchemaBuilder.`type`(Schema.Type.STRING)
+      case _ : LogicalTypeAnnotation.StringLogicalTypeAnnotation => SchemaBuilder.`type`(Schema.Type.STRING)
       case _ => SchemaBuilder.`type`(Schema.Type.BYTES)
     }
 
     val builder: SchemaBuilder = t.getPrimitiveTypeName match {
-      case PrimitiveTypeName.BINARY => binary(t.getOriginalType)
+      case PrimitiveTypeName.BINARY => binary(t.getLogicalTypeAnnotation())
       case PrimitiveTypeName.BOOLEAN => SchemaBuilder.`type`(Schema.Type.BOOLEAN)
       case PrimitiveTypeName.DOUBLE => SchemaBuilder.`type`(Schema.Type.FLOAT64)
       case PrimitiveTypeName.FLOAT => SchemaBuilder.`type`(Schema.Type.FLOAT32)
-      case PrimitiveTypeName.INT32 => int32(t.getOriginalType)
-      case PrimitiveTypeName.INT64 => int64(t.getOriginalType)
+      case PrimitiveTypeName.INT32 => int32(t.getLogicalTypeAnnotation())
+      case PrimitiveTypeName.INT64 => int64(t.getLogicalTypeAnnotation())
       case PrimitiveTypeName.INT96 => SchemaBuilder.`type`(Schema.Type.STRING)
       case other => throw UnsupportedSchemaType(s"Unsupported data type $other")
     }
@@ -104,12 +104,12 @@ object ParquetSchemas {
   def toParquetType(schema: Schema, name: String): Type = {
     val repetition = if (schema.isOptional) Type.Repetition.OPTIONAL else Type.Repetition.REQUIRED
     schema.`type`() match {
-      case Schema.Type.STRING => Types.primitive(PrimitiveTypeName.BINARY, repetition).as(OriginalType.UTF8).named(name)
+      case Schema.Type.STRING => Types.primitive(PrimitiveTypeName.BINARY, repetition).as(LogicalTypeAnnotation.stringType()).named(name)
       case Schema.Type.BOOLEAN => Types.primitive(PrimitiveTypeName.BOOLEAN, repetition).named(name)
       case Schema.Type.FLOAT32 => Types.primitive(PrimitiveTypeName.FLOAT, repetition).named(name)
       case Schema.Type.FLOAT64 => Types.primitive(PrimitiveTypeName.DOUBLE, repetition).named(name)
-      case Schema.Type.INT8 => Types.primitive(PrimitiveTypeName.INT32, repetition).as(OriginalType.INT_8).named(name)
-      case Schema.Type.INT16 => Types.primitive(PrimitiveTypeName.INT32, repetition).as(OriginalType.INT_16).named(name)
+      case Schema.Type.INT8 => Types.primitive(PrimitiveTypeName.INT32, repetition).as(LogicalTypeAnnotation.intType(8, true)).named(name)
+      case Schema.Type.INT16 => Types.primitive(PrimitiveTypeName.INT32, repetition).as(LogicalTypeAnnotation.intType(16, true)).named(name)
       case Schema.Type.INT32 => Types.primitive(PrimitiveTypeName.INT32, repetition).named(name)
       case Schema.Type.INT64 => Types.primitive(PrimitiveTypeName.INT64, repetition).named(name)
       case Schema.Type.BYTES => Types.primitive(PrimitiveTypeName.BINARY, repetition).named(name)
