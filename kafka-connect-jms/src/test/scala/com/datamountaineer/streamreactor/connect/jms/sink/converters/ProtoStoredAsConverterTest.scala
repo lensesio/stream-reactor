@@ -19,19 +19,19 @@
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSetting, JMSSettings}
-import com.datamountaineer.streamreactor.connect.jms.{TestBase, Using}
+import com.datamountaineer.streamreactor.connect.jms.TestBase
 import com.datamountaineer.streamreactor.example.{AddressedPerson, TimedPerson}
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.{BeforeAndAfterAll, EitherValues}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.util.UUID
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.MapHasAsJava
 
-class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using with TestBase with BeforeAndAfterAll {
+class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with TestBase with BeforeAndAfterAll with EitherValues {
 
   "create a BytesMessage with sinkrecord payload with storedAs properties" in {
     val converter = ProtoStoredAsConverter()
@@ -45,7 +45,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
     val struct = getProtobufStructTimestamp(schema, "non-addressed-person", 101, "1970-01-01T00:00:00Z")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
-    val convertedValue: Array[Byte] = converter.convert(record, setting)
+    val convertedValue: Array[Byte] = converter.convert(record, setting).value
 
     assertTimedPersonDetails(convertedValue, "non-addressed-person", 101, "1970-01-01T00:00:00Z")
 
@@ -63,7 +63,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
     val struct = getProtobufStruct(schema, "non-addressed-person", 102, "non-addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
-    val convertedValue: Array[Byte] = converter.convert(record, setting)
+    val convertedValue: Array[Byte] = converter.convert(record, setting).value
 
     assertPersonDetails(convertedValue, "non-addressed-person", 102, "non-addressed-person@gmail.com")
   }
@@ -78,7 +78,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
     val struct = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
-    val convertedValue: Array[Byte] = converter.convert(record, setting)
+    val convertedValue: Array[Byte] = converter.convert(record, setting).value
 
     assertPersonDetails(convertedValue, "addressed-person", 103, "addressed-person@gmail.com")
   }
@@ -155,7 +155,7 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with Using wi
     val settings = JMSSettings(config, true)
     val setting = settings.settings.head
 
-    converter.initialize(props.asJava)
+    converter.initialize(props)
     val record = new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1)
     (setting, record)
   }

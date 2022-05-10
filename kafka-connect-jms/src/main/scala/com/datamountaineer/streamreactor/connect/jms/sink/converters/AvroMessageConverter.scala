@@ -27,10 +27,10 @@ import java.io.ByteArrayOutputStream
 import javax.jms.{BytesMessage, Session}
 import scala.annotation.nowarn
 
-@nowarn
-class AvroMessageConverter extends JMSMessageConverter with ConverterUtil {
+@nowarn("cat=deprecation")
+class AvroMessageConverter extends JMSSinkMessageConverter with ConverterUtil {
 
-  @nowarn
+  @nowarn("cat=deprecation")
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, BytesMessage) = {
     val converted =  super[ConverterUtil].convert(record, setting.fields, setting.ignoreField)
     val avroRecord = convertValueToGenericAvro(converted)

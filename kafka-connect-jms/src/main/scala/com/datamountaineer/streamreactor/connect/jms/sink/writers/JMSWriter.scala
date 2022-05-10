@@ -22,26 +22,27 @@ import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSSetting, JMSSettings}
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.{JMSHeadersConverterWrapper, JMSMessageConverter}
+import com.datamountaineer.streamreactor.connect.jms.sink.converters.{JMSHeadersConverterWrapper, JMSSinkMessageConverter}
 import com.typesafe.scalalogging.StrictLogging
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkRecord
 
 import javax.jms._
 import scala.annotation.nowarn
 import scala.util.{Failure, Success, Try}
 
-@nowarn
+@nowarn("cat=deprecation")
 case class JMSWriter(settings: JMSSettings) extends AutoCloseable with ConverterUtil with ErrorHandler with StrictLogging {
 
   val provider: JMSSessionProvider = JMSSessionProvider(settings, sink = true)
   provider.start()
   val producers: Map[String, MessageProducer] = provider.queueProducers ++ provider.topicProducers
-  val converterMap: Map[String, JMSMessageConverter] = settings.settings
+  val converterMap: Map[String, JMSSinkMessageConverter] = settings.settings
     .map(s => (
       s.source,
       JMSHeadersConverterWrapper(
         s.headers,
-        s.sinkConverter
+        s.converter.forSink.getOrElse(throw new ConfigException("No converter configured"))
       )
     )).toMap
   val settingsMap: Map[String, JMSSetting] = settings.settings.map(s => (s.source, s)).toMap

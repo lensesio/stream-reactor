@@ -7,7 +7,7 @@ import org.apache.kafka.connect.source.SourceRecord
 import javax.jms.Message
 
 
-class CommonJMSMessageConverter(converter: Converter) extends JMSMessageConverter {
+class CommonJMSMessageConverter(converter: Converter) extends JMSSourceMessageConverter {
 
 
   override def initialize(map: Map[String, String]): Unit = {

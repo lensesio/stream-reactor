@@ -21,7 +21,7 @@ package com.datamountaineer.streamreactor.connect.jms.sink.converters
 import com.datamountaineer.kcql.FormatType
 
 object JMSMessageConverterFn {
-  def apply(storedAs: FormatType): JMSMessageConverter = {
+  def apply(storedAs: FormatType): JMSSinkMessageConverter = {
     storedAs match {
       case FormatType.AVRO => new AvroMessageConverter
       case FormatType.JSON => new JsonMessageConverter

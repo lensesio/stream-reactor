@@ -205,6 +205,7 @@ lazy val jms = (projectMatrix in file("kafka-connect-jms"))
         dependencyOverrides ++= nettyOverrides,
       ),
   )
+  .configureProtobufSources()
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()

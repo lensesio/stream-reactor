@@ -20,9 +20,10 @@ package com.datamountaineer.streamreactor.connect.jms.source.readers
 
 import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
-import com.datamountaineer.streamreactor.connect.jms.source.converters.JMSMessageConverter
+import com.datamountaineer.streamreactor.connect.jms.source.converters.JMSSourceMessageConverter
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import com.typesafe.scalalogging.StrictLogging
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.SourceRecord
 
 import javax.jms.{Message, MessageConsumer}
@@ -37,7 +38,7 @@ class JMSReader(settings: JMSSettings) extends StrictLogging {
   val provider: JMSSessionProvider = JMSSessionProvider(settings)
   provider.start()
   val consumers: Vector[(String, MessageConsumer)] = (provider.queueConsumers ++ provider.topicsConsumers).toVector
-  val convertersMap: Map[String, JMSMessageConverter] = settings.settings.map(s => (s.source, s.sourceConverter)).toMap
+  val convertersMap: Map[String, JMSSourceMessageConverter] = settings.settings.map(s => (s.source, s.converter.forSource.getOrElse(throw new ConfigException("No converter configured")))).toMap
   val topicsMap: Map[String, String] = settings.settings.map(s => (s.source, s.target)).toMap
 
   def poll(): Vector[(Message, SourceRecord)] = {
@@ -53,7 +54,7 @@ class JMSReader(settings: JMSSettings) extends StrictLogging {
 
   def convert(source: String, target: String, message: Message): SourceRecord = {
     convertersMap.get(source) match {
-      case Some(c: JMSMessageConverter) => c.convert(source, target, message)
+      case Some(c: JMSSourceMessageConverter) => c.convert(source, target, message)
       case None => JMSStructMessage.getStruct(target, message)
     }
   }

@@ -1,6 +1,7 @@
 import Dependencies._
 import sbt._
 import sbt.librarymanagement.InclExclRule
+import sbtprotoc.ProtocPlugin.autoImport._
 
 import scala.collection.immutable
 
@@ -117,6 +118,8 @@ object Dependencies {
     val jmsApiVersion   = "2.0.1"
     val activeMqVersion = "5.16.5"
     val protocVersion   = "3.11.4"
+    val googleProtobufVersion = "3.20.1"
+    val protobufCompilerPluginVersion = "0.11.10"
 
 
     val kuduVersion = "1.16.0"
@@ -379,7 +382,12 @@ object Dependencies {
   lazy val jmsApi   = "javax.jms"           % "javax.jms-api" % jmsApiVersion
   lazy val activeMq = "org.apache.activemq" % "activemq-all"  % activeMqVersion
 
+  //lazy val protobufCompilerPlugin = "com.thesamet.scalapb" %% "compilerplugin" % protobufCompilerPluginVersion
+  lazy val scalaPb = "com.thesamet.scalapb" %% "scalapb-runtime" % protobufCompilerPluginVersion % "protobuf"
+
   lazy val protoc = "com.github.os72" % "protoc-jar" % protocVersion
+  lazy val googleProtobuf = "com.google.protobuf" % "protobuf-java" % googleProtobufVersion % "protobuf"
+
   lazy val kuduClient = "org.apache.kudu" % "kudu-client" % kuduVersion
 
   lazy val mqttClient = "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % mqttVersion
@@ -540,7 +548,12 @@ trait Dependencies {
 
   // TODO: The confluent version should be overridden by dependency overrides if we're building 2.6
   // Find a more elegant solution to pick the right dependencies.  May require some refactoring.
-  val kafkaConnectJmsDeps : Seq[ModuleID] = Seq(jmsApi, confluentProtobufConverter(KafkaVersionAxis("3.1.0").confluentPlatformVersion), protoc)
+  val kafkaConnectJmsDeps : Seq[ModuleID] = Seq(
+    jmsApi,
+    confluentProtobufConverter(KafkaVersionAxis("3.1.0").confluentPlatformVersion),
+    protoc,
+    googleProtobuf,
+  )
 
   val kafkaConnectJmsTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(activeMq)
 
@@ -656,5 +669,8 @@ trait Dependencies {
     avro,
     avroProtobuf,
   )
+
+  // build plugins
+  val protobufCompilerPlugin = addCompilerPlugin("com.thesamet.scalapb" %% "compilerplugin" % "0.10.10")
 
 }

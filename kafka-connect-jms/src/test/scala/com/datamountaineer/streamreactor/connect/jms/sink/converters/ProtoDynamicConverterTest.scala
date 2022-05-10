@@ -19,17 +19,17 @@
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
-import com.datamountaineer.streamreactor.connect.jms.{TestBase, Using}
+import com.datamountaineer.streamreactor.connect.jms.TestBase
 import com.datamountaineer.streamreactor.example.AddressedPerson
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.{BeforeAndAfterAll, EitherValues}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import scala.jdk.CollectionConverters.MapHasAsJava
 import java.util.UUID
-import scala.collection.JavaConverters._
 
-class ProtoDynamicConverterTest extends AnyWordSpec with Matchers with Using with TestBase with BeforeAndAfterAll {
+class ProtoDynamicConverterTest extends AnyWordSpec with Matchers with TestBase with BeforeAndAfterAll with EitherValues {
 
   "ProtoDynamicConverter" should {
     "create a BytesMessage with sinkrecord payload" in {
@@ -48,7 +48,7 @@ class ProtoDynamicConverterTest extends AnyWordSpec with Matchers with Using wit
 
       val convertedValue = converter.convert(record, setting)
 
-      val person = AddressedPerson.parser().parseFrom(convertedValue)
+      val person = AddressedPerson.parser().parseFrom(convertedValue.value)
 
       person.getName shouldBe "lenses"
       person.getId shouldBe 101

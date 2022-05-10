@@ -18,17 +18,14 @@
 
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
+import com.datamountaineer.streamreactor.connect.jms.{ItTestBase, Using}
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.AvroDeserializer
-import com.datamountaineer.streamreactor.connect.jms.{TestBase, Using}
 import com.datamountaineer.streamreactor.example.AddressedPerson
-import com.datamountaineer.streamreactor.connect.jms.{ItTestBase, Using}
 import io.confluent.connect.avro.AvroData
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
-import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -38,12 +35,6 @@ import java.nio.ByteBuffer
 import java.util.UUID
 import javax.jms.{BytesMessage, MapMessage, ObjectMessage, TextMessage}
 import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala}
-
-import java.nio.ByteBuffer
-import java.util.UUID
-import javax.jms.{BytesMessage, MapMessage, ObjectMessage, TextMessage}
-import scala.collection.JavaConverters._
-
 import scala.reflect.io.Path
 
 class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItTestBase with BeforeAndAfterAll {
@@ -289,7 +280,7 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItT
         using(connection.createSession(false, 1)) { session =>
           val setting = settings.settings.head
 
-          converter.initialize(props.asJava)
+          converter.initialize(props)
           val record = new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1)
 
           val convertedValue = converter.convert(record, session, setting)._2

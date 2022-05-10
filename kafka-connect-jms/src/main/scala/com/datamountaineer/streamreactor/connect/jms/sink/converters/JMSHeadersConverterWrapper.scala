@@ -25,7 +25,7 @@ import javax.jms.{Message, Session}
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
 
-class JMSHeadersConverterWrapper(headers: Map[String, String], delegate: JMSMessageConverter) extends JMSMessageConverter {
+class JMSHeadersConverterWrapper(headers: Map[String, String], delegate: JMSSinkMessageConverter) extends JMSSinkMessageConverter {
 
 
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, Message) = {
@@ -44,6 +44,6 @@ class JMSHeadersConverterWrapper(headers: Map[String, String], delegate: JMSMess
 
 
 object JMSHeadersConverterWrapper {
-  def apply(config: Map[String, String], delegate: JMSMessageConverter): JMSMessageConverter =
+  def apply(config: Map[String, String], delegate: JMSSinkMessageConverter): JMSSinkMessageConverter =
     new JMSHeadersConverterWrapper(config, delegate)
 }

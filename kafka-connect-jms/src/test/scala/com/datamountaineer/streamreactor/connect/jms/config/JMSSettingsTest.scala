@@ -18,21 +18,19 @@
 
 package com.datamountaineer.streamreactor.connect.jms.config
 
-import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
 import com.datamountaineer.streamreactor.connect.jms
-import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
-import com.datamountaineer.streamreactor.connect.jms.TestBase
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.{AvroMessageConverter, ProtoMessageConverter}
-import com.datamountaineer.streamreactor.connect.jms.source.converters.{CommonJMSMessageConverter, JMSStructMessageConverter}
 import com.datamountaineer.streamreactor.connect.jms.{JMSSessionProvider, TestBase}
+import com.datamountaineer.streamreactor.connect.jms.sink.converters.{AvroMessageConverter, JsonMessageConverter, ProtoMessageConverter}
+import com.datamountaineer.streamreactor.connect.jms.source.converters.{CommonJMSMessageConverter, JMSStructMessageConverter}
 import org.apache.kafka.common.config.ConfigException
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.{BeforeAndAfterAll, EitherValues}
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.reflect.io.Path
+import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
 
-class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
+class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues {
 
   override def afterAll(): Unit = {
     val _ = Path(AVRO_FILE).delete()
@@ -48,7 +46,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     val setting     = settings.settings.head
     setting.source shouldBe queueName
     setting.target shouldBe kafkaTopic1
-    setting.sourceConverter shouldBe a [JMSStructMessageConverter]
+    setting.converter.forSource.value shouldBe a [JMSStructMessageConverter]
     setting.destinationType shouldBe QueueDestination
     setting.messageSelector shouldBe None
     settings.connectionURL shouldBe JMS_URL
@@ -64,7 +62,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     val setting     = settings.settings.head
     setting.source shouldBe topicName
     setting.target shouldBe kafkaTopic1
-    setting.sourceConverter shouldBe a [JMSStructMessageConverter]
+    setting.converter.forSource.value shouldBe a [JMSStructMessageConverter]
     setting.destinationType shouldBe TopicDestination
     setting.messageSelector shouldBe None
     settings.connectionURL shouldBe JMS_URL
@@ -81,7 +79,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     val setting  = settings.settings.head
     setting.source shouldBe topicName
     setting.target shouldBe kafkaTopic1
-    setting.sourceConverter shouldBe a [JMSStructMessageConverter]
+    setting.converter.forSource.value shouldBe a [JMSStructMessageConverter]
     setting.destinationType shouldBe TopicDestination
     setting.messageSelector shouldBe None
     settings.destinationSelector shouldBe DestinationSelector.JNDI
@@ -105,7 +103,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
 
     queue.source shouldBe queueName
     queue.target shouldBe kafkaTopic1
-    queue.sourceConverter shouldBe a [JMSStructMessageConverter]
+    queue.converter.forSource.value shouldBe a [JMSStructMessageConverter]
     queue.destinationType shouldBe QueueDestination
     queue.subscriptionName.get shouldBe subscription
     queue.messageSelector shouldBe None
@@ -113,7 +111,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     val topic = settings.settings.last
     topic.source shouldBe topicName
     topic.target shouldBe kafkaTopic1
-    topic.sourceConverter shouldBe a [JMSStructMessageConverter]
+    topic.converter.forSource.value shouldBe a [JMSStructMessageConverter]
     topic.destinationType shouldBe TopicDestination
     topic.subscriptionName.get shouldBe subscription
     topic.messageSelector shouldBe None
@@ -139,7 +137,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     val queue    = settings.settings.head
     queue.source shouldBe queueName
     queue.target shouldBe kafkaTopic1
-    queue.sourceConverter shouldBe a [CommonJMSMessageConverter]
+    queue.converter.forSource.value shouldBe a [CommonJMSMessageConverter]
     queue.destinationType shouldBe QueueDestination
     queue.messageSelector shouldBe None
     queue.subscriptionName.get shouldBe subscription
@@ -148,7 +146,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     topic.source shouldBe topicName
     topic.target shouldBe kafkaTopic1
     topic.destinationType shouldBe TopicDestination
-    topic.sourceConverter shouldBe a [CommonJMSMessageConverter]
+    topic.converter.forSource.value shouldBe a [CommonJMSMessageConverter]
     topic.messageSelector shouldBe None
     topic.subscriptionName.get shouldBe subscription
 
@@ -156,7 +154,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     settings.connectionURL shouldBe JMS_URL
   }
 
-  "should create a JMSSettings for a sink with only 1 topic, 1 queue and JNDI" in {
+  "should create a JMSSettings for a source with only 1 topic, 1 queue and JNDI" in {
     val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
     val topicName   = UUID.randomUUID().toString
     val queueName   = UUID.randomUUID().toString
@@ -166,11 +164,11 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     val props = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
 
     val config = JMSConfig(props.asJava)
-    val settings = JMSSettings(config, true)
+    val settings = JMSSettings(config, false)
     val queue = settings.settings.head
     queue.source shouldBe queueName
     queue.target shouldBe kafkaTopic1
-    queue.sourceConverter shouldBe a [JMSStructMessageConverter]
+    queue.converter.forSource.value shouldBe a [JMSStructMessageConverter]
     queue.messageSelector shouldBe None
 
     val topic = settings.settings.last
@@ -197,8 +195,8 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     val queue = settings.settings.head
     queue.source shouldBe queueName
     queue.target shouldBe kafkaTopic1
-    queue.sourceConverter shouldBe  a [JMSStructMessageConverter]
-    queue.sinkConverter shouldBe a [ProtoMessageConverter]
+    queue.converter.forSource shouldBe Left("Configured sink, requested source")
+    queue.converter.forSink.value shouldBe a [ProtoMessageConverter]
     queue.messageSelector shouldBe None
 
     val topic = settings.settings.last
@@ -224,8 +222,8 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     val queue = settings.settings.head
     queue.source shouldBe queueName
     queue.target shouldBe kafkaTopic1
-    queue.sourceConverter shouldBe a [JMSStructMessageConverter]
-    queue.sinkConverter shouldBe a [ProtoMessageConverter]
+    queue.converter.forSource shouldBe Left("Configured sink, requested source")
+    queue.converter.forSink.value shouldBe a [ProtoMessageConverter]
 
     queue.messageSelector shouldBe None
 
@@ -252,9 +250,9 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     val queue    = settings.settings.head
     queue.source shouldBe queueName
     queue.target shouldBe kafkaTopic1
-    queue.sourceConverter shouldBe a [JMSStructMessageConverter]
-    queue.storedAs shouldBe "`datamountaineer.streamreactor.example.AddressedPerson`"
-    queue.storedAsProperties.size shouldBe 0
+    queue.converter.forSink.value shouldBe a [JsonMessageConverter]
+    queue.storageOptions.storedAs shouldBe "`datamountaineer.streamreactor.example.AddressedPerson`"
+    queue.storageOptions.storedAsProperties.size shouldBe 0
     queue.messageSelector shouldBe None
 
     val topic = settings.settings.last
@@ -262,8 +260,8 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     topic.target shouldBe kafkaTopic1
     topic.destinationType shouldBe TopicDestination
     topic.messageSelector shouldBe None
-    topic.storedAs shouldBe "`datamountaineer.streamreactor.example.NonAddressedPerson`"
-    topic.storedAsProperties.size shouldBe 0
+    topic.storageOptions.storedAs shouldBe "`datamountaineer.streamreactor.example.NonAddressedPerson`"
+    topic.storageOptions.storedAsProperties.size shouldBe 0
 
 
     settings.destinationSelector shouldBe DestinationSelector.CDI
@@ -285,8 +283,8 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     val queue = settings.settings.head
     queue.source shouldBe queueName
     queue.target shouldBe kafkaTopic1
-    queue.sourceConverter shouldBe a [JMSStructMessageConverter]
-    queue.sinkConverter shouldBe a [AvroMessageConverter]
+    queue.converter.forSource shouldBe Left("Configured sink, requested source")
+    queue.converter.forSink.value shouldBe a [AvroMessageConverter]
     queue.messageSelector shouldBe None
 
     val topic = settings.settings.last
@@ -311,7 +309,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     val topic = settings.settings.head
     topic.source shouldBe topicName
     topic.target shouldBe kafkaTopic1
-    topic.sourceConverter shouldBe a [JMSStructMessageConverter]
+    topic.converter.forSource.value shouldBe a [JMSStructMessageConverter]
     topic.destinationType shouldBe TopicDestination
     topic.messageSelector shouldBe Some(MESSAGE_SELECTOR)
 

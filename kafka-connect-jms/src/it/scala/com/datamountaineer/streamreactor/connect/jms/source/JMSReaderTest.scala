@@ -28,7 +28,6 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 
-import java.nio.charset.StandardCharsets
 import java.util.UUID
 import javax.jms.Session
 import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
@@ -84,18 +83,16 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     avroMessages.foreach(m => avroProducer.send(m))
 
     val config   = JMSConfig(props.asJava)
-    val settings = JMSSettings(config, false)
+    val settings = JMSSettings(config, sink = false)
     val reader   = JMSReader(settings)
 
     val _ = eventually {
-      val messagesRead = reader.poll().toVector
+      val messagesRead = reader.poll()
       messagesRead.nonEmpty shouldBe true
       val sourceRecord = messagesRead.head._2
       sourceRecord.value().isInstanceOf[Struct] shouldBe true
       val struct = sourceRecord.value().asInstanceOf[Struct]
-      val d=struct.getBytes("bytes_payload")
-      val str = new String(d, StandardCharsets.UTF_8)
-      str.contains("andrew") shouldBe true
+      struct.getString("name") shouldBe "andrew"
     }
   }
 

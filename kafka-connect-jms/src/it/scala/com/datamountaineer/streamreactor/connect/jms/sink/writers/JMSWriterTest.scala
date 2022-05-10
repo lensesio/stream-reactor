@@ -39,7 +39,7 @@ import scala.annotation.nowarn
 import scala.language.reflectiveCalls
 import scala.reflect.io.Path
 
-@nowarn
+@nowarn("cat=deprecation")
 class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with ConverterUtil with BeforeAndAfterAll {
   val broker = new BrokerService()
   broker.setPersistent(false)

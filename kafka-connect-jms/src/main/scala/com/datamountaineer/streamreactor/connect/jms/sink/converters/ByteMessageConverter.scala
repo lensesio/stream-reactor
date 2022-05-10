@@ -19,13 +19,12 @@
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
 import com.datamountaineer.streamreactor.common.converters.ByteArrayConverter
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import org.apache.kafka.connect.sink.SinkRecord
 
 import javax.jms.{Message, Session}
 
-class ByteMessageConverter extends JMSMessageConverter with ConverterUtil {
+class ByteMessageConverter extends JMSSinkMessageConverter {
 
   lazy val byteConverter = new ByteArrayConverter()
 

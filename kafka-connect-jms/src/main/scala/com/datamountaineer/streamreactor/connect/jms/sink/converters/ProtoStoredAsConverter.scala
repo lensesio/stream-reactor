@@ -1,6 +1,5 @@
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
-import com.datamountaineer.streamreactor.common.converters.ParserImpl
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import com.github.os72.protocjar.Protoc
 import com.google.protobuf.util.JsonFormat
@@ -9,7 +8,7 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.json.{JsonConverter, JsonConverterConfig}
 import org.apache.kafka.connect.sink.SinkRecord
-
+import cats.implicits._
 import java.io.{File, FileInputStream, IOException}
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.BasicFileAttributes
@@ -18,7 +17,7 @@ import java.util
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsJava}
 import scala.util.{Failure, Success, Try}
 
 case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
@@ -37,20 +36,20 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
   private val BACK_QUOTE = "`"
   private val EMPTY = ""
 
-  override def initialize(map: util.Map[String, String]): Unit = {
-    defaultProtoPath = Option(map.get(CONNECT_SINK_CONVERTER_SCHEMA_CONFIG)).getOrElse(EMPTY)
+  override def initialize(map: Map[String, String]): Unit = {
+    defaultProtoPath = map.get(CONNECT_SINK_CONVERTER_SCHEMA_CONFIG).getOrElse(EMPTY)
     jsonConverter.configure(Collections.singletonMap(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, false), false)
   }
 
 
-  override def convert(record: SinkRecord, setting: JMSSetting): Array[Byte] = {
-    val storedAs = setting.storedAs
+  override def convert(record: SinkRecord, setting: JMSSetting): Either[IOException, Array[Byte]] = {
+    val storedAs = setting.storageOptions.storedAs
       .replace(BACK_QUOTE, EMPTY)
     logger.debug(s"storedAs:  $storedAs")
 
     //Cache the descriptor lookup so not doing reflection on every record.
     val descriptor = descriptors.computeIfAbsent(storedAs, (name: String) => {
-      val properties: util.Map[String, String] = mapAsJavaMap(setting.storedAsProperties)
+      val properties: util.Map[String, String] = setting.storageOptions.storedAsProperties.asJava
       val protoPath = properties.getOrDefault(SCHEMA_PROTO_PATH, defaultProtoPath)
         .replace(BACK_QUOTE, EMPTY)
       logger.debug(s"protoPath:  $protoPath")
@@ -63,7 +62,7 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
           getDescriptor(name, protoPath, protoFile)
         } else {
           val basePath = Paths.get(protoPath)
-          val protoFiles: util.Collection[String] = Files.find(basePath, Integer.MAX_VALUE, (filePath: Path, fileAttr: BasicFileAttributes) => fileAttr.isRegularFile)
+          val protoFiles: util.Collection[String] = Files.find(basePath, Integer.MAX_VALUE, (_: Path, fileAttr: BasicFileAttributes) => fileAttr.isRegularFile)
             .map[String](file => basePath.relativize(file).toString)
             .collect(Collectors.toList[String])
           getDescriptor(name, protoPath, protoFiles)
@@ -92,11 +91,11 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
     val json = new String(json_converted_data, StandardCharsets.UTF_8)
     val b = DynamicMessage.newBuilder(descriptor)
 
-    new ParserImpl(TypeRegistry.getEmptyTypeRegistry, JsonFormat.TypeRegistry.getEmptyTypeRegistry, true, 100)
+    JsonFormat.parser().usingTypeRegistry(TypeRegistry.getEmptyTypeRegistry).ignoringUnknownFields()
       .merge(json, b)
 
     b.build
-      .toByteArray
+      .toByteArray.asRight
   }
 
   private def getDescriptor(message: String, protoPath: String, protoFiles: util.Collection[String]): Descriptors.Descriptor = {
@@ -148,7 +147,7 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
 
   private def buildFileDescriptor(proto: DescriptorProtos.FileDescriptorProto, set: DescriptorProtos.FileDescriptorSet): Descriptors.FileDescriptor = {
     val fileProtoCache = new util.HashMap[String, DescriptorProtos.FileDescriptorProto]
-    set.getFileList.forEach((file: DescriptorProtos.FileDescriptorProto) => fileProtoCache.put(file.getName, file))
+    set.getFileList.asScala.foreach((file: DescriptorProtos.FileDescriptorProto) => fileProtoCache.put(file.getName, file))
     buildFileDescriptor(proto, fileProtoCache)
   }
 
