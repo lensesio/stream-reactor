@@ -83,7 +83,10 @@ case class BatchS3SinkError(
   def hasFatal: Boolean = fatal.nonEmpty
 
   override def exception(): Throwable = {
-    fatal.head.exception
+    fatal.++(nonFatal)
+      .headOption
+      .map(_.exception)
+      .getOrElse(new IllegalStateException("No exception found in BatchS3SinkError"))
   }
 
   override def message(): String = {
