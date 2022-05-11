@@ -307,6 +307,7 @@ object Dependencies {
   lazy val calciteLinq4J = "org.apache.calcite" % "calcite-linq4j" % calciteVersion
 
   lazy val s3Sdk = "software.amazon.awssdk" % "s3" % awsSdkVersion
+  lazy val stsSdk = "software.amazon.awssdk" % "sts" % awsSdkVersion
   lazy val javaxBind = "javax.xml.bind" % "jaxb-api" % javaxBindVersion
 
   lazy val jcloudsBlobstore = "org.apache.jclouds" % "jclouds-blobstore" % jCloudsSdkVersion
@@ -464,6 +465,7 @@ trait Dependencies {
 
   val kafkaConnectS3Deps: Seq[ModuleID] = Seq(
     s3Sdk,
+    stsSdk,
     parquetAvro(s3ParquetVersion),
     parquetHadoop(s3ParquetVersion),
     hadoopCommon(s3HadoopVersion),
