@@ -19,6 +19,8 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
 
 trait SinkError {
+  def exception(): Throwable
+
   def message(): String
 
   def rollBack(): Boolean
@@ -80,6 +82,9 @@ case class BatchS3SinkError(
 
   def hasFatal: Boolean = fatal.nonEmpty
 
+  override def exception(): Throwable = {
+    fatal.head.exception
+  }
 
   override def message(): String = {
     "fatal:\n" + fatal.map(_.message).mkString("\n") + "\n\nnonFatal:\n" + nonFatal.map(_.message).mkString("\n") + "\n\nFatal TPs:\n" + fatal.map(_.topicPartitions())

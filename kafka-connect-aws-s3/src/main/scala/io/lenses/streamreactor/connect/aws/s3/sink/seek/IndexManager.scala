@@ -100,7 +100,10 @@ class IndexManager(sinkName: String, maxIndexes: Int, fallbackSeeker: Option[Leg
     storageInterface.list(bucketAndPrefix.withPath(
       IndexFilenames.indexForTopicPartition(sinkName, topicPartition.topic.value, topicPartition.partition)
     ))
-      .leftMap(e => new NonFatalS3SinkError("Couldn't retrieve listing", e.exception))
+      .leftMap { e =>
+        logger.error("Error retrieving listing", e.exception)
+        new NonFatalS3SinkError("Couldn't retrieve listing", e.exception)
+      }
       .flatMap {
         indexes =>
           if (indexes.isEmpty && fallbackSeeker.nonEmpty) {
