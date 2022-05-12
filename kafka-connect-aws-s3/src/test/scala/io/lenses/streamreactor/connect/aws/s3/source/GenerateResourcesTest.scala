@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats._
 import io.lenses.streamreactor.connect.aws.s3.model.BytesWriteMode.KeyAndValueWithSizes
 import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, StructSinkData}
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData.{schema, topic}
+import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.{schema, topic}
 import io.lenses.streamreactor.connect.aws.s3.stream.{S3ByteArrayOutputStream, S3OutputStream}
 import org.apache.commons.io.FileUtils
 import org.apache.kafka.connect.data.Struct

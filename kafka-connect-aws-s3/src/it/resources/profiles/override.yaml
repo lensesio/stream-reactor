@@ -1,0 +1,3 @@
+---
+connect.s3.aws.access.key: overrideAccessKey
+connect.s3.local.tmp.directory: /my/local/tmp/dir

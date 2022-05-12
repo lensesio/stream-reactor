@@ -1,0 +1,5 @@
+---
+connect.s3.kcql.builder:
+  source: myTopic
+  target: employees:streamReactorBackups
+  format: json

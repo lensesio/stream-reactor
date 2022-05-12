@@ -33,7 +33,7 @@ jobs:
 
   test:
     needs: initiate
-    timeout-minutes: 30
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -61,11 +61,47 @@ jobs:
         if: always()
         with:
           files: "**/target/**/test-reports/*.xml"
-          check_name: ${{ matrix.module }}
+          check_name: ${{ matrix.module }}-unit-test-results
+          comment_mode: off
+
+  integration-test:
+    needs: initiate
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
+    steps:
+      - uses: actions/checkout@master
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+      - name: Cache SBT
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+      - name: Integration test
+        run: sbt "project ${{ matrix.module }}" it:test
+        env:
+          JVM_OPTS: -Xmx3200m
+      - name: Publish Integration Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: "**/target/**/test-reports/*.xml"
+          check_name: ${{ matrix.module }}-integration-test-results
           comment_mode: off
 
   build-and-upload-assembly:
-    needs: initiate
+    needs:
+      - initiate
+      - test
+      - integration-test
     timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
@@ -96,7 +132,7 @@ jobs:
           path: "**/target/**/*.jar"
 
   e2e-test:
-    needs: [ test, build-and-upload-assembly ]
+    needs: build-and-upload-assembly
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:

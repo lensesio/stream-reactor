@@ -1,4 +1,4 @@
-import Dependencies.globalExcludeDeps
+import Dependencies.{globalExcludeDeps, gson}
 import KafkaVersionAxis.ProjectExtension
 import Settings._
 import sbt.Keys.libraryDependencies
@@ -81,7 +81,8 @@ lazy val `aws-s3` = (projectMatrix in file("kafka-connect-aws-s3"))
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()
-  .configureTests(kafkaConnectS3TestDeps)
+  .configureTests(baseTestDeps)
+  .configureIntegrationTests(kafkaConnectS3TestDeps)
 
 lazy val `azure-documentdb` = (projectMatrix in file("kafka-connect-azure-documentdb"))
   .dependsOn(common)
@@ -115,7 +116,8 @@ lazy val cassandra = (projectMatrix in file("kafka-connect-cassandra"))
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()
-  .configureTests(kafkaConnectCassandraTestDeps)
+  .configureTests(baseTestDeps)
+  .configureIntegrationTests(kafkaConnectCassandraTestDeps)
 
 lazy val elastic6 = (projectMatrix in file("kafka-connect-elastic6"))
   .dependsOn(common)
@@ -132,7 +134,8 @@ lazy val elastic6 = (projectMatrix in file("kafka-connect-elastic6"))
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()
-  .configureTests(kafkaConnectElastic6TestDeps)
+  .configureTests(baseTestDeps)
+  .configureIntegrationTests(kafkaConnectElastic6TestDeps)
 
 lazy val elastic7 = (projectMatrix in file("kafka-connect-elastic7"))
   .dependsOn(common)
@@ -149,7 +152,8 @@ lazy val elastic7 = (projectMatrix in file("kafka-connect-elastic7"))
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()
-  .configureTests(kafkaConnectElastic7TestDeps)
+  .configureTests(baseTestDeps)
+  .configureIntegrationTests(kafkaConnectElastic7TestDeps)
 
 lazy val hazelcast = (projectMatrix in file("kafka-connect-hazelcast"))
   .dependsOn(common)
@@ -203,6 +207,7 @@ lazy val jms = (projectMatrix in file("kafka-connect-jms"))
   .kafka3Row()
   .configureAssembly()
   .configureTests(kafkaConnectJmsTestDeps)
+  .configureIntegrationTests(kafkaConnectJmsTestDeps)
   .disableParallel()
 
 lazy val kudu = (projectMatrix in file("kafka-connect-kudu"))
@@ -237,7 +242,8 @@ lazy val mqtt = (projectMatrix in file("kafka-connect-mqtt"))
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()
-  .configureTests(kafkaConnectMqttTestDeps)
+  .configureTests(baseTestDeps)
+  .configureIntegrationTests(kafkaConnectMqttTestDeps)
   .disableParallel()
 
 lazy val pulsar = (projectMatrix in file("kafka-connect-pulsar"))
@@ -272,8 +278,8 @@ lazy val ftp = (projectMatrix in file("kafka-connect-ftp"))
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()
-  .configureTests(kafkaConnectFtpTestDeps)
-  .disableParallel()
+  .configureTests(baseTestDeps)
+  .configureIntegrationTests(kafkaConnectFtpTestDeps)
 
 lazy val hbase = (projectMatrix in file("kafka-connect-hbase"))
   .dependsOn(common)
@@ -290,7 +296,7 @@ lazy val hbase = (projectMatrix in file("kafka-connect-hbase"))
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()
-  .configureTests(kafkaConnectHbaseTestDeps)
+  .configureTests(baseTestDeps)
 
 lazy val hive = (projectMatrix in file("kafka-connect-hive"))
   .dependsOn(common)
@@ -311,6 +317,7 @@ lazy val hive = (projectMatrix in file("kafka-connect-hive"))
 
 lazy val mongodb = (projectMatrix in file("kafka-connect-mongodb"))
   .dependsOn(common)
+  .dependsOn(`test-common` % "test->compile;it->compile")
   .settings(
     settings ++
       Seq(
@@ -324,7 +331,8 @@ lazy val mongodb = (projectMatrix in file("kafka-connect-mongodb"))
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()
-  .configureTests(kafkaConnectMongoDbTestDeps)
+  .configureTests(baseTestDeps)
+  .configureIntegrationTests(kafkaConnectMongoDbTestDeps)
 
 lazy val redis = (projectMatrix in file("kafka-connect-redis"))
   .dependsOn(common)
@@ -341,7 +349,20 @@ lazy val redis = (projectMatrix in file("kafka-connect-redis"))
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()
-  .configureTests(kafkaConnectRedisTestDeps)
+  .configureTests(baseTestDeps ++ Seq(gson))
+  .configureIntegrationTests(kafkaConnectRedisTestDeps)
+
+lazy val `test-common` = (projectMatrix in file("test-common"))
+  .dependsOn(`aws-s3`)
+  .settings(
+    settings ++
+      Seq(
+        name := "test-common",
+        libraryDependencies ++= testCommonDeps,
+      )
+  )
+  .kafka2Row()
+  .kafka3Row()
 
 addCommandAlias(
   "validateAll",
