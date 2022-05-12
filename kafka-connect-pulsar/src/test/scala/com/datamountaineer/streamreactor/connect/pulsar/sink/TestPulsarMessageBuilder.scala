@@ -20,13 +20,13 @@ import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigCons
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.{BeforeAndAfterAll, OptionValues}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-class TestPulsarMessageBuilder extends AnyWordSpec with Matchers with BeforeAndAfterAll with StrictLogging {
+class TestPulsarMessageBuilder extends AnyWordSpec with Matchers with BeforeAndAfterAll with StrictLogging with OptionValues {
 
   val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
 
@@ -65,15 +65,15 @@ class TestPulsarMessageBuilder extends AnyWordSpec with Matchers with BeforeAndA
 
 
     val settings = PulsarSinkSettings(config)
-    val builder = PulsarMessageBuilder(settings)
+    val builder = PulsarMessageTemplateBuilder(settings)
 
     val schema = getSchema
     val struct = getStruct(schema)
     val record1 = new SinkRecord("kafka_topic", 0, null, null, schema, struct, 1)
     val messages = builder.create(List(record1))
 
-    messages.head._1 shouldBe pulsarTopic
-    messages.head._2.getData.map(_.toChar).mkString shouldBe "{\"int8\":12,\"int16\":12,\"int32\":12,\"int64\":12,\"float32\":12.2,\"float64\":12.2,\"boolean\":true,\"string\":\"foo\"}"
+    messages.head.pulsarTopic shouldBe pulsarTopic
+    messages.head.value.map(_.toChar).mkString shouldBe "{\"int8\":12,\"int16\":12,\"int32\":12,\"int64\":12,\"float32\":12.2,\"float64\":12.2,\"boolean\":true,\"string\":\"foo\"}"
   }
 
   "should create json messages with key for key hash" in {
@@ -84,7 +84,7 @@ class TestPulsarMessageBuilder extends AnyWordSpec with Matchers with BeforeAndA
 
 
     val settings = PulsarSinkSettings(config)
-    val builder = PulsarMessageBuilder(settings)
+    val builder = PulsarMessageTemplateBuilder(settings)
 
     val schema = SchemaBuilder.struct.field("string", Schema.STRING_SCHEMA)
     val struct =  new Struct(schema).put("string", "landoop")
@@ -95,9 +95,9 @@ class TestPulsarMessageBuilder extends AnyWordSpec with Matchers with BeforeAndA
     val record1 = new SinkRecord("kafka_topic", 0, schema, struct, valueSchema, valueStruct, 1)
     val messages = builder.create(List(record1))
 
-    messages.head._1 shouldBe pulsarTopic
-    messages.head._2.getKey shouldBe "{\"string\":\"landoop\"}"
-    messages.head._2.getData.map(_.toChar).mkString shouldBe "{\"int8\":12,\"int16\":12,\"int32\":12,\"int64\":12,\"float32\":12.2,\"float64\":12.2,\"boolean\":true,\"string\":\"foo\"}"
+    messages.head.pulsarTopic shouldBe pulsarTopic
+    messages.head.key.value shouldBe "{\"string\":\"landoop\"}"
+    messages.head.value.map(_.toChar).mkString shouldBe "{\"int8\":12,\"int16\":12,\"int32\":12,\"int64\":12,\"float32\":12.2,\"float64\":12.2,\"boolean\":true,\"string\":\"foo\"}"
   }
 
   "should create json message with key for round robin" in {
@@ -108,7 +108,7 @@ class TestPulsarMessageBuilder extends AnyWordSpec with Matchers with BeforeAndA
 
 
     val settings = PulsarSinkSettings(config)
-    val builder = PulsarMessageBuilder(settings)
+    val builder = PulsarMessageTemplateBuilder(settings)
 
     val schema = SchemaBuilder.struct.field("string", Schema.STRING_SCHEMA)
     val struct =  new Struct(schema).put("string", "landoop")
@@ -119,8 +119,8 @@ class TestPulsarMessageBuilder extends AnyWordSpec with Matchers with BeforeAndA
     val record1 = new SinkRecord("kafka_topic", 0, schema, struct, valueSchema, valueStruct, 1)
     val messages = builder.create(List(record1))
 
-    messages.head._1 shouldBe pulsarTopic
-    messages.head._2.getKey shouldBe "{\"string\":\"landoop\"}"
-    messages.head._2.getData.map(_.toChar).mkString shouldBe "{\"int8\":12,\"int16\":12,\"int32\":12,\"int64\":12,\"float32\":12.2,\"float64\":12.2,\"boolean\":true,\"string\":\"foo\"}"
+    messages.head.pulsarTopic shouldBe pulsarTopic
+    messages.head.key.value shouldBe "{\"string\":\"landoop\"}"
+    messages.head.value.map(_.toChar).mkString shouldBe "{\"int8\":12,\"int16\":12,\"int32\":12,\"int64\":12,\"float32\":12.2,\"float64\":12.2,\"boolean\":true,\"string\":\"foo\"}"
   }
 }

@@ -46,9 +46,9 @@ object Dependencies {
     val confluentVersion = "6.2.0"
 
     val http4sVersion = "1.0.0-M32"
-    val avroVersion   = "1.9.2"
+    val avroVersion   = "1.11.0"
     //val avro4sVersion = "4.0.11"
-    val avro4sVersion = "3.1.1"
+    val avro4sVersion = "4.0.12"
 
     val catsVersion           = "2.7.0"
     val catsEffectVersion     = "3.3.11"
@@ -117,12 +117,11 @@ object Dependencies {
     val jmsApiVersion   = "2.0.1"
     val activeMqVersion = "5.14.5"
 
-    val kuduVersion = "1.11.1"
+    val kuduVersion = "1.16.0"
 
     val mqttVersion = "1.2.5"
 
-    //val pulsarVersion = "2.9.0"
-    val pulsarVersion = "1.22.0-incubating"
+    val pulsarVersion = "2.10.0"
 
     val httpClientVersion       = "4.5.13"
     val commonsBeanUtilsVersion = "1.9.4"
@@ -245,9 +244,11 @@ object Dependencies {
   val bouncyTls    = "org.bouncycastle" % "bctls-jdk15on"  % bouncyCastleVersion
   val bouncyCastle = Seq(bouncyProv, bouncyUtil, bouncyPkix, bouncyBcpg, bouncyTls)
 
-  //lazy val avro   = "org.apache.avro"      % "avro"        % avroVersion
-  lazy val avro4s     = "com.sksamuel.avro4s" %% "avro4s-core" % avro4sVersion
-  lazy val avro4sJson = "com.sksamuel.avro4s" %% "avro4s-json" % avro4sVersion
+  lazy val avro           = "org.apache.avro"      % "avro"            % avroVersion
+  lazy val avroProtobuf   = "org.apache.avro"      % "avro-protobuf"   % avroVersion
+  lazy val avro4s         = "com.sksamuel.avro4s" %% "avro4s-core"     % avro4sVersion
+  lazy val avro4sJson     = "com.sksamuel.avro4s" %% "avro4s-json"     % avro4sVersion
+  lazy val avro4sProtobuf = "com.sksamuel.avro4s" %% "avro4s-protobuf" % avro4sVersion
 
   val `wiremock-jre8` = "com.github.tomakehurst" % "wiremock-jre8" % wiremockJre8Version
 
@@ -307,6 +308,7 @@ object Dependencies {
   lazy val calciteLinq4J = "org.apache.calcite" % "calcite-linq4j" % calciteVersion
 
   lazy val s3Sdk     = "software.amazon.awssdk" % "s3"       % awsSdkVersion
+  lazy val stsSdk    = "software.amazon.awssdk" % "sts"      % awsSdkVersion
   lazy val javaxBind = "javax.xml.bind"         % "jaxb-api" % javaxBindVersion
 
   lazy val jcloudsBlobstore    = "org.apache.jclouds"           % "jclouds-blobstore"    % jCloudsSdkVersion
@@ -369,7 +371,7 @@ object Dependencies {
 
   lazy val mqttClient = "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % mqttVersion
 
-  lazy val pulsar = "org.apache.pulsar" % "pulsar-client" % pulsarVersion
+  lazy val pulsar = ("org.apache.pulsar" % "pulsar-client-original" % pulsarVersion).excludeAll("org.apache.avro")
 
   lazy val httpClient       = "org.apache.httpcomponents" % "httpclient"              % httpClientVersion
   lazy val commonsBeanUtils = "commons-beanutils"         % "commons-beanutils"       % commonsBeanUtilsVersion
@@ -469,6 +471,7 @@ trait Dependencies {
 
   val kafkaConnectS3Deps: Seq[ModuleID] = Seq(
     s3Sdk,
+    stsSdk,
     parquetAvro(s3ParquetVersion),
     parquetHadoop(s3ParquetVersion),
     hadoopCommon(s3HadoopVersion),
@@ -515,7 +518,7 @@ trait Dependencies {
 
   val kafkaConnectMqttTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainers, testContainersToxiProxy)
 
-  val kafkaConnectPulsarDeps: Seq[ModuleID] = Seq(pulsar, avro4s, avro4sJson)
+  val kafkaConnectPulsarDeps: Seq[ModuleID] = Seq(pulsar, avro4s, avro4sJson, avro, avroProtobuf)
 
   def elasticCommonDeps(v: ElasticVersions): Seq[ModuleID] = Seq(
     elastic4sCore(v.elastic4sVersion),
@@ -597,7 +600,7 @@ trait Dependencies {
   val testCommonDeps: Seq[ModuleID] = Seq(
     scalatest,
     json4sJackson,
-    json4sNative
+    json4sNative,
   )
 
   val nettyOverrides: Seq[ModuleID] = Seq(
@@ -609,6 +612,11 @@ trait Dependencies {
     nettyCodecSocks,
     nettyResolver,
     nettyTransport,
+  )
+
+  val avroOverrides: Seq[ModuleID] = Seq(
+    avro,
+    avroProtobuf,
   )
 
   // build plugins

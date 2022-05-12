@@ -255,7 +255,7 @@ lazy val pulsar = (projectMatrix in file("kafka-connect-pulsar"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectPulsarDeps,
         publish / skip := true,
-        dependencyOverrides ++= nettyOverrides
+        dependencyOverrides ++= (nettyOverrides ++ avroOverrides)
       )
   )
   .kafka2Row()

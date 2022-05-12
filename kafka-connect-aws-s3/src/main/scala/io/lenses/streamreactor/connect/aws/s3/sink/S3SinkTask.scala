@@ -122,7 +122,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
         if (error.rollBack()) {
           rollback(error.topicPartitions())
         }
-        throw new IllegalStateException(error.message())
+        throw new IllegalStateException(error.message(), error.exception())
       case Right(_) =>
     }
   }
