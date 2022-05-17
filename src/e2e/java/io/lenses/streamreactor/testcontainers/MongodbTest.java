@@ -1,13 +1,13 @@
-package io.lenses.streamreactor.testcontainers;
+package io.lenses.streamreactor.connect.testcontainers;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import io.debezium.testing.testcontainers.ConnectorConfiguration;
-import io.lenses.streamreactor.testcontainers.base.AbstractStreamReactorTest;
-import io.lenses.streamreactor.testcontainers.containers.KafkaConnectContainer;
-import io.lenses.streamreactor.testcontainers.containers.SchemaRegistryContainer;
-import io.lenses.streamreactor.testcontainers.pojo.Order;
+import io.lenses.streamreactor.connect.testcontainers.base.AbstractStreamReactorTest;
+import io.lenses.streamreactor.connect.testcontainers.containers.KafkaConnectContainer;
+import io.lenses.streamreactor.connect.testcontainers.containers.SchemaRegistryContainer;
+import io.lenses.streamreactor.connect.testcontainers.pojo.Order;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.bson.Document;

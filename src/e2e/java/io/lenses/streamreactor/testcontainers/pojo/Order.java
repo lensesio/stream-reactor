@@ -1,4 +1,4 @@
-package io.lenses.streamreactor.testcontainers.pojo;
+package io.lenses.streamreactor.connect.testcontainers.pojo;
 
 public class Order {
     public Integer id;

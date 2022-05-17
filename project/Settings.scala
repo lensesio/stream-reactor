@@ -182,6 +182,7 @@ object Settings extends Dependencies {
       )
   }
 
+  val FunctionalTest: Configuration = config("fun").extend(Test).describedAs("Runs system and acceptance tests")
   val E2ETest: Configuration = config("e2e").extend(Test).describedAs("Runs only E2E tests")
 
   sealed abstract class TestConfigurator(
@@ -218,6 +219,13 @@ object Settings extends Dependencies {
       configure(false, testDeps)
   }
 
+  implicit final class FunctionalTestConfigurator(project: ProjectMatrix) extends TestConfigurator(project, FunctionalTest) {
+
+    def configureFunctionalTests(): ProjectMatrix =
+      configure(true, testCommonDeps)
+  }
+
+  // TODO: Remove this
   implicit final class E2ETestConfigurator(project: ProjectMatrix) extends TestConfigurator(project, E2ETest) {
 
     def configureE2ETests(): ProjectMatrix =

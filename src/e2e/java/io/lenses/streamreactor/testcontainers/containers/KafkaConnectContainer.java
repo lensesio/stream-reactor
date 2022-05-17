@@ -1,4 +1,4 @@
-package io.lenses.streamreactor.testcontainers.containers;
+package io.lenses.streamreactor.connect.testcontainers.containers;
 
 import io.debezium.testing.testcontainers.Connector;
 import io.debezium.testing.testcontainers.ConnectorConfiguration;

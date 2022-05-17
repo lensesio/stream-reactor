@@ -103,6 +103,7 @@ object Dependencies {
     val azureDocumentDbVersion          = "2.6.4"
     val scalaParallelCollectionsVersion = "1.0.4"
     val testcontainersScalaVersion      = "0.40.5"
+    val testcontainersVersion           = "1.16.2"
 
     val hazelCastVersion          = "4.2.4"
     val hazelCastAzureVersion     = "2.1.2"
@@ -349,13 +350,23 @@ object Dependencies {
   lazy val scalaParallelCollections =
     "org.scala-lang.modules" %% "scala-parallel-collections" % scalaParallelCollectionsVersion
 
-  lazy val testContainers          = "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion
-  lazy val testContainersCassandra = "com.dimafeng" %% "testcontainers-scala-cassandra" % testcontainersScalaVersion
-  lazy val testContainersMongoDb   = "com.dimafeng" %% "testcontainers-scala-mongodb"   % testcontainersScalaVersion
-  lazy val testContainersToxiProxy = "com.dimafeng" %% "testcontainers-scala-toxiproxy" % testcontainersScalaVersion
-  lazy val testContainersElasticSearch =
+  // testcontainers
+  lazy val testContainersScala = "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion
+  lazy val testContainersScalaCassandra =
+    "com.dimafeng" %% "testcontainers-scala-cassandra" % testcontainersScalaVersion
+  lazy val testContainersScalaMongodb = "com.dimafeng" %% "testcontainers-scala-mongodb" % testcontainersScalaVersion
+  lazy val testContainersScalaToxiProxy =
+    "com.dimafeng" %% "testcontainers-scala-toxiproxy" % testcontainersScalaVersion
+  lazy val testContainersScalaElasticsearch =
     "com.dimafeng" %% "testcontainers-scala-elasticsearch" % testcontainersScalaVersion
-  lazy val testContainersDebezium = "io.debezium" % "debezium-testing-testcontainers" % "1.4.2.Final"
+  lazy val testContainersDebezium = ("io.debezium" % "debezium-testing-testcontainers" % "1.4.2.Final").excludeAll(
+    ExclusionRule(organization = "com.google.inject"),
+  )
+  lazy val testcontainersCore          = "org.testcontainers" % "testcontainers" % testcontainersVersion
+  lazy val testcontainersKafka         = "org.testcontainers" % "kafka"          % testcontainersVersion
+  lazy val testcontainersCassandra     = "org.testcontainers" % "cassandra"      % testcontainersVersion
+  lazy val testcontainersElasticsearch = "org.testcontainers" % "elasticsearch"  % testcontainersVersion
+  lazy val testcontainersMongodb       = "org.testcontainers" % "mongodb"        % testcontainersVersion
 
   lazy val dropWizardMetrics = "io.dropwizard.metrics" % "metrics-jmx" % dropWizardMetricsVersion
 
@@ -486,7 +497,7 @@ trait Dependencies {
     guiceAssistedInject,
   )
 
-  val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainers)
+  val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainersScala)
 
   val kafkaConnectCassandraDeps: Seq[ModuleID] = Seq(
     cassandraDriver,
@@ -495,7 +506,8 @@ trait Dependencies {
     //dropWizardMetrics
   )
 
-  val kafkaConnectCassandraTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainers, testContainersCassandra)
+  val kafkaConnectCassandraTestDeps: Seq[ModuleID] =
+    baseTestDeps ++ Seq(testContainersScala, testContainersScalaCassandra)
 
   val kafkaConnectHazelCastDeps: Seq[ModuleID] = Seq(
     hazelCastAll,
@@ -516,7 +528,7 @@ trait Dependencies {
 
   val kafkaConnectMqttDeps: Seq[ModuleID] = Seq(mqttClient, avro4s, avro4sJson) ++ bouncyCastle
 
-  val kafkaConnectMqttTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainers, testContainersToxiProxy)
+  val kafkaConnectMqttTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainersScala, testContainersScalaToxiProxy)
 
   val kafkaConnectPulsarDeps: Seq[ModuleID] = Seq(pulsar, avro4s, avro4sJson, avro, avroProtobuf)
 
@@ -529,8 +541,8 @@ trait Dependencies {
 
   def elasticTestCommonDeps(v: ElasticVersions): Seq[ModuleID] = Seq(
     elastic4sTestKit(v.elastic4sVersion),
-    testContainers,
-    testContainersElasticSearch,
+    testContainersScala,
+    testContainersScalaElasticsearch,
   )
 
   val kafkaConnectElastic6Deps: Seq[ModuleID] =
@@ -566,7 +578,7 @@ trait Dependencies {
     hadoopMapReduceClientCore(hiveHadoopVersion),
   )
 
-  val kafkaConnectHiveTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainers)
+  val kafkaConnectHiveTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainersScala)
 
   val kafkaConnectMongoDbDeps: Seq[ModuleID] = Seq(json4sJackson, json4sNative, mongoDb)
 
@@ -574,19 +586,17 @@ trait Dependencies {
 
   val kafkaConnectRedisDeps: Seq[ModuleID] = Seq(jedis)
 
-  val kafkaConnectRedisTestDeps: Seq[ModuleID] = (baseTestDeps ++ Seq(testContainers, gson))
+  val kafkaConnectRedisTestDeps: Seq[ModuleID] = (baseTestDeps ++ Seq(testContainersScala, gson))
     .map {
       moduleId: ModuleID => moduleId.extra("scope" -> "test")
     }
 
   val kafkaConnectTestContainersDeps: Seq[ModuleID] = baseTestDeps ++
-    // TODO: Would be nice if the test containers worked off the VersionAxis
-    KafkaVersionAxis.apply("3.1.0").e2eDeps() ++
     Seq(
-      testContainers,
-      testContainersCassandra,
-      testContainersMongoDb,
-      testContainersElasticSearch,
+      testContainersScala,
+      testContainersScalaCassandra,
+      testContainersScalaMongodb,
+      testContainersScalaElasticsearch,
       testContainersDebezium,
       jsonPath,
       festAssert,
@@ -601,6 +611,12 @@ trait Dependencies {
     scalatest,
     json4sJackson,
     json4sNative,
+    testcontainersCore,
+    testContainersDebezium,
+    testcontainersKafka,
+    testcontainersCassandra,
+    testcontainersElasticsearch,
+    testcontainersMongodb,
   )
 
   val nettyOverrides: Seq[ModuleID] = Seq(

@@ -1,9 +1,9 @@
-package io.lenses.streamreactor.testcontainers;
+package io.lenses.streamreactor.connect.testcontainers;
 
 import io.debezium.testing.testcontainers.ConnectorConfiguration;
-import io.lenses.streamreactor.testcontainers.base.AbstractStreamReactorTest;
-import io.lenses.streamreactor.testcontainers.containers.KafkaConnectContainer;
-import io.lenses.streamreactor.testcontainers.containers.SchemaRegistryContainer;
+import io.lenses.streamreactor.connect.testcontainers.base.AbstractStreamReactorTest;
+import io.lenses.streamreactor.connect.testcontainers.containers.KafkaConnectContainer;
+import io.lenses.streamreactor.connect.testcontainers.containers.SchemaRegistryContainer;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;

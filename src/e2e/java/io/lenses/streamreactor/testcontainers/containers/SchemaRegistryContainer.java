@@ -1,4 +1,4 @@
-package io.lenses.streamreactor.testcontainers.containers;
+package io.lenses.streamreactor.connect.testcontainers.containers;
 
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;

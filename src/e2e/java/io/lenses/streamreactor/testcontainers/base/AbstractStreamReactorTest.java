@@ -1,9 +1,9 @@
-package io.lenses.streamreactor.testcontainers.base;
+package io.lenses.streamreactor.connect.testcontainers.base;
 
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 import io.confluent.kafka.serializers.KafkaJsonSerializer;
-import io.lenses.streamreactor.testcontainers.containers.KafkaConnectContainer;
+import io.lenses.streamreactor.connect.testcontainers.containers.KafkaConnectContainer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.Map;
 
-import static io.lenses.streamreactor.testcontainers.containers.KafkaConnectContainer.CONNECT_PLUGIN_PATH;
+import static io.lenses.streamreactor.connect.testcontainers.containers.KafkaConnectContainer.CONNECT_PLUGIN_PATH;
 
 public abstract class AbstractStreamReactorTest {
 

@@ -103,6 +103,7 @@ lazy val `azure-documentdb` = (projectMatrix in file("kafka-connect-azure-docume
 
 lazy val cassandra = (projectMatrix in file("kafka-connect-cassandra"))
   .dependsOn(common)
+  .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
       Seq(
@@ -110,7 +111,8 @@ lazy val cassandra = (projectMatrix in file("kafka-connect-cassandra"))
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
         libraryDependencies ++= baseDeps ++ kafkaConnectCassandraDeps,
         publish / skip := true,
-        dependencyOverrides ++= nettyOverrides
+        dependencyOverrides ++= nettyOverrides,
+        FunctionalTest / baseDirectory := (LocalRootProject/baseDirectory).value,
       )
   )
   .kafka2Row()
@@ -118,6 +120,7 @@ lazy val cassandra = (projectMatrix in file("kafka-connect-cassandra"))
   .configureAssembly()
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectCassandraTestDeps)
+  .configureFunctionalTests()
 
 lazy val elastic6 = (projectMatrix in file("kafka-connect-elastic6"))
   .dependsOn(common)
@@ -317,7 +320,7 @@ lazy val hive = (projectMatrix in file("kafka-connect-hive"))
 
 lazy val mongodb = (projectMatrix in file("kafka-connect-mongodb"))
   .dependsOn(common)
-  .dependsOn(`test-common` % "test->compile;it->compile")
+  .dependsOn(`test-common` % "it->compile")
   .settings(
     settings ++
       Seq(
