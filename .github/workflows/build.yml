@@ -215,4 +215,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: assembly-${{ matrix.module }}-${{ github.run_id }}
-          path: ~/**/target/${{ matrix.module }}*/libs/*.jar
+          path: ~/**/target/**/libs/*.jar
