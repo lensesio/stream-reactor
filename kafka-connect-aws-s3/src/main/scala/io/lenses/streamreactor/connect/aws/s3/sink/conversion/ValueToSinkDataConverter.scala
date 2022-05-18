@@ -21,6 +21,7 @@ import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.errors.ConnectException
 
 import java.util
+import java.util.Date
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 object ValueToSinkDataConverter {
@@ -29,6 +30,7 @@ object ValueToSinkDataConverter {
     case boolVal: Boolean => BooleanSinkData(boolVal, schema)
     case stringVal: String => StringSinkData(stringVal, schema)
     case longVal: Long => LongSinkData(longVal, schema)
+    case dateVal: Date => DateSinkData(dateVal, schema)
     case intVal: Int => IntSinkData(intVal, schema)
     case byteVal: Byte => ByteSinkData(byteVal, schema)
     case doubleVal: Double => DoubleSinkData(doubleVal, schema)

@@ -19,6 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.model
 import org.apache.kafka.connect.data.{Schema, Struct}
 
 import java.time.Instant
+import java.util.Date
 
 case class MessageDetail(
                           keySinkData: Option[SinkData],
@@ -71,5 +72,7 @@ case class MapSinkData(map: Map[SinkData, SinkData], schema: Option[Schema] = No
 case class ArraySinkData(array: Seq[SinkData], schema: Option[Schema] = None) extends SinkData
 
 case class ByteArraySinkData(array: Array[Byte], schema: Option[Schema] = None) extends SinkData
+
+case class DateSinkData(date: Date, schema: Option[Schema]) extends SinkData
 
 case class NullSinkData(schema: Option[Schema] = None) extends SinkData

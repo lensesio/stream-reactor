@@ -17,9 +17,13 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import cats.effect.IO
+import cats.effect.kernel.Resource
+import cats.effect.unsafe.implicits.global
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
+import org.apache.avro.LogicalTypes
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
@@ -28,6 +32,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.nio.ByteBuffer
+import java.util.Date
 
 class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
@@ -215,4 +220,42 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
     genericRecords(1).asInstanceOf[ByteBuffer].array() should be("Mash".getBytes())
   }
 
+  "convert" should "write date to avro" in {
+
+    val testDates = Seq(new Date(), new Date(788918400L))
+    val dateSchema = SchemaBuilder.int16().name(LogicalTypes.date().getName)
+
+    val byteArray = createOutputStreamResource().use { os =>
+      avroWriterResource(os).use {
+        writer =>
+          IO {
+            testDates.foreach(date => writer.write(None, DateSinkData(date, Some(dateSchema)), topic) should be(Right(())))
+            os.toByteArray
+          }
+      }
+
+    }.unsafeRunSync()
+
+    val genericRecords = avroFormatReader.read(byteArray)
+    genericRecords.size should be(2)
+
+    genericRecords(0).asInstanceOf[Int] should be(testDates(0).toInstant.toEpochMilli / 1000)
+    genericRecords(1).asInstanceOf[Int] should be(testDates(1).toInstant.toEpochMilli / 1000)
+  }
+
+  private def createOutputStreamResource() = {
+    Resource.fromAutoCloseable(IO {
+      new S3ByteArrayOutputStream()
+    })
+  }
+
+  private def avroWriterResource(os: S3ByteArrayOutputStream) = {
+    Resource.make(
+      IO {
+        new AvroFormatWriter(() => os)
+      }
+    )(fw => IO {
+      val _ = fw.complete()
+    })
+  }
 }

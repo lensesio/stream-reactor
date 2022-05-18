@@ -48,6 +48,7 @@ class JsonFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
         case MapSinkData(map, schema) =>
           jsonConverter.fromConnectData(topic.value, schema.orNull, ToJsonDataConverter.convertMap(map))
         case ArraySinkData(array, schema) => jsonConverter.fromConnectData(topic.value, schema.orNull, ToJsonDataConverter.convertArray(array))
+        case DateSinkData(date, schema) => jsonConverter.fromConnectData(topic.value, schema.orNull, date.toString)
         case ByteArraySinkData(_, _) => throw new IllegalStateException("Cannot currently write byte array as json")
         case NullSinkData(schema) => jsonConverter.fromConnectData(topic.value, schema.orNull, null)
       }

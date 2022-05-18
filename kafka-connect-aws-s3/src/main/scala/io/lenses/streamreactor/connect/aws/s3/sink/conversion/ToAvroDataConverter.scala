@@ -18,10 +18,11 @@ package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
 import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.aws.s3.model._
-import org.apache.avro.Schema
+import org.apache.avro.{LogicalTypes, Schema}
 import org.apache.kafka.connect.data.{Schema => ConnectSchema}
 
 import java.nio.ByteBuffer
+import java.util.Date
 import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
 
 object ToAvroDataConverter {
@@ -31,12 +32,18 @@ object ToAvroDataConverter {
   def convertSchema(connectSchema: Option[ConnectSchema]): Schema = connectSchema
     .fold(throw new IllegalArgumentException("Schema-less data is not supported for Avro/Parquet"))(avroDataConverter.fromConnectSchema)
 
+  def convertDate(date: Date,schema: ConnectSchema): Long = {
+    LogicalTypes.date().validate(avroDataConverter.fromConnectSchema(schema))
+    date.toInstant.getEpochSecond.toLong
+  }
+
   def convertToGenericRecord[A <: Any](sinkData: SinkData): AnyRef = {
     sinkData match {
       case StructSinkData(structVal) => avroDataConverter.fromConnectData(structVal.schema(), structVal)
       case MapSinkData(map, _) => convertMap(map)
       case ArraySinkData(array, _) => convertArray(array)
       case ByteArraySinkData(array, _) => ByteBuffer.wrap(array)
+      case DateSinkData(date, Some(schema)) => convertDate(date, schema).asInstanceOf[AnyRef]
       case primitive: PrimitiveSinkData => primitive.primVal().asInstanceOf[AnyRef]
       case _: NullSinkData => null
       case other => throw new IllegalArgumentException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
