@@ -97,7 +97,7 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
         with:
-          files: "**/target/**/test-reports/*.xml"
+          files: "**/target/**/it-reports/*.xml"
           check_name: ${{ matrix.module }}-it-results
           comment_mode: off
 
@@ -130,7 +130,7 @@ jobs:
         with:
           path: |
             ~/**/target/**/*.jar
-          key: ${{ runner.os }}-assembly-${{ matrix.module }}
+          key: ${{ runner.os }}-assembly-${{ matrix.module }}-${{ github.run_id }}
       - name: Assembly
         run: sbt "project ${{ matrix.module }};set assembly / test := {}" assembly
         env:
@@ -164,7 +164,7 @@ jobs:
         with:
           path: |
             ~/**/target/**/*.jar
-          key: ${{ runner.os }}-assembly-${{ matrix.module }}
+          key: ${{ runner.os }}-assembly-${{ matrix.module }}-${{ github.run_id }}
       - name: Functional Test
         run: sbt "project ${{ matrix.module }}" fun:test
         env:
@@ -204,9 +204,9 @@ jobs:
         with:
           path: |
             ~/**/target/**/*.jar
-          key: ${{ runner.os }}-assembly-${{ matrix.module }}
+          key: ${{ runner.os }}-assembly-${{ matrix.module }}-${{ github.run_id }}
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
           name: assembly-${{ github.run_id }}
-          path: ~/target/**/*.jar
+          path: ~/**/target/**/*.jar
