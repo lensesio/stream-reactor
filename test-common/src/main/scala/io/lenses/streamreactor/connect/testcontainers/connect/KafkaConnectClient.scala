@@ -1,27 +1,25 @@
 package io.lenses.streamreactor.connect.testcontainers.connect
 
-import io.debezium.testing.testcontainers.Connector
-import io.debezium.testing.testcontainers.ConnectorConfiguration
+import com.typesafe.scalalogging.StrictLogging
+import io.debezium.testing.testcontainers.{Connector, ConnectorConfiguration}
 import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer
 import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient.ConnectorStatus
+import org.apache.http.{HttpHeaders, HttpResponse}
 import org.apache.http.client.HttpClient
-import org.apache.http.client.methods.HttpDelete
-import org.apache.http.client.methods.HttpGet
-import org.apache.http.client.methods.HttpPost
+import org.apache.http.client.methods.{HttpDelete, HttpGet, HttpPost}
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.message.BasicHeader
 import org.apache.http.util.EntityUtils
-import org.apache.http.HttpHeaders
-import org.apache.http.HttpResponse
 import org.json4s._
 import org.json4s.native.JsonMethods._
+import org.scalatest.concurrent.Eventually
 import org.testcontainers.shaded.org.awaitility.Awaitility.await
 
 import java.util.concurrent.TimeUnit
 import scala.jdk.CollectionConverters._
 
-class KafkaConnectClient(kafkaConnectContainer: KafkaConnectContainer) {
+class KafkaConnectClient(kafkaConnectContainer: KafkaConnectContainer) extends StrictLogging with Eventually {
 
   implicit val formats: DefaultFormats.type = DefaultFormats
 
@@ -74,7 +72,13 @@ class KafkaConnectClient(kafkaConnectContainer: KafkaConnectContainer) {
 
   def waitConnectorInRunningState(connectorName: String, timeoutSeconds: Long = 10L): Unit =
     await.atMost(timeoutSeconds, TimeUnit.SECONDS)
-      .until(() => getConnectorStatus(connectorName).connector.state.equals("RUNNING"))
+      .until { () =>
+        try {
+          getConnectorStatus(connectorName).connector.state.equals("RUNNING")
+        } catch {
+          case _: Throwable => false
+        }
+      }
 
   def checkRequestSuccessful(response: HttpResponse): Unit =
     if (!isSuccess(response.getStatusLine.getStatusCode)) {

@@ -1,39 +1,28 @@
 package io.lenses.streamreactor.connect.testcontainers.scalatest
 
 import cats.implicits.catsSyntaxOptionId
-import com.typesafe.scalalogging.StrictLogging
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
 import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient
-import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer
-import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer
-import org.apache.kafka.clients.consumer.ConsumerConfig
-import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.clients.producer.KafkaProducer
-import org.apache.kafka.clients.producer.ProducerConfig
+import io.lenses.streamreactor.connect.testcontainers.{KafkaConnectContainer, SchemaRegistryContainer}
+import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig}
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.scalatest.concurrent.Eventually
-import org.scalatest.time.Minute
-import org.scalatest.time.Span
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.TestSuite
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import org.scalatest.time.{Minute, Span}
+import org.scalatest.{BeforeAndAfterAll, TestSuite}
+import org.slf4j.{Logger, LoggerFactory}
 import org.testcontainers.containers.output.Slf4jLogConsumer
-import org.testcontainers.containers.KafkaContainer
-import org.testcontainers.containers.Network
+import org.testcontainers.containers.{KafkaContainer, Network}
 import org.testcontainers.utility.DockerImageName
 
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.nio.file.{Files, Path, Paths}
 import java.time.Duration
 import java.util.stream.Collectors
-import java.util.Properties
-import java.util.UUID
+import java.util.{Properties, UUID}
 import scala.collection.mutable.ListBuffer
 
-trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually with StrictLogging { this: TestSuite =>
+trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually { this: TestSuite =>
 
   override implicit def patienceConfig: PatienceConfig = PatienceConfig(timeout = Span(1, Minute))
 
@@ -92,7 +81,6 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
       3,
       (p, _) => p.toFile.getName.matches(regex),
     ).collect(Collectors.toList())
-    logger.info(s"Assembly files: ${files.get(0)}")
     if (files.isEmpty)
       throw new RuntimeException(s"""Please run `sbt "project $connectorModule$directorySuffix" assembly""")
     files.get(0).getParent.toString
@@ -105,6 +93,7 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
     props.put(ProducerConfig.RETRIES_CONFIG, 0)
     props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySer)
     props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSer)
+    schemaRegistryInstance.foreach(s => props.put(SCHEMA_REGISTRY_URL_CONFIG, s.hostNetwork.schemaRegistryUrl))
     new KafkaProducer[K, V](props)
   }
 

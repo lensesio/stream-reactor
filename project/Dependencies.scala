@@ -152,7 +152,6 @@ object Dependencies {
     val joddVersion = "4.1.4"
 
     val junitVersion          = "4.13.2"
-    val junitInterfaceVersion = "0.11"
 
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
@@ -200,7 +199,6 @@ object Dependencies {
   val scalaCheck        = "org.scalacheck" %% "scalacheck"      % scalaCheckVersion
   val `mockito-scala`   = "org.mockito"    %% "mockito-scala"   % mockitoScalaVersion
   val junit             = "junit"           % "junit"           % junitVersion
-  val `junit-interface` = "com.novocode"    % "junit-interface" % junitInterfaceVersion
 
   lazy val pegDown = "org.pegdown" % "pegdown" % "1.6.0"
 
@@ -591,22 +589,6 @@ trait Dependencies {
       moduleId: ModuleID => moduleId.extra("scope" -> "test")
     }
 
-  val kafkaConnectTestContainersDeps: Seq[ModuleID] = baseTestDeps ++
-    Seq(
-      testContainersScala,
-      testContainersScalaCassandra,
-      testContainersScalaMongodb,
-      testContainersScalaElasticsearch,
-      testContainersDebezium,
-      jsonPath,
-      festAssert,
-      jedis,
-      mongoDb,
-      avro4s,
-      junit,
-      `junit-interface`,
-    )
-
   val testCommonDeps: Seq[ModuleID] = Seq(
     scalatest,
     json4sJackson,
@@ -617,6 +599,8 @@ trait Dependencies {
     testcontainersCassandra,
     testcontainersElasticsearch,
     testcontainersMongodb,
+    jedis,
+    mongoDb,
   )
 
   val nettyOverrides: Seq[ModuleID] = Seq(

@@ -1,10 +1,8 @@
 package io.lenses.streamreactor.connect.testcontainers
 
-import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer.defaultNetworkAlias
-import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer.defaultPort
+import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer.{defaultNetworkAlias, defaultPort}
+import org.testcontainers.containers.{GenericContainer, KafkaContainer}
 import org.testcontainers.containers.wait.strategy.Wait
-import org.testcontainers.containers.GenericContainer
-import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 
 class SchemaRegistryContainer(

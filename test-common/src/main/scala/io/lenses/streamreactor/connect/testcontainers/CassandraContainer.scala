@@ -1,15 +1,14 @@
 package io.lenses.streamreactor.connect.testcontainers
 
 import com.datastax.driver.core.Cluster
-import io.lenses.streamreactor.connect.testcontainers.CassandraContainer.defaultNetworkAlias
-import io.lenses.streamreactor.connect.testcontainers.CassandraContainer.defaultTag
-import org.testcontainers.containers.{ CassandraContainer => JavaCassandraContainer }
+import io.lenses.streamreactor.connect.testcontainers.CassandraContainer.{defaultNetworkAlias, defaultTag}
+import org.testcontainers.containers.{CassandraContainer => JavaCassandraContainer}
 import org.testcontainers.utility.DockerImageName
 
 class CassandraContainer(
   dockerImage:           DockerImageName,
   dockerTag:             String         = defaultTag,
-  networkAlias:          String         = defaultNetworkAlias,
+  val networkAlias:          String         = defaultNetworkAlias,
   configurationOverride: Option[String] = None,
   initScript:            Option[String] = None,
   enableJmxReporting:    Boolean        = false,

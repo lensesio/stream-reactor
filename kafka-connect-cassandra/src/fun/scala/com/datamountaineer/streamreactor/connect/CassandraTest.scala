@@ -5,10 +5,9 @@ import com.jayway.jsonpath.JsonPath
 import io.confluent.kafka.serializers.KafkaJsonSerializer
 import io.debezium.testing.testcontainers.ConnectorConfiguration
 import io.lenses.streamreactor.connect.model.Order
+import io.lenses.streamreactor.connect.testcontainers.{CassandraContainer, SchemaRegistryContainer}
 import io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
 import io.lenses.streamreactor.connect.testcontainers.scalatest.fixtures.connect.withConnector
-import io.lenses.streamreactor.connect.testcontainers.CassandraContainer
-import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringSerializer
@@ -28,12 +27,17 @@ class CassandraTest extends AnyFlatSpec with StreamReactorContainerPerSuite with
 
   override val connectorModule: String = "cassandra"
 
-  behavior of "Cassandra connector"
-
   override def beforeAll(): Unit = {
     container.start()
     super.beforeAll()
   }
+
+  override def afterAll(): Unit = {
+    super.afterAll()
+    container.stop()
+  }
+
+  behavior of "Cassandra connector"
 
   it should "source records" in {
     Using.resources(container.cluster.connect(), createConsumer()) { (cassandraSession, consumer) =>
@@ -104,7 +108,7 @@ class CassandraTest extends AnyFlatSpec with StreamReactorContainerPerSuite with
 
       withConnector("cassandra-sink", sinkConfig()) {
         // Write records to topic
-        val order = Order(1, UUIDs.timeBased.toString, "OP-DAX-P-20150201-95.7", 94.2, 100)
+        val order = Order(1, "OP-DAX-P-20150201-95.7", 94.2, 100, UUIDs.timeBased.toString)
         producer.send(new ProducerRecord[String, Order]("orders", order)).get
         producer.flush()
 

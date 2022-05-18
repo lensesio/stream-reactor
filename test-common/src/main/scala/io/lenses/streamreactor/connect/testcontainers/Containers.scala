@@ -3,9 +3,8 @@ package io.lenses.streamreactor.connect.testcontainers
 import org.testcontainers.containers.{GenericContainer, Network}
 
 abstract class SingleContainer[T <: GenericContainer[_]] {
-  implicit def container: T
 
-  def underlyingUnsafeContainer: T = container
+  def container: T
 
   def start(): Unit = container.start()
 
@@ -13,6 +12,11 @@ abstract class SingleContainer[T <: GenericContainer[_]] {
 
   def withNetwork(network: Network): this.type = {
     container.withNetwork(network)
+    this
+  }
+
+  def withExposedPorts(ports: Integer*): this.type = {
+    container.withExposedPorts(ports: _*)
     this
   }
 }

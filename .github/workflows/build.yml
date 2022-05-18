@@ -8,6 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.read-mods.outputs.matrix }}
+      it_matrix: ${{ steps.read-mods.outputs.it-matrix }}
+      fun_matrix: ${{ steps.read-mods.outputs.fun-matrix }}
     steps:
       - uses: actions/checkout@master
       - name: Set up JDK 8
@@ -21,15 +23,17 @@ jobs:
           path: |
             ~/.ivy2/cache
             ~/.sbt
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
-      - name: Generate Modules List
-        run: sbt generateModulesList
+          key: ${{ runner.os }}-sbt-${{ hashFiles('*.sbt') }}-${{ hashFiles('project/**') }}
+      - name: Generate Modules Lists
+        run: sbt generateModulesList generateItModulesList generateFunModulesList
         env:
           JVM_OPTS: -Xmx3200m
-      - name: Read Modules List
+      - name: Read Modules Lists
         id: read-mods
         run: |
           echo "::set-output name=matrix::$(cat ./target/scala-2.13/resource_managed/main/modules.txt)"
+          echo "::set-output name=it-matrix::$(cat ./target/scala-2.13/resource_managed/main/it-modules.txt)"
+          echo "::set-output name=fun-matrix::$(cat ./target/scala-2.13/resource_managed/main/fun-modules.txt)"
 
   test:
     needs: initiate
@@ -51,7 +55,7 @@ jobs:
           path: |
             ~/.ivy2/cache
             ~/.sbt
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+          key: ${{ runner.os }}-sbt-${{ hashFiles('*.sbt') }}-${{ hashFiles('project/**') }}
       - name: Test
         run: sbt "project ${{ matrix.module }}" test
         env:
@@ -61,7 +65,7 @@ jobs:
         if: always()
         with:
           files: "**/target/**/test-reports/*.xml"
-          check_name: ${{ matrix.module }}-unit-test-results
+          check_name: ${{ matrix.module }}-test-results
           comment_mode: off
 
   integration-test:
@@ -70,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
+        module: ${{fromJSON(needs.initiate.outputs.it_matrix)}}
     steps:
       - uses: actions/checkout@master
       - name: Set up JDK 8
@@ -84,7 +88,7 @@ jobs:
           path: |
             ~/.ivy2/cache
             ~/.sbt
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+          key: ${{ runner.os }}-sbt-${{ hashFiles('*.sbt') }}-${{ hashFiles('project/**') }}
       - name: Integration test
         run: sbt "project ${{ matrix.module }}" it:test
         env:
@@ -94,10 +98,10 @@ jobs:
         if: always()
         with:
           files: "**/target/**/test-reports/*.xml"
-          check_name: ${{ matrix.module }}-integration-test-results
+          check_name: ${{ matrix.module }}-it-results
           comment_mode: off
 
-  build-and-upload-assembly:
+  build-and-cache-assembly:
     needs:
       - initiate
       - test
@@ -120,21 +124,27 @@ jobs:
           path: |
             ~/.ivy2/cache
             ~/.sbt
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+          key: ${{ runner.os }}-sbt-${{ hashFiles('*.sbt') }}-${{ hashFiles('project/**') }}
+      - name: Cache Assembly
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/**/target/**/*.jar
+          key: ${{ runner.os }}-assembly-${{ matrix.module }}
       - name: Assembly
         run: sbt "project ${{ matrix.module }};set assembly / test := {}" assembly
         env:
           JVM_OPTS: -Xmx3200m
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: assembly-${{ github.run_id }}
-          path: "**/target/**/*.jar"
 
-  e2e-test:
-    needs: build-and-upload-assembly
+  functional-test:
+    needs:
+      - initiate
+      - build-and-cache-assembly
     timeout-minutes: 30
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ${{fromJSON(needs.initiate.outputs.fun_matrix)}}
     steps:
       - uses: actions/checkout@master
       - name: Set up JDK 8
@@ -148,22 +158,55 @@ jobs:
           path: |
             ~/.ivy2/cache
             ~/.sbt
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
-      - name: Download Artifacts
-        uses: actions/download-artifact@v3
+          key: ${{ runner.os }}-sbt-${{ hashFiles('*.sbt') }}-${{ hashFiles('project/**') }}
+      - name: Cache Assembly
+        uses: actions/cache@v3
         with:
-          name: assembly-${{ github.run_id }}
-      - name: E2E Test
-        run: sbt e2e:test
+          path: |
+            ~/**/target/**/*.jar
+          key: ${{ runner.os }}-assembly-${{ matrix.module }}
+      - name: Functional Test
+        run: sbt "project ${{ matrix.module }}" fun:test
         env:
           JVM_OPTS: -Xmx3200m
+      - name: Publish Functional Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: "**/target/**/test-reports/*.xml"
+          check_name: ${{ matrix.module }}-fun-results
+          comment_mode: off
 
-  post:
-    needs: [ build-and-upload-assembly, e2e-test ]
+  upload-assembly:
+    needs:
+      - initiate
+      - functional-test
+    timeout-minutes: 30
     runs-on: ubuntu-latest
-    if: failure() || cancelled()
+    strategy:
+      matrix:
+        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
     steps:
-      - name: Delete Artifact on failure or cancelled
-        uses: geekyeggo/delete-artifact@v1
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+      - name: Cache SBT
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('*.sbt') }}-${{ hashFiles('project/**') }}
+      - name: Cache Assembly
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/**/target/**/*.jar
+          key: ${{ runner.os }}-assembly-${{ matrix.module }}
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
         with:
           name: assembly-${{ github.run_id }}
+          path: ~/target/**/*.jar
