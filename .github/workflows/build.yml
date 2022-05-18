@@ -135,7 +135,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            ~/**/target/${{ matrix.module }}*/libs/*.jar
+            ~/**/target/**/libs/*.jar
           key: ${{ runner.os }}-assembly-${{ matrix.module }}-${{ github.run_id }}
       - name: Build assembly
         run: sbt "project ${{ matrix.module }};set assembly / test := {}" assembly
@@ -169,7 +169,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            ~/**/target/${{ matrix.module }}*/libs/*.jar
+            ~/**/target/**/libs/*.jar
           key: ${{ runner.os }}-assembly-${{ matrix.module }}-${{ github.run_id }}
       - name: Run tests
         run: sbt "project ${{ matrix.module }}" fun:test
@@ -209,7 +209,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            ~/**/target/${{ matrix.module }}*/libs/*.jar
+            ~/**/target/**/libs/*.jar
           key: ${{ runner.os }}-assembly-${{ matrix.module }}-${{ github.run_id }}
       - name: Upload artifact
         uses: actions/upload-artifact@v3
