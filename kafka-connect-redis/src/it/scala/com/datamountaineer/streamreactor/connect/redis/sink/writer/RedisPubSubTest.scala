@@ -16,7 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.streamreactor.connect.redis.sink.SlowTest
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
 import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
 import com.typesafe.scalalogging.LazyLogging
@@ -34,27 +33,27 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 class RedisPubSubTest extends AnyWordSpec with Matchers with MockitoSugar with LazyLogging with ForAllTestContainer {
 
   override val container = GenericContainer(
-    dockerImage = "redis:6-alpine",
-    exposedPorts = Seq(6379)
+    dockerImage  = "redis:6-alpine",
+    exposedPorts = Seq(6379),
   )
 
   "Redis PUBSUB writer" should {
 
-    "write Kafka records to a Redis PubSub" taggedAs SlowTest in {
+    "write Kafka records to a Redis PubSub" in {
 
       val TOPIC = "cpuTopic"
-      val KCQL = s"SELECT * from $TOPIC STOREAS PubSub (channel=type)"
+      val KCQL  = s"SELECT * from $TOPIC STOREAS PubSub (channel=type)"
       println("Testing KCQL : " + KCQL)
       val props = Map(
-        RedisConfigConstants.REDIS_HOST -> "localhost",
-        RedisConfigConstants.REDIS_PORT -> container.mappedPort(6379).toString,
-        RedisConfigConstants.KCQL_CONFIG -> KCQL
+        RedisConfigConstants.REDIS_HOST  -> "localhost",
+        RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,
+        RedisConfigConstants.KCQL_CONFIG -> KCQL,
       ).asJava
 
-      val config = RedisConfig(props)
+      val config         = RedisConfig(props)
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
-      val settings = RedisSinkSettings(config)
-      val writer = new RedisPubSub(settings)
+      val settings       = RedisSinkSettings(config)
+      val writer         = new RedisPubSub(settings)
       writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Cpu")
@@ -63,9 +62,12 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with MockitoSugar with L
         .field("voltage", Schema.FLOAT64_SCHEMA)
         .field("ts", Schema.INT64_SCHEMA).build()
 
-      val struct1 = new Struct(schema).put("type", "Xeon").put("temperature", 60.4).put("voltage", 90.1).put("ts", 1482180657010L)
-      val struct2 = new Struct(schema).put("type", "i7").put("temperature", 62.1).put("voltage", 103.3).put("ts", 1482180657020L)
-      val struct3 = new Struct(schema).put("type", "i7-i").put("temperature", 64.5).put("voltage", 101.1).put("ts", 1482180657030L)
+      val struct1 =
+        new Struct(schema).put("type", "Xeon").put("temperature", 60.4).put("voltage", 90.1).put("ts", 1482180657010L)
+      val struct2 =
+        new Struct(schema).put("type", "i7").put("temperature", 62.1).put("voltage", 103.3).put("ts", 1482180657020L)
+      val struct3 =
+        new Struct(schema).put("type", "i7-i").put("temperature", 64.5).put("voltage", 101.1).put("ts", 1482180657030L)
 
       val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
       val sinkRecord2 = new SinkRecord(TOPIC, 0, null, null, schema, struct2, 2)
@@ -79,7 +81,7 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with MockitoSugar with L
 
       val t = new Thread {
         private val pubsub = new JedisPubSub {
-          override def onMessage(channel: String, message: String): Unit = {
+          override def onMessage(channel: String, message: String): Unit =
             messagesMap.get(channel) match {
               case Some(msgs) =>
                 logger.info("Receiving message!")
@@ -89,12 +91,10 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with MockitoSugar with L
                 messagesMap.put(channel, ListBuffer(message))
                 ()
             }
-          }
         }
 
-        override def run(): Unit = {
+        override def run(): Unit =
           jedis.subscribe(pubsub, "Xeon", "i7", "i7-i")
-        }
 
         override def interrupt(): Unit = {
           pubsub.punsubscribe("*")

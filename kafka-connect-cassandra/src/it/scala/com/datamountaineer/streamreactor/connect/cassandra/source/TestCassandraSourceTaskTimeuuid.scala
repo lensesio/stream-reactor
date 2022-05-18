@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.cassandra.{SlowTest, ItTestConfig}
+import com.datamountaineer.streamreactor.connect.cassandra.ItTestConfig
 import com.datastax.driver.core.Session
 import com.fasterxml.jackson.databind.JsonNode
 import org.apache.kafka.common.config.ConfigException
@@ -25,14 +25,17 @@ import org.apache.kafka.connect.data.Schema
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Suite}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.DoNotDiscover
+import org.scalatest.Suite
 
 import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 @DoNotDiscover
 @nowarn
-class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
+class TestCassandraSourceTaskTimeuuid
+    extends AnyWordSpec
     with Matchers
     with MockitoSugar
     with ItTestConfig
@@ -45,7 +48,7 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
   var tableName: String = _
 
   override def beforeAll(): Unit = {
-    session = createKeySpace(keyspace, secure = true)
+    session   = createKeySpace(keyspace, secure = true)
     tableName = createTimeuuidTable(session, keyspace)
   }
 
@@ -54,10 +57,10 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     session.getCluster.close()
   }
 
-  "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices"  taggedAs SlowTest in  {
+  "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices" in {
     val taskContext = getSourceTaskContextDefault
-    val config = getCassandraConfigDefault
-    val task = new CassandraSourceTask()
+    val config      = getCassandraConfigDefault
+    val task        = new CassandraSourceTask()
     task.initialize(taskContext)
 
     //start task
@@ -65,7 +68,7 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
 
     insertIntoTimeuuidTable(session, keyspace, tableName, "id1", "magic_string")
 
-    var records = pollAndWait(task, tableName)
+    var records      = pollAndWait(task, tableName)
     var sourceRecord = records.asScala.head
     //check a field
     var json: JsonNode = convertValueToJson(sourceRecord)
@@ -73,10 +76,9 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     json.get("timeuuid_field").asText().nonEmpty shouldBe true
     json.get("int_field") shouldBe null
 
-
     insertIntoTimeuuidTable(session, keyspace, tableName, "id2", "magic_string2")
 
-    records = pollAndWait(task, tableName)
+    records      = pollAndWait(task, tableName)
     sourceRecord = records.asScala.head
     //check a field
     json = convertValueToJson(sourceRecord)
@@ -88,10 +90,10 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     task.stop()
   }
 
-  "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices and use ignore and unwrap"  taggedAs SlowTest in  {
+  "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices and use ignore and unwrap" in {
     val taskContext = getSourceTaskContextDefault
-    val config = getCassandraConfigWithUnwrap
-    val task = new CassandraSourceTask()
+    val config      = getCassandraConfigWithUnwrap
+    val task        = new CassandraSourceTask()
     task.initialize(taskContext)
 
     //start task
@@ -99,7 +101,7 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
 
     insertIntoTimeuuidTable(session, keyspace, tableName, "id1", "magic_string")
 
-    val records = pollAndWait(task, tableName)
+    val records      = pollAndWait(task, tableName)
     val sourceRecord = records.asScala.head
     sourceRecord.keySchema shouldBe null
     sourceRecord.key shouldBe null
@@ -110,10 +112,10 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     task.stop()
   }
 
-  "A Cassandra SourceTask should read in incremental mode with fetchSize"  taggedAs SlowTest in  {
+  "A Cassandra SourceTask should read in incremental mode with fetchSize" in {
     val taskContext = getSourceTaskContextDefault
-    val config = getCassandraConfigWithUnwrap
-    val task = new CassandraSourceTask()
+    val config      = getCassandraConfigWithUnwrap
+    val task        = new CassandraSourceTask()
 
     truncateTable(session, keyspace, tableName)
 
@@ -122,7 +124,7 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     //start task
     task.start(config)
 
-    for (i <- 1 to 10){
+    for (i <- 1 to 10) {
       insertIntoTimeuuidTable(session, keyspace, tableName, s"id$i", s"magic_string_$i")
     }
 
@@ -134,10 +136,10 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
     task.stop()
   }
 
-  "A Cassandra SourceTask should throw exception when timeuuid column is not specified"  taggedAs SlowTest in  {
+  "A Cassandra SourceTask should throw exception when timeuuid column is not specified" in {
     val taskContext = getSourceTaskContextDefault
-    val config = getCassandraConfigWithKcqlNoPrimaryKeyInSelect
-    val task = new CassandraSourceTask()
+    val config      = getCassandraConfigWithKcqlNoPrimaryKeyInSelect
+    val task        = new CassandraSourceTask()
     task.initialize(taskContext)
 
     insertIntoTimeuuidTable(session, keyspace, tableName, "id1", "magic_string")
@@ -157,12 +159,14 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
   }
 
   private def getCassandraConfigWithUnwrap = {
-    val myKcql = s"INSERT INTO sink_test SELECT string_field, timeuuid_field FROM $tableName IGNORE timeuuid_field PK timeuuid_field WITHUNWRAP INCREMENTALMODE=timeuuid"
+    val myKcql =
+      s"INSERT INTO sink_test SELECT string_field, timeuuid_field FROM $tableName IGNORE timeuuid_field PK timeuuid_field WITHUNWRAP INCREMENTALMODE=timeuuid"
     getCassandraConfig(keyspace, tableName, myKcql, strPort())
   }
 
   private def getCassandraConfigDefault = {
-    val myKcql = s"INSERT INTO sink_test SELECT string_field, timeuuid_field FROM $tableName PK timeuuid_field INCREMENTALMODE=timeuuid"
+    val myKcql =
+      s"INSERT INTO sink_test SELECT string_field, timeuuid_field FROM $tableName PK timeuuid_field INCREMENTALMODE=timeuuid"
     getCassandraConfig(keyspace, tableName, myKcql, strPort())
   }
 
@@ -172,4 +176,3 @@ class TestCassandraSourceTaskTimeuuid extends AnyWordSpec
   }
 
 }
-

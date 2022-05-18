@@ -20,10 +20,10 @@ package com.datamountaineer.streamreactor.connect.jms.source
 
 import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
 import com.datamountaineer.streamreactor.connect.fixtures.broker.testWithBrokerOnPort
+import com.datamountaineer.streamreactor.connect.jms.ItTestBase
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
-import com.datamountaineer.streamreactor.connect.jms.{ItTestBase, SlowTest}
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
@@ -34,9 +34,9 @@ import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
 import scala.reflect.io.Path
 
 /**
- * Created by andrew@datamountaineer.com on 20/03/2017.
- * stream-reactor
- */
+  * Created by andrew@datamountaineer.com on 20/03/2017.
+  * stream-reactor
+  */
 class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
 
   override def afterAll(): Unit = {
@@ -44,23 +44,22 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
   }
 
   "should read message from JMS queue without converters" in testWithBrokerOnPort { (conn, brokerUrl) =>
-
     val messageCount = 9
-    val queueName = s"no-converters-${UUID.randomUUID().toString}"
-    val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
+    val queueName    = s"no-converters-${UUID.randomUUID().toString}"
+    val kafkaTopic   = s"kafka-${UUID.randomUUID().toString}"
 
-    val session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
-    val queue = session.createQueue(queueName)
+    val session       = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
+    val queue         = session.createQueue(queueName)
     val queueProducer = session.createProducer(queue)
-    val messages = getTextMessages(messageCount, session)
+    val messages      = getTextMessages(messageCount, session)
     messages.foreach(m => queueProducer.send(m))
 
-    val kcql = getKCQL(kafkaTopic, queueName, "QUEUE")
+    val kcql  = getKCQL(kafkaTopic, queueName, "QUEUE")
     val props = getProps(kcql, brokerUrl)
 
-    val config = JMSConfig(props.asJava)
+    val config   = JMSConfig(props.asJava)
     val settings = JMSSettings(config, false)
-    val reader = JMSReader(settings)
+    val reader   = JMSReader(settings)
 
     val _ = eventually {
       val messagesRead = reader.poll()
@@ -70,23 +69,22 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
   }
 
   "should read and convert to avro" in testWithBrokerOnPort { (conn, brokerUrl) =>
-
     val messageCount = 10
-    val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = s"avro-${UUID.randomUUID().toString}"
+    val kafkaTopic   = s"kafka-${UUID.randomUUID().toString}"
+    val queueName    = s"avro-${UUID.randomUUID().toString}"
 
-    val kcql = getKCQLAvroSource(kafkaTopic, queueName, "QUEUE")
+    val kcql  = getKCQLAvroSource(kafkaTopic, queueName, "QUEUE")
     val props = getProps(kcql, brokerUrl) ++ Map(AvroConverter.SCHEMA_CONFIG -> getAvroProp(queueName))
 
-    val session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
-    val avro = session.createQueue(queueName)
+    val session      = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
+    val avro         = session.createQueue(queueName)
     val avroProducer = session.createProducer(avro)
     val avroMessages = getBytesMessage(messageCount, session)
     avroMessages.foreach(m => avroProducer.send(m))
 
-    val config = JMSConfig(props.asJava)
+    val config   = JMSConfig(props.asJava)
     val settings = JMSSettings(config, false)
-    val reader = JMSReader(settings)
+    val reader   = JMSReader(settings)
 
     val _ = eventually {
       val messagesRead = reader.poll().toVector
@@ -98,14 +96,14 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     }
   }
 
-  "should read messages from JMS queue with message selector" taggedAs SlowTest in testWithBrokerOnPort { (conn, brokerUrl) =>
+  "should read messages from JMS queue with message selector" in testWithBrokerOnPort { (conn, brokerUrl) =>
     val messageCount = 10
 
     val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
-    val topicName = s"selector-${UUID.randomUUID().toString}"
+    val topicName  = s"selector-${UUID.randomUUID().toString}"
 
-    val session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
-    val topic = session.createTopic(topicName)
+    val session       = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
+    val topic         = session.createTopic(topicName)
     val topicProducer = session.createProducer(topic)
 
     val messages = getTextMessages(messageCount / 2, session).map { m =>
@@ -117,11 +115,11 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     }
 
     val messageSelector = "Fruit='apples'"
-    val kcql = kcqlWithMessageSelector(kafkaTopic, topicName, messageSelector)
-    val props = getProps(kcql, brokerUrl)
-    val config = JMSConfig(props.asJava)
-    val settings = JMSSettings(config, false)
-    val reader = JMSReader(settings)
+    val kcql            = kcqlWithMessageSelector(kafkaTopic, topicName, messageSelector)
+    val props           = getProps(kcql, brokerUrl)
+    val config          = JMSConfig(props.asJava)
+    val settings        = JMSSettings(config, false)
+    val reader          = JMSReader(settings)
 
     messages.foreach(m => topicProducer.send(m))
 
@@ -129,8 +127,9 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
 
     val messagesRead = reader.poll()
     messagesRead.size shouldBe messageCount / 2
-    messagesRead.foreach { case (msg, _) =>
-      msg.getStringProperty("Fruit") shouldBe "apples"
+    messagesRead.foreach {
+      case (msg, _) =>
+        msg.getStringProperty("Fruit") shouldBe "apples"
     }
 
     val sourceRecord = messagesRead.head._2

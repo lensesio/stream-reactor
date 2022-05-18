@@ -19,7 +19,6 @@ package com.datamountaineer.streamreactor.connect.mqtt.source
 import com.datamountaineer.streamreactor.common.converters.MsgKey
 import com.datamountaineer.streamreactor.common.serialization.AvroSerializer
 import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, JsonSimpleConverter}
-import com.datamountaineer.streamreactor.connect.mqtt.SlowTest
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
 import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
 import com.sksamuel.avro4s.{AvroSchema, RecordFormat}
@@ -36,7 +35,12 @@ import java.nio.file.Paths
 import java.util.UUID
 import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 
-class MqttSourceTaskTest extends AnyWordSpec with ForAllTestContainer with Matchers with MockitoSugar with StrictLogging {
+class MqttSourceTaskTest
+    extends AnyWordSpec
+    with ForAllTestContainer
+    with Matchers
+    with MockitoSugar
+    with StrictLogging {
 
   private val mqttPort = 1883
 
@@ -61,7 +65,7 @@ class MqttSourceTaskTest extends AnyWordSpec with ForAllTestContainer with Match
     writeSchema(schema)
   }
 
-  "should start a task and subscribe to the topics provided" taggedAs SlowTest in {
+  "should start a task and subscribe to the topics provided" in {
 
     val source1 = "/mqttSource1"
     val source2 = "/mqttSource2"
@@ -71,22 +75,25 @@ class MqttSourceTaskTest extends AnyWordSpec with ForAllTestContainer with Match
     val target2 = "kafkaTopic2"
     val target3 = "kafkaTopic3"
 
-
     implicit val studentSchema = AvroSchema[Student]
-    implicit val recordFormat = RecordFormat[Student]
+    implicit val recordFormat  = RecordFormat[Student]
 
     val task = new MqttSourceTask
 
     val props = Map(
-      MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
+      MqttConfigConstants.CLEAN_SESSION_CONFIG      -> "true",
       MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
-      MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target1 SELECT * FROM $source1 WITHCONVERTER=`${classOf[BytesConverter].getCanonicalName}`;INSERT INTO $target2 SELECT * FROM $source2 WITHCONVERTER=`${classOf[JsonSimpleConverter].getCanonicalName}`;INSERT INTO $target3 SELECT * FROM $source3 WITHCONVERTER=`${classOf[AvroConverter].getCanonicalName}`",
-      MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
-      AvroConverter.SCHEMA_CONFIG -> s"$source3=${getSchemaFile(studentSchema)}",
-      MqttConfigConstants.CLIENT_ID_CONFIG -> UUID.randomUUID().toString,
+      MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target1 SELECT * FROM $source1 WITHCONVERTER=`${classOf[
+        BytesConverter,
+      ].getCanonicalName}`;INSERT INTO $target2 SELECT * FROM $source2 WITHCONVERTER=`${classOf[
+        JsonSimpleConverter,
+      ].getCanonicalName}`;INSERT INTO $target3 SELECT * FROM $source3 WITHCONVERTER=`${classOf[AvroConverter].getCanonicalName}`",
+      MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG     -> "1000",
+      AvroConverter.SCHEMA_CONFIG                        -> s"$source3=${getSchemaFile(studentSchema)}",
+      MqttConfigConstants.CLIENT_ID_CONFIG               -> UUID.randomUUID().toString,
       MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-      MqttConfigConstants.HOSTS_CONFIG -> getMqttConnectionUrl,
-      MqttConfigConstants.QS_CONFIG -> "1"
+      MqttConfigConstants.HOSTS_CONFIG                   -> getMqttConnectionUrl,
+      MqttConfigConstants.QS_CONFIG                      -> "1",
     ).asJava
     val context = mock[SourceTaskContext]
     when(context.configs()).thenReturn(props)
@@ -94,9 +101,8 @@ class MqttSourceTaskTest extends AnyWordSpec with ForAllTestContainer with Match
     task.start(props)
     Thread.sleep(2000)
 
-
     val message1 = "message1".getBytes()
-    val student = Student("Mike Bush", 19, 9.3)
+    val student  = Student("Mike Bush", 19, 9.3)
     val message2 = JacksonJson.toJson(student).getBytes
     val message3 = AvroSerializer.getBytes(student)
 
@@ -109,7 +115,6 @@ class MqttSourceTaskTest extends AnyWordSpec with ForAllTestContainer with Match
     records.size shouldBe 3
 
     records.foreach { record =>
-
       record.keySchema() shouldBe MsgKey.schema
       val source = record.key().asInstanceOf[Struct].get("topic")
 
@@ -139,7 +144,7 @@ class MqttSourceTaskTest extends AnyWordSpec with ForAllTestContainer with Match
 
           record.valueSchema().field("name").schema().`type`() shouldBe Schema.STRING_SCHEMA.`type`()
           record.valueSchema().field("name").index() shouldBe 0
-          record.valueSchema().field("age").schema().`type`()shouldBe Schema.INT32_SCHEMA.`type`()
+          record.valueSchema().field("age").schema().`type`() shouldBe Schema.INT32_SCHEMA.`type`()
           record.valueSchema().field("age").index() shouldBe 1
           record.valueSchema().field("note").schema().`type`() shouldBe Schema.FLOAT64_SCHEMA.`type`()
           record.valueSchema().field("note").index() shouldBe 2

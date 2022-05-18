@@ -160,7 +160,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   val fileToTopic = Map(t0 -> "tails", t1 -> "tails", u0 -> "updates", u1 -> "updates")
 
-  test("Happy flow: file updates are properly reflected by corresponding SourceRecords with structured keys", SlowTest) {
+  test("Happy flow: file updates are properly reflected by corresponding SourceRecords with structured keys") {
 
 
     val fs = new FileSystem(server.rootDir).clear()
@@ -181,7 +181,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
   }
 
 
-  test("Happy flow: file updates are properly reflected by corresponding SourceRecords with stringed keys", SlowTest) {
+  test("Happy flow: file updates are properly reflected by corresponding SourceRecords with stringed keys") {
     val fs = new FileSystem(server.rootDir).clear()
     server.start()
 
@@ -199,7 +199,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
     server.stop()
   }
 
-  test("Streaming flow: files are only fetched when the records are polled", SlowTest) {
+  test("Streaming flow: files are only fetched when the records are polled") {
     logger.info("Start test")
     val fs = new FileSystem(server.rootDir).clear()
     server.start()
@@ -226,7 +226,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
     server.stop()
   }
 
-  test("SFTP Happy flow: files on sftp server are properly reflected by corresponding SourceRecords with structured keys", SlowTest) {
+  test("SFTP Happy flow: files on sftp server are properly reflected by corresponding SourceRecords with structured keys") {
     withSftpServer(server => {
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
@@ -254,7 +254,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
   }
 
 
-  test("SFTP Happy flow: explicit port in communication", SlowTest) {
+  test("SFTP Happy flow: explicit port in communication") {
     withSftpServer(server => {
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
@@ -279,7 +279,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
     })
   }
 
-  test("SFTP Streaming flow: files are only fetched when the records are polled", SlowTest) {
+  test("SFTP Streaming flow: files are only fetched when the records are polled") {
     withSftpServer(server => {
       server.addUser("demo", "password")
       server.createDirectory("/directory/")
@@ -307,7 +307,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   }
 
-  test("SFTP Ugly flow: wrong address in SFTP connection", SlowTest) {
+  test("SFTP Ugly flow: wrong address in SFTP connection") {
     withSftpServer(server => {
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
@@ -332,7 +332,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
     })
   }
 
-  test("SFTP Ugly flow: wrong credentials in SFTP connection", SlowTest) {
+  test("SFTP Ugly flow: wrong credentials in SFTP connection") {
     withSftpServer(server => {
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
@@ -358,7 +358,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   }
 
-  test("SFTP Ugly flow: wrong directory in SFTP connection", SlowTest) {
+  test("SFTP Ugly flow: wrong directory in SFTP connection") {
     withSftpServer(server => {
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
@@ -383,7 +383,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
     })
   }
 
-  test("SFTP Ugly flow: timeout in SFTP connection", SlowTest) {
+  test("SFTP Ugly flow: timeout in SFTP connection") {
     withSftpServer(server => {
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())

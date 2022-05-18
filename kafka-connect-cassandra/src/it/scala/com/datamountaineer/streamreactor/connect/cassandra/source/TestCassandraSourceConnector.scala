@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import com.datamountaineer.streamreactor.connect.cassandra.{SlowTest, ItTestConfig}
+import com.datamountaineer.streamreactor.connect.cassandra.ItTestConfig
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{DoNotDiscover, Suite}
@@ -31,7 +31,7 @@ import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 
 @DoNotDiscover
 class TestCassandraSourceConnector extends AnyWordSpec with Matchers with ItTestConfig {
-  "Should start a Cassandra Source Connector" taggedAs (SlowTest) in {
+  "Should start a Cassandra Source Connector" in {
     val props =  Map(
       CassandraConfigConstants.PORT -> strPort(),
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,

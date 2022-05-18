@@ -16,10 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink}
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{DoNotDiscover, Suite}
+import org.scalatest.DoNotDiscover
+import org.scalatest.Suite
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
@@ -30,20 +32,20 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 @DoNotDiscover
 class TestCassandraConnectionSecure extends AnyWordSpec with Matchers with ItTestConfig {
 
-  "should return a secured session"  taggedAs SlowTest in  {
+  "should return a secured session" in {
     createKeySpace("connection", secure = true, ssl = false)
     val props = Map(
-      CassandraConfigConstants.PORT -> strPort(),
+      CassandraConfigConstants.PORT           -> strPort(),
       CassandraConfigConstants.CONTACT_POINTS -> "localhost",
-      CassandraConfigConstants.KEY_SPACE -> "connection",
-      CassandraConfigConstants.USERNAME -> "cassandra",
-      CassandraConfigConstants.PASSWD -> "cassandra",
-      CassandraConfigConstants.KCQL -> "INSERT INTO TABLE SELECT * FROM TOPIC"
+      CassandraConfigConstants.KEY_SPACE      -> "connection",
+      CassandraConfigConstants.USERNAME       -> "cassandra",
+      CassandraConfigConstants.PASSWD         -> "cassandra",
+      CassandraConfigConstants.KCQL           -> "INSERT INTO TABLE SELECT * FROM TOPIC",
     ).asJava
 
     val taskConfig = CassandraConfigSink(props)
-    val conn = CassandraConnection(taskConfig)
-    val session = conn.session
+    val conn       = CassandraConnection(taskConfig)
+    val session    = conn.session
     session should not be null
     session.getCluster.getConfiguration.getProtocolOptions.getAuthProvider should not be null
 

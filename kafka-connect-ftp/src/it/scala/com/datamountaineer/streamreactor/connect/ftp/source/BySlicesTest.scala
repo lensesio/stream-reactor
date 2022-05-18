@@ -104,9 +104,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     allReadBytes
   }
 
-  test("Update mode by slices mode with SimpleFileConverter : file content is ingested with no loss of data",
-       SlowTest,
-  ) {
+  test("Update mode by slices mode with SimpleFileConverter : file content is ingested with no loss of data") {
     val fs = new FileSystem(ftpServer.rootDir).clear()
 
     val cfg =
@@ -201,9 +199,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
 
   test(
     "Sftp:Same content mode by slices mode with SimpleFileConverter : " +
-      "after update file with same data, we detect same info so no data must be sent",
-    SlowTest,
-  ) {
+      "after update file with same data, we detect same info so no data must be sent") {
 
     withSftpServer { server =>
       server.addUser("demo", "password")
@@ -247,9 +243,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
 
   test(
     "Sftp:Update mode by slices mode with MonitorUpdate and SimpleFileConverter :" +
-      " after update of file, all file data must be sent",
-    SlowTest,
-  ) {
+      " after update of file, all file data must be sent") {
     withSftpServer { server =>
       server.addUser("demo", "password")
 
@@ -293,9 +287,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
 
   test(
     "Sftp:Update mode by slices mode with MonitorTail and SimpleFileConverter :" +
-      " after update of file, only new data must be sent",
-    SlowTest,
-  ) {
+      " after update of file, only new data must be sent") {
     withSftpServer { server =>
       server.addUser("demo", "password")
 

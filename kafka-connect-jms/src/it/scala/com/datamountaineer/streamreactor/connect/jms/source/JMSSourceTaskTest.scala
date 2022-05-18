@@ -18,8 +18,8 @@
 
 package com.datamountaineer.streamreactor.connect.jms.source
 
+import com.datamountaineer.streamreactor.connect.jms.ItTestBase
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
-import com.datamountaineer.streamreactor.connect.jms.{ItTestBase, SlowTest}
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
 import org.apache.activemq.broker.jmx.QueueViewMBean
@@ -35,7 +35,7 @@ import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 import scala.reflect.io.Path
 
 /**
-  * Created by andrew@datamountaineer.com on 24/03/2017. 
+  * Created by andrew@datamountaineer.com on 24/03/2017.
   * stream-reactor
   */
 class JMSSourceTaskTest extends ItTestBase with BeforeAndAfterAll with Eventually with MockitoSugar {
@@ -44,8 +44,7 @@ class JMSSourceTaskTest extends ItTestBase with BeforeAndAfterAll with Eventuall
     val _ = Path(AVRO_FILE).delete()
   }
 
-
-  "should start a JMSSourceTask, read records and ack messages" taggedAs SlowTest in {
+  "should start a JMSSourceTask, read records and ack messages" in {
     implicit val broker = new BrokerService()
     broker.setPersistent(false)
     broker.setUseJmx(true)
@@ -54,14 +53,14 @@ class JMSSourceTaskTest extends ItTestBase with BeforeAndAfterAll with Eventuall
     broker.addConnector(brokerUrl)
     broker.setUseShutdownHook(false)
     val property = "java.io.tmpdir"
-    val tempDir = System.getProperty(property)
-    broker.setTmpDataDirectory( new File(tempDir))
+    val tempDir  = System.getProperty(property)
+    broker.setTmpDataDirectory(new File(tempDir))
     broker.start()
 
     val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = UUID.randomUUID().toString
+    val queueName  = UUID.randomUUID().toString
 
-    val kcql = getKCQL(kafkaTopic, queueName, "QUEUE")
+    val kcql  = getKCQL(kafkaTopic, queueName, "QUEUE")
     val props = getProps(kcql, brokerUrl)
 
     val context = mock[SourceTaskContext]
@@ -78,14 +77,14 @@ class JMSSourceTaskTest extends ItTestBase with BeforeAndAfterAll with Eventuall
     connectionFactory.setBrokerURL(brokerUrl)
     val conn = connectionFactory.createConnection()
     conn.start()
-    val session = conn.createSession(false, Session.CLIENT_ACKNOWLEDGE)
-    val queue = session.createQueue(queueName)
+    val session       = conn.createSession(false, Session.CLIENT_ACKNOWLEDGE)
+    val queue         = session.createQueue(queueName)
     val queueProducer = session.createProducer(queue)
-    val messages = getTextMessages(10, session)
-    messages.foreach(m => {
+    val messages      = getTextMessages(10, session)
+    messages.foreach { m =>
       queueProducer.send(m)
       m.acknowledge()
-    })
+    }
 
     Thread.sleep(2000)
 

@@ -16,8 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
+import com.datamountaineer.streamreactor.connect.redis.sink.RedisSinkTask
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
-import com.datamountaineer.streamreactor.connect.redis.sink.{RedisSinkTask, SlowTest}
 import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
@@ -28,12 +28,11 @@ import redis.clients.jedis.Jedis
 
 import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava, SetHasAsScala}
 
-
 class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with MockitoSugar with ForAllTestContainer {
 
   override val container = GenericContainer(
-    dockerImage = "redis:6-alpine",
-    exposedPorts = Seq(6379)
+    dockerImage  = "redis:6-alpine",
+    exposedPorts = Seq(6379),
   )
 
   "Redis INSERT into Multiple Sorted Sets (SS) writer" should {
@@ -41,19 +40,19 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with Mockito
     "write Kafka records a different Redis Sorted Set based on the value of the PK field" in {
 
       val TOPIC = "sensorsTopic"
-      val KCQL = s"SELECT temperature, humidity FROM $TOPIC PK sensorID STOREAS SortedSet(score=ts) TTL = 60"
+      val KCQL  = s"SELECT temperature, humidity FROM $TOPIC PK sensorID STOREAS SortedSet(score=ts) TTL = 60"
 
       val props = Map(
-        RedisConfigConstants.REDIS_HOST -> "localhost",
-        RedisConfigConstants.REDIS_PORT -> container.mappedPort(6379).toString,
-        RedisConfigConstants.KCQL_CONFIG -> KCQL
+        RedisConfigConstants.REDIS_HOST  -> "localhost",
+        RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,
+        RedisConfigConstants.KCQL_CONFIG -> KCQL,
       ).asJava
 
       val config = RedisConfig(props)
 
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
-      val settings = RedisSinkSettings(config)
-      val writer = new RedisMultipleSortedSets(settings)
+      val settings       = RedisSinkSettings(config)
+      val writer         = new RedisMultipleSortedSets(settings)
       writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.device")
@@ -62,9 +61,16 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with Mockito
         .field("humidity", Schema.FLOAT64_SCHEMA)
         .field("ts", Schema.INT64_SCHEMA).build()
 
-      val struct1 = new Struct(schema).put("sensorID", "sensor-123").put("temperature", 60.4).put("humidity", 90.1).put("ts", 1482180657010L)
-      val struct2 = new Struct(schema).put("sensorID", "sensor-123").put("temperature", 62.1).put("humidity", 103.3).put("ts", 1482180657020L)
-      val struct3 = new Struct(schema).put("sensorID", "sensor-789").put("temperature", 64.5).put("humidity", 101.1).put("ts", 1482180657030L)
+      val struct1 = new Struct(schema).put("sensorID", "sensor-123").put("temperature", 60.4).put("humidity", 90.1).put(
+        "ts",
+        1482180657010L,
+      )
+      val struct2 = new Struct(schema).put("sensorID", "sensor-123").put("temperature", 62.1).put("humidity",
+                                                                                                  103.3,
+      ).put("ts", 1482180657020L)
+      val struct3 = new Struct(schema).put("sensorID", "sensor-789").put("temperature", 64.5).put("humidity",
+                                                                                                  101.1,
+      ).put("ts", 1482180657030L)
 
       val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
       val sinkRecord2 = new SinkRecord(TOPIC, 0, null, null, schema, struct2, 2)
@@ -79,19 +85,19 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with Mockito
       jedis.zcard("sensor-789") shouldBe 1
 
       val allSSrecords = jedis.zrange("sensor-789", 0, 999999999999L)
-      val results = allSSrecords.asScala.toList
+      val results      = allSSrecords.asScala.toList
       results.head shouldBe """{"temperature":64.5,"humidity":101.1,"ts":1482180657030}"""
 
     }
 
-    "multiple sorted sets task check" taggedAs SlowTest in {
+    "multiple sorted sets task check" in {
       val TOPIC = "sensorsTopic"
-      val KCQL = s"SELECT temperature, humidity FROM $TOPIC PK sensorID STOREAS SortedSet(score=ts)"
+      val KCQL  = s"SELECT temperature, humidity FROM $TOPIC PK sensorID STOREAS SortedSet(score=ts)"
 
       val props = Map(
-        RedisConfigConstants.REDIS_HOST -> "localhost",
-        RedisConfigConstants.REDIS_PORT -> container.mappedPort(6379).toString,
-        RedisConfigConstants.KCQL_CONFIG -> KCQL
+        RedisConfigConstants.REDIS_HOST  -> "localhost",
+        RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,
+        RedisConfigConstants.KCQL_CONFIG -> KCQL,
       ).asJava
 
       val context = mock[SinkTaskContext]
@@ -106,24 +112,27 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with Mockito
         .field("humidity", Schema.FLOAT64_SCHEMA)
         .field("ts", Schema.INT64_SCHEMA).build()
 
-      val struct1 = new Struct(schema).put("sensorID", "sensor-sink-task").put("temperature", 60.4).put("humidity", 90.1).put("ts", 1482180657010L)
+      val struct1 = new Struct(schema).put("sensorID", "sensor-sink-task").put("temperature", 60.4).put("humidity",
+                                                                                                        90.1,
+      ).put("ts", 1482180657010L)
       val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
 
       task.put(List(sinkRecord1).asJava)
 
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
-      val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
+      val jedis          = new Jedis(connectionInfo.host, connectionInfo.port)
       jedis.zcard("sensor-sink-task") shouldBe 1
     }
 
     "multiple sorted sets task check with prefix" in {
       val TOPIC = "sensorsTopic"
-      val KCQL = s"INSERT INTO PREFIX- SELECT temperature, humidity FROM $TOPIC PK sensorID STOREAS SortedSet(score=ts) TTL = 60"
+      val KCQL =
+        s"INSERT INTO PREFIX- SELECT temperature, humidity FROM $TOPIC PK sensorID STOREAS SortedSet(score=ts) TTL = 60"
 
       val props = Map(
-        RedisConfigConstants.REDIS_HOST -> "localhost",
-        RedisConfigConstants.REDIS_PORT -> container.mappedPort(6379).toString,
-        RedisConfigConstants.KCQL_CONFIG -> KCQL
+        RedisConfigConstants.REDIS_HOST  -> "localhost",
+        RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,
+        RedisConfigConstants.KCQL_CONFIG -> KCQL,
       ).asJava
 
       val context = mock[SinkTaskContext]
@@ -138,24 +147,27 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with Mockito
         .field("humidity", Schema.FLOAT64_SCHEMA)
         .field("ts", Schema.INT64_SCHEMA).build()
 
-      val struct1 = new Struct(schema).put("sensorID", "sensor-sink-task-prefix").put("temperature", 60.4).put("humidity", 90.1).put("ts", 1482180657010L)
+      val struct1 =
+        new Struct(schema).put("sensorID", "sensor-sink-task-prefix").put("temperature", 60.4).put("humidity",
+                                                                                                   90.1,
+        ).put("ts", 1482180657010L)
       val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
 
       task.put(List(sinkRecord1).asJava)
 
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
-      val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
+      val jedis          = new Jedis(connectionInfo.host, connectionInfo.port)
       jedis.zcard("PREFIX-sensor-sink-task-prefix") shouldBe 1
     }
 
     "multiple sorted sets 2 primary keys" in {
       val TOPIC = "sensorsTopic"
-      val KCQL = s"SELECT temperature, humidity FROM $TOPIC PK sensorID, random STOREAS SortedSet(score=ts)"
+      val KCQL  = s"SELECT temperature, humidity FROM $TOPIC PK sensorID, random STOREAS SortedSet(score=ts)"
 
       val props = Map(
-        RedisConfigConstants.REDIS_HOST -> "localhost",
-        RedisConfigConstants.REDIS_PORT -> container.mappedPort(6379).toString,
-        RedisConfigConstants.KCQL_CONFIG -> KCQL
+        RedisConfigConstants.REDIS_HOST  -> "localhost",
+        RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,
+        RedisConfigConstants.KCQL_CONFIG -> KCQL,
       ).asJava
 
       val context = mock[SinkTaskContext]
@@ -183,7 +195,7 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with Mockito
       task.put(List(sinkRecord1).asJava)
 
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
-      val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
+      val jedis          = new Jedis(connectionInfo.host, connectionInfo.port)
       jedis.zcard("sensor-sink-task.random") shouldBe 1
     }
   }

@@ -19,9 +19,9 @@
 package com.datamountaineer.streamreactor.connect.jms.sink.writers
 
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
+import com.datamountaineer.streamreactor.connect.jms.{ItTestBase, Using}
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.IteratorToSeqFn
-import com.datamountaineer.streamreactor.connect.jms.{ItTestBase, SlowTest, Using}
 import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
@@ -46,8 +46,8 @@ class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with Conve
   broker.addConnector(brokerUrl)
   broker.setUseShutdownHook(false)
   val property = "java.io.tmpdir"
-  val tempDir = System.getProperty(property)
-  broker.setTmpDataDirectory( new File(tempDir))
+  val tempDir  = System.getProperty(property)
+  broker.setTmpDataDirectory(new File(tempDir))
 
   before {
     broker.start()
@@ -61,11 +61,11 @@ class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with Conve
     val _ = Path(AVRO_FILE).delete()
   }
 
-  "JMSWriter should route the messages to the appropriate topic and queues" taggedAs SlowTest in {
+  "JMSWriter should route the messages to the appropriate topic and queues" in {
     val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
     val kafkaTopic2 = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = s"queue-${UUID.randomUUID().toString}"
-    val topicName = s"topic-${UUID.randomUUID().toString}"
+    val queueName   = s"queue-${UUID.randomUUID().toString}"
+    val topicName   = s"topic-${UUID.randomUUID().toString}"
 
     val schema = getSchema
     val struct = getStruct(schema)
@@ -80,43 +80,45 @@ class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with Conve
       connection.start()
 
       using(connection.createSession(false, Session.AUTO_ACKNOWLEDGE)) { session =>
-
-        val topic = session.createTopic(topicName)
+        val topic         = session.createTopic(topicName)
         val topicConsumer = session.createConsumer(topic)
 
         val topicMsgListener = new MessageListener {
           @volatile var msg: Message = _
 
-          override def onMessage(message: Message): Unit = {
+          override def onMessage(message: Message): Unit =
             msg = message
-          }
         }
         topicConsumer.setMessageListener(topicMsgListener)
 
-        val queue = session.createQueue(queueName)
+        val queue         = session.createQueue(queueName)
         val consumerQueue = session.createConsumer(queue)
 
         val queueMsgListener = new MessageListener {
           @volatile var msg: Message = _
 
-          override def onMessage(message: Message): Unit = {
+          override def onMessage(message: Message): Unit =
             msg = message
-          }
         }
         consumerQueue.setMessageListener(queueMsgListener)
 
-        val kcqlQ= getKCQL(queueName, kafkaTopic1, "QUEUE")
-        val kcqlT= getKCQL(topicName, kafkaTopic2, "TOPIC")
-        val messageType = "TextMessage"
-        val corellationId = "5"
+        val kcqlQ            = getKCQL(queueName, kafkaTopic1, "QUEUE")
+        val kcqlT            = getKCQL(topicName, kafkaTopic2, "TOPIC")
+        val messageType      = "TextMessage"
+        val corellationId    = "5"
         val topicMessageType = "JSON"
-        val props = getSinkProps(s"$kcqlQ;$kcqlT",
-          s"$kafkaTopic1,$kafkaTopic2", brokerUrl,
-          Map(JMSConfigConstants.HEADERS_CONFIG ->
-            s"$queueName=JMSType:$messageType,JMSCorrelationID:$corellationId;$topicName=JMSType:$topicMessageType"))
-        val config = JMSConfig(props)
+        val props = getSinkProps(
+          s"$kcqlQ;$kcqlT",
+          s"$kafkaTopic1,$kafkaTopic2",
+          brokerUrl,
+          Map(
+            JMSConfigConstants.HEADERS_CONFIG ->
+              s"$queueName=JMSType:$messageType,JMSCorrelationID:$corellationId;$topicName=JMSType:$topicMessageType",
+          ),
+        )
+        val config   = JMSConfig(props)
         val settings = JMSSettings(config, true)
-        val writer = JMSWriter(settings)
+        val writer   = JMSWriter(settings)
         writer.write(Seq(record1, record2))
 
         Thread.sleep(1000)
@@ -132,7 +134,7 @@ class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with Conve
 
         //can not do json text comparison because fields order is not guaranteed
         val deserializer = new JsonDeserializer()
-        val queueJson = deserializer.deserialize("", queueMessage.getText.getBytes)
+        val queueJson    = deserializer.deserialize("", queueMessage.getText.getBytes)
         queueJson.get("int8").asInt() shouldBe 12
         queueJson.get("int16").asInt() shouldBe 12
         //queueJson.get("long").asInt() shouldBe 12
@@ -149,13 +151,15 @@ class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with Conve
         }.toMap shouldBe Map("field" -> 1)
 
         IteratorToSeqFn(queueJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator()).flatMap { _ =>
-          IteratorToSeqFn(queueJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator().next().asInstanceOf[ArrayNode].iterator())
+          IteratorToSeqFn(queueJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator().next().asInstanceOf[
+            ArrayNode,
+          ].iterator())
             .map(_.asInt())
         }.toVector shouldBe Vector(1, 1)
 
         val topicJson = deserializer.deserialize("", topicMessage.getText.getBytes)
-       // topicJson.get("byte").asInt() shouldBe 12
-       // topicJson.get("short").asInt() shouldBe 12
+        // topicJson.get("byte").asInt() shouldBe 12
+        // topicJson.get("short").asInt() shouldBe 12
         topicJson.get("int32").asInt() shouldBe 12
         topicJson.get("int64").asInt() shouldBe 12
         topicJson.get("float32").asDouble() shouldBe 12.2
@@ -172,7 +176,9 @@ class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with Conve
         }.toMap shouldBe Map("field" -> 1)
 
         IteratorToSeqFn(topicJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator()).flatMap { _ =>
-          IteratorToSeqFn(topicJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator().next().asInstanceOf[ArrayNode].iterator())
+          IteratorToSeqFn(topicJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator().next().asInstanceOf[
+            ArrayNode,
+          ].iterator())
             .map(_.asInt())
         }.toVector shouldBe Vector(1, 1)
       }
@@ -180,5 +186,3 @@ class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with Conve
 
   }
 }
-
-

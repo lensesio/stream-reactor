@@ -19,7 +19,6 @@ package com.datamountaineer.streamreactor.connect.mqtt.source
 import com.datamountaineer.streamreactor.common.converters.MsgKey
 import com.datamountaineer.streamreactor.common.serialization.AvroSerializer
 import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, Converter, JsonSimpleConverter}
-import com.datamountaineer.streamreactor.connect.mqtt.SlowTest
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
 import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
@@ -45,15 +44,18 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
 
   protected def getMqttConnectionUrl = s"tcp://${container.host}:${container.mappedPort(mqttPort)}"
 
-  val clientId = "MqttManagerTest"
+  val clientId           = "MqttManagerTest"
   val clientPersistentId = "MqttManagerTestDisableClean"
-  val qs = 1
-  val connectionTimeout = 1000
-  val pollingTimeout = 500
-  val keepAlive = 1000
+  val qs                 = 1
+  val connectionTimeout  = 1000
+  val pollingTimeout     = 500
+  val keepAlive          = 1000
 
-
-  private def initializeConverter(mqttSource: String, converter: AvroConverter, schema: org.apache.avro.Schema): Unit = {
+  private def initializeConverter(
+    mqttSource: String,
+    converter:  AvroConverter,
+    schema:     org.apache.avro.Schema,
+  ): Unit = {
     val schemaFile = Paths.get(UUID.randomUUID().toString)
 
     def writeSchema(schema: org.apache.avro.Schema): File = {
@@ -67,10 +69,9 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
 
     try {
       converter.initialize(Map(
-        AvroConverter.SCHEMA_CONFIG -> s"$mqttSource=${writeSchema(schema)}"
+        AvroConverter.SCHEMA_CONFIG -> s"$mqttSource=${writeSchema(schema)}",
       ))
-    }
-    finally {
+    } finally {
       val _ = schemaFile.toFile.delete()
     }
 
@@ -78,9 +79,9 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
 
   "MqttManager" should {
 
-    "dynamically set the target kafka topic to the topic from the mqtt topic on wildcards" taggedAs SlowTest in {
-      val source = "/mqttSourceTopic/+/test"
-      val target = "`$`"
+    "dynamically set the target kafka topic to the topic from the mqtt topic on wildcards" in {
+      val source           = "/mqttSourceTopic/+/test"
+      val target           = "`$`"
       val sourcesToConvMap = Map(source -> new BytesConverter)
       val settings = MqttSourceSettings(
         getMqttConnectionUrl,
@@ -97,11 +98,9 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
         keepAlive,
         None,
         None,
-        None
-        )
-      val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
-        sourcesToConvMap,
-        settings)
+        None,
+      )
+      val mqttManager = new MqttManager(MqttClientConnectionFn.apply, sourcesToConvMap, settings)
       Thread.sleep(2000)
 
       val messages = Seq("message1", "message2")
@@ -122,7 +121,6 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
         records.get(0).value() shouldBe messages.head.getBytes()
         records.get(1).value() shouldBe messages(1).getBytes()
 
-
         records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
         records.get(1).valueSchema() shouldBe Schema.BYTES_SCHEMA
 
@@ -138,16 +136,14 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
         records.get(0).topic() shouldBe "mqttSourceTopic_C_test"
         records.get(0).value() shouldBe msg3
         records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
-      }
-      finally {
+      } finally {
         mqttManager.close()
       }
     }
 
-
-    "process the messages on topic A and create source records with Bytes schema with Wildcards" taggedAs SlowTest in {
-      val source = "/mqttSourceTopic/+/test"
-      val target = "kafkaTopic"
+    "process the messages on topic A and create source records with Bytes schema with Wildcards" in {
+      val source           = "/mqttSourceTopic/+/test"
+      val target           = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
       val settings = MqttSourceSettings(
         getMqttConnectionUrl,
@@ -164,11 +160,9 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
         keepAlive,
         None,
         None,
-        None
+        None,
       )
-      val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
-        sourcesToConvMap,
-        settings)
+      val mqttManager = new MqttManager(MqttClientConnectionFn.apply, sourcesToConvMap, settings)
       Thread.sleep(2000)
 
       val messages = Seq("message1", "message2")
@@ -189,7 +183,6 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
         records.get(0).value() shouldBe messages.head.getBytes()
         records.get(1).value() shouldBe messages(1).getBytes()
 
-
         records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
         records.get(1).valueSchema() shouldBe Schema.BYTES_SCHEMA
 
@@ -205,16 +198,14 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
         records.get(0).topic() shouldBe target
         records.get(0).value() shouldBe msg3
         records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
-      }
-      finally {
+      } finally {
         mqttManager.close()
       }
     }
 
-
-    "process the messages on topic A and create source records with Bytes schema" taggedAs SlowTest in {
-      val source = "/mqttSourceTopic"
-      val target = "kafkaTopic"
+    "process the messages on topic A and create source records with Bytes schema" in {
+      val source           = "/mqttSourceTopic"
+      val target           = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
       val settings = MqttSourceSettings(
         getMqttConnectionUrl,
@@ -231,11 +222,9 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
         keepAlive,
         None,
         None,
-        None
+        None,
       )
-      val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
-        sourcesToConvMap,
-        settings)
+      val mqttManager = new MqttManager(MqttClientConnectionFn.apply, sourcesToConvMap, settings)
       Thread.sleep(2000)
 
       val messages = Seq("message1", "message2")
@@ -271,16 +260,15 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
         records.get(0).topic() shouldBe target
         records.get(0).value() shouldBe msg3
         records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
-      }
-      finally {
+      } finally {
         mqttManager.close()
       }
 
     }
 
-    "process the messages published before subscribing" taggedAs SlowTest in {
-      val source = "/mqttSourceTopic"
-      val target = "kafkaTopic"
+    "process the messages published before subscribing" in {
+      val source           = "/mqttSourceTopic"
+      val target           = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
       val settings = MqttSourceSettings(
         getMqttConnectionUrl,
@@ -297,12 +285,10 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
         keepAlive,
         None,
         None,
-        None
+        None,
       )
 
-      val mqttManagerTmp = new MqttManager(MqttClientConnectionFn.apply,
-        sourcesToConvMap,
-        settings)
+      val mqttManagerTmp = new MqttManager(MqttClientConnectionFn.apply, sourcesToConvMap, settings)
       Thread.sleep(2000)
       mqttManagerTmp.close()
       Thread.sleep(2000)
@@ -313,9 +299,7 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
       }
       Thread.sleep(2000)
 
-      val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
-        sourcesToConvMap,
-        settings)
+      val mqttManager = new MqttManager(MqttClientConnectionFn.apply, sourcesToConvMap, settings)
       Thread.sleep(2000)
 
       val records = new util.LinkedList[SourceRecord]()
@@ -327,14 +311,13 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
         records.get(0).value() shouldBe messages.head.getBytes()
         records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
 
-      }
-      finally {
+      } finally {
         mqttManager.close()
       }
 
     }
 
-    "handle each mqtt source based on the converter" taggedAs SlowTest in {
+    "handle each mqtt source based on the converter" in {
       val source1 = "/mqttSource1"
       val source2 = "/mqttSource2"
       val source3 = "/mqttSource3"
@@ -346,11 +329,10 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
       val avroConverter = new AvroConverter
 
       implicit val studentSchema = AvroSchema[Student]
-      implicit val recordFormat = RecordFormat[Student]
+      implicit val recordFormat  = RecordFormat[Student]
       initializeConverter(source3, avroConverter, studentSchema)
-      val sourcesToConvMap: Map[String, Converter] = Map(source1 -> new BytesConverter,
-        source2 -> new JsonSimpleConverter,
-        source3 -> avroConverter)
+      val sourcesToConvMap: Map[String, Converter] =
+        Map(source1 -> new BytesConverter, source2 -> new JsonSimpleConverter, source3 -> avroConverter)
 
       val settings = MqttSourceSettings(
         getMqttConnectionUrl,
@@ -359,9 +341,11 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
         clientId,
         sourcesToConvMap.map { case (k, v) => k -> v.getClass.getCanonicalName },
         throwOnConversion = true,
-        Array(s"INSERT INTO $target1 SELECT * FROM $source1",
+        Array(
+          s"INSERT INTO $target1 SELECT * FROM $source1",
           s"INSERT INTO $target2 SELECT * FROM $source2",
-          s"INSERT INTO $target3 SELECT * FROM $source3"),
+          s"INSERT INTO $target3 SELECT * FROM $source3",
+        ),
         qs,
         connectionTimeout,
         pollingTimeout,
@@ -369,17 +353,15 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
         keepAlive,
         None,
         None,
-        None
+        None,
       )
 
-      val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
-        sourcesToConvMap,
-        settings)
+      val mqttManager = new MqttManager(MqttClientConnectionFn.apply, sourcesToConvMap, settings)
       Thread.sleep(2000)
 
       val message1 = "message1".getBytes()
 
-      val student = Student("Mike Bush", 19, 9.3)
+      val student  = Student("Mike Bush", 19, 9.3)
       val message2 = JacksonJson.toJson(student).getBytes
       val message3 = AvroSerializer.getBytes(student)
 
@@ -394,7 +376,6 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
         records.size() shouldBe 3
 
         records.asScala.foreach { record =>
-
           record.keySchema() shouldBe MsgKey.schema
           val source = record.key().asInstanceOf[Struct].get("topic")
           record.topic() match {
@@ -437,32 +418,32 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
           }
 
         }
-      }
-      finally {
+      } finally {
         mqttManager.close()
       }
     }
   }
 
   "MqttManager" should {
-    "process the messages on shared mqtt topic and create source records with Bytes schema with Wildcards" taggedAs SlowTest in {
-      val sourceTopic = "$share/connect/mqttSourceTopic"
-      val sourceKCQL = "`$share/connect/mqttSourceTopic`" // same with sourceTopic but with quotes
-      val target = "kafkaTopic"
+    "process the messages on shared mqtt topic and create source records with Bytes schema with Wildcards" in {
+      val sourceTopic      = "$share/connect/mqttSourceTopic"
+      val sourceKCQL       = "`$share/connect/mqttSourceTopic`" // same with sourceTopic but with quotes
+      val target           = "kafkaTopic"
       val sourcesToConvMap = Map(sourceTopic -> new BytesConverter)
       val props = Map(
-        MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-        MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
-        MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target SELECT * FROM $sourceKCQL withregex=`\\$$share/connect/.*`",
-        MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> keepAlive.toString,
-        MqttConfigConstants.CLIENT_ID_CONFIG -> clientId,
+        MqttConfigConstants.CLEAN_SESSION_CONFIG           -> "true",
+        MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG      -> connectionTimeout.toString,
+        MqttConfigConstants.KCQL_CONFIG                    -> s"INSERT INTO $target SELECT * FROM $sourceKCQL withregex=`\\$$share/connect/.*`",
+        MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG     -> keepAlive.toString,
+        MqttConfigConstants.CLIENT_ID_CONFIG               -> clientId,
         MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-        MqttConfigConstants.HOSTS_CONFIG -> getMqttConnectionUrl,
-        MqttConfigConstants.QS_CONFIG -> qs.toString
+        MqttConfigConstants.HOSTS_CONFIG                   -> getMqttConnectionUrl,
+        MqttConfigConstants.QS_CONFIG                      -> qs.toString,
       )
       val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
-        sourcesToConvMap,
-        MqttSourceSettings(MqttSourceConfig(props.asJava)))
+                                        sourcesToConvMap,
+                                        MqttSourceSettings(MqttSourceConfig(props.asJava)),
+      )
       Thread.sleep(2000)
 
       val message = "message"
@@ -479,8 +460,7 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
         records.get(0).topic() shouldBe target
         records.get(0).value() shouldBe message.getBytes()
         records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
-      }
-      finally {
+      } finally {
         mqttManager.close()
       }
     }

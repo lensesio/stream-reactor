@@ -24,16 +24,22 @@ jobs:
             ~/.ivy2/cache
             ~/.sbt
           key: ${{ runner.os }}-sbt-${{ hashFiles('*.sbt') }}-${{ hashFiles('project/**') }}
-      - name: Generate Modules Lists
+      - name: Generate modules lists
         run: sbt generateModulesList generateItModulesList generateFunModulesList
         env:
           JVM_OPTS: -Xmx3200m
-      - name: Read Modules Lists
+      - name: Read modules lists
         id: read-mods
         run: |
           echo "::set-output name=matrix::$(cat ./target/scala-2.13/resource_managed/main/modules.txt)"
           echo "::set-output name=it-matrix::$(cat ./target/scala-2.13/resource_managed/main/it-modules.txt)"
           echo "::set-output name=fun-matrix::$(cat ./target/scala-2.13/resource_managed/main/fun-modules.txt)"
+      - name: Cleanup before cache
+        shell: bash
+        run: |
+          rm -rf "$HOME/.ivy2/local" || true
+          find $HOME/.ivy2/cache                       -name "ivydata-*.properties" -delete || true
+          find $HOME/.sbt                              -name "*.lock"               -delete || true
 
   test:
     needs: initiate
@@ -56,11 +62,11 @@ jobs:
             ~/.ivy2/cache
             ~/.sbt
           key: ${{ runner.os }}-sbt-${{ hashFiles('*.sbt') }}-${{ hashFiles('project/**') }}
-      - name: Test
+      - name: Run tests
         run: sbt "project ${{ matrix.module }}" test
         env:
           JVM_OPTS: -Xmx3200m
-      - name: Publish Unit Test Results
+      - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
         with:
@@ -89,11 +95,11 @@ jobs:
             ~/.ivy2/cache
             ~/.sbt
           key: ${{ runner.os }}-sbt-${{ hashFiles('*.sbt') }}-${{ hashFiles('project/**') }}
-      - name: Integration test
+      - name: Run tests
         run: sbt "project ${{ matrix.module }}" it:test
         env:
           JVM_OPTS: -Xmx3200m
-      - name: Publish Integration Test Results
+      - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
         with:
@@ -125,13 +131,13 @@ jobs:
             ~/.ivy2/cache
             ~/.sbt
           key: ${{ runner.os }}-sbt-${{ hashFiles('*.sbt') }}-${{ hashFiles('project/**') }}
-      - name: Cache Assembly
+      - name: Cache assembly
         uses: actions/cache@v3
         with:
           path: |
-            ~/**/target/**/*.jar
+            ~/**/target/${{ matrix.module }}*/libs/*.jar
           key: ${{ runner.os }}-assembly-${{ matrix.module }}-${{ github.run_id }}
-      - name: Assembly
+      - name: Build assembly
         run: sbt "project ${{ matrix.module }};set assembly / test := {}" assembly
         env:
           JVM_OPTS: -Xmx3200m
@@ -159,17 +165,17 @@ jobs:
             ~/.ivy2/cache
             ~/.sbt
           key: ${{ runner.os }}-sbt-${{ hashFiles('*.sbt') }}-${{ hashFiles('project/**') }}
-      - name: Cache Assembly
+      - name: Cache assembly
         uses: actions/cache@v3
         with:
           path: |
-            ~/**/target/**/*.jar
+            ~/**/target/${{ matrix.module }}*/libs/*.jar
           key: ${{ runner.os }}-assembly-${{ matrix.module }}-${{ github.run_id }}
-      - name: Functional Test
+      - name: Run tests
         run: sbt "project ${{ matrix.module }}" fun:test
         env:
           JVM_OPTS: -Xmx3200m
-      - name: Publish Functional Test Results
+      - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
         with:
@@ -199,14 +205,14 @@ jobs:
             ~/.ivy2/cache
             ~/.sbt
           key: ${{ runner.os }}-sbt-${{ hashFiles('*.sbt') }}-${{ hashFiles('project/**') }}
-      - name: Cache Assembly
+      - name: Cache assembly
         uses: actions/cache@v3
         with:
           path: |
-            ~/**/target/**/*.jar
+            ~/**/target/${{ matrix.module }}*/libs/*.jar
           key: ${{ runner.os }}-assembly-${{ matrix.module }}-${{ github.run_id }}
-      - name: Upload Artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: assembly-${{ github.run_id }}
-          path: ~/**/target/**/*.jar
+          name: assembly-${{ matrix.module }}-${{ github.run_id }}
+          path: ~/**/target/${{ matrix.module }}*/libs/*.jar

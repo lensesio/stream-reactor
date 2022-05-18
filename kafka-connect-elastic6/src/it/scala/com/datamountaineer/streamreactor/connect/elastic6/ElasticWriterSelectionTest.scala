@@ -27,7 +27,7 @@ import java.util.UUID
 import scala.reflect.io.File
 
 class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
-  "A ElasticWriter should insert into Elastic Search a number of records" taggedAs SlowTest in {
+  "A ElasticWriter should insert into Elastic Search a number of records" in {
 
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
@@ -44,7 +44,7 @@ class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
+    val writer   = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -60,7 +60,7 @@ class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
     TMP.deleteRecursively()
   }
 
-  "A ElasticWriter should insert into Elastic Search a number of records when nested fields are selected" taggedAs SlowTest in {
+  "A ElasticWriter should insert into Elastic Search a number of records when nested fields are selected" in {
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
     //mock the context to return our assignment when called
@@ -69,14 +69,15 @@ class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecordsNested
     //get config
-    val config = new ElasticConfig( getBaseElasticSinkConfigProps(s"INSERT INTO $INDEX SELECT id, nested.string_field FROM $TOPIC"))
+    val config =
+      new ElasticConfig(getBaseElasticSinkConfigProps(s"INSERT INTO $INDEX SELECT id, nested.string_field FROM $TOPIC"))
 
     val localNode = createLocalNode()
     val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
+    val writer   = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -92,7 +93,7 @@ class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
     TMP.deleteRecursively()
   }
 
-  "A ElasticWriter should update records in Elastic Search" taggedAs SlowTest  in {
+  "A ElasticWriter should update records in Elastic Search" in {
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
     //mock the context to return our assignment when called
@@ -106,7 +107,7 @@ class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
     val localNode = createLocalNode()
     val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
+    val writer   = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //First run writes records to elastic
     writer.write(testRecords)
 
@@ -136,7 +137,7 @@ class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
     TMP.deleteRecursively()
   }
 
-  "A ElasticWriter should update records in Elastic Search with PK nested field" taggedAs SlowTest in {
+  "A ElasticWriter should update records in Elastic Search with PK nested field" in {
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
     //mock the context to return our assignment when called
@@ -145,12 +146,14 @@ class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecordsNested
     //get config
-    val config = new ElasticConfig(getBaseElasticSinkConfigProps(s"UPSERT INTO $INDEX SELECT nested.id, string_field FROM $TOPIC PK nested.id"))
+    val config = new ElasticConfig(
+      getBaseElasticSinkConfigProps(s"UPSERT INTO $INDEX SELECT nested.id, string_field FROM $TOPIC PK nested.id"),
+    )
 
     val localNode = createLocalNode()
     val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
+    val writer   = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //First run writes records to elastic
     writer.write(testRecords)
 

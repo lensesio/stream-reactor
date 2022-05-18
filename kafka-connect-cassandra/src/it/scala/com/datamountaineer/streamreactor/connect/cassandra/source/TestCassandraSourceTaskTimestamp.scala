@@ -17,27 +17,28 @@
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.cassandra.{SlowTest, ItTestConfig}
+import com.datamountaineer.streamreactor.connect.cassandra.ItTestConfig
 import com.datastax.driver.core.Session
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Schema
 import org.mockito.MockitoSugar
+import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Suite}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Suite}
 
 import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 @DoNotDiscover
 @nowarn
-class TestCassandraSourceTaskTimestamp extends AnyWordSpec
+class TestCassandraSourceTaskTimestamp
+    extends AnyWordSpec
     with Matchers
     with MockitoSugar
     with ItTestConfig
     with TestCassandraSourceUtil
-    with ConverterUtil 
+    with ConverterUtil
     with BeforeAndAfterAll {
 
   var session: Session = _
@@ -45,7 +46,7 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
   var tableName: String = _
 
   override def beforeAll(): Unit = {
-    session = createKeySpace(keyspace, secure = true)
+    session   = createKeySpace(keyspace, secure = true)
     tableName = createTimestampTable(session, keyspace)
   }
 
@@ -54,18 +55,18 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
     session.getCluster.close()
   }
 
-  "A Cassandra SourceTask should read in incremental mode with timestamp and time slices"  taggedAs SlowTest in  {
+  "A Cassandra SourceTask should read in incremental mode with timestamp and time slices" in {
     val taskContext = getSourceTaskContextDefault
-    val config = getCassandraConfigDefault
-    val task = new CassandraSourceTask()
+    val config      = getCassandraConfigDefault
+    val task        = new CassandraSourceTask()
     task.initialize(taskContext)
 
     //start task
     task.start(config)
 
     insertIntoTimestampTable(session, keyspace, tableName, "id1", "magic_string", getFormattedDateNow(), 1.toByte)
-    
-    var records = pollAndWait(task, tableName)
+
+    var records      = pollAndWait(task, tableName)
     var sourceRecord = records.asScala.head
     // check JSON fields
     var json: JsonNode = convertValueToJson(sourceRecord)
@@ -76,7 +77,7 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
 
     insertIntoTimestampTable(session, keyspace, tableName, "id2", "magic_string2", getFormattedDateNow(), 1.toByte)
 
-    records = pollAndWait(task, tableName)
+    records      = pollAndWait(task, tableName)
     sourceRecord = records.asScala.head
     // check JSON fields
     json = convertValueToJson(sourceRecord)
@@ -88,11 +89,11 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
     task.stop()
   }
 
-  "A Cassandra SourceTask should read in incremental mode with timestamp and time slices and use ignore and unwrap"  taggedAs SlowTest in  {
+  "A Cassandra SourceTask should read in incremental mode with timestamp and time slices and use ignore and unwrap" in {
 
     val taskContext = getSourceTaskContextDefault
-    val config = getCassandraConfigWithUnwrap
-    val task = new CassandraSourceTask()
+    val config      = getCassandraConfigWithUnwrap
+    val task        = new CassandraSourceTask()
     task.initialize(taskContext)
 
     //start task
@@ -100,7 +101,7 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
 
     insertIntoTimestampTable(session, keyspace, tableName, "id1", "magic_string", getFormattedDateNow(), 1.toByte)
 
-    val records = pollAndWait(task, tableName)
+    val records      = pollAndWait(task, tableName)
     val sourceRecord = records.asScala.head
     sourceRecord.keySchema shouldBe null
     sourceRecord.key shouldBe null
@@ -111,11 +112,11 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
     task.stop()
   }
 
-  "A Cassandra SourceTask should read in incremental mode with fetchSize"  taggedAs SlowTest in  {
+  "A Cassandra SourceTask should read in incremental mode with fetchSize" in {
 
     val taskContext = getSourceTaskContextDefault
-    val config = getCassandraConfigDefault
-    val task = new CassandraSourceTask()
+    val config      = getCassandraConfigDefault
+    val task        = new CassandraSourceTask()
 
     truncateTable(session, keyspace, tableName)
 
@@ -124,8 +125,15 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
     //start task
     task.start(config)
 
-    for (i <- 1 to 10){
-      insertIntoTimestampTable(session, keyspace, tableName, s"id$i", s"magic_string_$i", getFormattedDateNow(), 1.toByte)
+    for (i <- 1 to 10) {
+      insertIntoTimestampTable(session,
+                               keyspace,
+                               tableName,
+                               s"id$i",
+                               s"magic_string_$i",
+                               getFormattedDateNow(),
+                               1.toByte,
+      )
     }
 
     val records = pollAndWait(task, tableName)
@@ -135,17 +143,17 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
     //stop task
     task.stop()
   }
-  
-  "A Cassandra SourceTask should read in incremental mode with timestamp and time slices and use json format with key and unwrap"  taggedAs SlowTest in  {
+
+  "A Cassandra SourceTask should read in incremental mode with timestamp and time slices and use json format with key and unwrap" in {
 
     val taskContext = getSourceTaskContextDefault
-    val config = getCassandraJsonConfigWithKeyAndUnwrap
-    val task = new CassandraSourceTask()
-    
+    val config      = getCassandraJsonConfigWithKeyAndUnwrap
+    val task        = new CassandraSourceTask()
+
     truncateTable(session, keyspace, tableName)
-    
+
     task.initialize(taskContext)
-    
+
     val mapper = new ObjectMapper()
 
     //start task
@@ -153,13 +161,13 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
 
     insertIntoTimestampTable(session, keyspace, tableName, "id1", "magic_string", getFormattedDateNow(), 1.toByte)
 
-    val records = pollAndWait(task, tableName)
+    val records      = pollAndWait(task, tableName)
     val sourceRecord = records.asScala.head
     sourceRecord.keySchema shouldBe Schema.STRING_SCHEMA
     sourceRecord.valueSchema shouldBe Schema.STRING_SCHEMA
-    
+
     val json: JsonNode = mapper.readTree(sourceRecord.value.asInstanceOf[String]);
-    val key: String = sourceRecord.key.asInstanceOf[String];
+    val key:  String   = sourceRecord.key.asInstanceOf[String];
     json.get("string_field").asText().equals("magic_string") shouldBe true
     key.equals("id1") shouldBe true
 
@@ -167,11 +175,11 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
     task.stop()
   }
 
-  "A Cassandra SourceTask should throw exception when timestamp column is not specified"  taggedAs SlowTest in  {
+  "A Cassandra SourceTask should throw exception when timestamp column is not specified" in {
 
     val taskContext = getSourceTaskContextDefault
-    val config = getCassandraConfigWithKcqlNoPrimaryKeyInSelect
-    val task = new CassandraSourceTask()
+    val config      = getCassandraConfigWithKcqlNoPrimaryKeyInSelect
+    val task        = new CassandraSourceTask()
     task.initialize(taskContext)
 
     insertIntoTimestampTable(session, keyspace, tableName, "id1", "magic_string", getFormattedDateNow(), 1.toByte)
@@ -186,22 +194,26 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
   }
 
   private def getCassandraConfigWithKcqlNoPrimaryKeyInSelect = {
-    val myKcql = s"INSERT INTO sink_test SELECT string_field FROM $tableName PK timestamp_field INCREMENTALMODE=timestamp"
+    val myKcql =
+      s"INSERT INTO sink_test SELECT string_field FROM $tableName PK timestamp_field INCREMENTALMODE=timestamp"
     getCassandraConfig(keyspace, tableName, myKcql, strPort())
   }
 
   private def getCassandraConfigWithUnwrap = {
-    val myKcql = s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $tableName IGNORE timestamp_field PK timestamp_field WITHUNWRAP INCREMENTALMODE=timestamp"
+    val myKcql =
+      s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $tableName IGNORE timestamp_field PK timestamp_field WITHUNWRAP INCREMENTALMODE=timestamp"
     getCassandraConfig(keyspace, tableName, myKcql, strPort())
   }
-  
+
   private def getCassandraJsonConfigWithKeyAndUnwrap = {
-    val myKcql = s"INSERT INTO sink_test SELECT id, string_field, timestamp_field FROM $tableName PK timestamp_field WITHFORMAT JSON WITHUNWRAP INCREMENTALMODE=TIMESTAMP WITHKEY(id)"
+    val myKcql =
+      s"INSERT INTO sink_test SELECT id, string_field, timestamp_field FROM $tableName PK timestamp_field WITHFORMAT JSON WITHUNWRAP INCREMENTALMODE=TIMESTAMP WITHKEY(id)"
     getCassandraConfig(keyspace, tableName, myKcql, strPort())
   }
 
   private def getCassandraConfigDefault = {
-    val myKcql = s"INSERT INTO sink_test SELECT string_field, timestamp_field, tinyint_field FROM $tableName PK timestamp_field INCREMENTALMODE=timestamp"
+    val myKcql =
+      s"INSERT INTO sink_test SELECT string_field, timestamp_field, tinyint_field FROM $tableName PK timestamp_field INCREMENTALMODE=timestamp"
     getCassandraConfig(keyspace, tableName, myKcql, strPort())
   }
 
@@ -211,4 +223,3 @@ class TestCassandraSourceTaskTimestamp extends AnyWordSpec
   }
 
 }
-

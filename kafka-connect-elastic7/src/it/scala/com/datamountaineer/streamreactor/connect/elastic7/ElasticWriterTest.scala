@@ -67,7 +67,7 @@ class ElasticWriterTest extends ITBase with MockitoSugar with BeforeAndAfterEach
 
   }
 
-  "A ElasticWriter should insert into Elastic Search a number of records" taggedAs SlowTest in new TestContext {
+  "A ElasticWriter should insert into Elastic Search a number of records" in new TestContext {
 
     val (node: ElasticsearchContainer, client: ElasticClient, writer: ElasticJsonWriter) = writeTestRecords(
       getElasticSinkConfigProps(RandomClusterName),
@@ -87,7 +87,7 @@ class ElasticWriterTest extends ITBase with MockitoSugar with BeforeAndAfterEach
 
   }
 
-  "A ElasticWriter should update a number of records in Elastic Search" taggedAs SlowTest in new TestContext {
+  "A ElasticWriter should update a number of records in Elastic Search" in new TestContext {
     val (node: ElasticsearchContainer, client: ElasticClient, writer: ElasticJsonWriter) = writeTestRecords(
       getElasticSinkUpdateConfigProps(RandomClusterName),
     )
@@ -117,7 +117,7 @@ class ElasticWriterTest extends ITBase with MockitoSugar with BeforeAndAfterEach
     TemporaryLocalNodeDir.deleteRecursively()
   }
 
-  "A ElasticWriter should update a number of records in Elastic Search with index suffix defined" taggedAs SlowTest in new TestContext {
+  "A ElasticWriter should update a number of records in Elastic Search with index suffix defined" in new TestContext {
 
     val (node: ElasticsearchContainer, client: ElasticClient, writer: ElasticJsonWriter) = writeTestRecords(
       getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = true),
@@ -158,7 +158,7 @@ class ElasticWriterTest extends ITBase with MockitoSugar with BeforeAndAfterEach
 
   }
 
-  "A ElasticWriter should insert into Elastic Search a number of records with the HTTP Client" taggedAs SlowTest in new TestContext {
+  "A ElasticWriter should insert into Elastic Search a number of records with the HTTP Client" in new TestContext {
 
     val (node: ElasticsearchContainer, client: ElasticClient, writer: ElasticJsonWriter) = writeTestRecords(
       getElasticSinkConfigPropsHTTPClient(autoCreate = true),
@@ -177,7 +177,7 @@ class ElasticWriterTest extends ITBase with MockitoSugar with BeforeAndAfterEach
     TemporaryLocalNodeDir.deleteRecursively()
   }
 
-  "A ElasticWriter should insert into with PK Elastic Search a number of records" taggedAs SlowTest in new TestContext {
+  "A ElasticWriter should insert into with PK Elastic Search a number of records" in new TestContext {
 
     val (node: ElasticsearchContainer, client: ElasticClient, writer: ElasticJsonWriter) = writeTestRecords(
       getElasticSinkConfigPropsPk(RandomClusterName),
@@ -205,7 +205,7 @@ class ElasticWriterTest extends ITBase with MockitoSugar with BeforeAndAfterEach
     TemporaryLocalNodeDir.deleteRecursively()
   }
 
-  "A ElasticWriter should insert into without PK Elastic Search a number of records" taggedAs SlowTest in new TestContext {
+  "A ElasticWriter should insert into without PK Elastic Search a number of records" in new TestContext {
 
     val (node: ElasticsearchContainer, client: ElasticClient, writer: ElasticJsonWriter) = writeTestRecords(
       getElasticSinkConfigProps(RandomClusterName),
