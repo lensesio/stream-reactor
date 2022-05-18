@@ -143,6 +143,7 @@ object Settings extends Dependencies {
   implicit final class ParallelDestroyer(project: ProjectMatrix) {
     def disableParallel(): ProjectMatrix =
       project.settings(settings ++ Seq(
+        Test / parallelExecution := false,
         IntegrationTest / parallelExecution := false,
       ))
   }
