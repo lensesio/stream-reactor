@@ -398,11 +398,11 @@ Compile / generateModulesList :=
   new FileWriter(subProjects).generate((Compile / resourceManaged).value / "modules.txt")
 Compile / generateItModulesList :=
   new FileWriter(
-    subProjects.filter(p => p.containsDir("it")),
+    subProjects.filter(p => p.containsDir("src/it")),
   ).generate((Compile / resourceManaged).value / "it-modules.txt")
 Compile / generateFunModulesList :=
   new FileWriter(
-    subProjects.filter(p => p.containsDir("fun")),
+    subProjects.filter(p => p.containsDir("src/fun")),
   ).generate((Compile / resourceManaged).value / "fun-modules.txt")
 
 Compile / resourceGenerators += (Compile / generateModulesList)

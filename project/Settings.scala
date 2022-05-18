@@ -187,11 +187,11 @@ object Settings extends Dependencies {
 
   implicit final class ProjectFilterOps(project: ProjectMatrix) {
 
-    def containsDir(dirname: String): Boolean = {
+    def containsDir(dir: String): Boolean = {
       val files = Files.find(
         Paths.get(project.base.getAbsolutePath),
         2,
-        (p, _) => p.toFile.getName.endsWith(dirname),
+        (p, _) => p.toFile.getAbsolutePath.endsWith(dir),
       ).toArray
       files.nonEmpty
     }
