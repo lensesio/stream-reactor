@@ -144,6 +144,7 @@ object Settings extends Dependencies {
     def disableParallel(): ProjectMatrix =
       project.settings(settings ++ Seq(
         Test / parallelExecution := false,
+        IntegrationTest / parallelExecution := false,
       ))
   }
 
