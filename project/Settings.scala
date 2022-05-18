@@ -2,30 +2,34 @@ import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import sbt.Keys._
 import sbt._
 import sbt.internal.ProjectMatrix
-import sbtassembly.AssemblyKeys.{assembly, assemblyExcludedJars, assemblyJarName, assemblyMergeStrategy, assemblyOutputPath}
-import sbtassembly.{MergeStrategy, PathList}
+import sbtassembly.AssemblyKeys._
+import sbtassembly.MergeStrategy
+import sbtassembly.PathList
 import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
 
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.Calendar
 
 object Settings extends Dependencies {
   // keep the SNAPSHOT version numerically higher than the latest release.
-  val majorVersion  = "1.0"
+  val majorVersion        = "1.0"
   val nextSnapshotVersion = "1.1"
 
   val artifactVersion: String = {
-    val maybeGithubRunId   = sys.env.get("github_run_id")
-    val maybeVersion = sys.env.get("VERSION")
-    val snapshotTag        = sys.env.get("SNAPSHOT_TAG")
+    val maybeGithubRunId = sys.env.get("github_run_id")
+    val maybeVersion     = sys.env.get("VERSION")
+    val snapshotTag      = sys.env.get("SNAPSHOT_TAG")
     (maybeVersion, maybeGithubRunId) match {
-      case (_, Some(patchVersion))  => majorVersion + "." + patchVersion
-      case (Some(v), _) => v
-      case _                        => s"$nextSnapshotVersion-${snapshotTag.fold("SNAPSHOT")(t => s"$t-SNAPSHOT")}"
+      case (_, Some(patchVersion)) => majorVersion + "." + patchVersion
+      case (Some(v), _)            => v
+      case _                       => s"$nextSnapshotVersion-${snapshotTag.fold("SNAPSHOT")(t => s"$t-SNAPSHOT")}"
     }
   }
 
   val manifestSection: Package.JarManifest = {
-    import java.util.jar.{Attributes, Manifest}
+    import java.util.jar.Attributes
+    import java.util.jar.Manifest
     val manifest      = new Manifest
     val newAttributes = new Attributes()
     newAttributes.put(new Attributes.Name("version"), majorVersion)
@@ -58,8 +62,8 @@ object Settings extends Dependencies {
       // private options
       "-Ybackend-parallelism",
       availableProcessors,
-      "-Yrangepos", // required by SemanticDB compiler plugin
-      "-P:semanticdb:synthetics:on" // required by scala-collection-migrations
+      "-Yrangepos",                 // required by SemanticDB compiler plugin
+      "-P:semanticdb:synthetics:on",// required by scala-collection-migrations
     )
 
     val lintings = List(
@@ -76,7 +80,7 @@ object Settings extends Dependencies {
       "-Xlint:poly-implicit-overload",
       "-Xlint:private-shadow",
       "-Xlint:stars-align",
-      "-Xlint:type-parameter-shadow"
+      "-Xlint:type-parameter-shadow",
     )
 
     object Scala213 {
@@ -95,11 +99,11 @@ object Settings extends Dependencies {
         "-Wunused:implicits",
         "-Wunused:locals",
         "-Wunused:patvars",
-        "-Wunused:privates"
+        "-Wunused:privates",
       )
 
       val options: Seq[String] = commonOptions ++ List(
-        "-Xcheckinit"
+        "-Xcheckinit",
       ) ++ warnings ++ lintings
     }
   }
@@ -137,23 +141,19 @@ object Settings extends Dependencies {
   )
 
   implicit final class ParallelDestroyer(project: ProjectMatrix) {
-    def disableParallel() : ProjectMatrix = {
+    def disableParallel(): ProjectMatrix =
       project.settings(settings ++ Seq(
-
-        Test / parallelExecution := false
-      )
-      )
-
-    }
+        Test / parallelExecution := false,
+        IntegrationTest / parallelExecution := false,
+      ))
   }
 
   implicit final class AssemblyConfigurator(project: ProjectMatrix) {
 
     val excludeFilePatterns = Set(".MF", ".RSA", ".DSA", ".SF")
 
-    def excludeFileFilter(p : String): Boolean = {
-        excludeFilePatterns.exists(p.endsWith)
-    }
+    def excludeFileFilter(p: String): Boolean =
+      excludeFilePatterns.exists(p.endsWith)
 
     val excludePatterns = Set(
       "kafka-client",
@@ -163,9 +163,10 @@ object Settings extends Dependencies {
       "confluent",
       "zookeeper",
       "log4j",
-      "junit")
+      "junit",
+    )
 
-    def configureAssembly(): ProjectMatrix = {
+    def configureAssembly(): ProjectMatrix =
       project.settings(
         settings ++ Seq(
           assembly / assemblyOutputPath := file(target.value + "/libs/" + (assembly / assemblyJarName).value),
@@ -176,23 +177,34 @@ object Settings extends Dependencies {
             }
           },
           assembly / assemblyMergeStrategy := {
-            case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
-            case p if excludeFileFilter(p) => MergeStrategy.discard
+            case PathList("META-INF", "MANIFEST.MF")                 => MergeStrategy.discard
+            case p if excludeFileFilter(p)                           => MergeStrategy.discard
             case PathList(ps @ _*) if ps.last == "module-info.class" => MergeStrategy.discard
-            case _ => MergeStrategy.first
-          }
-        )
+            case _                                                   => MergeStrategy.first
+          },
+        ),
       )
+  }
+
+  implicit final class ProjectFilterOps(project: ProjectMatrix) {
+
+    def containsDir(dir: String): Boolean = {
+      val files = Files.find(
+        Paths.get(project.base.getAbsolutePath),
+        2,
+        (p, _) => p.toFile.getAbsolutePath.endsWith(dir),
+      ).toArray
+      files.nonEmpty
     }
   }
 
-  val E2ETest: Configuration = config("e2e").extend(Test).describedAs("Runs only E2E tests")
+  val FunctionalTest: Configuration = config("fun").extend(Test).describedAs("Runs system and acceptance tests")
 
   sealed abstract class TestConfigurator(
-                                          project:         ProjectMatrix,
-                                          config:          Configuration,
-                                          defaultSettings: Seq[Def.Setting[_]] = Defaults.testSettings,
-                                        ) {
+    project:         ProjectMatrix,
+    config:          Configuration,
+    defaultSettings: Seq[Def.Setting[_]] = Defaults.testSettings,
+  ) {
 
     protected def configure(requiresFork: Boolean, testDeps: Seq[ModuleID]): ProjectMatrix =
       project
@@ -202,7 +214,7 @@ object Settings extends Dependencies {
           inConfig(config)(
             defaultSettings ++ Seq(
               fork := requiresFork,
-              testFrameworks := Seq(sbt.TestFrameworks.ScalaTest, sbt.TestFrameworks.JUnit),
+              testFrameworks := Seq(sbt.TestFrameworks.ScalaTest),
               classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
             ),
           ),
@@ -212,13 +224,21 @@ object Settings extends Dependencies {
   implicit final class UnitTestConfigurator(project: ProjectMatrix) extends TestConfigurator(project, Test) {
 
     def configureTests(testDeps: Seq[ModuleID]): ProjectMatrix =
-      configure(false, testDeps)
+      configure(requiresFork = false, testDeps)
   }
 
-  implicit final class E2ETestConfigurator(project: ProjectMatrix) extends TestConfigurator(project, E2ETest) {
+  implicit final class IntegrationTestConfigurator(project: ProjectMatrix)
+      extends TestConfigurator(project, IntegrationTest) {
 
-    def configureE2ETests(): ProjectMatrix =
-      configure(true, kafkaConnectTestContainersDeps)
+    def configureIntegrationTests(testDeps: Seq[ModuleID]): ProjectMatrix =
+      configure(requiresFork = false, testDeps)
+  }
+
+  implicit final class FunctionalTestConfigurator(project: ProjectMatrix)
+      extends TestConfigurator(project, FunctionalTest) {
+
+    def configureFunctionalTests(): ProjectMatrix =
+      configure(requiresFork = true, testCommonDeps)
   }
 
 }

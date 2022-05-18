@@ -16,10 +16,14 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfig
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfigConstants
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import com.google.gson.Gson
 import org.apache.kafka.common.config.SslConfigs
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
@@ -28,7 +32,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.Jedis
 
 import java.net.URI
-import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 /*
 README BEFORE THE TEST
@@ -40,7 +45,7 @@ The test requires to:
 1) Start the server by executing `make` on https://github.com/xetorthio/jedis/blob/master/Makefile
 2) set the truststoreFilePath below with the location of truststore.jceks file
 3) set the runTests to true
-*/
+ */
 
 class RedisSslTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
@@ -52,11 +57,11 @@ class RedisSslTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with
 
   val TOPIC = "topic"
   val baseProps = Map(
-    RedisConfigConstants.REDIS_HOST -> "localhost",
-    RedisConfigConstants.REDIS_PORT -> "6390",
-    RedisConfigConstants.REDIS_PASSWORD -> "foobared",
-    RedisConfigConstants.REDIS_SSL_ENABLED -> "true",
-    SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG -> truststoreFilePath
+    RedisConfigConstants.REDIS_HOST           -> "localhost",
+    RedisConfigConstants.REDIS_PORT           -> "6390",
+    RedisConfigConstants.REDIS_PASSWORD       -> "foobared",
+    RedisConfigConstants.REDIS_SSL_ENABLED    -> "true",
+    SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG -> truststoreFilePath,
   )
 
 //  def setupTrustStore(): Unit = {
@@ -82,24 +87,25 @@ class RedisSslTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with
 
     "establish ssl connection" in {
 
-      if(!runTests) cancel("runTests is disabled")
+      if (!runTests) cancel("runTests is disabled")
 
       val truststoreFilePath = getClass.getResource("/truststore.jks").getPath
-      val keystoreFilePath = getClass.getResource("/keystore.jks").getPath
+      val keystoreFilePath   = getClass.getResource("/keystore.jks").getPath
 
-      val map = Map(RedisConfigConstants.REDIS_HOST -> "rediss://0.0.0.0",
-        RedisConfigConstants.REDIS_PORT -> "8453",
-        RedisConfigConstants.KCQL_CONFIG -> "SELECT * FROM topicA PK firstName, child.firstName",
-        RedisConfigConstants.ERROR_POLICY -> "THROW",
-        RedisConfigConstants.REDIS_SSL_ENABLED -> "true",
+      val map = Map(
+        RedisConfigConstants.REDIS_HOST           -> "rediss://0.0.0.0",
+        RedisConfigConstants.REDIS_PORT           -> "8453",
+        RedisConfigConstants.KCQL_CONFIG          -> "SELECT * FROM topicA PK firstName, child.firstName",
+        RedisConfigConstants.ERROR_POLICY         -> "THROW",
+        RedisConfigConstants.REDIS_SSL_ENABLED    -> "true",
         SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG -> truststoreFilePath,
         SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG -> "truststore-password",
-        SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG -> keystoreFilePath,
-        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG -> "keystore-password")
+        SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG   -> keystoreFilePath,
+        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG   -> "keystore-password",
+      )
 
-      val config =  RedisConfig(map.asJava)
+      val config   = RedisConfig(map.asJava)
       val settings = RedisSinkSettings(config)
-
 
       val writer = new RedisCache(settings)
       writer.createClient(settings)
@@ -135,15 +141,17 @@ class RedisSslTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with
 
       if (runTests) {
 
-        val jedis = new Jedis(URI.create(s"rediss://${baseProps(RedisConfigConstants.REDIS_HOST)}:${baseProps(RedisConfigConstants.REDIS_PORT)}"))
+        val jedis = new Jedis(URI.create(
+          s"rediss://${baseProps(RedisConfigConstants.REDIS_HOST)}:${baseProps(RedisConfigConstants.REDIS_PORT)}",
+        ))
         jedis.auth(baseProps(RedisConfigConstants.REDIS_PASSWORD))
         jedis.ping() shouldBe "PONG"
 
         val QUERY_ALL = s"SELECT * FROM $TOPIC PK firstName, child.firstName"
-        val props = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava
-        val config = RedisConfig(props)
-        val settings = RedisSinkSettings(config)
-        val writer = new RedisCache(settings)
+        val props     = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava
+        val config    = RedisConfig(props)
+        val settings  = RedisSinkSettings(config)
+        val writer    = new RedisCache(settings)
 
         val childSchema = SchemaBuilder.struct().name("com.example.Child")
           .field("firstName", Schema.STRING_SCHEMA)
@@ -190,7 +198,6 @@ class RedisSslTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with
         maraMap("age").toString shouldBe "22.0"
         maraMap("threshold").toString shouldBe "12.4"
         maraMap("child").asInstanceOf[java.util.Map[String, AnyRef]].get("firstName") shouldBe "Mara_Junior"
-
       }
     }
 

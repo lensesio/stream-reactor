@@ -23,6 +23,9 @@ import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.io.File
+import scala.util.Try
+
 class YamlProfileProcessorTest extends AnyFlatSpec with Matchers with LazyLogging with EitherValues {
 
   "process" should "load in single example yaml file" in {
@@ -100,12 +103,22 @@ class YamlProfileProcessorTest extends AnyFlatSpec with Matchers with LazyLoggin
   }
 
   private def process(properties: Map[String, String], yamls: String*): Either[Throwable, Map[String, Any]] = {
-    ClasspathResourceResolver.getResourcesDirectory() match {
+    getResourcesDirectory() match {
       case Left(ex) => ex.asLeft
       case Right(resourcesDir) => new YamlProfileProcessor().process(Map[String, String](
         "connect.s3.config.profiles" -> yamls.map(resourcesDir + _).mkString(","),
       ).combine(properties))
     }
+  }
 
+  private def getResourcesDirectory(): Either[Throwable, String] = {
+    val url = classOf[YamlProfileProcessorTest].getResource("/profiles/")
+    Try {
+      val uri = url.toURI
+      logger.info("Profile uri: {}", uri)
+      val profilePath = new File(uri).getAbsolutePath
+      logger.info("Profile path: {}", profilePath)
+      profilePath
+    }.toEither
   }
 }

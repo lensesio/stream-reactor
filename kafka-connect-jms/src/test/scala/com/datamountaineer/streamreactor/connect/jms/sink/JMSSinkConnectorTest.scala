@@ -25,10 +25,10 @@ import java.util.UUID
 import scala.reflect.io.Path
 
 /**
-  * Created by andrew@datamountaineer.com on 24/03/2017. 
+  * Created by andrew@datamountaineer.com on 24/03/2017.
   * stream-reactor
   */
-class JMSSinkConnectorTest extends TestBase  with BeforeAndAfterAll {
+class JMSSinkConnectorTest extends TestBase with BeforeAndAfterAll {
 
   override def afterAll(): Unit = {
     val _ = Path(AVRO_FILE).delete()
@@ -36,10 +36,10 @@ class JMSSinkConnectorTest extends TestBase  with BeforeAndAfterAll {
 
   "should start a JMSSinkConnector" in {
     val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = UUID.randomUUID().toString
-    val kcql = getKCQL(queueName, kafkaTopic1, "QUEUE")
-    val props = getSinkProps(kcql, kafkaTopic1, "")
-    val connector = new JMSSinkConnector()
+    val queueName   = UUID.randomUUID().toString
+    val kcql        = getKCQL(queueName, kafkaTopic1, "QUEUE")
+    val props       = getSinkProps(kcql, kafkaTopic1, "")
+    val connector   = new JMSSinkConnector()
     connector.start(props)
     val configs = connector.taskConfigs(1)
     configs.size() shouldBe 1

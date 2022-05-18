@@ -23,7 +23,6 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-
 class MapExtractorTest extends AnyFlatSpec with Matchers {
 
   private val stringSchema = SchemaBuilder.string().build()

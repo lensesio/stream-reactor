@@ -25,7 +25,6 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
 
-
 class SinkDataExtractorTest extends AnyFlatSpec with Matchers {
 
   private val emptyStructSchema: Schema = SchemaBuilder.struct()
