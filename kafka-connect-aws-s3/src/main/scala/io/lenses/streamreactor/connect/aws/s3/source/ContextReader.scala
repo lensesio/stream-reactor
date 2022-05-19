@@ -16,11 +16,13 @@
 
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocationWithLine, RemoteS3RootLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.fromSourcePartition
 import org.apache.kafka.connect.source.SourceTaskContext
 
-import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 
 class ContextReader(context: () => SourceTaskContext) {
@@ -29,8 +31,8 @@ class ContextReader(context: () => SourceTaskContext) {
     val key = fromSourcePartition(sourceRoot).asJava
     for {
       offsetMap <- Try(context().offsetStorageReader.offset(key).asScala).toOption.filterNot(_ == null)
-      path <- offsetMap.get("path").collect { case value: String => value }
-      line <- offsetMap.get("line").collect { case value: String if value forall Character.isDigit => value.toInt }
+      path      <- offsetMap.get("path").collect { case value: String => value }
+      line      <- offsetMap.get("line").collect { case value: String if value forall Character.isDigit => value.toInt }
     } yield sourceRoot.withPath(path).atLine(line)
   }
 

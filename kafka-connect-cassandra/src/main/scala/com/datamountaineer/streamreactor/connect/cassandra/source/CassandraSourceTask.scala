@@ -22,36 +22,40 @@ import com.datamountaineer.streamreactor.common.utils.JarManifest
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSettings, CassandraSourceSetting}
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSource
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSettings
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSourceSetting
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
-import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
+import org.apache.kafka.connect.source.SourceRecord
+import org.apache.kafka.connect.source.SourceTask
 
 import scala.collection.mutable
-import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
-import scala.util.{Failure, Success, Try}
-
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
   * Created by andrew@datamountaineer.com on 14/04/16.
   * stream-reactor
   */
 
-
 class CassandraSourceTask extends SourceTask with StrictLogging {
-  private val queues = mutable.Map.empty[String, LinkedBlockingQueue[SourceRecord]]
-  private val readers = mutable.Map.empty[String, CassandraTableReader]
+  private val queues      = mutable.Map.empty[String, LinkedBlockingQueue[SourceRecord]]
+  private val readers     = mutable.Map.empty[String, CassandraTableReader]
   private val stopControl = new Object()
-  private var taskConfig: Option[CassandraConfigSource] = None
-  private var connection: Option[CassandraConnection] = None
-  private var settings: Seq[CassandraSourceSetting] = _
-  private var bufferSize: Option[Int] = None
-  private var batchSize: Option[Int] = None
-  private var tracker: Long = 0
-  private var pollInterval: Long = CassandraConfigConstants.DEFAULT_POLL_INTERVAL
-  private var name: String = ""
+  private var taskConfig:   Option[CassandraConfigSource] = None
+  private var connection:   Option[CassandraConnection]   = None
+  private var settings:     Seq[CassandraSourceSetting]   = _
+  private var bufferSize:   Option[Int]                   = None
+  private var batchSize:    Option[Int]                   = None
+  private var tracker:      Long                          = 0
+  private var pollInterval: Long                          = CassandraConfigConstants.DEFAULT_POLL_INTERVAL
+  private var name:         String                        = ""
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
-
 
   /**
     * Starts the Cassandra source, parsing the options and setting up the reader.
@@ -60,7 +64,9 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     */
   override def start(props: util.Map[String, String]): Unit = {
 
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-source-ascii.txt")).mkString + version)
+    logger.info(
+      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-source-ascii.txt")).mkString + version,
+    )
     logger.info(manifest.printManifest())
 
     val config = if (context.configs().isEmpty) props else context.configs()
@@ -74,7 +80,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     //get the list of assigned tables this sink
     val assigned = taskConfig.get.getString(CassandraConfigConstants.ASSIGNED_TABLES).split(",").toList
     bufferSize = Some(taskConfig.get.getInt(CassandraConfigConstants.READER_BUFFER_SIZE))
-    batchSize = Some(taskConfig.get.getInt(CassandraConfigConstants.BATCH_SIZE))
+    batchSize  = Some(taskConfig.get.getInt(CassandraConfigConstants.BATCH_SIZE))
 
     ///get cassandra connection
     connection = Try(CassandraConnection(taskConfig.get)) match {
@@ -87,16 +93,21 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     //Setup queues for readers to put records into
     assigned.map(table => queues += table -> new LinkedBlockingQueue[SourceRecord](bufferSize.get))
     settings = CassandraSettings.configureSource(taskConfig.get)
-    name = props.getOrDefault("name", "")
+    name     = props.getOrDefault("name", "")
 
     //set up readers
-    assigned.map(table => {
+    assigned.map { table =>
       //get settings
       val setting = settings.filter(s => s.kcql.getSource.equals(table)).head
       val session = connection.get.session
-      val queue = queues(table)
-      readers += table -> CassandraTableReader(name = name, session = session, setting = setting, context = context, queue = queue)
-    })
+      val queue   = queues(table)
+      readers += table -> CassandraTableReader(name = name,
+                                               session = session,
+                                               setting = setting,
+                                               context = context,
+                                               queue   = queue,
+      )
+    }
 
     pollInterval = settings.head.pollInterval
   }
@@ -108,16 +119,14 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     *
     * @return A util.List of SourceRecords.
     */
-  override def poll(): util.List[SourceRecord] = {
+  override def poll(): util.List[SourceRecord] =
     settings
       .map(s => s.kcql)
       .flatten(r => process(r.getSource))
       .toList.asJava
-  }
 
   /**
     * Waiting Poll Interval
-    *
     */
   private def waitPollInterval() = {
     val now = System.currentTimeMillis()
@@ -125,7 +134,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
       tracker = now
     } else {
       logger.debug(s"Waiting for poll interval to pass")
-      stopControl.synchronized{
+      stopControl.synchronized {
         stopControl.wait(pollInterval)
       }
     }
@@ -142,7 +151,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     */
   def process(tableName: String): List[SourceRecord] = {
     val reader = readers(tableName)
-    val queue = queues(tableName)
+    val queue  = queues(tableName)
 
     logger.debug(s"Connector $name start of poll queue size for $tableName is: ${queue.size}")
 
@@ -188,10 +197,10 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     readers.foreach({ case (_, v) => v.close() })
 
     logger.info(s"Shutting down Cassandra driver connections for $name.")
-    connection.foreach(c => {
+    connection.foreach { c =>
       c.session.close()
       c.cluster.close()
-    })
+    }
   }
 
   /**
@@ -201,16 +210,14 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     */
   override def version: String = manifest.version()
 
-
   /**
     * Check if the reader for a table is querying.
     *
     * @param table The table to check if a query is active against.
     * @return A boolean indicating if querying is in progress.
     */
-  private[datamountaineer] def isReaderQuerying(table: String): Boolean = {
+  private[datamountaineer] def isReaderQuerying(table: String): Boolean =
     readers(table).isQuerying
-  }
 
   /**
     * Check the queue size of a table.
@@ -218,7 +225,6 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     * @param table The table to check the queue size for.
     * @return The size of the queue.
     */
-  private[datamountaineer] def queueSize(table: String): Int = {
+  private[datamountaineer] def queueSize(table: String): Int =
     queues(table).size()
-  }
 }

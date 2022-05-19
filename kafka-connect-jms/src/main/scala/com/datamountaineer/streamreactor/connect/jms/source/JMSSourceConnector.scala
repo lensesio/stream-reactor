@@ -19,7 +19,8 @@
 package com.datamountaineer.streamreactor.connect.jms.source
 
 import com.datamountaineer.streamreactor.common.utils.JarManifest
-import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants}
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -27,16 +28,19 @@ import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
 import java.util
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
- * Created by andrew@datamountaineer.com on 10/03/2017.
- * stream-reactor
- */
+  * Created by andrew@datamountaineer.com on 10/03/2017.
+  * stream-reactor
+  */
 class JMSSourceConnector extends SourceConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
   private val configDef = JMSConfig.config
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest  = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def taskClass(): Class[_ <: Task] = classOf[JMSSourceTask]
 
@@ -45,7 +49,7 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
     require(raw != null && raw.nonEmpty, s"No ${JMSConfigConstants.KCQL} provided!")
 
     //sql1, sql2
-    val kcqls = raw.split(";")
+    val kcqls  = raw.split(";")
     val groups = ConnectorUtils.groupPartitions(kcqls.toList.asJava, maxTasks).asScala
 
     //split up the kcql statement based on the number of tasks.
@@ -70,7 +74,7 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
   }
 
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
-    val config = new JMSConfig(configProps)
+    val config    = new JMSConfig(configProps)
     val scaleType = config.getString(JMSConfigConstants.TASK_PARALLELIZATION_TYPE).toLowerCase()
     if (scaleType == JMSConfigConstants.TASK_PARALLELIZATION_TYPE_DEFAULT) {
       kcqlTaskScaling(maxTasks)

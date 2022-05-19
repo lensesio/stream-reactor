@@ -1,6 +1,7 @@
 package com.landoop.streamreactor.connect.hive.sink.config
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.{KCQL_PROP_SUFFIX, PROGRESS_ENABLED_CONST}
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.KCQL_PROP_SUFFIX
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.PROGRESS_ENABLED_CONST
 import com.landoop.streamreactor.connect.hive.HadoopConfigurationConstants
 import com.landoop.streamreactor.connect.hive.kerberos.KerberosSettings
 
@@ -8,13 +9,14 @@ object SinkConfigSettings extends KerberosSettings with HadoopConfigurationConst
 
   val CONNECTOR_PREFIX = "connect.hive"
 
-  val KcqlKey = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
+  val KcqlKey     = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_CONFIG = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
-  val KCQL_DOC = "Contains the Kafka Connect Query Language describing the flow from Apache Kafka topics to Apache Hive tables."
+  val KCQL_DOC =
+    "Contains the Kafka Connect Query Language describing the flow from Apache Kafka topics to Apache Hive tables."
   val KCQL_DISPLAY = "KCQL commands"
 
-  val PROGRESS_COUNTER_ENABLED = PROGRESS_ENABLED_CONST
-  val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
+  val PROGRESS_COUNTER_ENABLED         = PROGRESS_ENABLED_CONST
+  val PROGRESS_COUNTER_ENABLED_DOC     = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 

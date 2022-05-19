@@ -1,7 +1,9 @@
 package com.landoop.streamreactor.connect.hive.sink.staging
 
-import com.landoop.streamreactor.connect.hive.{TopicPartition, TopicPartitionOffset}
-import org.apache.hadoop.fs.{FileSystem, Path}
+import com.landoop.streamreactor.connect.hive.TopicPartition
+import com.landoop.streamreactor.connect.hive.TopicPartitionOffset
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
 
 /**
   * The [[StageManager]] handles creation of new files (staging) and
@@ -25,7 +27,7 @@ class StageManager(filenamePolicy: FilenamePolicy) {
     s"${filenamePolicy.prefix}_${tpo.topic.value}_${tpo.partition}_${tpo.offset.value}"
 
   def stage(dir: Path, tp: TopicPartition)(implicit fs: FileSystem): Path = {
-    val filename = stageFilename(tp)
+    val filename  = stageFilename(tp)
     val stagePath = new Path(dir, filename)
     fs.delete(stagePath, false)
     stagePath

@@ -34,11 +34,11 @@ object HazelCastSinkConfigConstants {
       |it is recommended that you give the addresses for all the nodes.""".stripMargin
   val CLUSTER_MEMBERS_DEFAULT = "localhost"
 
-  val CLUSTER_NAME = s"$HAZELCAST_CONNECTOR_PREFIX.cluster.name"
+  val CLUSTER_NAME        = s"$HAZELCAST_CONNECTOR_PREFIX.cluster.name"
   val SINK_GROUP_NAME_DOC = "The group name of the connector in the target Hazelcast cluster."
 
-  val PARALLEL_WRITE = s"$HAZELCAST_CONNECTOR_PREFIX.$ALLOW_PARALLEL_WRITE_PROP_SUFFIX"
-  val PARALLEL_WRITE_DOC = "All the sink to write in parallel the records received from Kafka on each poll."
+  val PARALLEL_WRITE         = s"$HAZELCAST_CONNECTOR_PREFIX.$ALLOW_PARALLEL_WRITE_PROP_SUFFIX"
+  val PARALLEL_WRITE_DOC     = "All the sink to write in parallel the records received from Kafka on each poll."
   val PARALLEL_WRITE_DEFAULT = false
 
   val CONNECTION_TIMEOUT = s"$HAZELCAST_CONNECTOR_PREFIX.timeout"
@@ -49,19 +49,23 @@ object HazelCastSinkConfigConstants {
   val CONNECTION_TIMEOUT_DEFAULT = 5000
 
   val CONNECTION_RETRY_ATTEMPTS = s"$HAZELCAST_CONNECTOR_PREFIX.retries"
-  val CONNECTION_RETRY_ATTEMPTS_DOC: String = """Number of times a client will retry the connection at startup.""".stripMargin
+  val CONNECTION_RETRY_ATTEMPTS_DOC: String =
+    """Number of times a client will retry the connection at startup.""".stripMargin
   val CONNECTION_RETRY_ATTEMPTS_DEFAULT = 2
 
   val KEEP_ALIVE = s"$HAZELCAST_CONNECTOR_PREFIX.keep.alive"
-  val KEEP_ALIVE_DOC: String = """Enables/disables the SO_KEEPALIVE socket option. The default value is true.""".stripMargin
+  val KEEP_ALIVE_DOC: String =
+    """Enables/disables the SO_KEEPALIVE socket option. The default value is true.""".stripMargin
   val KEEP_ALIVE_DEFAULT = true
 
   val TCP_NO_DELAY = s"$HAZELCAST_CONNECTOR_PREFIX.tcp.no.delay"
-  val TCP_NO_DELAY_DOC: String = """Enables/disables the TCP_NODELAY socket option. The default value is true.""".stripMargin
+  val TCP_NO_DELAY_DOC: String =
+    """Enables/disables the TCP_NODELAY socket option. The default value is true.""".stripMargin
   val TCP_NO_DELAY_DEFAULT = true
 
   val REUSE_ADDRESS = s"$HAZELCAST_CONNECTOR_PREFIX.reuse.address"
-  val REUSE_ADDRESS_DOC: String = """Enables/disables the SO_REUSEADDR socket option. The default value is true.""".stripMargin
+  val REUSE_ADDRESS_DOC: String =
+    """Enables/disables the SO_REUSEADDR socket option. The default value is true.""".stripMargin
   val REUSE_ADDRESS_DEFAULT = true
 
   val LINGER_SECONDS = s"$HAZELCAST_CONNECTOR_PREFIX.linger.seconds"
@@ -76,7 +80,7 @@ object HazelCastSinkConfigConstants {
       |The default value is 32.""".stripMargin
   val BUFFER_SIZE_DEFAULT = 32
 
-  val KCQL = s"$HAZELCAST_CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
+  val KCQL     = s"$HAZELCAST_CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_DOC = "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY = s"$HAZELCAST_CONNECTOR_PREFIX.$ERROR_POLICY_PROP_SUFFIX"
@@ -89,12 +93,12 @@ object HazelCastSinkConfigConstants {
       |The error will be logged automatically""".stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
 
-  val ERROR_RETRY_INTERVAL = s"$HAZELCAST_CONNECTOR_PREFIX.retry.interval"
-  val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
+  val ERROR_RETRY_INTERVAL         = s"$HAZELCAST_CONNECTOR_PREFIX.retry.interval"
+  val ERROR_RETRY_INTERVAL_DOC     = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
 
-  val NBR_OF_RETRIES = s"$HAZELCAST_CONNECTOR_PREFIX.$MAX_RETRIES_PROP_SUFFIX"
-  val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
+  val NBR_OF_RETRIES         = s"$HAZELCAST_CONNECTOR_PREFIX.$MAX_RETRIES_PROP_SUFFIX"
+  val NBR_OF_RETRIES_DOC     = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
   val THREAD_POOL_CONFIG = s"$HAZELCAST_CONNECTOR_PREFIX.$THREAD_POLL_PROP_SUFFIX"
@@ -106,8 +110,8 @@ object HazelCastSinkConfigConstants {
   val SINK_THREAD_POOL_DISPLAY = "Thread pool size"
   val SINK_THREAD_POOL_DEFAULT = 0
 
-  val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
-  val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
+  val PROGRESS_COUNTER_ENABLED         = "connect.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED_DOC     = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 

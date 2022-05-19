@@ -22,17 +22,15 @@ import com.landoop.json.sql.JacksonJson
 import com.landoop.json.sql.JsonSql._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.calcite.sql.dialect.AnsiSqlDialect
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 private object Transform extends StrictLogging {
-  def apply(sql: Sql,
-            schema: Schema,
-            value: Any,
-            isKey: Boolean,
-            topic: String,
-            partition: Int): (Schema, Any) = {
+  def apply(sql: Sql, schema: Schema, value: Any, isKey: Boolean, topic: String, partition: Int): (Schema, Any) = {
     def raiseException(msg: String, e: Option[Throwable]): (Schema, Any) = {
       val errMsg =
         s"""
@@ -43,7 +41,7 @@ private object Transform extends StrictLogging {
            | topic=$topic; partition=$partition""".stripMargin
 
       e match {
-        case None => logger.error(errMsg)
+        case None     => logger.error(errMsg)
         case Some(ex) => logger.error(errMsg, ex)
       }
       throw new IllegalArgumentException(errMsg)
@@ -52,8 +50,7 @@ private object Transform extends StrictLogging {
     if (value == null) {
       if (schema == null || !schema.isOptional) {
         raiseException("Null value is not allowed.", None)
-      }
-      else schema -> value
+      } else schema -> value
     } else {
       if (schema != null) {
         schema.`type`() match {
@@ -61,7 +58,7 @@ private object Transform extends StrictLogging {
             //we expected to be json
             val array = value match {
               case a: Array[Byte] => a
-              case b: ByteBuffer => b.array()
+              case b: ByteBuffer  => b.array()
               case _ => raiseException("Invalid payload:$other for schema Schema.BYTES.", None)
                 throw new IllegalArgumentException()
             }
@@ -83,7 +80,7 @@ private object Transform extends StrictLogging {
               case Success(json) =>
                 Try(json.sql(sql.select, sql.flatten)) match {
                   case Success(jn) => schema -> jn.toString
-                  case Failure(e) => raiseException(s"A KCQL exception occurred.${e.getMessage}", Some(e))
+                  case Failure(e)  => raiseException(s"A KCQL exception occurred.${e.getMessage}", Some(e))
                 }
             }
 
@@ -112,7 +109,7 @@ private object Transform extends StrictLogging {
               case Success(json) =>
                 Try(json.sql(sql.select, sql.flatten)) match {
                   case Success(jn) => schema -> jn.toString
-                  case Failure(e) => raiseException(s"A KCQL exception occurred.${e.getMessage}", Some(e))
+                  case Failure(e)  => raiseException(s"A KCQL exception occurred.${e.getMessage}", Some(e))
                 }
             }
 
@@ -121,7 +118,7 @@ private object Transform extends StrictLogging {
               case Failure(e) => raiseException("Invalid json.", Some(e))
               case Success(json) =>
                 Try(json.sql(sql.select, sql.flatten)) match {
-                  case Failure(e) => raiseException(s"A KCQL exception occurred. ${e.getMessage}", Some(e))
+                  case Failure(e)  => raiseException(s"A KCQL exception occurred. ${e.getMessage}", Some(e))
                   case Success(jn) => schema -> jn.toString.getBytes("UTF-8")
                 }
             }

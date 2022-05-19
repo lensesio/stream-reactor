@@ -24,28 +24,27 @@ import org.apache.kafka.common.config.types.Password
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-
-case class MongoSettings(connection: String,
-                         username: String,
-                         password: Password,
-                         authenticationMechanism: AuthenticationMechanism,
-                         database: String,
-                         kcql: Set[Kcql],
-                         keyBuilderMap: Map[String, Set[String]],
-                         fields: Map[String, Map[String, String]],
-                         ignoredField: Map[String, Set[String]],
-                         errorPolicy: ErrorPolicy,
-                         taskRetries: Int = MongoConfigConstants.NBR_OF_RETIRES_DEFAULT,
-                         // Set of field name lists:
-                         jsonDateTimeFields: Set[Seq[String]] = Set.empty,
-                         trustStoreType: Option[String] = None,
-                         trustStorePassword: Option[String] = None,
-                         trustStoreLocation: Option[String] = None,
-                         keyStoreType: Option[String] = None,
-                         keyStorePassword: Option[String] = None,
-                         keyStoreLocation: Option[String] = None
-                        )
-
+case class MongoSettings(
+  connection:              String,
+  username:                String,
+  password:                Password,
+  authenticationMechanism: AuthenticationMechanism,
+  database:                String,
+  kcql:                    Set[Kcql],
+  keyBuilderMap:           Map[String, Set[String]],
+  fields:                  Map[String, Map[String, String]],
+  ignoredField:            Map[String, Set[String]],
+  errorPolicy:             ErrorPolicy,
+  taskRetries:             Int = MongoConfigConstants.NBR_OF_RETIRES_DEFAULT,
+  // Set of field name lists:
+  jsonDateTimeFields: Set[Seq[String]] = Set.empty,
+  trustStoreType:     Option[String]   = None,
+  trustStorePassword: Option[String]   = None,
+  trustStoreLocation: Option[String]   = None,
+  keyStoreType:       Option[String]   = None,
+  keyStorePassword:   Option[String]   = None,
+  keyStoreLocation:   Option[String]   = None,
+)
 
 object MongoSettings extends StrictLogging {
 
@@ -57,12 +56,12 @@ object MongoSettings extends StrictLogging {
 
     require(database.nonEmpty, s"${MongoConfigConstants.DATABASE_CONFIG} is empty")
 
-    val kcql = config.getKCQL
-    val errorPolicy= config.getErrorPolicy
-    val retries = config.getNumberRetries
-    val rowKeyBuilderMap = config.getUpsertKeys(kcql= kcql, preserveFullKeys=true)
-    val fieldsMap = getFieldsMap(kcql)
-    val ignoreFields = config.getIgnoreFieldsMap()
+    val kcql             = config.getKCQL
+    val errorPolicy      = config.getErrorPolicy
+    val retries          = config.getNumberRetries
+    val rowKeyBuilderMap = config.getUpsertKeys(kcql = kcql, preserveFullKeys = true)
+    val fieldsMap        = getFieldsMap(kcql)
+    val ignoreFields     = config.getIgnoreFieldsMap()
 
     val username = config.getUsername
     val password = config.getSecret
@@ -71,37 +70,38 @@ object MongoSettings extends StrictLogging {
     val trustStorePath = Option(config.getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG))
     val trustStorePassword = Option(config.getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)) match {
       case Some(p) => Some(p.value())
-      case None => None
+      case None    => None
     }
 
     val keyStoreType = Option(config.getString(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG))
     val keyStorePath = Option(config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
     val keyStorePassword = Option(config.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)) match {
       case Some(p) => Some(p.value())
-      case None => None
+      case None    => None
     }
 
-    val authenticationMechanism = AuthenticationMechanism.fromMechanismName(config.getString(MongoConfigConstants.AUTHENTICATION_MECHANISM))
+    val authenticationMechanism =
+      AuthenticationMechanism.fromMechanismName(config.getString(MongoConfigConstants.AUTHENTICATION_MECHANISM))
 
     new MongoSettings(
-        hostsConfig,
-        username,
-        password,
-        authenticationMechanism,
-        database,
-        kcql,
-        rowKeyBuilderMap,
-        fieldsMap,
-        ignoreFields,
-        errorPolicy,
-        retries,
-        getJsonDateTimeFields(config),
-        trustStoreType,
-        trustStorePassword,
-        trustStorePath,
-        keyStoreType,
-        keyStorePassword,
-        keyStorePath
+      hostsConfig,
+      username,
+      password,
+      authenticationMechanism,
+      database,
+      kcql,
+      rowKeyBuilderMap,
+      fieldsMap,
+      ignoreFields,
+      errorPolicy,
+      retries,
+      getJsonDateTimeFields(config),
+      trustStoreType,
+      trustStorePassword,
+      trustStorePath,
+      keyStoreType,
+      keyStorePassword,
+      keyStorePath,
     )
   }
 
@@ -115,18 +115,13 @@ object MongoSettings extends StrictLogging {
     */
   def getJsonDateTimeFields(config: MongoConfig): Set[Seq[String]] = {
     val set: Set[Seq[String]] =
-      config.getList(MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG).
-        asScala.
-        map{ fullName =>
-          fullName.trim.split('.').toSeq
-        }.toSet
+      config.getList(MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG).asScala.map { fullName =>
+        fullName.trim.split('.').toSeq
+      }.toSet
     logger.info(s"MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG is $set")
     set
   }
 
-  def getFieldsMap(kcql: Set[Kcql]): Map[String, Map[String, String]] = {
-    kcql.toList.map(rm =>
-      (rm.getSource, rm.getFields.asScala.map(fa => (fa.toString, fa.getAlias)).toMap)
-    ).toMap
-  }
+  def getFieldsMap(kcql: Set[Kcql]): Map[String, Map[String, String]] =
+    kcql.toList.map(rm => (rm.getSource, rm.getFields.asScala.map(fa => (fa.toString, fa.getAlias)).toMap)).toMap
 }

@@ -7,7 +7,6 @@ import org.apache.kafka.connect.data.Schema
 
 import java.io.File
 
-
 sealed abstract class WriteState(commitState: CommitState) {
   def getCommitState = commitState
 }
@@ -15,10 +14,10 @@ sealed abstract class WriteState(commitState: CommitState) {
 case class NoWriter(commitState: CommitState) extends WriteState(commitState) with LazyLogging {
 
   def toWriting(
-                 s3FormatWriter: S3FormatWriter,
-                 file: File,
-                 uncommittedOffset: Offset,
-               ): Writing = {
+    s3FormatWriter:    S3FormatWriter,
+    file:              File,
+    uncommittedOffset: Offset,
+  ): Writing = {
     logger.debug("state transition: NoWriter => Writing")
     Writing(commitState, s3FormatWriter, file, uncommittedOffset)
   }
@@ -26,11 +25,12 @@ case class NoWriter(commitState: CommitState) extends WriteState(commitState) wi
 }
 
 case class Writing(
-                    commitState: CommitState,
-                    s3FormatWriter: S3FormatWriter,
-                    file: File,
-                    uncommittedOffset: Offset,
-                  ) extends WriteState(commitState) with LazyLogging {
+  commitState:       CommitState,
+  s3FormatWriter:    S3FormatWriter,
+  file:              File,
+  uncommittedOffset: Offset,
+) extends WriteState(commitState)
+    with LazyLogging {
 
   def updateOffset(o: Offset, schema: Option[Schema]): WriteState = {
     logger.debug(s"state update: Uncommitted offset update ${uncommittedOffset} => $o")
@@ -39,8 +39,8 @@ case class Writing(
       commitState = commitState
         .offsetChange(
           schema,
-          s3FormatWriter.getPointer
-        )
+          s3FormatWriter.getPointer,
+        ),
     )
   }
 
@@ -51,10 +51,11 @@ case class Writing(
 }
 
 case class Uploading(
-                      commitState: CommitState,
-                      file: File,
-                      uncommittedOffset: Offset,
-                    ) extends WriteState(commitState) with LazyLogging {
+  commitState:       CommitState,
+  file:              File,
+  uncommittedOffset: Offset,
+) extends WriteState(commitState)
+    with LazyLogging {
 
   def toNoWriter(): NoWriter = {
     logger.debug("state transition: Uploading => NoWriter")
@@ -62,4 +63,3 @@ case class Uploading(
   }
 
 }
-

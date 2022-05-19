@@ -1,17 +1,18 @@
 package com.landoop.streamreactor.connect.hive.parquet
 
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.kafka.connect.data.{Schema, Struct}
-import org.apache.parquet.io.api.{Converter, GroupConverter}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
+import org.apache.parquet.io.api.Converter
+import org.apache.parquet.io.api.GroupConverter
 
 import scala.jdk.CollectionConverters.ListHasAsScala
-
 
 class RootGroupConverter(schema: Schema) extends GroupConverter with StrictLogging {
   require(schema.`type`() == Schema.Type.STRUCT)
 
   var struct: Struct = _
-  private val builder = scala.collection.mutable.Map.empty[String, Any]
+  private val builder    = scala.collection.mutable.Map.empty[String, Any]
   private val converters = schema.fields.asScala.map(Converters.get(_, builder)).toIndexedSeq
 
   override def getConverter(k: Int): Converter = converters(k)

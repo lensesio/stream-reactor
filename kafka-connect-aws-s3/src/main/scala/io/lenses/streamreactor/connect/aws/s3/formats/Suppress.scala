@@ -3,7 +3,9 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 object Suppress {
 

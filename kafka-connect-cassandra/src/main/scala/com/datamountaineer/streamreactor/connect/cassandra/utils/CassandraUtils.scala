@@ -16,12 +16,17 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.utils
 
-import java.time.{Instant, ZoneId}
+import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode.{BucketMode, DAY, HOUR, MINUTE, SECOND}
+import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode.BucketMode
+import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode.DAY
+import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode.HOUR
+import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode.MINUTE
+import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode.SECOND
 import com.datastax.driver.core.Cluster
 import org.apache.kafka.connect.errors.ConnectException
 
@@ -32,17 +37,18 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
   * stream-reactor
   */
 object CassandraUtils {
+
   /**
     * Check if we have tables in Cassandra and if we have table named the same as our topic
     *
     * @param cluster  A Cassandra cluster to check on
     * @param routes   A list of route mappings
     * @param keySpace The keyspace to look in for the tables
-    **/
+    */
   def checkCassandraTables(cluster: Cluster, routes: Seq[Kcql], keySpace: String): Unit = {
     val metaData = cluster.getMetadata.getKeyspace(keySpace).getTables
-    val tables = metaData.asScala.map(t => t.getName.toLowerCase).toSeq
-    val topics = routes.map(rm => rm.getTarget.toLowerCase)
+    val tables   = metaData.asScala.map(t => t.getName.toLowerCase).toSeq
+    val topics   = routes.map(rm => rm.getTarget.toLowerCase)
 
     //check tables
     if (tables.isEmpty) throw new ConnectException(s"No tables found in Cassandra for keyspace $keySpace")
@@ -50,7 +56,8 @@ object CassandraUtils {
     //check we have a table for all topics
     val missing = topics.toSet.diff(tables.toSet)
 
-    if (missing.nonEmpty) throw new ConnectException(s"No tables found in Cassandra for topics ${missing.mkString(",")}")
+    if (missing.nonEmpty)
+      throw new ConnectException(s"No tables found in Cassandra for topics ${missing.mkString(",")}")
   }
 
   /**
@@ -62,18 +69,20 @@ object CassandraUtils {
     *
     * @return a list of buckets that are between the two dates.
     */
-  def getBucketsBetweenDates(previousDate: Instant,
-                             upperBoundDate: Instant,
-                             bucketMode: BucketMode,
-                             bucketFormat: String): util.List[String] = {
+  def getBucketsBetweenDates(
+    previousDate:   Instant,
+    upperBoundDate: Instant,
+    bucketMode:     BucketMode,
+    bucketFormat:   String,
+  ): util.List[String] = {
     val unit = bucketMode match {
       case MINUTE => ChronoUnit.MINUTES
-      case DAY => ChronoUnit.DAYS
-      case HOUR => ChronoUnit.HOURS
+      case DAY    => ChronoUnit.DAYS
+      case HOUR   => ChronoUnit.HOURS
       case SECOND => ChronoUnit.SECONDS
     }
     val difference = previousDate.until(upperBoundDate, unit)
-    val formatter = DateTimeFormatter.ofPattern(bucketFormat).withZone(ZoneId.of("UTC"))
+    val formatter  = DateTimeFormatter.ofPattern(bucketFormat).withZone(ZoneId.of("UTC"))
 
     val dates = new util.ArrayList[String]()
     dates.add(formatter.format(previousDate))

@@ -12,7 +12,7 @@ object ConfigurationBuilder {
   def buildHBaseConfig(hBaseSettings: HBaseSettings): Configuration = {
     val configuration = HBaseConfiguration.create()
 
-    def appendFile(file:String): Unit = {
+    def appendFile(file: String): Unit = {
       val hbaseFile = new File(file)
       if (!hbaseFile.exists) {
         throw new ConfigException(s"$file does not exist in provided HBase configuration directory $hbaseFile.")

@@ -16,26 +16,30 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.ProgressCounter
 
 import java.util
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigSink, CassandraSettings}
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.errors.ConnectException
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTask
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.util.{Failure, Success, Try}
-
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
   * <h1>CassandraSinkTask</h1>
   *
   * Kafka Connect Cassandra sink task. Called by
   * framework to put records to the target sink
-  **/
+  */
 class CassandraSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[CassandraJsonWriter] = None
   private val progressCounter = new ProgressCounter
@@ -43,12 +47,13 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   logger.info("Task initialising")
 
-
   /**
     * Parse the configurations and setup the writer
-    **/
+    */
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-sink-ascii.txt")).mkString + s" $version")
+    logger.info(
+      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-sink-ascii.txt")).mkString + s" $version",
+    )
     logger.info(manifest.printManifest())
 
     val config = if (context.configs().isEmpty) props else context.configs()
@@ -66,7 +71,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Pass the SinkRecords to the writer for Writing
-    **/
+    */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     val seq = records.asScala.toVector
@@ -78,7 +83,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Clean up Cassandra connections
-    **/
+    */
   override def stop(): Unit = {
     logger.info("Stopping Cassandra sink.")
     writer.foreach(w => w.close())

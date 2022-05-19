@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.ProgressCounter
 import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfig
 import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfigConstants
 import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
@@ -32,7 +33,7 @@ import java.util
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 /**
-  * Created by andrew@datamountaineer.com on 10/08/16. 
+  * Created by andrew@datamountaineer.com on 10/08/16.
   * stream-reactor
   */
 class HazelCastSinkTask extends SinkTask with StrictLogging {
@@ -43,12 +44,14 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Parse the configurations and setup the writer
-    * */
+    */
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hazelcast-ascii.txt")).mkString + s" $version")
+    logger.info(
+      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hazelcast-ascii.txt")).mkString + s" $version",
+    )
     logger.info(manifest.printManifest())
 
-    if(Option(System.getProperty("hazelcast.logging.type")).isEmpty){
+    if (Option(System.getProperty("hazelcast.logging.type")).isEmpty) {
       System.setProperty("hazelcast.logging.type", "slf4j")
     }
 
@@ -61,7 +64,8 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
 
     //if error policy is retry set retry interval
     settings.errorPolicy match {
-      case RetryErrorPolicy() => context.timeout(sinkConfig.getInt(HazelCastSinkConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+      case RetryErrorPolicy() =>
+        context.timeout(sinkConfig.getInt(HazelCastSinkConfigConstants.ERROR_RETRY_INTERVAL).toLong)
       case _ =>
     }
 
@@ -70,7 +74,7 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Pass the SinkRecords to the writer
-    * */
+    */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     val seq = records.asScala.toVector
@@ -83,7 +87,7 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Clean up writer
-    * */
+    */
   override def stop(): Unit = {
     logger.info("Stopping Hazelcast sink.")
     writer.foreach(w => w.close())
@@ -97,4 +101,3 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
 
   override def version: String = manifest.version()
 }
-

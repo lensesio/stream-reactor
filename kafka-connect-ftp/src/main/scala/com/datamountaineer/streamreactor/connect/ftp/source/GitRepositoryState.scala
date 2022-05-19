@@ -25,10 +25,10 @@ object GitRepositoryState {
     p
   }
 
-  def describe: String = props.getProperty("git.commit.id.describe")
-  def build: String = props.getProperty("git.build.time")
+  def describe:   String = props.getProperty("git.commit.id.describe")
+  def build:      String = props.getProperty("git.build.time")
   def commitDate: String = props.getProperty("git.commit.time")
-  def commitId: String = props.getProperty("git.commit.id")
+  def commitId:   String = props.getProperty("git.commit.id")
 
-  def summary:String = s"$describe ($commitId), committed at $commitDate, built at $build"
+  def summary: String = s"$describe ($commitId), committed at $commitDate, built at $build"
 }

@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -23,13 +22,13 @@ import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
-
 object HeaderToStringConverter {
 
-  def apply(record: SinkRecord): Map[String, SinkData] = record.headers().asScala.map(header => header.key() -> headerValueToString(header.value(), Option(header.schema()))).toMap
+  def apply(record: SinkRecord): Map[String, SinkData] = record.headers().asScala.map(header =>
+    header.key() -> headerValueToString(header.value(), Option(header.schema())),
+  ).toMap
 
-  def headerValueToString(value: Any, schema: Option[Schema]): SinkData = {
+  def headerValueToString(value: Any, schema: Option[Schema]): SinkData =
     ValueToSinkDataConverter(value, schema)
-  }
 
 }

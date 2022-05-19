@@ -22,8 +22,8 @@ import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSett
 import com.typesafe.scalalogging.StrictLogging
 import redis.clients.jedis.Jedis
 
-import java.io.{File, FileNotFoundException}
-
+import java.io.File
+import java.io.FileNotFoundException
 
 /**
   * Responsible for taking a sequence of SinkRecord and write them to Redis
@@ -36,31 +36,31 @@ abstract class RedisWriter extends DbWriter with StrictLogging with ErrorHandler
     val connection = sinkSettings.connectionInfo
 
     if (connection.isSslConnection) {
-        connection.keyStoreFilepath match {
-          case Some(path) =>
-            if (!new File(path).exists) {
-              throw new FileNotFoundException(s"Keystore not found in: [$path]")
-            }
+      connection.keyStoreFilepath match {
+        case Some(path) =>
+          if (!new File(path).exists) {
+            throw new FileNotFoundException(s"Keystore not found in: [$path]")
+          }
 
-            System.setProperty("javax.net.ssl.keyStorePassword", connection.keyStorePassword.getOrElse(""))
-            System.setProperty("javax.net.ssl.keyStore", path)
-            System.setProperty("javax.net.ssl.keyStoreType", connection.keyStoreType.getOrElse("jceks"))
+          System.setProperty("javax.net.ssl.keyStorePassword", connection.keyStorePassword.getOrElse(""))
+          System.setProperty("javax.net.ssl.keyStore", path)
+          System.setProperty("javax.net.ssl.keyStoreType", connection.keyStoreType.getOrElse("jceks"))
 
-          case None =>
-        }
+        case None =>
+      }
 
-        connection.trustStoreFilepath match {
-          case Some(path) =>
-            if (!new File(path).exists) {
-              throw new FileNotFoundException(s"Truststore not found in: $path")
-            }
+      connection.trustStoreFilepath match {
+        case Some(path) =>
+          if (!new File(path).exists) {
+            throw new FileNotFoundException(s"Truststore not found in: $path")
+          }
 
-            System.setProperty("javax.net.ssl.trustStorePassword", connection.trustStorePassword.getOrElse(""))
-            System.setProperty("javax.net.ssl.trustStore", path)
-            System.setProperty("javax.net.ssl.trustStoreType", connection.trustStoreType.getOrElse("jceks"))
+          System.setProperty("javax.net.ssl.trustStorePassword", connection.trustStorePassword.getOrElse(""))
+          System.setProperty("javax.net.ssl.trustStore", path)
+          System.setProperty("javax.net.ssl.trustStoreType", connection.trustStoreType.getOrElse("jceks"))
 
-          case None =>
-        }
+        case None =>
+      }
     }
 
     jedis = new Jedis(connection.host, connection.port, connection.isSslConnection)
@@ -70,11 +70,9 @@ abstract class RedisWriter extends DbWriter with StrictLogging with ErrorHandler
     initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)
   }
 
-  def close(): Unit = {
+  def close(): Unit =
     if (jedis != null) {
       jedis.close()
     }
-  }
 
 }
-

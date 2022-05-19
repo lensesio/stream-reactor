@@ -1,6 +1,7 @@
 package io.lenses.streamreactor.connect.testcontainers
 
-import org.testcontainers.containers.{GenericContainer, Network}
+import org.testcontainers.containers.GenericContainer
+import org.testcontainers.containers.Network
 
 abstract class SingleContainer[T <: GenericContainer[_]] {
 

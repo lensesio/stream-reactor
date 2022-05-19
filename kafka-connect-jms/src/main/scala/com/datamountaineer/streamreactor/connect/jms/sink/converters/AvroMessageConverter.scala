@@ -24,7 +24,8 @@ import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import org.apache.kafka.connect.sink.SinkRecord
 
 import java.io.ByteArrayOutputStream
-import javax.jms.{BytesMessage, Session}
+import javax.jms.BytesMessage
+import javax.jms.Session
 import scala.annotation.nowarn
 
 @nowarn("cat=deprecation")
@@ -32,11 +33,11 @@ class AvroMessageConverter extends JMSSinkMessageConverter with ConverterUtil {
 
   @nowarn("cat=deprecation")
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, BytesMessage) = {
-    val converted =  super[ConverterUtil].convert(record, setting.fields, setting.ignoreField)
+    val converted  = super[ConverterUtil].convert(record, setting.fields, setting.ignoreField)
     val avroRecord = convertValueToGenericAvro(converted)
     val avroSchema = avroData.fromConnectSchema(converted.valueSchema())
 
-    implicit  val os = new ByteArrayOutputStream()
+    implicit val os = new ByteArrayOutputStream()
     AvroSerializer.write(avroRecord, avroSchema)
 
     val message = session.createBytesMessage()

@@ -16,32 +16,36 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.config
 
-import com.datamountaineer.streamreactor.connect.converters.source.{BytesConverter, Converter}
+import com.datamountaineer.streamreactor.connect.converters.source.BytesConverter
+import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import org.apache.kafka.common.config.ConfigException
 import org.eclipse.paho.client.mqttv3.MqttClient
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
-case class MqttSourceSettings(connection: String,
-                              user: Option[String],
-                              password: Option[String],
-                              clientId: String,
-                              sourcesToConverters: Map[String, String],
-                              throwOnConversion: Boolean,
-                              kcql: Array[String],
-                              mqttQualityOfService: Int,
-                              connectionTimeout: Int,
-                              pollingTimeout: Int,
-                              cleanSession: Boolean,
-                              keepAliveInterval: Int,
-                              sslCACertFile: Option[String],
-                              sslCertFile: Option[String],
-                              sslCertKeyFile: Option[String],
-                              replicateShared: Boolean = false,
-                              enableProgress: Boolean = MqttConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
-                              logMessageReceived: Boolean = false,
-                              avro: Boolean = false
-                             ) {
+case class MqttSourceSettings(
+  connection:           String,
+  user:                 Option[String],
+  password:             Option[String],
+  clientId:             String,
+  sourcesToConverters:  Map[String, String],
+  throwOnConversion:    Boolean,
+  kcql:                 Array[String],
+  mqttQualityOfService: Int,
+  connectionTimeout:    Int,
+  pollingTimeout:       Int,
+  cleanSession:         Boolean,
+  keepAliveInterval:    Int,
+  sslCACertFile:        Option[String],
+  sslCertFile:          Option[String],
+  sslCertKeyFile:       Option[String],
+  replicateShared:      Boolean = false,
+  enableProgress:       Boolean = MqttConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+  logMessageReceived:   Boolean = false,
+  avro:                 Boolean = false,
+) {
 
   def asMap(): java.util.Map[String, String] = {
     val map = new java.util.HashMap[String, String]()
@@ -67,39 +71,49 @@ object MqttSourceSettings {
   def apply(config: MqttSourceConfig): MqttSourceSettings = {
     def getFile(configKey: String) = Option(config.getString(configKey))
 
-    val kcql = config.getKCQL
-    val kcqlStr = config.getKCQLRaw
-    val user = Some(config.getUsername)
-    val password = Option(config.getSecret).map(_.value())
+    val kcql       = config.getKCQL
+    val kcqlStr    = config.getKCQLRaw
+    val user       = Some(config.getUsername)
+    val password   = Option(config.getSecret).map(_.value())
     val connection = config.getHosts
-    val clientId = Option(config.getString(MqttConfigConstants.CLIENT_ID_CONFIG)).getOrElse(MqttClient.generateClientId())
+    val clientId =
+      Option(config.getString(MqttConfigConstants.CLIENT_ID_CONFIG)).getOrElse(MqttClient.generateClientId())
 
-    val sslCACertFile = getFile(MqttConfigConstants.SSL_CA_CERT_CONFIG)
-    val sslCertFile = getFile(MqttConfigConstants.SSL_CERT_CONFIG)
+    val sslCACertFile  = getFile(MqttConfigConstants.SSL_CA_CERT_CONFIG)
+    val sslCertFile    = getFile(MqttConfigConstants.SSL_CERT_CONFIG)
     val sslCertKeyFile = getFile(MqttConfigConstants.SSL_CERT_KEY_CONFIG)
 
     (sslCACertFile, sslCertFile, sslCertKeyFile) match {
       case (Some(_), Some(_), Some(_)) =>
-      case (None, None, None) =>
-      case _ => throw new ConfigException(s"You can't define one of the ${MqttConfigConstants.SSL_CA_CERT_CONFIG},${MqttConfigConstants.SSL_CERT_CONFIG}, ${MqttConfigConstants.SSL_CERT_KEY_CONFIG} without the other")
+      case (None, None, None)          =>
+      case _ =>
+        throw new ConfigException(
+          s"You can't define one of the ${MqttConfigConstants.SSL_CA_CERT_CONFIG},${MqttConfigConstants.SSL_CERT_CONFIG}, ${MqttConfigConstants.SSL_CERT_KEY_CONFIG} without the other",
+        )
     }
 
     val replicateShared = config.getBoolean(MqttConfigConstants.REPLICATE_SHARED_SUBSCIRPTIONS_CONFIG)
 
     val progressEnabled = config.getBoolean(MqttConfigConstants.PROGRESS_COUNTER_ENABLED)
 
-    val converters = kcql.map(k => {
+    val converters = kcql.map { k =>
       (k.getSource, if (k.getWithConverter == null) classOf[BytesConverter].getCanonicalName else k.getWithConverter)
-    }).toMap
+    }.toMap
 
-    converters.foreach { case (mqtt_source, clazz) =>
-      Try(Class.forName(clazz)) match {
-        case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG}. $clazz can't be found for $mqtt_source")
-        case Success(clz) =>
-          if (!classOf[Converter].isAssignableFrom(clz)) {
-            throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG}. $clazz is not inheriting Converter for $mqtt_source")
-          }
-      }
+    converters.foreach {
+      case (mqtt_source, clazz) =>
+        Try(Class.forName(clazz)) match {
+          case Failure(_) =>
+            throw new ConfigException(
+              s"Invalid ${MqttConfigConstants.KCQL_CONFIG}. $clazz can't be found for $mqtt_source",
+            )
+          case Success(clz) =>
+            if (!classOf[Converter].isAssignableFrom(clz)) {
+              throw new ConfigException(
+                s"Invalid ${MqttConfigConstants.KCQL_CONFIG}. $clazz is not inheriting Converter for $mqtt_source",
+              )
+            }
+        }
     }
 
     val qs = config.getInt(MqttConfigConstants.QS_CONFIG)
@@ -128,7 +142,7 @@ object MqttSourceSettings {
       replicateShared,
       progressEnabled,
       config.getBoolean(MqttConfigConstants.LOG_MESSAGE_ARRIVED_KEY),
-      avro = avro
+      avro = avro,
     )
   }
 }

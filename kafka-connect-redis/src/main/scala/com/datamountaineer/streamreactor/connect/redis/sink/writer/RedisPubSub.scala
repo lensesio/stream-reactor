@@ -21,7 +21,8 @@ import com.datamountaineer.streamreactor.common.config.base.settings.Projections
 import com.datamountaineer.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
 import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
 import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisKCQLSetting, RedisSinkSettings}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisKCQLSetting
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.jdk.CollectionConverters.ListHasAsScala
@@ -45,49 +46,64 @@ class RedisPubSub(sinkSettings: RedisSinkSettings) extends RedisWriter with PubS
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
 //    assert(c.getTarget.length > 0, "Add to your KCQL syntax : INSERT INTO REDIS_KEY_NAME ")
-    assert(c.getSource.trim.nonEmpty, "You need to define one (1) topic to source data. Add to your KCQL syntax: SELECT * FROM topicName")
+    assert(
+      c.getSource.trim.nonEmpty,
+      "You need to define one (1) topic to source data. Add to your KCQL syntax: SELECT * FROM topicName",
+    )
     val allFields = if (c.getIgnoredFields.isEmpty) false else true
-    assert(c.getFields.asScala.nonEmpty || allFields, "You need to SELECT at least one field from the topic to be published to the redis channel. Please review the KCQL syntax of the connector")
-    assert(c.getPrimaryKeys.isEmpty, "They keyword PK (Primary Key) is not supported in Redis PUBSUB mode. Please review the KCQL syntax of connector")
+    assert(
+      c.getFields.asScala.nonEmpty || allFields,
+      "You need to SELECT at least one field from the topic to be published to the redis channel. Please review the KCQL syntax of the connector",
+    )
+    assert(
+      c.getPrimaryKeys.isEmpty,
+      "They keyword PK (Primary Key) is not supported in Redis PUBSUB mode. Please review the KCQL syntax of connector",
+    )
     assert(c.getStoredAs.equalsIgnoreCase("PubSub"), "This mode requires the KCQL syntax: STOREAS PubSub")
   }
 
   private lazy val simpleJsonConverter = new SimpleJsonConverter()
-  private val projections = Projections(kcqls = configs, props = Map.empty, errorPolicy = sinkSettings.errorPolicy, errorRetries = sinkSettings.taskRetries, defaultBatchSize = 100)
+  private val projections = Projections(
+    kcqls            = configs,
+    props            = Map.empty,
+    errorPolicy      = sinkSettings.errorPolicy,
+    errorRetries     = sinkSettings.taskRetries,
+    defaultBatchSize = 100,
+  )
 
   // Write a sequence of SinkRecords to Redis
-  override def write(records: Seq[SinkRecord]): Unit = {
+  override def write(records: Seq[SinkRecord]): Unit =
     if (records.isEmpty)
       logger.debug("No records received on 'PUBSUB' Redis writer")
     else {
       logger.debug(s"'PUBSUB' Redis writer received [${records.size}] records")
       insert(records.groupBy(_.topic))
     }
-  }
 
   // Insert a batch of sink records
-  def insert(records: Map[String, Seq[SinkRecord]]): Unit = {
-    records.foreach({
-      case (topic, sinkRecords: Seq[SinkRecord]) => {
-        val topicSettings: Set[RedisKCQLSetting] = sinkSettings.kcqlSettings.filter(_.kcqlConfig.getSource == topic)
-        if (topicSettings.isEmpty)
-          logger.warn(s"No KCQL statement set for [$topic]")
-        val t = Try {
-          sinkRecords.foreach { record =>
-            val struct = record.newFilteredRecordAsStruct(projections)
-            topicSettings.map { KCQL =>
-              val payload = simpleJsonConverter.fromConnectData(struct.schema(), struct)
-              val channelField = getChannelField(KCQL.kcqlConfig)
-              val channel = StringStructFieldsStringKeyBuilder(Seq(channelField)).build(record)
-              val response = jedis.publish(channel, payload.toString)
-              response
+  def insert(records: Map[String, Seq[SinkRecord]]): Unit =
+    records.foreach(
+      {
+        case (topic, sinkRecords: Seq[SinkRecord]) => {
+            val topicSettings: Set[RedisKCQLSetting] = sinkSettings.kcqlSettings.filter(_.kcqlConfig.getSource == topic)
+            if (topicSettings.isEmpty)
+              logger.warn(s"No KCQL statement set for [$topic]")
+            val t = Try {
+              sinkRecords.foreach { record =>
+                val struct = record.newFilteredRecordAsStruct(projections)
+                topicSettings.map { KCQL =>
+                  val payload      = simpleJsonConverter.fromConnectData(struct.schema(), struct)
+                  val channelField = getChannelField(KCQL.kcqlConfig)
+                  val channel      = StringStructFieldsStringKeyBuilder(Seq(channelField)).build(record)
+                  val response     = jedis.publish(channel, payload.toString)
+                  response
+                }
+              }
             }
+            handleTry(t)
           }
-        }
-        handleTry(t)
-      }
-      logger.debug(s"Published [${sinkRecords.size}] messages for topic [$topic]")
-    })
-  }
+          logger.debug(s"Published [${sinkRecords.size}] messages for topic [$topic]")
+      },
+    )
 
 }

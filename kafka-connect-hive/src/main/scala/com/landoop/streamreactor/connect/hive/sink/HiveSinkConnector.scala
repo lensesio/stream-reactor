@@ -10,7 +10,6 @@ import org.apache.kafka.connect.sink.SinkConnector
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-
 class HiveSinkConnector extends SinkConnector {
 
   val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
@@ -18,9 +17,9 @@ class HiveSinkConnector extends SinkConnector {
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   private var props: util.Map[String, String] = _
 
-  override def version(): String = manifest.version()
+  override def version():   String           = manifest.version()
   override def taskClass(): Class[_ <: Task] = classOf[HiveSinkTask]
-  override def config(): ConfigDef = HiveSinkConfigDef.config
+  override def config():    ConfigDef        = HiveSinkConfigDef.config
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Creating hive sink connector")

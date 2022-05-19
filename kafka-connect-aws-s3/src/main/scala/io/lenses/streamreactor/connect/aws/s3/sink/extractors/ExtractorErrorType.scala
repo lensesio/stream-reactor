@@ -17,7 +17,10 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
 import enumeratum._
-import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.{FieldNameNotSpecified, IncorrectIndexType, MissingValue, UnexpectedType}
+import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.FieldNameNotSpecified
+import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.IncorrectIndexType
+import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.MissingValue
+import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.UnexpectedType
 
 sealed trait ExtractorErrorType extends EnumEntry
 
@@ -34,23 +37,17 @@ object ExtractorErrorType extends Enum[ExtractorErrorType] {
   case object IncorrectIndexType extends ExtractorErrorType
 }
 
-final case class ExtractorError(extractorErrorType: ExtractorErrorType,
-                                cause: Throwable = None.orNull)
-  extends Exception(extractorErrorType.toString, cause) {
-
-
-}
+final case class ExtractorError(extractorErrorType: ExtractorErrorType, cause: Throwable = None.orNull)
+    extends Exception(extractorErrorType.toString, cause) {}
 
 object ExtractorErrorAdaptor {
 
-  def adaptErrorResponse(either: Either[ExtractorError, String]): Option[String] = {
+  def adaptErrorResponse(either: Either[ExtractorError, String]): Option[String] =
     either match {
-      case Left(ExtractorError(MissingValue, _)) => None
-      case Left(err@ExtractorError(UnexpectedType, _)) => throw err
-      case Left(err@ExtractorError(FieldNameNotSpecified, _)) => throw err
-      case Left(err@ExtractorError(IncorrectIndexType, _)) => throw err
-      case Right(value) => Some(value)
+      case Left(ExtractorError(MissingValue, _))                => None
+      case Left(err @ ExtractorError(UnexpectedType, _))        => throw err
+      case Left(err @ ExtractorError(FieldNameNotSpecified, _)) => throw err
+      case Left(err @ ExtractorError(IncorrectIndexType, _))    => throw err
+      case Right(value)                                         => Some(value)
     }
-  }
 }
-

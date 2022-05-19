@@ -17,20 +17,25 @@
 package com.datamountaineer.streamreactor.connect.influx.writers
 
 import java.util.concurrent.TimeUnit
-import com.datamountaineer.kcql.{Field, Kcql, Tag}
+import com.datamountaineer.kcql.Field
+import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.kcql.Tag
 import com.datamountaineer.streamreactor.connect.influx.NanoClock
 import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
-import com.datamountaineer.streamreactor.connect.influx.converters.{InfluxPoint, SinkRecordParser}
+import com.datamountaineer.streamreactor.connect.influx.converters.InfluxPoint
+import com.datamountaineer.streamreactor.connect.influx.converters.SinkRecordParser
 import com.datamountaineer.streamreactor.connect.influx.helpers.Util
 import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkRecord
-import org.influxdb.dto.{BatchPoints, Point}
+import org.influxdb.dto.BatchPoints
+import org.influxdb.dto.Point
 
 import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.util.{Failure, Success, Try}
-
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
   * Builds an InfluxDb point for the incoming SinkRecord.
@@ -42,62 +47,68 @@ import scala.util.{Failure, Success, Try}
   * @param settings - An instance of [[InfluxSettings]]
   */
 class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) extends StrictLogging {
-  private val kcqlMap: Map[String, Seq[KcqlDetails]] = settings.kcqls.groupBy(_.getSource).map { case (topic, kcqls) =>
-    topic -> kcqls.map { kcql =>
-      val timestampField = (Option(kcql.getTimestamp) match {
-        case Some(Kcql.TIMESTAMP) => None
-        case other => other
-      }).map(_.split('.')).map(_.toSeq)
+  private val kcqlMap: Map[String, Seq[KcqlDetails]] = settings.kcqls.groupBy(_.getSource).map {
+    case (topic, kcqls) =>
+      topic -> kcqls.map { kcql =>
+        val timestampField = (Option(kcql.getTimestamp) match {
+          case Some(Kcql.TIMESTAMP) => None
+          case other                => other
+        }).map(_.split('.')).map(_.toSeq)
 
-      val allFields = readKeyFieldsFromKcql(kcql) ++ readFieldsFromKcql(kcql)
+        val allFields = readKeyFieldsFromKcql(kcql) ++ readFieldsFromKcql(kcql)
 
-      val ignores = readIgnoredFieldsFromKcql(kcql)
+        val ignores = readIgnoredFieldsFromKcql(kcql)
 
-      val tags = Option(kcql.getTags.asScala).toList.flatten.map { tag =>
-        tag.getType match {
-          case Tag.TagType.ALIAS => DynamicTag(FieldName(tag.getValue),Path(tag.getKey.split('.').toList))
-          case Tag.TagType.CONSTANT => ConstantTag(FieldName(tag.getKey), tag.getValue)
-          case Tag.TagType.DEFAULT => DynamicTag(FieldName(tag.getKey), Path(tag.getKey.split('.').toList))
+        val tags = Option(kcql.getTags.asScala).toList.flatten.map { tag =>
+          tag.getType match {
+            case Tag.TagType.ALIAS    => DynamicTag(FieldName(tag.getValue), Path(tag.getKey.split('.').toList))
+            case Tag.TagType.CONSTANT => ConstantTag(FieldName(tag.getKey), tag.getValue)
+            case Tag.TagType.DEFAULT  => DynamicTag(FieldName(tag.getKey), Path(tag.getKey.split('.').toList))
+          }
         }
+
+        val dynamicTarget = Option(kcql.getDynamicTarget).map(_.split('.').toVector)
+        val target        = kcql.getTarget
+
+        KcqlDetails(allFields,
+                    ignores,
+                    tags,
+                    dynamicTarget.map(Path),
+                    target,
+                    timestampField.map(Path),
+                    kcql.getTimestampUnit,
+        )
       }
-
-      val dynamicTarget = Option(kcql.getDynamicTarget).map(_.split('.').toVector)
-      val target = kcql.getTarget
-
-      KcqlDetails(allFields, ignores, tags, dynamicTarget.map(Path), target, timestampField.map(Path), kcql.getTimestampUnit)
-    }
   }
 
-  private def readIgnoredFieldsFromKcql(kcql: Kcql) = {
+  private def readIgnoredFieldsFromKcql(kcql: Kcql) =
     kcql.getIgnoredFields.asScala.toList.map(field =>
-      (FieldName(field.getName), mapParentFieldsToField(field), Option(field.getAlias).map(Alias))
+      (FieldName(field.getName), mapParentFieldsToField(field), Option(field.getAlias).map(Alias)),
     ).toSet
-  }
 
-  private def readFieldsFromKcql(kcql: Kcql) = {
+  private def readFieldsFromKcql(kcql: Kcql) =
     kcql.getFields.asScala.toList.map { field =>
       (
         FieldName(Option(field.getAlias).getOrElse(field.getName)),
         mapParentFieldsToField(field),
-        Option(field.getAlias).filter(_ != field.getName).map(Alias)
+        Option(field.getAlias).filter(_ != field.getName).map(Alias),
       )
     }
-  }
 
-  private def mapParentFieldsToField(field: Field) = {
+  private def mapParentFieldsToField(field: Field) =
     Path(Option(field.getParentFields).map(_.asScala.toList).getOrElse(List.empty[String]) ::: field.getName :: Nil)
-  }
 
-  private def readKeyFieldsFromKcql(kcql: Kcql) = {
+  private def readKeyFieldsFromKcql(kcql: Kcql) =
     kcql.getKeyFields.asScala.toList.map {
       field =>
         (
           FieldName(Option(field.getAlias).getOrElse(field.getName)),
-          Path(Option(field.getParentFields).map(_.asScala.toList).getOrElse(List.empty[String]) ++ Seq("_key", field.getName)),
-          Option(field.getAlias).filter(_ != field.getName).map(Alias)
+          Path(Option(field.getParentFields).map(_.asScala.toList).getOrElse(List.empty[String]) ++ Seq("_key",
+                                                                                                        field.getName,
+          )),
+          Option(field.getAlias).filter(_ != field.getName).map(Alias),
         )
     }
-  }
 
   def build(records: Iterable[SinkRecord]): Try[BatchPoints] = {
     val batchPoints = BatchPoints
@@ -113,7 +124,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
           .flatMap { parsedRecord =>
             kcqlMap
               .get(record.topic())
-              .map { kcqls => kcqls.map(kcql => InfluxPoint.build(nanoClock)(parsedRecord, kcql)) }
+              .map(kcqls => kcqls.map(kcql => InfluxPoint.build(nanoClock)(parsedRecord, kcql)))
               .map(Success(_))
               .getOrElse(Failure(new ConfigException(s"Topic '${record.topic()}' is missing KCQL mapping.")))
           }
@@ -131,24 +142,24 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
 /**
   * Builds a cache of fields path (fields to select, fields to ignore, tags and timestamp)
   */
-case class KcqlDetails(fields: Seq[(FieldName, Path, Option[Alias])],
-                       ignoredFields: Set[(FieldName, Path, Option[Alias])],
-                       tags: Seq[ParsedTag],
-                       dynamicTarget: Option[Path],
-                       target: String,
-                       timestampField: Option[Path],
-                       timestampUnit: TimeUnit
-                      ) {
+case class KcqlDetails(
+  fields:         Seq[(FieldName, Path, Option[Alias])],
+  ignoredFields:  Set[(FieldName, Path, Option[Alias])],
+  tags:           Seq[ParsedTag],
+  dynamicTarget:  Option[Path],
+  target:         String,
+  timestampField: Option[Path],
+  timestampUnit:  TimeUnit,
+) {
   val IgnoredAndAliasFields: Set[Path] =
     fields
       .filter {
         case (_, _, Some(_)) => true
-        case (_, _, None) => false
+        case (_, _, None)    => false
       }
       .map {
         case (_, path, _) => path
-      }.toSet ++ ignoredFields.map { case (_, path, _) => path
-    }
+      }.toSet ++ ignoredFields.map { case (_, path, _) => path }
 
   val NonIgnoredFields: Seq[(FieldName, Path, Option[Alias])] = fields
     .filterNot {

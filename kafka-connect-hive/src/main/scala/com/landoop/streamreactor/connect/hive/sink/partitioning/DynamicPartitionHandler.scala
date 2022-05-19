@@ -1,12 +1,18 @@
 package com.landoop.streamreactor.connect.hive.sink.partitioning
 
-import com.landoop.streamreactor.connect.hive.{DatabaseName, Partition, TableName}
-import org.apache.hadoop.fs.{FileSystem, Path}
+import com.landoop.streamreactor.connect.hive.DatabaseName
+import com.landoop.streamreactor.connect.hive.Partition
+import com.landoop.streamreactor.connect.hive.TableName
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
-import org.apache.hadoop.hive.metastore.api.{StorageDescriptor, Table}
+import org.apache.hadoop.hive.metastore.api.StorageDescriptor
+import org.apache.hadoop.hive.metastore.api.Table
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
   * A [[PartitionHandler]] that creates partitions
@@ -18,15 +24,17 @@ import scala.util.{Failure, Success, Try}
   * paths of key1=value1/key2=value2.
   */
 class DynamicPartitionHandler(pathPolicy: PartitionPathPolicy = DefaultMetastorePartitionPathPolicy)
-  extends PartitionHandler {
+    extends PartitionHandler {
 
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
-  override def path(partition: Partition,
-                    db: DatabaseName,
-                    tableName: TableName)
-                   (client: IMetaStoreClient,
-                    fs: FileSystem): Try[Path] = {
+  override def path(
+    partition: Partition,
+    db:        DatabaseName,
+    tableName: TableName,
+  )(client:    IMetaStoreClient,
+    fs:        FileSystem,
+  ): Try[Path] = {
 
     def table: Table = client.getTable(db.value, tableName.value)
 
@@ -38,7 +46,7 @@ class DynamicPartitionHandler(pathPolicy: PartitionPathPolicy = DefaultMetastore
 
       val params = new java.util.HashMap[String, String]
       val values = partition.entries.map(_._2).toList.asJava
-      val ts = (System.currentTimeMillis / 1000).toInt
+      val ts     = (System.currentTimeMillis / 1000).toInt
 
       val p = new org.apache.hadoop.hive.metastore.api.Partition(values, db.value, tableName.value, ts, 0, sd, params)
       logger.debug(s"Updating hive metastore with partition $p")
@@ -49,15 +57,15 @@ class DynamicPartitionHandler(pathPolicy: PartitionPathPolicy = DefaultMetastore
 
     Try(client.getPartition(db.value, tableName.value, partition.entries.toList.map(_._2).asJava)) match {
       case Success(p) => Try {
-        new Path(p.getSd.getLocation)
-      }
+          new Path(p.getSd.getLocation)
+        }
       case Failure(_) => Try {
-        val t = table
-        val tableLocation = new Path(t.getSd.getLocation)
-        val path = pathPolicy.path(tableLocation, partition)
-        create(path, t)
-        path
-      }
+          val t             = table
+          val tableLocation = new Path(t.getSd.getLocation)
+          val path          = pathPolicy.path(tableLocation, partition)
+          create(path, t)
+          path
+        }
     }
   }
 }

@@ -47,13 +47,12 @@ object BytesHelper {
 
     def fromString(): Array[Byte] = Bytes.toBytes(value.toString)
 
-    def fromBytes(): Array[Byte] = {
+    def fromBytes(): Array[Byte] =
       value match {
         case b: ByteBuffer => b.array()
-        case a: Array[_] => a.asInstanceOf[Array[Byte]]
+        case a: Array[_]   => a.asInstanceOf[Array[Byte]]
         case other => throw new IllegalArgumentException(s"Can't handle $other ")
       }
-    }
 
     def fromBigDecimal(): Array[Byte] = Bytes.toBytes(value.asInstanceOf[java.math.BigDecimal])
   }

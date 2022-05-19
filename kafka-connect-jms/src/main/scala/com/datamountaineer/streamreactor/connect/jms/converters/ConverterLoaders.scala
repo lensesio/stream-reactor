@@ -1,8 +1,10 @@
 package com.datamountaineer.streamreactor.connect.jms.converters
 
 import cats.implicits._
-import com.datamountaineer.kcql.{FormatType, Kcql}
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.{JMSMessageConverterFn, JMSSinkMessageConverter}
+import com.datamountaineer.kcql.FormatType
+import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.streamreactor.connect.jms.sink.converters.JMSMessageConverterFn
+import com.datamountaineer.streamreactor.connect.jms.sink.converters.JMSSinkMessageConverter
 import org.apache.kafka.common.config.ConfigException
 
 import scala.util.Try

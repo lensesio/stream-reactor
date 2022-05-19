@@ -19,21 +19,20 @@ package io.lenses.streamreactor.connect.aws.s3.model.location
 import software.amazon.awssdk.services.s3.internal.BucketUtils
 
 case object RemoteS3RootLocation {
-  def apply(bucketAndPath: String, allowSlash: Boolean = false): RemoteS3RootLocation = {
+  def apply(bucketAndPath: String, allowSlash: Boolean = false): RemoteS3RootLocation =
     bucketAndPath.split(":") match {
-      case Array(bucket) => RemoteS3RootLocation(bucket, None, allowSlash)
+      case Array(bucket)       => RemoteS3RootLocation(bucket, None, allowSlash)
       case Array(bucket, path) => RemoteS3RootLocation(bucket, Some(path), allowSlash)
-      case _ => throw new IllegalArgumentException("Invalid number of arguments provided to create BucketAndPrefix")
+      case _                   => throw new IllegalArgumentException("Invalid number of arguments provided to create BucketAndPrefix")
     }
-  }
 
 }
 
 case class RemoteS3RootLocation(
-                                 bucket: String,
-                                 prefix: Option[String],
-                                 allowSlash: Boolean,
-                               ) extends RootLocation[RemoteS3PathLocation] {
+  bucket:     String,
+  prefix:     Option[String],
+  allowSlash: Boolean,
+) extends RootLocation[RemoteS3PathLocation] {
 
   BucketUtils.isValidDnsBucketName(bucket, true)
 
@@ -49,26 +48,23 @@ case class RemoteS3RootLocation(
 }
 
 case object RemoteS3PathLocation {
-  def apply(bucket: String, path: String): RemoteS3PathLocation = {
+  def apply(bucket: String, path: String): RemoteS3PathLocation =
     RemoteS3PathLocation(bucket, None, path)
-  }
 
 }
 case class RemoteS3PathLocation(
-                                 bucket: String,
-                                 prefix: Option[String],
-                                 override val path: String
-                               ) extends PathLocation {
+  bucket:            String,
+  prefix:            Option[String],
+  override val path: String,
+) extends PathLocation {
 
   BucketUtils.isValidDnsBucketName(bucket, true)
 
-  def atLine(line: Int): RemoteS3PathLocationWithLine = {
+  def atLine(line: Int): RemoteS3PathLocationWithLine =
     RemoteS3PathLocationWithLine(this, line)
-  }
 
-  def fromStart(): RemoteS3PathLocationWithLine = {
+  def fromStart(): RemoteS3PathLocationWithLine =
     RemoteS3PathLocationWithLine(this, -1)
-  }
 
   def root(): RemoteS3RootLocation = RemoteS3RootLocation(bucket, prefix, true)
 }

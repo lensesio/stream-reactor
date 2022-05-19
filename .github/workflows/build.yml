@@ -59,6 +59,10 @@ jobs:
         run: sbt scalafmtCheck
         env:
           JVM_OPTS: -Xmx3200m
+      - name: Check the sbt files
+        run: sbt scalafmtSbtCheck
+        env:
+          JVM_OPTS: -Xmx3200m
 
   test:
     needs: initiate

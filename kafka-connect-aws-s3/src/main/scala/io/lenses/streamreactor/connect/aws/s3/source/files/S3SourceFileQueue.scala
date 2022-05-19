@@ -18,7 +18,9 @@ package io.lenses.streamreactor.connect.aws.s3.source.files
 
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3PathLocationWithLine, RemoteS3RootLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 
 import scala.collection.mutable.ListBuffer
 
@@ -39,40 +41,41 @@ trait SourceFileQueue {
   * @param storageInterface the storage interface of the remote service.
   */
 class S3SourceFileQueue(
-                            root: RemoteS3RootLocation,
-                            numResults: Int,
-                            sourceLister : S3SourceLister
-                          ) extends SourceFileQueue with LazyLogging {
+  root:         RemoteS3RootLocation,
+  numResults:   Int,
+  sourceLister: S3SourceLister,
+) extends SourceFileQueue
+    with LazyLogging {
 
-  private var lastSeenFile : Option[RemoteS3PathLocation] = None
+  private var lastSeenFile: Option[RemoteS3PathLocation] = None
 
   private var files = ListBuffer.empty[RemoteS3PathLocationWithLine]
 
-  override def next(): Either[Throwable, Option[RemoteS3PathLocationWithLine]] = {
+  override def next(): Either[Throwable, Option[RemoteS3PathLocationWithLine]] =
     files.headOption.fold(retrieveNextFile(lastSeenFile))(nextFile => Some(nextFile).asRight)
-  }
 
-  private def retrieveNextFile(lastSeenFile: Option[RemoteS3PathLocation]): Either[Throwable, Option[RemoteS3PathLocationWithLine]] = {
-    sourceLister.listBatch(root, lastSeenFile , numResults ) match {
+  private def retrieveNextFile(
+    lastSeenFile: Option[RemoteS3PathLocation],
+  ): Either[Throwable, Option[RemoteS3PathLocationWithLine]] =
+    sourceLister.listBatch(root, lastSeenFile, numResults) match {
       case Left(ex) => ex.asLeft
       case Right(value) =>
         files ++= value.map(_.fromStart())
         files.headOption.asRight
     }
-  }
 
-  override def markFileComplete(file: RemoteS3PathLocation): Either[String, Unit] = {
+  override def markFileComplete(file: RemoteS3PathLocation): Either[String, Unit] =
     files.headOption match {
       case Some(RemoteS3PathLocationWithLine(headFile, _)) if headFile.equals(file) => files =
-        files.drop(1)
+          files.drop(1)
         lastSeenFile = Some(file)
         ().asRight
-      case Some(RemoteS3PathLocationWithLine(headFile, _)) => s"File (${file.bucket}:${file.path}) does not match that at head of the queue, which is (${headFile.bucket}:${headFile.path})".asLeft
+      case Some(RemoteS3PathLocationWithLine(headFile, _)) =>
+        s"File (${file.bucket}:${file.path}) does not match that at head of the queue, which is (${headFile.bucket}:${headFile.path})".asLeft
       case None => "No files in queue to mark as complete".asLeft
     }
-  }
 
   override def init(initFile: RemoteS3PathLocationWithLine): Unit = {
-    val _ = {files += initFile}
+    val _ = { files += initFile }
   }
 }

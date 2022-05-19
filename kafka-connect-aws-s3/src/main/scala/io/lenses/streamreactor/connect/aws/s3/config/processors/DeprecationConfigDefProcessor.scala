@@ -29,11 +29,11 @@ import scala.collection.mutable
 class DeprecationConfigDefProcessor extends ConfigDefProcessor with LazyLogging {
 
   private val deprecatedProps: Map[String, String] = ListMap(
-    DEP_AUTH_MODE -> AUTH_MODE,
-    DEP_AWS_ACCESS_KEY -> AWS_ACCESS_KEY,
-    DEP_AWS_SECRET_KEY -> AWS_SECRET_KEY,
+    DEP_AUTH_MODE                   -> AUTH_MODE,
+    DEP_AWS_ACCESS_KEY              -> AWS_ACCESS_KEY,
+    DEP_AWS_SECRET_KEY              -> AWS_SECRET_KEY,
     DEP_ENABLE_VIRTUAL_HOST_BUCKETS -> ENABLE_VIRTUAL_HOST_BUCKETS,
-    DEP_CUSTOM_ENDPOINT -> CUSTOM_ENDPOINT
+    DEP_CUSTOM_ENDPOINT             -> CUSTOM_ENDPOINT,
   )
 
   override def process(input: Map[String, Any]): Either[Exception, Map[String, Any]] = {

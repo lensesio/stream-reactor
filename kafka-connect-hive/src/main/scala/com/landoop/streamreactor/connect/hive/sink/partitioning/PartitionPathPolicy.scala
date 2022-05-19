@@ -1,6 +1,7 @@
 package com.landoop.streamreactor.connect.hive.sink.partitioning
 
-import com.landoop.streamreactor.connect.hive.{Partition, PartitionKey}
+import com.landoop.streamreactor.connect.hive.Partition
+import com.landoop.streamreactor.connect.hive.PartitionKey
 import org.apache.hadoop.fs.Path
 
 /**
@@ -20,9 +21,9 @@ object PartitionPathPolicy {
   * under the table location in a key1=value1/key2=value2 format.
   */
 object DefaultMetastorePartitionPathPolicy extends PartitionPathPolicy {
-  override def path(tableLocation: Path, partition: Partition): Path = {
-    partition.entries.foldLeft(tableLocation) { case (path, (PartitionKey(key), value)) =>
-      new Path(path, s"$key=$value")
+  override def path(tableLocation: Path, partition: Partition): Path =
+    partition.entries.foldLeft(tableLocation) {
+      case (path, (PartitionKey(key), value)) =>
+        new Path(path, s"$key=$value")
     }
-  }
 }

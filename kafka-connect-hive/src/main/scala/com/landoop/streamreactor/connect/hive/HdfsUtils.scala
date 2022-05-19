@@ -1,6 +1,9 @@
 package com.landoop.streamreactor.connect.hive
 
-import org.apache.hadoop.fs.{FileSystem, LocatedFileStatus, Path, RemoteIterator}
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.LocatedFileStatus
+import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.RemoteIterator
 
 object HdfsUtils {
 
@@ -14,6 +17,6 @@ object HdfsUtils {
 
   implicit def iterator[T](iterator: RemoteIterator[T]): Iterator[T] = new Iterator[T] {
     override def hasNext: Boolean = iterator.hasNext
-    override def next(): T = iterator.next()
+    override def next():  T       = iterator.next()
   }
 }

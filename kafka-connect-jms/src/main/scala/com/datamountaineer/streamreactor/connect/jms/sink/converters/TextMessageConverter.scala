@@ -22,7 +22,8 @@ import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import org.apache.kafka.connect.sink.SinkRecord
 
-import javax.jms.{Message, Session}
+import javax.jms.Message
+import javax.jms.Session
 import scala.annotation.nowarn
 
 @nowarn("cat=deprecation")
@@ -31,7 +32,7 @@ class TextMessageConverter extends JMSSinkMessageConverter with ConverterUtil {
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, Message) = {
 
     val value = record.value()
-    val msg = session.createTextMessage(value.asInstanceOf[String])
+    val msg   = session.createTextMessage(value.asInstanceOf[String])
 
     (setting.source, msg)
   }

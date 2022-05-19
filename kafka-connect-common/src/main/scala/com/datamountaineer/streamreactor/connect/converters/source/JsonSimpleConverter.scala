@@ -29,22 +29,25 @@ import org.json4s.native.JsonParser
 import java.nio.charset.Charset
 import java.util
 import java.util.Collections
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 class JsonSimpleConverter extends Converter {
   override def convert(
-      kafkaTopic: String,
-      sourceTopic: String,
-      messageId: String,
-      bytes: Array[Byte],
-      keys: Seq[String] = Seq.empty,
-      keyDelimiter: String = ".",
-      properties: Map[String, String] = Map.empty): SourceRecord = {
+    kafkaTopic:   String,
+    sourceTopic:  String,
+    messageId:    String,
+    bytes:        Array[Byte],
+    keys:         Seq[String]         = Seq.empty,
+    keyDelimiter: String              = ".",
+    properties:   Map[String, String] = Map.empty,
+  ): SourceRecord = {
     if (bytes == null)
       throw new ConnectException("Invalid input. Input cannot be null.")
-    val json = new String(bytes, Charset.defaultCharset)
+    val json           = new String(bytes, Charset.defaultCharset)
     val schemaAndValue = JsonSimpleConverter.convert(sourceTopic, json)
-    val value = schemaAndValue.value()
+    val value          = schemaAndValue.value()
     value match {
       case s: Struct if keys.nonEmpty =>
         val keysValue = keys
@@ -61,7 +64,7 @@ class JsonSimpleConverter extends Converter {
           Schema.STRING_SCHEMA,
           keysValue,
           schemaAndValue.schema(),
-          schemaAndValue.value()
+          schemaAndValue.value(),
         )
       case _ =>
         new SourceRecord(
@@ -71,7 +74,7 @@ class JsonSimpleConverter extends Converter {
           MsgKey.schema,
           MsgKey.getStruct(sourceTopic, messageId),
           schemaAndValue.schema(),
-          schemaAndValue.value()
+          schemaAndValue.value(),
         )
     }
 
@@ -98,7 +101,7 @@ object JsonSimpleConverter extends StrictLogging {
     convert(name, json)
   }
 
-  def convert(name: String, value: JValue): SchemaAndValue = {
+  def convert(name: String, value: JValue): SchemaAndValue =
     value match {
       case JArray(arr) => handleArray(name, arr)
       case JBool(b)    => new SchemaAndValue(Schema.OPTIONAL_BOOLEAN_SCHEMA, b)
@@ -107,19 +110,19 @@ object JsonSimpleConverter extends StrictLogging {
         new SchemaAndValue(schema, Decimal.fromLogical(schema, d.bigDecimal))
       case JDouble(d) => new SchemaAndValue(Schema.OPTIONAL_FLOAT64_SCHEMA, d)
       case JInt(i) =>
-        new SchemaAndValue(Schema.OPTIONAL_INT64_SCHEMA, i.toLong) //on purpose! LONG (we might get later records with long entries)
+        new SchemaAndValue(Schema.OPTIONAL_INT64_SCHEMA,
+                           i.toLong,
+        ) //on purpose! LONG (we might get later records with long entries)
       case JLong(l) => new SchemaAndValue(Schema.OPTIONAL_INT64_SCHEMA, l)
       case JNull | JNothing =>
         new SchemaAndValue(Schema.OPTIONAL_STRING_SCHEMA, null)
       case JString(s)      => new SchemaAndValue(Schema.OPTIONAL_STRING_SCHEMA, s)
       case JObject(values) => handleObject(name, values)
-      case other => throw new IllegalStateException(s"$other Not handled in match")
+      case other           => throw new IllegalStateException(s"$other Not handled in match")
     }
-  }
-  private def handleArray(name: String,
-                          arr: List[_root_.org.json4s.JsonAST.JValue]) = {
+  private def handleArray(name: String, arr: List[_root_.org.json4s.JsonAST.JValue]) = {
     val values = new util.ArrayList[AnyRef]()
-    val sv = convert(name, arr.head)
+    val sv     = convert(name, arr.head)
     values.add(sv.value())
     arr.tail.foreach { v =>
       values.add(convert(name, v).value())
@@ -128,8 +131,7 @@ object JsonSimpleConverter extends StrictLogging {
     val schema = SchemaBuilder.array(sv.schema()).optional().build()
     new SchemaAndValue(schema, values)
   }
-  private def handleObject(name: String,
-                           values: List[(String, json4s.JValue)]) = {
+  private def handleObject(name: String, values: List[(String, json4s.JValue)]) = {
     val builder = SchemaBuilder.struct().name(name.replace("/", "_"))
     val fields = values.map {
       case (n, v) =>

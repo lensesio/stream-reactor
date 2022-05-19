@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2021 Lenses.io
  *
@@ -19,7 +18,8 @@ package io.lenses.streamreactor.connect.aws.s3.source.files
 
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.Format
-import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.storage.SourceStorageInterface
 
 /**
@@ -29,18 +29,14 @@ import io.lenses.streamreactor.connect.aws.s3.storage.SourceStorageInterface
 class S3SourceLister(format: Format)(implicit sourceStorageInterface: SourceStorageInterface) extends LazyLogging {
 
   def listBatch(
-            bucketAndPrefix: RemoteS3RootLocation,
-            lastFile: Option[RemoteS3PathLocation],
-            numResults : Int
-          ): Either[Throwable, List[RemoteS3PathLocation]] = {
-
+    bucketAndPrefix: RemoteS3RootLocation,
+    lastFile:        Option[RemoteS3PathLocation],
+    numResults:      Int,
+  ): Either[Throwable, List[RemoteS3PathLocation]] =
     for {
       list <- sourceStorageInterface.list(bucketAndPrefix, lastFile, numResults)
-    } yield list.collect{
+    } yield list.collect {
       case path: String if path.toLowerCase.endsWith(format.entryName.toLowerCase) => bucketAndPrefix.withPath(path)
     }
 
-  }
-
 }
-

@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -20,11 +19,14 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.Format._
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
-import io.lenses.streamreactor.connect.aws.s3.config.{FormatOptions, FormatSelection}
+import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions
+import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
-import io.lenses.streamreactor.connect.aws.s3.sink.{NonFatalS3SinkError, SinkError}
-import io.lenses.streamreactor.connect.aws.s3.stream.{BuildLocalOutputStream, S3OutputStream}
+import io.lenses.streamreactor.connect.aws.s3.sink.NonFatalS3SinkError
+import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
+import io.lenses.streamreactor.connect.aws.s3.stream.BuildLocalOutputStream
+import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 
 import java.io.File
 import scala.util.Try
@@ -38,28 +40,30 @@ object S3FormatWriter {
       .fold[BytesWriteMode](BytesWriteMode.ValueWithSize)(fo => BytesWriteMode.withName(fo.entryName))
   }
 
-  def apply(formatSelection: FormatSelection, path: File, topicPartition: TopicPartition): Either[SinkError, S3FormatWriter] = {
-    {for {
+  def apply(
+    formatSelection: FormatSelection,
+    path:            File,
+    topicPartition:  TopicPartition,
+  ): Either[SinkError, S3FormatWriter] = {
+    for {
       outputStream <- Try(() => new BuildLocalOutputStream(toBufferedOutputStream(path), topicPartition))
-      writer <- Try(S3FormatWriter(formatSelection, outputStream))
-    } yield writer}.toEither.leftMap(ex => NonFatalS3SinkError(ex.getMessage, ex))
-  }
+      writer       <- Try(S3FormatWriter(formatSelection, outputStream))
+    } yield writer
+  }.toEither.leftMap(ex => NonFatalS3SinkError(ex.getMessage, ex))
 
   def apply(
-             formatInfo: FormatSelection,
-             outputStreamFn: () => S3OutputStream
-           ): S3FormatWriter = {
-
+    formatInfo:     FormatSelection,
+    outputStreamFn: () => S3OutputStream,
+  ): S3FormatWriter =
     formatInfo.format match {
       case Parquet => new ParquetFormatWriter(outputStreamFn)
-      case Json => new JsonFormatWriter(outputStreamFn)
-      case Avro => new AvroFormatWriter(outputStreamFn)
-      case Text => new TextFormatWriter(outputStreamFn)
-      case Csv => new CsvFormatWriter(outputStreamFn, formatInfo.formatOptions.contains(WithHeaders))
-      case Bytes => new BytesFormatWriter(outputStreamFn, convertToBytesWriteMode(formatInfo.formatOptions))
-      case _ => throw FormatWriterException(s"Unsupported S3 format $formatInfo.format")
+      case Json    => new JsonFormatWriter(outputStreamFn)
+      case Avro    => new AvroFormatWriter(outputStreamFn)
+      case Text    => new TextFormatWriter(outputStreamFn)
+      case Csv     => new CsvFormatWriter(outputStreamFn, formatInfo.formatOptions.contains(WithHeaders))
+      case Bytes   => new BytesFormatWriter(outputStreamFn, convertToBytesWriteMode(formatInfo.formatOptions))
+      case _       => throw FormatWriterException(s"Unsupported S3 format $formatInfo.format")
     }
-  }
 
 }
 
@@ -73,7 +77,5 @@ trait S3FormatWriter extends AutoCloseable {
 
   def complete(): Either[SinkError, Unit]
 
-  def close(): Unit = {val _ = complete()}
+  def close(): Unit = { val _ = complete() }
 }
-
-

@@ -16,15 +16,14 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import org.apache.avro.file.{DataFileReader, SeekableByteArrayInput}
-import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
+import org.apache.avro.file.DataFileReader
+import org.apache.avro.file.SeekableByteArrayInput
+import org.apache.avro.generic.GenericDatumReader
+import org.apache.avro.generic.GenericRecord
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
-
-
 class AvroFormatReader extends Using {
-
 
   def read(bytes: Array[Byte]): List[GenericRecord] = {
 
@@ -39,6 +38,5 @@ class AvroFormatReader extends Using {
     }
 
   }
-
 
 }

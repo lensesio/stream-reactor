@@ -17,14 +17,18 @@
 package com.datamountaineer.streamreactor.connect.cassandra.utils
 
 /**
-  * Created by andrew@datamountaineer.com on 29/04/16. 
+  * Created by andrew@datamountaineer.com on 29/04/16.
   * stream-reactor
   */
 
-import com.datastax.driver.core.{ResultSet, ResultSetFuture}
-import com.google.common.util.concurrent.{FutureCallback, Futures, MoreExecutors}
+import com.datastax.driver.core.ResultSet
+import com.datastax.driver.core.ResultSetFuture
+import com.google.common.util.concurrent.FutureCallback
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.MoreExecutors
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Future
+import scala.concurrent.Promise
 
 object CassandraResultSetWrapper {
 
@@ -36,13 +40,14 @@ object CassandraResultSetWrapper {
     */
   implicit def resultSetFutureToScala(f: ResultSetFuture): Future[ResultSet] = {
     val p = Promise[ResultSet]()
-    Futures.addCallback(f,
+    Futures.addCallback(
+      f,
       new FutureCallback[ResultSet] {
         def onSuccess(r: ResultSet): Unit = p success r
 
         def onFailure(t: Throwable): Unit = p failure t
       },
-      MoreExecutors.directExecutor()
+      MoreExecutors.directExecutor(),
     )
     p.future
   }

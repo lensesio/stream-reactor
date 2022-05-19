@@ -17,14 +17,16 @@
 package com.datamountaineer.streamreactor.connect.mqtt.sink
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.converters.{FieldConverter, ToJsonWithProjections}
+import com.datamountaineer.streamreactor.common.converters.FieldConverter
+import com.datamountaineer.streamreactor.common.converters.ToJsonWithProjections
 import com.datamountaineer.streamreactor.common.converters.sink.Converter
 import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkSettings
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
-import org.eclipse.paho.client.mqttv3.{MqttClient, MqttMessage}
+import org.eclipse.paho.client.mqttv3.MqttClient
+import org.eclipse.paho.client.mqttv3.MqttMessage
 import org.json4s.DefaultFormats
 import org.json4s.native.JsonMethods._
 
@@ -38,78 +40,83 @@ import scala.util.Try
   */
 
 object MqttWriter {
-  def apply(settings: MqttSinkSettings, convertersMap: Map[String, Converter]): MqttWriter = {
+  def apply(settings: MqttSinkSettings, convertersMap: Map[String, Converter]): MqttWriter =
     new MqttWriter(MqttClientConnectionFn.apply(settings), settings, convertersMap)
-  }
 }
 
-class MqttWriter(client: MqttClient, settings: MqttSinkSettings,
-                convertersMap: Map[String, Converter])
-  extends StrictLogging with ErrorHandler {
+class MqttWriter(client: MqttClient, settings: MqttSinkSettings, convertersMap: Map[String, Converter])
+    extends StrictLogging
+    with ErrorHandler {
 
   //initialize error tracker
   implicit val formats = DefaultFormats
   initialize(settings.maxRetries, settings.errorPolicy)
   val mappings: Map[String, Set[Kcql]] = settings.kcql.groupBy(k => k.getSource)
   val kcql = settings.kcql
-  val msg = new MqttMessage()
+  val msg  = new MqttMessage()
   msg.setQos(settings.mqttQualityOfService)
-  var mqttTarget : String = ""
+  var mqttTarget: String = ""
 
   def write(records: Set[SinkRecord]) = {
 
     val grouped = records.groupBy(r => r.topic())
 
-    val t = Try(grouped.map({
-      case (topic, records) =>
-        //get the kcql statements for this topic
-        val kcqls: Set[Kcql] = mappings.get(topic).get
-        kcqls.map(k => {
-          //for all the records in the group transform
-          records.map(r => {
-            @nowarn
-            val transformed = ToJsonWithProjections(
-              k.getFields.asScala.map(FieldConverter.apply).toSeq,
-              k.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
-              r.valueSchema(),
-              r.value(),
-              k.hasRetainStructure
-            )
+    val t = Try(
+      grouped.map(
+        {
+          case (topic, records) =>
+            //get the kcql statements for this topic
+            val kcqls: Set[Kcql] = mappings.get(topic).get
+            kcqls.map {
+              k =>
+                //for all the records in the group transform
+                records.map {
+                  r =>
+                    @nowarn
+                    val transformed = ToJsonWithProjections(
+                      k.getFields.asScala.map(FieldConverter.apply).toSeq,
+                      k.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
+                      r.valueSchema(),
+                      r.value(),
+                      k.hasRetainStructure,
+                    )
 
-            //get kafka message key if asked for
-            if (Option(k.getDynamicTarget).getOrElse("").nonEmpty) {
-              val mqtttopic = (parse(transformed.toString) \ k.getDynamicTarget).extractOrElse[String](null)
-              if (mqtttopic.nonEmpty) {
-                mqttTarget = mqtttopic
-              }
-            } else if (k.getTarget == "_key") {
-              mqttTarget = r.key().toString
-            } else {
-              mqttTarget = k.getTarget
+                    //get kafka message key if asked for
+                    if (Option(k.getDynamicTarget).getOrElse("").nonEmpty) {
+                      val mqtttopic = (parse(transformed.toString) \ k.getDynamicTarget).extractOrElse[String](null)
+                      if (mqtttopic.nonEmpty) {
+                        mqttTarget = mqtttopic
+                      }
+                    } else if (k.getTarget == "_key") {
+                      mqttTarget = r.key().toString
+                    } else {
+                      mqttTarget = k.getTarget
+                    }
+
+                    val converter = convertersMap.getOrElse(k.getSource, null)
+                    val value = if (converter == null) {
+                      transformed.toString.getBytes()
+                    } else {
+                      val converted_record = converter.convert(mqttTarget, r)
+                      converted_record.value().asInstanceOf[Array[Byte]]
+                    }
+
+                    (mqttTarget, value)
+                }.map(
+                  {
+                    case (t, value) => {
+                      msg.setPayload(value)
+                      msg.setRetained(settings.mqttRetainedMessage);
+
+                      client.publish(t, msg)
+
+                    }
+                  },
+                )
             }
-
-            val converter = convertersMap.getOrElse(k.getSource, null)
-            val value = if (converter == null) {
-              transformed.toString.getBytes()
-            } else {
-              val converted_record = converter.convert(mqttTarget, r)
-              converted_record.value().asInstanceOf[Array[Byte]]
-            }
-
-            (mqttTarget, value)
-          }).map(
-            {
-              case (t, value) => {
-                msg.setPayload(value)
-                msg.setRetained(settings.mqttRetainedMessage);
-
-                client.publish(t, msg)
-
-              }
-            }
-          )
-        })
-    }))
+        },
+      ),
+    )
 
     //handle any errors according to the policy.
     handleTry(t)

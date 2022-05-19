@@ -16,19 +16,23 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb
 
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 
 import java.util
 
-case class Output(addr_tag_link: Option[String],
-                  addr_tag: Option[String],
-                  spent: Boolean,
-                  tx_index: Long,
-                  `type`: Int,
-                  addr: Option[String],
-                  value: Long,
-                  n: Int,
-                  script: String) {
+case class Output(
+  addr_tag_link: Option[String],
+  addr_tag:      Option[String],
+  spent:         Boolean,
+  tx_index:      Long,
+  `type`:        Int,
+  addr:          Option[String],
+  value:         Long,
+  n:             Int,
+  script:        String,
+) {
 
   def toHashMap: util.HashMap[String, Any] = {
     val map = new util.HashMap[String, Any]()

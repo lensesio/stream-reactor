@@ -17,10 +17,10 @@
 package io.lenses.streamreactor.connect.aws.s3.model
 
 import com.datamountaineer.kcql.Kcql
-import enumeratum.{Enum, EnumEntry}
+import enumeratum.Enum
+import enumeratum.EnumEntry
 
 import scala.collection.immutable
-
 
 sealed trait PartitionDisplay extends EnumEntry
 
@@ -32,12 +32,11 @@ object PartitionDisplay extends Enum[PartitionDisplay] {
 
   case object Values extends PartitionDisplay
 
-  def apply(kcql: Kcql): PartitionDisplay = {
+  def apply(kcql: Kcql): PartitionDisplay =
     Option(kcql.getWithPartitioner).fold[PartitionDisplay](KeysAndValues) {
       PartitionDisplay
         .withNameInsensitiveOption(_)
         .getOrElse(KeysAndValues)
     }
-  }
 
 }

@@ -27,40 +27,43 @@ import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
 
-
 class JsonOptNullConverter extends Converter {
-  override def convert(kafkaTopic: String,
-                       sourceTopic: String,
-                       messageId: String,
-                       bytes: Array[Byte],
-                       keys:Seq[String] = Seq.empty,
-                       keyDelimiter:String = ".",
-                       properties: Map[String, String] = Map.empty): SourceRecord = {
-    if(bytes == null) throw new ConnectException("Invalid input. Input cannot be null.")
-    val json = new String(bytes, Charset.defaultCharset)
+  override def convert(
+    kafkaTopic:   String,
+    sourceTopic:  String,
+    messageId:    String,
+    bytes:        Array[Byte],
+    keys:         Seq[String]         = Seq.empty,
+    keyDelimiter: String              = ".",
+    properties:   Map[String, String] = Map.empty,
+  ): SourceRecord = {
+    if (bytes == null) throw new ConnectException("Invalid input. Input cannot be null.")
+    val json           = new String(bytes, Charset.defaultCharset)
     val schemaAndValue = JsonOptNullConverter.convert(sourceTopic, json)
-    val value = schemaAndValue.value()
+    val value          = schemaAndValue.value()
     value match {
-      case s:Struct if keys.nonEmpty =>
+      case s: Struct if keys.nonEmpty =>
         val keysValue = keys.flatMap { key =>
           Option(KeyExtractor.extract(s, key.split('.').toVector)).map(_.toString)
         }.mkString(keyDelimiter)
 
         new SourceRecord(Collections.singletonMap(Converter.TopicKey, sourceTopic),
-          null,
-          kafkaTopic,
-          Schema.STRING_SCHEMA,
-          keysValue,
-          schemaAndValue.schema(),
-          schemaAndValue.value())
-      case _=>
+                         null,
+                         kafkaTopic,
+                         Schema.STRING_SCHEMA,
+                         keysValue,
+                         schemaAndValue.schema(),
+                         schemaAndValue.value(),
+        )
+      case _ =>
         new SourceRecord(Collections.singletonMap(Converter.TopicKey, sourceTopic),
-          null,
-          kafkaTopic,
-          MsgKey.schema,
-          MsgKey.getStruct(sourceTopic, messageId),
-          schemaAndValue.schema(),
-          schemaAndValue.value())
+                         null,
+                         kafkaTopic,
+                         MsgKey.schema,
+                         MsgKey.getStruct(sourceTopic, messageId),
+                         schemaAndValue.schema(),
+                         schemaAndValue.value(),
+        )
     }
 
   }
@@ -73,13 +76,13 @@ object JsonOptNullConverter {
 
   def convert(name: String, str: String): SchemaAndValue = convert(name, parse(str))
 
-  def convert(name: String, value: JValue): SchemaAndValue = {
+  def convert(name: String, value: JValue): SchemaAndValue =
     value match {
       case JArray(arr) =>
         val values = new util.ArrayList[AnyRef]()
-        val sv = convert(name, arr.head)
+        val sv     = convert(name, arr.head)
         values.add(sv.value())
-        arr.tail.foreach { v => values.add(convert(name, v).value()) }
+        arr.tail.foreach(v => values.add(convert(name, v).value()))
 
         val schema = SchemaBuilder.array(sv.schema()).optional().build()
         new SchemaAndValue(schema, values)
@@ -88,17 +91,21 @@ object JsonOptNullConverter {
         val schema = Decimal.builder(d.scale).optional().build()
         new SchemaAndValue(schema, Decimal.fromLogical(schema, d.bigDecimal))
       case JDouble(d) => new SchemaAndValue(Schema.FLOAT64_SCHEMA, d)
-      case JInt(i) => new SchemaAndValue(Schema.INT64_SCHEMA, i.toLong) //on purpose! LONG (we might get later records with long entries)
-      case JLong(l) => new SchemaAndValue(Schema.INT64_SCHEMA, l)
+      case JInt(i) =>
+        new SchemaAndValue(Schema.INT64_SCHEMA,
+                           i.toLong,
+        ) //on purpose! LONG (we might get later records with long entries)
+      case JLong(l)         => new SchemaAndValue(Schema.INT64_SCHEMA, l)
       case JNull | JNothing => new SchemaAndValue(Schema.OPTIONAL_STRING_SCHEMA, null)
-      case JString(s) => new SchemaAndValue(Schema.STRING_SCHEMA, s)
+      case JString(s)       => new SchemaAndValue(Schema.STRING_SCHEMA, s)
       case JObject(values) =>
         val builder = SchemaBuilder.struct().name(name.replace("/", "_"))
 
-        val fields = values.map { case (n, v) =>
-          val schemaAndValue = convert(n, v)
-          builder.field(n, schemaAndValue.schema())
-          n -> schemaAndValue.value()
+        val fields = values.map {
+          case (n, v) =>
+            val schemaAndValue = convert(n, v)
+            builder.field(n, schemaAndValue.schema())
+            n -> schemaAndValue.value()
         }.toMap
         val schema = builder.build()
 
@@ -108,5 +115,4 @@ object JsonOptNullConverter {
         new SchemaAndValue(schema, struct)
       case other => throw new IllegalStateException(s"Cannot match $other")
     }
-  }
 }

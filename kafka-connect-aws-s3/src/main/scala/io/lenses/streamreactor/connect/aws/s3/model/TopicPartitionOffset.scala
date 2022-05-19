@@ -16,17 +16,13 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model
 
-import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
-
-
-
+import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 
 case class Topic(value: String) {
   require(value != null && value.trim.nonEmpty)
 
-  def withPartition(partition: Int): TopicPartition = {
+  def withPartition(partition: Int): TopicPartition =
     TopicPartition(this, partition)
-  }
 }
 
 object Offset {
@@ -42,9 +38,8 @@ case class Offset(value: Long) {
 }
 
 object TopicPartition {
-  def apply(kafkaTopicPartition: KafkaTopicPartition): TopicPartition = {
+  def apply(kafkaTopicPartition: KafkaTopicPartition): TopicPartition =
     TopicPartition(Topic(kafkaTopicPartition.topic()), kafkaTopicPartition.partition())
-  }
 }
 
 case class TopicPartition(topic: Topic, partition: Int) {

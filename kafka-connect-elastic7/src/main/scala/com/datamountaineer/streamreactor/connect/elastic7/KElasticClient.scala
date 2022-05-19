@@ -21,10 +21,14 @@ import com.datamountaineer.streamreactor.connect.elastic7.config.ElasticSettings
 import com.datamountaineer.streamreactor.connect.elastic7.indexname.CreateIndex.getIndexName
 import com.sksamuel.elastic4s.requests.bulk.BulkRequest
 import com.sksamuel.elastic4s.requests.bulk.BulkResponse
-import com.sksamuel.elastic4s.{ElasticClient, ElasticNodeEndpoint, ElasticProperties, Response}
+import com.sksamuel.elastic4s.ElasticClient
+import com.sksamuel.elastic4s.ElasticNodeEndpoint
+import com.sksamuel.elastic4s.ElasticProperties
+import com.sksamuel.elastic4s.Response
 import com.sksamuel.elastic4s.http.JavaClient
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.http.auth.{AuthScope, UsernamePasswordCredentials}
+import org.apache.http.auth.AuthScope
+import org.apache.http.auth.UsernamePasswordCredentials
 import org.apache.http.client.config.RequestConfig.Builder
 import org.apache.http.impl.client.BasicCredentialsProvider
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder
@@ -37,29 +41,30 @@ trait KElasticClient extends AutoCloseable {
   def execute(definition: BulkRequest): Future[Any]
 }
 
-
 object KElasticClient extends StrictLogging {
 
-  def createHttpClient(settings: ElasticSettings, endpoints: Seq[ElasticNodeEndpoint]): KElasticClient = {
+  def createHttpClient(settings: ElasticSettings, endpoints: Seq[ElasticNodeEndpoint]): KElasticClient =
     if (settings.httpBasicAuthUsername.nonEmpty && settings.httpBasicAuthPassword.nonEmpty) {
       lazy val provider = {
         val provider = new BasicCredentialsProvider
-        val credentials = new UsernamePasswordCredentials(settings.httpBasicAuthUsername, settings.httpBasicAuthPassword)
+        val credentials =
+          new UsernamePasswordCredentials(settings.httpBasicAuthUsername, settings.httpBasicAuthPassword)
         provider.setCredentials(AuthScope.ANY, credentials)
         provider
       }
 
-      val javaClient = JavaClient(ElasticProperties(endpoints),
+      val javaClient = JavaClient(
+        ElasticProperties(endpoints),
         (requestConfigBuilder: Builder) => requestConfigBuilder,
-        (httpClientBuilder: HttpAsyncClientBuilder) => httpClientBuilder.setDefaultCredentialsProvider(provider))
+        (httpClientBuilder: HttpAsyncClientBuilder) => httpClientBuilder.setDefaultCredentialsProvider(provider),
+      )
 
       val client: ElasticClient = ElasticClient(javaClient)
       new HttpKElasticClient(client)
     } else {
-      val client : ElasticClient = ElasticClient(JavaClient(ElasticProperties(endpoints)))
+      val client: ElasticClient = ElasticClient(JavaClient(ElasticProperties(endpoints)))
       new HttpKElasticClient(client)
     }
-  }
 }
 
 class HttpKElasticClient(client: ElasticClient) extends KElasticClient {

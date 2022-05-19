@@ -17,36 +17,37 @@
 package com.datamountaineer.streamreactor.connect.pulsar.config
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorPolicy}
-
+import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 
 /**
-  * Created by andrew@datamountaineer.com on 27/08/2017. 
+  * Created by andrew@datamountaineer.com on 27/08/2017.
   * stream-reactor
   */
-case class PulsarSinkSettings(connection: String,
-                              kcql : Set[Kcql],
-                              sslCACertFile: Option[String],
-                              sslCertFile: Option[String],
-                              sslCertKeyFile: Option[String],
-                              enableProgress : Boolean = PulsarConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
-                              errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                              maxRetries: Int = PulsarConfigConstants.NBR_OF_RETIRES_DEFAULT
-                           )
+case class PulsarSinkSettings(
+  connection:     String,
+  kcql:           Set[Kcql],
+  sslCACertFile:  Option[String],
+  sslCertFile:    Option[String],
+  sslCertKeyFile: Option[String],
+  enableProgress: Boolean     = PulsarConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+  errorPolicy:    ErrorPolicy = new ThrowErrorPolicy,
+  maxRetries:     Int         = PulsarConfigConstants.NBR_OF_RETIRES_DEFAULT,
+)
 
 object PulsarSinkSettings {
   def apply(config: PulsarSinkConfig): PulsarSinkSettings = {
 
     def getFile(configKey: String) = Option(config.getString(configKey))
 
-    val kcql = config.getKCQL
-    val connection = config.getHosts
+    val kcql            = config.getKCQL
+    val connection      = config.getHosts
     val progressEnabled = config.getBoolean(PulsarConfigConstants.PROGRESS_COUNTER_ENABLED)
-    val errorPolicy = config.getErrorPolicy
-    val maxRetries = config.getNumberRetries
-    val sslCACertFile = getFile(PulsarConfigConstants.SSL_CA_CERT_CONFIG)
-    val sslCertFile = getFile(PulsarConfigConstants.SSL_CERT_CONFIG)
-    val sslCertKeyFile = getFile(PulsarConfigConstants.SSL_CERT_KEY_CONFIG)
+    val errorPolicy     = config.getErrorPolicy
+    val maxRetries      = config.getNumberRetries
+    val sslCACertFile   = getFile(PulsarConfigConstants.SSL_CA_CERT_CONFIG)
+    val sslCertFile     = getFile(PulsarConfigConstants.SSL_CERT_CONFIG)
+    val sslCertKeyFile  = getFile(PulsarConfigConstants.SSL_CERT_KEY_CONFIG)
 
     new PulsarSinkSettings(
       connection,
@@ -56,7 +57,7 @@ object PulsarSinkSettings {
       sslCertKeyFile,
       progressEnabled,
       errorPolicy,
-      maxRetries
+      maxRetries,
     )
   }
 }

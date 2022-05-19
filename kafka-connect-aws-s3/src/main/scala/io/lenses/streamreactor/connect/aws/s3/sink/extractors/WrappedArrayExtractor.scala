@@ -17,29 +17,33 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
 import cats.implicits._
-import io.lenses.streamreactor.connect.aws.s3.model.{PartitionNamePath, SinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.PartitionNamePath
+import io.lenses.streamreactor.connect.aws.s3.model.SinkData
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ArrayIndexUtil.getArrayIndex
 
 object WrappedArrayExtractor {
 
-  private[extractors] def extractPathFromArray(arrs: Seq[SinkData], fieldName: PartitionNamePath): Either[ExtractorError, String] = {
+  private[extractors] def extractPathFromArray(
+    arrs:      Seq[SinkData],
+    fieldName: PartitionNamePath,
+  ): Either[ExtractorError, String] =
     if (fieldName.hasTail) extractComplexType(arrs, fieldName) else extractPrimitive(arrs, fieldName.head)
-  }
 
-  private def extractComplexType(arrs: Seq[SinkData], fieldName: PartitionNamePath): Either[ExtractorError, String] = {
+  private def extractComplexType(arrs: Seq[SinkData], fieldName: PartitionNamePath): Either[ExtractorError, String] =
     getArrayIndex(fieldName.head) match {
       case Left(error) => error.asLeft[String]
-      case Right(index) => arrs.lift(index).fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String])(WrappedComplexTypeExtractor.extractFromComplexType(_, fieldName.tail))
+      case Right(index) =>
+        arrs.lift(index).fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String])(
+          WrappedComplexTypeExtractor.extractFromComplexType(_, fieldName.tail),
+        )
     }
-  }
 
-  private def extractPrimitive(arrs: Seq[SinkData], head: String): Either[ExtractorError, String] = {
+  private def extractPrimitive(arrs: Seq[SinkData], head: String): Either[ExtractorError, String] =
     getArrayIndex(head) match {
       case Left(error) => error.asLeft[String]
       case Right(index) => arrs.lift(index).fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
-        wrappedPrimitive => WrappedPrimitiveExtractor.extractFromPrimitive(wrappedPrimitive)
-      }
+          wrappedPrimitive => WrappedPrimitiveExtractor.extractFromPrimitive(wrappedPrimitive)
+        }
     }
-  }
 
 }

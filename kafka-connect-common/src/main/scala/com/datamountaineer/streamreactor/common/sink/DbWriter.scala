@@ -20,7 +20,6 @@ package com.datamountaineer.streamreactor.common.sink
 
 import org.apache.kafka.connect.sink.SinkRecord
 
-
 /**
   * Defines the construct for inserting a new row for the connect sink record
   */

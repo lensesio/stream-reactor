@@ -1,16 +1,15 @@
 package com.landoop.streamreactor.connect.hive.source.config
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.{KCQL_PROP_SUFFIX, PROGRESS_ENABLED_CONST}
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.KCQL_PROP_SUFFIX
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.PROGRESS_ENABLED_CONST
 import com.landoop.streamreactor.connect.hive.HadoopConfigurationConstants
 import com.landoop.streamreactor.connect.hive.kerberos.KerberosSettings
 
-object HiveSourceConfigConstants
-    extends KerberosSettings
-    with HadoopConfigurationConstants {
+object HiveSourceConfigConstants extends KerberosSettings with HadoopConfigurationConstants {
 
   val CONNECTOR_PREFIX = "connect.hive"
 
-  val KcqlKey = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
+  val KcqlKey     = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_CONFIG = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_DOC =
     "Contains the Kafka Connect Query Language describing the flow from Apache Hive tables to Apache Kafka topics"

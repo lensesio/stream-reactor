@@ -20,17 +20,18 @@ import com.datamountaineer.streamreactor.common.config.Helpers
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 
 import java.util
-import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSinkConfig}
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkConfig
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
-import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
-
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 28/08/2017. 
+  * Created by andrew@datamountaineer.com on 28/08/2017.
   * stream-reactor
   */
 class MqttSinkConnector extends SinkConnector with StrictLogging {

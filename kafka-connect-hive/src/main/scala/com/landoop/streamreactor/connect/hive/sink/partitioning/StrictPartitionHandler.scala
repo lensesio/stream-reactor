@@ -1,12 +1,17 @@
 package com.landoop.streamreactor.connect.hive.sink.partitioning
 
-import com.landoop.streamreactor.connect.hive.{DatabaseName, Partition, TableName}
-import org.apache.hadoop.fs.{FileSystem, Path}
+import com.landoop.streamreactor.connect.hive.DatabaseName
+import com.landoop.streamreactor.connect.hive.Partition
+import com.landoop.streamreactor.connect.hive.TableName
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
   * A [[PartitionHandler]] that requires any partition
@@ -14,17 +19,23 @@ import scala.util.{Failure, Success, Try}
   */
 object StrictPartitionHandler extends PartitionHandler {
 
-  override def path(partition: Partition,
-                    db: DatabaseName,
-                    tableName: TableName)
-                   (client: IMetaStoreClient,
-                    fs: FileSystem): Try[Path] = {
+  override def path(
+    partition: Partition,
+    db:        DatabaseName,
+    tableName: TableName,
+  )(client:    IMetaStoreClient,
+    fs:        FileSystem,
+  ): Try[Path] =
     try {
       val part = client.getPartition(db.value, tableName.value, partition.entries.map(_._2).toList.asJava)
       Success(new Path(part.getSd.getLocation))
     } catch {
       case NonFatal(e) =>
-        Failure(new RuntimeException(s"Partition '${partition.entries.map(_._2).toList.mkString(",")}' does not exist and strict policy requires upfront creation", e))
+        Failure(
+          new RuntimeException(
+            s"Partition '${partition.entries.map(_._2).toList.mkString(",")}' does not exist and strict policy requires upfront creation",
+            e,
+          ),
+        )
     }
-  }
 }

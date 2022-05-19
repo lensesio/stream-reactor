@@ -6,7 +6,7 @@ import org.apache.pulsar.client.api.MessageRoutingMode
 
 object KcqlMessageRouting extends LazyLogging {
 
-  def apply(kcql: Kcql): MessageRoutingMode = {
+  def apply(kcql: Kcql): MessageRoutingMode =
     // set routing mode
     // match on strings as not enums and Pulsar are camelcase
     if (kcql.getWithPartitioner != null) {
@@ -29,5 +29,4 @@ object KcqlMessageRouting extends LazyLogging {
       logger.info(s"Defaulting to SinglePartition message routing mode")
       MessageRoutingMode.SinglePartition
     }
-  }
 }

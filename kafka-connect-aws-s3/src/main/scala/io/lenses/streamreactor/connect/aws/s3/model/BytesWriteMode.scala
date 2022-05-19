@@ -16,7 +16,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model
 
-import enumeratum.{EnumEntry, _}
+import enumeratum.EnumEntry
+import enumeratum._
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.WithSizesBytesOutputRowReader
 
 import java.io.DataInputStream
@@ -32,53 +33,52 @@ object BytesWriteMode extends Enum[BytesWriteMode] {
   override val values: immutable.IndexedSeq[BytesWriteMode] = findValues
 
   case object KeyAndValueWithSizes extends BytesWriteMode {
-    override def read(storedByteArray: Array[Byte]): BytesOutputRow = throw new IllegalArgumentException(s"Invalid apply function for bytesWriteMode key/value only $this")
+    override def read(storedByteArray: Array[Byte]): BytesOutputRow =
+      throw new IllegalArgumentException(s"Invalid apply function for bytesWriteMode key/value only $this")
 
     override def read(inputStream: DataInputStream): BytesOutputRow = WithSizesBytesOutputRowReader.read(
       inputStream,
-      readKey = true,
-      readValue = true
+      readKey   = true,
+      readValue = true,
     )
   }
 
   case object KeyWithSize extends BytesWriteMode {
-    override def read(storedByteArray: Array[Byte]): BytesOutputRow = throw new IllegalArgumentException(s"Invalid apply function for bytesWriteMode key/value only $this")
+    override def read(storedByteArray: Array[Byte]): BytesOutputRow =
+      throw new IllegalArgumentException(s"Invalid apply function for bytesWriteMode key/value only $this")
 
     override def read(inputStream: DataInputStream): BytesOutputRow = WithSizesBytesOutputRowReader.read(
       inputStream,
-      readKey = true,
-      readValue = false
+      readKey   = true,
+      readValue = false,
     )
   }
 
   case object ValueWithSize extends BytesWriteMode {
-    override def read(storedByteArray: Array[Byte]): BytesOutputRow = throw new IllegalArgumentException(s"Invalid apply function for bytesWriteMode key/value only $this")
+    override def read(storedByteArray: Array[Byte]): BytesOutputRow =
+      throw new IllegalArgumentException(s"Invalid apply function for bytesWriteMode key/value only $this")
 
     override def read(inputStream: DataInputStream): BytesOutputRow = WithSizesBytesOutputRowReader.read(
       inputStream,
-      readKey = false,
-      readValue = true
+      readKey   = false,
+      readValue = true,
     )
   }
 
   case object KeyOnly extends BytesWriteMode {
-    override def read(storedByteArray: Array[Byte]): BytesOutputRow = {
+    override def read(storedByteArray: Array[Byte]): BytesOutputRow =
       BytesOutputRow(None, None, storedByteArray, Array.empty[Byte])
-    }
 
-    override def read(inputStream: DataInputStream): BytesOutputRow = {
+    override def read(inputStream: DataInputStream): BytesOutputRow =
       throw new IllegalArgumentException(s"Invalid apply function for bytesWriteMode with size $this")
-    }
   }
 
   case object ValueOnly extends BytesWriteMode {
-    override def read(storedByteArray: Array[Byte]): BytesOutputRow = {
+    override def read(storedByteArray: Array[Byte]): BytesOutputRow =
       BytesOutputRow(None, None, Array.empty[Byte], storedByteArray)
-    }
 
-    override def read(inputStream: DataInputStream): BytesOutputRow = {
+    override def read(inputStream: DataInputStream): BytesOutputRow =
       throw new IllegalArgumentException(s"Invalid apply function for bytesWriteMode with size $this")
-    }
   }
 
 }

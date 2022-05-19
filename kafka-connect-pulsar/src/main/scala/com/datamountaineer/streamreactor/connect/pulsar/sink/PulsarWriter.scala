@@ -29,7 +29,6 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
 
-
 object PulsarWriter {
 
   @nowarn
@@ -37,44 +36,47 @@ object PulsarWriter {
 
     lazy val client = PulsarClient.builder()
 
-    settings.sslCACertFile.foreach(f => {
-
-      val authParams = settings.sslCertFile.map(f => ("tlsCertFile", f)).toMap ++ settings.sslCertKeyFile.map(f => ("tlsKeyFile", f)).toMap
+    settings.sslCACertFile.foreach { f =>
+      val authParams = settings.sslCertFile.map(f => ("tlsCertFile", f)).toMap ++ settings.sslCertKeyFile.map(f =>
+        ("tlsKeyFile", f),
+      ).toMap
 
       client.enableTls(true)
-            .tlsTrustCertsFilePath(f)
-            .authentication(classOf[AuthenticationTls].getName, authParams.asJava)
-    })
+        .tlsTrustCertsFilePath(f)
+        .authentication(classOf[AuthenticationTls].getName, authParams.asJava)
+    }
 
-    val clientBuilt = client.serviceUrl(settings.connection).build()
+    val clientBuilt           = client.serviceUrl(settings.connection).build()
     val producerConfigFactory = new ProducerConfigFactory(clientBuilt)
     new PulsarWriter(
       () => clientBuilt.close(),
       () => producerConfigFactory(name, settings.kcql),
-      settings
+      settings,
     )
   }
 }
 
 case class PulsarWriter(
-                         fnCloseClient : () => Unit,
-                         fnCreateProducers : () => Map[String, ProducerBuilder[Array[Byte]]],
-                         settings: PulsarSinkSettings) extends StrictLogging with ErrorHandler {
+  fnCloseClient:     () => Unit,
+  fnCreateProducers: () => Map[String, ProducerBuilder[Array[Byte]]],
+  settings:          PulsarSinkSettings,
+) extends StrictLogging
+    with ErrorHandler {
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
 
   private val producersMap = mutable.Map.empty[String, Producer[Array[Byte]]]
-  private val msgFactory = PulsarMessageTemplateBuilder(settings)
-  private val configs = fnCreateProducers()
-
+  private val msgFactory   = PulsarMessageTemplateBuilder(settings)
+  private val configs      = fnCreateProducers()
 
   def write(records: Iterable[SinkRecord]) = {
     val messages = msgFactory.create(records)
 
-    val t = Try{
+    val t = Try {
       messages.foreach {
         messageTemplate: MessageTemplate =>
-          val producer = producersMap.getOrElseUpdate(messageTemplate.pulsarTopic, configs(messageTemplate.pulsarTopic).create())
+          val producer =
+            producersMap.getOrElseUpdate(messageTemplate.pulsarTopic, configs(messageTemplate.pulsarTopic).create())
           messageTemplate.toMessage(producer).send()
       }
     }
@@ -86,9 +88,7 @@ case class PulsarWriter(
 
   def close(): Unit = {
     logger.info("Closing client")
-    producersMap.foreach({ case (_, producer) => producer.close()})
+    producersMap.foreach({ case (_, producer) => producer.close() })
     fnCloseClient()
   }
 }
-
-

@@ -23,23 +23,22 @@ import org.apache.kafka.connect.data.Schema.Type._
 
 object PrimitiveExtractor extends LazyLogging {
 
-  private[extractors] def extractPrimitiveValue(value: Any, schema: Schema): Either[ExtractorError, String] = {
+  private[extractors] def extractPrimitiveValue(value: Any, schema: Schema): Either[ExtractorError, String] =
     schema.`type`() match {
-      case INT8 => anyToEither(value)
-      case INT16 => anyToEither(value)
-      case INT32 => anyToEither(value)
-      case INT64 => anyToEither(value)
+      case INT8    => anyToEither(value)
+      case INT16   => anyToEither(value)
+      case INT32   => anyToEither(value)
+      case INT64   => anyToEither(value)
       case FLOAT32 => anyToEither(value)
       case FLOAT64 => anyToEither(value)
       case BOOLEAN => anyToEither(value)
-      case STRING => anyToEither(value)
+      case STRING  => anyToEither(value)
       case BYTES => Option(value).fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
-        case byteVal: Array[Byte] => new String(byteVal).asRight[ExtractorError]
-      }
+          case byteVal: Array[Byte] => new String(byteVal).asRight[ExtractorError]
+        }
       case other => logger.error("Non-primitive values not supported: " + other)
         ExtractorError(ExtractorErrorType.UnexpectedType).asLeft[String]
     }
-  }
 
   private[extractors] def anyToEither(any: Any): Either[ExtractorError, String] =
     Option(any).fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String])(_.toString.asRight[ExtractorError])

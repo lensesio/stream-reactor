@@ -19,11 +19,13 @@
 package com.datamountaineer.streamreactor.common.config.base.traits
 
 import com.datamountaineer.streamreactor.common.errors
-import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ErrorPolicyEnum}
+import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.ERROR_POLICY_PROP_SUFFIX
 
 trait ErrorPolicySettings extends BaseSettings {
   def errorPolicyConst = s"$connectorPrefix.$ERROR_POLICY_PROP_SUFFIX"
 
-  def getErrorPolicy: ErrorPolicy = errors.ErrorPolicy(ErrorPolicyEnum.withName(getString(errorPolicyConst).toUpperCase))
+  def getErrorPolicy: ErrorPolicy =
+    errors.ErrorPolicy(ErrorPolicyEnum.withName(getString(errorPolicyConst).toUpperCase))
 }

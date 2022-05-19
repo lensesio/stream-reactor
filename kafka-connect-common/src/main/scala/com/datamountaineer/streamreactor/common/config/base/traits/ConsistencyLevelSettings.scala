@@ -22,7 +22,9 @@ import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigCon
 import org.apache.kafka.common.config.ConfigException
 
 import scala.reflect.ClassTag
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 trait ConsistencyLevelSettings[T <: Enum[T]] extends BaseSettings {
   def consistencyLevelConstant: String = s"$connectorPrefix.$CONSISTENCY_LEVEL_PROP_SUFFIX"
@@ -35,8 +37,9 @@ trait ConsistencyLevelSettings[T <: Enum[T]] extends BaseSettings {
       case "" => None
       case other =>
         Try(Enum.valueOf[T](enum, other)) match {
-          case Failure(_) => throw new ConfigException(s"'$other' is not a valid $consistencyLevelConstant. " +
-            s"Available values are:${enum.getEnumConstants.map(_.toString).mkString(",")}")
+          case Failure(_) =>
+            throw new ConfigException(s"'$other' is not a valid $consistencyLevelConstant. " +
+              s"Available values are:${enum.getEnumConstants.map(_.toString).mkString(",")}")
           case Success(cl) => Some(cl)
         }
     }

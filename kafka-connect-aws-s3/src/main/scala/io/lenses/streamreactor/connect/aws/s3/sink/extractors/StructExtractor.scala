@@ -29,47 +29,54 @@ import org.apache.kafka.connect.data.Struct
   */
 object StructExtractor extends LazyLogging {
 
-  private[extractors] def extractPathFromStruct(struct: Struct, fieldName: PartitionNamePath): Either[ExtractorError, String] = {
+  private[extractors] def extractPathFromStruct(
+    struct:    Struct,
+    fieldName: PartitionNamePath,
+  ): Either[ExtractorError, String] =
     if (fieldName.hasTail) extractComplexType(struct, fieldName) else extractPrimitive(struct, fieldName.head)
-  }
 
-  private def extractPrimitive(struct: Struct, fieldName: String): Either[ExtractorError, String] = {
+  private def extractPrimitive(struct: Struct, fieldName: String): Either[ExtractorError, String] =
     Option(struct.schema().field(fieldName))
       .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
         _.schema().`type`() match {
-          case INT8 => anyToEither(struct.getInt8(fieldName))
-          case INT16 => anyToEither(struct.getInt16(fieldName))
-          case INT32 => anyToEither(struct.getInt32(fieldName))
-          case INT64 => anyToEither(struct.getInt64(fieldName))
+          case INT8    => anyToEither(struct.getInt8(fieldName))
+          case INT16   => anyToEither(struct.getInt16(fieldName))
+          case INT32   => anyToEither(struct.getInt32(fieldName))
+          case INT64   => anyToEither(struct.getInt64(fieldName))
           case FLOAT32 => anyToEither(struct.getFloat32(fieldName))
           case FLOAT64 => anyToEither(struct.getFloat64(fieldName))
           case BOOLEAN => anyToEither(struct.getBoolean(fieldName))
-          case STRING => anyToEither(struct.getString(fieldName))
-          case BYTES => Option(struct.getBytes(fieldName))
-            .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String])(
-              byteVal => new String(byteVal).asRight[ExtractorError]
-            )
+          case STRING  => anyToEither(struct.getString(fieldName))
+          case BYTES =>
+            Option(struct.getBytes(fieldName))
+              .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String])(byteVal =>
+                new String(byteVal).asRight[ExtractorError],
+              )
           case other => logger.error("Non-primitive values not supported: " + other)
             ExtractorError(ExtractorErrorType.UnexpectedType).asLeft[String]
         }
 
       }
-  }
 
-  private def extractComplexType(struct: Struct, fieldName: PartitionNamePath): Either[ExtractorError, String] = {
+  private def extractComplexType(struct: Struct, fieldName: PartitionNamePath): Either[ExtractorError, String] =
     Option(struct.schema().field(fieldName.head))
       .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
         _.schema().`type`() match {
           case STRUCT => extractPathFromStruct(struct.getStruct(fieldName.head), fieldName.tail)
-          case MAP => MapExtractor.extractPathFromMap(
-            struct.getMap(fieldName.head), fieldName.tail, struct.schema().field(fieldName.head).schema()
-          )
-          case ARRAY => ArrayExtractor.extractPathFromArray(
-            struct.getArray(fieldName.head), fieldName.tail, struct.schema().field(fieldName.head).schema()
-          )
+          case MAP =>
+            MapExtractor.extractPathFromMap(
+              struct.getMap(fieldName.head),
+              fieldName.tail,
+              struct.schema().field(fieldName.head).schema(),
+            )
+          case ARRAY =>
+            ArrayExtractor.extractPathFromArray(
+              struct.getArray(fieldName.head),
+              fieldName.tail,
+              struct.schema().field(fieldName.head).schema(),
+            )
           case _ => return ExtractorError(UnexpectedType).asLeft
         }
       }
-  }
 
 }

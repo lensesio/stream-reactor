@@ -21,18 +21,18 @@ import com.typesafe.scalalogging.StrictLogging
 
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-
 trait PubSubSupport extends StrictLogging {
 
   // How to 'score' each message
   def getChannelField(kcqlConfig: Kcql): String = {
     val pubSubParams = kcqlConfig.getStoredAsParameters.asScala
-    val channelField = if (pubSubParams.keys.exists(k => k.equalsIgnoreCase("channel")))
-      pubSubParams.find { case (k, _) => k.equalsIgnoreCase("channel") }.get._2
-    else {
-      logger.info("You have not defined a [channel] field. We'll try to fall back to [channel] field")
-      "channel"
-    }
+    val channelField =
+      if (pubSubParams.keys.exists(k => k.equalsIgnoreCase("channel")))
+        pubSubParams.find { case (k, _) => k.equalsIgnoreCase("channel") }.get._2
+      else {
+        logger.info("You have not defined a [channel] field. We'll try to fall back to [channel] field")
+        "channel"
+      }
     channelField
   }
 

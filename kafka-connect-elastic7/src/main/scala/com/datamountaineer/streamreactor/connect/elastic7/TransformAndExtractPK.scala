@@ -25,27 +25,30 @@ import com.landoop.json.sql.JacksonJson
 import com.landoop.json.sql.JsonSql._
 import com.landoop.sql.Field
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 
-import scala.util.{Failure, Success, Try}
-
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 private object TransformAndExtractPK extends StrictLogging {
   lazy val simpleJsonConverter = new SimpleJsonConverter()
 
-  def apply(fields: Seq[Field],
-            ignoredFields: Seq[Field],
-            primaryKeysPaths: Seq[Vector[String]],
-            schema: Schema,
-            value: Any,
-            withStructure: Boolean): (JsonNode, Seq[Any]) = {
+  def apply(
+    fields:           Seq[Field],
+    ignoredFields:    Seq[Field],
+    primaryKeysPaths: Seq[Vector[String]],
+    schema:           Schema,
+    value:            Any,
+    withStructure:    Boolean,
+  ): (JsonNode, Seq[Any]) = {
     def raiseException(msg: String, t: Throwable) = throw new IllegalArgumentException(msg, t)
 
     if (value == null) {
       if (schema == null || !schema.isOptional) {
         raiseException("Null value is not allowed.", null)
-      }
-      else null
+      } else null
     } else {
       if (schema != null) {
         schema.`type`() match {
@@ -53,7 +56,7 @@ private object TransformAndExtractPK extends StrictLogging {
             //we expected to be json
             val array = value match {
               case a: Array[Byte] => a
-              case b: ByteBuffer => b.array()
+              case b: ByteBuffer  => b.array()
               case other => raiseException(s"Invalid payload:$other for schema Schema.BYTES.", null)
             }
 
@@ -74,7 +77,7 @@ private object TransformAndExtractPK extends StrictLogging {
               case Success(json) =>
                 Try(json.sql(fields, !withStructure)) match {
                   case Success(jn) => (jn, primaryKeysPaths.map(PrimaryKeyExtractor.extract(json, _)))
-                  case Failure(e) => raiseException(s"A KCQL exception occurred.${e.getMessage}", e)
+                  case Failure(e)  => raiseException(s"A KCQL exception occurred.${e.getMessage}", e)
                 }
             }
 
@@ -82,7 +85,9 @@ private object TransformAndExtractPK extends StrictLogging {
             val struct = value.asInstanceOf[Struct]
             Try(struct.sql(fields, !withStructure)) match {
               case Success(s) =>
-                (simpleJsonConverter.fromConnectData(s.schema(), s), primaryKeysPaths.map(PrimaryKeyExtractor.extract(struct, _)))
+                (simpleJsonConverter.fromConnectData(s.schema(), s),
+                 primaryKeysPaths.map(PrimaryKeyExtractor.extract(struct, _)),
+                )
 
               case Failure(e) => raiseException(s"A KCQL error occurred.${e.getMessage}", e)
             }
@@ -105,7 +110,7 @@ private object TransformAndExtractPK extends StrictLogging {
               case Success(json) =>
                 Try(json.sql(fields, !withStructure)) match {
                   case Success(jn) => (jn, primaryKeysPaths.map(PrimaryKeyExtractor.extract(json, _)))
-                  case Failure(e) => raiseException(s"A KCQL exception occurred.${e.getMessage}", e)
+                  case Failure(e)  => raiseException(s"A KCQL exception occurred.${e.getMessage}", e)
                 }
             }
 
@@ -114,7 +119,7 @@ private object TransformAndExtractPK extends StrictLogging {
               case Failure(e) => raiseException("Invalid json.", e)
               case Success(json) =>
                 Try(json.sql(fields, !withStructure)) match {
-                  case Failure(e) => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
+                  case Failure(e)  => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
                   case Success(jn) => (jn, primaryKeysPaths.map(PrimaryKeyExtractor.extract(json, _)))
                 }
             }

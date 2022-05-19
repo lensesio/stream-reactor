@@ -18,7 +18,8 @@ package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import com.datamountaineer.streamreactor.connect.mongodb.converters.SinkRecordConverter
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
@@ -26,9 +27,15 @@ import org.bson.Document
 import scala.annotation.nowarn
 
 object SinkRecordToDocument extends ConverterUtilProxy {
-  def apply(record: SinkRecord, keys: Set[String] = Set.empty)(implicit settings: MongoSettings): (Document, Iterable[(String, Any)]) = {
+  def apply(
+    record: SinkRecord,
+    keys:   Set[String] = Set.empty,
+  )(
+    implicit
+    settings: MongoSettings,
+  ): (Document, Iterable[(String, Any)]) = {
     val schema = record.valueSchema()
-    val value = record.value()
+    val value  = record.value()
     val fields = settings.fields.getOrElse(record.topic(), Map.empty)
 
     val allFields = if (fields.size == 1 && fields.head._1 == "*") true else false
@@ -40,7 +47,7 @@ object SinkRecordToDocument extends ConverterUtilProxy {
           val extracted = convertSchemalessJson(
             record,
             fields,
-            settings.ignoredField.getOrElse(record.topic(), Set.empty)
+            settings.ignoredField.getOrElse(record.topic(), Set.empty),
           )
           //not ideal; but the compile is hashmap anyway
 
@@ -55,9 +62,11 @@ object SinkRecordToDocument extends ConverterUtilProxy {
             record,
             fields,
             settings.ignoredField.getOrElse(record.topic(), Set.empty),
-            includeAllFields = allFields) match {
+            includeAllFields = allFields,
+          ) match {
             case Right(ConversionResult(original, extracted)) =>
-              val extractedKeys = keys.headOption.map(_ => KeysExtractor.fromJson(original, keys)).getOrElse(Iterable.empty)
+              val extractedKeys =
+                keys.headOption.map(_ => KeysExtractor.fromJson(original, keys)).getOrElse(Iterable.empty)
               SinkRecordConverter.fromJson(extracted) -> extractedKeys
 
             case Left(value) =>
@@ -68,10 +77,12 @@ object SinkRecordToDocument extends ConverterUtilProxy {
           @nowarn val extracted = convert(
             record,
             fields,
-            settings.ignoredField.getOrElse(record.topic(), Set.empty)
+            settings.ignoredField.getOrElse(record.topic(), Set.empty),
           )
           SinkRecordConverter.fromStruct(extracted) ->
-            keys.headOption.map(_ => KeysExtractor.fromStruct(record.value().asInstanceOf[Struct], keys)).getOrElse(Iterable.empty)
+            keys.headOption.map(_ => KeysExtractor.fromStruct(record.value().asInstanceOf[Struct], keys)).getOrElse(
+              Iterable.empty,
+            )
 
         case other => throw new ConnectException(s"$other schema is not supported")
       }

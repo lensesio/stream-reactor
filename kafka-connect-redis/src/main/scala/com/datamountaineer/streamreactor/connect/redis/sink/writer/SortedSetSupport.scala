@@ -21,18 +21,18 @@ import com.typesafe.scalalogging.StrictLogging
 
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-
 trait SortedSetSupport extends StrictLogging {
 
   // How to 'score' each message
   def getScoreField(kcqlConfig: Kcql): String = {
     val sortedSetParams = kcqlConfig.getStoredAsParameters.asScala
-    val scoreField = if (sortedSetParams.keys.exists(k => k.equalsIgnoreCase("score")))
-      sortedSetParams.find { case (k, _) => k.equalsIgnoreCase("score") }.get._2
-    else {
-      logger.info("You have not defined how to 'score' each message. We'll try to fall back to 'timestamp' field")
-      "timestamp"
-    }
+    val scoreField =
+      if (sortedSetParams.keys.exists(k => k.equalsIgnoreCase("score")))
+        sortedSetParams.find { case (k, _) => k.equalsIgnoreCase("score") }.get._2
+      else {
+        logger.info("You have not defined how to 'score' each message. We'll try to fall back to 'timestamp' field")
+        "timestamp"
+      }
     scoreField
   }
 

@@ -1,7 +1,10 @@
 package com.landoop.streamreactor.connect.hive.sink.partitioning
 
-import com.landoop.streamreactor.connect.hive.{DatabaseName, Partition, TableName}
-import org.apache.hadoop.fs.{FileSystem, Path}
+import com.landoop.streamreactor.connect.hive.DatabaseName
+import com.landoop.streamreactor.connect.hive.Partition
+import com.landoop.streamreactor.connect.hive.TableName
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 
 import scala.util.Try
@@ -32,12 +35,13 @@ import scala.util.Try
   * by implementing this trait. For example a custom policy may
   * decide to locate partitions in a non-standard directory format,
   * or only allow partition names that match a pre-determined format.
-  *
   */
 trait PartitionHandler {
-  def path(partition: Partition,
-           db: DatabaseName,
-           tableName: TableName)
-          (client: IMetaStoreClient,
-           fs: FileSystem): Try[Path]
+  def path(
+    partition: Partition,
+    db:        DatabaseName,
+    tableName: TableName,
+  )(client:    IMetaStoreClient,
+    fs:        FileSystem,
+  ): Try[Path]
 }

@@ -20,10 +20,12 @@ package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 
-import javax.jms.{MapMessage, Session}
+import javax.jms.MapMessage
+import javax.jms.Session
 import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.ListHasAsScala
 
@@ -31,10 +33,10 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 class MapMessageConverter extends JMSSinkMessageConverter with ConverterUtil {
   @nowarn("cat=deprecation")
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, MapMessage) = {
-    val converted =  super[ConverterUtil].convert(record, setting.fields, setting.ignoreField)
-    val msg = session.createMapMessage()
-    val value = converted.value()
-    val schema = converted.valueSchema()
+    val converted = super[ConverterUtil].convert(record, setting.fields, setting.ignoreField)
+    val msg       = session.createMapMessage()
+    val value     = converted.value()
+    val schema    = converted.valueSchema()
     schema.`type`() match {
       case Schema.Type.STRUCT =>
         val struct = value.asInstanceOf[Struct]
@@ -48,28 +50,26 @@ class MapMessageConverter extends JMSSinkMessageConverter with ConverterUtil {
   }
 }
 
-
 object MapMessageBuilderFn {
-  def apply(fieldName: String, value: AnyRef, schema: Schema, msg: MapMessage, session: Session): Unit = {
+  def apply(fieldName: String, value: AnyRef, schema: Schema, msg: MapMessage, session: Session): Unit =
     schema.`type`() match {
-      case Schema.Type.BYTES => msg.setBytes(fieldName, value.asInstanceOf[Array[Byte]])
+      case Schema.Type.BYTES   => msg.setBytes(fieldName, value.asInstanceOf[Array[Byte]])
       case Schema.Type.BOOLEAN => msg.setBoolean(fieldName, value.asInstanceOf[Boolean])
       case Schema.Type.FLOAT32 => msg.setFloat(fieldName, value.asInstanceOf[Float])
       case Schema.Type.FLOAT64 => msg.setDouble(fieldName, value.asInstanceOf[Double])
-      case Schema.Type.INT8 => msg.setByte(fieldName, value.asInstanceOf[Byte])
-      case Schema.Type.INT16 => msg.setShort(fieldName, value.asInstanceOf[Short])
-      case Schema.Type.INT32 => msg.setInt(fieldName, value.asInstanceOf[Int])
-      case Schema.Type.INT64 => msg.setLong(fieldName, value.asInstanceOf[Long])
-      case Schema.Type.STRING => msg.setString(fieldName, value.asInstanceOf[String])
-      case Schema.Type.MAP => msg.setObject(fieldName, value)
-      case Schema.Type.ARRAY => msg.setObject(fieldName, value)
+      case Schema.Type.INT8    => msg.setByte(fieldName, value.asInstanceOf[Byte])
+      case Schema.Type.INT16   => msg.setShort(fieldName, value.asInstanceOf[Short])
+      case Schema.Type.INT32   => msg.setInt(fieldName, value.asInstanceOf[Int])
+      case Schema.Type.INT64   => msg.setLong(fieldName, value.asInstanceOf[Long])
+      case Schema.Type.STRING  => msg.setString(fieldName, value.asInstanceOf[String])
+      case Schema.Type.MAP     => msg.setObject(fieldName, value)
+      case Schema.Type.ARRAY   => msg.setObject(fieldName, value)
       case Schema.Type.STRUCT =>
         val nestedMsg = session.createMapMessage()
-        val struct = value.asInstanceOf[Struct]
+        val struct    = value.asInstanceOf[Struct]
         struct.schema().fields().asScala.foreach { f =>
           MapMessageBuilderFn(f.name(), struct.get(f), f.schema(), nestedMsg, session)
         }
         msg.setObject(fieldName, nestedMsg)
     }
-  }
 }

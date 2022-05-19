@@ -27,22 +27,32 @@ case class CustomIndexName(fragments: Vector[IndexNameFragment]) {
 object CustomIndexName {
 
   @tailrec
-  private def parseIndexName(remainingChars: Vector[Char], currentFragment: StringBuilder, results: Vector[Option[IndexNameFragment]]): Vector[IndexNameFragment] =
+  private def parseIndexName(
+    remainingChars:  Vector[Char],
+    currentFragment: StringBuilder,
+    results:         Vector[Option[IndexNameFragment]],
+  ): Vector[IndexNameFragment] =
     remainingChars match {
       case head +: rest => head match {
-        case DateTimeFragment.OpeningChar =>
-          val (dateTimeFormat, afterDateTimeFormatIncludingClosingChar) = rest.span { _ != DateTimeFragment.ClosingChar }
-          val afterDateTimeFormat = afterDateTimeFormatIncludingClosingChar.tail
+          case DateTimeFragment.OpeningChar =>
+            val (dateTimeFormat, afterDateTimeFormatIncludingClosingChar) = rest.span {
+              _ != DateTimeFragment.ClosingChar
+            }
+            val afterDateTimeFormat = afterDateTimeFormatIncludingClosingChar.tail
 
-          val maybeCurrentFragment = currentFragment.mkString.toOption
-          val maybeDateTimeFormat = dateTimeFormat.mkString.toOption
+            val maybeCurrentFragment = currentFragment.mkString.toOption
+            val maybeDateTimeFormat  = dateTimeFormat.mkString.toOption
 
-          val newResultsWithDateTimeFragment = results :+ maybeCurrentFragment.map(TextFragment.apply) :+ maybeDateTimeFormat.map(DateTimeFragment(_))
+            val newResultsWithDateTimeFragment =
+              results :+ maybeCurrentFragment.map(TextFragment.apply) :+ maybeDateTimeFormat.map(DateTimeFragment(_))
 
-          parseIndexName(afterDateTimeFormat, new StringBuilder, newResultsWithDateTimeFragment)
-        case DateTimeFragment.ClosingChar => throw new InvalidCustomIndexNameException(s"Found closing '${DateTimeFragment.ClosingChar}' but no opening character")
-        case anyOtherChar => parseIndexName(rest, currentFragment.append(anyOtherChar), results)
-      }
+            parseIndexName(afterDateTimeFormat, new StringBuilder, newResultsWithDateTimeFragment)
+          case DateTimeFragment.ClosingChar =>
+            throw new InvalidCustomIndexNameException(
+              s"Found closing '${DateTimeFragment.ClosingChar}' but no opening character",
+            )
+          case anyOtherChar => parseIndexName(rest, currentFragment.append(anyOtherChar), results)
+        }
       case Vector() =>
         val maybeCurrentFragment = currentFragment.mkString.toOption
         (results :+ maybeCurrentFragment.map(TextFragment.apply)).flatten

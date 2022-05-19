@@ -2,8 +2,10 @@ package com.landoop.streamreactor.connect.hive.formats
 
 import com.landoop.streamreactor.connect.hive.Serde
 import com.landoop.streamreactor.connect.hive.kerberos.UgiExecute
-import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.ConnectException
 
 /**
@@ -34,13 +36,13 @@ object HiveFormat {
 
   def apply(name: String): HiveFormat = name match {
     case "parquet" => ParquetHiveFormat
-    case "orc" => OrcHiveFormat
-    case _ => throw new ConnectException(s"Unsupported hive format $name")
+    case "orc"     => OrcHiveFormat
+    case _         => throw new ConnectException(s"Unsupported hive format $name")
   }
 
   def apply(serde: Serde): HiveFormat = serde match {
     case s if s == ParquetHiveFormat.serde => ParquetHiveFormat
-    case _ => throw new ConnectException(s"Unsupported hive format $serde")
+    case _                                 => throw new ConnectException(s"Unsupported hive format $serde")
   }
 }
 
@@ -49,10 +51,10 @@ object HiveFormat {
   * to HDFS in formats that are compatible with hive.
   */
 trait HiveWriter {
-  def createdTime:Long
-  def file:Path
-  def fileSize:Long
-  def currentCount:Long
+  def createdTime:  Long
+  def file:         Path
+  def fileSize:     Long
+  def currentCount: Long
   def write(struct: Struct): Long
   def close(): Unit
 }
@@ -67,5 +69,5 @@ trait HiveReader {
   // opens a new iterator to read the data from this reader
   // this method can be invoked multiple times, each returning a fresh iterator
   def iterator: Iterator[Record]
-  def close(): Unit
+  def close():  Unit
 }

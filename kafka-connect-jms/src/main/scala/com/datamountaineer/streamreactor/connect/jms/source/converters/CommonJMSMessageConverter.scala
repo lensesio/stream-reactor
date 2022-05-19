@@ -6,16 +6,11 @@ import org.apache.kafka.connect.source.SourceRecord
 
 import javax.jms.Message
 
-
 class CommonJMSMessageConverter(converter: Converter) extends JMSSourceMessageConverter {
 
-
-  override def initialize(map: Map[String, String]): Unit = {
+  override def initialize(map: Map[String, String]): Unit =
     converter.initialize(map);
-  }
 
-  override def convert(source: String, target: String, message: Message): SourceRecord = {
+  override def convert(source: String, target: String, message: Message): SourceRecord =
     converter.convert(target, source, message.getJMSMessageID, JMSStructMessage.getPayload(message));
-  }
 }
-

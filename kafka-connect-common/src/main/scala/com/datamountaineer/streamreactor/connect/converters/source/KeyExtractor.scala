@@ -24,18 +24,20 @@ import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.annotation.tailrec
-import scala.jdk.CollectionConverters.{IteratorHasAsScala, ListHasAsScala}
+import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 object KeyExtractor {
   //TODO would be nice to return an Either rather than throw exception
   def extract(node: JsonNode, path: Vector[String]): Any = {
     @tailrec
     def innerExtract(n: JsonNode, p: Vector[String]): Any = {
-      def checkValidPath(): Unit = {
+      def checkValidPath(): Unit =
         if (p.nonEmpty) {
-          throw new IllegalArgumentException(s"Invalid field selection for [${path.mkString(".")}]. It doesn't resolve to a primitive field")
+          throw new IllegalArgumentException(
+            s"Invalid field selection for [${path.mkString(".")}]. It doesn't resolve to a primitive field",
+          )
         }
-      }
 
       n match {
         case null => null
@@ -80,18 +82,26 @@ object KeyExtractor {
 
         case node: ObjectNode =>
           if (p.isEmpty) {
-            throw new IllegalArgumentException(s"Invalid field selection for [${path.mkString(".")}]. The path is not resolving to a primitive field")
+            throw new IllegalArgumentException(
+              s"Invalid field selection for [${path.mkString(".")}]. The path is not resolving to a primitive field",
+            )
           }
           val childNode = Option(node.get(p.head)).getOrElse {
-            throw new IllegalArgumentException(s"Invalid field selection for [${path.mkString(".")}]. Can't find ${p.head} field. Field found are:${node.fieldNames().asScala.mkString(",")}")
+            throw new IllegalArgumentException(
+              s"Invalid field selection for [${path.mkString(".")}]. Can't find ${p.head} field. Field found are:${node.fieldNames().asScala.mkString(",")}",
+            )
           }
 
           innerExtract(childNode, p.tail)
         case _: ArrayNode =>
-          throw new IllegalArgumentException(s"Invalid field selection for [${path.mkString(".")}]. The path is involving an array structure")
+          throw new IllegalArgumentException(
+            s"Invalid field selection for [${path.mkString(".")}]. The path is involving an array structure",
+          )
 
         case other =>
-          throw new IllegalArgumentException(s"Invalid field selection for [${path.mkString(".")}]. $other is not handled")
+          throw new IllegalArgumentException(
+            s"Invalid field selection for [${path.mkString(".")}]. $other is not handled",
+          )
       }
     }
 
@@ -105,14 +115,17 @@ object KeyExtractor {
   def extract(struct: Struct, path: Vector[String]): Any = {
     // @tailrec
     def innerExtract(field: Field, value: AnyRef, p: Vector[String]): Any = {
-      def checkValidPath(): Unit = {
+      def checkValidPath(): Unit =
         if (p.nonEmpty) {
-          throw new IllegalArgumentException(s"Invalid field selection for [${path.mkString(".")}]. It doesn't resolve to a primitive field")
+          throw new IllegalArgumentException(
+            s"Invalid field selection for [${path.mkString(".")}]. It doesn't resolve to a primitive field",
+          )
         }
-      }
 
       if (value == null) {
-        throw new IllegalArgumentException(s"Invalid field selection for [${path.mkString(".")}]. Field [${field.name()}] is null")
+        throw new IllegalArgumentException(
+          s"Invalid field selection for [${path.mkString(".")}]. Field [${field.name()}] is null",
+        )
       }
       Option(field.schema().name()).collect {
         case Decimal.LOGICAL_NAME =>
@@ -132,7 +145,10 @@ object KeyExtractor {
             case i: Int =>
               checkValidPath()
               Date.toLogical(field.schema, i)
-            case _ => throw new IllegalArgumentException(s"Can't convert [$value] to Date for schema: [${field.schema().`type`()}]")
+            case _ =>
+              throw new IllegalArgumentException(
+                s"Can't convert [$value] to Date for schema: [${field.schema().`type`()}]",
+              )
           }
         case Time.LOGICAL_NAME =>
           value.asInstanceOf[Any] match {
@@ -142,7 +158,10 @@ object KeyExtractor {
             case d: java.util.Date =>
               checkValidPath()
               d
-            case _ => throw new IllegalArgumentException(s"Can't convert [$value] to Date for schema: [${field.schema().`type`()}]")
+            case _ =>
+              throw new IllegalArgumentException(
+                s"Can't convert [$value] to Date for schema: [${field.schema().`type`()}]",
+              )
           }
         case Timestamp.LOGICAL_NAME =>
           value.asInstanceOf[Any] match {
@@ -152,7 +171,10 @@ object KeyExtractor {
             case d: java.util.Date =>
               checkValidPath()
               d
-            case _ => throw new IllegalArgumentException(s"Can't convert [$value] to Date for schema: [${field.schema().`type`()}]")
+            case _ =>
+              throw new IllegalArgumentException(
+                s"Can't convert [$value] to Date for schema: [${field.schema().`type`()}]",
+              )
           }
       }.getOrElse {
         val v = field.schema().`type`() match {
@@ -186,21 +208,29 @@ object KeyExtractor {
 
           case Schema.Type.MAP =>
             if (p.isEmpty) {
-              throw new IllegalArgumentException(s"Invalid field selection for [${path.mkString(".")}]. It doesn't resolve to a primitive field. It resolves to: [${field.schema()}]")
+              throw new IllegalArgumentException(
+                s"Invalid field selection for [${path.mkString(".")}]. It doesn't resolve to a primitive field. It resolves to: [${field.schema()}]",
+              )
             }
             val map = value.asInstanceOf[java.util.Map[String, AnyRef]]
-            val f = new Field(p.head, 0, field.schema().valueSchema())
+            val f   = new Field(p.head, 0, field.schema().valueSchema())
 
             innerExtract(f, map.get(p.head), p.tail)
 
           case Schema.Type.STRUCT =>
             if (p.isEmpty) {
-              throw new IllegalArgumentException(s"Invalid field selection for [${path.mkString(".")}]. It doesn't resolve to a primitive field. It resolves to: [${field.schema()}]")
+              throw new IllegalArgumentException(
+                s"Invalid field selection for [${path.mkString(".")}]. It doesn't resolve to a primitive field. It resolves to: [${field.schema()}]",
+              )
             }
             val s = value.asInstanceOf[Struct]
             val childField = Option(s.schema().field(p.head))
               .getOrElse {
-                throw new IllegalArgumentException(s"Invalid field selection for [${path.mkString(".")}]. Can't find field [${p.head}]. Fields available: [${s.schema().fields().asScala.map(_.name()).mkString(",")}]")
+                throw new IllegalArgumentException(
+                  s"Invalid field selection for [${path.mkString(
+                    ".",
+                  )}]. Can't find field [${p.head}]. Fields available: [${s.schema().fields().asScala.map(_.name()).mkString(",")}]",
+                )
               }
 
             innerExtract(childField, s.get(childField), p.tail)
@@ -211,7 +241,9 @@ object KeyExtractor {
     }
 
     val field = Option(struct.schema().field(path.head)).getOrElse {
-      throw new IllegalArgumentException(s"Couldn't find field [${path.head}] in the schema: [${struct.schema().fields().asScala.map(_.name()).mkString(",")}]")
+      throw new IllegalArgumentException(
+        s"Couldn't find field [${path.head}] in the schema: [${struct.schema().fields().asScala.map(_.name()).mkString(",")}]",
+      )
     }
 
     innerExtract(field, struct.get(field), path.tail)

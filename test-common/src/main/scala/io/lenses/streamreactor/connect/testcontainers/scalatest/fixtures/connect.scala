@@ -8,7 +8,7 @@ object connect {
   def withConnector(
     name:            String,
     connectorConfig: ConnectorConfiguration,
-    timeoutSeconds: Long = 10L
+    timeoutSeconds:  Long = 10L,
   )(testCode:        => Any,
   )(
     implicit

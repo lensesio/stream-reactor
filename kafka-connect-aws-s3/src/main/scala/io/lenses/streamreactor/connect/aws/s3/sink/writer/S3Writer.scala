@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2021 Lenses.io
  *
@@ -24,7 +23,10 @@ import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.sink._
 import io.lenses.streamreactor.connect.aws.s3.sink.seek.IndexManager
-import io.lenses.streamreactor.connect.aws.s3.storage.{NonExistingFileError, StorageInterface, UploadFailedError, ZeroByteFileError}
+import io.lenses.streamreactor.connect.aws.s3.storage.NonExistingFileError
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.storage.UploadFailedError
+import io.lenses.streamreactor.connect.aws.s3.storage.ZeroByteFileError
 import org.apache.kafka.connect.data.Schema
 
 import java.io.File
@@ -32,26 +34,28 @@ import scala.math.Ordered.orderingToOrdered
 import scala.util.Try
 
 class S3Writer(
-                sinkName: String,
-                topicPartition: TopicPartition,
-                commitPolicy: CommitPolicy,
-                indexManager: IndexManager,
-                stagingFilenameFn: () => Either[SinkError, File],
-                finalFilenameFn: Offset => Either[SinkError, RemoteS3PathLocation],
-                formatWriterFn: File => Either[SinkError, S3FormatWriter],
-                lastSeekedOffset: Option[Offset],
-              )
-              (
-                implicit storageInterface: StorageInterface
-              ) extends LazyLogging {
+  sinkName:          String,
+  topicPartition:    TopicPartition,
+  commitPolicy:      CommitPolicy,
+  indexManager:      IndexManager,
+  stagingFilenameFn: () => Either[SinkError, File],
+  finalFilenameFn:   Offset => Either[SinkError, RemoteS3PathLocation],
+  formatWriterFn:    File => Either[SinkError, S3FormatWriter],
+  lastSeekedOffset:  Option[Offset],
+)(
+  implicit
+  storageInterface: StorageInterface,
+) extends LazyLogging {
 
   private var writeState: WriteState = NoWriter(CommitState(topicPartition, lastSeekedOffset))
 
-
   def write(messageDetail: MessageDetail, o: Offset): Either[SinkError, Unit] = {
 
-    def innerMessageWrite(writingState: Writing): Either[NonFatalS3SinkError, Unit] = {
-      writingState.s3FormatWriter.write(messageDetail.keySinkData, messageDetail.valueSinkData, topicPartition.topic) match {
+    def innerMessageWrite(writingState: Writing): Either[NonFatalS3SinkError, Unit] =
+      writingState.s3FormatWriter.write(messageDetail.keySinkData,
+                                        messageDetail.valueSinkData,
+                                        topicPartition.topic,
+      ) match {
         case Left(err: Throwable) =>
           logger.error(err.getMessage)
           NonFatalS3SinkError(err.getMessage, err).asLeft
@@ -59,22 +63,21 @@ class S3Writer(
           writeState = writingState.updateOffset(o, messageDetail.valueSinkData.schema())
           ().asRight
       }
-    }
 
     writeState match {
-      case writingWS@Writing(_, _, _, _) =>
+      case writingWS @ Writing(_, _, _, _) =>
         innerMessageWrite(writingWS)
 
-      case noWriter@NoWriter(_) =>
+      case noWriter @ NoWriter(_) =>
         val writingStateEither = for {
-          file <- stagingFilenameFn()
+          file         <- stagingFilenameFn()
           formatWriter <- formatWriterFn(file)
           writingState <- noWriter.toWriting(formatWriter, file, o).asRight
         } yield writingState
-        writingStateEither.flatMap(writingState => {
+        writingStateEither.flatMap { writingState =>
           writeState = writingState
           innerMessageWrite(writingState)
-        })
+        }
 
       case Uploading(_, _, _) =>
         // before we write we need to retry the upload
@@ -85,7 +88,7 @@ class S3Writer(
   def commit: Either[SinkError, Unit] = {
 
     writeState match {
-      case writingState@Writing(_, s3FormatWriter, _, _) =>
+      case writingState @ Writing(_, s3FormatWriter, _, _) =>
         s3FormatWriter.complete() match {
           case Left(ex) => return ex.asLeft
           case Right(_) =>
@@ -99,13 +102,13 @@ class S3Writer(
     }
 
     writeState match {
-      case uploadState@Uploading(commitState, file, uncommittedOffset) =>
+      case uploadState @ Uploading(commitState, file, uncommittedOffset) =>
         for {
           finalFileName <- finalFilenameFn(uncommittedOffset)
           indexFileName <- indexManager.write(topicPartition.withOffset(uncommittedOffset), finalFileName)
           _ <- storageInterface.uploadFile(file, finalFileName).recover {
             case _: NonExistingFileError => ()
-            case _: ZeroByteFileError => ()
+            case _: ZeroByteFileError    => ()
           }.leftMap {
             case UploadFailedError(exception, _) => NonFatalS3SinkError(exception.getMessage, exception)
           }
@@ -123,9 +126,9 @@ class S3Writer(
     }
   }
 
-  def close(): Unit = {
+  def close(): Unit =
     writeState = writeState match {
-      case state@NoWriter(_) => state
+      case state @ NoWriter(_) => state
       case Writing(commitState, s3FormatWriter, file, _) =>
         Try(s3FormatWriter.close())
         Try(file.delete())
@@ -134,37 +137,38 @@ class S3Writer(
         Try(file.delete())
         NoWriter(commitState.reset())
     }
-  }
 
   def getCommittedOffset: Option[Offset] = writeState.getCommitState.committedOffset
 
-  def shouldFlush: Boolean = {
+  def shouldFlush: Boolean =
     writeState match {
       case Writing(commitState, _, _, uncommittedOffset) => commitPolicy.shouldFlush(
-        CommitContext(
-          topicPartition.withOffset(uncommittedOffset),
-          commitState.recordCount,
-          commitState.lastKnownFileSize,
-          commitState.createdTimestamp,
-          commitState.lastFlushedTime,
+          CommitContext(
+            topicPartition.withOffset(uncommittedOffset),
+            commitState.recordCount,
+            commitState.lastKnownFileSize,
+            commitState.createdTimestamp,
+            commitState.lastFlushedTime,
+          ),
         )
-      )
-      case NoWriter(_) => false
+      case NoWriter(_)        => false
       case Uploading(_, _, _) => false
     }
 
-  }
-
   /**
-   * If the offsets provided by Kafka Connect have already been processed, then they must be skipped to avoid duplicate records and protect the integrity of the data files.
-   *
-   * @param currentOffset the current offset
-   * @return true if the given offset should be skipped, false otherwise
-   */
+    * If the offsets provided by Kafka Connect have already been processed, then they must be skipped to avoid duplicate records and protect the integrity of the data files.
+    *
+    * @param currentOffset the current offset
+    * @return true if the given offset should be skipped, false otherwise
+    */
   def shouldSkip(currentOffset: Offset): Boolean = {
 
     def largestOffset(maybeCommittedOffset: Option[Offset], uncommittedOffset: Offset): Offset = {
-      logger.trace(s"[{}] maybeCommittedOffset: {}, uncommittedOffset: {}", sinkName, maybeCommittedOffset, uncommittedOffset)
+      logger.trace(s"[{}] maybeCommittedOffset: {}, uncommittedOffset: {}",
+                   sinkName,
+                   maybeCommittedOffset,
+                   uncommittedOffset,
+      )
       (maybeCommittedOffset.toList :+ uncommittedOffset).max
     }
 
@@ -172,7 +176,9 @@ class S3Writer(
 
       def logSkipOutcome(currentOffset: Offset, latestOffset: Option[Offset], skipRecord: Boolean): Unit = {
         val skipping = if (skipRecord) "SKIPPING" else "PROCESSING"
-        logger.debug(s"[$sinkName] lastSeeked=${lastSeekedOffset} current=${currentOffset.value} latest=$latestOffset - $skipping")
+        logger.debug(
+          s"[$sinkName] lastSeeked=${lastSeekedOffset} current=${currentOffset.value} latest=$latestOffset - $skipping",
+        )
       }
 
       val shouldSkip = if (latestOffset.isEmpty) {
@@ -196,27 +202,23 @@ class S3Writer(
     }
   }
 
-  def hasPendingUpload(): Boolean = {
+  def hasPendingUpload(): Boolean =
     writeState match {
       case Uploading(_, _, _) => true
-      case _ => false
+      case _                  => false
     }
-  }
 
-  def shouldRollover(schema: Schema): Boolean = {
+  def shouldRollover(schema: Schema): Boolean =
     rolloverOnSchemaChange &&
       schemaHasChanged(schema)
-  }
 
-  private def schemaHasChanged(schema: Schema): Boolean = {
+  private def schemaHasChanged(schema: Schema): Boolean =
     writeState.getCommitState.lastKnownSchema.exists(_ != schema)
-  }
 
-  private def rolloverOnSchemaChange: Boolean = {
+  private def rolloverOnSchemaChange: Boolean =
     writeState match {
       case Writing(_, s3FormatWriter, _, _) => s3FormatWriter.rolloverFileOnSchemaChange()
-      case _ => false
+      case _                                => false
     }
-  }
 
 }

@@ -36,30 +36,29 @@ object Helpers extends StrictLogging {
     * @param input The raw input string to parse .i.e. table:topic,table2:topic2.
     * @param filterTable The tables to filter for.
     * @return a Map of table->topic.
-    * */
-  def buildRouteMaps(input: String, filterTable: List[String]) : Map[String, String] = {
-    tableTopicParser(input).filter({ case (k, _) => filterTable.contains(k)})
-  }
+    */
+  def buildRouteMaps(input: String, filterTable: List[String]): Map[String, String] =
+    tableTopicParser(input).filter({ case (k, _) => filterTable.contains(k) })
 
   //{table:f1,f2}
-  def pKParser(input : String) : Map[String, List[String]] = {
+  def pKParser(input: String): Map[String, List[String]] = {
     val mappings = input.split("\\}")
       .toList
       .map(s => s.replace(",{", "").replace("{", "").replace("}", "").trim())
 
-    mappings.map(
-      m => {
+    mappings.map {
+      m =>
         val colon = m.indexOf(":")
         if (colon >= 0) {
-          val topic = m.substring(0, colon)
+          val topic  = m.substring(0, colon)
           val fields = m.substring(colon + 1, m.length).split(",").toList
           (topic, fields)
         } else {
           throw new ConfigException(s"Invalid format for PKs. Received $input. Format should be {topic:f1,2}," +
             s"{topic2:f3,f3}....")
         }
-      }
-    ).toMap
+    }
+      .toMap
   }
 
   /**
@@ -69,13 +68,12 @@ object Helpers extends StrictLogging {
     *
     * @param input The input string to parse.
     * @return a Map of table->topic or topic->table.
-    * */
-  def splitter(input: String, delimiter: String) : Map[String, String] = {
+    */
+  def splitter(input: String, delimiter: String): Map[String, String] =
     input.split(",")
       .toList
       .map(c => c.split(delimiter))
-      .map(a => {if (a.length == 1) (a(0), a(0)) else (a(0), a(1)) }).toMap
-  }
+      .map(a => if (a.length == 1) (a(0), a(0)) else (a(0), a(1))).toMap
 
   /**
     * Break a comma and colon separated string into a map of table to topic or topic to table
@@ -84,35 +82,37 @@ object Helpers extends StrictLogging {
     *
     * @param input The input string to parse.
     * @return a Map of table->topic or topic->table.
-    * */
-  def tableTopicParser(input: String) : Map[String, String] = {
+    */
+  def tableTopicParser(input: String): Map[String, String] =
     input.split(",")
       .toList
       .map(c => c.split(":"))
-      .map(a => {if (a.length == 1) (a(0), a(0)) else (a(0), a(1)) }).toMap
-  }
-
+      .map(a => if (a.length == 1) (a(0), a(0)) else (a(0), a(1))).toMap
 
   def checkInputTopics(kcqlConstant: String, props: Map[String, String]): Boolean = {
     val topics = props("topics").split(",").map(t => t.trim).toSet
-    val raw = props(kcqlConstant)
+    val raw    = props(kcqlConstant)
     if (raw.isEmpty) {
       throw new ConfigException(s"Missing $kcqlConstant")
     }
-    val kcql = raw.split(";").map(r => Kcql.parse(r)).toSet
+    val kcql    = raw.split(";").map(r => Kcql.parse(r)).toSet
     val sources = kcql.map(k => k.getSource)
-    val res = topics.subsetOf(sources)
+    val res     = topics.subsetOf(sources)
 
     if (!res) {
       val missing = topics.diff(sources)
-      throw new ConfigException(s"Mandatory `topics` configuration contains topics not set in $kcqlConstant: ${missing}, kcql contains $sources")
+      throw new ConfigException(
+        s"Mandatory `topics` configuration contains topics not set in $kcqlConstant: ${missing}, kcql contains $sources",
+      )
     }
 
     val res1 = sources.subsetOf(topics)
 
     if (!res1) {
       val missing = topics.diff(sources)
-      throw new ConfigException(s"$kcqlConstant configuration contains topics not set in mandatory `topic` configuration: ${missing}, kcql contains $sources")
+      throw new ConfigException(
+        s"$kcqlConstant configuration contains topics not set in mandatory `topic` configuration: ${missing}, kcql contains $sources",
+      )
     }
 
     true

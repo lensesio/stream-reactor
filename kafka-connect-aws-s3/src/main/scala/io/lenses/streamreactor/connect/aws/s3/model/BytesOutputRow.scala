@@ -21,12 +21,12 @@ import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
 import scala.collection.mutable.ListBuffer
 
 case class BytesOutputRow(
-                           keySize: Option[Long],
-                           valueSize: Option[Long],
-                           key: Array[Byte],
-                           value: Array[Byte],
-                           bytesRead: Option[Int] = None
-                         ) {
+  keySize:   Option[Long],
+  valueSize: Option[Long],
+  key:       Array[Byte],
+  value:     Array[Byte],
+  bytesRead: Option[Int] = None,
+) {
 
   def toByteArray: Array[Byte] = {
     val buffer = new ListBuffer[Byte]()

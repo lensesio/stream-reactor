@@ -1,6 +1,8 @@
 package com.landoop.streamreactor.connect.hive.sink.evolution
 
-import com.landoop.streamreactor.connect.hive.{DatabaseName, HiveSchemas, TableName}
+import com.landoop.streamreactor.connect.hive.DatabaseName
+import com.landoop.streamreactor.connect.hive.HiveSchemas
+import com.landoop.streamreactor.connect.hive.TableName
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.errors.ConnectException
@@ -19,17 +21,21 @@ import scala.util.Try
   */
 object IgnoreEvolutionPolicy extends EvolutionPolicy {
 
-  override def evolve(dbName: DatabaseName,
-                      tableName: TableName,
-                      metastoreSchema: Schema,
-                      inputSchema: Schema)
-                     (implicit client: IMetaStoreClient): Try[Schema] = Try {
+  override def evolve(
+    dbName:          DatabaseName,
+    tableName:       TableName,
+    metastoreSchema: Schema,
+    inputSchema:     Schema,
+  )(
+    implicit
+    client: IMetaStoreClient,
+  ): Try[Schema] = Try {
     HiveSchemas.toKafka(client.getTable(dbName.value, tableName.value))
   }.map { schema =>
     val compatible = schema.fields().asScala.forall { field =>
       inputSchema.field(field.name) != null ||
-        field.schema().isOptional ||
-        field.schema().defaultValue() != null
+      field.schema().isOptional ||
+      field.schema().defaultValue() != null
     }
     if (compatible) schema else throw new ConnectException("Input Schema is not compatible with the metastore")
   }

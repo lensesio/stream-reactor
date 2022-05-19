@@ -22,39 +22,46 @@ import com.datamountaineer.streamreactor.common.converters.MsgKey
 import java.io.File
 import java.util.Collections
 import io.confluent.connect.avro.AvroData
-import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
+import org.apache.avro.generic.GenericDatumReader
+import org.apache.avro.generic.GenericRecord
 import org.apache.avro.io.DecoderFactory
-import org.apache.avro.{Schema => AvroSchema}
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.avro.{ Schema => AvroSchema }
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
-
 class AvroConverter extends Converter {
   private val avroData = new AvroData(8)
-  private var sourceToSchemaMap: Map[String, AvroSchema] = Map.empty
-  private var avroReadersMap: Map[String, GenericDatumReader[GenericRecord]] = Map.empty
+  private var sourceToSchemaMap: Map[String, AvroSchema]                        = Map.empty
+  private var avroReadersMap:    Map[String, GenericDatumReader[GenericRecord]] = Map.empty
 
-  override def convert(kafkaTopic: String,
-                       sourceTopic: String,
-                       messageId: String,
-                       bytes: Array[Byte],
-                       keys: Seq[String] = Seq.empty,
-                       keyDelimiter: String = ".",
-                       properties: Map[String, String] = Map.empty): SourceRecord = {
+  override def convert(
+    kafkaTopic:   String,
+    sourceTopic:  String,
+    messageId:    String,
+    bytes:        Array[Byte],
+    keys:         Seq[String]         = Seq.empty,
+    keyDelimiter: String              = ".",
+    properties:   Map[String, String] = Map.empty,
+  ): SourceRecord =
     Option(bytes) match {
       case None =>
         new SourceRecord(Collections.singletonMap(Converter.TopicKey, sourceTopic),
-          null,
-          kafkaTopic,
-          avroData.toConnectSchema(sourceToSchemaMap(sourceTopic)),
-          null)
+                         null,
+                         kafkaTopic,
+                         avroData.toConnectSchema(sourceToSchemaMap(sourceTopic)),
+                         null,
+        )
       case Some(_) =>
-        val reader = avroReadersMap.getOrElse(sourceTopic.toLowerCase, throw new ConfigException(s"Invalid [${AvroConverter.SCHEMA_CONFIG}] is not configured for [$sourceTopic]"))
-        val decoder = DecoderFactory.get().binaryDecoder(bytes, null)
-        val record = reader.read(null, decoder)
+        val reader = avroReadersMap.getOrElse(
+          sourceTopic.toLowerCase,
+          throw new ConfigException(s"Invalid [${AvroConverter.SCHEMA_CONFIG}] is not configured for [$sourceTopic]"),
+        )
+        val decoder        = DecoderFactory.get().binaryDecoder(bytes, null)
+        val record         = reader.read(null, decoder)
         val schemaAndValue = avroData.toConnectData(sourceToSchemaMap(sourceTopic.toLowerCase), record)
-        val value = schemaAndValue.value()
+        val value          = schemaAndValue.value()
         value match {
           case s: Struct if keys.nonEmpty =>
             val keysValue = keys.flatMap { key =>
@@ -67,7 +74,8 @@ class AvroConverter extends Converter {
               Schema.STRING_SCHEMA,
               keysValue,
               schemaAndValue.schema(),
-              schemaAndValue.value())
+              schemaAndValue.value(),
+            )
           case _ =>
             new SourceRecord(
               Collections.singletonMap(Converter.TopicKey, sourceTopic),
@@ -76,26 +84,32 @@ class AvroConverter extends Converter {
               MsgKey.schema,
               MsgKey.getStruct(sourceTopic, messageId),
               schemaAndValue.schema(),
-              schemaAndValue.value())
+              schemaAndValue.value(),
+            )
         }
 
     }
-  }
 
   override def initialize(config: Map[String, String]): Unit = {
     sourceToSchemaMap = AvroConverter.getSchemas(config)
-    avroReadersMap = sourceToSchemaMap.map { case (key, schema) =>
-      key -> new GenericDatumReader[GenericRecord](schema)
+    avroReadersMap = sourceToSchemaMap.map {
+      case (key, schema) =>
+        key -> new GenericDatumReader[GenericRecord](schema)
     }
   }
 }
 
 object AvroConverter {
-  val SCHEMA_CONFIG = "avro.schemas"
+  val SCHEMA_CONFIG                          = "avro.schemas"
   val CONNECT_SOURCE_CONVERTER_SCHEMA_CONFIG = Converter.CONNECT_SOURCE_CONVERTER_PREFIX + "." + SCHEMA_CONFIG
 
-  def getSchemas(config: Map[String, String]): Map[String, AvroSchema] = {
-    config.getOrElse(SCHEMA_CONFIG, config.getOrElse(CONNECT_SOURCE_CONVERTER_SCHEMA_CONFIG, throw new ConfigException(s"[$SCHEMA_CONFIG] is not provided")))
+  def getSchemas(config: Map[String, String]): Map[String, AvroSchema] =
+    config.getOrElse(
+      SCHEMA_CONFIG,
+      config.getOrElse(CONNECT_SOURCE_CONVERTER_SCHEMA_CONFIG,
+                       throw new ConfigException(s"[$SCHEMA_CONFIG] is not provided"),
+      ),
+    )
       .toString
       .split(';')
       .filter(_.trim.nonEmpty)
@@ -111,7 +125,7 @@ object AvroConverter {
             throw new ConfigException(s"Invalid [$SCHEMA_CONFIG]. The topic is not valid for entry containing [$path]")
           }
           s -> new AvroSchema.Parser().parse(file)
-        case _ => throw new ConfigException(s"[$SCHEMA_CONFIG] is not properly set. The format is Mqtt_Source->AVRO_FILE")
+        case _ =>
+          throw new ConfigException(s"[$SCHEMA_CONFIG] is not properly set. The format is Mqtt_Source->AVRO_FILE")
       }.toMap
-  }
 }

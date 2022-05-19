@@ -8,7 +8,7 @@ object DecimalVectorWriter extends OrcVectorWriter[DecimalColumnVector, BigDecim
   override def write(vector: DecimalColumnVector, offset: Int, value: Option[BigDecimal]): Unit = value match {
     case None =>
       vector.isNull(offset) = true
-      vector.noNulls = false
+      vector.noNulls        = false
     case Some(bd) =>
       vector.vector(offset) = new HiveDecimalWritable(HiveDecimal.create(bd.underlying()))
   }

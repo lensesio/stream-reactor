@@ -15,9 +15,12 @@
  */
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
-import com.microsoft.azure.documentdb.{Database, DocumentClient}
+import com.microsoft.azure.documentdb.Database
+import com.microsoft.azure.documentdb.DocumentClient
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 object CreateDatabaseFn {
   def apply(databaseName: String)(implicit documentClient: DocumentClient): Database = {
@@ -25,7 +28,7 @@ object CreateDatabaseFn {
     db.setId(databaseName)
     Try(documentClient.createDatabase(db, null).getResource) match {
       case Failure(ex) => throw new RuntimeException(s"Could not create database [$databaseName]. ${ex.getMessage}", ex)
-      case Success(d) => d
+      case Success(d)  => d
     }
   }
 }

@@ -17,18 +17,17 @@ object OpTimer {
 
 }
 
-case class OpTimerTiming (timerName: String, startStackTrace: Array[StackTraceElement], startTime: Long) {
-  def complete() : OpTimerComplete = {
+case class OpTimerTiming(timerName: String, startStackTrace: Array[StackTraceElement], startTime: Long) {
+  def complete(): OpTimerComplete =
     OpTimerComplete(timerName, startStackTrace, startTime, System.currentTimeMillis())
-  }
 }
 
-case class OpTimerComplete(timerName: String, startStackTrace: Array[StackTraceElement], startTime: Long, endTime: Long) extends LazyLogging{
+case class OpTimerComplete(timerName: String, startStackTrace: Array[StackTraceElement], startTime: Long, endTime: Long)
+    extends LazyLogging {
   val time = endTime - startTime
-  if(time > 100) {
+  if (time > 100) {
     //logger.error("OpTimer {}: {} StackTrace: {}", timerName, time, startStackTrace)
   } else {
     //logger.info("OpTimer {}: {}", timerName, time)
   }
 }
-

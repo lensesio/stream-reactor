@@ -18,17 +18,19 @@ package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, PrimitiveSinkData, SinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.ByteArraySinkData
+import io.lenses.streamreactor.connect.aws.s3.model.PrimitiveSinkData
+import io.lenses.streamreactor.connect.aws.s3.model.SinkData
 
 object WrappedPrimitiveExtractor extends LazyLogging {
 
-  private[extractors] def extractFromPrimitive(wrappedPrimitive: SinkData): Either[ExtractorError, String] = {
+  private[extractors] def extractFromPrimitive(wrappedPrimitive: SinkData): Either[ExtractorError, String] =
     wrappedPrimitive match {
       case data: PrimitiveSinkData => data.primVal().toString.asRight[ExtractorError]
       case ByteArraySinkData(array, _) => new String(array.array).asRight[ExtractorError]
-      case other => logger.error(s"Unable to represent a complex object as a string value ${other.getClass.getCanonicalName}")
+      case other =>
+        logger.error(s"Unable to represent a complex object as a string value ${other.getClass.getCanonicalName}")
         ExtractorError(ExtractorErrorType.UnexpectedType).asLeft[String]
     }
-  }
 
 }

@@ -24,7 +24,8 @@ import com.sksamuel.elastic4s.http.bulk.BulkResponse
 import com.sksamuel.elastic4s.http._
 import com.sksamuel.elastic4s.mappings.MappingDefinition
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.http.auth.{AuthScope, UsernamePasswordCredentials}
+import org.apache.http.auth.AuthScope
+import org.apache.http.auth.UsernamePasswordCredentials
 import org.apache.http.impl.client.BasicCredentialsProvider
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder
 import org.elasticsearch.client.RestClientBuilder.HttpClientConfigCallback
@@ -37,33 +38,31 @@ trait KElasticClient extends AutoCloseable {
   def execute(definition: BulkRequest): Future[Any]
 }
 
-
 object KElasticClient extends StrictLogging {
 
-  def createHttpClient(settings: ElasticSettings, endpoints: Seq[ElasticNodeEndpoint]): KElasticClient = {
+  def createHttpClient(settings: ElasticSettings, endpoints: Seq[ElasticNodeEndpoint]): KElasticClient =
     if (settings.httpBasicAuthUsername.nonEmpty && settings.httpBasicAuthPassword.nonEmpty) {
       lazy val provider = {
         val provider = new BasicCredentialsProvider
-        val credentials = new UsernamePasswordCredentials(settings.httpBasicAuthUsername, settings.httpBasicAuthPassword)
+        val credentials =
+          new UsernamePasswordCredentials(settings.httpBasicAuthUsername, settings.httpBasicAuthPassword)
         provider.setCredentials(AuthScope.ANY, credentials)
         provider
       }
       val callback = new HttpClientConfigCallback {
-        override def customizeHttpClient(httpClientBuilder: HttpAsyncClientBuilder): HttpAsyncClientBuilder = {
+        override def customizeHttpClient(httpClientBuilder: HttpAsyncClientBuilder): HttpAsyncClientBuilder =
           httpClientBuilder.setDefaultCredentialsProvider(provider)
-        }
       }
       val client: ElasticClient = ElasticClient(
         ElasticProperties(endpoints),
-        requestConfigCallback = NoOpRequestConfigCallback,
-        httpClientConfigCallback = callback
+        requestConfigCallback    = NoOpRequestConfigCallback,
+        httpClientConfigCallback = callback,
       )
       new HttpKElasticClient(client)
     } else {
       val client: ElasticClient = ElasticClient(ElasticProperties(endpoints))
       new HttpKElasticClient(client)
     }
-  }
 }
 
 class HttpKElasticClient(client: ElasticClient) extends KElasticClient {
@@ -76,7 +75,7 @@ class HttpKElasticClient(client: ElasticClient) extends KElasticClient {
     val indexName = getIndexName(kcql)
     client.execute {
       Option(kcql.getDocType) match {
-        case None => createIndex(indexName)
+        case None               => createIndex(indexName)
         case Some(documentType) => createIndex(indexName).mappings(MappingDefinition(documentType))
       }
     }

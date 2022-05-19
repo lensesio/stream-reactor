@@ -16,7 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb
 
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 
 import java.util
 

@@ -22,22 +22,20 @@ import com.microsoft.azure.documentdb.ConsistencyLevel
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 
-case class DocumentDbSinkSettings(endpoint: String,
-                                  masterKey: String,
-                                  database: String,
-                                  kcql: Seq[Kcql],
-                                  keyBuilderMap: Map[String, Set[String]],
-                                  fields: Map[String, Map[String, String]],
-                                  ignoredField: Map[String, Set[String]],
-                                  errorPolicy: ErrorPolicy,
-                                  consistency: ConsistencyLevel,
-                                  createDatabase: Boolean,
-                                  proxy: Option[String],
-                                  taskRetries: Int = DocumentDbConfigConstants.NBR_OF_RETIRES_DEFAULT
-                                  ) {
-
-}
-
+case class DocumentDbSinkSettings(
+  endpoint:       String,
+  masterKey:      String,
+  database:       String,
+  kcql:           Seq[Kcql],
+  keyBuilderMap:  Map[String, Set[String]],
+  fields:         Map[String, Map[String, String]],
+  ignoredField:   Map[String, Set[String]],
+  errorPolicy:    ErrorPolicy,
+  consistency:    ConsistencyLevel,
+  createDatabase: Boolean,
+  proxy:          Option[String],
+  taskRetries:    Int = DocumentDbConfigConstants.NBR_OF_RETIRES_DEFAULT,
+) {}
 
 object DocumentDbSinkSettings extends StrictLogging {
 
@@ -48,7 +46,7 @@ object DocumentDbSinkSettings extends StrictLogging {
     val masterKey = Option(config.getPassword(DocumentDbConfigConstants.MASTER_KEY_CONFIG))
       .map(_.value())
       .getOrElse(throw new ConfigException(s"Missing [${DocumentDbConfigConstants.MASTER_KEY_CONFIG}]"))
-    if(masterKey.trim.isEmpty)
+    if (masterKey.trim.isEmpty)
       throw new ConfigException(s"Invalid [${DocumentDbConfigConstants.MASTER_KEY_CONFIG}]")
 
     val database = config.getDatabase
@@ -57,25 +55,26 @@ object DocumentDbSinkSettings extends StrictLogging {
       throw new ConfigException(s"Missing [${DocumentDbConfigConstants.DATABASE_CONFIG}]")
     }
 
-    val kcql = config.getKCQL
-    val errorPolicy= config.getErrorPolicy
-    val retries = config.getNumberRetries
+    val kcql             = config.getKCQL
+    val errorPolicy      = config.getErrorPolicy
+    val retries          = config.getNumberRetries
     val rowKeyBuilderMap = config.getUpsertKeys()
-    val fieldsMap = config.getFieldsMap()
-    val ignoreFields = config.getIgnoreFieldsMap()
+    val fieldsMap        = config.getFieldsMap()
+    val ignoreFields     = config.getIgnoreFieldsMap()
     val consistencyLevel = config.getConsistencyLevel.get
 
     new DocumentDbSinkSettings(endpoint,
-      masterKey,
-      database,
-      kcql.toSeq,
-      rowKeyBuilderMap,
-      fieldsMap,
-      ignoreFields,
-      errorPolicy,
-      consistencyLevel,
-      config.getBoolean(DocumentDbConfigConstants.CREATE_DATABASE_CONFIG),
-      Option(config.getString(DocumentDbConfigConstants.PROXY_HOST_CONFIG)),
-      retries)
+                               masterKey,
+                               database,
+                               kcql.toSeq,
+                               rowKeyBuilderMap,
+                               fieldsMap,
+                               ignoreFields,
+                               errorPolicy,
+                               consistencyLevel,
+                               config.getBoolean(DocumentDbConfigConstants.CREATE_DATABASE_CONFIG),
+                               Option(config.getString(DocumentDbConfigConstants.PROXY_HOST_CONFIG)),
+                               retries,
+    )
   }
 }

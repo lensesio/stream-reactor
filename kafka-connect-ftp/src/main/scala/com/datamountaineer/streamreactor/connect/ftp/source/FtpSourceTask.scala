@@ -20,16 +20,17 @@ import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.datamountaineer.streamreactor.connect.ftp.source.OpTimer.profile
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
-import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
+import org.apache.kafka.connect.source.SourceRecord
+import org.apache.kafka.connect.source.SourceTask
 import org.apache.kafka.connect.storage.OffsetStorageReader
 
 import java.time.Duration
 import java.util
 import scala.jdk.CollectionConverters.SeqHasAsJava
-import scala.util.{Failure, Success}
+import scala.util.Failure
+import scala.util.Success
 
 // holds functions that translate a file meta+body into a source record
-
 
 // bridges between the Connect reality and the (agnostic) FtpMonitor reality.
 // logic could have been in FtpSourceTask directly, but FtpSourceTask's imperative nature made things a bit ugly,
@@ -41,39 +42,40 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
     .map(monitorCfg => (MonitoredPath(monitorCfg.path, monitorCfg.mode), monitorCfg.topic)).toMap
 
   val pollDuration = Duration.parse(cfg.getString(FtpSourceConfig.RefreshRate))
-  val maxBackoff = Duration.parse(cfg.getString(FtpSourceConfig.MaxBackoff))
+  val maxBackoff   = Duration.parse(cfg.getString(FtpSourceConfig.MaxBackoff))
 
   var backoff = new ExponentialBackOff(pollDuration, maxBackoff)
-  var buffer : LazyList[SourceRecord] = LazyList.empty
+  var buffer: LazyList[SourceRecord] = LazyList.empty
 
   val ftpMonitor = {
-    val (host,optPort) = cfg.address()
+    val (host, optPort) = cfg.address()
     new FtpMonitor(
-    FtpMonitorSettings(
-      host,
-      optPort,
-      cfg.getString(FtpSourceConfig.User),
-      cfg.getPassword(FtpSourceConfig.Password).value,
-      Some(Duration.parse(cfg.getString(FtpSourceConfig.FileMaxAge))),
-      monitor2topic.keys.toSeq,
-      cfg.timeoutMs(),
-      cfg.getProtocol,
-      cfg.getString(FtpSourceConfig.fileFilter),
-      cfg.getInt(FtpSourceConfig.MonitorSliceSize)
-    ),
-      fileConverter
+      FtpMonitorSettings(
+        host,
+        optPort,
+        cfg.getString(FtpSourceConfig.User),
+        cfg.getPassword(FtpSourceConfig.Password).value,
+        Some(Duration.parse(cfg.getString(FtpSourceConfig.FileMaxAge))),
+        monitor2topic.keys.toSeq,
+        cfg.timeoutMs(),
+        cfg.getProtocol,
+        cfg.getString(FtpSourceConfig.fileFilter),
+        cfg.getInt(FtpSourceConfig.MonitorSliceSize),
+      ),
+      fileConverter,
     )
   }
 
   def poll(): LazyList[SourceRecord] = {
-      val stream: LazyList[SourceRecord] = if (buffer.isEmpty) fetchRecords() else buffer
-      val (head, tail) = stream.splitAt(cfg.maxPollRecords)
-      buffer = tail
-      head
+    val stream: LazyList[SourceRecord] = if (buffer.isEmpty) fetchRecords() else buffer
+    val (head, tail) = stream.splitAt(cfg.maxPollRecords)
+    buffer = tail
+    head
   }
 
-  def fetchRecords(): LazyList[SourceRecord] = {
-    profile("fetchRecords", {
+  def fetchRecords(): LazyList[SourceRecord] =
+    profile(
+      "fetchRecords",
       if (backoff.passed) {
         logger.info("poll")
         ftpMonitor.poll() match {
@@ -91,16 +93,17 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
         logger.info("WE DID SLEEP... zzzzzzzzzzz")
         Thread.sleep(1000)
         LazyList.empty
-      }
-    })
-  }
+      },
+    )
 
-  def fileChangesToRecords(fileChanges: LazyList[(FileMetaData, FileBody, MonitoredPath)]): LazyList[SourceRecord] = {
-    fileChanges.flatMap({ case (meta, body, w) =>
-      logger.info(s"got some fileChanges: ${meta.attribs.path}, offset = ${meta.offset}")
-      fileConverter.convert(monitor2topic(w), meta, body)
-    })
-  }
+  def fileChangesToRecords(fileChanges: LazyList[(FileMetaData, FileBody, MonitoredPath)]): LazyList[SourceRecord] =
+    fileChanges.flatMap(
+      {
+        case (meta, body, w) =>
+          logger.info(s"got some fileChanges: ${meta.attribs.path}, offset = ${meta.offset}")
+          fileConverter.convert(monitor2topic(w), meta, body)
+      },
+    )
 }
 
 class FtpSourceTask extends SourceTask with StrictLogging {
@@ -120,9 +123,9 @@ class FtpSourceTask extends SourceTask with StrictLogging {
 
     val sourceConfig = new FtpSourceConfig(conf)
 
-    sourceConfig.ftpMonitorConfigs().foreach(cfg => {
+    sourceConfig.ftpMonitorConfigs().foreach { cfg =>
       logger.info(s"config tells us to track the ${cfg.mode.toString} of files in `${cfg.path}` to topic `${cfg.topic}")
-    })
+    }
     poller = Some(new FtpSourcePoller(sourceConfig, context.offsetStorageReader))
   }
 
@@ -130,6 +133,6 @@ class FtpSourceTask extends SourceTask with StrictLogging {
 
   override def poll(): util.List[SourceRecord] = poller match {
     case Some(poller) => poller.poll().asJava
-    case None => throw new ConnectException("FtpSourceTask is not initialized but it is polled")
+    case None         => throw new ConnectException("FtpSourceTask is not initialized but it is polled")
   }
 }

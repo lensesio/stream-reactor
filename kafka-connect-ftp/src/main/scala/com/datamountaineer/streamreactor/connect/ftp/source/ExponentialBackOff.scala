@@ -16,7 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.ftp.source
 
-import java.time.{Duration, Instant}
+import java.time.Duration
+import java.time.Instant
 
 class ExponentialBackOff(step: Duration, cap: Duration, iteration: Int = 0) {
   val endTime = Instant.now.plus(interval(iteration))
@@ -24,8 +25,8 @@ class ExponentialBackOff(step: Duration, cap: Duration, iteration: Int = 0) {
   private def interval(i: Int) = Duration.ofMillis(
     Math.min(
       cap.toMillis,
-      step.toMillis * Math.pow(2L, i.toDouble).toLong
-    )
+      step.toMillis * Math.pow(2L, i.toDouble).toLong,
+    ),
   )
 
   def remaining: Duration = Duration.between(Instant.now, endTime)

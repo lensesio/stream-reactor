@@ -32,18 +32,17 @@ case class JarManifest(location: URL) {
   try {
     val file = new File(location.toURI)
     if (file.isFile) {
-      val jarFile = new JarFile(file)
-      val manifest = jarFile.getManifest
+      val jarFile    = new JarFile(file)
+      val manifest   = jarFile.getManifest
       val attributes = manifest.getMainAttributes
       map += "StreamReactor-Version" -> attributes.getValue("StreamReactor-Version")
-      map += "Kafka-Version" -> attributes.getValue("Kafka-Version")
-      map += "Git-Repo" -> attributes.getValue("Git-Repo")
-      map += "Git-Commit-Hash" -> attributes.getValue("Git-Commit-Hash")
-      map += "Git-Tag" -> attributes.getValue("Git-Tag")
-      map += "StreamReactor-Docs" -> attributes.getValue("StreamReactor-Docs")
+      map += "Kafka-Version"         -> attributes.getValue("Kafka-Version")
+      map += "Git-Repo"              -> attributes.getValue("Git-Repo")
+      map += "Git-Commit-Hash"       -> attributes.getValue("Git-Commit-Hash")
+      map += "Git-Tag"               -> attributes.getValue("Git-Tag")
+      map += "StreamReactor-Docs"    -> attributes.getValue("StreamReactor-Docs")
     }
-  }
-  catch {
+  } catch {
     case t: Throwable => msg = t.getMessage
   }
 
@@ -65,7 +64,6 @@ case class JarManifest(location: URL) {
        |Git-Commit-Hash:             ${map.getOrElse("Git-Commit-Hash", msg)}
        |Git-Tag:                     ${map.getOrElse("Git-Tag", msg)}
        |StreamReactor-Docs:          ${map.getOrElse("StreamReactor-Docs", msg)}
-      """.
-      stripMargin
+      """.stripMargin
   }
 }

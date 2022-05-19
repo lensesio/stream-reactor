@@ -21,15 +21,14 @@ package com.datamountaineer.streamreactor.connect.jms.sink.converters
 import com.datamountaineer.kcql.FormatType
 
 object JMSMessageConverterFn {
-  def apply(storedAs: FormatType): JMSSinkMessageConverter = {
+  def apply(storedAs: FormatType): JMSSinkMessageConverter =
     storedAs match {
-      case FormatType.AVRO => new AvroMessageConverter
-      case FormatType.JSON => new JsonMessageConverter
-      case FormatType.OBJECT => new ObjectMessageConverter
-      case FormatType.BINARY => new ByteMessageConverter
-      case FormatType.TEXT => new TextMessageConverter
-      case FormatType.MAP => new MapMessageConverter
+      case FormatType.AVRO     => new AvroMessageConverter
+      case FormatType.JSON     => new JsonMessageConverter
+      case FormatType.OBJECT   => new ObjectMessageConverter
+      case FormatType.BINARY   => new ByteMessageConverter
+      case FormatType.TEXT     => new TextMessageConverter
+      case FormatType.MAP      => new MapMessageConverter
       case FormatType.PROTOBUF => new ProtoMessageConverter
     }
-  }
 }

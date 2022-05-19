@@ -17,22 +17,27 @@
 package com.datamountaineer.streamreactor.connect.pulsar.config
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.converters.source.{BytesConverter, Converter}
+import com.datamountaineer.streamreactor.connect.converters.source.BytesConverter
+import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import org.apache.kafka.common.config.ConfigException
 import org.apache.pulsar.client.api.SubscriptionType
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
-case class PulsarSourceSettings(connection: String,
-                                sourcesToConverters: Map[String, String],
-                                throwOnConversion: Boolean,
-                                kcql: Set[Kcql],
-                                pollingTimeout: Int,
-                                batchSize: Int,
-                                sslCACertFile: Option[String],
-                                sslCertFile: Option[String],
-                                sslCertKeyFile: Option[String],
-                                enableProgress: Boolean = PulsarConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT) {
+case class PulsarSourceSettings(
+  connection:          String,
+  sourcesToConverters: Map[String, String],
+  throwOnConversion:   Boolean,
+  kcql:                Set[Kcql],
+  pollingTimeout:      Int,
+  batchSize:           Int,
+  sslCACertFile:       Option[String],
+  sslCertFile:         Option[String],
+  sslCertKeyFile:      Option[String],
+  enableProgress:      Boolean = PulsarConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+) {
 
   def asMap(): java.util.Map[String, String] = {
     val map = new java.util.HashMap[String, String]()
@@ -43,44 +48,51 @@ case class PulsarSourceSettings(connection: String,
   }
 }
 
-
 object PulsarSourceSettings {
   def apply(config: PulsarSourceConfig, maxTasks: Int): PulsarSourceSettings = {
 
     def getFile(configKey: String) = Option(config.getString(configKey))
 
-    val kcql = config.getKCQL
-    val connection = config.getHosts
+    val kcql            = config.getKCQL
+    val connection      = config.getHosts
     val progressEnabled = config.getBoolean(PulsarConfigConstants.PROGRESS_COUNTER_ENABLED)
 
-    val converters = kcql.map(k => {
+    val converters = kcql.map { k =>
       (k.getSource, if (k.getWithConverter == null) classOf[BytesConverter].getCanonicalName else k.getWithConverter)
-    }).toMap
+    }.toMap
 
-    converters.foreach { case (pulsar_source, clazz) =>
-      Try(Class.forName(clazz)) match {
-        case Failure(_) => throw new ConfigException(s"Invalid ${PulsarConfigConstants.KCQL_CONFIG}. $clazz can't be found for $pulsar_source")
-        case Success(clz) =>
-          if (!classOf[Converter].isAssignableFrom(clz)) {
-            throw new ConfigException(s"Invalid ${PulsarConfigConstants.KCQL_CONFIG}. $clazz is not inheriting Converter for $pulsar_source")
-          }
-      }
+    converters.foreach {
+      case (pulsar_source, clazz) =>
+        Try(Class.forName(clazz)) match {
+          case Failure(_) =>
+            throw new ConfigException(
+              s"Invalid ${PulsarConfigConstants.KCQL_CONFIG}. $clazz can't be found for $pulsar_source",
+            )
+          case Success(clz) =>
+            if (!classOf[Converter].isAssignableFrom(clz)) {
+              throw new ConfigException(
+                s"Invalid ${PulsarConfigConstants.KCQL_CONFIG}. $clazz is not inheriting Converter for $pulsar_source",
+              )
+            }
+        }
     }
 
-    val batchSize = config.getInt(PulsarConfigConstants.INTERNAL_BATCH_SIZE)
-    val sslCACertFile = getFile(PulsarConfigConstants.SSL_CA_CERT_CONFIG)
-    val sslCertFile = getFile(PulsarConfigConstants.SSL_CERT_CONFIG)
+    val batchSize      = config.getInt(PulsarConfigConstants.INTERNAL_BATCH_SIZE)
+    val sslCACertFile  = getFile(PulsarConfigConstants.SSL_CA_CERT_CONFIG)
+    val sslCertFile    = getFile(PulsarConfigConstants.SSL_CERT_CONFIG)
     val sslCertKeyFile = getFile(PulsarConfigConstants.SSL_CERT_KEY_CONFIG)
-    val throwOnError = config.getBoolean(PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG)
+    val throwOnError   = config.getBoolean(PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG)
     val pollingTimeout = config.getInt(PulsarConfigConstants.POLLING_TIMEOUT_CONFIG)
 
-    kcql.map( k => {
+    kcql.map { k =>
       val subscriptionType = KcqlSubscriptionType(k)
       if (maxTasks > 1 && subscriptionType == SubscriptionType.Exclusive) {
-        throw new ConfigException("Subscription mode set to Exclusive and max tasks greater than 1. Each task gets all KCQLs. " +
-          "Multiple subscriptions to the same topic are not allowed in Exclusive mode.")
+        throw new ConfigException(
+          "Subscription mode set to Exclusive and max tasks greater than 1. Each task gets all KCQLs. " +
+            "Multiple subscriptions to the same topic are not allowed in Exclusive mode.",
+        )
       }
-    })
+    }
 
     PulsarSourceSettings(
       connection,
@@ -92,7 +104,7 @@ object PulsarSourceSettings {
       sslCACertFile,
       sslCertFile,
       sslCertKeyFile,
-      progressEnabled
+      progressEnabled,
     )
   }
 }

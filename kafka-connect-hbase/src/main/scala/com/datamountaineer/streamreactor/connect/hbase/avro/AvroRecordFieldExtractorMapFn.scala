@@ -22,18 +22,17 @@ import org.apache.avro.Schema.Type
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-
 /**
   * Builds a map of functions for extracting the values from an avro record and convert them to bytes
   */
 object AvroRecordFieldExtractorMapFn {
+
   /**
-    *
     * @param schema - The source avro schema
     * @param fields - The fields present in the schema for which it should return the extractor function
     * @return A map of functions converting the avro field value to bytes depending on the avro field type
     */
-  def apply(schema: Schema, fields: Seq[String]): Map[String, (Any) => Array[Byte]] = {
+  def apply(schema: Schema, fields: Seq[String]): Map[String, (Any) => Array[Byte]] =
     fields.map { fn =>
       val f = schema.getField(fn)
       if (f == null) {
@@ -41,19 +40,18 @@ object AvroRecordFieldExtractorMapFn {
       }
       fn -> getFunc(f.schema())
     }.toMap
-  }
 
   private def getFunc(schema: Schema): (Any) => Array[Byte] = {
     val `type` = schema.getType.getName
 
     `type`.toUpperCase() match {
       case "BOOLEAN" => (v: Any) => if (v == null) null else v.fromBoolean()
-      case "BYTES" => (v: Any) => if (v == null) null else v.asInstanceOf[Array[Byte]]
-      case "DOUBLE" => (v: Any) => if (v == null) null else v.fromDouble()
-      case "FLOAT" => (v: Any) => if (v == null) null else v.fromFloat()
-      case "INT" => (v: Any) => if (v == null) null else v.fromInt()
-      case "LONG" => (v: Any) => if (v == null) null else v.fromLong()
-      case "STRING" => (v: Any) => if (v == null) null else v.fromString()
+      case "BYTES"   => (v: Any) => if (v == null) null else v.asInstanceOf[Array[Byte]]
+      case "DOUBLE"  => (v: Any) => if (v == null) null else v.fromDouble()
+      case "FLOAT"   => (v: Any) => if (v == null) null else v.fromFloat()
+      case "INT"     => (v: Any) => if (v == null) null else v.fromInt()
+      case "LONG"    => (v: Any) => if (v == null) null else v.fromLong()
+      case "STRING"  => (v: Any) => if (v == null) null else v.fromString()
       case "UNION" =>
         schema.getTypes.asScala.collectFirst {
           case s if s.getType != Type.NULL => getFunc(s)

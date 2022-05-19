@@ -22,17 +22,20 @@ import org.apache.parquet.hadoop.ParquetReader
 class ParquetReaderIteratorAdaptor(parquetReader: ParquetReader[GenericRecord]) extends Iterator[GenericRecord] {
 
   private var currentRecord: Option[GenericRecord] = None
-  private var nextRecord: Option[GenericRecord] = Option(parquetReader.read())
+  private var nextRecord:    Option[GenericRecord] = Option(parquetReader.read())
 
-  override def hasNext: Boolean = {
+  override def hasNext: Boolean =
     nextRecord.nonEmpty
-  }
 
   override def next(): GenericRecord = {
 
     currentRecord = nextRecord
-    nextRecord = Option(parquetReader.read())
+    nextRecord    = Option(parquetReader.read())
 
-    currentRecord.getOrElse(throw FormatWriterException("Invalid state reached: The file content has been consumed, no further calls to next() are possible."))
+    currentRecord.getOrElse(
+      throw FormatWriterException(
+        "Invalid state reached: The file content has been consumed, no further calls to next() are possible.",
+      ),
+    )
   }
 }

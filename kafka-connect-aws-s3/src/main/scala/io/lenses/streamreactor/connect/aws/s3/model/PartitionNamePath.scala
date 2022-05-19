@@ -25,7 +25,10 @@ case class PartitionNamePath(path: String*) {
     path.foreach(validateProtectedCharacters)
 
   private def validateProtectedCharacters(name: String): Unit =
-    require(name != null && name.trim.nonEmpty && reservedCharacters.forall(!name.contains(_)), "Name must not be empty and must not contain a slash character")
+    require(
+      name != null && name.trim.nonEmpty && reservedCharacters.forall(!name.contains(_)),
+      "Name must not be empty and must not contain a slash character",
+    )
 
   def headOption: Option[String] = path.headOption
 

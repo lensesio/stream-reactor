@@ -16,24 +16,29 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb.sink
 
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
-import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfig
+import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfigConstants
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.errors.ConnectException
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
 import scala.jdk.CollectionConverters.IterableHasAsScala
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
   * <h1>MongoSinkTask</h1>
   *
   * Kafka Connect Mongo DB sink task. Called by
   * framework to put records to the target sink
-  **/
+  */
 class MongoSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[MongoWriter] = None
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
@@ -45,12 +50,14 @@ class MongoSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Parse the configurations and setup the writer
-    **/
+    */
   override def start(props: util.Map[String, String]): Unit = {
 
     val conf = if (context.configs().isEmpty) props else context.configs()
 
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/mongo-ascii.txt")).mkString + s" $version")
+    logger.info(
+      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/mongo-ascii.txt")).mkString + s" $version",
+    )
     logger.info(manifest.printManifest())
 
     val taskConfig = Try(MongoConfig(conf)) match {
@@ -58,13 +65,13 @@ class MongoSinkTask extends SinkTask with StrictLogging {
       case Success(s) => s
     }
 
-    writer = Some(MongoWriter(taskConfig, context = context))
+    writer         = Some(MongoWriter(taskConfig, context = context))
     enableProgress = taskConfig.getBoolean(MongoConfigConstants.PROGRESS_COUNTER_ENABLED)
   }
 
   /**
     * Pass the SinkRecords to the mongo db writer for storing them
-    **/
+    */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     val seq = records.asScala.toVector

@@ -25,16 +25,25 @@ case class FileAttributes(path: String, size: Long, timestamp: Instant) {
 
 // used to administer the files
 // this is persistent data, stored into the connect offsets
-case class FileMetaData(attribs:FileAttributes, hash:String, firstFetched:Instant, lastModified:Instant, lastInspected:Instant, offset: Long = -1L) {
-  def modifiedNow() = FileMetaData(attribs, hash, firstFetched, Instant.now, lastInspected, offset)
+case class FileMetaData(
+  attribs:       FileAttributes,
+  hash:          String,
+  firstFetched:  Instant,
+  lastModified:  Instant,
+  lastInspected: Instant,
+  offset:        Long = -1L,
+) {
+  def modifiedNow()  = FileMetaData(attribs, hash, firstFetched, Instant.now, lastInspected, offset)
   def inspectedNow() = FileMetaData(attribs, hash, firstFetched, lastModified, Instant.now, offset)
-  def offset(newOffset:Long) =  FileMetaData(attribs, hash, firstFetched, lastModified, Instant.now, newOffset)
-  def hasChangedSince(previous:FileMetaData):Boolean = previous.attribs.timestamp != attribs.timestamp || previous.attribs.size != attribs.size
-  override def toString() = s"(remoteInfo: ${attribs}, hash: ${hash}, firstFetched: ${firstFetched}, lastModified: ${lastModified}, lastInspected: ${lastInspected}"
+  def offset(newOffset:         Long) = FileMetaData(attribs, hash, firstFetched, lastModified, Instant.now, newOffset)
+  def hasChangedSince(previous: FileMetaData): Boolean =
+    previous.attribs.timestamp != attribs.timestamp || previous.attribs.size != attribs.size
+  override def toString() =
+    s"(remoteInfo: ${attribs}, hash: ${hash}, firstFetched: ${firstFetched}, lastModified: ${lastModified}, lastInspected: ${lastInspected}"
 }
 
 // the store where com.eneco.trading.kafka.connect.ftp.source.FileMetaData is kept and can be retrieved from
 trait FileMetaDataStore {
-  def get(path:String) : Option[FileMetaData]
-  def set(path:String, fileMetaData: FileMetaData): Unit
+  def get(path: String): Option[FileMetaData]
+  def set(path: String, fileMetaData: FileMetaData): Unit
 }

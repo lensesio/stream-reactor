@@ -17,13 +17,18 @@
 package com.datamountaineer.streamreactor.connect.influx
 
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
-import com.datamountaineer.streamreactor.connect.influx.config.{InfluxConfig, InfluxConfigConstants, InfluxSettings}
-import com.datamountaineer.streamreactor.connect.influx.writers.{InfluxDbWriter, WriterFactoryFn}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.influx.config.InfluxConfig
+import com.datamountaineer.streamreactor.connect.influx.config.InfluxConfigConstants
+import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
+import com.datamountaineer.streamreactor.connect.influx.writers.InfluxDbWriter
+import com.datamountaineer.streamreactor.connect.influx.writers.WriterFactoryFn
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -32,7 +37,7 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
   * <h1>InfluxSinkTask</h1>
   *
   * Kafka Connect InfluxDb sink task. Called by framework to put records to the target database
-  **/
+  */
 class InfluxSinkTask extends SinkTask with StrictLogging {
 
   var writer: Option[InfluxDbWriter] = None
@@ -42,9 +47,11 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Parse the configurations and setup the writer
-    **/
+    */
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/influx-ascii.txt")).mkString + s" $version")
+    logger.info(
+      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/influx-ascii.txt")).mkString + s" $version",
+    )
     logger.info(manifest.printManifest())
 
     val conf = if (context.configs().isEmpty) props else context.configs()
@@ -56,7 +63,8 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
 
     //if error policy is retry set retry interval
     influxSettings.errorPolicy match {
-      case RetryErrorPolicy() => context.timeout(sinkConfig.getInt(InfluxConfigConstants.ERROR_RETRY_INTERVAL_CONFIG).toLong)
+      case RetryErrorPolicy() =>
+        context.timeout(sinkConfig.getInt(InfluxConfigConstants.ERROR_RETRY_INTERVAL_CONFIG).toLong)
       case _ =>
     }
     writer = Some(WriterFactoryFn(influxSettings))
@@ -64,12 +72,11 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Pass the SinkRecords to the writer for Writing
-    **/
-  override def put(records: util.Collection[SinkRecord]): Unit = {
+    */
+  override def put(records: util.Collection[SinkRecord]): Unit =
     if (records.size() == 0) {
       logger.info("Empty list of records received.")
-    }
-    else {
+    } else {
       require(writer.nonEmpty, "Writer is not set!")
       val seq = records.asScala.toVector
       writer.foreach(w => w.write(seq))
@@ -78,11 +85,10 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
         progressCounter.update(seq)
       }
     }
-  }
 
   /**
     * Clean up Influx connections
-    **/
+    */
   override def stop(): Unit = {
     logger.info("Stopping InfluxDb sink.")
     writer.foreach(w => w.close())

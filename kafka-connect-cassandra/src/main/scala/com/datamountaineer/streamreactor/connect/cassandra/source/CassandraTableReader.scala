@@ -18,44 +18,55 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import com.datamountaineer.kcql.FormatType
 import com.datamountaineer.streamreactor.common.offsets.OffsetHandler
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting, TimestampType}
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSourceSetting
+import com.datamountaineer.streamreactor.connect.cassandra.config.TimestampType
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraResultSetWrapper.resultSetFutureToScala
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
 import com.datastax.driver.core._
 import com.datastax.driver.core.utils.UUIDs
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.source.{SourceRecord, SourceTaskContext}
+import org.apache.kafka.connect.source.SourceRecord
+import org.apache.kafka.connect.source.SourceTaskContext
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
 
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-import java.util.{Collections, Date}
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
+import java.util.Collections
+import java.util.Date
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, SeqHasAsJava}
-import scala.util.{Failure, Success, Try}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
   * Created by andrew@datamountaineer.com on 20/04/16.
   * stream-reactor
   */
-class CassandraTableReader(private val name: String,
-                           private val session: Session,
-                           private val setting: CassandraSourceSetting,
-                           private val context: SourceTaskContext,
-                           var queue: LinkedBlockingQueue[SourceRecord]) extends StrictLogging {
+class CassandraTableReader(
+  private val name:    String,
+  private val session: Session,
+  private val setting: CassandraSourceSetting,
+  private val context: SourceTaskContext,
+  var queue:           LinkedBlockingQueue[SourceRecord],
+) extends StrictLogging {
 
-  private val config = setting.kcql
+  private val config       = setting.kcql
   private val cqlGenerator = new CqlGenerator(setting)
 
   class CassandraDateFormatter {
     private val dateFormatPattern = "yyyy-MM-dd HH:mm:ss.SSS'Z'"
 
-    def parse(date: String) : Date = {
+    def parse(date: String): Date = {
       val dateFormatter = new SimpleDateFormat(dateFormatPattern)
       dateFormatter.parse(date)
     }
@@ -71,28 +82,28 @@ class CassandraTableReader(private val name: String,
     }
   }
 
-  private val dateFormatter = new CassandraDateFormatter()
-  private val primaryKeyCol = setting.primaryKeyColumn.getOrElse("")
-  private val querying = new AtomicBoolean(false)
-  private val stop = new AtomicBoolean(false)
-  private val table = config.getSource
-  private val topic = config.getTarget
-  private val keySpace = setting.keySpace
+  private val dateFormatter             = new CassandraDateFormatter()
+  private val primaryKeyCol             = setting.primaryKeyColumn.getOrElse("")
+  private val querying                  = new AtomicBoolean(false)
+  private val stop                      = new AtomicBoolean(false)
+  private val table                     = config.getSource
+  private val topic                     = config.getTarget
+  private val keySpace                  = setting.keySpace
   private val preparedStatementNoOffset = getPreparedStatementNoOffset
-  private val preparedStatement = getPreparedStatements
-  private var tableOffset: Option[String] = buildOffsetMap(context)
-  private val timeSliceDuration: Long = setting.timeSliceDuration
-  private val timeSliceDelay: Long = setting.timeSliceDelay
-  private var timeSliceValue: Long = timeSliceDuration
+  private val preparedStatement         = getPreparedStatements
+  private var tableOffset:       Option[String] = buildOffsetMap(context)
+  private val timeSliceDuration: Long           = setting.timeSliceDuration
+  private val timeSliceDelay:    Long           = setting.timeSliceDelay
+  private var timeSliceValue:    Long           = timeSliceDuration
   private val sourcePartition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
-  private val schemaName = s"$keySpace.$table".replace('-', '.')
-  private val bulk = if (setting.timestampColType.equals(TimestampType.NONE)) true else false
+  private val schemaName      = s"$keySpace.$table".replace('-', '.')
+  private val bulk            = if (setting.timestampColType.equals(TimestampType.NONE)) true else false
   private var schema: Option[Schema] = None
-  private val ignoreList = config.getIgnoredFields.asScala.map(_.getName).toSet
-  private val isTokenBased = cqlGenerator.isTokenBased()
+  private val ignoreList       = config.getIgnoredFields.asScala.map(_.getName).toSet
+  private val isTokenBased     = cqlGenerator.isTokenBased()
   private val isDSESearchBased = cqlGenerator.isDSESearchBased()
-  private val isBucketBased = cqlGenerator.isBucketBased()
-  private val cassandraTypeConverter : CassandraTypeConverter =
+  private val isBucketBased    = cqlGenerator.isBucketBased()
+  private val cassandraTypeConverter: CassandraTypeConverter =
     new CassandraTypeConverter(session.getCluster.getConfiguration.getCodecRegistry, setting)
   private var structColDefs: List[ColumnDefinitions.Definition] = _
 
@@ -104,9 +115,9 @@ class CassandraTableReader(private val name: String,
     */
   private def buildOffsetMap(context: SourceTaskContext): Option[String] = {
     val offsetStorageKey = CassandraConfigConstants.ASSIGNED_TABLES
-    val tables = List(table)
+    val tables           = List(table)
     val recoveredOffsets = OffsetHandler.recoverOffsets(offsetStorageKey, tables.asJava, context)
-    val offset = OffsetHandler.recoverOffset[String](recoveredOffsets, offsetStorageKey, table, primaryKeyCol)
+    val offset           = OffsetHandler.recoverOffset[String](recoveredOffsets, offsetStorageKey, table, primaryKeyCol)
     offset.foreach(s => logger.info(s"Recovered offset $s for connector $name"))
     cqlGenerator.getDefaultOffsetValue(offset)
   }
@@ -118,14 +129,14 @@ class CassandraTableReader(private val name: String,
     */
   private def getPreparedStatements: PreparedStatement = {
     val selectStatement = cqlGenerator.getCqlStatement
-    val statement = session.prepare(selectStatement)
+    val statement       = session.prepare(selectStatement)
     setting.consistencyLevel.foreach(statement.setConsistencyLevel)
     statement
   }
 
   private def getPreparedStatementNoOffset: PreparedStatement = {
     val selectStatement = cqlGenerator.getCqlStatementNoOffset
-    val statement = session.prepare(selectStatement)
+    val statement       = session.prepare(selectStatement)
     setting.consistencyLevel.foreach(statement.setConsistencyLevel)
     statement
   }
@@ -172,12 +183,12 @@ class CassandraTableReader(private val name: String,
     // using either the default value or the timestamp of the last
     // row that was processed (captured in the offset)
     val previousDate = dateFormatter.parse(cqlGenerator.getDefaultOffsetValue(tableOffset).get)
-    val previous = previousDate.toInstant
+    val previous     = previousDate.toInstant
     // we want to manage how close our query is to the "present"
     // so we don't miss data
     // and we also don't want to have the upper bound
     // be less than the last offset (previous)
-    val nowWithDelay = Instant.now().minusMillis(timeSliceDelay)
+    val nowWithDelay        = Instant.now().minusMillis(timeSliceDelay)
     val potentialUpperBound = if (nowWithDelay.compareTo(previous) <= 0) previous else nowWithDelay
 
     val year = dateFormatter.getYear(previousDate)
@@ -195,7 +206,7 @@ class CassandraTableReader(private val name: String,
 
     // logging the CQL
     val formattedPrevious = previous.toString()
-    val formattedNow = upperBound.toString()
+    val formattedNow      = upperBound.toString()
     val bound = if (isDSESearchBased) {
       val solrWhere = s"$primaryKeyCol:{$formattedPrevious TO $formattedNow]"
       // we need that to be able to page results even with the solr_query being used, that's why we use the paging and sort configs
@@ -203,12 +214,17 @@ class CassandraTableReader(private val name: String,
       logger.debug(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($solrQuery).")
       preparedStatement.bind(solrQuery)
     } else if (isBucketBased) {
-      val buckets = CassandraUtils.getBucketsBetweenDates(previous, upperBound, setting.bucketMode, setting.bucketFormat)
+      val buckets =
+        CassandraUtils.getBucketsBetweenDates(previous, upperBound, setting.bucketMode, setting.bucketFormat)
 
-      logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow, $buckets).")
+      logger.info(
+        s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow, $buckets).",
+      )
       preparedStatement.bind(Date.from(previous), Date.from(upperBound), buckets)
     } else {
-      logger.debug(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
+      logger.debug(
+        s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).",
+      )
       preparedStatement.bind(Date.from(previous), Date.from(upperBound))
     }
     // bind the offset and db time
@@ -257,7 +273,7 @@ class CassandraTableReader(private val name: String,
       case Success(rs) =>
         try {
           logger.debug(s"Connector $name processing results for $keySpace.$table.")
-          val iter = rs.iterator()
+          val iter    = rs.iterator()
           var counter = 0
 
           // process results unless told to stop
@@ -283,8 +299,7 @@ class CassandraTableReader(private val name: String,
 
           alterTimeSliceValueBasedOnRowsProcessess(counter)
           reset(maxOffset)
-        }
-        catch {
+        } catch {
           case t: Throwable =>
             logger.error(s"Connector $name error processing table $keySpace.$table.", t)
             reset(tableOffset)
@@ -324,14 +339,15 @@ class CassandraTableReader(private val name: String,
 
   private def getTimebasedMaxOffsetForRow(maxOffset: Option[String], row: Row): Option[String] = {
     val rowOffsetDate = extractTimestamp(row)
-    if (maxOffset.isEmpty || rowOffsetDate.after(dateFormatter.parse(maxOffset.get))) Some(dateFormatter.format(rowOffsetDate)) else maxOffset
+    if (maxOffset.isEmpty || rowOffsetDate.after(dateFormatter.parse(maxOffset.get)))
+      Some(dateFormatter.format(rowOffsetDate))
+    else maxOffset
   }
 
   /**
     * Process a Cassandra row, convert it to a SourceRecord and put in queue
     *
     * @param row The Cassandra row to process.
-    *
     */
   private def processRow(row: Row): Boolean = {
     // convert the cassandra row to a struct
@@ -352,14 +368,26 @@ class CassandraTableReader(private val name: String,
     // create source record
     val record = if (config.isUnwrapping) {
       if (config.getFormatType == FormatType.JSON) {
-        val keys = config.getWithKeys
-        val v = structColDefs.map(d => d.getName -> row.getObject(d.getName)).toMap
+        val keys        = config.getWithKeys
+        val v           = structColDefs.map(d => d.getName -> row.getObject(d.getName)).toMap
         val structValue = Json(DefaultFormats).write(v)
-        if(keys.isEmpty) {
-          new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset).asJava, topic, Schema.STRING_SCHEMA, structValue)
+        if (keys.isEmpty) {
+          new SourceRecord(sourcePartition,
+                           Map(primaryKeyCol -> offset).asJava,
+                           topic,
+                           Schema.STRING_SCHEMA,
+                           structValue,
+          )
         } else {
           val keyValue = keys.asScala.map(k => row.getObject(k)).mkString(",")
-          new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset).asJava, topic, Schema.STRING_SCHEMA, keyValue, Schema.STRING_SCHEMA, structValue)
+          new SourceRecord(sourcePartition,
+                           Map(primaryKeyCol -> offset).asJava,
+                           topic,
+                           Schema.STRING_SCHEMA,
+                           keyValue,
+                           Schema.STRING_SCHEMA,
+                           structValue,
+          )
         }
       } else {
         val structValue = structColDefs.map(d => d.getName).map(name => row.getObject(name)).mkString(",")
@@ -386,12 +414,11 @@ class CassandraTableReader(private val name: String,
     * @param row The row to extract the timestamp from
     * @return A java.util.Date
     */
-  private def extractTimestamp(row: Row): Date = {
+  private def extractTimestamp(row: Row): Date =
     Try(row.getTimestamp(setting.primaryKeyColumn.get)) match {
       case Success(s) => s
       case Failure(_) => new Date(UUIDs.unixTimestamp(row.getUUID(setting.primaryKeyColumn.get)))
     }
-  }
 
   /**
     * extract the CQL primary key (expected to be UUID)
@@ -399,12 +426,11 @@ class CassandraTableReader(private val name: String,
     * @param row The row to extract the UUID
     * @return an Option[String]
     */
-  private def extractUuid(row: Row): Option[String] = {
+  private def extractUuid(row: Row): Option[String] =
     Try(row.getUUID(setting.primaryKeyColumn.get)) match {
       case Success(s) => Some(s.toString())
       case Failure(_) => None
     }
-  }
 
   /**
     * Set the offset for the table and set querying to false
@@ -446,23 +472,24 @@ class CassandraTableReader(private val name: String,
   /**
     * Is the reader in the middle of a query
     */
-  def isQuerying: Boolean = {
+  def isQuerying: Boolean =
     querying.get()
-  }
 }
 
 object CassandraTableReader {
-  def apply(name: String,
-            session: Session,
-            setting: CassandraSourceSetting,
-            context: SourceTaskContext,
-            queue: LinkedBlockingQueue[SourceRecord]): CassandraTableReader = {
+  def apply(
+    name:    String,
+    session: Session,
+    setting: CassandraSourceSetting,
+    context: SourceTaskContext,
+    queue:   LinkedBlockingQueue[SourceRecord],
+  ): CassandraTableReader =
     //return a reader
     new CassandraTableReader(
-      name = name,
+      name    = name,
       session = session,
       setting = setting,
       context = context,
-      queue = queue)
-  }
+      queue   = queue,
+    )
 }

@@ -19,15 +19,18 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 import java.util
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.utils.JarManifest
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource}
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSource
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SeqHasAsJava}
-
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
   * <h1>CassandraSourceConnector</h1>
@@ -39,7 +42,7 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
 
   private var configProps: Option[util.Map[String, String]] = None
   private val configDef = CassandraConfigSource.sourceConfig
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest  = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Defines the sink class to use
@@ -53,11 +56,11 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
     *
     * @param maxTasks The max number of task workers be can spawn.
     * @return a List of configuration properties per worker.
-    **/
+    */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     val raw = configProps.get.get(CassandraConfigConstants.KCQL).split(";")
 
-    val tables = raw.map { r => Kcql.parse(r).getSource }.toList
+    val tables = raw.map(r => Kcql.parse(r).getSource).toList
 
     val numGroups = Math.min(tables.size, maxTasks)
 
@@ -78,10 +81,9 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
     * Start the sink and set to configuration.
     *
     * @param props A map of properties for the connector and worker.
-    **/
-  override def start(props: util.Map[String, String]): Unit = {
+    */
+  override def start(props: util.Map[String, String]): Unit =
     configProps = Some(props)
-  }
 
   override def stop(): Unit = {}
 

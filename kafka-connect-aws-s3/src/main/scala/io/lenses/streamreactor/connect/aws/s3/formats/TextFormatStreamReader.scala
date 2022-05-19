@@ -23,21 +23,24 @@ import java.io.InputStream
 import scala.io.Source
 import scala.util.Try
 
-class TextFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: RemoteS3PathLocation) extends S3FormatStreamReader[StringSourceData] {
+class TextFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: RemoteS3PathLocation)
+    extends S3FormatStreamReader[StringSourceData] {
 
   private val inputStream: InputStream = inputStreamFn()
-  private val source = Source.fromInputStream(inputStream, "UTF-8")
+  private val source        = Source.fromInputStream(inputStream, "UTF-8")
   protected val sourceLines = source.getLines()
   protected var lineNumber: Long = -1
 
-  override def close(): Unit = {val _ = Try(source.close())}
+  override def close(): Unit = { val _ = Try(source.close()) }
 
   override def hasNext: Boolean = sourceLines.hasNext
 
   override def next(): StringSourceData = {
     lineNumber += 1
     if (!sourceLines.hasNext) {
-      throw FormatWriterException("Invalid state reached: the file content has been consumed, no further calls to next() are possible.")
+      throw FormatWriterException(
+        "Invalid state reached: the file content has been consumed, no further calls to next() are possible.",
+      )
     }
     StringSourceData(sourceLines.next(), lineNumber)
   }

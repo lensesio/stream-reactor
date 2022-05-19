@@ -2,10 +2,14 @@ package com.landoop.streamreactor.connect.hive.formats
 
 import com.landoop.streamreactor.connect.hive.kerberos.UgiExecute
 import com.landoop.streamreactor.connect.hive.orc.OrcSink
-import com.landoop.streamreactor.connect.hive.{OrcSinkConfig, OrcSourceConfig, Serde}
+import com.landoop.streamreactor.connect.hive.OrcSinkConfig
+import com.landoop.streamreactor.connect.hive.OrcSourceConfig
+import com.landoop.streamreactor.connect.hive.Serde
 import org.apache.hadoop.fs.permission.FsPermission
-import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 
 import scala.util.Try
 
@@ -16,24 +20,23 @@ object OrcHiveFormat extends HiveFormat {
     "org.apache.hadoop.hive.ql.io.orc.OrcSerde",
     "org.apache.hadoop.hive.ql.io.orc.OrcInputFormat",
     "org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat",
-    Map("org.apache.hadoop.hive.ql.io.orc.OrcSerde" -> "1")
+    Map("org.apache.hadoop.hive.ql.io.orc.OrcSerde" -> "1"),
   )
 
-  override def writer(path: Path, schema: Schema)
-                     (implicit fs: FileSystem): HiveWriter = new HiveWriter {
+  override def writer(path: Path, schema: Schema)(implicit fs: FileSystem): HiveWriter = new HiveWriter {
     logger.debug(s"Creating orc writer at $path")
 
     val sink: OrcSink = com.landoop.streamreactor.connect.hive.orc.sink(path, schema, OrcSinkConfig(overwrite = true))
     Try(fs.setPermission(path, FsPermission.valueOf("-rwxrwxrwx")))
 
-    val cretedTimestamp: Long = System.currentTimeMillis()
+    val cretedTimestamp:   Long = System.currentTimeMillis()
     var lastKnownFileSize: Long = if (fs.exists(path)) fs.getFileStatus(path).getLen else 0L
     var readFileSize = false
-    var count = 0L
+    var count        = 0L
 
     override def write(struct: Struct): Long = {
       sink.write(struct)
-      count = count + 1
+      count        = count + 1
       readFileSize = true
       count
     }
@@ -42,14 +45,14 @@ object OrcHiveFormat extends HiveFormat {
       logger.debug(s"Closing orc writer at path $path")
       sink.close()
     }
-    override def file: Path = path
+    override def file:         Path = path
     override def currentCount: Long = count
-    override def createdTime: Long = cretedTimestamp
+    override def createdTime:  Long = cretedTimestamp
     override def fileSize: Long = {
       if (readFileSize) {
         if (fs.exists(path)) {
           lastKnownFileSize = fs.getFileStatus(path).getLen
-          readFileSize = false
+          readFileSize      = false
         } else {
           lastKnownFileSize = 0L
         }
@@ -59,19 +62,19 @@ object OrcHiveFormat extends HiveFormat {
     }
   }
 
-  override def reader(path: Path, startAt: Int, schema: Schema, ugi:UgiExecute)
-                     (implicit fs: FileSystem): HiveReader = new HiveReader {
+  override def reader(path: Path, startAt: Int, schema: Schema, ugi: UgiExecute)(implicit fs: FileSystem): HiveReader =
+    new HiveReader {
 
-    logger.debug(s"Creating orc reader for $path with offset $startAt")
-    val reader = com.landoop.streamreactor.connect.hive.orc.source(path, OrcSourceConfig(), ugi)
-    var offset = startAt
+      logger.debug(s"Creating orc reader for $path with offset $startAt")
+      val reader = com.landoop.streamreactor.connect.hive.orc.source(path, OrcSourceConfig(), ugi)
+      var offset = startAt
 
-    override def iterator: Iterator[Record] = reader.iterator.map { struct =>
-      val record = Record(struct, path, offset)
-      offset = offset + 1
-      record
+      override def iterator: Iterator[Record] = reader.iterator.map { struct =>
+        val record = Record(struct, path, offset)
+        offset = offset + 1
+        record
+      }
+
+      override def close(): Unit = reader.close()
     }
-
-    override def close(): Unit = reader.close()
-  }
 }

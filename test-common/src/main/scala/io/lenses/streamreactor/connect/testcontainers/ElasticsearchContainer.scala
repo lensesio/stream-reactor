@@ -1,7 +1,8 @@
 package io.lenses.streamreactor.connect.testcontainers
 
-import io.lenses.streamreactor.connect.testcontainers.ElasticsearchContainer.{defaultNetworkAlias, defaultTag}
-import org.testcontainers.elasticsearch.{ElasticsearchContainer => JavaElasticsearchContainer}
+import io.lenses.streamreactor.connect.testcontainers.ElasticsearchContainer.defaultNetworkAlias
+import io.lenses.streamreactor.connect.testcontainers.ElasticsearchContainer.defaultTag
+import org.testcontainers.elasticsearch.{ ElasticsearchContainer => JavaElasticsearchContainer }
 import org.testcontainers.utility.DockerImageName
 
 class ElasticsearchContainer(

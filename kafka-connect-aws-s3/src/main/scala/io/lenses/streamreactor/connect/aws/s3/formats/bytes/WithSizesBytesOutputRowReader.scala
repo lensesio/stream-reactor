@@ -18,7 +18,8 @@ package io.lenses.streamreactor.connect.aws.s3.formats.bytes
 
 import io.lenses.streamreactor.connect.aws.s3.model.BytesOutputRow
 
-import java.io.{DataInputStream, InputStream}
+import java.io.DataInputStream
+import java.io.InputStream
 
 object WithSizesBytesOutputRowReader {
 
@@ -50,13 +51,12 @@ object WithSizesBytesOutputRowReader {
 
   }
 
-  private def readSegmentFromInputStream(inputStream: InputStream, segmentSize: Option[Long]) = {
+  private def readSegmentFromInputStream(inputStream: InputStream, segmentSize: Option[Long]) =
     segmentSize.fold(Array[Byte]()) {
       numBytes: Long =>
         val bArray = Array.ofDim[Byte](numBytes.toInt)
         inputStream.read(bArray, 0, numBytes.toInt)
         bArray
     }
-  }
 
 }

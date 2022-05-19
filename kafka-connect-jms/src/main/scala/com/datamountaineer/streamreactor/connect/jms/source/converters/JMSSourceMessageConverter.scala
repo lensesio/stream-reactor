@@ -5,9 +5,7 @@ import org.apache.kafka.connect.source.SourceRecord
 
 import javax.jms.Message
 
-
 trait JMSSourceMessageConverter extends JMSMessageConverter {
 
   def convert(source: String, target: String, message: Message): SourceRecord
 }
-

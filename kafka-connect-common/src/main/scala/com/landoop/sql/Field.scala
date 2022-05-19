@@ -24,7 +24,7 @@ case class Field(name: String, alias: String, parents: Vector[String]) {
 }
 
 object Field {
-  def from(sql: SqlSelect): Seq[Field] = {
+  def from(sql: SqlSelect): Seq[Field] =
     sql.getSelectList.asScala.map {
       case id: SqlIdentifier =>
         val parents = (0 until id.names.asScala.toList.length - 1).foldLeft(Vector.empty[String]) { (acc, i) =>
@@ -32,9 +32,9 @@ object Field {
           acc :+ parent
         }
         if (id.isStar) {
-          Field("*", "*", if(parents.isEmpty) null else parents)
+          Field("*", "*", if (parents.isEmpty) null else parents)
         } else {
-          Field(id.names.asScala.last, id.names.asScala.last, if(parents.isEmpty) null else parents)
+          Field(id.names.asScala.last, id.names.asScala.last, if (parents.isEmpty) null else parents)
         }
       case as: SqlCall if as.getKind == SqlKind.AS && as.operandCount() == 2 =>
         val left: SqlIdentifier = as.operand[SqlNode](0) match {
@@ -51,9 +51,9 @@ object Field {
           val parent = left.names.get(i)
           acc :+ parent
         }
-        Field(left.names.asScala.last, right.names.asScala.last, if(parents.isEmpty) null else parents)
+        Field(left.names.asScala.last, right.names.asScala.last, if (parents.isEmpty) null else parents)
 
-      case other => throw new IllegalArgumentException(s"$other [${other.getClass.getCanonicalName}] is not handled for now!")
+      case other =>
+        throw new IllegalArgumentException(s"$other [${other.getClass.getCanonicalName}] is not handled for now!")
     }.toSeq
-  }
 }

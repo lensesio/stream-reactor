@@ -31,7 +31,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import scala.annotation.nowarn
 
 /**
-  * Created by andrew@datamountaineer.com on 02/12/2016. 
+  * Created by andrew@datamountaineer.com on 02/12/2016.
   * stream-reactor
   */
 @nowarn
@@ -46,7 +46,7 @@ abstract class Writer(settings: HazelCastSinkSettings) extends ConverterUtil {
     *
     * @param record The sinkrecord to convert
     * @return an array of bytes
-    **/
+    */
   def convert(record: SinkRecord): Object = {
     val storedAs = settings.format(record.topic())
     storedAs match {
@@ -54,7 +54,7 @@ abstract class Writer(settings: HazelCastSinkSettings) extends ConverterUtil {
         val avro = toAvro(record)
         serializeAvro(avro, avro.getSchema)
       case FormatType.JSON | FormatType.TEXT => toJson(record).toString
-      case _ => throw new ConnectException(s"Unknown WITHFORMAT type ${storedAs.toString}")
+      case _                                 => throw new ConnectException(s"Unknown WITHFORMAT type ${storedAs.toString}")
     }
   }
 
@@ -64,10 +64,10 @@ abstract class Writer(settings: HazelCastSinkSettings) extends ConverterUtil {
     * @param datum  The object to serialize
     * @param schema The avro schema for the object
     * @return Avro encoded byte array.
-    **/
+    */
   def serializeAvro(datum: Object, schema: Schema): Array[Byte] = {
-    val out = new ByteArrayOutputStream()
-    val writer = new ReflectDatumWriter[Object](schema)
+    val out     = new ByteArrayOutputStream()
+    val writer  = new ReflectDatumWriter[Object](schema)
     val encoder = EncoderFactory.get().binaryEncoder(out, null)
     out.reset()
     writer.write(datum, encoder)
@@ -79,7 +79,7 @@ abstract class Writer(settings: HazelCastSinkSettings) extends ConverterUtil {
     * Convert sink records to json
     *
     * @param record A sink records to convert.
-    **/
+    */
   @nowarn
   def toJson(record: SinkRecord): JsonNode = {
     val extracted = convert(record, settings.fieldsMap(record.topic()), settings.ignoreFields(record.topic()))
@@ -90,7 +90,7 @@ abstract class Writer(settings: HazelCastSinkSettings) extends ConverterUtil {
     * Convert sink records to avro
     *
     * @param record A sink records to convert.
-    **/
+    */
   @nowarn
   def toAvro(record: SinkRecord): GenericRecord = {
     val extracted = convert(record, settings.fieldsMap(record.topic()), settings.ignoreFields(record.topic()))
@@ -99,6 +99,7 @@ abstract class Writer(settings: HazelCastSinkSettings) extends ConverterUtil {
 
   def buildPKs(record: SinkRecord): String = {
     val defaultKeys = s"${record.topic}-${record.kafkaPartition()}-${record.kafkaOffset()}"
-    if (settings.primaryKeys(record.topic()).isEmpty) defaultKeys else settings.primaryKeys(record.topic()).mkString("-")
+    if (settings.primaryKeys(record.topic()).isEmpty) defaultKeys
+    else settings.primaryKeys(record.topic()).mkString("-")
   }
 }

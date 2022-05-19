@@ -22,11 +22,13 @@ import com.hazelcast.core.HazelcastInstance
 import org.apache.kafka.connect.sink.SinkRecord
 
 /**
-  * Created by andrew@datamountaineer.com on 02/12/2016. 
+  * Created by andrew@datamountaineer.com on 02/12/2016.
   * stream-reactor
   */
-case class ReliableTopicWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
-  val reliableTopicWriter: ITopic[Object] = client.getReliableTopic(settings.topicObject(topic).name).asInstanceOf[ITopic[Object]]
+case class ReliableTopicWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings)
+    extends Writer(settings) {
+  val reliableTopicWriter: ITopic[Object] =
+    client.getReliableTopic(settings.topicObject(topic).name).asInstanceOf[ITopic[Object]]
 
   override def write(record: SinkRecord): Unit = reliableTopicWriter.publish(convert(record))
   override def close(): Unit = {}

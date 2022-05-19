@@ -18,24 +18,28 @@ package com.datamountaineer.streamreactor.connect.hbase.config
 
 import java.io.File
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigConstants._
 import com.datamountaineer.streamreactor.connect.hbase.kerberos.Kerberos
-import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, RowKeyBuilderBytes, StructFieldsExtractorBytes, StructFieldsRowKeyBuilderBytes}
+import com.datamountaineer.streamreactor.connect.hbase.GenericRowKeyBuilderBytes
+import com.datamountaineer.streamreactor.connect.hbase.RowKeyBuilderBytes
+import com.datamountaineer.streamreactor.connect.hbase.StructFieldsExtractorBytes
+import com.datamountaineer.streamreactor.connect.hbase.StructFieldsRowKeyBuilderBytes
 import org.apache.kafka.common.config.ConfigException
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-
-case class HBaseSettings(columnFamilyMap: String,
-                         rowKeyModeMap: Map[String, RowKeyBuilderBytes],
-                         routes: List[Kcql],
-                         extractorFields: Map[String, StructFieldsExtractorBytes],
-                         errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                         maxRetries: Int = HBaseConfigConstants.NBR_OF_RETIRES_DEFAULT,
-                         hbaseConfigDir: Option[String],
-                         kerberos: Option[Kerberos]
-                        )
+case class HBaseSettings(
+  columnFamilyMap: String,
+  rowKeyModeMap:   Map[String, RowKeyBuilderBytes],
+  routes:          List[Kcql],
+  extractorFields: Map[String, StructFieldsExtractorBytes],
+  errorPolicy:     ErrorPolicy = new ThrowErrorPolicy,
+  maxRetries:      Int         = HBaseConfigConstants.NBR_OF_RETIRES_DEFAULT,
+  hbaseConfigDir:  Option[String],
+  kerberos:        Option[Kerberos],
+)
 
 object HBaseSettings {
 
@@ -50,21 +54,22 @@ object HBaseSettings {
 
     if (columnFamily.trim.isEmpty) throw new ConfigException(s"$COLUMN_FAMILY is not set correctly")
 
-    val kcql = config.getKCQL
-    val fields = config.getFieldsMap()
-    val errorPolicy = config.getErrorPolicy
+    val kcql         = config.getKCQL
+    val fields       = config.getFieldsMap()
+    val errorPolicy  = config.getErrorPolicy
     val nbrOfRetries = config.getNumberRetries
 
-    val rowKeyModeMap = kcql.map(r => {
+    val rowKeyModeMap = kcql.map { r =>
       val keys = r.getPrimaryKeys.asScala.map(p => p.getName).toList
-      if (keys.nonEmpty) (r.getSource, StructFieldsRowKeyBuilderBytes(keys)) else (r.getSource, new GenericRowKeyBuilderBytes())
+      if (keys.nonEmpty) (r.getSource, StructFieldsRowKeyBuilderBytes(keys))
+      else (r.getSource, new GenericRowKeyBuilderBytes())
     }
-    ).toMap
+      .toMap
 
-    val extractorFields = kcql.map(rm => {
+    val extractorFields = kcql.map { rm =>
       val allFields = rm.getFields.asScala.exists(_.getName.equals("*"))
       (rm.getSource, StructFieldsExtractorBytes(allFields, fields(rm.getSource)))
-    }).toMap
+    }.toMap
 
     val hbaseConfigDir = Option(config.getString(HBaseConfigConstants.HBASE_CONFIG_DIR))
 
@@ -76,7 +81,14 @@ object HBaseSettings {
     }
     hbaseConfigDir.foreach(validate(_, HBaseConfigConstants.HBASE_CONFIG_DIR))
 
-    new HBaseSettings(columnFamily, rowKeyModeMap, kcql.toList, extractorFields,
-      errorPolicy, nbrOfRetries, hbaseConfigDir, Kerberos.from(config, HBaseConfigConstants))
+    new HBaseSettings(columnFamily,
+                      rowKeyModeMap,
+                      kcql.toList,
+                      extractorFields,
+                      errorPolicy,
+                      nbrOfRetries,
+                      hbaseConfigDir,
+                      Kerberos.from(config, HBaseConfigConstants),
+    )
   }
 }

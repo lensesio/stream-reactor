@@ -15,7 +15,6 @@
  */
 package com.datamountaineer.streamreactor.connect.azure.documentdb
 
-
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.json4s._
 import org.json4s.native.JsonMethods._
@@ -25,15 +24,12 @@ object Json {
 
   val mapper = new ObjectMapper
 
-  def parseJson(json: String): JValue = {
+  def parseJson(json: String): JValue =
     parse(json)
-  }
 
-  def fromJson[T <: Product : Manifest](json: String): T = {
+  def fromJson[T <: Product: Manifest](json: String): T =
     parse(json).extract[T]
-  }
 
-  def toJson[T](t: T): String = {
+  def toJson[T](t: T): String =
     mapper.writeValueAsString(t)
-  }
 }

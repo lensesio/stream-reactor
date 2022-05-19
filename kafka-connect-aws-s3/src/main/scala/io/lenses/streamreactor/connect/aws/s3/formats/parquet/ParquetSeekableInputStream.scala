@@ -17,7 +17,8 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.parquet
 
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.parquet.io.{DelegatingSeekableInputStream, SeekableInputStream}
+import org.apache.parquet.io.DelegatingSeekableInputStream
+import org.apache.parquet.io.SeekableInputStream
 
 import java.io.InputStream
 import java.nio.ByteBuffer
@@ -41,20 +42,18 @@ class ParquetSeekableInputStream(inputStreamFn: () => InputStream) extends Seeka
     override def seek(newPos: Long): Unit = ParquetSeekableInputStream.this.seek(newPos)
   }
 
-
   private var pos: Long = 0
 
-  private var inputStream: InputStream = _
+  private var inputStream:          InputStream                   = _
   private var inceptionInputStream: DelegatingSeekableInputStream = _
 
   createInputStream()
 
   private def createInputStream(): Unit = {
     logger.debug(s"Recreating input stream")
-    inputStream = inputStreamFn()
+    inputStream          = inputStreamFn()
     inceptionInputStream = new InceptionDelegatingInputStream(inputStream)
   }
-
 
   override def getPos: Long = {
     logger.debug("Retrieving position: " + pos)
@@ -75,7 +74,8 @@ class ParquetSeekableInputStream(inputStreamFn: () => InputStream) extends Seeka
 
   override def readFully(bytes: Array[Byte]): Unit = inceptionInputStream.readFully(bytes)
 
-  override def readFully(bytes: Array[Byte], start: Int, len: Int): Unit = inceptionInputStream.readFully(bytes, start, len)
+  override def readFully(bytes: Array[Byte], start: Int, len: Int): Unit =
+    inceptionInputStream.readFully(bytes, start, len)
 
   override def read(buf: ByteBuffer): Int = inceptionInputStream.read(buf)
 

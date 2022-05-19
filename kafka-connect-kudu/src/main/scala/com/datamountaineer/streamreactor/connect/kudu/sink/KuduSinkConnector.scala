@@ -20,17 +20,18 @@ import com.datamountaineer.streamreactor.common.config.Helpers
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 
 import java.util
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduConfigConstants}
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfig
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfigConstants
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
-import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
-
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 22/02/16. 
+  * Created by andrew@datamountaineer.com on 22/02/16.
   * stream-reactor
   */
 class KuduSinkConnector extends SinkConnector with StrictLogging {
@@ -40,7 +41,7 @@ class KuduSinkConnector extends SinkConnector with StrictLogging {
 
   /**
     * States which SinkTask class to use
-    **/
+    */
   override def taskClass(): Class[_ <: Task] = classOf[KuduSinkTask]
 
   /**
@@ -48,7 +49,7 @@ class KuduSinkConnector extends SinkConnector with StrictLogging {
     *
     * @param maxTasks The max number of task workers be can spawn
     * @return a List of configuration properties per worker
-    **/
+    */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
     (1 to maxTasks).map(_ => configProps.get).toList.asJava
@@ -58,7 +59,7 @@ class KuduSinkConnector extends SinkConnector with StrictLogging {
     * Start the sink and set to configuration
     *
     * @param props A map of properties for the connector and worker
-    **/
+    */
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Kudu sink connector.")
     Helpers.checkInputTopics(KuduConfigConstants.KCQL, props.asScala.toMap)

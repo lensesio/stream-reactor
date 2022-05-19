@@ -19,11 +19,11 @@ package com.datamountaineer.streamreactor.connect.hbase
 import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.hbase.util.Bytes
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.jdk.CollectionConverters.ListHasAsScala
-
 
 /**
   * Builds a row key for the given connect record and payload. The implementations would decide what is using and how.
@@ -40,17 +40,16 @@ trait RowKeyBuilderBytes {
 class GenericRowKeyBuilderBytes(keyDelimiter: String = "|") extends RowKeyBuilderBytes {
   val delimiterBytes: Array[Byte] = Bytes.toBytes(keyDelimiter)
 
-  override def build(record: SinkRecord, payload: Any): Array[Byte] = {
+  override def build(record: SinkRecord, payload: Any): Array[Byte] =
     Bytes.add(
       Array(
         Bytes.toBytes(record.topic()),
         delimiterBytes,
         Bytes.toBytes(record.kafkaPartition().toString),
         delimiterBytes,
-        Bytes.toBytes(record.kafkaOffset().toString)
-      )
+        Bytes.toBytes(record.kafkaOffset().toString),
+      ),
     )
-  }
 }
 
 /**
@@ -62,20 +61,19 @@ class SinkRecordKeyRowKeyBuilderBytes extends RowKeyBuilderBytes {
     require(`type`.isPrimitive, "The SinkRecord key schema is not a primitive type")
 
     `type`.name() match {
-      case "INT8" => record.key.fromByte()
-      case "INT16" => record.key.fromShort()
-      case "INT32" => record.key.fromInt()
-      case "INT64" => record.key.fromLong()
+      case "INT8"    => record.key.fromByte()
+      case "INT16"   => record.key.fromShort()
+      case "INT32"   => record.key.fromInt()
+      case "INT64"   => record.key.fromLong()
       case "FLOAT32" => record.key.fromFloat()
       case "FLOAT64" => record.key.fromDouble()
       case "BOOLEAN" => record.key.fromBoolean()
-      case "STRING" => record.key.fromString()
-      case "BYTES" => record.key().fromBytes()
-      case other => throw new IllegalArgumentException(s"$other is not supported by the ${getClass.getName}")
+      case "STRING"  => record.key.fromString()
+      case "BYTES"   => record.key().fromBytes()
+      case other     => throw new IllegalArgumentException(s"$other is not supported by the ${getClass.getName}")
     }
   }
 }
-
 
 /**
   * Uses the fields present in the avro record to build the key. More than one key can be used.
@@ -84,9 +82,11 @@ class SinkRecordKeyRowKeyBuilderBytes extends RowKeyBuilderBytes {
   * @param keys                - Which avro record fields make up the schema
   * @param keyDelimiter        Delimiter to use in the key
   */
-class AvroRecordRowKeyBuilderBytes(valuesExtractorsMap: Map[String, (Any) => Array[Byte]],
-                                   keys: Seq[String],
-                                   keyDelimiter: String = "\n") extends RowKeyBuilderBytes {
+class AvroRecordRowKeyBuilderBytes(
+  valuesExtractorsMap: Map[String, (Any) => Array[Byte]],
+  keys:                Seq[String],
+  keyDelimiter:        String = "\n",
+) extends RowKeyBuilderBytes {
 
   require(keys.nonEmpty, "Invalid keys provided.")
   require(keyDelimiter != null, "Invalid composite row  key delimiter specified.")
@@ -102,15 +102,17 @@ class AvroRecordRowKeyBuilderBytes(valuesExtractorsMap: Map[String, (Any) => Arr
   override def build(record: SinkRecord, payload: Any): Array[Byte] = {
     val avroRecord = payload.asInstanceOf[GenericRecord]
     val key = keys.map { k =>
-      val fn = valuesExtractorsMap.getOrElse(k, throw new IllegalArgumentException(s"Could not handle key builder for field:$k"))
+      val fn =
+        valuesExtractorsMap.getOrElse(k,
+                                      throw new IllegalArgumentException(s"Could not handle key builder for field:$k"),
+        )
       fn(avroRecord.get(k))
     }.flatMap(arr => Seq(delimBytes, arr))
     Bytes.add(key.tail.toArray)
   }
 }
 
-case class StructFieldsRowKeyBuilderBytes(fm : List[String],
-                                          keyDelimiter: String = "\n") extends RowKeyBuilderBytes {
+case class StructFieldsRowKeyBuilderBytes(fm: List[String], keyDelimiter: String = "\n") extends RowKeyBuilderBytes {
   require(fm.nonEmpty, "Invalid keys provided")
 
   val delimBytes: Array[Byte] = Bytes.toBytes(keyDelimiter)
@@ -121,23 +123,29 @@ case class StructFieldsRowKeyBuilderBytes(fm : List[String],
 
     val availableFields: Set[String] = schema.fields().asScala.map(_.name).toSet
     val missingKeys = fm.filterNot(p => availableFields.contains(p))
-    require(missingKeys.isEmpty, s"${missingKeys.mkString(",")} keys are not present in the SinkRecord payload:${availableFields.mkString(",")}")
+    require(
+      missingKeys.isEmpty,
+      s"${missingKeys.mkString(",")} keys are not present in the SinkRecord payload:${availableFields.mkString(",")}",
+    )
 
     val keyBytes = fm.map { key =>
       val field = schema.field(key)
       val value = struct.get(field)
-      require(value != null, s"$key field value is null. Non null value is required for the fileds creating the row key")
+      require(value != null,
+              s"$key field value is null. Non null value is required for the fileds creating the row key",
+      )
       field.schema().`type`() match {
         case Schema.Type.BOOLEAN => value.fromBoolean()
-        case Schema.Type.BYTES=> value.fromBytes()
+        case Schema.Type.BYTES   => value.fromBytes()
         case Schema.Type.FLOAT32 => value.fromFloat()
         case Schema.Type.FLOAT64 => value.fromDouble()
-        case Schema.Type.INT8 => value.fromByte()
-        case Schema.Type.INT16 => value.fromShort()
-        case Schema.Type.INT32 => value.fromInt()
-        case Schema.Type.INT64 => value.fromLong()
-        case Schema.Type.STRING => value.fromString()
-        case other => throw new RuntimeException(s"Unsupported schema type '$other'. Field '$key' can not be used as key.")
+        case Schema.Type.INT8    => value.fromByte()
+        case Schema.Type.INT16   => value.fromShort()
+        case Schema.Type.INT32   => value.fromInt()
+        case Schema.Type.INT64   => value.fromLong()
+        case Schema.Type.STRING  => value.fromString()
+        case other =>
+          throw new RuntimeException(s"Unsupported schema type '$other'. Field '$key' can not be used as key.")
       }
     }.flatMap(arr => Seq(delimBytes, arr))
     Bytes.add(keyBytes.tail.toArray)

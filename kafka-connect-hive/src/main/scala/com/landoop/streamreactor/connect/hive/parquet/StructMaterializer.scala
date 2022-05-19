@@ -1,7 +1,9 @@
 package com.landoop.streamreactor.connect.hive.parquet
 
-import org.apache.kafka.connect.data.{Schema, Struct}
-import org.apache.parquet.io.api.{GroupConverter, RecordMaterializer}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
+import org.apache.parquet.io.api.GroupConverter
+import org.apache.parquet.io.api.RecordMaterializer
 
 /**
   * Top level class used to serialize objects from a stream of Parquet data.
@@ -12,5 +14,5 @@ import org.apache.parquet.io.api.{GroupConverter, RecordMaterializer}
 class StructMaterializer(schema: Schema) extends RecordMaterializer[Struct] {
   private val root = new RootGroupConverter(schema)
   override def getRootConverter: GroupConverter = root
-  override def getCurrentRecord: Struct = root.struct
+  override def getCurrentRecord: Struct         = root.struct
 }

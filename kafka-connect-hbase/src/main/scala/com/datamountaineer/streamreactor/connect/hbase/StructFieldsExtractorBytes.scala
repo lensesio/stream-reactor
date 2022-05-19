@@ -30,18 +30,20 @@ trait FieldsValuesExtractor {
   def get(struct: Struct): Seq[(String, Array[Byte])]
 }
 
-case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap: Map[String, String]) extends FieldsValuesExtractor with StrictLogging {
+case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap: Map[String, String])
+    extends FieldsValuesExtractor
+    with StrictLogging {
 
   def get(struct: Struct): Seq[(String, Array[Byte])] = {
     val schema = struct.schema()
     val fields: Seq[Field] = if (includeAllFields) {
       schema.fields().asScala.toList
-    }
-    else {
+    } else {
       val selectedFields = schema.fields().asScala.filter(f => fieldsAliasMap.contains(f.name()))
-      val diffSet = fieldsAliasMap.keySet.diff(selectedFields.map(_.name()).toSet)
+      val diffSet        = fieldsAliasMap.keySet.diff(selectedFields.map(_.name()).toSet)
       if (diffSet.nonEmpty) {
-        val errMsg = s"Following columns ${diffSet.mkString(",")} have not been found. Available columns:${fieldsAliasMap.keys.mkString(",")}"
+        val errMsg =
+          s"Following columns ${diffSet.mkString(",")} have not been found. Available columns:${fieldsAliasMap.keys.mkString(",")}"
         logger.error(errMsg)
         throw new ConnectException(errMsg)
       }
@@ -49,24 +51,25 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
     }
 
     val fieldsAndValues = fields.flatMap(field =>
-      getFieldBytes(field, struct).map(bytes => fieldsAliasMap.getOrElse(field.name(), field.name()) -> bytes))
+      getFieldBytes(field, struct).map(bytes => fieldsAliasMap.getOrElse(field.name(), field.name()) -> bytes),
+    )
 
     fieldsAndValues
   }
 
-  private def getFieldBytes(field: Field, struct: Struct): Option[Array[Byte]] = {
+  private def getFieldBytes(field: Field, struct: Struct): Option[Array[Byte]] =
     Option(struct.get(field))
       .map { value =>
         Option(field.schema().name()).collect {
           case Decimal.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
-              case _:java.math.BigDecimal => value.fromBigDecimal()
-              case arr: Array[Byte] => Decimal.toLogical(field.schema, arr).asInstanceOf[Any].fromBigDecimal()
+              case _:   java.math.BigDecimal => value.fromBigDecimal()
+              case arr: Array[Byte]          => Decimal.toLogical(field.schema, arr).asInstanceOf[Any].fromBigDecimal()
               case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
             }
           case Time.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
-              case d:java.util.Date =>
+              case d: java.util.Date =>
                 val zonedTime = d.toInstant.atZone(UTC).withFixedOffsetZone()
                 StructFieldsExtractorBytes.TimeFormat.format(zonedTime).asInstanceOf[Any].fromString()
               case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
@@ -74,31 +77,30 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
 
           case Timestamp.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
-              case d:java.util.Date => StructFieldsExtractorBytes.DateFormat.format(d.toInstant).asInstanceOf[Any].fromString()
+              case d: java.util.Date =>
+                StructFieldsExtractorBytes.DateFormat.format(d.toInstant).asInstanceOf[Any].fromString()
               case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
             }
         }.getOrElse {
 
           field.schema().`type`() match {
             case Schema.Type.BOOLEAN => value.fromBoolean()
-            case Schema.Type.BYTES => value.fromBytes()
+            case Schema.Type.BYTES   => value.fromBytes()
             case Schema.Type.FLOAT32 => value.fromFloat()
             case Schema.Type.FLOAT64 => value.fromDouble()
-            case Schema.Type.INT8 => value.fromByte()
-            case Schema.Type.INT16 => value.fromShort()
-            case Schema.Type.INT32 => value.fromInt()
-            case Schema.Type.INT64 => value.fromLong()
-            case Schema.Type.STRING => value.fromString()
-            case other => throw new ConnectException(s"$other is not a recognized schema!")
+            case Schema.Type.INT8    => value.fromByte()
+            case Schema.Type.INT16   => value.fromShort()
+            case Schema.Type.INT32   => value.fromInt()
+            case Schema.Type.INT64   => value.fromLong()
+            case Schema.Type.STRING  => value.fromString()
+            case other               => throw new ConnectException(s"$other is not a recognized schema!")
           }
         }
       }
-  }
 }
 
-
 object StructFieldsExtractorBytes {
-  private val UTC = ZoneId.of("UTC")
+  private val UTC        = ZoneId.of("UTC")
   private val DateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(UTC)
   private val TimeFormat = DateTimeFormatter.ofPattern("HH:mm:ss.SSSZ").withZone(UTC)
 }

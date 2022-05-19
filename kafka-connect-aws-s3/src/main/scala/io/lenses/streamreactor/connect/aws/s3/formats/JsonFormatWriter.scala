@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -35,38 +34,39 @@ class JsonFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
   private val jsonConverter = new JsonConverter
 
   jsonConverter.configure(
-    Map("schemas.enable" -> false).asJava, false
+    Map("schemas.enable" -> false).asJava,
+    false,
   )
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] = {
-
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] =
     Try {
 
       val dataBytes = valueSinkData match {
-        case data: PrimitiveSinkData => jsonConverter.fromConnectData(topic.value, valueSinkData.schema().orNull, data.safeVal())
-        case StructSinkData(structVal) => jsonConverter.fromConnectData(topic.value, valueSinkData.schema().orNull, structVal)
+        case data: PrimitiveSinkData =>
+          jsonConverter.fromConnectData(topic.value, valueSinkData.schema().orNull, data.safeVal())
+        case StructSinkData(structVal) =>
+          jsonConverter.fromConnectData(topic.value, valueSinkData.schema().orNull, structVal)
         case MapSinkData(map, schema) =>
           jsonConverter.fromConnectData(topic.value, schema.orNull, ToJsonDataConverter.convertMap(map))
-        case ArraySinkData(array, schema) => jsonConverter.fromConnectData(topic.value, schema.orNull, ToJsonDataConverter.convertArray(array))
+        case ArraySinkData(array, schema) =>
+          jsonConverter.fromConnectData(topic.value, schema.orNull, ToJsonDataConverter.convertArray(array))
         case ByteArraySinkData(_, _) => throw new IllegalStateException("Cannot currently write byte array as json")
-        case NullSinkData(schema) => jsonConverter.fromConnectData(topic.value, schema.orNull, null)
+        case NullSinkData(schema)    => jsonConverter.fromConnectData(topic.value, schema.orNull, null)
       }
 
       outputStream.write(dataBytes)
       outputStream.write(LineSeparatorBytes)
       outputStream.flush()
     }.toEither
-  }
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 
-  override def complete(): Either[SinkError,Unit] = {
+  override def complete(): Either[SinkError, Unit] =
     for {
       closed <- outputStream.complete()
-      _ <- Suppress(outputStream.flush())
-      _ <- Suppress(outputStream.close())
+      _      <- Suppress(outputStream.flush())
+      _      <- Suppress(outputStream.close())
     } yield closed
-  }
 
   override def getPointer: Long = outputStream.getPointer
 

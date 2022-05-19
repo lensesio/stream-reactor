@@ -29,9 +29,6 @@ object DocumentClientProvider {
     val policy = ConnectionPolicy.GetDefault()
     settings.proxy.foreach(proxy => policy.setProxy(HttpHost.create(proxy)))
 
-    new DocumentClient(settings.endpoint,
-      settings.masterKey,
-      policy,
-      settings.consistency)
+    new DocumentClient(settings.endpoint, settings.masterKey, policy, settings.consistency)
   }
 }

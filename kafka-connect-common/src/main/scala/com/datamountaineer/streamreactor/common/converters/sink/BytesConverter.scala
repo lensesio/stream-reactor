@@ -22,8 +22,7 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 
 class BytesConverter extends Converter {
-  override def convert(sinkTopic: String,
-                       data: SinkRecord): SinkRecord = {
+  override def convert(sinkTopic: String, data: SinkRecord): SinkRecord =
     Option(data) match {
       case None =>
         new SinkRecord(
@@ -33,7 +32,7 @@ class BytesConverter extends Converter {
           null,
           Schema.BYTES_SCHEMA,
           null,
-          0
+          0,
         )
       case Some(_) =>
         new SinkRecord(
@@ -43,8 +42,7 @@ class BytesConverter extends Converter {
           MsgKey.getStruct(sinkTopic, data.key().toString),
           Schema.BYTES_SCHEMA,
           data.value(),
-          0
+          0,
         )
     }
-  }
 }

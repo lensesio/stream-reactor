@@ -17,40 +17,46 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.config
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import com.datamountaineer.streamreactor.common.rowkeys.StringKeyBuilder
-import org.apache.kafka.common.config.{ConfigException, SslConfigs}
+import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.common.config.SslConfigs
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-
 // Redis connection details: host, port, password
-case class RedisConnectionInfo(host: String,
-                               port: Int,
-                               password: Option[String],
-                               isSslConnection: Boolean = false,
-                               keyPassword: Option[String] = None,
-                               keyStoreType: Option[String] = None,
-                               keyStorePassword: Option[String] = None,
-                               keyStoreFilepath: Option[String] = None,
-                               trustStoreType: Option[String] = None,
-                               trustStorePassword: Option[String] = None,
-                               trustStoreFilepath: Option[String] = None
-                              )
+case class RedisConnectionInfo(
+  host:               String,
+  port:               Int,
+  password:           Option[String],
+  isSslConnection:    Boolean        = false,
+  keyPassword:        Option[String] = None,
+  keyStoreType:       Option[String] = None,
+  keyStorePassword:   Option[String] = None,
+  keyStoreFilepath:   Option[String] = None,
+  trustStoreType:     Option[String] = None,
+  trustStorePassword: Option[String] = None,
+  trustStoreFilepath: Option[String] = None,
+)
 
 // Sink settings of each Redis KCQL statement
-case class RedisKCQLSetting(topic: String,
-                            kcqlConfig: Kcql,
-                            builder: StringKeyBuilder,
-                            fieldsAndAliases: Map[String, String],
-                            ignoredFields: Set[String])
+case class RedisKCQLSetting(
+  topic:            String,
+  kcqlConfig:       Kcql,
+  builder:          StringKeyBuilder,
+  fieldsAndAliases: Map[String, String],
+  ignoredFields:    Set[String],
+)
 
 // All the settings of the running connector
-case class RedisSinkSettings(connectionInfo: RedisConnectionInfo,
-                             pkDelimiter: String,
-                             kcqlSettings: Set[RedisKCQLSetting],
-                             errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                             taskRetries: Int = RedisConfigConstants.NBR_OF_RETIRES_DEFAULT)
+case class RedisSinkSettings(
+  connectionInfo: RedisConnectionInfo,
+  pkDelimiter:    String,
+  kcqlSettings:   Set[RedisKCQLSetting],
+  errorPolicy:    ErrorPolicy = new ThrowErrorPolicy,
+  taskRetries:    Int         = RedisConfigConstants.NBR_OF_RETIRES_DEFAULT,
+)
 
 object RedisSinkSettings {
 
@@ -61,7 +67,7 @@ object RedisSinkSettings {
     // Get per KCQL : kcqlConfig, key-builder, aliases, ignored-fields
     val kcqlConfigs = kcqlCommands.toList.distinct
     // Get the error-policy, num-of-retries, redis-connection-info
-    val errorPolicy = config.getErrorPolicy
+    val errorPolicy  = config.getErrorPolicy
     val nbrOfRetries = config.getNumberRetries
 
     // Get the aliases
@@ -84,7 +90,7 @@ object RedisSinkSettings {
         kcqlConfigs(i),
         builders(i),
         aliases(i),
-        ignoredFields(i)
+        ignoredFields(i),
       )
     }.toSet
 
@@ -106,26 +112,27 @@ object RedisConnectionInfo {
     val trustStorePath = Option(config.getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG))
     val trustStorePassword = Option(config.getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)) match {
       case Some(p) => Some(p.value())
-      case None => None
+      case None    => None
     }
 
     val keyStoreType = Option(config.getString(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG))
     val keyStorePath = Option(config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
     val keyStorePassword = Option(config.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)) match {
       case Some(p) => Some(p.value())
-      case None => None
+      case None    => None
     }
 
     new RedisConnectionInfo(
-      host = host,
-      port = config.getInt(RedisConfigConstants.REDIS_PORT),
-      password = password,
-      isSslConnection = isSslConnection,
-      keyStoreType = keyStoreType,
-      keyStorePassword = keyStorePassword,
-      keyStoreFilepath = keyStorePath,
-      trustStoreType = trustStoreType,
+      host               = host,
+      port               = config.getInt(RedisConfigConstants.REDIS_PORT),
+      password           = password,
+      isSslConnection    = isSslConnection,
+      keyStoreType       = keyStoreType,
+      keyStorePassword   = keyStorePassword,
+      keyStoreFilepath   = keyStorePath,
+      trustStoreType     = trustStoreType,
       trustStorePassword = trustStorePassword,
-      trustStoreFilepath = trustStorePath)
+      trustStoreFilepath = trustStorePath,
+    )
   }
 }

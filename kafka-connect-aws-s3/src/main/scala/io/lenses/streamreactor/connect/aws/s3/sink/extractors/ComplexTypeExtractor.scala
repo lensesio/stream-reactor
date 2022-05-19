@@ -19,19 +19,23 @@ package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionNamePath
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 
 import java.util
 
 object ComplexTypeExtractor extends LazyLogging {
 
-  private[extractors] def extractComplexType(value: Any, fieldName: PartitionNamePath, schema: Schema): Either[ExtractorError, String] = {
+  private[extractors] def extractComplexType(
+    value:     Any,
+    fieldName: PartitionNamePath,
+    schema:    Schema,
+  ): Either[ExtractorError, String] =
     value match {
-      case s: Struct => StructExtractor.extractPathFromStruct(s, fieldName)
+      case s: Struct         => StructExtractor.extractPathFromStruct(s, fieldName)
       case m: util.Map[_, _] => MapExtractor.extractPathFromMap(m, fieldName, schema)
-      case a: util.List[_] => ArrayExtractor.extractPathFromArray(a, fieldName, schema)
+      case a: util.List[_]   => ArrayExtractor.extractPathFromArray(a, fieldName, schema)
       case other => logger.error("Unexpected type in Map Extractor: " + other)
         ExtractorError(ExtractorErrorType.UnexpectedType).asLeft[String]
     }
-  }
 }

@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -25,22 +24,28 @@ import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.blobstore.domain.StorageType
 import org.jclouds.blobstore.options.ListContainerOptions
 
-import java.io.{File, InputStream}
+import java.io.File
+import java.io.InputStream
 import java.nio.charset.Charset
 import java.time.Instant
-import scala.jdk.CollectionConverters.{CollectionHasAsScala, SeqHasAsJava}
-import scala.util.{Failure, Success, Try}
+import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
-class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreContext) extends StorageInterface with LazyLogging {
+class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreContext)
+    extends StorageInterface
+    with LazyLogging {
 
   private val blobStore = blobStoreContext.getBlobStore
 
   override def uploadFile(source: File, target: RemoteS3PathLocation): Either[UploadError, Unit] = {
     logger.debug(s"[{}] JCLOUDS Uploading file from local {} to s3 {}", sinkName, source, target)
 
-    if(!source.exists()){
+    if (!source.exists()) {
       NonExistingFileError(source).asLeft
-    } else if (source.length() == 0L){
+    } else if (source.length() == 0L) {
       ZeroByteFileError(source).asLeft
     } else {
       Try {
@@ -49,7 +54,7 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
           blobStore.blobBuilder(target.path)
             .payload(source)
             .contentLength(source.length())
-            .build()
+            .build(),
         )
       } match {
         case Failure(exception) =>
@@ -65,7 +70,7 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
   override def writeStringToFile(target: RemoteS3PathLocation, data: String): Either[UploadError, Unit] = {
     logger.debug(s"[{}] Uploading file from data string ({}) to s3 {}", sinkName, data, target)
 
-    if(data.isEmpty){
+    if (data.isEmpty) {
       EmptyContentsStringError(data).asLeft
     } else {
       Try {
@@ -74,7 +79,7 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
           blobStore.blobBuilder(target.path)
             .payload(data)
             .contentLength(data.length().toLong)
-            .build()
+            .build(),
         )
       } match {
         case Failure(exception) =>
@@ -92,62 +97,63 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
   def pathExistsInternal(bucketAndPath: RemoteS3PathLocation): Boolean =
     blobStore.list(bucketAndPath.bucket, ListContainerOptions.Builder.prefix(bucketAndPath.path)).size() > 0
 
-  override def pathExists(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, Boolean] = {
+  override def pathExists(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, Boolean] =
     Try {
       pathExistsInternal(bucketAndPath)
     }.toEither.leftMap(FileLoadError(_, bucketAndPath.path))
-  }
 
   private def listInternal(bucketAndPath: RemoteS3PathLocation): List[String] = {
 
     val options = ListContainerOptions.Builder.recursive().prefix(bucketAndPath.path)
 
-    var pageSetStrings: List[String] = List()
-    var nextMarker: Option[String] = None
+    var pageSetStrings: List[String]   = List()
+    var nextMarker:     Option[String] = None
     do {
       nextMarker.foreach(options.afterMarker)
       val pageSet = blobStore.list(bucketAndPath.bucket, options)
       nextMarker = Option(pageSet.getNextMarker)
       pageSetStrings ++= pageSet
         .asScala
-        .collect{
+        .collect {
           case blobOnly if blobOnly.getType == StorageType.BLOB => blobOnly.getName
         }
     } while (nextMarker.nonEmpty)
     pageSetStrings
   }
 
-  override def list(bucketAndPrefix: RemoteS3PathLocation): Either[FileListError, List[String]] = {
-    Try (listInternal(bucketAndPrefix))
+  override def list(bucketAndPrefix: RemoteS3PathLocation): Either[FileListError, List[String]] =
+    Try(listInternal(bucketAndPrefix))
       .toEither
       .leftMap(e => FileListError(e, bucketAndPrefix.path))
-  }
 
-  override def getBlob(bucketAndPath: RemoteS3PathLocation): Either[String,InputStream] = {
-    Try(blobStore.getBlob(bucketAndPath.bucket, bucketAndPath.path).getPayload.openStream()).toEither.leftMap(_.getMessage)
-  }
+  override def getBlob(bucketAndPath: RemoteS3PathLocation): Either[String, InputStream] =
+    Try(blobStore.getBlob(bucketAndPath.bucket, bucketAndPath.path).getPayload.openStream()).toEither.leftMap(
+      _.getMessage,
+    )
 
-  override def getBlobSize(bucketAndPath: RemoteS3PathLocation): Either[String,Long] = {
-    Try(blobStore.getBlob(bucketAndPath.bucket, bucketAndPath.path).getMetadata.getSize.toLong).toEither.leftMap(_.getMessage)
-  }
+  override def getBlobSize(bucketAndPath: RemoteS3PathLocation): Either[String, Long] =
+    Try(blobStore.getBlob(bucketAndPath.bucket, bucketAndPath.path).getMetadata.getSize.toLong).toEither.leftMap(
+      _.getMessage,
+    )
 
   override def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = {
-    if(files.isEmpty) {
+    if (files.isEmpty) {
       return ().asRight
     }
-    Try (blobStore.removeBlobs(bucket, files.asJava))
-        .toEither
-        .leftMap(e => FileDeleteError(e, s"issue while deleting $files"))
+    Try(blobStore.removeBlobs(bucket, files.asJava))
+      .toEither
+      .leftMap(e => FileDeleteError(e, s"issue while deleting $files"))
   }
 
-  override def getBlobAsString(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, String] = {
+  override def getBlobAsString(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, String] =
     for {
       blob <- getBlob(bucketAndPath).leftMap(e => FileLoadError(new IllegalArgumentException(e), bucketAndPath.path))
-      asString <- Try(IOUtils.toString(blob, Charset.forName("UTF-8"))).toEither.leftMap(FileLoadError(_, bucketAndPath.path))
+      asString <- Try(IOUtils.toString(blob, Charset.forName("UTF-8"))).toEither.leftMap(FileLoadError(
+        _,
+        bucketAndPath.path,
+      ))
     } yield asString
-  }
 
-  override def getBlobModified(location: RemoteS3PathLocation): Either[String,Instant] = {
+  override def getBlobModified(location: RemoteS3PathLocation): Either[String, Instant] =
     Try(blobStore.blobMetadata(location.bucket, location.path).getLastModified.toInstant).toEither.leftMap(_.getMessage)
-  }
 }

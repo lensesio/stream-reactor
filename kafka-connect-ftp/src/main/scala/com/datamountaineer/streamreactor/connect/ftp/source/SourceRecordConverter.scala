@@ -20,9 +20,9 @@ import org.apache.kafka.common.Configurable
 import org.apache.kafka.connect.source.SourceRecord
 
 /**
-  * Created by andrew@datamountaineer.com on 31/08/2017. 
+  * Created by andrew@datamountaineer.com on 31/08/2017.
   * Default (Template) Project
   */
 trait SourceRecordConverter extends Configurable {
-  def convert(in:SourceRecord) : java.util.List[SourceRecord]
+  def convert(in: SourceRecord): java.util.List[SourceRecord]
 }

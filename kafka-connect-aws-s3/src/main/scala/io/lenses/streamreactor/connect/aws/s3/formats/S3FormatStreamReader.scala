@@ -17,7 +17,8 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
-import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
+import io.lenses.streamreactor.connect.aws.s3.config.Format
+import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.model.SourceData
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 
@@ -26,17 +27,18 @@ import java.io.InputStream
 object S3FormatStreamReader {
 
   def apply(
-             inputStreamFn: () => InputStream,
-             fileSizeFn: () => Long,
-             format: FormatSelection,
-             bucketAndPath: RemoteS3PathLocation
-           ): S3FormatStreamReader[_ <: SourceData] =
+    inputStreamFn: () => InputStream,
+    fileSizeFn:    () => Long,
+    format:        FormatSelection,
+    bucketAndPath: RemoteS3PathLocation,
+  ): S3FormatStreamReader[_ <: SourceData] =
     format.format match {
-      case Format.Avro => new AvroFormatStreamReader(inputStreamFn, bucketAndPath)
-      case Format.Json => new TextFormatStreamReader(inputStreamFn, bucketAndPath)
-      case Format.Text => new TextFormatStreamReader(inputStreamFn, bucketAndPath)
+      case Format.Avro    => new AvroFormatStreamReader(inputStreamFn, bucketAndPath)
+      case Format.Json    => new TextFormatStreamReader(inputStreamFn, bucketAndPath)
+      case Format.Text    => new TextFormatStreamReader(inputStreamFn, bucketAndPath)
       case Format.Parquet => new ParquetFormatStreamReader(inputStreamFn, fileSizeFn, bucketAndPath)
-      case Format.Csv => new CsvFormatStreamReader(inputStreamFn, bucketAndPath, hasHeaders = format.formatOptions.contains(WithHeaders))
+      case Format.Csv =>
+        new CsvFormatStreamReader(inputStreamFn, bucketAndPath, hasHeaders = format.formatOptions.contains(WithHeaders))
       case Format.Bytes =>
         val bytesWriteMode = S3FormatWriter.convertToBytesWriteMode(format.formatOptions)
         if (bytesWriteMode.entryName.toLowerCase.contains("size")) {

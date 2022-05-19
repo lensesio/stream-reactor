@@ -38,9 +38,8 @@ case class FatalS3SinkError(message: String, exception: Throwable, topicPartitio
 
 case object FatalS3SinkError {
 
-  def apply(message: String, topicPartition: TopicPartition): FatalS3SinkError = {
+  def apply(message: String, topicPartition: TopicPartition): FatalS3SinkError =
     FatalS3SinkError(message, new IllegalStateException(message), topicPartition)
-  }
 
 }
 
@@ -53,45 +52,42 @@ case class NonFatalS3SinkError(message: String, exception: Throwable) extends Si
 }
 
 case object NonFatalS3SinkError {
-  def apply(message: String): NonFatalS3SinkError = {
+  def apply(message: String): NonFatalS3SinkError =
     NonFatalS3SinkError(message, new IllegalStateException(message))
-  }
 
-  def apply(exception: Throwable): NonFatalS3SinkError = {
+  def apply(exception: Throwable): NonFatalS3SinkError =
     NonFatalS3SinkError(exception.getMessage, exception)
-  }
 }
 
 case object BatchS3SinkError {
-  def apply(mixedExceptions: Set[SinkError]): BatchS3SinkError = {
+  def apply(mixedExceptions: Set[SinkError]): BatchS3SinkError =
     BatchS3SinkError(
       mixedExceptions.collect {
         case fatal: FatalS3SinkError => fatal
       },
       mixedExceptions.collect {
         case fatal: NonFatalS3SinkError => fatal
-      }
+      },
     )
-  }
 }
 
 case class BatchS3SinkError(
-                             fatal: Set[FatalS3SinkError],
-                             nonFatal: Set[NonFatalS3SinkError]
-                           ) extends SinkError {
+  fatal:    Set[FatalS3SinkError],
+  nonFatal: Set[NonFatalS3SinkError],
+) extends SinkError {
 
   def hasFatal: Boolean = fatal.nonEmpty
 
-  override def exception(): Throwable = {
+  override def exception(): Throwable =
     fatal.++(nonFatal)
       .headOption
       .map(_.exception)
       .getOrElse(new IllegalStateException("No exception found in BatchS3SinkError"))
-  }
 
-  override def message(): String = {
-    "fatal:\n" + fatal.map(_.message).mkString("\n") + "\n\nnonFatal:\n" + nonFatal.map(_.message).mkString("\n") + "\n\nFatal TPs:\n" + fatal.map(_.topicPartitions())
-  }
+  override def message(): String =
+    "fatal:\n" + fatal.map(_.message).mkString("\n") + "\n\nnonFatal:\n" + nonFatal.map(_.message).mkString(
+      "\n",
+    ) + "\n\nFatal TPs:\n" + fatal.map(_.topicPartitions())
 
   override def rollBack(): Boolean = fatal.nonEmpty
 

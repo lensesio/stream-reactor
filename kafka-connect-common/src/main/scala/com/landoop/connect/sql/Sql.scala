@@ -2,12 +2,14 @@ package com.landoop.connect.sql
 
 import org.apache.calcite.sql.SqlSelect
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
-case class Sql(select:SqlSelect, flatten:Boolean)
+case class Sql(select: SqlSelect, flatten: Boolean)
 
 object Sql {
-  def parse(query:String): Sql ={
+  def parse(query: String): Sql = {
     import org.apache.calcite.config.Lex
     import org.apache.calcite.sql.parser.SqlParser
     val config = SqlParser.config
@@ -24,7 +26,7 @@ object Sql {
     val select = Try(parser.parseQuery()) match {
       case Failure(e) => throw new IllegalArgumentException(s"Query is not valid.${e.getMessage}")
       case Success(sqlSelect: SqlSelect) => sqlSelect
-      case Success(sqlNode@_) => throw new IllegalArgumentException("Only `select` statements are allowed")
+      case Success(sqlNode @ _) => throw new IllegalArgumentException("Only `select` statements are allowed")
     }
     Sql(select, !withStructure)
   }

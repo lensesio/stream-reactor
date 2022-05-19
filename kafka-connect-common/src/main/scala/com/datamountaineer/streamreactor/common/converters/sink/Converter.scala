@@ -28,7 +28,6 @@ trait Converter {
   def convert(sinkTopic: String, data: SinkRecord): SinkRecord
 }
 
-
 object Converter {
   val TopicKey = "topic"
 }

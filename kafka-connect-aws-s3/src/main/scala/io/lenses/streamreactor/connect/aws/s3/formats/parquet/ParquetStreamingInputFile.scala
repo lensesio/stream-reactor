@@ -17,19 +17,20 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.parquet
 
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.parquet.io.{InputFile, SeekableInputStream}
+import org.apache.parquet.io.InputFile
+import org.apache.parquet.io.SeekableInputStream
 
 import java.io.InputStream
 
-
-class ParquetStreamingInputFile(inputStreamFn: () => InputStream, fileSizeFn: () => Long) extends InputFile with LazyLogging {
+class ParquetStreamingInputFile(inputStreamFn: () => InputStream, fileSizeFn: () => Long)
+    extends InputFile
+    with LazyLogging {
 
   private val fileSize: Long = fileSizeFn()
 
   override def getLength: Long = fileSize
 
-  override def newStream(): SeekableInputStream = {
+  override def newStream(): SeekableInputStream =
     new ParquetSeekableInputStream(inputStreamFn)
-  }
 
 }

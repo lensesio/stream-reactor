@@ -20,9 +20,10 @@ package com.datamountaineer.streamreactor.common.config.base.traits
 
 import java.util
 
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
+import org.apache.kafka.common.config.AbstractConfig
+import org.apache.kafka.common.config.ConfigDef
 
 abstract class BaseConfig(connectorPrefixStr: String, confDef: ConfigDef, props: util.Map[String, String])
-  extends AbstractConfig(confDef, props) {
+    extends AbstractConfig(confDef, props) {
   val connectorPrefix: String = connectorPrefixStr
 }

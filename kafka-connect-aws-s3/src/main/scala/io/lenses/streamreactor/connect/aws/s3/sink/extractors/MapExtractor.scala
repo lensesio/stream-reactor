@@ -28,11 +28,18 @@ import java.util
   */
 object MapExtractor extends LazyLogging {
 
-  private[extractors] def extractPathFromMap(map: util.Map[_, _], fieldName: PartitionNamePath, schema: Schema): Either[ExtractorError, String] = {
+  private[extractors] def extractPathFromMap(
+    map:       util.Map[_, _],
+    fieldName: PartitionNamePath,
+    schema:    Schema,
+  ): Either[ExtractorError, String] =
     if (fieldName.hasTail) extractComplexType(map, fieldName, schema) else extractPrimitive(map, fieldName.head, schema)
-  }
 
-  private def extractComplexType(map: util.Map[_, _], fieldName: PartitionNamePath, schema: Schema): Either[ExtractorError, String] = {
+  private def extractComplexType(
+    map:       util.Map[_, _],
+    fieldName: PartitionNamePath,
+    schema:    Schema,
+  ): Either[ExtractorError, String] = {
     val mapKey = fieldName.head
     Option(map.get(mapKey))
       .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
@@ -40,11 +47,14 @@ object MapExtractor extends LazyLogging {
       }
   }
 
-  private def extractPrimitive(map: util.Map[_, _], fieldName: String, mapSchema: Schema): Either[ExtractorError, String] =
+  private def extractPrimitive(
+    map:       util.Map[_, _],
+    fieldName: String,
+    mapSchema: Schema,
+  ): Either[ExtractorError, String] =
     Option(mapSchema.valueSchema())
       .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
         PrimitiveExtractor.extractPrimitiveValue(map.get(fieldName), _)
       }
-
 
 }

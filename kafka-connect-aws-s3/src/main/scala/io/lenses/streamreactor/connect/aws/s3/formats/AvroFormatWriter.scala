@@ -25,9 +25,11 @@ import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.avro.Schema
 import org.apache.avro.file.DataFileWriter
 import org.apache.avro.generic.GenericDatumWriter
-import org.apache.kafka.connect.data.{Schema => ConnectSchema}
+import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter with LazyLogging {
 
@@ -35,48 +37,45 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   override def rolloverFileOnSchemaChange() = true
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] = {
-
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] =
     Try {
 
       logger.trace("AvroFormatWriter - write")
 
-      avroWriterState = Some(avroWriterState
-        .getOrElse {
-          val outputStream = outputStreamFn()
-          Try(new AvroWriterState(outputStream, valueSinkData.schema())) match {
-            case Failure(exception) =>
-              exception.printStackTrace(); throw exception
-            case Success(writerState: AvroWriterState) =>
-              avroWriterState = Some(writerState)
-              writerState
-          }
+      avroWriterState = Some(
+        avroWriterState
+          .getOrElse {
+            val outputStream = outputStreamFn()
+            Try(new AvroWriterState(outputStream, valueSinkData.schema())) match {
+              case Failure(exception) =>
+                exception.printStackTrace(); throw exception
+              case Success(writerState: AvroWriterState) =>
+                avroWriterState = Some(writerState)
+                writerState
+            }
 
-        })
-
+          },
+      )
 
       avroWriterState.map(_.write(valueSinkData))
 
     }.toEither match {
       case Left(value) => value.asLeft
-      case Right(_) => ().asRight
+      case Right(_)    => ().asRight
     }
-  }
 
-  override def complete(): Either[SinkError, Unit] = {
-    avroWriterState.fold{
+  override def complete(): Either[SinkError, Unit] =
+    avroWriterState.fold {
       logger.debug("Requesting close (with args) when there's nothing to close")
       ().asRight[SinkError]
     }(_.close())
-  }
 
   override def getPointer: Long = avroWriterState.fold(0L)(_.pointer)
 
-
   class AvroWriterState(outputStream: S3OutputStream, connectSchema: Option[ConnectSchema]) {
-    private val schema: Schema = ToAvroDataConverter.convertSchema(connectSchema)
-    private val writer: GenericDatumWriter[AnyRef] = new GenericDatumWriter[AnyRef](schema)
-    private val fileWriter: DataFileWriter[AnyRef] = new DataFileWriter[AnyRef](writer).create(schema, outputStream)
+    private val schema:     Schema                     = ToAvroDataConverter.convertSchema(connectSchema)
+    private val writer:     GenericDatumWriter[AnyRef] = new GenericDatumWriter[AnyRef](schema)
+    private val fileWriter: DataFileWriter[AnyRef]     = new DataFileWriter[AnyRef](writer).create(schema, outputStream)
 
     def write(valueStruct: SinkData): Unit = {
 
@@ -87,13 +86,12 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
     }
 
-    def close() : Either[SinkError, Unit] = {
+    def close(): Either[SinkError, Unit] =
       for {
-        _ <- Suppress(fileWriter.flush())
+        _      <- Suppress(fileWriter.flush())
         closed <- outputStream.complete()
-        _ <- Suppress(fileWriter.close())
+        _      <- Suppress(fileWriter.close())
       } yield closed
-    }
 
     def pointer: Long = outputStream.getPointer
 

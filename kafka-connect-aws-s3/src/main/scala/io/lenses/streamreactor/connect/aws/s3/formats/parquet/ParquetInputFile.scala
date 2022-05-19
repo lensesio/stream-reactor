@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -17,10 +16,11 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats.parquet
 
-import org.apache.parquet.io.{DelegatingSeekableInputStream, InputFile, SeekableInputStream}
+import org.apache.parquet.io.DelegatingSeekableInputStream
+import org.apache.parquet.io.InputFile
+import org.apache.parquet.io.SeekableInputStream
 
 import java.io.ByteArrayInputStream
-
 
 class SeekableByteArrayInputStream(val bArr: Array[Byte]) extends ByteArrayInputStream(bArr) {
   def setPos(pos: Int): Unit = this.pos = pos
@@ -37,6 +37,5 @@ class ParquetInputFile(inputStream: SeekableByteArrayInputStream) extends InputF
 
     override def seek(newPos: Long): Unit = getStream.asInstanceOf[SeekableByteArrayInputStream].setPos(newPos.intValue)
   }
-
 
 }

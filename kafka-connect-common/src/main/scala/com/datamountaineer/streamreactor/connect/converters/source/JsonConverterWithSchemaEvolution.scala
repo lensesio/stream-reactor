@@ -37,16 +37,17 @@ class JsonConverterWithSchemaEvolution extends Converter {
   private val avroData = new AvroData(4)
   implicit private var latestSchema: Option[Schema] = None
 
-
-  override def convert(kafkaTopic: String,
-                       mqttSource: String,
-                       messageId: String,
-                       bytes: Array[Byte],
-                       keys: Seq[String] = Seq.empty,
-                       keyDelimiter: String = ".",
-                       properties: Map[String, String] = Map.empty): SourceRecord = {
-    if(bytes == null) throw new ConnectException(s"Invalid input. Input cannot be null.")
-    val json = new String(bytes, Charset.defaultCharset)
+  override def convert(
+    kafkaTopic:   String,
+    mqttSource:   String,
+    messageId:    String,
+    bytes:        Array[Byte],
+    keys:         Seq[String]         = Seq.empty,
+    keyDelimiter: String              = ".",
+    properties:   Map[String, String] = Map.empty,
+  ): SourceRecord = {
+    if (bytes == null) throw new ConnectException(s"Invalid input. Input cannot be null.")
+    val json           = new String(bytes, Charset.defaultCharset)
     val schemaAndValue = JsonConverterWithSchemaEvolution.convert(mqttSource, json)
     latestSchema = Some(schemaAndValue.schema())
 
@@ -58,21 +59,27 @@ class JsonConverterWithSchemaEvolution extends Converter {
         }.mkString(keyDelimiter)
 
         new SourceRecord(null,
-          Collections.singletonMap(JsonConverterWithSchemaEvolution.ConfigKey, latestSchema.map(avroData.fromConnectSchema(_).toString).orNull),
-          kafkaTopic,
-          Schema.STRING_SCHEMA,
-          keysValue,
-          schemaAndValue.schema(),
-          schemaAndValue.value())
+                         Collections.singletonMap(JsonConverterWithSchemaEvolution.ConfigKey,
+                                                  latestSchema.map(avroData.fromConnectSchema(_).toString).orNull,
+                         ),
+                         kafkaTopic,
+                         Schema.STRING_SCHEMA,
+                         keysValue,
+                         schemaAndValue.schema(),
+                         schemaAndValue.value(),
+        )
 
       case _ =>
         new SourceRecord(null,
-          Collections.singletonMap(JsonConverterWithSchemaEvolution.ConfigKey, latestSchema.map(avroData.fromConnectSchema(_).toString).orNull),
-          kafkaTopic,
-          MsgKey.schema,
-          MsgKey.getStruct(mqttSource, messageId),
-          schemaAndValue.schema(),
-          schemaAndValue.value())
+                         Collections.singletonMap(JsonConverterWithSchemaEvolution.ConfigKey,
+                                                  latestSchema.map(avroData.fromConnectSchema(_).toString).orNull,
+                         ),
+                         kafkaTopic,
+                         MsgKey.schema,
+                         MsgKey.getStruct(mqttSource, messageId),
+                         schemaAndValue.schema(),
+                         schemaAndValue.value(),
+        )
     }
 
   }
@@ -87,14 +94,14 @@ object JsonConverterWithSchemaEvolution {
 
   def convert(name: String, str: String)(implicit schema: Option[Schema]): SchemaAndValue = convert(name, parse(str))
 
-  def convert(name: String, value: JValue)(implicit aggregatedSchema: Option[Schema]): SchemaAndValue = {
+  def convert(name: String, value: JValue)(implicit aggregatedSchema: Option[Schema]): SchemaAndValue =
     value match {
       case JArray(arr) =>
-        val values = new util.ArrayList[AnyRef]()
+        val values     = new util.ArrayList[AnyRef]()
         val prevSchema = aggregatedSchema.map(_.field(name)).map(_.schema)
-        val sv = convert(name, arr.head)(prevSchema)
+        val sv         = convert(name, arr.head)(prevSchema)
         values.add(sv.value())
-        arr.tail.foreach { v => values.add(convert(name, v)(prevSchema).value()) }
+        arr.tail.foreach(v => values.add(convert(name, v)(prevSchema).value()))
 
         val schema = SchemaBuilder.array(sv.schema()).optional().build()
         new SchemaAndValue(schema, values)
@@ -103,18 +110,22 @@ object JsonConverterWithSchemaEvolution {
         val schema = Decimal.builder(d.scale).optional().build()
         new SchemaAndValue(schema, Decimal.fromLogical(schema, d.bigDecimal))
       case JDouble(d) => new SchemaAndValue(Schema.OPTIONAL_FLOAT64_SCHEMA, d)
-      case JInt(i) => new SchemaAndValue(Schema.OPTIONAL_INT64_SCHEMA, i.toLong) //on purpose! LONG (we might get later records with long entries)
-      case JLong(l) => new SchemaAndValue(Schema.OPTIONAL_INT64_SCHEMA, l)
+      case JInt(i) =>
+        new SchemaAndValue(Schema.OPTIONAL_INT64_SCHEMA,
+                           i.toLong,
+        ) //on purpose! LONG (we might get later records with long entries)
+      case JLong(l)         => new SchemaAndValue(Schema.OPTIONAL_INT64_SCHEMA, l)
       case JNull | JNothing => new SchemaAndValue(Schema.OPTIONAL_STRING_SCHEMA, null)
-      case JString(s) => new SchemaAndValue(Schema.OPTIONAL_STRING_SCHEMA, s)
+      case JString(s)       => new SchemaAndValue(Schema.OPTIONAL_STRING_SCHEMA, s)
       case JObject(values) =>
         val builder = SchemaBuilder.struct().name(name)
 
-        val fields = values.map { case (n, v) =>
-          val prevSchema = aggregatedSchema.map(_.field(n)).map(_.schema())
-          val schemaAndValue = convert(n, v)(prevSchema)
-          builder.field(n, schemaAndValue.schema())
-          n -> schemaAndValue.value()
+        val fields = values.map {
+          case (n, v) =>
+            val prevSchema     = aggregatedSchema.map(_.field(n)).map(_.schema())
+            val schemaAndValue = convert(n, v)(prevSchema)
+            builder.field(n, schemaAndValue.schema())
+            n -> schemaAndValue.value()
         }.toMap
         val schema = builder.build()
 
@@ -133,5 +144,4 @@ object JsonConverterWithSchemaEvolution {
         new SchemaAndValue(schema, struct)
       case other => throw new IllegalStateException(s"Unexpected state: $other")
     }
-  }
 }

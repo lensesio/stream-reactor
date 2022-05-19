@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.hbase
 
 object ValidateStringParameterFn {
-  def apply(value: String, parameterName: String) : Unit = {
+  def apply(value: String, parameterName: String): Unit =
     require(value != null && value.trim.length > 0, s"Invalid $parameterName. Expecting non null non empty string")
-  }
 }

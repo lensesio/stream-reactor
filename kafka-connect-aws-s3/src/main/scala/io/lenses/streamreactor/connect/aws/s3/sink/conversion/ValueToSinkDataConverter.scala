@@ -17,7 +17,8 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
 import io.lenses.streamreactor.connect.aws.s3.model._
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.ConnectException
 
 import java.util
@@ -26,35 +27,38 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 object ValueToSinkDataConverter {
 
   def apply(value: Any, schema: Option[Schema]): SinkData = value match {
-    case boolVal: Boolean => BooleanSinkData(boolVal, schema)
-    case stringVal: String => StringSinkData(stringVal, schema)
-    case longVal: Long => LongSinkData(longVal, schema)
-    case intVal: Int => IntSinkData(intVal, schema)
-    case byteVal: Byte => ByteSinkData(byteVal, schema)
-    case doubleVal: Double => DoubleSinkData(doubleVal, schema)
-    case floatVal: Float => FloatSinkData(floatVal, schema)
-    case structVal: Struct => StructSinkData(structVal)
-    case mapVal: Map[_, _] => MapSinkDataConverter(mapVal, schema)
-    case mapVal: util.Map[_, _] => MapSinkDataConverter(mapVal.asScala.toMap, schema)
-    case bytesVal: Array[Byte] => ByteArraySinkData(bytesVal, schema)
-    case arrayVal: Array[_] => ArraySinkDataConverter(arrayVal, schema)
-    case listVal: util.List[_] => ArraySinkDataConverter(listVal.toArray, schema)
-    case null => NullSinkData(schema)
+    case boolVal:   Boolean        => BooleanSinkData(boolVal, schema)
+    case stringVal: String         => StringSinkData(stringVal, schema)
+    case longVal:   Long           => LongSinkData(longVal, schema)
+    case intVal:    Int            => IntSinkData(intVal, schema)
+    case byteVal:   Byte           => ByteSinkData(byteVal, schema)
+    case doubleVal: Double         => DoubleSinkData(doubleVal, schema)
+    case floatVal:  Float          => FloatSinkData(floatVal, schema)
+    case structVal: Struct         => StructSinkData(structVal)
+    case mapVal:    Map[_, _]      => MapSinkDataConverter(mapVal, schema)
+    case mapVal:    util.Map[_, _] => MapSinkDataConverter(mapVal.asScala.toMap, schema)
+    case bytesVal:  Array[Byte]    => ByteArraySinkData(bytesVal, schema)
+    case arrayVal:  Array[_]       => ArraySinkDataConverter(arrayVal, schema)
+    case listVal:   util.List[_]   => ArraySinkDataConverter(listVal.toArray, schema)
+    case null     => NullSinkData(schema)
     case otherVal => throw new ConnectException(s"Unsupported record $otherVal:${otherVal.getClass.getCanonicalName}")
   }
 }
 
 object ArraySinkDataConverter {
-  def apply(array: Array[_], schema: Option[Schema]): SinkData = {
+  def apply(array: Array[_], schema: Option[Schema]): SinkData =
     ArraySinkData(array.map(e => ValueToSinkDataConverter(e, None)).toIndexedSeq, schema)
-  }
 }
 
 object MapSinkDataConverter {
-  def apply(map: Map[_, _], schema: Option[Schema]): SinkData = {
-    MapSinkData(map.map {
-      case (k: String, v) => StringSinkData(k, None) -> ValueToSinkDataConverter(v, None)
-      case (k, _) => throw new ConnectException(s"Non-string map values including (${k.getClass.getCanonicalName}) are not currently supported")
-    }, schema)
-  }
+  def apply(map: Map[_, _], schema: Option[Schema]): SinkData =
+    MapSinkData(
+      map.map {
+        case (k: String, v) => StringSinkData(k, None) -> ValueToSinkDataConverter(v, None)
+        case (k, _) => throw new ConnectException(
+            s"Non-string map values including (${k.getClass.getCanonicalName}) are not currently supported",
+          )
+      },
+      schema,
+    )
 }
