@@ -44,10 +44,6 @@ jobs:
   scalafmt:
     timeout-minutes: 5
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.read-mods.outputs.matrix }}
-      it_matrix: ${{ steps.read-mods.outputs.it-matrix }}
-      fun_matrix: ${{ steps.read-mods.outputs.fun-matrix }}
     steps:
       - uses: actions/checkout@master
       - name: Set up JDK 8
