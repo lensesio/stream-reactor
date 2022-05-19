@@ -22,16 +22,21 @@ import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import org.apache.kafka.connect.sink.SinkRecord
 
 import javax.jms.{Message, Session}
+import scala.jdk.CollectionConverters.IterableHasAsScala
 
 
-class JMSHeadersConverterWrapper(headers: Map[String, String], delegate: JMSMessageConverter) extends JMSMessageConverter {
+class JMSHeadersConverterWrapper(headers: Map[String, String], delegate: JMSSinkMessageConverter) extends JMSSinkMessageConverter {
 
 
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, Message) = {
     val response = delegate.convert(record, session, setting)
     val message = response._2
+    for(header <- record.headers().asScala) {
+      message.setStringProperty(header.key(), header.value().toString)
+    }
+    message.setStringProperty("JMSXGroupID", record.kafkaPartition().toString)
     for((key, value) <- headers) {
-      message.setObjectProperty(key, value)
+      message.setStringProperty(key, value)
     }
     response
   }
@@ -39,6 +44,6 @@ class JMSHeadersConverterWrapper(headers: Map[String, String], delegate: JMSMess
 
 
 object JMSHeadersConverterWrapper {
-  def apply(config: Map[String, String], delegate: JMSMessageConverter): JMSMessageConverter =
+  def apply(config: Map[String, String], delegate: JMSSinkMessageConverter): JMSSinkMessageConverter =
     new JMSHeadersConverterWrapper(config, delegate)
 }

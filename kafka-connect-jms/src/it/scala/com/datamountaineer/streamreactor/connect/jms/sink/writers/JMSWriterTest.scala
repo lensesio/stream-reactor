@@ -25,6 +25,9 @@ import com.datamountaineer.streamreactor.connect.jms.sink.IteratorToSeqFn
 import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
+import org.apache.kafka.common.record.TimestampType
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.header.ConnectHeaders
 import org.apache.kafka.connect.json.JsonDeserializer
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
@@ -36,7 +39,7 @@ import scala.annotation.nowarn
 import scala.language.reflectiveCalls
 import scala.reflect.io.Path
 
-@nowarn
+@nowarn("cat=deprecation")
 class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with ConverterUtil with BeforeAndAfterAll {
   val broker = new BrokerService()
   broker.setPersistent(false)
@@ -70,8 +73,10 @@ class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with Conve
     val schema = getSchema
     val struct = getStruct(schema)
 
-    val record1 = new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1)
-    val record2 = new SinkRecord(kafkaTopic2, 0, null, null, schema, struct, 5)
+    val headers = new ConnectHeaders
+    headers.add("customGroupId", "1111", Schema.STRING_SCHEMA)
+    val record1 = new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1, null, TimestampType.NO_TIMESTAMP_TYPE, headers)
+    val record2 = new SinkRecord(kafkaTopic2, 0, null, null, schema, struct, 5, null, TimestampType.NO_TIMESTAMP_TYPE, headers)
 
     val connectionFactory = new ActiveMQConnectionFactory()
     connectionFactory.setBrokerURL(brokerUrl)
@@ -106,6 +111,7 @@ class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with Conve
         val kcqlT            = getKCQL(topicName, kafkaTopic2, "TOPIC")
         val messageType      = "TextMessage"
         val corellationId    = "5"
+        val jmsxGroupId = "101011"
         val topicMessageType = "JSON"
         val props = getSinkProps(
           s"$kcqlQ;$kcqlT",
@@ -113,7 +119,7 @@ class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with Conve
           brokerUrl,
           Map(
             JMSConfigConstants.HEADERS_CONFIG ->
-              s"$queueName=JMSType:$messageType,JMSCorrelationID:$corellationId;$topicName=JMSType:$topicMessageType",
+              s"$queueName=JMSType:$messageType,JMSCorrelationID:$corellationId,JMSXGroupID:$jmsxGroupId;$topicName=JMSType:$topicMessageType"
           ),
         )
         val config   = JMSConfig(props)
@@ -130,7 +136,11 @@ class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with Conve
         queueMessage.getJMSType shouldBe messageType
         topicMessage.getJMSType shouldBe topicMessageType
         queueMessage.getJMSCorrelationID shouldBe corellationId
+        queueMessage.getStringProperty("JMSXGroupID") shouldBe jmsxGroupId
+        queueMessage.getStringProperty("customGroupId") shouldBe "1111"
         topicMessage.getJMSCorrelationID shouldBe null
+        topicMessage.getStringProperty("JMSXGroupID") shouldBe "0"
+        topicMessage.getStringProperty("customGroupId") shouldBe "1111"
 
         //can not do json text comparison because fields order is not guaranteed
         val deserializer = new JsonDeserializer()

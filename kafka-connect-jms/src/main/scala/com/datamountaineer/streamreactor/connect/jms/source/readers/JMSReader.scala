@@ -18,11 +18,12 @@
 
 package com.datamountaineer.streamreactor.connect.jms.source.readers
 
-import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
+import com.datamountaineer.streamreactor.connect.jms.source.converters.JMSSourceMessageConverter
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import com.typesafe.scalalogging.StrictLogging
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.SourceRecord
 
 import javax.jms.{Message, MessageConsumer}
@@ -37,23 +38,23 @@ class JMSReader(settings: JMSSettings) extends StrictLogging {
   val provider: JMSSessionProvider = JMSSessionProvider(settings)
   provider.start()
   val consumers: Vector[(String, MessageConsumer)] = (provider.queueConsumers ++ provider.topicsConsumers).toVector
-  val convertersMap: Map[String, Option[Converter]] = settings.settings.map(s => (s.source, s.sourceConverters)).toMap
+  val convertersMap: Map[String, JMSSourceMessageConverter] = settings.settings.map(s => (s.source, s.converter.forSource.getOrElse(throw new ConfigException("No converter configured")))).toMap
   val topicsMap: Map[String, String] = settings.settings.map(s => (s.source, s.target)).toMap
 
   def poll(): Vector[(Message, SourceRecord)] = {
+
     val messages = consumers
       .flatMap({ case (source, consumer) =>
         (0 to settings.batchSize)
           .flatMap(_ => Option(consumer.receiveNoWait()))
           .map(m => (m, convert(source, topicsMap(source), m)))
       })
-
     messages
   }
 
   def convert(source: String, target: String, message: Message): SourceRecord = {
-    convertersMap(source) match {
-      case Some(c) => c.convert(target, source, message.getJMSMessageID, JMSStructMessage.getPayload(message))
+    convertersMap.get(source) match {
+      case Some(c: JMSSourceMessageConverter) => c.convert(source, target, message)
       case None => JMSStructMessage.getStruct(target, message)
     }
   }

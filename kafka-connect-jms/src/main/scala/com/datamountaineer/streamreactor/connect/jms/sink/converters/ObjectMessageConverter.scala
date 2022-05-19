@@ -27,10 +27,10 @@ import javax.jms.{ObjectMessage, Session}
 import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
 
-@nowarn
-class ObjectMessageConverter extends JMSMessageConverter with ConverterUtil {
+@nowarn("cat=deprecation")
+class ObjectMessageConverter extends JMSSinkMessageConverter with ConverterUtil {
 
-  @nowarn
+  @nowarn("cat=deprecation")
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, ObjectMessage) = {
     val converted =  super[ConverterUtil].convert(record, setting.fields, setting.ignoreField)
     val msg = session.createObjectMessage()

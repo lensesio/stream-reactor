@@ -74,7 +74,7 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     val queueName    = s"avro-${UUID.randomUUID().toString}"
 
     val kcql  = getKCQLAvroSource(kafkaTopic, queueName, "QUEUE")
-    val props = getProps(kcql, brokerUrl) ++ Map(AvroConverter.SCHEMA_CONFIG -> getAvroProp(queueName))
+    val props = getProps(kcql, brokerUrl) ++ Map(AvroConverter.CONNECT_SOURCE_CONVERTER_SCHEMA_CONFIG -> getAvroProp(queueName))
 
     val session      = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
     val avro         = session.createQueue(queueName)
@@ -83,11 +83,11 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     avroMessages.foreach(m => avroProducer.send(m))
 
     val config   = JMSConfig(props.asJava)
-    val settings = JMSSettings(config, false)
+    val settings = JMSSettings(config, sink = false)
     val reader   = JMSReader(settings)
 
     val _ = eventually {
-      val messagesRead = reader.poll().toVector
+      val messagesRead = reader.poll()
       messagesRead.nonEmpty shouldBe true
       val sourceRecord = messagesRead.head._2
       sourceRecord.value().isInstanceOf[Struct] shouldBe true

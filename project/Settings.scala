@@ -1,14 +1,14 @@
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import sbt.Keys._
-import sbt._
+import sbt.{Compile, _}
 import sbt.internal.ProjectMatrix
 import sbtassembly.AssemblyKeys._
-import sbtassembly.MergeStrategy
-import sbtassembly.PathList
+import sbtassembly.{MergeStrategy, PathList}
+import sbtprotoc.ProtocPlugin
+import sbtprotoc.ProtocPlugin.autoImport._
 import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
 
-import java.nio.file.Files
-import java.nio.file.Paths
+import java.nio.file.{Files, Paths}
 import java.util.Calendar
 
 object Settings extends Dependencies {
@@ -28,8 +28,7 @@ object Settings extends Dependencies {
   }
 
   val manifestSection: Package.JarManifest = {
-    import java.util.jar.Attributes
-    import java.util.jar.Manifest
+    import java.util.jar.{Attributes, Manifest}
     val manifest      = new Manifest
     val newAttributes = new Attributes()
     newAttributes.put(new Attributes.Name("version"), majorVersion)
@@ -144,6 +143,39 @@ object Settings extends Dependencies {
         Test / parallelExecution := false,
         IntegrationTest / parallelExecution := false,
       ))
+  }
+
+  implicit final class ProtobufSourceConfigurator(project: ProjectMatrix) {
+
+    def writePlaceholderClassForScope(configuration: Configuration) = {
+      configuration / sourceGenerators += Def.task {
+        val protoPackage = "com.datamountaineer.streamreactor.example"
+        val scalaFile = ( configuration / sourceManaged).value / "com" / "datamountaineer" / "streamreactor" / "example" / "_ONLY_FOR_INTELLIJ.scala"
+        IO.write(scalaFile,
+          s"""package $protoPackage
+             |
+             |private class _ONLY_FOR_INTELLIJ
+             |""".stripMargin)
+        Seq(scalaFile)
+      }.taskValue
+    }
+
+    def configureProtobufSources(): ProjectMatrix = {
+
+      project.enablePlugins(ProtocPlugin).settings(
+        settings ++
+          Seq(
+            Compile / PB.protoSources := Seq(project.base / "src" / "test" / "resources" / "example"),
+            Compile / PB.targets := Seq(
+              PB.gens.java -> (Test / sourceManaged).value,
+            ),
+            writePlaceholderClassForScope(Test),
+
+
+
+          )
+      )
+    }
   }
 
   implicit final class AssemblyConfigurator(project: ProjectMatrix) {

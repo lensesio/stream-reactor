@@ -18,21 +18,21 @@
 
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
+import com.datamountaineer.streamreactor.common.converters.ByteArrayConverter
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import org.apache.kafka.connect.sink.SinkRecord
 
 import javax.jms.{Message, Session}
-import scala.annotation.nowarn
 
-@nowarn("cat=deprecation")
-class TextMessageConverter extends JMSSinkMessageConverter with ConverterUtil {
+class ByteMessageConverter extends JMSSinkMessageConverter {
+
+  lazy val byteConverter = new ByteArrayConverter()
 
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, Message) = {
 
-    val value = record.value()
-    val msg = session.createTextMessage(value.asInstanceOf[String])
-
+    val value = byteConverter.fromConnectData(record.topic(), record.valueSchema(), record.value())
+    val msg = session.createBytesMessage()
+    msg.writeBytes(value)
     (setting.source, msg)
   }
 }

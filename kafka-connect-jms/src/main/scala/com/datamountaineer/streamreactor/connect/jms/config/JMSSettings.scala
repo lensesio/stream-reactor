@@ -22,13 +22,13 @@ import com.datamountaineer.kcql.{FormatType, Kcql}
 import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
+import com.datamountaineer.streamreactor.connect.jms.source.converters.{CommonJMSMessageConverter, JMSSourceMessageConverter => JMSMessageSourceConverter}
 import com.google.common.base.Splitter
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
 
-import scala.jdk.CollectionConverters.{IterableHasAsScala, ListHasAsScala, MapHasAsScala}
-import scala.util.{Failure, Success, Try}
+import scala.jdk.CollectionConverters.{IterableHasAsScala, MapHasAsScala}
 
 case class JMSSetting(source: String,
                       target: String,
@@ -36,8 +36,10 @@ case class JMSSetting(source: String,
                       ignoreField: Set[String],
                       destinationType: DestinationType,
                       format: FormatType = FormatType.JSON,
-                      sourceConverters: Option[Converter],
+                      storageOptions: StorageOptions,
+                      converter: ConverterConfigWrapper,
                       messageSelector: Option[String],
+                      subscriptionName: Option[String],
                       headers: Map[String, String])
 
 case class JMSSettings(connectionURL: String,
@@ -88,44 +90,6 @@ object JMSSettings extends StrictLogging {
       .map(p => p.split("=").grouped(2)
         .map { case Array(k: String, v: String) => k.trim -> v.trim }.toMap)
       .toList
-    //get default converter
-    val defaultConverterClassName = config.getString(JMSConfigConstants.DEFAULT_CONVERTER_CONFIG)
-
-    val defaultConverter = Option(defaultConverterClassName)
-      .filterNot(c => c.isEmpty).map { c =>
-      Try(Class.forName(c)) match {
-        case Failure(_) => throw new ConfigException(s"Invalid ${JMSConfigConstants.DEFAULT_CONVERTER_CONFIG}.$c can't be found")
-        case Success(clz) =>
-          if (!classOf[Converter].isAssignableFrom(clz)) {
-            throw new ConfigException(s"Invalid ${JMSConfigConstants.DEFAULT_CONVERTER_CONFIG}. $c is not inheriting Converter")
-          }
-          logger.info(s"Creating converter instance for $c")
-          val converter = Try(Class.forName(c).getDeclaredConstructor().newInstance()) match {
-            case Success(value) => value.asInstanceOf[Converter]
-            case Failure(_) => throw new ConfigException(s"${JMSConfigConstants.DEFAULT_CONVERTER_CONFIG} is invalid. $c should have an empty ctor!")
-          }
-          converter.initialize(config.props.asScala.toMap)
-          converter
-      }
-    }
-
-    //get converters, filtering out those with it not set in kcql
-    val converters = kcql
-      .filterNot(k => k.getWithConverter == null)
-      .map(k => (k.getSource, k.getWithConverter))
-      .toMap
-
-    //check converters
-    val convertersMap = converters.map({
-      case (jms_source, clazz) =>
-        logger.info(s"Creating converter instance for $clazz")
-        val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
-          case Success(value) => value.asInstanceOf[Converter]
-          case Failure(_) => throw new ConfigException(s"Invalid ${JMSConfigConstants.KCQL} is invalid for $jms_source. $clazz should have an empty ctor!")
-        }
-        converter.initialize(config.props.asScala.toMap)
-        (jms_source, converter)
-    })
 
     //Check withtype is set
     kcql.foreach(k => {
@@ -142,25 +106,30 @@ object JMSSettings extends StrictLogging {
 
     val settings = kcql.map(r => {
       val jmsName = if (sink) r.getTarget else r.getSource
-      var converter = convertersMap.get(jmsName)
-      if (converter.isEmpty) {
-        converter = defaultConverter
+
+      val converters = JMSConnectorConverters(sink)(r, config.props.asScala.toMap) match {
+          case None => throw new ConfigException("Converters should not be empty")
+          case Some(Left(exception)) => throw exception
+          case Some(Right(converters)) => converters
       }
-      val headersForJmsDest = Splitter.on(',').omitEmptyStrings()
+
+      val headersForJmsDest:Map[String,String] = Splitter.on(',').omitEmptyStrings()
         .split(headers.getOrElse(jmsName, "")).asScala
         .map { header =>
           val keyValue = header.split(":", 2)
           (keyValue(0), keyValue(1))
-        }
-        .toMap
+        }.toMap
+
       JMSSetting(r.getSource,
         r.getTarget,
         fields(r.getSource),
         ignoreFields(r.getSource),
         getDestinationType(jmsName, jmsQueues, jmsTopics),
         getFormatType(r),
-        converter,
-        Option(r.getWithJmsSelector()),
+        StorageOptions(r),
+        converters,
+        Option(r.getWithJmsSelector),
+        Option(if (r.getWithSubscription == null)  jmsSubscriptionName else r.getWithSubscription),
         headersForJmsDest)
     }).toList
 
@@ -185,7 +154,8 @@ object JMSSettings extends StrictLogging {
       evictThreshold)
   }
 
-  private def parseAdditionalHeaders(cfgLine: String): Map[String, String] =
+
+  def parseAdditionalHeaders(cfgLine: String): Map[String, String] =
     Splitter.on(';').omitEmptyStrings()
       .split(cfgLine).asScala
       .map { header =>
@@ -205,4 +175,16 @@ object JMSSettings extends StrictLogging {
       throw new ConfigException(s"$target has not been configured as topic or queue.")
     }
   }
+
+  def toSourceJMSMessageConverter(value: Any): JMSMessageSourceConverter = {
+    value match {
+      case converter1: Converter =>
+        new CommonJMSMessageConverter(converter1)
+      case converter: JMSMessageSourceConverter =>
+        converter
+      case _ =>
+        throw new ConfigException(s"${value.getClass.toString} is neither JMSMessageConverter nor Converter.")
+    }
+  }
+
 }

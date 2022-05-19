@@ -9,7 +9,7 @@ import sbt.internal.ProjectMatrix
 
 case class KafkaVersionAxis(kafkaVersion: String) extends WeakAxis {
 
-  private val confluentPlatformVersion: String = kafkaVersion match {
+  val confluentPlatformVersion: String = kafkaVersion match {
     case "2.8.1" => "6.2.2"
     case "3.1.0" => "7.0.1"
     case _       => throw new IllegalStateException("unexpected kafka version")
@@ -46,6 +46,7 @@ case class KafkaVersionAxis(kafkaVersion: String) extends WeakAxis {
     jacksonDatabind(jacksonDatabindVersion),
     jacksonDataformatCbor(jacksonVersion),
     jacksonModuleScala(jacksonVersion),
+    confluentProtobufConverter(confluentPlatformVersion)
   )
 
   def ideEnable(): Boolean = kafkaVersion == "3.1.0"

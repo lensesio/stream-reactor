@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.influx.writers
 
 import java.util.concurrent.TimeUnit
-import com.datamountaineer.kcql.{Kcql, Tag}
+import com.datamountaineer.kcql.{Field, Kcql, Tag}
 import com.datamountaineer.streamreactor.connect.influx.NanoClock
 import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
 import com.datamountaineer.streamreactor.connect.influx.converters.{InfluxPoint, SinkRecordParser}
@@ -49,17 +49,9 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
         case other => other
       }).map(_.split('.')).map(_.toSeq)
 
-      val fields: Seq[(FieldName, Path, Option[Alias])] = kcql.getFields.asScala.toList.map { field =>
-        (
-          FieldName(Option(field.getAlias).getOrElse(field.getName)),
-          Path(Option(field.getParentFields).map(_.asScala.toList).getOrElse(List.empty[String]) ::: field.getName :: Nil),
-          Option(field.getAlias).filter(_ != field.getName).map(Alias)
-        )
-      }
+      val allFields = readKeyFieldsFromKcql(kcql) ++ readFieldsFromKcql(kcql)
 
-      val ignores = kcql.getIgnoredFields.asScala.toList.map(field =>
-        (FieldName(field.getName), Path(Option(field.getParentFields).map(_.asScala.toList).getOrElse(List.empty[String]) ::: field.getName :: Nil), Option(field.getAlias).map(Alias))
-      ).toSet
+      val ignores = readIgnoredFieldsFromKcql(kcql)
 
       val tags = Option(kcql.getTags.asScala).toList.flatten.map { tag =>
         tag.getType match {
@@ -72,7 +64,38 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
       val dynamicTarget = Option(kcql.getDynamicTarget).map(_.split('.').toVector)
       val target = kcql.getTarget
 
-      KcqlDetails(fields, ignores, tags, dynamicTarget.map(Path), target, timestampField.map(Path), kcql.getTimestampUnit)
+      KcqlDetails(allFields, ignores, tags, dynamicTarget.map(Path), target, timestampField.map(Path), kcql.getTimestampUnit)
+    }
+  }
+
+  private def readIgnoredFieldsFromKcql(kcql: Kcql) = {
+    kcql.getIgnoredFields.asScala.toList.map(field =>
+      (FieldName(field.getName), mapParentFieldsToField(field), Option(field.getAlias).map(Alias))
+    ).toSet
+  }
+
+  private def readFieldsFromKcql(kcql: Kcql) = {
+    kcql.getFields.asScala.toList.map { field =>
+      (
+        FieldName(Option(field.getAlias).getOrElse(field.getName)),
+        mapParentFieldsToField(field),
+        Option(field.getAlias).filter(_ != field.getName).map(Alias)
+      )
+    }
+  }
+
+  private def mapParentFieldsToField(field: Field) = {
+    Path(Option(field.getParentFields).map(_.asScala.toList).getOrElse(List.empty[String]) ::: field.getName :: Nil)
+  }
+
+  private def readKeyFieldsFromKcql(kcql: Kcql) = {
+    kcql.getKeyFields.asScala.toList.map {
+      field =>
+        (
+          FieldName(Option(field.getAlias).getOrElse(field.getName)),
+          Path(Option(field.getParentFields).map(_.asScala.toList).getOrElse(List.empty[String]) ++ Seq("_key", field.getName)),
+          Option(field.getAlias).filter(_ != field.getName).map(Alias)
+        )
     }
   }
 

@@ -19,11 +19,13 @@
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
+import com.datamountaineer.streamreactor.connect.jms.converters.JMSMessageConverter
 import org.apache.kafka.connect.sink.SinkRecord
 
 import javax.jms.{Message, Session}
 
 
-trait JMSMessageConverter {
-  def convert(record:SinkRecord, session:Session, setting: JMSSetting): (String, Message)
+trait JMSSinkMessageConverter extends JMSMessageConverter {
+
+  def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, Message)
 }
