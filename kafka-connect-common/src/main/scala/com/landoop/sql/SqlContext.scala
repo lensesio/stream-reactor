@@ -29,10 +29,11 @@ class SqlContext(val fields: Iterable[Field]) {
   }
 
   private object FieldsMapBuilder {
-    private def insertKey(key: String,
-                          item: Either[Field, String],
-                          map: Map[String, ArrayBuffer[Either[Field, String]]]): Map[String, ArrayBuffer[Either[Field, String]]] = {
-
+    private def insertKey(
+      key:  String,
+      item: Either[Field, String],
+      map:  Map[String, ArrayBuffer[Either[Field, String]]],
+    ): Map[String, ArrayBuffer[Either[Field, String]]] =
       map.get(key) match {
         case None =>
           val buffer = ArrayBuffer.empty[Either[Field, String]]
@@ -45,27 +46,26 @@ class SqlContext(val fields: Iterable[Field]) {
           }
           map
       }
-    }
 
-    def apply(fields: Iterable[Field]): Map[String, Seq[Either[Field, String]]] = {
-      fields.foldLeft(Map.empty[String, ArrayBuffer[Either[Field, String]]]) { case (map, field) =>
-        if (field.hasParents) {
-          val (_, m) = field.parents
-            .foldLeft((new StringBuilder(), map)) { case ((builder, accMap), p) =>
-              val localMap = insertKey(builder.toString(), Right(p), accMap)
-              //if (builder.isEmpty) builder.append(p)
-              builder.append(p) -> localMap
-            }
-          insertKey(field.parents.mkString("."), Left(field), m)
-        } else {
-          insertKey("", Left(field), map)
-        }
+    def apply(fields: Iterable[Field]): Map[String, Seq[Either[Field, String]]] =
+      fields.foldLeft(Map.empty[String, ArrayBuffer[Either[Field, String]]]) {
+        case (map, field) =>
+          if (field.hasParents) {
+            val (_, m) = field.parents
+              .foldLeft((new StringBuilder(), map)) {
+                case ((builder, accMap), p) =>
+                  val localMap = insertKey(builder.toString(), Right(p), accMap)
+                  //if (builder.isEmpty) builder.append(p)
+                  builder.append(p) -> localMap
+              }
+            insertKey(field.parents.mkString("."), Left(field), m)
+          } else {
+            insertKey("", Left(field), map)
+          }
       }.view.mapValues(_.toSeq).toMap
-    }
 
-    def apply(sql: SqlSelect): Map[String, Seq[Either[Field, String]]] = {
+    def apply(sql: SqlSelect): Map[String, Seq[Either[Field, String]]] =
       apply(Field.from(sql))
-    }
   }
 
 }

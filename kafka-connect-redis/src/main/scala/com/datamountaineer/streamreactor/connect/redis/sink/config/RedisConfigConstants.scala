@@ -18,7 +18,6 @@ package com.datamountaineer.streamreactor.connect.redis.sink.config
 
 import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
 
-
 object RedisConfigConstants {
 
   val CONNECTOR_PREFIX = "connect.redis"
@@ -47,7 +46,7 @@ object RedisConfigConstants {
       |Enables ssl for the redis connection
     """.stripMargin
 
-  val KCQL_CONFIG = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
+  val KCQL_CONFIG              = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   private[config] val KCQL_DOC = "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY = s"$CONNECTOR_PREFIX.$ERROR_POLICY_PROP_SUFFIX"
@@ -60,16 +59,16 @@ object RedisConfigConstants {
       |The error will be logged automatically""".stripMargin
   private[config] val ERROR_POLICY_DEFAULT = "THROW"
 
-  val ERROR_RETRY_INTERVAL = s"$CONNECTOR_PREFIX.$RETRY_INTERVAL_PROP_SUFFIX"
-  private[config] val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
+  val ERROR_RETRY_INTERVAL                         = s"$CONNECTOR_PREFIX.$RETRY_INTERVAL_PROP_SUFFIX"
+  private[config] val ERROR_RETRY_INTERVAL_DOC     = "The time in milliseconds between retries."
   private[config] val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
 
-  val NBR_OF_RETRIES = s"$CONNECTOR_PREFIX.$MAX_RETRIES_PROP_SUFFIX"
-  private[config] val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
+  val NBR_OF_RETRIES                         = s"$CONNECTOR_PREFIX.$MAX_RETRIES_PROP_SUFFIX"
+  private[config] val NBR_OF_RETRIES_DOC     = "The maximum number of times to try the write again."
   private[config] val NBR_OF_RETIRES_DEFAULT = 20
 
   val PROGRESS_COUNTER_ENABLED: String = PROGRESS_ENABLED_CONST
-  val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
+  val PROGRESS_COUNTER_ENABLED_DOC     = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 

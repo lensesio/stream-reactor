@@ -27,10 +27,10 @@ import scala.jdk.CollectionConverters.ListHasAsScala
   * Simple file converter. Writes the complete file into a single record
   * including the file attributes.
   */
-class SimpleFileConverter(props: util.Map[String, String], offsetStorageReader : OffsetStorageReader)
-  extends FileConverter(props, offsetStorageReader) {
+class SimpleFileConverter(props: util.Map[String, String], offsetStorageReader: OffsetStorageReader)
+    extends FileConverter(props, offsetStorageReader) {
 
-  val cfg = new FtpSourceConfig(props)
+  val cfg       = new FtpSourceConfig(props)
   val metaStore = new ConnectFileMetaDataStore(offsetStorageReader)
   val recordConverter: SourceRecordConverter = cfg.sourceRecordConverter()
   val recordMaker: SourceRecordProducer = cfg.keyStyle() match {

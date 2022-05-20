@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -18,13 +17,16 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.parquet
 
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
-import org.apache.parquet.io.{OutputFile, PositionOutputStream}
+import org.apache.parquet.io.OutputFile
+import org.apache.parquet.io.PositionOutputStream
 
 class ParquetOutputFile(multipartBlobStoreOutputStream: S3OutputStream) extends OutputFile {
 
-  override def create(blockSizeHint: Long): PositionOutputStream = new PositionOutputStreamWrapper(multipartBlobStoreOutputStream)
+  override def create(blockSizeHint: Long): PositionOutputStream =
+    new PositionOutputStreamWrapper(multipartBlobStoreOutputStream)
 
-  override def createOrOverwrite(blockSizeHint: Long): PositionOutputStream = new PositionOutputStreamWrapper(multipartBlobStoreOutputStream)
+  override def createOrOverwrite(blockSizeHint: Long): PositionOutputStream =
+    new PositionOutputStreamWrapper(multipartBlobStoreOutputStream)
 
   override def supportsBlockSize(): Boolean = false
 

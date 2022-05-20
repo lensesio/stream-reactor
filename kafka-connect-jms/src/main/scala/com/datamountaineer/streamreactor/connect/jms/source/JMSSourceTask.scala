@@ -18,11 +18,15 @@
 
 package com.datamountaineer.streamreactor.connect.jms.source
 
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
-import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
+import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
 import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
+import org.apache.kafka.connect.source.SourceRecord
+import org.apache.kafka.connect.source.SourceTask
 
 import java.util
 import java.util.Collections
@@ -30,39 +34,44 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.function.BiConsumer
 import javax.jms.Message
-import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 import scala.jdk.CollectionConverters.SeqHasAsJava
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
- * Created by andrew@datamountaineer.com on 10/03/2017.
- * stream-reactor
- */
+  * Created by andrew@datamountaineer.com on 10/03/2017.
+  * stream-reactor
+  */
 class JMSSourceTask extends SourceTask with StrictLogging {
   private var reader: JMSReader = _
   private val progressCounter = new ProgressCounter
-  private var enableProgress: Boolean = false
+  private var enableProgress: Boolean    = false
   private val pollingTimeout: AtomicLong = new AtomicLong(0L)
   private val recordsToCommit = new ConcurrentHashMap[SourceRecord, MessageAndTimestamp]()
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
-  private val EmptyRecords = Collections.emptyList[SourceRecord]()
+  private val manifest        = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val EmptyRecords    = Collections.emptyList[SourceRecord]()
   private var lastEvictedTimestamp: FiniteDuration = FiniteDuration(System.currentTimeMillis(), MILLISECONDS)
-  private var evictInterval: Int = 0
-  private var evictThreshold: Int = 0
+  private var evictInterval:        Int            = 0
+  private var evictThreshold:       Int            = 0
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-source-ascii.txt")).mkString + s" $version")
+    logger.info(
+      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-source-ascii.txt")).mkString + s" $version",
+    )
     logger.info(manifest.printManifest())
 
     val conf = if (context.configs().isEmpty) props else context.configs()
 
     JMSConfig.config.parse(conf)
-    val config = new JMSConfig(conf)
+    val config   = new JMSConfig(conf)
     val settings = JMSSettings(config, sink = false)
-    reader = JMSReader(settings)
+    reader         = JMSReader(settings)
     enableProgress = config.getBoolean(JMSConfigConstants.PROGRESS_COUNTER_ENABLED)
     pollingTimeout.set(settings.pollingTimeout)
-    evictInterval = settings.evictInterval
+    evictInterval  = settings.evictInterval
     evictThreshold = settings.evictThreshold
   }
 
@@ -91,9 +100,10 @@ class JMSSourceTask extends SourceTask with StrictLogging {
       EmptyRecords
     } else {
       val timestamp = System.currentTimeMillis()
-      val records = polled.map { case (msg, record) =>
-        recordsToCommit.put(record, MessageAndTimestamp(msg, FiniteDuration(timestamp, MILLISECONDS)))
-        record
+      val records = polled.map {
+        case (msg, record) =>
+          recordsToCommit.put(record, MessageAndTimestamp(msg, FiniteDuration(timestamp, MILLISECONDS)))
+          record
       }
       if (enableProgress) {
         progressCounter.update(records)
@@ -105,22 +115,24 @@ class JMSSourceTask extends SourceTask with StrictLogging {
   private def evictUncommittedMessages(): Unit = {
     val current = FiniteDuration(System.currentTimeMillis(), MILLISECONDS)
     if ((current - lastEvictedTimestamp).toMinutes > evictInterval) {
-      recordsToCommit.forEach(new BiConsumer[SourceRecord, MessageAndTimestamp] {
-        override def accept(t: SourceRecord, u: MessageAndTimestamp): Unit = evictIfApplicable(t, u, current)
-      })
+      recordsToCommit.forEach(
+        new BiConsumer[SourceRecord, MessageAndTimestamp] {
+          override def accept(t: SourceRecord, u: MessageAndTimestamp): Unit = evictIfApplicable(t, u, current)
+        },
+      )
     }
     lastEvictedTimestamp = current
   }
 
-  private def evictIfApplicable(record: SourceRecord, msg: MessageAndTimestamp, now: FiniteDuration): Unit = {
+  private def evictIfApplicable(record: SourceRecord, msg: MessageAndTimestamp, now: FiniteDuration): Unit =
     if ((now - msg.timestamp).toMinutes > evictThreshold) {
       val _ = recordsToCommit.remove(record)
     }
-  }
 
   override def commitRecord(record: SourceRecord): Unit = {
-    Option(recordsToCommit.remove(record)).foreach { case MessageAndTimestamp(msg, _) =>
-      Try(msg.acknowledge())
+    Option(recordsToCommit.remove(record)).foreach {
+      case MessageAndTimestamp(msg, _) =>
+        Try(msg.acknowledge())
     }
     evictUncommittedMessages()
   }

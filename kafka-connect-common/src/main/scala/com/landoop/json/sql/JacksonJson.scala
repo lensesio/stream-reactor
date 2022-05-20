@@ -17,22 +17,22 @@ package com.landoop.json.sql
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include
 import com.fasterxml.jackson.databind.json.JsonMapper
-import com.fasterxml.jackson.databind.{DeserializationFeature, JsonNode}
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 
 object JacksonJson {
   val mapper = JsonMapper.builder()
-      .addModule(DefaultScalaModule)
-      .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-      .serializationInclusion(Include.NON_NULL)
-      .serializationInclusion(Include.NON_EMPTY)
-      .build()
+    .addModule(DefaultScalaModule)
+    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+    .serializationInclusion(Include.NON_NULL)
+    .serializationInclusion(Include.NON_EMPTY)
+    .build()
 
   def toJson[T](value: T): String = mapper.writeValueAsString(value)
 
-  def asJson(value:String):JsonNode = mapper.readTree(value)
+  def asJson(value: String): JsonNode = mapper.readTree(value)
 
   def asJson[T](value: T): JsonNode = mapper.valueToTree(value)
 
 }
-

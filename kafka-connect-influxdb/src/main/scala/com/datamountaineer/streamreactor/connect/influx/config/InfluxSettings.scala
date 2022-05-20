@@ -17,22 +17,25 @@
 package com.datamountaineer.streamreactor.connect.influx.config
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import org.apache.kafka.common.config.ConfigException
 import org.influxdb.InfluxDB.ConsistencyLevel
 
-case class InfluxSettings(connectionUrl: String,
-                          user: String,
-                          password: String,
-                          database: String,
-                          retentionPolicy: String,
-                          consistencyLevel: ConsistencyLevel,
-                          /*topicToMeasurementMap: Map[String, String],
+case class InfluxSettings(
+  connectionUrl:    String,
+  user:             String,
+  password:         String,
+  database:         String,
+  retentionPolicy:  String,
+  consistencyLevel: ConsistencyLevel,
+  /*topicToMeasurementMap: Map[String, String],
                           fieldsExtractorMap: Map[String, StructFieldsExtractor],
                           topicToTagsMap: Map[String, Seq[Tag]]*/
-                          kcqls: Seq[Kcql],
-                          errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                          maxRetries: Int = InfluxConfigConstants.NBR_OF_RETIRES_DEFAULT)
+  kcqls:       Seq[Kcql],
+  errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
+  maxRetries:  Int         = InfluxConfigConstants.NBR_OF_RETIRES_DEFAULT,
+)
 
 object InfluxSettings {
 
@@ -59,7 +62,7 @@ object InfluxSettings {
 
     val password = passwordRaw.value() match {
       case "" => null
-      case _ => passwordRaw.value()
+      case _  => passwordRaw.value()
     }
 
     val database = config.getDatabase
@@ -69,7 +72,7 @@ object InfluxSettings {
     }
 
     //TODO: common lib should not return Set[Kcql] but Seq[Kcq;
-    val errorPolicy = config.getErrorPolicy
+    val errorPolicy  = config.getErrorPolicy
     val nbrOfRetries = config.getNumberRetries
     //val fields = config.getFields()
 
@@ -86,13 +89,14 @@ object InfluxSettings {
     val consistencyLevel = config.getConsistencyLevel.get
 
     new InfluxSettings(url,
-      user,
-      password,
-      database,
-      retentionPolicy,
-      consistencyLevel,
-      config.getKCQL.toVector,
-      errorPolicy,
-      nbrOfRetries)
+                       user,
+                       password,
+                       database,
+                       retentionPolicy,
+                       consistencyLevel,
+                       config.getKCQL.toVector,
+                       errorPolicy,
+                       nbrOfRetries,
+    )
   }
 }

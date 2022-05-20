@@ -18,20 +18,21 @@
 
 package com.datamountaineer.streamreactor.common.concurrent
 
-import java.util.concurrent.{ExecutorService, TimeUnit}
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.TimeUnit
 
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future, Promise}
+import scala.concurrent.Await
+import scala.concurrent.Future
+import scala.concurrent.Promise
 import scala.util.Failure
 
 object FutureAwaitWithFailFastFn extends StrictLogging {
 
-  def apply(executorService: ExecutorService,
-            futures: Seq[Future[Unit]],
-            duration: Duration): Unit = {
+  def apply(executorService: ExecutorService, futures: Seq[Future[Unit]], duration: Duration): Unit = {
     //make sure we ask the executor to shutdown to ensure the process exits
     executorService.shutdown()
 
@@ -67,9 +68,7 @@ object FutureAwaitWithFailFastFn extends StrictLogging {
     }
   }
 
-  def apply[T](executorService: ExecutorService,
-               futures: Seq[Future[T]],
-               duration: Duration = 1.hours): Seq[T] = {
+  def apply[T](executorService: ExecutorService, futures: Seq[Future[T]], duration: Duration = 1.hours): Seq[T] = {
     //make sure we ask the executor to shutdown to ensure the process exits
     executorService.shutdown()
 

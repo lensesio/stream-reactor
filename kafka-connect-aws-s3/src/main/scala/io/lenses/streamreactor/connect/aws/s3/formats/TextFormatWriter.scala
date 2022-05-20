@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -22,7 +21,9 @@ import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 
 import java.nio.charset.StandardCharsets
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter {
 
@@ -30,8 +31,7 @@ class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   private val outputStream: S3OutputStream = outputStreamFn()
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] = {
-
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] =
     Try {
 
       val dataBytes: Array[Byte] = Try {
@@ -40,7 +40,11 @@ class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
           case _ => throw FormatWriterException("Not a string")
         }
       } match {
-        case Failure(exception: Throwable) => throw FormatWriterException("Unable to retrieve text field value.  Text format is only for output of kafka string values.", Some(exception))
+        case Failure(exception: Throwable) =>
+          throw FormatWriterException(
+            "Unable to retrieve text field value.  Text format is only for output of kafka string values.",
+            Some(exception),
+          )
         case Success(value) => value
       }
 
@@ -48,17 +52,15 @@ class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
       outputStream.write(LineSeparatorBytes)
       outputStream.flush()
     }.toEither
-  }
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 
-  override def complete(): Either[SinkError, Unit] = {
+  override def complete(): Either[SinkError, Unit] =
     for {
       closed <- outputStream.complete()
-      _ <- Suppress(outputStream.flush())
-      _ <- Suppress(outputStream.close())
+      _      <- Suppress(outputStream.flush())
+      _      <- Suppress(outputStream.close())
     } yield closed
-  }
 
   override def getPointer: Long = outputStream.getPointer
 

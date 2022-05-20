@@ -1,7 +1,9 @@
 package com.landoop.streamreactor.connect.hive.sink.mapper
 
-import com.landoop.streamreactor.connect.hive.{PartitionPlan, StructMapper}
-import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
+import com.landoop.streamreactor.connect.hive.PartitionPlan
+import com.landoop.streamreactor.connect.hive.StructMapper
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 
@@ -24,10 +26,9 @@ import scala.jdk.CollectionConverters.ListHasAsScala
   */
 class DropPartitionValuesMapper(plan: PartitionPlan) extends StructMapper {
 
-
   override def map(input: Struct): Struct = {
     val partitionKeys = plan.keys.map(_.value).toList
-    val dataFields = input.schema.fields().asScala.filterNot(field => partitionKeys.contains(field.name))
+    val dataFields    = input.schema.fields().asScala.filterNot(field => partitionKeys.contains(field.name))
     val builder = dataFields.foldLeft(SchemaBuilder.struct) { (builder, field) =>
       builder.field(field.name, field.schema)
     }

@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -19,24 +18,32 @@ package io.lenses.streamreactor.connect.aws.s3.sink.seek
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
-import io.lenses.streamreactor.connect.aws.s3.model.{Offset, TopicPartition, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
+import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.aws.s3.sink._
-import io.lenses.streamreactor.connect.aws.s3.storage.{FileListError, StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 import scala.util.Try
 
 /**
- * The [[LegacyOffsetSeeker]] is responsible for querying the [[StorageInterface]] to
- * retrieve current offset information from a container.
- *
- * @deprecated and will be removed once migration has occured
- * @param fileNamingStrategy we need the policy so we can match on this.
- */
+  * The [[LegacyOffsetSeeker]] is responsible for querying the [[StorageInterface]] to
+  * retrieve current offset information from a container.
+  *
+  * @deprecated and will be removed once migration has occured
+  * @param fileNamingStrategy we need the policy so we can match on this.
+  */
 @Deprecated
 class LegacyOffsetSeeker(sinkName: String)(implicit storageInterface: StorageInterface) extends LazyLogging {
 
-  def seek(topicPartition: TopicPartition, fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: RemoteS3RootLocation): Either[SinkError, Option[(TopicPartitionOffset, RemoteS3PathLocation)]] = {
+  def seek(
+    topicPartition:     TopicPartition,
+    fileNamingStrategy: S3FileNamingStrategy,
+    bucketAndPrefix:    RemoteS3RootLocation,
+  ): Either[SinkError, Option[(TopicPartitionOffset, RemoteS3PathLocation)]] = {
     logger.debug(s"[{}] seekOffsetsForTopicPartition {}", sinkName, topicPartition)
     for {
       topicPartitionRoot <- Try(fileNamingStrategy.topicPartitionPrefix(bucketAndPrefix, topicPartition))
@@ -48,7 +55,11 @@ class LegacyOffsetSeeker(sinkName: String)(implicit storageInterface: StorageInt
     }
   }
 
-  private def seek(fileNamingStrategy: S3FileNamingStrategy, topicPartition: TopicPartition, bucketAndPath: RemoteS3PathLocation): Either[SinkError, Option[(TopicPartitionOffset, RemoteS3PathLocation)]] = {
+  private def seek(
+    fileNamingStrategy: S3FileNamingStrategy,
+    topicPartition:     TopicPartition,
+    bucketAndPath:      RemoteS3PathLocation,
+  ): Either[SinkError, Option[(TopicPartitionOffset, RemoteS3PathLocation)]] = {
     implicit val impFileNamingStrategy: S3FileNamingStrategy = fileNamingStrategy
 
     storageInterface
@@ -56,22 +67,21 @@ class LegacyOffsetSeeker(sinkName: String)(implicit storageInterface: StorageInt
       .leftMap {
         error: FileListError => NonFatalS3SinkError(error.message())
       }.map {
-      pathList =>
-        if (pathList.nonEmpty) {
-          val (path: String, offset: Offset) = pathList
-            .collect {
-              case file@CommittedFileName(topic, partition, end, format)
-                if format == fileNamingStrategy.getFormat && topic == topicPartition.topic && partition == topicPartition.partition =>
-                file -> end
-            }
-            .maxBy(_._2.value)
-          Some((topicPartition.withOffset(offset), bucketAndPath.root().withPath(path)))
-        } else {
-          Option.empty[(TopicPartitionOffset, RemoteS3PathLocation)]
-        }
-    }
+        pathList =>
+          if (pathList.nonEmpty) {
+            val (path: String, offset: Offset) = pathList
+              .collect {
+                case file @ CommittedFileName(topic, partition, end, format)
+                    if format == fileNamingStrategy.getFormat && topic == topicPartition.topic && partition == topicPartition.partition =>
+                  file -> end
+              }
+              .maxBy(_._2.value)
+            Some((topicPartition.withOffset(offset), bucketAndPath.root().withPath(path)))
+          } else {
+            Option.empty[(TopicPartitionOffset, RemoteS3PathLocation)]
+          }
+      }
 
   }
 
 }
-

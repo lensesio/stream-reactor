@@ -22,7 +22,8 @@ import com.datamountaineer.streamreactor.common.converters.ByteArrayConverter
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import org.apache.kafka.connect.sink.SinkRecord
 
-import javax.jms.{Message, Session}
+import javax.jms.Message
+import javax.jms.Session
 
 class ByteMessageConverter extends JMSSinkMessageConverter {
 
@@ -31,7 +32,7 @@ class ByteMessageConverter extends JMSSinkMessageConverter {
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, Message) = {
 
     val value = byteConverter.fromConnectData(record.topic(), record.valueSchema(), record.value())
-    val msg = session.createBytesMessage()
+    val msg   = session.createBytesMessage()
     msg.writeBytes(value)
     (setting.source, msg)
   }

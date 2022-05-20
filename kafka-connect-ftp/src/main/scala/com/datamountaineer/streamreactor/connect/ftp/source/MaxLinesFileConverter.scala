@@ -25,10 +25,10 @@ import scala.jdk.CollectionConverters.ListHasAsScala
   * Writes the maximum number of found lines into a single record
   * including the file attributes.
   */
-class MaxLinesFileConverter(props: util.Map[String, String], offsetStorageReader : OffsetStorageReader)
-  extends FileConverter(props, offsetStorageReader) {
+class MaxLinesFileConverter(props: util.Map[String, String], offsetStorageReader: OffsetStorageReader)
+    extends FileConverter(props, offsetStorageReader) {
 
-  val cfg = new FtpSourceConfig(props)
+  val cfg       = new FtpSourceConfig(props)
   val metaStore = new ConnectFileMetaDataStore(offsetStorageReader)
   val recordConverter: SourceRecordConverter = cfg.sourceRecordConverter()
   val recordMaker: SourceRecordProducer = cfg.keyStyle() match {
@@ -45,22 +45,21 @@ class MaxLinesFileConverter(props: util.Map[String, String], offsetStorageReader
     } else {
       val offsetInSlice = findEndPositionOfLastMatch(lineSep, body.bytes)
       // TODO : warn that no line seprator was found, suggest that the line sizes maybe exceeds the slice size
-      val offset = meta.offset - (body.bytes.length-offsetInSlice)
+      val offset = meta.offset - (body.bytes.length - offsetInSlice)
       metaStore.set(meta.attribs.path, meta.offset(offset))
       val trimmedBody = FileBody(util.Arrays.copyOfRange(body.bytes, 0, offsetInSlice), 0)
       recordConverter.convert(recordMaker(metaStore, topic, meta, trimmedBody)).asScala
     }
   }.toSeq
 
-  def findEndPositionOfLastMatch(bytesToMatch: Array[Byte], content: Array[Byte]) : Int = {
-    for (pos <- content.length to bytesToMatch.length by -1){
+  def findEndPositionOfLastMatch(bytesToMatch: Array[Byte], content: Array[Byte]): Int = {
+    for (pos <- content.length to bytesToMatch.length by -1) {
       val window = util.Arrays.copyOfRange(content, pos - bytesToMatch.length, pos)
       if (java.util.Objects.deepEquals(window, bytesToMatch)) return pos
     }
     -1
   }
 
-  override def getFileOffset(path: String): Option[FileMetaData] = {
+  override def getFileOffset(path: String): Option[FileMetaData] =
     metaStore.get(path)
-  }
 }

@@ -16,4 +16,5 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-case class FormatWriterException(message: String, exception: Option[Throwable] = None) extends Exception(message, exception.orNull)
+case class FormatWriterException(message: String, exception: Option[Throwable] = None)
+    extends Exception(message, exception.orNull)

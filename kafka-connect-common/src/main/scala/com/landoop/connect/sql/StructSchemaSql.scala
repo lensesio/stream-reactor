@@ -17,7 +17,9 @@ package com.landoop.connect.sql
 
 import com.landoop.sql.SqlContext
 import org.apache.calcite.sql.SqlSelect
-import org.apache.kafka.connect.data.{Field, Schema, SchemaBuilder}
+import org.apache.kafka.connect.data.Field
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
@@ -28,12 +30,16 @@ object StructSchemaSql {
   implicit class SchemaSqlExtensions(val schema: Schema) extends AnyVal {
 
     def getFields(path: Seq[String]): Seq[Field] = {
-      def navigate(current: Schema, parents: Seq[String]): Seq[Field] = {
+      def navigate(current: Schema, parents: Seq[String]): Seq[Field] =
         if (Option(parents).isEmpty || parents.isEmpty) {
           current.`type`() match {
             case Schema.Type.STRUCT => current.fields().asScala.toSeq
-            case Schema.Type.MAP => throw new IllegalArgumentException(s"Can't select fields ${path.mkString(".")} since it resolved to a Map($current)")
-            case _ => throw new IllegalArgumentException(s"Can't select fields ${path.mkString(".")} from schema:$current ")
+            case Schema.Type.MAP =>
+              throw new IllegalArgumentException(
+                s"Can't select fields ${path.mkString(".")} since it resolved to a Map($current)",
+              )
+            case _ =>
+              throw new IllegalArgumentException(s"Can't select fields ${path.mkString(".")} from schema:$current ")
           }
         } else {
           current.`type`() match {
@@ -41,53 +47,46 @@ object StructSchemaSql {
               val field = Option(current.field(parents.head))
                 .getOrElse(throw new IllegalArgumentException(s"Can't find field ${parents.head} in schema:$current"))
               navigate(field.schema(), parents.tail)
-            case _ => throw new IllegalArgumentException(s"Can't select fields ${path.mkString(".")} from schema:$current ")
+            case _ =>
+              throw new IllegalArgumentException(s"Can't select fields ${path.mkString(".")} from schema:$current ")
           }
         }
-      }
 
       navigate(schema, path)
     }
 
-    def fromPath(path: Seq[String]): Seq[Field] = {
+    def fromPath(path: Seq[String]): Seq[Field] =
       AvroSchemaExtension.fromPath(schema, path)
-    }
 
-    def copy(query: SqlSelect, flatten: Boolean): Schema = {
+    def copy(query: SqlSelect, flatten: Boolean): Schema =
       if (!flatten) {
         com.landoop.sql.Field.from(query)
         implicit val kcqlContext = new SqlContext(com.landoop.sql.Field.from(query))
         copy()
-      }
-      else {
+      } else {
         this.flatten(com.landoop.sql.Field.from(query))
       }
-    }
 
-    def copy()(implicit sqlContext: SqlContext): Schema = {
+    def copy()(implicit sqlContext: SqlContext): Schema =
       AvroSchemaExtension.copy(schema, Vector.empty)
-    }
 
     def flatten(fields: Seq[com.landoop.sql.Field]): Schema = {
-      def allowOnlyStarSelection() = {
+      def allowOnlyStarSelection() =
         fields match {
           case Seq(f) if f.name == "*" => schema
-          case _ => throw new IllegalArgumentException(s"You can't select fields from schema:$schema")
+          case _                       => throw new IllegalArgumentException(s"You can't select fields from schema:$schema")
         }
-      }
 
       schema.`type`() match {
-        case Schema.Type.ARRAY | Schema.Type.MAP => throw new IllegalArgumentException(s"Can't flattent schema type:${schema.`type`()}")
-        case Schema.Type.BOOLEAN | Schema.Type.BYTES |
-             Schema.Type.FLOAT32 | Schema.Type.FLOAT64 |
-             Schema.Type.INT8 | Schema.Type.INT16 |
-             Schema.Type.INT32 | Schema.Type.INT64 |
-             Schema.Type.STRING => allowOnlyStarSelection()
+        case Schema.Type.ARRAY | Schema.Type.MAP =>
+          throw new IllegalArgumentException(s"Can't flattent schema type:${schema.`type`()}")
+        case Schema.Type.BOOLEAN | Schema.Type.BYTES | Schema.Type.FLOAT32 | Schema.Type.FLOAT64 | Schema.Type.INT8 |
+            Schema.Type.INT16 | Schema.Type.INT32 | Schema.Type.INT64 | Schema.Type.STRING => allowOnlyStarSelection()
 
         case Schema.Type.STRUCT =>
           fields match {
             case Seq(f) if f.name == "*" => schema
-            case _ => createRecordSchemaForFlatten(fields)
+            case _                       => createRecordSchemaForFlatten(fields)
           }
       }
     }
@@ -104,25 +103,24 @@ object StructSchemaSql {
       Option(schema.defaultValue()).map(builder.defaultValue)
       if (schema.isOptional) builder.optional()
 
-      val fieldParentsMap = fields.foldLeft(Map.empty[String, ArrayBuffer[String]]) { case (map, f) =>
-        val key = Option(f.parents).map(_.mkString(".")).getOrElse("")
-        val buffer = map.getOrElse(key, ArrayBuffer.empty[String])
-        if (buffer.contains(f.name)) {
-          throw new IllegalArgumentException(s"You have defined the field ${
-            if (f.hasParents) {
+      val fieldParentsMap = fields.foldLeft(Map.empty[String, ArrayBuffer[String]]) {
+        case (map, f) =>
+          val key    = Option(f.parents).map(_.mkString(".")).getOrElse("")
+          val buffer = map.getOrElse(key, ArrayBuffer.empty[String])
+          if (buffer.contains(f.name)) {
+            throw new IllegalArgumentException(s"You have defined the field ${if (f.hasParents) {
               f.parents.mkString(".") + "." + f.name
             } else {
               f.name
-            }
-          } more than once!")
-        }
-        buffer += f.name
-        map + (key -> buffer)
+            }} more than once!")
+          }
+          buffer += f.name
+          map + (key -> buffer)
       }
 
       val colsMap = collection.mutable.Map.empty[String, Int]
 
-      def getNextFieldName(fieldName: String): String = {
+      def getNextFieldName(fieldName: String): String =
         colsMap.get(fieldName).map { v =>
           colsMap.put(fieldName, v + 1)
           s"${fieldName}_${v + 1}"
@@ -130,7 +128,6 @@ object StructSchemaSql {
           colsMap.put(fieldName, 0)
           fieldName
         }
-      }
 
       fields.foreach {
 
@@ -147,7 +144,10 @@ object StructSchemaSql {
                 case Schema.Type.STRUCT =>
                   if (!s.isOptional) s.fields().asScala.toSeq
                   else s.fields().asScala.map(AvroSchemaExtension.withOptional)
-                case other => throw new IllegalArgumentException(s"Field selection ${p.mkString(".")} resolves to schema type:$other. Only RECORD type is allowed")
+                case other =>
+                  throw new IllegalArgumentException(
+                    s"Field selection ${p.mkString(".")} resolves to schema type:$other. Only RECORD type is allowed",
+                  )
               }
             }
             .getOrElse {
@@ -183,13 +183,12 @@ object StructSchemaSql {
           builder.field(getNextFieldName(field.alias), originalField.schema())
       }
 
-
       builder.build()
     }
   }
 
   private object AvroSchemaExtension {
-    def copy(from: Schema, parents: Vector[String])(implicit kcqlContext: SqlContext): Schema = {
+    def copy(from: Schema, parents: Vector[String])(implicit kcqlContext: SqlContext): Schema =
       from.`type`() match {
         case Schema.Type.STRUCT => createRecordSchema(from, parents)
 
@@ -215,9 +214,8 @@ object StructSchemaSql {
 
         case _ => from
       }
-    }
 
-    def copyAsOptional(from: Schema): Schema = {
+    def copyAsOptional(from: Schema): Schema =
       from.`type`() match {
         case Schema.Type.STRUCT =>
           val builder = SchemaBuilder.struct()
@@ -250,7 +248,6 @@ object StructSchemaSql {
           Option(from.defaultValue()).foreach(builder.defaultValue)
           builder.optional().build()
       }
-    }
 
     private def createRecordSchema(from: Schema, parents: Vector[String])(implicit sqlContext: SqlContext): Schema = {
       val builder = SchemaBuilder.struct()
@@ -290,7 +287,9 @@ object StructSchemaSql {
             case Left(field) =>
               val originalField = Option(from.field(field.name))
                 .getOrElse {
-                  throw new IllegalArgumentException(s"Invalid selecting ${parents.mkString("", ".", ".")}${field.name}. Schema doesn't contain it.")
+                  throw new IllegalArgumentException(
+                    s"Invalid selecting ${parents.mkString("", ".", ".")}${field.name}. Schema doesn't contain it.",
+                  )
                 }
               val newSchema = copy(originalField.schema(), parents :+ field.name)
               newSchema.copyProperties(originalField.schema())
@@ -298,7 +297,11 @@ object StructSchemaSql {
 
             case Right(field) =>
               val originalField = Option(from.field(field))
-                .getOrElse(throw new IllegalArgumentException(s"Invalid selecting ${parents.mkString("", ".", ".")}$field. Schema doesn't contain it."))
+                .getOrElse(
+                  throw new IllegalArgumentException(
+                    s"Invalid selecting ${parents.mkString("", ".", ".")}$field. Schema doesn't contain it.",
+                  ),
+                )
               val newSchema = copy(originalField.schema(), parents :+ field)
               newSchema.copyProperties(originalField.schema())
               builder.field(field, newSchema)
@@ -308,12 +311,11 @@ object StructSchemaSql {
       builder.build
     }
 
-    def fromPath(from: Schema, path: Seq[String]): Seq[Field] = {
+    def fromPath(from: Schema, path: Seq[String]): Seq[Field] =
       fromPathInternal(from, path, from.isOptional)
-    }
 
     @tailrec
-    private def fromPathInternal(from: Schema, path: Seq[String], isOptional: Boolean): Seq[Field] = {
+    private def fromPathInternal(from: Schema, path: Seq[String], isOptional: Boolean): Seq[Field] =
       path match {
         case Seq(field) if field == "*" =>
           from.`type`() match {
@@ -334,18 +336,16 @@ object StructSchemaSql {
             .getOrElse(throw new IllegalArgumentException(s"Can't find the field '$head'"))
           fromPathInternal(next.schema(), tail, isOptional || next.schema().isOptional)
       }
-    }
 
-    def withOptional(field: Field): Field = {
+    def withOptional(field: Field): Field =
       new Field(field.name(), field.index(), copyAsOptional(field.schema()))
-    }
 
-    def checkAllowedSchemas(schema: Schema, field: com.landoop.sql.Field): Unit = {
+    def checkAllowedSchemas(schema: Schema, field: com.landoop.sql.Field): Unit =
       schema.`type`() match {
-        case Schema.Type.ARRAY | Schema.Type.MAP => throw new IllegalArgumentException(s"Can't flatten from schema:$schema by selecting '${field.name}'")
+        case Schema.Type.ARRAY | Schema.Type.MAP =>
+          throw new IllegalArgumentException(s"Can't flatten from schema:$schema by selecting '${field.name}'")
         case _ =>
       }
-    }
   }
 
 }

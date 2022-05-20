@@ -20,14 +20,15 @@ import com.datamountaineer.streamreactor.common.config.Helpers
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 
 import java.util
-import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSinkConfig}
+import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarConfigConstants
+import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSinkConfig
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
-import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
-
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class PulsarSinkConnector extends SinkConnector with StrictLogging {
   private val configDef = PulsarSinkConfig.config

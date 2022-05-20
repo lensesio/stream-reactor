@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.elastic6
 
 import java.util
-import com.datamountaineer.kcql.{Kcql, WriteModeEnum}
+import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.kcql.WriteModeEnum
 import com.datamountaineer.streamreactor.common.converters.FieldConverter
 import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
@@ -33,13 +34,16 @@ import org.apache.kafka.connect.sink.SinkRecord
 import scala.annotation.nowarn
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Await
+import scala.concurrent.Future
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
 @nowarn
 class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
-  extends ErrorHandler with StrictLogging with ConverterUtil {
+    extends ErrorHandler
+    with StrictLogging
+    with ConverterUtil {
 
   logger.info("Initialising Elastic Json writer")
 
@@ -53,30 +57,31 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
 
   private val kcqlMap = new util.IdentityHashMap[Kcql, KcqlValues]()
   settings.kcqls.foreach { kcql =>
-    kcqlMap.put(kcql,
+    kcqlMap.put(
+      kcql,
       KcqlValues(
         kcql.getFields.asScala.map(FieldConverter.apply).toSeq,
         kcql.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
         kcql.getPrimaryKeys.asScala.map { pk =>
           val path = Option(pk.getParentFields).map(_.asScala.toVector).getOrElse(Vector.empty)
           path :+ pk.getName
-        }.toSeq
-      ))
+        }.toSeq,
+      ),
+    )
 
   }
 
   /**
     * Close elastic4s client
-    **/
+    */
   def close(): Unit = client.close()
-
 
   /**
     * Write SinkRecords to Elastic Search if list is not empty
     *
     * @param records A list of SinkRecords
-    **/
-  def write(records: Vector[SinkRecord]): Unit = {
+    */
+  def write(records: Vector[SinkRecord]): Unit =
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
@@ -84,35 +89,40 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
       val grouped = records.groupBy(_.topic())
       insert(grouped)
     }
-  }
 
   /**
     * Create a bulk index statement and execute against elastic4s client
     *
     * @param records A list of SinkRecords
-    **/
+    */
   def insert(records: Map[String, Vector[SinkRecord]]): Unit = {
     val fut = records.flatMap {
       case (topic, sinkRecords) =>
-        val kcqls = topicKcqlMap.getOrElse(topic, throw new IllegalArgumentException(s"$topic hasn't been configured in KCQL. Configured topics is ${topicKcqlMap.keys.mkString(",")}"))
+        val kcqls = topicKcqlMap.getOrElse(
+          topic,
+          throw new IllegalArgumentException(
+            s"$topic hasn't been configured in KCQL. Configured topics is ${topicKcqlMap.keys.mkString(",")}",
+          ),
+        )
 
         //we might have multiple inserts from the same Kafka Message
         kcqls.flatMap { kcql =>
-          val i = CreateIndex.getIndexName(kcql)
+          val i            = CreateIndex.getIndexName(kcql)
           val documentType = Option(kcql.getDocType).getOrElse(i)
-          val kcqlValue = kcqlMap.get(kcql)
+          val kcqlValue    = kcqlMap.get(kcql)
           sinkRecords.grouped(settings.batchSize)
             .map { batch =>
               val indexes = batch.map { r =>
-
                 val (json, pks) = if (kcqlValue.primaryKeysPath.isEmpty) {
                   (Transform(
-                    kcqlValue.fields,
-                    kcqlValue.ignoredFields,
-                    r.valueSchema(),
-                    r.value(),
-                    kcql.hasRetainStructure
-                  ), Seq.empty)
+                     kcqlValue.fields,
+                     kcqlValue.ignoredFields,
+                     r.valueSchema(),
+                     r.value(),
+                     kcql.hasRetainStructure,
+                   ),
+                   Seq.empty,
+                  )
                 } else {
                   TransformAndExtractPK(
                     kcqlValue.fields,
@@ -120,7 +130,8 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                     kcqlValue.primaryKeysPath,
                     r.valueSchema(),
                     r.value(),
-                    kcql.hasRetainStructure)
+                    kcql.hasRetainStructure,
+                  )
                 }
                 val idFromPk = pks.mkString(settings.pkJoinerSeparator)
 
@@ -146,8 +157,8 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
 
     handleTry(
       Try(
-        Await.result(Future.sequence(fut), settings.writeTimeout.seconds)
-      )
+        Await.result(Future.sequence(fut), settings.writeTimeout.seconds),
+      ),
     )
     ()
   }
@@ -156,18 +167,15 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
     * Create id from record infos
     *
     * @param record One SinkRecord
-    **/
+    */
   def autoGenId(record: SinkRecord): String = {
-    val pks : Seq[Any] = Seq(record.topic(), record.kafkaPartition(), record.kafkaOffset())
+    val pks: Seq[Any] = Seq(record.topic(), record.kafkaPartition(), record.kafkaOffset())
     pks.mkString(settings.pkJoinerSeparator)
   }
 
-  private case class KcqlValues(fields: Seq[Field],
-                                ignoredFields: Seq[Field],
-                                primaryKeysPath: Seq[Vector[String]])
+  private case class KcqlValues(fields: Seq[Field], ignoredFields: Seq[Field], primaryKeysPath: Seq[Vector[String]])
 
 }
-
 
 case object IndexableJsonNode extends Indexable[JsonNode] {
   override def json(t: JsonNode): String = t.toString

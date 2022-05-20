@@ -21,7 +21,9 @@ import com.fasterxml.jackson.databind.node._
 import org.apache.kafka.connect.data._
 
 import scala.annotation.tailrec
-import scala.jdk.CollectionConverters.{IteratorHasAsScala, ListHasAsScala, MapHasAsScala}
+import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 object ValuesExtractor {
 
@@ -33,31 +35,36 @@ object ValuesExtractor {
     * @return
     * The list of keys and values. Throws [[IllegalArgumentException]] if any of the values are not primitives
     */
-  def extractAllFields(node: JsonNode, ignored: Set[String]): Seq[(String, Any)] = {
+  def extractAllFields(node: JsonNode, ignored: Set[String]): Seq[(String, Any)] =
     node match {
       case o: ObjectNode =>
         o.fields().asScala.filter(p => !ignored.contains(p.getKey))
           .map { kvp =>
             val value = kvp.getValue match {
-              case b: BooleanNode => b.booleanValue()
+              case b: BooleanNode    => b.booleanValue()
               case i: BigIntegerNode => i.bigIntegerValue()
-              case d: DecimalNode => d.decimalValue()
-              case d: DoubleNode => d.doubleValue()
-              case f: FloatNode => f.floatValue()
-              case i: IntNode => i.intValue()
-              case l: LongNode => l.longValue()
-              case s: ShortNode => s.shortValue()
-              case t: TextNode => t.textValue()
-              case _: NullNode => null
-              case _: MissingNode => null
-              case other => throw new IllegalArgumentException(s"You can't select all fields from the Kafka message because ${kvp.getKey} resolves to a complex type:${Option(other).map(_.getClass.getCanonicalName).orNull})")
+              case d: DecimalNode    => d.decimalValue()
+              case d: DoubleNode     => d.doubleValue()
+              case f: FloatNode      => f.floatValue()
+              case i: IntNode        => i.intValue()
+              case l: LongNode       => l.longValue()
+              case s: ShortNode      => s.shortValue()
+              case t: TextNode       => t.textValue()
+              case _: NullNode       => null
+              case _: MissingNode    => null
+              case other =>
+                throw new IllegalArgumentException(
+                  s"You can't select all fields from the Kafka message because ${kvp.getKey} resolves to a complex type:${Option(other).map(_.getClass.getCanonicalName).orNull})",
+                )
             }
             kvp.getKey -> value
 
           }.toList
-      case other => throw new IllegalArgumentException(s"You can't select all fields from the Kafka message because the incoming message resolves to a not allowed type:${Option(other).map(_.getClass.getCanonicalName).orNull})")
+      case other =>
+        throw new IllegalArgumentException(
+          s"You can't select all fields from the Kafka message because the incoming message resolves to a not allowed type:${Option(other).map(_.getClass.getCanonicalName).orNull})",
+        )
     }
-  }
 
   /**
     * Extracts the value for the given field path from the specified Json
@@ -69,15 +76,18 @@ object ValuesExtractor {
   def extract(node: JsonNode, fieldPath: Seq[String]): Any = {
     @tailrec
     def innerExtract(n: JsonNode, path: Seq[String]): Any = {
-      def checkValidPath() = {
+      def checkValidPath() =
         if (path.nonEmpty) {
-          throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. It doesn't resolve to a primitive field")
+          throw new IllegalArgumentException(
+            s"Invalid field selection for '${fieldPath.mkString(".")}'. It doesn't resolve to a primitive field",
+          )
         }
-      }
 
       n match {
         case _: BinaryNode =>
-          throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is resolving to a binary node and InfluxDB API doesn't support binary fields for a Point.")
+          throw new IllegalArgumentException(
+            s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is resolving to a binary node and InfluxDB API doesn't support binary fields for a Point.",
+          )
         case _: BooleanNode =>
           checkValidPath()
           n.booleanValue()
@@ -114,7 +124,9 @@ object ValuesExtractor {
 
         case node: ObjectNode =>
           if (path.isEmpty) {
-            throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is not resolving to a primitive field")
+            throw new IllegalArgumentException(
+              s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is not resolving to a primitive field",
+            )
           }
           val childNode = node.get(path.head)
           if (childNode == null) {
@@ -124,10 +136,14 @@ object ValuesExtractor {
             innerExtract(childNode, path.tail)
           }
         case _: ArrayNode =>
-          throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is resolving to an array")
+          throw new IllegalArgumentException(
+            s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is resolving to an array",
+          )
 
         case other =>
-          throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. $other is not handled")
+          throw new IllegalArgumentException(
+            s"Invalid field selection for '${fieldPath.mkString(".")}'. $other is not handled",
+          )
       }
     }
 
@@ -145,7 +161,7 @@ object ValuesExtractor {
     * @return
     * The list of keys and values. Throws [[IllegalArgumentException]] if any of the values are not primitives
     */
-  def extractAllFields(struct: Struct, ignored: Set[String]): Seq[(String, Any)] = {
+  def extractAllFields(struct: Struct, ignored: Set[String]): Seq[(String, Any)] =
     struct.schema().fields.asScala.toList
       .filter(f => !ignored.contains(f.name()))
       .map { field =>
@@ -153,50 +169,52 @@ object ValuesExtractor {
         val actualValue = Option(field.schema().name()).collect {
           case Decimal.LOGICAL_NAME =>
             value match {
-              case bd: BigDecimal => bd
-              case _: Array[Byte] => Decimal.toLogical(field.schema, value.asInstanceOf[Array[Byte]])
+              case bd: BigDecimal  => bd
+              case _:  Array[Byte] => Decimal.toLogical(field.schema, value.asInstanceOf[Array[Byte]])
 
             }
           case Date.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
               case d: java.util.Date => d
-              case i: Int => Date.toLogical(field.schema, i)
-              case _ => throw new IllegalArgumentException(s"Can't convert $value to Date for schema:${field.schema().`type`()}")
+              case i: Int            => Date.toLogical(field.schema, i)
+              case _ =>
+                throw new IllegalArgumentException(
+                  s"Can't convert $value to Date for schema:${field.schema().`type`()}",
+                )
             }
           case Time.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
-              case _: Int => Time.toLogical(field.schema, value.asInstanceOf[Int])
+              case _: Int            => Time.toLogical(field.schema, value.asInstanceOf[Int])
               case d: java.util.Date => d
-              case _ => throw new IllegalArgumentException(s"Can't convert $value to Date for schema:${field.schema().`type`()}")
+              case _ =>
+                throw new IllegalArgumentException(
+                  s"Can't convert $value to Date for schema:${field.schema().`type`()}",
+                )
             }
           case Timestamp.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
-              case l: Long => Timestamp.toLogical(field.schema, l)
+              case l: Long           => Timestamp.toLogical(field.schema, l)
               case d: java.util.Date => d
-              case _ => throw new IllegalArgumentException(s"Can't convert $value to Date for schema:${field.schema().`type`()}")
+              case _ =>
+                throw new IllegalArgumentException(
+                  s"Can't convert $value to Date for schema:${field.schema().`type`()}",
+                )
             }
         }.getOrElse {
           field.schema().`type`() match {
-            case Schema.Type.BOOLEAN |
-                 Schema.Type.BYTES |
-                 Schema.Type.FLOAT32 |
-                 Schema.Type.FLOAT64 |
-                 Schema.Type.INT8 |
-                 Schema.Type.INT16 |
-                 Schema.Type.INT32 |
-                 Schema.Type.INT64 |
-                 Schema.Type.STRING |
-                 Schema.Type.ARRAY => value
+            case Schema.Type.BOOLEAN | Schema.Type.BYTES | Schema.Type.FLOAT32 | Schema.Type.FLOAT64 |
+                Schema.Type.INT8 | Schema.Type.INT16 | Schema.Type.INT32 | Schema.Type.INT64 | Schema.Type.STRING |
+                Schema.Type.ARRAY => value
 
             case other =>
-              throw new IllegalArgumentException(s"You can't select * from the Kafka Message. Field:'${field.name()}' resolves to a Schema '$other' which will end up with a type not supported by InfluxDB API.")
+              throw new IllegalArgumentException(
+                s"You can't select * from the Kafka Message. Field:'${field.name()}' resolves to a Schema '$other' which will end up with a type not supported by InfluxDB API.",
+              )
 
           }
         }
         field.name() -> actualValue
       }
-  }
-
 
   /**
     * Extracts the value for the given field path from the a Kafka Connect Struct
@@ -208,11 +226,12 @@ object ValuesExtractor {
   def extract(struct: Struct, fieldPath: Seq[String]): Any = {
     // @tailrec
     def innerExtract(field: Field, value: AnyRef, path: Seq[String]): Any = {
-      def checkValidPath() = {
+      def checkValidPath() =
         if (path.nonEmpty) {
-          throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. It doesn't resolve to a primitive field")
+          throw new IllegalArgumentException(
+            s"Invalid field selection for '${fieldPath.mkString(".")}'. It doesn't resolve to a primitive field",
+          )
         }
-      }
 
       if (value == null) {
         null
@@ -238,7 +257,10 @@ object ValuesExtractor {
               case i: Int =>
                 checkValidPath()
                 Date.toLogical(field.schema, i)
-              case _ => throw new IllegalArgumentException(s"Can't convert $value to Date for schema:${field.schema().`type`()}")
+              case _ =>
+                throw new IllegalArgumentException(
+                  s"Can't convert $value to Date for schema:${field.schema().`type`()}",
+                )
             }
           case Time.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
@@ -248,7 +270,10 @@ object ValuesExtractor {
               case d: java.util.Date =>
                 checkValidPath()
                 d
-              case _ => throw new IllegalArgumentException(s"Can't convert $value to Date for schema:${field.schema().`type`()}")
+              case _ =>
+                throw new IllegalArgumentException(
+                  s"Can't convert $value to Date for schema:${field.schema().`type`()}",
+                )
             }
           case Timestamp.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
@@ -258,7 +283,10 @@ object ValuesExtractor {
               case d: java.util.Date =>
                 checkValidPath()
                 d
-              case _ => throw new IllegalArgumentException(s"Can't convert $value to Date for schema:${field.schema().`type`()}")
+              case _ =>
+                throw new IllegalArgumentException(
+                  s"Can't convert $value to Date for schema:${field.schema().`type`()}",
+                )
             }
         }.getOrElse {
           val v = field.schema().`type`() match {
@@ -292,25 +320,36 @@ object ValuesExtractor {
 
             case Schema.Type.MAP =>
               if (path.isEmpty) {
-                throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. It doesn't resolve to a primitive field. It resolves to:${field.schema()}")
+                throw new IllegalArgumentException(
+                  s"Invalid field selection for '${fieldPath.mkString(".")}'. It doesn't resolve to a primitive field. It resolves to:${field.schema()}",
+                )
               }
               val map = value.asInstanceOf[java.util.Map[String, AnyRef]]
-              val f = new Field(path.head, 0, field.schema().valueSchema())
+              val f   = new Field(path.head, 0, field.schema().valueSchema())
 
               innerExtract(f, map.get(path.head), path.tail)
 
             case Schema.Type.STRUCT =>
               if (path.isEmpty) {
-                throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. It doesn't resolve to a primitive field. It resolves to:${field.schema()}")
+                throw new IllegalArgumentException(
+                  s"Invalid field selection for '${fieldPath.mkString(".")}'. It doesn't resolve to a primitive field. It resolves to:${field.schema()}",
+                )
               }
               val s = value.asInstanceOf[Struct]
               val childField = Option(s.schema().field(path.head))
                 .getOrElse {
-                  throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. Can't find field '${path.head}'. Fields available:${s.schema().fields().asScala.map(_.name()).mkString(",")}")
+                  throw new IllegalArgumentException(
+                    s"Invalid field selection for '${fieldPath.mkString(
+                      ".",
+                    )}'. Can't find field '${path.head}'. Fields available:${s.schema().fields().asScala.map(_.name()).mkString(",")}",
+                  )
                 }
 
               innerExtract(childField, s.get(childField), path.tail)
-            case other => throw new IllegalArgumentException(s"$other is not a supported schema. It's value will revolve to types not supported by InfluxDb API")
+            case other =>
+              throw new IllegalArgumentException(
+                s"$other is not a supported schema. It's value will revolve to types not supported by InfluxDb API",
+              )
           }
           v
         }
@@ -318,12 +357,13 @@ object ValuesExtractor {
     }
 
     val field = Option(struct.schema().field(fieldPath.head)).getOrElse {
-      throw new IllegalArgumentException(s"Couldn't find field '${fieldPath.head}' in the schema:${struct.schema().fields().asScala.map(_.name()).mkString(",")}")
+      throw new IllegalArgumentException(
+        s"Couldn't find field '${fieldPath.head}' in the schema:${struct.schema().fields().asScala.map(_.name()).mkString(",")}",
+      )
     }
 
     innerExtract(field, struct.get(field), fieldPath.tail)
   }
-
 
   /**
     * Extracts all the keys and values from the input map. It will ignore the keys present in the ignored collection
@@ -333,27 +373,20 @@ object ValuesExtractor {
     * @return
     * The list of keys and values. Throws [[IllegalArgumentException]] if any of the values are not primitives
     */
-  def extractAllFields(map: java.util.Map[String, Any], ignored: Set[String]): Seq[(String, Any)] = {
+  def extractAllFields(map: java.util.Map[String, Any], ignored: Set[String]): Seq[(String, Any)] =
     map.asScala.filter(p => !ignored.contains(p._1) && p._2 != null)
-      .map { case (k, value) =>
-        value match {
-          case _: Long |
-               _: Int |
-               _: BigInt |
-               _: Byte |
-               _: Short |
-               _: Double |
-               _: Float |
-               _: Boolean |
-               _: java.math.BigDecimal |
-               _: String |
-               _: BigDecimal => k -> value
+      .map {
+        case (k, value) =>
+          value match {
+            case _: Long | _: Int | _: BigInt | _: Byte | _: Short | _: Double | _: Float | _: Boolean |
+                _: java.math.BigDecimal | _: String | _: BigDecimal => k -> value
 
-          case other =>
-            throw new IllegalArgumentException(s"You can't select all the fields because '$k' is resolving to a type: '${other.getClass.getCanonicalName}' which is not supported by InfluxDB API")
-        }
+            case other =>
+              throw new IllegalArgumentException(
+                s"You can't select all the fields because '$k' is resolving to a type: '${other.getClass.getCanonicalName}' which is not supported by InfluxDB API",
+              )
+          }
       }.toSeq
-  }
 
   /**
     * Extracts the value for the given field path from the specified map.
@@ -365,24 +398,31 @@ object ValuesExtractor {
   def extract(map: java.util.Map[String, Any], fieldPath: Seq[String]): Any = {
     @tailrec
     def innerExtract(value: Any, path: Seq[String]): Any = {
-      def checkValidPath() = {
+      def checkValidPath() =
         if (path.nonEmpty) {
-          throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. It doesn't resolve to a primitive field")
+          throw new IllegalArgumentException(
+            s"Invalid field selection for '${fieldPath.mkString(".")}'. It doesn't resolve to a primitive field",
+          )
         }
-      }
 
       value match {
         case m: java.util.Map[_, _] =>
           if (path.isEmpty) {
-            throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is not resolving to a primitive type")
+            throw new IllegalArgumentException(
+              s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is not resolving to a primitive type",
+            )
           }
           innerExtract(m.asInstanceOf[java.util.Map[String, Any]].get(path.head), path.tail)
 
         case _: java.util.Collection[_] =>
-          throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is not resolving to a primitive type. It resolves to a Collection.")
+          throw new IllegalArgumentException(
+            s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is not resolving to a primitive type. It resolves to a Collection.",
+          )
 
         case _: Array[_] =>
-          throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is not resolving to a primitive type. It resovles to an Array.")
+          throw new IllegalArgumentException(
+            s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is not resolving to a primitive type. It resovles to an Array.",
+          )
 
         case other =>
           checkValidPath()

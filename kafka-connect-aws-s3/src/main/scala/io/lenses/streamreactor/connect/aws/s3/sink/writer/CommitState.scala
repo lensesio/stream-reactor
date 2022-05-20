@@ -16,53 +16,50 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.writer
 
-import io.lenses.streamreactor.connect.aws.s3.model.{Offset, TopicPartition}
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
 import org.apache.kafka.connect.data.Schema
 
 case class CommitState(
-                          topicPartition: TopicPartition,
-                          createdTimestamp: Long,
-                          committedOffset: Option[Offset],
-                          lastFlushedTime: Option[Long],
-                          recordCount: Long,
-                          lastKnownFileSize: Long,
-                          lastKnownSchema: Option[Schema],
-                        ) {
+  topicPartition:    TopicPartition,
+  createdTimestamp:  Long,
+  committedOffset:   Option[Offset],
+  lastFlushedTime:   Option[Long],
+  recordCount:       Long,
+  lastKnownFileSize: Long,
+  lastKnownSchema:   Option[Schema],
+) {
 
   // lastKnownFileSize will come from the FormatWriter pointer
-  def offsetChange(schema: Option[Schema], lastKnownFileSize: Long): CommitState = {
+  def offsetChange(schema: Option[Schema], lastKnownFileSize: Long): CommitState =
     copy(
       lastKnownFileSize = lastKnownFileSize,
-      lastKnownSchema = schema,
-      recordCount = recordCount + 1,
+      lastKnownSchema   = schema,
+      recordCount       = recordCount + 1,
     )
-  }
 
-  def reset(): CommitState = {
+  def reset(): CommitState =
     copy(
       lastKnownFileSize = 0L,
-      recordCount = 0L,
-      lastFlushedTime = Some(System.currentTimeMillis()),
+      recordCount       = 0L,
+      lastFlushedTime   = Some(System.currentTimeMillis()),
     )
-  }
 
-  def withCommittedOffset(offset: Offset): CommitState = {
+  def withCommittedOffset(offset: Offset): CommitState =
     copy(committedOffset = Some(offset))
-  }
 
 }
 
 object CommitState {
 
-  def apply(tp: TopicPartition, seekedOffset: Option[Offset]): CommitState = {
+  def apply(tp: TopicPartition, seekedOffset: Option[Offset]): CommitState =
     CommitState(
-      topicPartition = tp,
-      createdTimestamp = System.currentTimeMillis(),
-      committedOffset = seekedOffset,
-      lastFlushedTime = None,
-      recordCount = 0,
+      topicPartition    = tp,
+      createdTimestamp  = System.currentTimeMillis(),
+      committedOffset   = seekedOffset,
+      lastFlushedTime   = None,
+      recordCount       = 0,
       lastKnownFileSize = 0,
-      lastKnownSchema = None,
+      lastKnownSchema   = None,
     )
-  }
 }

@@ -23,10 +23,10 @@ import java.time.Duration
 import com.typesafe.scalalogging.StrictLogging
 
 /**
-  * Created by andrew@datamountaineer.com on 03/03/2017. 
+  * Created by andrew@datamountaineer.com on 03/03/2017.
   * kafka-connect-common
   */
-class ExponentialBackOffHandler(name: String, step: Duration, cap: Duration) extends StrictLogging  {
+class ExponentialBackOffHandler(name: String, step: Duration, cap: Duration) extends StrictLogging {
   private var backoff = new ExponentialBackOff(step, cap)
 
   def ready: Boolean = backoff.passed
@@ -41,13 +41,12 @@ class ExponentialBackOffHandler(name: String, step: Duration, cap: Duration) ext
     logger.info(s"$name: Backing off. Next poll will be around ${backoff.endTime}")
   }
 
-  def update(status: Boolean): Unit = {
+  def update(status: Boolean): Unit =
     if (status) {
       success()
     } else {
       failure()
     }
-  }
 
   def remaining: Duration = backoff.remaining
 }

@@ -32,7 +32,8 @@ case class TextFragment(text: String) extends IndexNameFragment {
   override def getFragment: String = text
 }
 
-case class DateTimeFragment(dateTimeFormat: String, clock: Clock = ClockProvider.ClockInstance) extends IndexNameFragment {
+case class DateTimeFragment(dateTimeFormat: String, clock: Clock = ClockProvider.ClockInstance)
+    extends IndexNameFragment {
   override def getFragment: String = s"${now(clock).format(ofPattern(dateTimeFormat))}"
 }
 object DateTimeFragment {

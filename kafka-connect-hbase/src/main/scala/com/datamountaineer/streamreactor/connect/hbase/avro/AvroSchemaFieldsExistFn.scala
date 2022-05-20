@@ -16,22 +16,22 @@
 
 package com.datamountaineer.streamreactor.connect.hbase.avro
 
-import org.apache.avro.{AvroRuntimeException, Schema}
+import org.apache.avro.AvroRuntimeException
+import org.apache.avro.Schema
 
 /**
   * Checks all the fields provided are present in the avro schema
   */
 object AvroSchemaFieldsExistFn {
-  def apply(schema: Schema, fields: Seq[String]) : Unit = {
+  def apply(schema: Schema, fields: Seq[String]): Unit =
     fields.foreach { field =>
       try {
         if (Option(schema.getField(field)).isEmpty) {
           throw new IllegalArgumentException(s"[$field] is not found in the schema fields")
         }
-      }
-      catch {
-        case avroException: AvroRuntimeException => throw new IllegalArgumentException(s"$field is not found in the schema", avroException)
+      } catch {
+        case avroException: AvroRuntimeException =>
+          throw new IllegalArgumentException(s"$field is not found in the schema", avroException)
       }
     }
-  }
 }

@@ -19,7 +19,7 @@
 package com.datamountaineer.streamreactor.common.rowkeys
 
 /**
-  * Created by andrew@datamountaineer.com on 27/05/16. 
+  * Created by andrew@datamountaineer.com on 27/05/16.
   * kafka-connect-common
   */
 object RowKeyModeEnum extends Enumeration {

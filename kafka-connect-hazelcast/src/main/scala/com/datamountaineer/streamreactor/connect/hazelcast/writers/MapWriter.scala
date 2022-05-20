@@ -24,14 +24,16 @@ import com.hazelcast.map.IMap
 import org.apache.kafka.connect.sink.SinkRecord
 
 /**
-  * Created by andrew@datamountaineer.com on 02/12/2016. 
+  * Created by andrew@datamountaineer.com on 02/12/2016.
   * stream-reactor
   */
-case class MapWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
-  val mapWriter: IMap[String, Object] = client.getMap(settings.topicObject(topic).name).asInstanceOf[IMap[String, Object]]
+case class MapWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings)
+    extends Writer(settings) {
+  val mapWriter: IMap[String, Object] =
+    client.getMap(settings.topicObject(topic).name).asInstanceOf[IMap[String, Object]]
 
   override def write(record: SinkRecord): Unit = {
-    val ttl = settings.topicObject(topic).ttl
+    val ttl  = settings.topicObject(topic).ttl
     val keys = buildPKs(record)
 
     val _ = if (ttl > 0) {

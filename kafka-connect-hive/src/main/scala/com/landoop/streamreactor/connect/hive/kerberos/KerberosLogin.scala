@@ -7,9 +7,11 @@ import java.security.PrivilegedAction
 import com.landoop.streamreactor.connect.hive.AsyncFunctionLoop
 import javax.security.auth.login.LoginContext
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.security.{SecurityUtil, UserGroupInformation}
+import org.apache.hadoop.security.SecurityUtil
+import org.apache.hadoop.security.UserGroupInformation
 
-import scala.concurrent.duration.{Duration, _}
+import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 sealed trait KerberosLogin extends AutoCloseable {
   def run[T](thunk: => T): T
@@ -26,11 +28,10 @@ case class UserPasswordLogin(ugi: UserGroupInformation, interval: Duration, lc: 
     lc.logout()
   }
 
-  private def renewKerberosTicket(): Unit = {
+  private def renewKerberosTicket(): Unit =
     try {
       ugi.reloginFromTicketCache()
-    }
-    catch {
+    } catch {
       case e: IOException =>
         // We ignore this exception during relogin as each successful relogin gives
         // additional 24 hours of authentication in the default config. In normal
@@ -38,24 +39,21 @@ case class UserPasswordLogin(ugi: UserGroupInformation, interval: Duration, lc: 
         // that happens, the task will fail eventually.
         logger.error("Error renewing the Kerberos ticket", e)
     }
-  }
-  override def run[T](thunk: => T): T = {
+  override def run[T](thunk: => T): T =
     ugi.doAs(new PrivilegedAction[T] {
       override def run(): T = thunk
     })
-  }
 }
 
 case class KeytabLogin(ugi: UserGroupInformation, interval: Duration) extends KerberosLogin {
-  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
+  private val logger             = org.slf4j.LoggerFactory.getLogger(getClass.getName)
   private val asyncTicketRenewal = new AsyncFunctionLoop(interval, "Kerberos")(renewKerberosTicket())
   asyncTicketRenewal.start()
 
-  private def renewKerberosTicket(): Unit = {
+  private def renewKerberosTicket(): Unit =
     try {
       ugi.checkTGTAndReloginFromKeytab()
-    }
-    catch {
+    } catch {
       case e: IOException =>
         // We ignore this exception during relogin as each successful relogin gives
         // additional 24 hours of authentication in the default config. In normal
@@ -63,23 +61,20 @@ case class KeytabLogin(ugi: UserGroupInformation, interval: Duration) extends Ke
         // that happens, the task will fail eventually.
         logger.error("Error renewing the Kerberos ticket", e)
     }
-  }
   override def close(): Unit = asyncTicketRenewal.close()
-  override def run[T](thunk: => T): T = {
+  override def run[T](thunk: => T): T =
     ugi.doAs(new PrivilegedAction[T] {
       override def run(): T = thunk
     })
-  }
 }
 
 object KerberosLogin {
 
-  def from(kerberos: Kerberos, configuration: Configuration): KerberosLogin = {
+  def from(kerberos: Kerberos, configuration: Configuration): KerberosLogin =
     kerberos.auth match {
-      case Left(settings) => from(settings, kerberos.ticketRenewalMs.millis, configuration)
+      case Left(settings)  => from(settings, kerberos.ticketRenewalMs.millis, configuration)
       case Right(settings) => from(settings, kerberos.ticketRenewalMs.millis, configuration)
     }
-  }
 
   def from(settings: KeytabSettings, interval: Duration, configuration: Configuration): KeytabLogin = {
     UserGroupInformation.setConfiguration(configuration)
@@ -106,4 +101,3 @@ object KerberosLogin {
     UserPasswordLogin(ugi, interval, lc)
   }
 }
-

@@ -12,7 +12,7 @@ import java.io.IOException
 case class ProtoDynamicConverter() extends ProtoConverter {
   private val protoData: ProtobufData = new ProtobufData
 
-  override def convert(record: SinkRecord, setting: JMSSetting): Either[IOException, Array[Byte]] = {
+  override def convert(record: SinkRecord, setting: JMSSetting): Either[IOException, Array[Byte]] =
     // This is fine and will keep historic compatibility as long as all no fields are removed and new fields are added to bottom of FieldNamed schemas such as Avro.
     // This is also safe if the inbound SinkRecord schema is of protobuf form already, e.g. is instance of ProtobufSchemaAndValue
     Either.catchOnly[IOException] {
@@ -21,6 +21,5 @@ case class ProtoDynamicConverter() extends ProtoConverter {
         .asInstanceOf[DynamicMessage]
         .toByteArray
     }
-  }
 
 }

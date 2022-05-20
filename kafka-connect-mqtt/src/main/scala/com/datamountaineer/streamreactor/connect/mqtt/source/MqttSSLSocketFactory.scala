@@ -17,22 +17,25 @@
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import java.io.FileReader
-import java.security.{KeyStore, Security}
+import java.security.KeyStore
+import java.security.Security
 
 import com.typesafe.scalalogging.StrictLogging
-import javax.net.ssl.{KeyManagerFactory, SSLContext, SSLSocketFactory, TrustManagerFactory}
+import javax.net.ssl.KeyManagerFactory
+import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLSocketFactory
+import javax.net.ssl.TrustManagerFactory
 import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.bouncycastle.openssl.jcajce.{JcaPEMKeyConverter, JcePEMDecryptorProviderBuilder}
-import org.bouncycastle.openssl.{PEMEncryptedKeyPair, PEMKeyPair, PEMParser}
-
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
+import org.bouncycastle.openssl.jcajce.JcePEMDecryptorProviderBuilder
+import org.bouncycastle.openssl.PEMEncryptedKeyPair
+import org.bouncycastle.openssl.PEMKeyPair
+import org.bouncycastle.openssl.PEMParser
 
 object MqttSSLSocketFactory extends StrictLogging {
-  def apply(caCrtFile: String,
-            crtFile: String,
-            keyFile: String,
-            password: String): SSLSocketFactory = {
+  def apply(caCrtFile: String, crtFile: String, keyFile: String, password: String): SSLSocketFactory =
     try {
 
       /**
@@ -40,10 +43,11 @@ object MqttSSLSocketFactory extends StrictLogging {
         */
       Security.addProvider(new BouncyCastleProvider)
       val certificateConverter = new JcaX509CertificateConverter().setProvider("BC")
+
       /**
         * Load Certificate Authority (CA) certificate
         */
-      var reader = new PEMParser(new FileReader(caCrtFile))
+      var reader       = new PEMParser(new FileReader(caCrtFile))
       val caCertHolder = reader.readObject.asInstanceOf[X509CertificateHolder]
       reader.close()
       val caCert = certificateConverter.getCertificate(caCertHolder)
@@ -63,12 +67,13 @@ object MqttSSLSocketFactory extends StrictLogging {
       val keyObject: Any = reader.readObject
       reader.close()
 
-      val provider = new JcePEMDecryptorProviderBuilder().build(password.toCharArray)
+      val provider     = new JcePEMDecryptorProviderBuilder().build(password.toCharArray)
       val keyConverter = new JcaPEMKeyConverter().setProvider("BC")
       val key = keyObject match {
         case pair: PEMEncryptedKeyPair => keyConverter.getKeyPair(pair.decryptKeyPair(provider))
         case _ => keyConverter.getKeyPair(keyObject.asInstanceOf[PEMKeyPair])
       }
+
       /**
         * CA certificate is used to authenticate server
         */
@@ -77,6 +82,7 @@ object MqttSSLSocketFactory extends StrictLogging {
       caKeyStore.setCertificateEntry("ca-certificate", caCert)
       val trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm)
       trustManagerFactory.init(caKeyStore)
+
       /**
         * Client key and certificates are sent to server so it can authenticate the client
         */
@@ -86,6 +92,7 @@ object MqttSSLSocketFactory extends StrictLogging {
       clientKeyStore.setKeyEntry("private-key", key.getPrivate, password.toCharArray, Array(cert))
       val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm)
       keyManagerFactory.init(clientKeyStore, password.toCharArray)
+
       /**
         * Create SSL socket factory
         */
@@ -96,11 +103,9 @@ object MqttSSLSocketFactory extends StrictLogging {
         * Return the newly created socket factory object
         */
       context.getSocketFactory
-    }
-    catch {
+    } catch {
       case e: Exception =>
         logger.warn(e.getMessage, e)
         null
     }
-  }
 }

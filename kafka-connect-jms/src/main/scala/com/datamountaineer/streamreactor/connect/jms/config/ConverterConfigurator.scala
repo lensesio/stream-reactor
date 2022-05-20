@@ -1,10 +1,18 @@
 package com.datamountaineer.streamreactor.connect.jms.config
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.jms.converters.ConverterLoaders.{connectorPropertyConverterLoader, defaultKcqlConverterLoader, kcqlConverterClassNameConverterLoader, kcqlSinkFormatTypeConverterLoader}
-import com.datamountaineer.streamreactor.connect.jms.converters.{ConverterClassLoader, JMSMessageConverter, SinkConverterClassLoader, SourceConverterClassLoader}
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.{JMSSinkMessageConverter, JsonMessageConverter}
-import com.datamountaineer.streamreactor.connect.jms.source.converters.{JMSSourceMessageConverter, JMSStructMessageConverter}
+import com.datamountaineer.streamreactor.connect.jms.converters.ConverterLoaders.connectorPropertyConverterLoader
+import com.datamountaineer.streamreactor.connect.jms.converters.ConverterLoaders.defaultKcqlConverterLoader
+import com.datamountaineer.streamreactor.connect.jms.converters.ConverterLoaders.kcqlConverterClassNameConverterLoader
+import com.datamountaineer.streamreactor.connect.jms.converters.ConverterLoaders.kcqlSinkFormatTypeConverterLoader
+import com.datamountaineer.streamreactor.connect.jms.converters.ConverterClassLoader
+import com.datamountaineer.streamreactor.connect.jms.converters.JMSMessageConverter
+import com.datamountaineer.streamreactor.connect.jms.converters.SinkConverterClassLoader
+import com.datamountaineer.streamreactor.connect.jms.converters.SourceConverterClassLoader
+import com.datamountaineer.streamreactor.connect.jms.sink.converters.JMSSinkMessageConverter
+import com.datamountaineer.streamreactor.connect.jms.sink.converters.JsonMessageConverter
+import com.datamountaineer.streamreactor.connect.jms.source.converters.JMSSourceMessageConverter
+import com.datamountaineer.streamreactor.connect.jms.source.converters.JMSStructMessageConverter
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.common.config.ConfigException
 

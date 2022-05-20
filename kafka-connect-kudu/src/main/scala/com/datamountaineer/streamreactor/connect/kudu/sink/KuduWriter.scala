@@ -19,7 +19,10 @@ package com.datamountaineer.streamreactor.connect.kudu.sink
 import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.kudu.KuduConverter
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduConfigConstants, KuduSettings, WriteFlushMode}
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfig
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfigConstants
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduSettings
+import com.datamountaineer.streamreactor.connect.kudu.config.WriteFlushMode
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.errors.ConnectException
@@ -30,13 +33,16 @@ import org.json4s.JsonAST.JValue
 
 import scala.annotation.nowarn
 import scala.collection.mutable
-import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
-import scala.util.{Failure, Success, Try}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 case class SchemaMap(version: Int, schema: Schema)
 
 /**
-  * Created by andrew@datamountaineer.com on 22/02/16. 
+  * Created by andrew@datamountaineer.com on 22/02/16.
   * stream-reactor
   */
 object KuduWriter extends StrictLogging {
@@ -50,27 +56,33 @@ object KuduWriter extends StrictLogging {
 }
 
 @nowarn
-class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLogging with KuduConverter
-  with ErrorHandler with ConverterUtil {
+class KuduWriter(client: KuduClient, setting: KuduSettings)
+    extends StrictLogging
+    with KuduConverter
+    with ErrorHandler
+    with ConverterUtil {
   logger.info("Initialising Kudu writer")
 
   Try(DbHandler.createTables(setting, client)) match {
     case Success(_) =>
-    case Failure(f) => logger.warn("Unable to create tables at startup! Tables will be created on delivery of the first record", f)
+    case Failure(f) =>
+      logger.warn("Unable to create tables at startup! Tables will be created on delivery of the first record", f)
   }
 
   private val MUTATION_BUFFER_SPACE = setting.mutationBufferSpace
-  private lazy val kuduTablesCache = collection.mutable.Map(DbHandler.buildTableCache(setting, client).toSeq: _*)
-  private lazy val session = client.newSession()
+  private lazy val kuduTablesCache  = collection.mutable.Map(DbHandler.buildTableCache(setting, client).toSeq: _*)
+  private lazy val session          = client.newSession()
 
-  session.setFlushMode(setting.writeFlushMode match {
-    case WriteFlushMode.SYNC =>
-      FlushMode.AUTO_FLUSH_SYNC
-    case WriteFlushMode.BATCH_SYNC =>
-      FlushMode.MANUAL_FLUSH
-    case WriteFlushMode.BATCH_BACKGROUND =>
-      FlushMode.AUTO_FLUSH_BACKGROUND
-  })
+  session.setFlushMode(
+    setting.writeFlushMode match {
+      case WriteFlushMode.SYNC =>
+        FlushMode.AUTO_FLUSH_SYNC
+      case WriteFlushMode.BATCH_SYNC =>
+        FlushMode.MANUAL_FLUSH
+      case WriteFlushMode.BATCH_BACKGROUND =>
+        FlushMode.AUTO_FLUSH_BACKGROUND
+    },
+  )
 
   session.setMutationBufferSpace(MUTATION_BUFFER_SPACE)
 
@@ -87,8 +99,8 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     * Write SinkRecords to Kudu
     *
     * @param records A list of SinkRecords to write
-    **/
-  def write(records: Seq[SinkRecord]): Unit = {
+    */
+  def write(records: Seq[SinkRecord]): Unit =
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
@@ -102,28 +114,31 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
       }
       applyInsert(records, session)
     }
-  }
 
   /**
     * Per topic, build an new Kudu insert. Per insert build a Kudu row per SinkRecord.
     * Apply the insert per topic for the rows
-    **/
+    */
   private def applyInsert(records: Seq[SinkRecord], session: KuduSession) = {
-    def handleSinkRecord(record: SinkRecord): Upsert = {
+    def handleSinkRecord(record: SinkRecord): Upsert =
       Option(record.valueSchema()) match {
         case None =>
           // try to take it as a string
           record.value() match {
             case _: java.util.Map[_, _] =>
               val converted = convert(record, setting.fieldsMap(record.topic), setting.ignoreFields(record.topic))
-              val withDDLs = applyDDLs(converted)
+              val withDDLs  = applyDDLs(converted)
               convertToKuduUpsert(withDDLs, kuduTablesCache(withDDLs.topic))
             case _ => throw new ConnectException("For schemaless record only String and Map types are supported")
           }
         case Some(schema: Schema) =>
           schema.`type`() match {
             case Schema.Type.STRING =>
-              val converted = convertFromStringAsJson(record, setting.fieldsMap.getOrElse(record.topic, Map.empty[String, String]), setting.ignoreFields.getOrElse(record.topic, Set.empty))
+              val converted = convertFromStringAsJson(
+                record,
+                setting.fieldsMap.getOrElse(record.topic, Map.empty[String, String]),
+                setting.ignoreFields.getOrElse(record.topic, Set.empty),
+              )
               converted match {
                 case Right(r) =>
                   val withDDLs = applyDDLsFromJson(r.converted, record.topic)
@@ -131,24 +146,21 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
                 case Left(l) => throw new ConnectException(l)
               }
 
-
-
             case Schema.Type.STRUCT =>
               val converted = convert(record, setting.fieldsMap(record.topic), setting.ignoreFields(record.topic))
-              val withDDLs = applyDDLs(converted)
+              val withDDLs  = applyDDLs(converted)
               convertToKuduUpsert(withDDLs, kuduTablesCache(withDDLs.topic))
             case other => throw new ConnectException(s"$other schema is not supported")
           }
       }
-    }
 
-    val t = Try({
+    val t = Try {
       records.iterator
         .map(handleSinkRecord)
         .map(session.apply)
-        .grouped(MUTATION_BUFFER_SPACE-1)
+        .grouped(MUTATION_BUFFER_SPACE - 1)
         .foreach(_ => flush())
-    })
+    }
     handleTry(t)
     logger.debug(s"Written ${records.size}")
   }
@@ -158,11 +170,11 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     *
     * @param record The sink record to create a table for
     * @return A KuduTable
-    **/
+    */
   private def applyDDLs(record: SinkRecord): SinkRecord = {
     if (!kuduTablesCache.contains(record.topic())) {
       val mapping = setting.kcql.filter(f => f.getSource.equals(record.topic())).head
-      val table = DbHandler.createTableFromSinkRecord(mapping, record.valueSchema(), client).get
+      val table   = DbHandler.createTableFromSinkRecord(mapping, record.valueSchema(), client).get
       logger.info(s"Adding table ${mapping.getTarget} to the table cache")
       kuduTablesCache.put(mapping.getSource, table)
     } else {
@@ -174,7 +186,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
   private def applyDDLsFromJson(payload: JValue, topic: String): JValue = {
     if (!kuduTablesCache.contains(topic)) {
       val mapping = setting.kcql.filter(_.getSource.equals(topic)).head
-      val table = DbHandler.createTableFromJsonPayload(mapping, payload, client, topic).get
+      val table   = DbHandler.createTableFromJsonPayload(mapping, payload, client, topic).get
       logger.info(s"Adding table ${mapping.getTarget} to the table cache")
       kuduTablesCache.put(mapping.getSource, table)
     } else {
@@ -187,30 +199,32 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     * Check alter table if schema has changed
     *
     * @param record The sinkRecord to check the schema for
-    **/
+    */
   def handleAlterTable(record: SinkRecord): SinkRecord = {
-    val topic = record.topic()
+    val topic    = record.topic()
     val allowEvo = setting.allowAutoEvolve.getOrElse(topic, false)
 
     if (allowEvo) {
-      val schema = record.valueSchema()
+      val schema  = record.valueSchema()
       val version = schema.version()
-      val table = setting.topicTables(topic)
+      val table   = setting.topicTables(topic)
 
-      val currentKcql = setting.kcql.filter(r => r.getTarget.trim == table)
+      val currentKcql            = setting.kcql.filter(r => r.getTarget.trim == table)
       val currentKuduTableSchema = convertToKuduSchema(record, currentKcql.head)
-      val currentColumnsSize = record.valueSchema().fields().size()
+      val currentColumnsSize     = record.valueSchema().fields().size()
 
       val oldKuduTableSchema = kuduTablesCache(topic).getSchema
-      val oldColumnsSize = oldKuduTableSchema.getColumns.size()
+      val oldColumnsSize     = oldKuduTableSchema.getColumns.size()
 
       //allow evolution
       val evolving = oldColumnsSize < currentColumnsSize
 
       //if table is allowed to evolve all the table
       if (evolving) {
-        logger.info(s"Schema change detected for $topic mapped to table $table. Old schema columns size " +
-          s"$oldKuduTableSchema new columns size $currentColumnsSize")
+        logger.info(
+          s"Schema change detected for $topic mapped to table $table. Old schema columns size " +
+            s"$oldKuduTableSchema new columns size $currentColumnsSize",
+        )
         val kuduTable = DbHandler.alterTable(table, oldKuduTableSchema, currentKuduTableSchema, client)
 
         kuduTablesCache.update(topic, kuduTable)
@@ -223,13 +237,13 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
   }
 
   def handleAlterTable(payload: JValue, topic: String): JValue = {
-    val fields = extractJSONFields(payload, topic)
+    val fields       = extractJSONFields(payload, topic)
     val cachedFields = getCacheJSONFields().getOrElse(topic, Map.empty)
 
     if (fields.nonEmpty && fields.keySet.diff(cachedFields.keySet).nonEmpty) {
       val table = setting.topicTables(topic)
       logger.info(s"Schema change detected for $topic mapped to table $table.")
-      val kuduTable =  DbHandler.alterTable(table, cachedFields, fields, client)
+      val kuduTable = DbHandler.alterTable(table, cachedFields, fields, client)
       kuduTablesCache.update(topic, kuduTable)
     }
     payload
@@ -237,7 +251,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
 
   /**
     * Close the Kudu session and client
-    **/
+    */
   def close(): Unit = {
     logger.info("Closing Kudu Session and Client")
     flush()
@@ -247,14 +261,13 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
 
   /**
     * Force the session to flush it's buffers.
-    *
-    **/
-  def flush(): Unit = {
+    */
+  def flush(): Unit =
     if (!session.isClosed) {
 
       //throw and let error policy handle it, don't want to throw RetriableException.
       //May want to die if error policy is Throw
-      val errors : String = session.getFlushMode match {
+      val errors: String = session.getFlushMode match {
         case FlushMode.AUTO_FLUSH_SYNC | FlushMode.MANUAL_FLUSH =>
           val flush = session.flush()
           if (flush != null) {
@@ -275,5 +288,4 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
         throw new RuntimeException(s"Failed to flush one or more changes:$errors")
       }
     }
-  }
 }

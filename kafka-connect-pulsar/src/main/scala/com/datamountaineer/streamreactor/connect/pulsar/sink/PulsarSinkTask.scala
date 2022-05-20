@@ -17,32 +17,37 @@
 package com.datamountaineer.streamreactor.connect.pulsar.sink
 
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
-import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSinkConfig, PulsarSinkSettings}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarConfigConstants
+import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSinkConfig
+import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSinkSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
 import java.util.UUID
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
-
 /**
-  * Created by andrew@datamountaineer.com on 27/08/2017. 
+  * Created by andrew@datamountaineer.com on 27/08/2017.
   * stream-reactor
   */
 class PulsarSinkTask extends SinkTask with StrictLogging {
   private val progressCounter = new ProgressCounter
-  private var enableProgress: Boolean = false
-  private var writer: Option[PulsarWriter] = None
+  private var enableProgress: Boolean              = false
+  private var writer:         Option[PulsarWriter] = None
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
-  private var name = ""
-  private var settings : Option[PulsarSinkSettings] = None
+  private var name     = ""
+  private var settings: Option[PulsarSinkSettings] = None
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/pulsar-sink-ascii.txt")).mkString + s" $version")
+    logger.info(
+      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/pulsar-sink-ascii.txt")).mkString + s" $version",
+    )
     logger.info(manifest.printManifest())
 
     val conf = if (context.configs().isEmpty) props else context.configs()
@@ -50,15 +55,14 @@ class PulsarSinkTask extends SinkTask with StrictLogging {
     PulsarSinkConfig.config.parse(conf)
     val sinkConfig = new PulsarSinkConfig(conf)
     enableProgress = sinkConfig.getBoolean(PulsarConfigConstants.PROGRESS_COUNTER_ENABLED)
-    settings = Some(PulsarSinkSettings(sinkConfig))
-
+    settings       = Some(PulsarSinkSettings(sinkConfig))
 
     //if error policy is retry set retry interval
     if (settings.get.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
       context.timeout(sinkConfig.getInt(PulsarConfigConstants.ERROR_RETRY_INTERVAL).toLong)
     }
 
-    name = conf.getOrDefault("name", s"kafka-connect-pulsar-sink-${UUID.randomUUID().toString}")
+    name   = conf.getOrDefault("name", s"kafka-connect-pulsar-sink-${UUID.randomUUID().toString}")
     writer = Some(PulsarWriter(name, settings.get))
   }
 
@@ -74,7 +78,7 @@ class PulsarSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Clean up writer
-    **/
+    */
   override def stop(): Unit = {
     logger.info("Stopping Pulsar sink.")
     writer.foreach(w => w.close())

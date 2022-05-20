@@ -19,14 +19,14 @@ package com.datamountaineer.streamreactor.connect.pulsar.source
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 
 import java.util
-import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarSourceConfig, PulsarSourceSettings}
+import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSourceConfig
+import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSourceSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
-
 
 class PulsarSourceConnector extends SourceConnector with StrictLogging {
   private val configDef = PulsarSourceConfig.config
@@ -35,7 +35,7 @@ class PulsarSourceConnector extends SourceConnector with StrictLogging {
 
   /**
     * States which SinkTask class to use
-    **/
+    */
   override def taskClass(): Class[_ <: Task] = classOf[PulsarSourceTask]
 
   /**
@@ -43,7 +43,7 @@ class PulsarSourceConnector extends SourceConnector with StrictLogging {
     *
     * @param maxTasks The max number of task workers be can spawn
     * @return a List of configuration properties per worker
-    **/
+    */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
     // call settings here makes sure we don't have an exclusive subscription over more than one worker
@@ -56,7 +56,7 @@ class PulsarSourceConnector extends SourceConnector with StrictLogging {
     * Start the sink and set to configuration
     *
     * @param props A map of properties for the connector and worker
-    **/
+    */
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Pulsar source connector.")
     configProps = props

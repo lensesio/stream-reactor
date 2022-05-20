@@ -16,20 +16,21 @@
 
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 
 object SourceRecordConverter {
 
   def fromSourcePartition(root: RemoteS3RootLocation): Map[String, String] =
     Map(
       "container" -> root.bucket,
-      "prefix" -> root.prefixOrDefault()
+      "prefix"    -> root.prefixOrDefault(),
     )
 
   def fromSourceOffset(bucketAndPath: RemoteS3PathLocation, offset: Long): Map[String, AnyRef] =
     Map(
       "path" -> bucketAndPath.path,
-      "line" -> offset.toString
+      "line" -> offset.toString,
     )
 
 }

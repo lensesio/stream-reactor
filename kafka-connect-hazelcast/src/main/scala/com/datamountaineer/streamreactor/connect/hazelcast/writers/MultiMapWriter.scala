@@ -22,12 +22,14 @@ import com.hazelcast.multimap.MultiMap
 import org.apache.kafka.connect.sink.SinkRecord
 
 /**
-  * Created by andrew@datamountaineer.com on 02/12/2016. 
+  * Created by andrew@datamountaineer.com on 02/12/2016.
   * stream-reactor
   */
-case class MultiMapWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
-  val multiMapWriter: MultiMap[String, Object] = client.getMultiMap(settings.topicObject(topic).name).asInstanceOf[MultiMap[String, Object]]
+case class MultiMapWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings)
+    extends Writer(settings) {
+  val multiMapWriter: MultiMap[String, Object] =
+    client.getMultiMap(settings.topicObject(topic).name).asInstanceOf[MultiMap[String, Object]]
 
-  override def write(record: SinkRecord): Unit = {val _ = multiMapWriter.put(buildPKs(record), convert(record))}
+  override def write(record: SinkRecord): Unit = { val _ = multiMapWriter.put(buildPKs(record), convert(record)) }
   override def close(): Unit = {}
 }

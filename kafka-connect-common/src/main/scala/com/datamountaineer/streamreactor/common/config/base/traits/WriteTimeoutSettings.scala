@@ -21,7 +21,7 @@ package com.datamountaineer.streamreactor.common.config.base.traits
 import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.WRITE_TIMEOUT_SUFFIX
 
 /**
-  * Created by andrew@datamountaineer.com on 31/07/2017. 
+  * Created by andrew@datamountaineer.com on 31/07/2017.
   * stream-reactor
   */
 trait WriteTimeoutSettings extends BaseSettings {

@@ -20,22 +20,25 @@ package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 
-import javax.jms.{ObjectMessage, Session}
+import javax.jms.ObjectMessage
+import javax.jms.Session
 import scala.annotation.nowarn
-import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 @nowarn("cat=deprecation")
 class ObjectMessageConverter extends JMSSinkMessageConverter with ConverterUtil {
 
   @nowarn("cat=deprecation")
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, ObjectMessage) = {
-    val converted =  super[ConverterUtil].convert(record, setting.fields, setting.ignoreField)
-    val msg = session.createObjectMessage()
-    val value = converted.value()
-    val schema = converted.valueSchema()
+    val converted = super[ConverterUtil].convert(record, setting.fields, setting.ignoreField)
+    val msg       = session.createObjectMessage()
+    val value     = converted.value()
+    val schema    = converted.valueSchema()
     schema.`type`() match {
       case Schema.Type.STRUCT =>
         val struct = value.asInstanceOf[Struct]
@@ -50,26 +53,25 @@ class ObjectMessageConverter extends JMSSinkMessageConverter with ConverterUtil 
 }
 
 object ObjectMessageConverterFn {
-  def apply(fieldName: String, value: AnyRef, schema: Schema, msg: ObjectMessage, session: Session): Unit = {
+  def apply(fieldName: String, value: AnyRef, schema: Schema, msg: ObjectMessage, session: Session): Unit =
     schema.`type`() match {
-      case Schema.Type.BYTES => msg.setObjectProperty(fieldName, value.asInstanceOf[Array[Byte]].toList.asJava)
+      case Schema.Type.BYTES   => msg.setObjectProperty(fieldName, value.asInstanceOf[Array[Byte]].toList.asJava)
       case Schema.Type.BOOLEAN => msg.setBooleanProperty(fieldName, value.asInstanceOf[Boolean])
       case Schema.Type.FLOAT32 => msg.setFloatProperty(fieldName, value.asInstanceOf[Float])
       case Schema.Type.FLOAT64 => msg.setDoubleProperty(fieldName, value.asInstanceOf[Double])
-      case Schema.Type.INT8 => msg.setByteProperty(fieldName, value.asInstanceOf[Byte])
-      case Schema.Type.INT16 => msg.setShortProperty(fieldName, value.asInstanceOf[Short])
-      case Schema.Type.INT32 => msg.setIntProperty(fieldName, value.asInstanceOf[Int])
-      case Schema.Type.INT64 => msg.setLongProperty(fieldName, value.asInstanceOf[Long])
-      case Schema.Type.STRING => msg.setStringProperty(fieldName, value.asInstanceOf[String])
-      case Schema.Type.MAP => msg.setObjectProperty(fieldName, value)
-      case Schema.Type.ARRAY => msg.setObjectProperty(fieldName, value)
+      case Schema.Type.INT8    => msg.setByteProperty(fieldName, value.asInstanceOf[Byte])
+      case Schema.Type.INT16   => msg.setShortProperty(fieldName, value.asInstanceOf[Short])
+      case Schema.Type.INT32   => msg.setIntProperty(fieldName, value.asInstanceOf[Int])
+      case Schema.Type.INT64   => msg.setLongProperty(fieldName, value.asInstanceOf[Long])
+      case Schema.Type.STRING  => msg.setStringProperty(fieldName, value.asInstanceOf[String])
+      case Schema.Type.MAP     => msg.setObjectProperty(fieldName, value)
+      case Schema.Type.ARRAY   => msg.setObjectProperty(fieldName, value)
       case Schema.Type.STRUCT =>
         val nestedMsg = session.createObjectMessage()
-        val struct = value.asInstanceOf[Struct]
+        val struct    = value.asInstanceOf[Struct]
         struct.schema().fields().asScala.foreach { f =>
           ObjectMessageConverterFn(f.name(), struct.get(f), f.schema(), nestedMsg, session)
         }
         msg.setObjectProperty(fieldName, nestedMsg)
     }
-  }
 }

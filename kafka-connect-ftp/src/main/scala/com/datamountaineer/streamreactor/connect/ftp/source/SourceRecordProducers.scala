@@ -16,11 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.ftp.source
 
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceRecord
 
 /**
-  * Created by andrew@datamountaineer.com on 31/08/2017. 
+  * Created by andrew@datamountaineer.com on 31/08/2017.
   * Default (Template) Project
   */
 object SourceRecordProducers {
@@ -31,28 +33,37 @@ object SourceRecordProducers {
     .field("offset", Schema.INT64_SCHEMA)
     .build()
 
-  def stringKeyRecord(store: ConnectFileMetaDataStore, topic: String, meta: FileMetaData, body: FileBody): SourceRecord =
+  def stringKeyRecord(
+    store: ConnectFileMetaDataStore,
+    topic: String,
+    meta:  FileMetaData,
+    body:  FileBody,
+  ): SourceRecord =
     new SourceRecord(
       store.fileMetasToConnectPartition(meta), // source part
-      store.fileMetasToConnectOffset(meta), // source off
-      topic, //topic
-      Schema.STRING_SCHEMA, // key sch
-      meta.attribs.path, // key
-      Schema.BYTES_SCHEMA, // val sch
-      body.bytes // val
+      store.fileMetasToConnectOffset(meta),    // source off
+      topic,                                   //topic
+      Schema.STRING_SCHEMA,                    // key sch
+      meta.attribs.path,                       // key
+      Schema.BYTES_SCHEMA,                     // val sch
+      body.bytes,                              // val
     )
 
-  def structKeyRecord(store: ConnectFileMetaDataStore, topic: String, meta: FileMetaData, body: FileBody): SourceRecord = {
+  def structKeyRecord(
+    store: ConnectFileMetaDataStore,
+    topic: String,
+    meta:  FileMetaData,
+    body:  FileBody,
+  ): SourceRecord =
     new SourceRecord(
       store.fileMetasToConnectPartition(meta), // source part
-      store.fileMetasToConnectOffset(meta), // source off
-      topic, //topic
-      fileInfoSchema, // key sch
+      store.fileMetasToConnectOffset(meta),    // source off
+      topic,                                   //topic
+      fileInfoSchema,                          // key sch
       new Struct(fileInfoSchema)
-        .put("name",meta.attribs.path)
-        .put("offset",body.offset),
+        .put("name", meta.attribs.path)
+        .put("offset", body.offset),
       Schema.BYTES_SCHEMA, // val sch
-      body.bytes // val
+      body.bytes,          // val
     )
-  }
 }

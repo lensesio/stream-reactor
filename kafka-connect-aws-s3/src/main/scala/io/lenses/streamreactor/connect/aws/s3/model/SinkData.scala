@@ -16,16 +16,17 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model
 
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 
 import java.time.Instant
 
 case class MessageDetail(
-                          keySinkData: Option[SinkData],
-                          valueSinkData: SinkData,
-                          headers: Map[String, SinkData],
-                          time: Option[Instant],
-                        )
+  keySinkData:   Option[SinkData],
+  valueSinkData: SinkData,
+  headers:       Map[String, SinkData],
+  time:          Option[Instant],
+)
 
 sealed trait SinkData {
   def schema(): Option[Schema]
@@ -34,7 +35,7 @@ sealed trait SinkData {
 sealed trait PrimitiveSinkData extends SinkData {
   def primVal(): Any
 
-  def safeVal() : Any = primVal()
+  def safeVal(): Any = primVal()
 
 }
 
@@ -43,12 +44,11 @@ case class BooleanSinkData(primVal: Boolean, schema: Option[Schema] = None) exte
 case class StringSinkData(primVal: String, schema: Option[Schema] = None) extends PrimitiveSinkData {
 
   /**
-   * Escapes new line characters so that they don't cause line breaks in the output.  In the case of text or json mode,
-   * which is line delimited, these breaks could cause the file to be read incorrectly.
-   */
-  override def safeVal(): Any = {
+    * Escapes new line characters so that they don't cause line breaks in the output.  In the case of text or json mode,
+    * which is line delimited, these breaks could cause the file to be read incorrectly.
+    */
+  override def safeVal(): Any =
     primVal.replace("\n", "\\n")
-  }
 
 }
 

@@ -41,6 +41,25 @@ jobs:
           find $HOME/.ivy2/cache                       -name "ivydata-*.properties" -delete || true
           find $HOME/.sbt                              -name "*.lock"               -delete || true
 
+  scalafmt:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+      - name: Check the project
+        run: sbt scalafmtCheck
+        env:
+          JVM_OPTS: -Xmx3200m
+      - name: Check the sbt files
+        run: sbt scalafmtSbtCheck
+        env:
+          JVM_OPTS: -Xmx3200m
+
   test:
     needs: initiate
     timeout-minutes: 5

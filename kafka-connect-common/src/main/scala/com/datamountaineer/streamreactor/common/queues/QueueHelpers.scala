@@ -19,7 +19,8 @@
 package com.datamountaineer.streamreactor.common.queues
 
 import java.util
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 
 import com.google.common.collect.Queues
 import com.typesafe.scalalogging.StrictLogging
@@ -31,16 +32,17 @@ import org.apache.kafka.connect.source.SourceRecord
 object QueueHelpers extends StrictLogging {
 
   implicit class LinkedBlockingQueueExtension[T](val lbq: LinkedBlockingQueue[T]) extends AnyVal {
-    def drainWithTimeoutTo(collection: util.Collection[_ >: T], maxElements: Int, timeout: Long, unit: TimeUnit): Int = {
+    def drainWithTimeoutTo(collection: util.Collection[_ >: T], maxElements: Int, timeout: Long, unit: TimeUnit): Int =
       Queues.drain[T](lbq, collection, maxElements, timeout, unit)
-    }
   }
 
-  def drainWithTimeoutNoGauva(records: util.ArrayList[SourceRecord],
-                              batchSize: Int,
-                              lingerTimeout: Long,
-                              queue: LinkedBlockingQueue[SourceRecord]): Unit = {
-    var added = 0
+  def drainWithTimeoutNoGauva(
+    records:       util.ArrayList[SourceRecord],
+    batchSize:     Int,
+    lingerTimeout: Long,
+    queue:         LinkedBlockingQueue[SourceRecord],
+  ): Unit = {
+    var added    = 0
     val deadline = System.nanoTime() + TimeUnit.NANOSECONDS.toNanos(lingerTimeout)
 
     //wait for batch size or linger, which ever is first
@@ -66,7 +68,7 @@ object QueueHelpers extends StrictLogging {
     * @param batchSize Batch size to take
     * @param timeOut   Timeout to take the batch
     * @return ArrayList of T
-    * */
+    */
   def drainQueueWithTimeOut[T](queue: LinkedBlockingQueue[T], batchSize: Int, timeOut: Long): util.ArrayList[T] = {
     val l = new util.ArrayList[T]()
     logger.debug(s"Found [{}]. Draining entries to batchSize [{}].", queue.size(), batchSize)
@@ -80,7 +82,7 @@ object QueueHelpers extends StrictLogging {
     * @param queue     The queue to drain
     * @param batchSize Batch size to take
     * @return ArrayList of T
-    * */
+    */
   def drainQueue[T](queue: LinkedBlockingQueue[T], batchSize: Int): util.ArrayList[T] = {
     val l = new util.ArrayList[T]()
     logger.debug(s"Found {}. Draining entries to batchSize [{}].", queue.size(), batchSize)

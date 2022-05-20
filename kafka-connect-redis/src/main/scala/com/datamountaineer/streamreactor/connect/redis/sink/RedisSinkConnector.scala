@@ -18,29 +18,31 @@ package com.datamountaineer.streamreactor.connect.redis.sink
 
 import com.datamountaineer.streamreactor.common.config.Helpers
 import com.datamountaineer.streamreactor.common.utils.JarManifest
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfig
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfigConstants
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
 import java.util
-import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
   * <h1>RedisSinkConnector</h1>
   * Kafka connect Redis Sink connector
   *
   * Sets up RedisSinkTask and configurations for the tasks.
-  **/
+  */
 class RedisSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
   private val configDef = RedisConfig.config
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest  = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SinkTask class to use
-    **/
+    */
   override def taskClass(): Class[_ <: Task] = classOf[RedisSinkTask]
 
   /**
@@ -48,7 +50,7 @@ class RedisSinkConnector extends SinkConnector with StrictLogging {
     *
     * @param maxTasks The max number of task workers be can spawn
     * @return a List of configuration properties per worker
-    **/
+    */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for [$maxTasks] workers.")
     (1 to maxTasks).map(_ => configProps).toList.asJava
@@ -58,7 +60,7 @@ class RedisSinkConnector extends SinkConnector with StrictLogging {
     * Start the sink and set to configuration
     *
     * @param props A map of properties for the connector and worker
-    **/
+    */
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Redis sink task with [${props.toString}].")
     Helpers.checkInputTopics(RedisConfigConstants.KCQL_CONFIG, props.asScala.toMap)

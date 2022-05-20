@@ -29,7 +29,9 @@ object KcqlSubscriptionType extends Enum[KcqlSubscriptionType] with LazyLogging 
     if (kcql.getWithSubscription == null) {
       logger.info("Defaulting to failover subscription type")
     } else {
-      logger.info(s"Unsupported subscription type '${kcql.getWithSubscription}' set in WITHTYPE. Defaulting to Failover")
+      logger.info(
+        s"Unsupported subscription type '${kcql.getWithSubscription}' set in WITHTYPE. Defaulting to Failover",
+      )
     }
 
   override def values: IndexedSeq[KcqlSubscriptionType] = findValues

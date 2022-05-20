@@ -30,21 +30,18 @@ import scala.util.Try
   */
 class JsonResilientConverter extends JsonConverter {
 
-  override def configure(configs: util.Map[String, _], isKey: Boolean): Unit = {
+  override def configure(configs: util.Map[String, _], isKey: Boolean): Unit =
     super.configure(configs, isKey)
-  }
 
-  override def fromConnectData(topic: String, schema: Schema, value: Object): Array[Byte] = {
+  override def fromConnectData(topic: String, schema: Schema, value: Object): Array[Byte] =
     Try {
       super.fromConnectData(topic, schema, value)
     }.toOption.orNull
-  }
 
-  override def toConnectData(topic: String, value: Array[Byte]): SchemaAndValue = {
+  override def toConnectData(topic: String, value: Array[Byte]): SchemaAndValue =
     Try {
       super.toConnectData(topic, value)
     }.getOrElse {
       SchemaAndValue.NULL
     }
-  }
 }

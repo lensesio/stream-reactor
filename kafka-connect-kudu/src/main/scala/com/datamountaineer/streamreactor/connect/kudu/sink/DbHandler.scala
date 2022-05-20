@@ -23,14 +23,21 @@ import com.datamountaineer.streamreactor.connect.kudu.KuduConverter
 import com.datamountaineer.streamreactor.connect.kudu.config.KuduSettings
 import com.datamountaineer.streamreactor.connect.kudu.sink.DbHandler.kuduSchema
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.avro.{JsonProperties, Schema}
+import org.apache.avro.JsonProperties
+import org.apache.avro.Schema
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kudu.ColumnSchema
-import org.apache.kudu.client.{KuduClient, KuduTable, _}
+import org.apache.kudu.client.KuduClient
+import org.apache.kudu.client.KuduTable
+import org.apache.kudu.client._
 import org.json4s.JsonAST.JValue
 
-import scala.jdk.CollectionConverters.{IteratorHasAsScala, ListHasAsScala, SeqHasAsJava}
-import scala.util.{Failure, Success, Try}
+import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
   * Created by andrew@datamountaineer.com on 06/06/16.
@@ -40,15 +47,15 @@ case class CreateTableProps(name: String, schema: kuduSchema, cto: CreateTableOp
 
 object DbHandler extends StrictLogging with KuduConverter {
 
-  type kuduSchema = org.apache.kudu.Schema
-  type avroSchema = org.apache.avro.Schema
-  type avroField = org.apache.avro.Schema.Field
+  type kuduSchema    = org.apache.kudu.Schema
+  type avroSchema    = org.apache.avro.Schema
+  type avroField     = org.apache.avro.Schema.Field
   type connectSchema = org.apache.kafka.connect.data.Schema
 
   def checkTables(client: KuduClient, settings: KuduSettings): Unit = {
     val kuduTables = client.getTablesList.getTablesList
     logger.info(s"Found the following tables in Kudu, ${kuduTables.asScala.mkString(",")}")
-    val tables = settings.kcql.map(s => s.getTarget.trim).toSet
+    val tables  = settings.kcql.map(s => s.getTarget.trim).toSet
     val missing = tables diff kuduTables.asScala.toSet
 
     //filter for autocreate as the schema may not exist yet in the registry, they will be create on arrival of the first message if
@@ -71,14 +78,16 @@ object DbHandler extends StrictLogging with KuduConverter {
     *
     * @param settings Settings containing the mapping of topic to table
     * @return A Map of topic -> KuduRowInsert
-    **/
+    */
   def buildTableCache(settings: KuduSettings, client: KuduClient): Map[String, KuduTable] = {
     checkTables(client, settings)
     settings.kcql.map(s =>
       Try(client.openTable(s.getTarget)) match {
         case Success(t) => (s.getSource, Some(t))
-        case Failure(ex) => logger.error(s"Can not build table cache for table ${s.getSource}.", ex); (s.getSource, None)
-      }).filter(s => s._2.isDefined).map(s => (s._1, s._2.get)).toMap
+        case Failure(ex) => logger.error(s"Can not build table cache for table ${s.getSource}.", ex);
+          (s.getSource, None)
+      },
+    ).filter(s => s._2.isDefined).map(s => (s._1, s._2.get)).toMap
   }
 
   /**
@@ -86,13 +95,12 @@ object DbHandler extends StrictLogging with KuduConverter {
     *
     * @param setting A kuduSetting with the list of tables to create
     * @param client  A Kudu Client to execute the DDL
-    **/
-  def createTables(setting: KuduSettings,
-                   client: KuduClient): Set[KuduTable] = {
+    */
+  def createTables(setting: KuduSettings, client: KuduClient): Set[KuduTable] = {
 
     checkTables(client, setting)
     //check the schema registry for the a schema for this topic
-    val url = setting.schemaRegistryUrl
+    val url      = setting.schemaRegistryUrl
     val subjects = SchemaRegistry.getSubjects(url).toSet
 
     setting
@@ -119,22 +127,16 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param schema The avro schema
     * @param kcql The mapping configuration to create
     * @param client  The kudu client to use
-    **/
-  def createTableProps(schema: String,
-                       kcql: Kcql,
-                       url: String,
-                       client: KuduClient): Set[CreateTableProps] = {
-
-
+    */
+  def createTableProps(schema: String, kcql: Kcql, url: String, client: KuduClient): Set[CreateTableProps] =
     if (schema.nonEmpty) {
-      val kuduSchema = getKuduSchema(kcql, schema)
-      val cto = getCreateTableOptions(kcql)
+      val kuduSchema       = getKuduSchema(kcql, schema)
+      val cto              = getCreateTableOptions(kcql)
       val createTableProps = CreateTableProps(kcql.getTarget, kuduSchema, cto)
       Set(createTableProps)
     } else {
       Set.empty[CreateTableProps]
     }
-  }
 
   /**
     * Create a Kudu table
@@ -142,7 +144,7 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param config The config containing the fields and mappings set for the sink
     * @param schema The topics schema
     * @return The kudu schema
-    **/
+    */
   def getKuduSchema(config: Kcql, schema: String): kuduSchema = {
 
     //get the latest schema from the schema registry
@@ -159,7 +161,7 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param kcql     The config containing the fields and mappings set for the sink
     * @param avroFields The avro fields
     * @return A list of Kudu Columns
-    **/
+    */
   private def getKuduCols(kcql: Kcql, avroFields: avroSchema): util.List[ColumnSchema] = {
 
     if (kcql.getFields.asScala.head.equals("*")) {
@@ -169,21 +171,22 @@ object DbHandler extends StrictLogging with KuduConverter {
     }
 
     val mappingFields = kcql.getFields.asScala.map(f => (f.getName, f.getAlias)).toMap
-    val ignored = kcql.getIgnoredFields.asScala
-    val fields = avroFields.getFields.asScala.filterNot(f => ignored.contains(f.name()))
+    val ignored       = kcql.getIgnoredFields.asScala
+    val fields        = avroFields.getFields.asScala.filterNot(f => ignored.contains(f.name()))
 
     //only allow auto creation if distribute by and bucketing are specified
     val pks = Try(kcql.getBucketing.getBucketNames.asScala.toSet) match {
       case Success(s) => s
-      case Failure(_) => throw new ConnectException("DISTRIBUTEBY columns INTO BUCKETS n must be specified for table " +
-        "auto creation!")
+      case Failure(_) =>
+        throw new ConnectException("DISTRIBUTEBY columns INTO BUCKETS n must be specified for table " +
+          "auto creation!")
     }
 
-    val cols = fields.map(f => {
+    val cols = fields.map { f =>
       val fieldName = f.name()
-      val alias = if (mappingFields.contains(fieldName)) mappingFields(fieldName) else fieldName
-      val col = fromAvro(f.schema(), alias)
-      val default = if (f.defaultVal() != JsonProperties.NULL_VALUE) f.defaultVal() else null
+      val alias     = if (mappingFields.contains(fieldName)) mappingFields(fieldName) else fieldName
+      val col       = fromAvro(f.schema(), alias)
+      val default   = if (f.defaultVal() != JsonProperties.NULL_VALUE) f.defaultVal() else null
 
       if (pks.contains(alias)) {
         logger.info(s"Setting PK on ${f.name()} for ${kcql.getTarget}")
@@ -193,7 +196,7 @@ object DbHandler extends StrictLogging with KuduConverter {
         if (default != null) col.defaultValue(default)
       }
       col.build()
-    }).toList
+    }.toList
 
     logger.info(s"Setting columns as ${cols.map(c => c.getName).mkString(",")} for ${kcql.getTarget}")
     cols
@@ -206,11 +209,8 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param old     The old schema
     * @param current The current schema
     * @param client  A Kudu client to execute the DDL
-    **/
-  def alterTable(table: String,
-                 old: kuduSchema,
-                 current: kuduSchema,
-                 client: KuduClient): KuduTable = {
+    */
+  def alterTable(table: String, old: kuduSchema, current: kuduSchema, client: KuduClient): KuduTable = {
     val ato = compare(old, current)
     ato.foreach(a => executeAlterTable(a, table, client))
     client.openTable(table)
@@ -223,11 +223,13 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param old     The old json fields
     * @param current The current json fields
     * @param client  A Kudu client to execute the DDL
-    **/
-  def alterTable(table: String,
-                 old: Map[String, JValue],
-                 current: Map[String, JValue],
-                 client: KuduClient): KuduTable = {
+    */
+  def alterTable(
+    table:   String,
+    old:     Map[String, JValue],
+    current: Map[String, JValue],
+    client:  KuduClient,
+  ): KuduTable = {
 
     val ato = compare(old, current)
     ato.foreach(a => executeAlterTable(a, table, client))
@@ -240,28 +242,32 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param old     The old schema
     * @param current The current schema
     * @return A list of AlterTableOptions
-    **/
+    */
   def compare(old: kuduSchema, current: kuduSchema): List[AlterTableOptions] = {
     ///look for new fields
     logger.info("Found a difference in the schemas.")
     val diff = current.getColumns.asScala.toSet.diff(old.getColumns.asScala.toSet)
-    diff.map(d => {
+    diff.map { d =>
       val schema = current.getColumn(d.getName)
-      val ato = new AlterTableOptions()
+      val ato    = new AlterTableOptions()
       if (null == schema.getDefaultValue) {
         logger.info(s"Adding nullable column ${schema.getName}, type ${schema.getType}")
-        ato.addColumn(new ColumnSchema.ColumnSchemaBuilder(schema.getName, schema.getType)
-          .nullable(true)
-          .typeAttributes(schema.getTypeAttributes)
-          .build())
+        ato.addColumn(
+          new ColumnSchema.ColumnSchemaBuilder(schema.getName, schema.getType)
+            .nullable(true)
+            .typeAttributes(schema.getTypeAttributes)
+            .build(),
+        )
       } else {
         logger.info(s"Adding column ${schema.getName}, type ${schema.getType}, default ${schema.getDefaultValue}")
-        ato.addColumn(new ColumnSchema.ColumnSchemaBuilder(schema.getName, schema.getType)
-          .defaultValue(schema.getDefaultValue)
-          .typeAttributes(schema.getTypeAttributes)
-          .build())
+        ato.addColumn(
+          new ColumnSchema.ColumnSchemaBuilder(schema.getName, schema.getType)
+            .defaultValue(schema.getDefaultValue)
+            .typeAttributes(schema.getTypeAttributes)
+            .build(),
+        )
       }
-    }).toList
+    }.toList
   }
 
   /**
@@ -270,14 +276,14 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param old     The old json fields
     * @param current The current json fields
     * @return A list of AlterTableOptions
-    **/
+    */
   def compare(old: Map[String, JValue], current: Map[String, JValue]): List[AlterTableOptions] = {
 
     logger.info("Found a difference in the schemas.")
     val diff = current.keySet.diff(old.keySet)
-    diff.map {  d =>
+    diff.map { d =>
       val schema = convertJsonToColumnSchema((d, current(d)))
-      val ato = new AlterTableOptions()
+      val ato    = new AlterTableOptions()
 
       logger.info(s"Adding column ${schema.getName}, type ${schema.getType}, default ${schema.getDefaultValue}")
       ato.addColumn(schema.getName, schema.getType, schema.getDefaultValue)
@@ -291,7 +297,7 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param ato    The kudu alter table options
     * @param target The name of the table to create
     * @param client A client to use to execute the DDL
-    **/
+    */
   private def executeAlterTable(ato: AlterTableOptions, target: String, client: KuduClient) = {
     logger.info(s"Executing alter table on $target with ${ato.toString}")
     client.alterTable(target, ato)
@@ -302,34 +308,32 @@ object DbHandler extends StrictLogging with KuduConverter {
     logger.info(s"Altered table $target. Added ${ato.toString}")
   }
 
-  def createTableFromSinkRecord(kcql: Kcql, schema: connectSchema, client: KuduClient): Try[KuduTable] = {
+  def createTableFromSinkRecord(kcql: Kcql, schema: connectSchema, client: KuduClient): Try[KuduTable] =
     if (kcql.isAutoCreate) {
-      val cto = getCreateTableOptions(kcql)
+      val cto        = getCreateTableOptions(kcql)
       val kuduSchema = convertToKuduSchema(schema, kcql)
-      val ctp = CreateTableProps(kcql.getTarget, kuduSchema, cto)
+      val ctp        = CreateTableProps(kcql.getTarget, kuduSchema, cto)
       Success(executeCreateTable(ctp, client))
     } else {
       Failure(new ConnectException(s"Mapping ${kcql.toString} not configured for Auto table creation"))
     }
-  }
 
-  def createTableFromJsonPayload(kcql: Kcql, payload: JValue, client: KuduClient, topic: String): Try[KuduTable] = {
+  def createTableFromJsonPayload(kcql: Kcql, payload: JValue, client: KuduClient, topic: String): Try[KuduTable] =
     if (kcql.isAutoCreate) {
-      val cto = getCreateTableOptions(kcql)
+      val cto        = getCreateTableOptions(kcql)
       val kuduSchema = convertToKuduSchemaFromJson(payload, topic)
-      val ctp = CreateTableProps(kcql.getTarget, kuduSchema, cto)
+      val ctp        = CreateTableProps(kcql.getTarget, kuduSchema, cto)
       Success(executeCreateTable(ctp, client))
     } else {
       Failure(new ConnectException(s"Mapping ${kcql.toString} not configured for Auto table creation"))
     }
-  }
 
   /**
     * Execute a Create table DDL
     *
     * @param ctp    A create table properties contain the name of the table, the schema and create table options
     * @param client A client to use to execute the DDL
-    **/
+    */
   private[kudu] def executeCreateTable(ctp: CreateTableProps, client: KuduClient): KuduTable = {
     logger.info(s"Executing create table on ${ctp.name} with ${ctp.schema.toString} and props ${ctp.cto.toString}")
     val table = client.createTable(ctp.name, ctp.schema, ctp.cto)
@@ -344,11 +348,9 @@ object DbHandler extends StrictLogging with KuduConverter {
     *
     * @param config The mapping config
     * @return a CreateTableOptions
-    **/
-  private def getCreateTableOptions(config: Kcql): CreateTableOptions = {
+    */
+  private def getCreateTableOptions(config: Kcql): CreateTableOptions =
     new CreateTableOptions()
       .addHashPartitions(config.getBucketing.getBucketNames.asScala.toList.asJava, config.getBucketing.getBucketsNumber)
       .setRangePartitionColumns(List.empty[String].asJava)
-  }
 }
-

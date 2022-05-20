@@ -19,13 +19,17 @@
 package com.datamountaineer.streamreactor.connect.jms.sink
 
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
-import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
+import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
 import com.datamountaineer.streamreactor.connect.jms.sink.writers.JMSWriter
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
 import scala.jdk.CollectionConverters.IterableHasAsScala
@@ -34,7 +38,7 @@ import scala.jdk.CollectionConverters.IterableHasAsScala
   * <h1>JMSSinkTask</h1>
   *
   * Kafka Connect JMS sink task. Called by framework to put records to the target sink
-  **/
+  */
 class JMSSinkTask extends SinkTask with StrictLogging {
 
   var writer: Option[JMSWriter] = None
@@ -44,21 +48,23 @@ class JMSSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Parse the configurations and setup the writer
-    **/
+    */
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-sink-ascii.txt")).mkString + s" $version")
+    logger.info(
+      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-sink-ascii.txt")).mkString + s" $version",
+    )
     logger.info(manifest.printManifest())
 
     val conf = if (context.configs().isEmpty) props else context.configs()
     JMSConfig.config.parse(conf)
     val sinkConfig = new JMSConfig(conf)
-    val settings = JMSSettings(sinkConfig, sink = true)
+    val settings   = JMSSettings(sinkConfig, sink = true)
     enableProgress = sinkConfig.getBoolean(JMSConfigConstants.PROGRESS_COUNTER_ENABLED)
 
     //if error policy is retry set retry interval
     settings.errorPolicy match {
       case RetryErrorPolicy() => context.timeout(sinkConfig.getInt(JMSConfigConstants.ERROR_RETRY_INTERVAL).toLong)
-      case _ =>
+      case _                  =>
     }
 
     writer = Some(JMSWriter(settings))
@@ -66,7 +72,7 @@ class JMSSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Pass the SinkRecords to the writer for Writing
-    **/
+    */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     //filter out records which have null value. it will fail otherwise projecting the payload in order to be sent
     //to the JMS system
@@ -80,7 +86,7 @@ class JMSSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Clean up connections
-    **/
+    */
   override def stop(): Unit = {
     logger.info("Stopping JMS sink.")
     writer.foreach(w => w.close())

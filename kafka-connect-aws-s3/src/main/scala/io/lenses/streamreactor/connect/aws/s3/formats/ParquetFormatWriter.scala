@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -19,15 +18,17 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.parquet.ParquetOutputFile
-import io.lenses.streamreactor.connect.aws.s3.model.{SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.model.SinkData
+import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.avro.Schema
-import org.apache.kafka.connect.data.{Schema => ConnectSchema}
+import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 import org.apache.parquet.avro.AvroParquetWriter
 import org.apache.parquet.hadoop.ParquetWriter
-import org.apache.parquet.hadoop.ParquetWriter.{DEFAULT_BLOCK_SIZE, DEFAULT_PAGE_SIZE}
+import org.apache.parquet.hadoop.ParquetWriter.DEFAULT_BLOCK_SIZE
+import org.apache.parquet.hadoop.ParquetWriter.DEFAULT_PAGE_SIZE
 
 import scala.util.Try
 
@@ -37,9 +38,8 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
 
   private var writer: ParquetWriter[AnyRef] = _
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] = {
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] =
     Try {
-
 
       logger.debug("AvroFormatWriter - write")
 
@@ -51,7 +51,6 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
       writer.write(genericRecord)
       outputStream.flush()
     }.toEither
-  }
 
   private def init(connectSchema: Option[ConnectSchema]): ParquetWriter[AnyRef] = {
     val schema: Schema = ToAvroDataConverter.convertSchema(connectSchema)
@@ -70,13 +69,12 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
 
   override def rolloverFileOnSchemaChange() = true
 
-  override def complete(): Either[SinkError, Unit] = {
+  override def complete(): Either[SinkError, Unit] =
     for {
-      _ <- Suppress(writer.close())
-      _ <- Suppress(outputStream.flush())
+      _      <- Suppress(writer.close())
+      _      <- Suppress(outputStream.flush())
       closed <- outputStream.complete()
     } yield closed
-  }
 
   override def getPointer: Long = writer.getDataSize
 

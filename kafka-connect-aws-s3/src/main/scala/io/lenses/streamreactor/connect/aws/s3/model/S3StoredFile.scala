@@ -17,12 +17,13 @@
 package io.lenses.streamreactor.connect.aws.s3.model
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.sink.{CommittedFileName, S3FileNamingStrategy}
+import io.lenses.streamreactor.connect.aws.s3.sink.CommittedFileName
+import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
 
 object S3StoredFile extends LazyLogging {
-  def apply(path: String)(implicit fileNamingStrategy: S3FileNamingStrategy): Option[S3StoredFile] = {
+  def apply(path: String)(implicit fileNamingStrategy: S3FileNamingStrategy): Option[S3StoredFile] =
     path match {
-      case originalValue@CommittedFileName(topic, partition, end, format) if format == fileNamingStrategy.getFormat =>
+      case originalValue @ CommittedFileName(topic, partition, end, format) if format == fileNamingStrategy.getFormat =>
         Some(S3StoredFile(
           originalValue,
           TopicPartitionOffset(topic, partition, end),
@@ -30,26 +31,23 @@ object S3StoredFile extends LazyLogging {
       case _ => logger.debug(s"Invalid file type in S3 bucket - no match found for file $path")
         None
     }
-  }
 }
 
 case class S3StoredFile(
-                         path: String,
-                         topicPartitionOffset: TopicPartitionOffset
-                       )
-
+  path:                 String,
+  topicPartitionOffset: TopicPartitionOffset,
+)
 
 object S3StoredFileSorter {
 
-  def sort(inputFiles: List[S3StoredFile]): List[S3StoredFile] = {
+  def sort(inputFiles: List[S3StoredFile]): List[S3StoredFile] =
     inputFiles.sortBy {
       storedFile: S3StoredFile =>
         (
           storedFile.topicPartitionOffset.topic.value,
           storedFile.topicPartitionOffset.partition,
-          storedFile.topicPartitionOffset.offset.value
+          storedFile.topicPartitionOffset.offset.value,
         )
     }
-  }
 
 }

@@ -1,10 +1,12 @@
 package com.landoop.streamreactor.connect.hive.source.mapper
 
-import com.landoop.streamreactor.connect.hive.{Partition, StructMapper}
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import com.landoop.streamreactor.connect.hive.Partition
+import com.landoop.streamreactor.connect.hive.StructMapper
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 
 import scala.jdk.CollectionConverters.ListHasAsScala
-
 
 class PartitionValueMapper(partition: Partition) extends StructMapper {
   override def map(input: Struct): Struct = {

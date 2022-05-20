@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.hbase
 
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.ProgressCounter
 import com.datamountaineer.streamreactor.connect.hbase.config.ConfigurationBuilder
 import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfig
 import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigConstants
@@ -40,7 +41,7 @@ import scala.jdk.CollectionConverters.IterableHasAsScala
   *
   * Kafka Connect Cassandra sink task. Called by framework to put records to the
   * target sink
-  * */
+  */
 class HbaseSinkTask extends SinkTask with StrictLogging {
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
@@ -51,7 +52,7 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Parse the configurations and setup the writer
-    * */
+    */
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hbase-ascii.txt")).mkString)
     logger.info(manifest.printManifest())
@@ -65,7 +66,7 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
     //if error policy is retry set retry interval
     hbaseSettings.errorPolicy match {
       case RetryErrorPolicy() => context.timeout(sinkConfig.getInt(HBaseConfigConstants.ERROR_RETRY_INTERVAL).toLong)
-      case _ =>
+      case _                  =>
     }
 
     val hbaseConf = ConfigurationBuilder.buildHBaseConfig(hbaseSettings)
@@ -78,7 +79,8 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
     logger.info(
       s"""Settings:
          |$hbaseSettings
-      """.stripMargin)
+      """.stripMargin,
+    )
 
     writer = Some(WriterFactoryFn(hbaseSettings, hbaseConf))
 
@@ -86,12 +88,11 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Pass the SinkRecords to the writer for Writing
-    * */
-  override def put(records: util.Collection[SinkRecord]): Unit = {
+    */
+  override def put(records: util.Collection[SinkRecord]): Unit =
     if (records.size() == 0) {
       logger.info("Empty list of records received.")
-    }
-    else {
+    } else {
       require(writer.nonEmpty, "Writer is not set!")
       val seq = records.asScala.toVector
       writer.foreach(w => w.write(seq))
@@ -100,11 +101,10 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
         progressCounter.update(seq)
       }
     }
-  }
 
   /**
     * Clean up Hbase connections
-    * */
+    */
   override def stop(): Unit = {
     logger.info("Stopping Hbase sink.")
     writer.foreach(w => w.close())
@@ -113,7 +113,5 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
 
   override def version(): String = manifest.version()
 
-  override def flush(offsets: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
-
-  }
+  override def flush(offsets: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 }

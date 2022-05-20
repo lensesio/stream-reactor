@@ -17,12 +17,16 @@ package com.landoop.json.sql
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node._
-import com.landoop.sql.{Field, SqlContext}
+import com.landoop.sql.Field
+import com.landoop.sql.SqlContext
 import org.apache.calcite.sql.SqlSelect
 
 import scala.collection.mutable.ArrayBuffer
-import scala.jdk.CollectionConverters.{IteratorHasAsScala, SeqHasAsJava}
-import scala.util.{Failure, Success, Try}
+import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 object JsonSql {
 
@@ -49,18 +53,16 @@ object JsonSql {
       this.sql(select, !withStructure)
     }
 
-    def sql(query: SqlSelect, flatten: Boolean): JsonNode = {
+    def sql(query: SqlSelect, flatten: Boolean): JsonNode =
       sql(Field.from(query), flatten)
-    }
 
-    def sql()(implicit kcqlContext: SqlContext): JsonNode = {
+    def sql()(implicit kcqlContext: SqlContext): JsonNode =
       from(json, Vector.empty)
-    }
 
-    def sql(fields: Seq[Field], flatten: Boolean): JsonNode = {
+    def sql(fields: Seq[Field], flatten: Boolean): JsonNode =
       Option(json).map { _ =>
         fields match {
-          case Seq() => json
+          case Seq()                   => json
           case Seq(f) if f.name == "*" => json
           case _ =>
             if (!flatten) {
@@ -71,40 +73,39 @@ object JsonSql {
             }
         }
       }.orNull
-    }
 
     def kcqlFlatten(fields: Seq[Field]): JsonNode = {
       def addNode(source: JsonNode, target: ObjectNode, nodeName: String, select: String): Unit = {
         val _ = source match {
-          case b: BinaryNode => target.put(nodeName, b.binaryValue())
-          case b: BooleanNode => target.put(nodeName, b.booleanValue())
-          case i: BigIntegerNode => target.put(nodeName, i.bigIntegerValue().longValue())
-          case d: DecimalNode => target.put(nodeName, d.decimalValue())
-          case d: DoubleNode => target.put(nodeName, d.doubleValue())
-          case fl: FloatNode => target.put(nodeName, fl.floatValue())
-          case i: IntNode => target.put(nodeName, i.intValue())
-          case l: LongNode => target.put(nodeName, l.longValue())
-          case s: ShortNode => target.put(nodeName, s.shortValue())
-          case t: TextNode => target.put(nodeName, t.textValue())
-          case o: ObjectNode => target.set[ObjectNode](nodeName, o)
-          case _: NullNode => ()
-          case _: MissingNode => ()
+          case b:  BinaryNode     => target.put(nodeName, b.binaryValue())
+          case b:  BooleanNode    => target.put(nodeName, b.booleanValue())
+          case i:  BigIntegerNode => target.put(nodeName, i.bigIntegerValue().longValue())
+          case d:  DecimalNode    => target.put(nodeName, d.decimalValue())
+          case d:  DoubleNode     => target.put(nodeName, d.doubleValue())
+          case fl: FloatNode      => target.put(nodeName, fl.floatValue())
+          case i:  IntNode        => target.put(nodeName, i.intValue())
+          case l:  LongNode       => target.put(nodeName, l.longValue())
+          case s:  ShortNode      => target.put(nodeName, s.shortValue())
+          case t:  TextNode       => target.put(nodeName, t.textValue())
+          case o:  ObjectNode     => target.set[ObjectNode](nodeName, o)
+          case _:  NullNode       => ()
+          case _:  MissingNode    => ()
           case _ => throw new IllegalArgumentException(s"Invalid path $select")
         }
       }
 
       fields match {
-        case Seq() => json
+        case Seq()                   => json
         case Seq(f) if f.name == "*" => json
         case _ =>
           json match {
             case node: ObjectNode =>
-
-              val fieldsParentMap = fields.foldLeft(Map.empty[String, ArrayBuffer[String]]) { case (map, f) =>
-                val key = Option(f.parents).map(_.mkString(".")).getOrElse("")
-                val buffer = map.getOrElse(key, ArrayBuffer.empty[String])
-                buffer += f.name
-                map + (key -> buffer)
+              val fieldsParentMap = fields.foldLeft(Map.empty[String, ArrayBuffer[String]]) {
+                case (map, f) =>
+                  val key    = Option(f.parents).map(_.mkString(".")).getOrElse("")
+                  val buffer = map.getOrElse(key, ArrayBuffer.empty[String])
+                  buffer += f.name
+                  map + (key -> buffer)
               }
 
               val newNode = new ObjectNode(JsonNodeFactory.instance)
@@ -148,7 +149,9 @@ object JsonSql {
                       }
                     }
                   case Some(other) =>
-                    throw new IllegalArgumentException(s"Invalid field selection. '$fieldPath' resolves to node of type:${other.getNodeType}")
+                    throw new IllegalArgumentException(
+                      s"Invalid field selection. '$fieldPath' resolves to node of type:${other.getNodeType}",
+                    )
                 }
 
               }
@@ -159,45 +162,45 @@ object JsonSql {
     }
 
     def path(path: Seq[String]): Option[JsonNode] = {
-      def navigate(node: JsonNode, parents: Seq[String]): Option[JsonNode] = {
+      def navigate(node: JsonNode, parents: Seq[String]): Option[JsonNode] =
         Option(node).flatMap { _ =>
           parents match {
             case head +: tail => navigate(node.get(head), tail)
-            case _ => Some(node)
+            case _            => Some(node)
           }
         }
-      }
 
       navigate(json, path)
     }
   }
 
-
   private def from(json: JsonNode, parents: Seq[String])(implicit kcqlContext: SqlContext): JsonNode = {
     def checkFieldsAndReturn() = {
       val fields = kcqlContext.getFieldsForPath(parents)
-      require(fields.isEmpty || (fields.size == 1 && fields.head.isLeft && fields.head.left.exists(_.name == "*")),
-        s"You can't select a field from a ${json.getNodeType.toString}.")
+      require(
+        fields.isEmpty || (fields.size == 1 && fields.head.isLeft && fields.head.left.exists(_.name == "*")),
+        s"You can't select a field from a ${json.getNodeType.toString}.",
+      )
       json
     }
 
     json match {
       case null => null
-      case _: BinaryNode => checkFieldsAndReturn()
-      case _: BooleanNode => checkFieldsAndReturn()
+      case _: BinaryNode     => checkFieldsAndReturn()
+      case _: BooleanNode    => checkFieldsAndReturn()
       case _: BigIntegerNode => checkFieldsAndReturn()
-      case _: DecimalNode => checkFieldsAndReturn()
-      case _: DoubleNode => checkFieldsAndReturn()
-      case _: FloatNode => checkFieldsAndReturn()
-      case _: IntNode => checkFieldsAndReturn()
-      case _: LongNode => checkFieldsAndReturn()
-      case _: ShortNode => checkFieldsAndReturn()
-      case _: TextNode => checkFieldsAndReturn()
-      case _: NullNode => checkFieldsAndReturn()
-      case _: MissingNode => checkFieldsAndReturn()
+      case _: DecimalNode    => checkFieldsAndReturn()
+      case _: DoubleNode     => checkFieldsAndReturn()
+      case _: FloatNode      => checkFieldsAndReturn()
+      case _: IntNode        => checkFieldsAndReturn()
+      case _: LongNode       => checkFieldsAndReturn()
+      case _: ShortNode      => checkFieldsAndReturn()
+      case _: TextNode       => checkFieldsAndReturn()
+      case _: NullNode       => checkFieldsAndReturn()
+      case _: MissingNode    => checkFieldsAndReturn()
 
-      case node: ObjectNode => fromObjectNode(node, parents)
-      case array: ArrayNode => fromArray(parents, array)
+      case node:  ObjectNode => fromObjectNode(node, parents)
+      case array: ArrayNode  => fromArray(parents, array)
       //case pojoNode:POJONode=>
       case other => throw new IllegalArgumentException(s"Can't apply SQL over node of type:${other.getNodeType}")
     }
@@ -205,40 +208,39 @@ object JsonSql {
 
   private def fromObjectNode(node: ObjectNode, parents: Seq[String])(implicit kcqlContext: SqlContext) = {
     val newNode = new ObjectNode(JsonNodeFactory.instance)
-    val fields = kcqlContext.getFieldsForPath(parents)
+    val fields  = kcqlContext.getFieldsForPath(parents)
     if (fields.nonEmpty) {
       fields.foreach {
         case Right(parent) => Option(node.get(parent)).foreach { node =>
-          newNode.set[JsonNode](parent, from(node, parents :+ parent))
-        }
+            newNode.set[JsonNode](parent, from(node, parents :+ parent))
+          }
         case Left(parent) if parent.name == "*" =>
           node.fieldNames().asScala.withFilter { f =>
             !fields.exists {
               case Left(field) if field.name == f => true
-              case _ => false
+              case _                              => false
             }
           }.foreach { field =>
             newNode.set[JsonNode](field, from(node.get(field), parents :+ parent.name))
           }
 
         case Left(parent) => Option(node.get(parent.name)).foreach { node =>
-          newNode.set[JsonNode](parent.alias, from(node, parents :+ parent.name))
-        }
+            newNode.set[JsonNode](parent.alias, from(node, parents :+ parent.name))
+          }
       }
-    }
-    else {
+    } else {
       node.fieldNames()
         .asScala.foreach { field =>
           newNode.set[JsonNode](
             field,
-            from(node.get(field), parents :+ field)
+            from(node.get(field), parents :+ field),
           )
-      }
+        }
     }
     newNode
   }
 
-  private def fromArray(parents: Seq[String], array: ArrayNode)(implicit kcqlContext: SqlContext): ArrayNode = {
+  private def fromArray(parents: Seq[String], array: ArrayNode)(implicit kcqlContext: SqlContext): ArrayNode =
     if (array.size() == 0) {
       array
     } else {
@@ -250,5 +252,4 @@ object JsonSql {
         new ArrayNode(JsonNodeFactory.instance, newElements)
       }
     }
-  }
 }

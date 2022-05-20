@@ -17,12 +17,15 @@
 package com.landoop.streamreactor.connect.hive.source.offset
 
 import com.landoop.streamreactor.connect.hive.source
-import com.landoop.streamreactor.connect.hive.source.{SourceOffset, SourcePartition}
+import com.landoop.streamreactor.connect.hive.source.SourceOffset
+import com.landoop.streamreactor.connect.hive.source.SourcePartition
 
-class HiveSourceRefreshOffsetStorageReader(originalOffsets: Map[SourcePartition, SourceOffset], contextReader: HiveSourceOffsetStorageReader) extends HiveSourceOffsetStorageReader {
+class HiveSourceRefreshOffsetStorageReader(
+  originalOffsets: Map[SourcePartition, SourceOffset],
+  contextReader:   HiveSourceOffsetStorageReader,
+) extends HiveSourceOffsetStorageReader {
 
-  override def offset(partition: source.SourcePartition): Option[SourceOffset] = {
+  override def offset(partition: source.SourcePartition): Option[SourceOffset] =
     originalOffsets.get(partition).fold(contextReader.offset(partition))(Some(_))
-  }
 
 }

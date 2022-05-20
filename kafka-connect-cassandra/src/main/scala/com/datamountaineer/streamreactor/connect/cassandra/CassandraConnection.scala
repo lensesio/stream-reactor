@@ -16,35 +16,42 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra
 
-import com.datamountaineer.streamreactor.common.config.{SSLConfig, SSLConfigContext}
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, LoadBalancingPolicy}
+import com.datamountaineer.streamreactor.common.config.SSLConfig
+import com.datamountaineer.streamreactor.common.config.SSLConfigContext
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import com.datamountaineer.streamreactor.connect.cassandra.config.LoadBalancingPolicy
 import com.datastax.driver.core.Cluster.Builder
-import com.datastax.driver.core.policies.{DCAwareRoundRobinPolicy, LatencyAwarePolicy, RoundRobinPolicy, TokenAwarePolicy}
+import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy
+import com.datastax.driver.core.policies.LatencyAwarePolicy
+import com.datastax.driver.core.policies.RoundRobinPolicy
+import com.datastax.driver.core.policies.TokenAwarePolicy
 import com.datastax.driver.core._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.AbstractConfig
 
 /**
   * Set up a Casssandra connection
-  **/
+  */
 
 object CassandraConnection extends StrictLogging {
   def apply(connectorConfig: AbstractConfig): CassandraConnection = {
-    val cluster = getCluster(connectorConfig)
+    val cluster  = getCluster(connectorConfig)
     val keySpace = connectorConfig.getString(CassandraConfigConstants.KEY_SPACE)
-    val session = getSession(keySpace, cluster)
+    val session  = getSession(keySpace, cluster)
     new CassandraConnection(cluster = cluster, session = session)
   }
 
   def getCluster(connectorConfig: AbstractConfig): Cluster = {
     val contactPoints: String = connectorConfig.getString(CassandraConfigConstants.CONTACT_POINTS)
-    val port = connectorConfig.getInt(CassandraConfigConstants.PORT)
+    val port      = connectorConfig.getInt(CassandraConfigConstants.PORT)
     val fetchSize = connectorConfig.getInt(CassandraConfigConstants.FETCH_SIZE)
 
     val connectTimeout = connectorConfig.getInt(CassandraConfigConstants.CONNECT_TIMEOUT)
-    val readTimeout = connectorConfig.getInt(CassandraConfigConstants.READ_TIMEOUT)
+    val readTimeout    = connectorConfig.getInt(CassandraConfigConstants.READ_TIMEOUT)
 
-    val loadBalancer = LoadBalancingPolicy.withName(connectorConfig.getString(CassandraConfigConstants.LOAD_BALANCING_POLICY).toUpperCase) match {
+    val loadBalancer = LoadBalancingPolicy.withName(
+      connectorConfig.getString(CassandraConfigConstants.LOAD_BALANCING_POLICY).toUpperCase,
+    ) match {
       case LoadBalancingPolicy.TOKEN_AWARE =>
         new TokenAwarePolicy(DCAwareRoundRobinPolicy.builder().build())
 
@@ -64,8 +71,8 @@ object CassandraConnection extends StrictLogging {
       .addContactPoints(contactPoints.split(","): _*)
       .withPort(port)
       .withSocketOptions(new SocketOptions()
-      .setConnectTimeoutMillis(connectTimeout)
-      .setReadTimeoutMillis(readTimeout))
+        .setConnectTimeoutMillis(connectTimeout)
+        .setReadTimeoutMillis(readTimeout))
       .withLoadBalancingPolicy(loadBalancer)
       .withQueryOptions(new QueryOptions().setFetchSize(fetchSize))
 
@@ -82,10 +89,9 @@ object CassandraConnection extends StrictLogging {
     *
     * @param keySpace A configuration to build the setting from
     * @param cluster  The cluster the get the session for
-    **/
-  def getSession(keySpace: String, cluster: Cluster): Session = {
+    */
+  def getSession(keySpace: String, cluster: Cluster): Session =
     cluster.connect(keySpace)
-  }
 
   /**
     * Add authentication to the connection builder
@@ -93,7 +99,7 @@ object CassandraConnection extends StrictLogging {
     * @param connectorConfig The connector configuration to get the parameters from
     * @param builder         The builder to add the authentication to
     * @return The builder with authentication added.
-    **/
+    */
   private def addAuthMode(connectorConfig: AbstractConfig, builder: Builder): Builder = {
     val username = connectorConfig.getString(CassandraConfigConstants.USERNAME)
     val password = connectorConfig.getPassword(CassandraConfigConstants.PASSWD).value
@@ -112,7 +118,7 @@ object CassandraConnection extends StrictLogging {
     * @param connectorConfig The connector configuration to get the parameters from
     * @param builder         The builder to add the authentication to
     * @return The builder with SSL added.
-    **/
+    */
   private def addSSL(connectorConfig: AbstractConfig, builder: Builder): Builder = {
     val ssl = connectorConfig.getBoolean(CassandraConfigConstants.SSL_ENABLED).asInstanceOf[Boolean]
     if (ssl) {
@@ -120,11 +126,11 @@ object CassandraConnection extends StrictLogging {
       val sslConfig = SSLConfig(
         trustStorePath = connectorConfig.getString(CassandraConfigConstants.TRUST_STORE_PATH),
         trustStorePass = connectorConfig.getPassword(CassandraConfigConstants.TRUST_STORE_PASSWD).value,
-        keyStorePath = Some(connectorConfig.getString(CassandraConfigConstants.KEY_STORE_PATH)),
-        keyStorePass = Some(connectorConfig.getPassword(CassandraConfigConstants.KEY_STORE_PASSWD).value),
-        useClientCert = connectorConfig.getBoolean(CassandraConfigConstants.USE_CLIENT_AUTH),
-        keyStoreType = connectorConfig.getString(CassandraConfigConstants.KEY_STORE_TYPE),
-        trustStoreType = connectorConfig.getString(CassandraConfigConstants.TRUST_STORE_TYPE)
+        keyStorePath   = Some(connectorConfig.getString(CassandraConfigConstants.KEY_STORE_PATH)),
+        keyStorePass   = Some(connectorConfig.getPassword(CassandraConfigConstants.KEY_STORE_PASSWD).value),
+        useClientCert  = connectorConfig.getBoolean(CassandraConfigConstants.USE_CLIENT_AUTH),
+        keyStoreType   = connectorConfig.getString(CassandraConfigConstants.KEY_STORE_TYPE),
+        trustStoreType = connectorConfig.getString(CassandraConfigConstants.TRUST_STORE_TYPE),
       )
 
       val context = SSLConfigContext(sslConfig)
@@ -143,5 +149,5 @@ object CassandraConnection extends StrictLogging {
   * <h1>CassandraConnection</h1>
   *
   * Case class to hold a Cassandra cluster and session connection
-  **/
+  */
 case class CassandraConnection(cluster: Cluster, session: Session)

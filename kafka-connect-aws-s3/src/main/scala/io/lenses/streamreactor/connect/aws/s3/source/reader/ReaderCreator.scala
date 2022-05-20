@@ -11,22 +11,23 @@ import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither._
 import scala.util.Try
 
 class ReaderCreator(
-                     sourceName: String,
-                     format: FormatSelection,
-                     targetTopic: String
-                   )(
-  implicit storageInterface: StorageInterface) extends LazyLogging {
+  sourceName:  String,
+  format:      FormatSelection,
+  targetTopic: String,
+)(
+  implicit
+  storageInterface: StorageInterface,
+) extends LazyLogging {
 
-  def create(pathWithLine: RemoteS3PathLocationWithLine) : Either[Throwable, ResultReader] = {
+  def create(pathWithLine: RemoteS3PathLocationWithLine): Either[Throwable, ResultReader] =
     for {
       reader <- Try(createInner(pathWithLine)).toEither
     } yield new ResultReader(reader, targetTopic)
-  }
 
   private def createInner(pathWithLine: RemoteS3PathLocationWithLine): S3FormatStreamReader[_ <: SourceData] = {
-    val file = pathWithLine.file
+    val file          = pathWithLine.file
     val inputStreamFn = () => storageInterface.getBlob(file).toThrowable(sourceName)
-    val fileSizeFn = () => storageInterface.getBlobSize(file).toThrowable(sourceName)
+    val fileSizeFn    = () => storageInterface.getBlobSize(file).toThrowable(sourceName)
     logger.info(s"[$sourceName] Reading next file: ${pathWithLine.file} from line ${pathWithLine.line}")
 
     val reader = S3FormatStreamReader(inputStreamFn, fileSizeFn, format, file)
@@ -38,7 +39,7 @@ class ReaderCreator(
     reader
   }
 
-  private def skipLinesToStartLine(reader: S3FormatStreamReader[_ <: SourceData], lineToStartOn: Int) = {
+  private def skipLinesToStartLine(reader: S3FormatStreamReader[_ <: SourceData], lineToStartOn: Int) =
     for (_ <- 0 to lineToStartOn) {
       if (reader.hasNext) {
         reader.next()
@@ -46,7 +47,5 @@ class ReaderCreator(
         throw new OffsetOutOfRangeException("Unknown file offset")
       }
     }
-  }
-
 
 }

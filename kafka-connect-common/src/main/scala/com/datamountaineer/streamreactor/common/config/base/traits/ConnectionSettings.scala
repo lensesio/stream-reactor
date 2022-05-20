@@ -19,7 +19,7 @@
 package com.datamountaineer.streamreactor.common.config.base.traits
 
 /**
-  * Created by andrew@datamountaineer.com on 31/07/2017. 
+  * Created by andrew@datamountaineer.com on 31/07/2017.
   * stream-reactor
   */
 
@@ -27,19 +27,19 @@ import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigCon
 import org.apache.kafka.common.config.ConfigException
 
 trait ConnectionSettings extends BaseSettings {
-  val uriConst = s"$connectorPrefix.$URI_SUFFIX"
+  val uriConst            = s"$connectorPrefix.$URI_SUFFIX"
   val schemaRegistryConst = s"$connectorPrefix.$SCHEMA_REGISTRY_SUFFIX"
-  val urlConst = s"$connectorPrefix.$URL_SUFFIX"
-  val hostConst = s"$connectorPrefix.$CONNECTION_HOST_SUFFIX"
-  val hostsConst = s"$connectorPrefix.$CONNECTION_HOSTS_SUFFIX"
-  val portConst = s"$connectorPrefix.$CONNECTION_PORT_SUFFIX"
-  val portsConst = s"$connectorPrefix.$CONNECTION_PORTS_SUFFIX"
+  val urlConst            = s"$connectorPrefix.$URL_SUFFIX"
+  val hostConst           = s"$connectorPrefix.$CONNECTION_HOST_SUFFIX"
+  val hostsConst          = s"$connectorPrefix.$CONNECTION_HOSTS_SUFFIX"
+  val portConst           = s"$connectorPrefix.$CONNECTION_PORT_SUFFIX"
+  val portsConst          = s"$connectorPrefix.$CONNECTION_PORTS_SUFFIX"
 
-  def getPort = getInt(portConst)
-  def getUri = getString(uriConst)
+  def getPort              = getInt(portConst)
+  def getUri               = getString(uriConst)
   def getSchemaRegistryUrl = getString(schemaRegistryConst)
 
-  def getUrl : String = {
+  def getUrl: String = {
     val url = getString(urlConst)
     if (url == null || url.trim.length == 0) {
       throw new ConfigException(s"$urlConst has not been set")
@@ -47,7 +47,7 @@ trait ConnectionSettings extends BaseSettings {
     url
   }
 
-  def getHosts : String = {
+  def getHosts: String = {
     val connection = getString(hostsConst)
 
     if (connection == null || connection.trim.isEmpty) {
@@ -56,7 +56,7 @@ trait ConnectionSettings extends BaseSettings {
     connection
   }
 
-  def getHost : String = {
+  def getHost: String = {
     val connection = getString(hostConst)
 
     if (connection == null || connection.trim.isEmpty) {

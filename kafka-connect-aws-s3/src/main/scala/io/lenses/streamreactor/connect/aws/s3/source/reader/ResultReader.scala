@@ -18,12 +18,14 @@ package io.lenses.streamreactor.connect.aws.s3.source.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatStreamReader
-import io.lenses.streamreactor.connect.aws.s3.model.{PollResults, SourceData}
+import io.lenses.streamreactor.connect.aws.s3.model.PollResults
+import io.lenses.streamreactor.connect.aws.s3.model.SourceData
 
 import scala.annotation.tailrec
 
-
-class ResultReader(reader: S3FormatStreamReader[_ <: SourceData], targetTopic: String) extends LazyLogging with AutoCloseable {
+class ResultReader(reader: S3FormatStreamReader[_ <: SourceData], targetTopic: String)
+    extends LazyLogging
+    with AutoCloseable {
 
   /**
     * Retrieves the results for a particular reader, or None if no further results are available
@@ -40,8 +42,8 @@ class ResultReader(reader: S3FormatStreamReader[_ <: SourceData], targetTopic: S
         PollResults(
           results,
           reader.getBucketAndPath,
-          targetTopic
-        )
+          targetTopic,
+        ),
       )
     }
 
@@ -49,12 +51,14 @@ class ResultReader(reader: S3FormatStreamReader[_ <: SourceData], targetTopic: S
 
   @tailrec
   private final def retrieveResults(
-                             limit: Int,
-                             reader: S3FormatStreamReader[_ <: SourceData],
-                             accumulatedResults: Vector[_ <: SourceData]
-                           ): Vector[_ <: SourceData] = {
+    limit:              Int,
+    reader:             S3FormatStreamReader[_ <: SourceData],
+    accumulatedResults: Vector[_ <: SourceData],
+  ): Vector[_ <: SourceData] = {
 
-    logger.trace(s"Calling retrieveResults with limit ($limit), reader (${reader.getBucketAndPath}/${reader.getLineNumber}), accumulatedResults size ${accumulatedResults.size}")
+    logger.trace(
+      s"Calling retrieveResults with limit ($limit), reader (${reader.getBucketAndPath}/${reader.getLineNumber}), accumulatedResults size ${accumulatedResults.size}",
+    )
     if (limit > 0 && reader.hasNext) {
       retrieveResults(limit - 1, reader, accumulatedResults :+ reader.next())
     } else {

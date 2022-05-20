@@ -30,7 +30,7 @@ case class KafkaVersionAxis(kafkaVersion: String) extends WeakAxis {
   override val idSuffix: String = directorySuffix.replaceAll("\\W+", "-")
 
   def testDeps(): Seq[ModuleID] = Seq(
-    kafkaClients(kafkaVersion)                              % Test,
+    kafkaClients(kafkaVersion) % Test,
   )
 
   def deps(): Seq[ModuleID] = Seq(
@@ -46,7 +46,7 @@ case class KafkaVersionAxis(kafkaVersion: String) extends WeakAxis {
     jacksonDatabind(jacksonDatabindVersion),
     jacksonDataformatCbor(jacksonVersion),
     jacksonModuleScala(jacksonVersion),
-    confluentProtobufConverter(confluentPlatformVersion)
+    confluentProtobufConverter(confluentPlatformVersion),
   )
 
   def ideEnable(): Boolean = kafkaVersion == "3.1.0"

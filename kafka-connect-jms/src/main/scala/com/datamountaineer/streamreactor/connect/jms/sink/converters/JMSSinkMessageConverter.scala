@@ -22,8 +22,8 @@ import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import com.datamountaineer.streamreactor.connect.jms.converters.JMSMessageConverter
 import org.apache.kafka.connect.sink.SinkRecord
 
-import javax.jms.{Message, Session}
-
+import javax.jms.Message
+import javax.jms.Session
 
 trait JMSSinkMessageConverter extends JMSMessageConverter {
 

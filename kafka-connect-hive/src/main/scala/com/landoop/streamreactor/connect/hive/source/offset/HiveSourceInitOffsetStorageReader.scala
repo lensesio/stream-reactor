@@ -1,10 +1,13 @@
 package com.landoop.streamreactor.connect.hive.source.offset
 
-import com.landoop.streamreactor.connect.hive.source.SourcePartition.{fromSourcePartition, toSourceOffset}
-import com.landoop.streamreactor.connect.hive.source.{SourceOffset, SourcePartition}
+import com.landoop.streamreactor.connect.hive.source.SourcePartition.fromSourcePartition
+import com.landoop.streamreactor.connect.hive.source.SourcePartition.toSourceOffset
+import com.landoop.streamreactor.connect.hive.source.SourceOffset
+import com.landoop.streamreactor.connect.hive.source.SourcePartition
 import org.apache.kafka.connect.storage.OffsetStorageReader
 
-import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 
 /**

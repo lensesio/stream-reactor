@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -39,8 +38,6 @@ trait CommitPolicy {
     *
     * Once a commit has taken place, a new file will be opened
     * for the next record.
-    *
-    *
     */
   def shouldFlush(context: CommitContext): Boolean
 }
@@ -50,11 +47,13 @@ trait CommitPolicy {
   * @param count            the number of records written thus far to the file
   * @param createdTimestamp the time in milliseconds when the the file was created/accessed first time
   */
-case class CommitContext(tpo: TopicPartitionOffset,
-                         count: Long,
-                         fileSize: Long,
-                         createdTimestamp: Long,
-                         lastFlushedTimestamp: Option[Long])
+case class CommitContext(
+  tpo:                  TopicPartitionOffset,
+  count:                Long,
+  fileSize:             Long,
+  createdTimestamp:     Long,
+  lastFlushedTimestamp: Option[Long],
+)
 
 /**
   * Default implementation of [[CommitPolicy]] that will flush the
@@ -65,9 +64,8 @@ case class CommitContext(tpo: TopicPartitionOffset,
   *
   * @param interval in millis
   */
-case class DefaultCommitPolicy(fileSize: Option[Long],
-                               interval: Option[FiniteDuration],
-                               recordCount: Option[Long]) extends CommitPolicy {
+case class DefaultCommitPolicy(fileSize: Option[Long], interval: Option[FiniteDuration], recordCount: Option[Long])
+    extends CommitPolicy {
   val logger: Logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
   require(fileSize.isDefined || interval.isDefined || recordCount.isDefined)
 
@@ -77,13 +75,15 @@ case class DefaultCommitPolicy(fileSize: Option[Long],
     val timeSinceLastWrite = System.currentTimeMillis() - lastWriteTimestamp
     val flushDueToFileSize = fileSize.exists(_ <= context.fileSize)
     val flushDueToInterval = interval.exists(_.toMillis <= timeSinceLastWrite)
-    val flushDueToCount = recordCount.exists(_ <= context.count)
+    val flushDueToCount    = recordCount.exists(_ <= context.count)
 
     val flush = flushDueToFileSize ||
       flushDueToInterval ||
       flushDueToCount
 
-    logger.debug(s"${if (flush) "" else "Not "}Flushing: Because why? size: $flushDueToFileSize, interval: $flushDueToInterval, count: $flushDueToCount, CommitContext: $context")
+    logger.debug(
+      s"${if (flush) "" else "Not "}Flushing: Because why? size: $flushDueToFileSize, interval: $flushDueToInterval, count: $flushDueToCount, CommitContext: $context",
+    )
 
     flush
   }

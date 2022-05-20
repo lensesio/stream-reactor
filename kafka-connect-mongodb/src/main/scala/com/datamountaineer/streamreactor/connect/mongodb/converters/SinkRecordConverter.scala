@@ -24,18 +24,20 @@ import java.util.TimeZone
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data._
-import org.apache.kafka.connect.errors.{ConnectException, DataException}
+import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
 import org.json4s.JValue
 import org.json4s.JsonAST._
 
-import scala.jdk.CollectionConverters.{IterableHasAsScala, SetHasAsScala}
+import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.jdk.CollectionConverters.SetHasAsScala
 import scala.util.Try
 
 object SinkRecordConverter extends StrictLogging {
   private val ISO_DATE_FORMAT: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-  private val TIME_FORMAT: SimpleDateFormat = new SimpleDateFormat("HH:mm:ss.SSSZ")
+  private val TIME_FORMAT:     SimpleDateFormat = new SimpleDateFormat("HH:mm:ss.SSSZ")
 
   ISO_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"))
 
@@ -45,8 +47,7 @@ object SinkRecordConverter extends StrictLogging {
     * @param map
     * @return
     */
-  def fromMap(map: util.Map[String, AnyRef])(implicit settings: MongoSettings):
-    Document = {
+  def fromMap(map: util.Map[String, AnyRef])(implicit settings: MongoSettings): Document = {
 
     val doc = new Document(map)
 
@@ -70,21 +71,26 @@ object SinkRecordConverter extends StrictLogging {
           else {
             if (schema.defaultValue != null) convertToDocument(schema, schema.defaultValue)
             else if (schema.isOptional) null
-            else throw new DataException("Conversion error: null value for field that is required and has no default value")
+            else
+              throw new DataException(
+                "Conversion error: null value for field that is required and has no default value",
+              )
           }
 
         case Some(_) =>
-
           try {
             val schemaType = Option(schema).map(_.`type`())
               .orElse(Option(ConnectSchema.schemaType(value.getClass)))
-              .getOrElse(throw new DataException("Class " + value.getClass + " does not have corresponding schema type."))
+              .getOrElse(throw new DataException(
+                "Class " + value.getClass + " does not have corresponding schema type.",
+              ))
 
             schemaType match {
 
-              case Schema.Type.INT8 | Schema.Type.INT16 | Schema.Type.BOOLEAN | Schema.Type.FLOAT32 | Schema.Type.FLOAT64 => value
+              case Schema.Type.INT8 | Schema.Type.INT16 | Schema.Type.BOOLEAN | Schema.Type.FLOAT32 |
+                  Schema.Type.FLOAT64 => value
               case Schema.Type.INT32 =>
-                if(schema != null) {
+                if (schema != null) {
                   schema.name() match {
                     case Date.LOGICAL_NAME =>
                       value match {
@@ -98,7 +104,7 @@ object SinkRecordConverter extends StrictLogging {
                         case _ => TIME_FORMAT.format(Time.toLogical(schema, value.asInstanceOf[Int]))
                       }
 
-                    case _=> value
+                    case _ => value
                   }
                 } else value
 
@@ -112,8 +118,7 @@ object SinkRecordConverter extends StrictLogging {
                       }
                     case _ => value
                   }
-                }
-                else value
+                } else value
 
               case Schema.Type.STRING => value.asInstanceOf[CharSequence].toString
 
@@ -121,20 +126,20 @@ object SinkRecordConverter extends StrictLogging {
                 if (schema != null && Decimal.LOGICAL_NAME == schema.name) {
                   value match {
                     case jbd: java.math.BigDecimal => jbd
-                    case bd: BigDecimal => bd.bigDecimal
-                    case bb: ByteBuffer => Decimal.toLogical(schema, bb.array())
+                    case bd:  BigDecimal           => bd.bigDecimal
+                    case bb:  ByteBuffer           => Decimal.toLogical(schema, bb.array())
                     case _ => Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
                   }
-                }
-                else value match {
-                  case arrayByte: Array[Byte] => arrayByte
-                  case buffer: ByteBuffer => buffer.array
-                  case _ => throw new DataException("Invalid type for bytes type: " + value.getClass)
-                }
+                } else
+                  value match {
+                    case arrayByte: Array[Byte] => arrayByte
+                    case buffer:    ByteBuffer  => buffer.array
+                    case _ => throw new DataException("Invalid type for bytes type: " + value.getClass)
+                  }
 
               case Schema.Type.ARRAY =>
                 val valueSchema = Option(schema).map(_.valueSchema()).orNull
-                val list = new java.util.ArrayList[Any]
+                val list        = new java.util.ArrayList[Any]
                 value
                   .asInstanceOf[java.util.Collection[_]].asScala
                   .foreach { elem =>
@@ -149,14 +154,14 @@ object SinkRecordConverter extends StrictLogging {
                   .map(_.keySchema.`type` eq Schema.Type.STRING)
                   .getOrElse(map.entrySet().asScala.headOption.forall(_.getKey.isInstanceOf[String]))
 
-                var obj: Document = null
+                var obj:  Document                 = null
                 var list: java.util.ArrayList[Any] = null
 
                 if (objectMode) obj = new Document()
-                else list = new util.ArrayList[Any]()
+                else list           = new util.ArrayList[Any]()
 
                 for (entry <- map.entrySet.asScala) {
-                  val keySchema = Option(schema).map(_.keySchema()).orNull
+                  val keySchema   = Option(schema).map(_.keySchema()).orNull
                   val valueSchema = Option(schema).map(_.valueSchema).orNull
 
                   val mapKey = convertToDocument(keySchema, entry.getKey)
@@ -165,8 +170,7 @@ object SinkRecordConverter extends StrictLogging {
                     .foreach { mapValue =>
                       if (objectMode) {
                         obj.append(mapKey.toString, mapValue)
-                      }
-                      else {
+                      } else {
                         val innerArray = new util.ArrayList[Any]()
                         innerArray.add(mapKey)
                         innerArray.add(mapValue)
@@ -184,9 +188,10 @@ object SinkRecordConverter extends StrictLogging {
                 schema.fields.asScala
                   .foldLeft(new Document) { (document, field) =>
                     Option(convertToDocument(field.schema, struct.get(field)))
-                      .foreach(//case bd: BigDecimal => document.append(field.name, bd.toDouble)
+                      .foreach( //case bd: BigDecimal => document.append(field.name, bd.toDouble)
                         //case bi: BigInt => document.append(field.name(), bi.toLong)
-                        v => document.append(field.name, v))
+                        v => document.append(field.name, v),
+                      )
                     document
                   }
 
@@ -219,9 +224,9 @@ object SinkRecordConverter extends StrictLogging {
                   case _ => throw new ConnectException(s"$other is not a recognized schema")
                 }
             }
-          }
-          catch {
-            case _: ClassCastException => throw new DataException("Invalid type for " + schema.`type` + ": " + value.getClass)
+          } catch {
+            case _: ClassCastException =>
+              throw new DataException("Invalid type for " + schema.`type` + ": " + value.getClass)
           }
       }
     }
@@ -245,17 +250,17 @@ object SinkRecordConverter extends StrictLogging {
         val list = new util.ArrayList[Any]()
         array.children.filter {
           case JNull | JNothing => false
-          case _ => true
+          case _                => true
         }.map {
           case JObject(values) => values.foldLeft(new Document) { case (d, (n, j)) => convert(n, j, d) }
-          case JBool(b) => b
-          case JDecimal(d) => d.toDouble //need to do this because of mong not understanding the codec
-          case JDouble(d) => d
-          case JInt(i) => i.toLong //need to do this because of mongo
-          case JLong(l) => l
-          case JString(s) => s
-          case JNothing => null
-          case JNull => null
+          case JBool(b)        => b
+          case JDecimal(d)     => d.toDouble //need to do this because of mong not understanding the codec
+          case JDouble(d)      => d
+          case JInt(i)         => i.toLong   //need to do this because of mongo
+          case JLong(l)        => l
+          case JString(s)      => s
+          case JNothing        => null
+          case JNull           => null
           case arr: JArray => convertArray(arr)
           case _ => throw new IllegalStateException(s"No match found for $record/$array")
         }.foreach(list.add)
@@ -264,16 +269,16 @@ object SinkRecordConverter extends StrictLogging {
 
       val value = jvalue match {
         case arr: JArray => convertArray(arr)
-        case JBool(b) => b
-        case JDecimal(d) => d.toDouble //need to do this because of mong
-        case JDouble(d) => d
-        case JInt(i) => i.toLong //need to do this because of mongo
-        case JLong(l) => l
-        case JNothing => null
-        case JNull => null
-        case JString(s) => s
+        case JBool(b)        => b
+        case JDecimal(d)     => d.toDouble //need to do this because of mong
+        case JDouble(d)      => d
+        case JInt(i)         => i.toLong   //need to do this because of mongo
+        case JLong(l)        => l
+        case JNothing        => null
+        case JNull           => null
+        case JString(s)      => s
         case JObject(values) => values.foldLeft(new Document) { case (d, (n, j)) => convert(n, j, d) }
-        case _ => throw new IllegalStateException(s"No match found for $record/$jvalue")
+        case _               => throw new IllegalStateException(s"No match found for $record/$jvalue")
       }
       Option(value).map(document.append(name, _)).getOrElse(document)
     }
@@ -301,11 +306,11 @@ object SinkRecordConverter extends StrictLogging {
     logger.debug(s"convertTimestamps: converting document ${doc.toString}")
     logger.debug(s"convertTimestamps: using jsonDateTimeFields of ${settings.jsonDateTimeFields}")
 
-    fieldSet.foreach{ parts =>
-
+    fieldSet.foreach { parts =>
       def convertValue(
         remainingParts: Seq[String],
-        lastDoc: java.util.Map[String, Object]): Unit = {
+        lastDoc:        java.util.Map[String, Object],
+      ): Unit = {
 
         val head = remainingParts.headOption
         remainingParts.size match {
@@ -313,18 +318,17 @@ object SinkRecordConverter extends StrictLogging {
             val testVal = lastDoc.get(head.get)
             val newVal: Option[Object] = testVal match {
               case s: String => Option {
-                Try( OffsetDateTime.parse(s).toInstant().toEpochMilli() ).
-                  toOption.
-                  map { millis => new java.util.Date(millis) }.
-                  getOrElse(s)
-              }
-              case i: Integer => Option(new java.util.Date(i.longValue()))
+                  Try(OffsetDateTime.parse(s).toInstant().toEpochMilli()).toOption.map { millis =>
+                    new java.util.Date(millis)
+                  }.getOrElse(s)
+                }
+              case i: Integer        => Option(new java.util.Date(i.longValue()))
               case i: java.lang.Long => Option(new java.util.Date(i))
               case _ => None
             }
-            newVal.map{ nv => lastDoc.put(head.get, nv) }
+            newVal.map(nv => lastDoc.put(head.get, nv))
           }
-          case n: Int if (n > 1) => {
+          case n: Int if n > 1 => {
             val testVal = lastDoc.get(head.get)
             testVal match {
               case subDoc: java.util.Map[String, Object] @unchecked => // Document implements Map, HashMap is used sometimes too for subdocs
@@ -345,6 +349,6 @@ object SinkRecordConverter extends StrictLogging {
       convertValue(parts, doc)
     }
 
-    logger.debug("converted doc is: "+doc.toString)
+    logger.debug("converted doc is: " + doc.toString)
   }
 }

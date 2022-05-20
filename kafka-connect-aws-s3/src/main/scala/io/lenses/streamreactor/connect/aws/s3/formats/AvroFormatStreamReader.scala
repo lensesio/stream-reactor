@@ -20,12 +20,14 @@ import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.aws.s3.model.SchemaAndValueSourceData
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import org.apache.avro.file.DataFileStream
-import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
+import org.apache.avro.generic.GenericDatumReader
+import org.apache.avro.generic.GenericRecord
 
 import java.io.InputStream
 import scala.util.Try
 
-class AvroFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: RemoteS3PathLocation) extends S3FormatStreamReader[SchemaAndValueSourceData] {
+class AvroFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: RemoteS3PathLocation)
+    extends S3FormatStreamReader[SchemaAndValueSourceData] {
   private val avroDataConverter = new AvroData(100)
 
   private val datumReader = new GenericDatumReader[GenericRecord]()
@@ -45,7 +47,7 @@ class AvroFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: Re
 
   override def next(): SchemaAndValueSourceData = {
     lineNumber += 1
-    val genericRecord = stream.next
+    val genericRecord  = stream.next
     val schemaAndValue = avroDataConverter.toConnectData(genericRecord.getSchema, genericRecord)
     SchemaAndValueSourceData(schemaAndValue, lineNumber)
   }

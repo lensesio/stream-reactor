@@ -1,9 +1,10 @@
 package com.landoop.streamreactor.connect.hive.orc.vectors
 
-import org.apache.hadoop.hive.ql.exec.vector.{ColumnVector, ListColumnVector}
+import org.apache.hadoop.hive.ql.exec.vector.ColumnVector
+import org.apache.hadoop.hive.ql.exec.vector.ListColumnVector
 
 class ListVectorReader[T <: ColumnVector, U](reader: OrcVectorReader[T, U])
-  extends OrcVectorReader[ListColumnVector, Seq[Option[U]]] {
+    extends OrcVectorReader[ListColumnVector, Seq[Option[U]]] {
 
   override def read(offset: Int, vector: ListColumnVector): Option[Seq[Option[U]]] = {
 
@@ -17,7 +18,7 @@ class ListVectorReader[T <: ColumnVector, U](reader: OrcVectorReader[T, U])
     val allNull = isNulls && repeats && vector.isNull(0)
 
     val start = vector.offsets(offset).toInt
-    val end = vector.offsets(offset).toInt + vector.lengths(offset).toInt - 1
+    val end   = vector.offsets(offset).toInt + vector.lengths(offset).toInt - 1
 
     val elementVector = vector.child.asInstanceOf[T]
 

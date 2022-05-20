@@ -40,7 +40,7 @@ object ConfigurationBuilder {
 
   def buildHiveConfig(hadoopConfiguration: HadoopConfiguration): HiveConf = {
     val configuration = new conf.HiveConf()
-    def appendFile(dir:String, file:String): Unit = {
+    def appendFile(dir: String, file: String): Unit = {
       val hiveFile = new File(dir + s"/$file")
       if (!hiveFile.exists) {
         logger.warn(s"$file does not exist in provided Hive configuration directory $hiveFile.")

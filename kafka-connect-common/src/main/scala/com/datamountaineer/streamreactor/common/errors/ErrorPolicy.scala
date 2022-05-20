@@ -21,10 +21,11 @@ package com.datamountaineer.streamreactor.common.errors
 import java.util.Date
 import ErrorPolicyEnum.ErrorPolicyEnum
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.kafka.connect.errors.{ConnectException, RetriableException}
+import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.errors.RetriableException
 
 /**
-  * Created by andrew@datamountaineer.com on 19/05/16. 
+  * Created by andrew@datamountaineer.com on 19/05/16.
   * kafka-connect-common
   */
 object ErrorPolicyEnum extends Enumeration {
@@ -32,43 +33,44 @@ object ErrorPolicyEnum extends Enumeration {
   val NOOP, THROW, RETRY = Value
 }
 
-case class ErrorTracker(retries: Int, maxRetries: Int, lastErrorMessage: String, lastErrorTimestamp: Date, policy: ErrorPolicy)
+case class ErrorTracker(
+  retries:            Int,
+  maxRetries:         Int,
+  lastErrorMessage:   String,
+  lastErrorTimestamp: Date,
+  policy:             ErrorPolicy,
+)
 
 trait ErrorPolicy extends StrictLogging {
   def handle(error: Throwable, sink: Boolean = true, retryCount: Int = 0): Unit
 }
 
 object ErrorPolicy extends StrictLogging {
-  def apply(policy: ErrorPolicyEnum): ErrorPolicy = {
+  def apply(policy: ErrorPolicyEnum): ErrorPolicy =
     policy match {
-      case ErrorPolicyEnum.NOOP => NoopErrorPolicy()
+      case ErrorPolicyEnum.NOOP  => NoopErrorPolicy()
       case ErrorPolicyEnum.THROW => ThrowErrorPolicy()
       case ErrorPolicyEnum.RETRY => RetryErrorPolicy()
     }
-  }
 }
 
 case class NoopErrorPolicy() extends ErrorPolicy {
-  override def handle(error: Throwable, sink: Boolean = true, retryCount: Int = 0): Unit = {
+  override def handle(error: Throwable, sink: Boolean = true, retryCount: Int = 0): Unit =
     logger.warn(s"Error policy NOOP: [${error.getMessage}]. Processing continuing.")
-  }
 }
 
 case class ThrowErrorPolicy() extends ErrorPolicy {
-  override def handle(error: Throwable, sink: Boolean = true, retryCount: Int = 0): Unit = {
+  override def handle(error: Throwable, sink: Boolean = true, retryCount: Int = 0): Unit =
     throw new ConnectException(error)
-  }
 }
 
 case class RetryErrorPolicy() extends ErrorPolicy {
 
-  override def handle(error: Throwable, sink: Boolean = true, retryCount: Int): Unit = {
+  override def handle(error: Throwable, sink: Boolean = true, retryCount: Int): Unit =
     if (retryCount == 0) {
       throw new ConnectException(error)
-    }
-    else {
+    } else {
       logger.warn(s"Error policy set to RETRY. Remaining attempts [$retryCount]")
       throw new RetriableException(error)
     }
-  }
 }

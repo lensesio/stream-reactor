@@ -18,21 +18,19 @@ package com.datamountaineer.streamreactor.connect.hbase
 
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.hbase.TableName
-import org.apache.hadoop.hbase.client.{Connection, Table}
+import org.apache.hadoop.hbase.client.Connection
+import org.apache.hadoop.hbase.client.Table
 
 object HbaseHelper extends StrictLogging {
-  def autoclose[C <: AutoCloseable, T](closeable: C)(thunk: C => T): T = {
+  def autoclose[C <: AutoCloseable, T](closeable: C)(thunk: C => T): T =
     try {
       thunk(closeable)
-    }
-    finally {
+    } finally {
       if (closeable != null) {
         closeable.close()
       }
     }
-  }
 
-  def withTable[T](tableName: TableName)(thunk: Table => T)(implicit connection: Connection): T = {
+  def withTable[T](tableName: TableName)(thunk: Table => T)(implicit connection: Connection): T =
     autoclose(connection.getTable(tableName))(thunk)
-  }
 }

@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -19,7 +18,8 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 
-import java.io.{File, InputStream}
+import java.io.File
+import java.io.InputStream
 import java.time.Instant
 
 trait StorageInterface {
@@ -36,12 +36,11 @@ trait StorageInterface {
 
   def getBlobAsString(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, String]
 
-  def getBlobSize(bucketAndPath: RemoteS3PathLocation): Either[String,Long]
+  def getBlobSize(bucketAndPath: RemoteS3PathLocation): Either[String, Long]
 
-  def getBlobModified(location: RemoteS3PathLocation): Either[String,Instant]
+  def getBlobModified(location: RemoteS3PathLocation): Either[String, Instant]
 
   def writeStringToFile(target: RemoteS3PathLocation, data: String): Either[UploadError, Unit]
 
   def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit]
 }
-

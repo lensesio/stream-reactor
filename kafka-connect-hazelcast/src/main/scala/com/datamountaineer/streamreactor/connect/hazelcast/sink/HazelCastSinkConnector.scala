@@ -20,27 +20,28 @@ import com.datamountaineer.streamreactor.common.config.Helpers
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 
 import java.util
-import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkConfig, HazelCastSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfig
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfigConstants
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
-import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
-
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 10/08/16. 
+  * Created by andrew@datamountaineer.com on 10/08/16.
   * stream-reactor
   */
 class HazelCastSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: Option[util.Map[String, String]] = None
   private val configDef = HazelCastSinkConfig.config
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest  = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SinkTask class to use
-    **/
+    */
   override def taskClass(): Class[_ <: Task] = classOf[HazelCastSinkTask]
 
   /**
@@ -48,7 +49,7 @@ class HazelCastSinkConnector extends SinkConnector with StrictLogging {
     *
     * @param maxTasks The max number of task workers be can spawn
     * @return a List of configuration properties per worker
-    **/
+    */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
     (1 to maxTasks).map(_ => configProps.get).toList.asJava
@@ -58,7 +59,7 @@ class HazelCastSinkConnector extends SinkConnector with StrictLogging {
     * Start the sink and set to configuration
     *
     * @param props A map of properties for the connector and worker
-    **/
+    */
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Hazelcast sink task.")
     Helpers.checkInputTopics(HazelCastSinkConfigConstants.KCQL, props.asScala.toMap)
@@ -71,4 +72,3 @@ class HazelCastSinkConnector extends SinkConnector with StrictLogging {
 
   override def config(): ConfigDef = configDef
 }
-

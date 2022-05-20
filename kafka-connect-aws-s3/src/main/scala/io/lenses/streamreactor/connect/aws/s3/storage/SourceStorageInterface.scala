@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -17,15 +16,15 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 
 trait SourceStorageInterface {
 
   def list(
-            bucketAndPrefix: RemoteS3RootLocation,
-            lastFile : Option[RemoteS3PathLocation],
-            numResults : Int
-          ): Either[Throwable, List[String]]
+    bucketAndPrefix: RemoteS3RootLocation,
+    lastFile:        Option[RemoteS3PathLocation],
+    numResults:      Int,
+  ): Either[Throwable, List[String]]
 
 }
-

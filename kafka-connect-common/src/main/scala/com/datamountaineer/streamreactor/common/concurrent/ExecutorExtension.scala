@@ -19,21 +19,22 @@ package com.datamountaineer.streamreactor.common.concurrent
 
 import java.util.concurrent.Executor
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Future
+import scala.concurrent.Promise
 
 object ExecutorExtension {
 
   implicit class RunnableWrapper(val executor: Executor) extends AnyVal {
     def submit[T](thunk: => T): Future[T] = {
       val promise = Promise[T]()
-      executor.execute(() => {
+      executor.execute { () =>
         try {
           val t = thunk
           promise.success(t)
         } catch {
           case t: Throwable => promise.failure(t)
         }
-      })
+      }
       promise.future
     }
   }

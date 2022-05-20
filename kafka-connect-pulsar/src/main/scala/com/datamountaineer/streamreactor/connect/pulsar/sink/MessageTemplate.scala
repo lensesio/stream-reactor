@@ -1,14 +1,14 @@
 package com.datamountaineer.streamreactor.connect.pulsar.sink
 
-import org.apache.pulsar.client.api.{Producer, TypedMessageBuilder}
+import org.apache.pulsar.client.api.Producer
+import org.apache.pulsar.client.api.TypedMessageBuilder
 
-case class MessageTemplate (
+case class MessageTemplate(
   pulsarTopic: String,
-  key: Option[String],
-  value: Array[Byte],
-  eventTime: Long,
-
-                           ) {
+  key:         Option[String],
+  value:       Array[Byte],
+  eventTime:   Long,
+) {
   def toMessage(producer: Producer[Array[Byte]]): TypedMessageBuilder[Array[Byte]] = {
     val msg = producer.newMessage()
       .eventTime(eventTime)

@@ -16,28 +16,27 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.connection
 
-import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttSinkSettings, MqttSourceSettings}
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkSettings
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
 import com.datamountaineer.streamreactor.connect.mqtt.source.MqttSSLSocketFactory
 import com.typesafe.scalalogging.StrictLogging
-import org.eclipse.paho.client.mqttv3.{MqttClient, MqttConnectOptions}
+import org.eclipse.paho.client.mqttv3.MqttClient
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 object MqttClientConnectionFn extends StrictLogging {
-  def apply(settings: MqttSourceSettings): MqttConnectOptions = {
-    {
-      buildBaseClient(
-        settings.connectionTimeout,
-        settings.keepAliveInterval,
-        settings.cleanSession,
-        settings.user,
-        settings.password,
-        settings.sslCertFile,
-        settings.sslCACertFile,
-        settings.sslCertKeyFile,
-        settings.connection
-      )
-    }
-  }
+  def apply(settings: MqttSourceSettings): MqttConnectOptions =
+    buildBaseClient(
+      settings.connectionTimeout,
+      settings.keepAliveInterval,
+      settings.cleanSession,
+      settings.user,
+      settings.password,
+      settings.sslCertFile,
+      settings.sslCACertFile,
+      settings.sslCertKeyFile,
+      settings.connection,
+    )
 
   def apply(settings: MqttSinkSettings): MqttClient = {
     val options = buildBaseClient(
@@ -49,26 +48,28 @@ object MqttClientConnectionFn extends StrictLogging {
       settings.sslCertFile,
       settings.sslCACertFile,
       settings.sslCertKeyFile,
-      settings.connection
+      settings.connection,
     )
 
     val servers = settings.connection.split(',').map(_.trim).filter(_.nonEmpty)
-    val c = new MqttClient(servers.head, settings.clientId, new MemoryPersistence())
+    val c       = new MqttClient(servers.head, settings.clientId, new MemoryPersistence())
     logger.info(s"Connecting to ${settings.connection}")
     c.connect(options)
     logger.info(s"Connected to ${settings.connection} as ${settings.clientId}")
     c
   }
 
-  def buildBaseClient(connectionTimeout: Int,
-                      keepAliveInterval: Int,
-                      cleanSession: Boolean,
-                      username: Option[String],
-                      password: Option[String],
-                      sslCertFile: Option[String],
-                      sslCACertFile: Option[String],
-                      sslCertKeyFile: Option[String],
-                      connection:String): MqttConnectOptions = {
+  def buildBaseClient(
+    connectionTimeout: Int,
+    keepAliveInterval: Int,
+    cleanSession:      Boolean,
+    username:          Option[String],
+    password:          Option[String],
+    sslCertFile:       Option[String],
+    sslCACertFile:     Option[String],
+    sslCertKeyFile:    Option[String],
+    connection:        String,
+  ): MqttConnectOptions = {
     val options = new MqttConnectOptions()
     options.setConnectionTimeout(connectionTimeout)
     options.setKeepAliveInterval(keepAliveInterval)
@@ -82,7 +83,7 @@ object MqttClientConnectionFn extends StrictLogging {
 
     sslCertFile.foreach { _ =>
       options.setSocketFactory(
-        MqttSSLSocketFactory(sslCACertFile.get, sslCertFile.get, sslCertKeyFile.get, "")
+        MqttSSLSocketFactory(sslCACertFile.get, sslCertFile.get, sslCertKeyFile.get, ""),
       )
     }
 

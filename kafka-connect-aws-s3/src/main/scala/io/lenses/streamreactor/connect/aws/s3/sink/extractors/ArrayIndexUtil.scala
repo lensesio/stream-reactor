@@ -22,7 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType
 
 object ArrayIndexUtil extends LazyLogging {
 
-  private[extractors] def getArrayIndex(fieldName: String): Either[ExtractorError, Int] = {
+  private[extractors] def getArrayIndex(fieldName: String): Either[ExtractorError, Int] =
     try {
       fieldName.toInt.asRight[ExtractorError]
     } catch {
@@ -30,5 +30,4 @@ object ArrayIndexUtil extends LazyLogging {
         logger.error("Incorrect index type for Array type, expected only numeric characters")
         ExtractorError(IncorrectIndexType).asLeft
     }
-  }
 }

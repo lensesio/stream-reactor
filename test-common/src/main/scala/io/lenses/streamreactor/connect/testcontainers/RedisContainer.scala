@@ -1,6 +1,8 @@
 package io.lenses.streamreactor.connect.testcontainers
 
-import io.lenses.streamreactor.connect.testcontainers.RedisContainer.{defaultNetworkAlias, defaultPort, defaultTag}
+import io.lenses.streamreactor.connect.testcontainers.RedisContainer.defaultNetworkAlias
+import io.lenses.streamreactor.connect.testcontainers.RedisContainer.defaultPort
+import io.lenses.streamreactor.connect.testcontainers.RedisContainer.defaultTag
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.utility.DockerImageName
 import redis.clients.jedis.Jedis

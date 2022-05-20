@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2021 Lenses.io
  *
@@ -20,12 +19,15 @@ package io.lenses.streamreactor.connect.aws.s3.stream
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
-import io.lenses.streamreactor.connect.aws.s3.sink.{FatalS3SinkError, SinkError}
+import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
+import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 
 import java.io.BufferedOutputStream
 import scala.util.Try
 
-class BuildLocalOutputStream(outputStream: BufferedOutputStream, topicPartition: TopicPartition) extends S3OutputStream with LazyLogging {
+class BuildLocalOutputStream(outputStream: BufferedOutputStream, topicPartition: TopicPartition)
+    extends S3OutputStream
+    with LazyLogging {
 
   private var pointer = 0
 
@@ -36,7 +38,7 @@ class BuildLocalOutputStream(outputStream: BufferedOutputStream, topicPartition:
     require(
       validateRange(startOffset, bytes.length) &&
         numberOfBytes > 0 &&
-        validateRange(endOffset, bytes.length)
+        validateRange(endOffset, bytes.length),
     )
 
     outputStream.write(bytes.slice(startOffset, endOffset))
@@ -49,15 +51,13 @@ class BuildLocalOutputStream(outputStream: BufferedOutputStream, topicPartition:
   }
 
   override def complete(): Either[SinkError, Unit] = {
-    {
-      for {
-        a <- Try(outputStream.close()).toEither
-      } yield a
-    }.leftMap {
-      case se: SinkError => se
-      case to: Throwable =>
-        FatalS3SinkError(to.getMessage, topicPartition)
-    }
+    for {
+      a <- Try(outputStream.close()).toEither
+    } yield a
+  }.leftMap {
+    case se: SinkError => se
+    case to: Throwable =>
+      FatalS3SinkError(to.getMessage, topicPartition)
   }
 
   private def validateRange(startOffset: Int, numberOfBytes: Int) = startOffset >= 0 && startOffset <= numberOfBytes

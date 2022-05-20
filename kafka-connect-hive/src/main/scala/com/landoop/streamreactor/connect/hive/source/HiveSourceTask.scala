@@ -7,39 +7,45 @@ import java.time.temporal.ChronoUnit
 import java.util
 import com.landoop.streamreactor.connect.hive.ConfigurationBuilder
 import com.landoop.streamreactor.connect.hive.HadoopConfigurationExtension._
-import com.landoop.streamreactor.connect.hive.kerberos.{KerberosLogin, UgiExecute}
+import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
+import com.landoop.streamreactor.connect.hive.kerberos.UgiExecute
 import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
-import com.landoop.streamreactor.connect.hive.source.offset.{HiveSourceInitOffsetStorageReader, HiveSourceOffsetStorageReader, HiveSourceRefreshOffsetStorageReader}
+import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceInitOffsetStorageReader
+import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceOffsetStorageReader
+import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceRefreshOffsetStorageReader
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient
 import org.apache.kafka.connect.errors.ConnectException
-import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
+import org.apache.kafka.connect.source.SourceRecord
+import org.apache.kafka.connect.source.SourceTask
 
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Try
 
 class HiveSourceTask extends SourceTask with StrictLogging with UgiExecute {
 
   private val manifest = JarManifest(
-    getClass.getProtectionDomain.getCodeSource.getLocation
+    getClass.getProtectionDomain.getCodeSource.getLocation,
   )
   private var client: HiveMetaStoreClient = _
-  private var fs: FileSystem = _
-  private var config: HiveSourceConfig = _
+  private var fs:     FileSystem          = _
+  private var config: HiveSourceConfig    = _
 
-  private var sources: Set[HiveSource] = Set.empty
+  private var sources:  Set[HiveSource]        = Set.empty
   private var iterator: Iterator[SourceRecord] = Iterator.empty
   private var kerberosLogin = Option.empty[KerberosLogin]
-  private var lastRefresh: Instant = Instant.now()
+  private var lastRefresh: Instant                                    = Instant.now()
   private var lastOffsets: Option[Map[SourcePartition, SourceOffset]] = None
 
   def this(fs: FileSystem, client: HiveMetaStoreClient) = {
     this()
     this.client = client
-    this.fs = fs
+    this.fs     = fs
   }
 
   override def start(props: util.Map[String, String]): Unit = {
@@ -64,41 +70,40 @@ class HiveSourceTask extends SourceTask with StrictLogging with UgiExecute {
     hiveConf.set("hive.metastore.local", "false")
     hiveConf.set(
       "hive.metastore",
-      configs.get(SinkConfigSettings.MetastoreTypeKey)
+      configs.get(SinkConfigSettings.MetastoreTypeKey),
     )
     hiveConf.set(
       "hive.metastore.uris",
-      configs.get(SinkConfigSettings.MetastoreUrisKey)
+      configs.get(SinkConfigSettings.MetastoreUrisKey),
     )
     config.kerberos.foreach { _ =>
       val principal =
         Option(configs.get(SinkConfigSettings.HiveMetastorePrincipalKey))
           .getOrElse {
             throw new ConnectException(
-              s"Missing configuration for [${SinkConfigSettings.HiveMetastorePrincipalKey}]. When using Kerberos it is required to set the configuration."
+              s"Missing configuration for [${SinkConfigSettings.HiveMetastorePrincipalKey}]. When using Kerberos it is required to set the configuration.",
             )
           }
 
       hiveConf.set("hive.metastore.kerberos.principal", principal)
     }
 
-    execute{
-      fs = FileSystem.get(conf)
+    execute {
+      fs     = FileSystem.get(conf)
       client = new HiveMetaStoreClient(hiveConf)
     }
     val databases = execute(client.getAllDatabases)
     if (!databases.contains(config.dbName.value)) {
       throw new ConnectException(
-        s"Cannot find database [${config.dbName.value}]. Current database(-s): ${databases.asScala.mkString(",")}. Please make sure the database is created before sinking to it."
+        s"Cannot find database [${config.dbName.value}]. Current database(-s): ${databases.asScala.mkString(",")}. Please make sure the database is created before sinking to it.",
       )
     }
 
     initSources(contextReader)
   }
 
-  private def contextReader = {
+  private def contextReader =
     new HiveSourceInitOffsetStorageReader(context.offsetStorageReader)
-  }
 
   private def initSources(reader: HiveSourceOffsetStorageReader): Unit = execute {
     lastRefresh = Instant.now()
@@ -110,16 +115,14 @@ class HiveSourceTask extends SourceTask with StrictLogging with UgiExecute {
         options.topic,
         reader,
         config,
-        this
+        this,
       )(client, fs)
     }
 
-    iterator = sources.reduce(
-      (a: Iterator[SourceRecord], b: Iterator[SourceRecord]) => a ++ b
-    )
+    iterator = sources.reduce((a: Iterator[SourceRecord], b: Iterator[SourceRecord]) => a ++ b)
   }
 
-  private def originalSourceOffsets = execute{
+  private def originalSourceOffsets = execute {
     sources.map(_.getOffsets).reduce(_ ++ _)
   }
 
@@ -129,7 +132,7 @@ class HiveSourceTask extends SourceTask with StrictLogging with UgiExecute {
     iterator.take(config.pollSize).toList.asJava
   }
 
-  private def refreshIfNecessary(): Unit = {
+  private def refreshIfNecessary(): Unit =
     if (config.refreshFrequency > 0) {
       val nextRefresh = lastRefresh.plus(config.refreshFrequency.toLong, ChronoUnit.SECONDS)
       if (Instant.now().isAfter(nextRefresh)) {
@@ -146,10 +149,9 @@ class HiveSourceTask extends SourceTask with StrictLogging with UgiExecute {
         initSources(new HiveSourceRefreshOffsetStorageReader(allOffsets, contextReader))
       }
     }
-  }
 
   override def stop(): Unit = {
-    execute{
+    execute {
       sources.foreach(_.close())
     }
     kerberosLogin.foreach(_.close())

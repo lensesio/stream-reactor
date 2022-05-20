@@ -22,10 +22,12 @@ import com.typesafe.scalalogging.StrictLogging
 import io.confluent.kafka.schemaregistry.client.rest.RestService
 
 import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
-  * Created by andrew@datamountaineer.com on 13/06/16. 
+  * Created by andrew@datamountaineer.com on 13/06/16.
   * kafka-connect-common
   */
 object SchemaRegistry extends StrictLogging {
@@ -36,8 +38,8 @@ object SchemaRegistry extends StrictLogging {
     * @param url The url of the schema registry
     * @param subject The subject to het the schema for
     * @return The schema for the subject
-    * */
-  def getSchema(url : String, subject : String) : String = {
+    */
+  def getSchema(url: String, subject: String): String = {
     val registry = new RestService(url)
 
     Try(registry.getLatestVersion(subject).getSchema) match {
@@ -45,7 +47,10 @@ object SchemaRegistry extends StrictLogging {
         logger.info(s"Found schema for $subject")
         s
       case Failure(throwable) =>
-        logger.warn("Unable to connect to the Schema registry. An attempt will be made to create the table on receipt of the first records.",  throwable)
+        logger.warn(
+          "Unable to connect to the Schema registry. An attempt will be made to create the table on receipt of the first records.",
+          throwable,
+        )
         ""
     }
   }
@@ -55,19 +60,21 @@ object SchemaRegistry extends StrictLogging {
     *
     * @param url The url to the schema registry
     * @return A list of subjects/topics
-    * */
-  def getSubjects(url: String) : List[String] = {
+    */
+  def getSubjects(url: String): List[String] = {
     val registry = new RestService(url)
     val schemas: List[String] = Try(registry.getAllSubjects.asScala.toList) match {
       case Success(s) => s
       case Failure(_) => {
-        logger.warn("Unable to connect to the Schema registry. An attempt will be made to create the table" +
-          " on receipt of the first records.")
+        logger.warn(
+          "Unable to connect to the Schema registry. An attempt will be made to create the table" +
+            " on receipt of the first records.",
+        )
         List.empty[String]
       }
     }
 
-    schemas.foreach(s=>logger.info(s"Found schemas for $s"))
+    schemas.foreach(s => logger.info(s"Found schemas for $s"))
     schemas
   }
 }

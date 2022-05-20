@@ -1,17 +1,24 @@
 package com.datamountaineer.streamreactor.connect.ftp.source
 
-import com.datamountaineer.streamreactor.connect.ftp.source.SFTPClient.{Password, Username}
-import com.jcraft.jsch.{ChannelSftp, JSch, Session}
+import com.datamountaineer.streamreactor.connect.ftp.source.SFTPClient.Password
+import com.datamountaineer.streamreactor.connect.ftp.source.SFTPClient.Username
+import com.jcraft.jsch.ChannelSftp
+import com.jcraft.jsch.JSch
+import com.jcraft.jsch.Session
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.lang3.exception.ExceptionUtils
-import org.apache.commons.net.ftp.{FTPClient, FTPFile}
+import org.apache.commons.net.ftp.FTPClient
+import org.apache.commons.net.ftp.FTPFile
 
 import java.io.OutputStream
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.util.{GregorianCalendar, Properties}
+import java.util.GregorianCalendar
+import java.util.Properties
 import scala.jdk.CollectionConverters._
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
   * Implementation for Secure File Transfer Protocol, to allow Source a SFTP server
@@ -22,13 +29,13 @@ import scala.util.{Failure, Success, Try}
   */
 class SFTPClient extends FTPClient with StrictLogging {
 
-  private var lastReplyCode: Int = 500
-  private var maybeConnectTimeout: Option[Int] = None
-  private var maybeDataTimeout: Option[Int] = None
-  private var maybeHostname: Option[String] = None
-  private var maybeExplicitPort: Option[Int] = None
-  private var maybeJschSession: Option[Session] = None
-  private var maybeChannelSftp: Option[ChannelSftp] = None
+  private var lastReplyCode:       Int                 = 500
+  private var maybeConnectTimeout: Option[Int]         = None
+  private var maybeDataTimeout:    Option[Int]         = None
+  private var maybeHostname:       Option[String]      = None
+  private var maybeExplicitPort:   Option[Int]         = None
+  private var maybeJschSession:    Option[Session]     = None
+  private var maybeChannelSftp:    Option[ChannelSftp] = None
 
   private val dateFormat = DateTimeFormatter.ofPattern("EEE MMM d HH:mm:ss zzz uuuu")
 
@@ -44,32 +51,29 @@ class SFTPClient extends FTPClient with StrictLogging {
   /**
     * We just check the session with the SFTP server is open
     */
-  override def isConnected(): Boolean = {
+  override def isConnected(): Boolean =
     maybeJschSession.exists(_.isConnected)
-  }
 
   /**
     * Max Timeout in Ms to open a session with SFTP Server
     */
-  override def setConnectTimeout(timeoutMs: Int): Unit = {
+  override def setConnectTimeout(timeoutMs: Int): Unit =
     maybeConnectTimeout = Some(timeoutMs)
-  }
 
   /**
     * Max Timeout in Ms to connect a channel with SFTP Server
     */
-  override def setDataTimeout(timeoutMs: Int): Unit = {
+  override def setDataTimeout(timeoutMs: Int): Unit =
     maybeDataTimeout = Some(timeoutMs)
-  }
 
   /**
     * Using JsCh library, the only thing we can do in this moment it's to keep the information
     * passed to be used later in subsequent steps
     */
   override def connect(hostname: String, explicitPort: Int): Unit = {
-    this.maybeHostname = Some(hostname)
+    this.maybeHostname     = Some(hostname)
     this.maybeExplicitPort = Some(explicitPort)
-    this.lastReplyCode = 200
+    this.lastReplyCode     = 200
   }
 
   /**
@@ -93,31 +97,31 @@ class SFTPClient extends FTPClient with StrictLogging {
     */
   override def login(username: String, password: String): Boolean = {
     getSessionAndChannel(Username(username), Password(password))
-      .map { case (session, channel) =>
-        maybeJschSession = Some(session)
-        maybeChannelSftp = Some(channel)
-        logger.debug(s"SFTPClient Successful Session/Channel created by username $username.")
-        lastReplyCode = 200
+      .map {
+        case (session, channel) =>
+          maybeJschSession = Some(session)
+          maybeChannelSftp = Some(channel)
+          logger.debug(s"SFTPClient Successful Session/Channel created by username $username.")
+          lastReplyCode = 200
       }.recover {
-      case e: Exception =>
-        logger.error(s"SFTPClient error login username $username. Caused by ${ExceptionUtils.getStackTrace(e)}")
-        lastReplyCode = 500
-    }
+        case e: Exception =>
+          logger.error(s"SFTPClient error login username $username. Caused by ${ExceptionUtils.getStackTrace(e)}")
+          lastReplyCode = 500
+      }
     maybeJschSession.isDefined && maybeChannelSftp.isDefined
   }
 
   /**
     * Not used in this implementation of [JsCh]
     */
-  override def setFileType(fileType: Int): Boolean = {
+  override def setFileType(fileType: Int): Boolean =
     true
-  }
 
   /**
     * Connect to SFTP server to obtain files information (name, size, last modify)
     * and it returns a Array[FTPFile] with all directory file info.
     */
-  override def listFiles(pathname: String): Array[FTPFile] = {
+  override def listFiles(pathname: String): Array[FTPFile] =
     maybeChannelSftp.fold {
       logger.error(s"SFTPClient Error no channel ready to obtain files from pathname $pathname.")
       Array[FTPFile]()
@@ -128,13 +132,12 @@ class SFTPClient extends FTPClient with StrictLogging {
       logger.debug(s"SFTPClient ${ftpFiles.size} remote files obtained from $pathname")
       ftpFiles.toArray
     }
-  }
 
   /**
     * Using the remote path of the file, and using [get] operator we're able to download the file and write
     * the content into the [OutputStream].
     */
-  override def retrieveFile(remote: String, fileBody: OutputStream): Boolean = {
+  override def retrieveFile(remote: String, fileBody: OutputStream): Boolean =
     maybeChannelSftp.fold {
       logger.debug(s"SFTPClient Error, channel not initiated in path $remote.")
       false
@@ -143,26 +146,25 @@ class SFTPClient extends FTPClient with StrictLogging {
       logger.debug(s"SFTPClient Successful retrieving files in path $remote.")
       true
     }
-  }
 
-  private def getFTPFiles(pathname: String, channel: ChannelSftp): List[FTPFile] = {
+  private def getFTPFiles(pathname: String, channel: ChannelSftp): List[FTPFile] =
     (for {
-      _ <- Try(channel.cd(pathname))
+      _        <- Try(channel.cd(pathname))
       ftpFiles <- fetchFiles(pathname, channel)
     } yield ftpFiles)
       .recover {
         case e: Exception =>
-          logger.error(s"SFTPClient Error obtaining resources from pathname $pathname. Caused by ${ExceptionUtils.getStackTrace(e)}")
+          logger.error(
+            s"SFTPClient Error obtaining resources from pathname $pathname. Caused by ${ExceptionUtils.getStackTrace(e)}",
+          )
           List()
       }.get
-  }
 
-  private def connectChannel(channel: ChannelSftp): Unit = {
+  private def connectChannel(channel: ChannelSftp): Unit =
     maybeDataTimeout
       .fold(channel.connect())(dataTimeout => channel.connect(dataTimeout))
-  }
 
-  private def fetchFiles(pathname: String, channel: ChannelSftp): Try[List[FTPFile]] = {
+  private def fetchFiles(pathname: String, channel: ChannelSftp): Try[List[FTPFile]] =
     Try {
       channel.ls(pathname)
         .asScala
@@ -171,14 +173,12 @@ class SFTPClient extends FTPClient with StrictLogging {
         .filter(lsEntry => lsEntry.getFilename != "." && lsEntry.getFilename != "..")
         .map(lsEntry => createFtpFile(lsEntry))
     }
-  }
 
-  private def transformToLsEntry(file: Any): ChannelSftp#LsEntry = {
+  private def transformToLsEntry(file: Any): ChannelSftp#LsEntry =
     file match {
-      case lsEntry:ChannelSftp#LsEntry => lsEntry
-      case unknown:Any => throw new ClassCastException(s"SFTPClient Error obtaining LsEntry. Unknown type $unknown")
+      case lsEntry: ChannelSftp#LsEntry => lsEntry
+      case unknown: Any                 => throw new ClassCastException(s"SFTPClient Error obtaining LsEntry. Unknown type $unknown")
     }
-  }
 
   private def createFtpFile(lsEntry: ChannelSftp#LsEntry) = {
     val ftpFile: FTPFile = new FTPFile()
@@ -191,13 +191,11 @@ class SFTPClient extends FTPClient with StrictLogging {
     ftpFile
   }
 
-  private def getSessionAndChannel(username: Username,
-                                   password: Password): Try[(Session, ChannelSftp)] = {
+  private def getSessionAndChannel(username: Username, password: Password): Try[(Session, ChannelSftp)] =
     for {
       session <- openSession(username, password)
       channel <- createChannel(session)
     } yield (session, channel)
-  }
 
   /**
     * Open a channel with protocol [sftp].
@@ -206,7 +204,8 @@ class SFTPClient extends FTPClient with StrictLogging {
     session =>
       session.openChannel("sftp") match {
         case channelSftp: ChannelSftp => Success(channelSftp)
-        case unknown:Any => Failure(new ClassCastException(s"SFTPClient Error obtaining ChannelSftp. Unknown Channel type $unknown"))
+        case unknown:     Any =>
+          Failure(new ClassCastException(s"SFTPClient Error obtaining ChannelSftp. Unknown Channel type $unknown"))
       }
   }
 
@@ -218,7 +217,7 @@ class SFTPClient extends FTPClient with StrictLogging {
       for {
         hostname <- getHostname(username)
         session <- Try {
-          val jsch = new JSch()
+          val jsch    = new JSch()
           val session = createSession(username, jsch, hostname)
           session.setPassword(password.value)
           setSessionConfig(session)
@@ -234,26 +233,23 @@ class SFTPClient extends FTPClient with StrictLogging {
     session.setConfig(config);
   }
 
-  private def connectSession(session: Session): Unit = {
+  private def connectSession(session: Session): Unit =
     maybeConnectTimeout
       .fold(session.connect()) {
         connectTimeout => session.connect(connectTimeout)
       }
-  }
 
-  private def createSession(username: Username, jsch: JSch, hostname: String): Session = {
+  private def createSession(username: Username, jsch: JSch, hostname: String): Session =
     maybeExplicitPort
       .fold(jsch.getSession(username.value, hostname)) {
         explicitPort => jsch.getSession(username.value, hostname, explicitPort)
       }
-  }
 
-  private def getHostname(username: Username): Try[String] = {
+  private def getHostname(username: Username): Try[String] =
     maybeHostname match {
       case Some(hostname) => Success(hostname)
-      case None => Failure(new NoSuchElementException(s"Hostname not provided in transaction for Username $username"))
+      case None           => Failure(new NoSuchElementException(s"Hostname not provided in transaction for Username $username"))
     }
-  }
 }
 
 object SFTPClient {

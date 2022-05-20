@@ -15,9 +15,13 @@
  */
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
-import com.microsoft.azure.documentdb.{DocumentClient, DocumentCollection, RequestOptions}
+import com.microsoft.azure.documentdb.DocumentClient
+import com.microsoft.azure.documentdb.DocumentCollection
+import com.microsoft.azure.documentdb.RequestOptions
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 object CreateDocumentCollectionFn {
   def apply(collection: String, databaseName: String)(implicit documentClient: DocumentClient): DocumentCollection = {
@@ -26,7 +30,11 @@ object CreateDocumentCollectionFn {
 
     val requestOptions = new RequestOptions()
     Try(documentClient.createCollection(databaseName, coll, requestOptions).getResource) match {
-      case Failure(ex) => throw new RuntimeException(s"Could not create collection with id [$collection] in database [$databaseName]. ${ex.getMessage}", ex)
+      case Failure(ex) =>
+        throw new RuntimeException(
+          s"Could not create collection with id [$collection] in database [$databaseName]. ${ex.getMessage}",
+          ex,
+        )
       case Success(c) => c
     }
   }

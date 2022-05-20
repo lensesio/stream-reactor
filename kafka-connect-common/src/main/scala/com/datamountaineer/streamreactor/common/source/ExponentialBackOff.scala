@@ -19,7 +19,7 @@
 package com.datamountaineer.streamreactor.common.source
 
 /**
-  * Created by andrew@datamountaineer.com on 03/03/2017. 
+  * Created by andrew@datamountaineer.com on 03/03/2017.
   * kafka-connect-common
   */
 
@@ -27,24 +27,27 @@ import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 
-class ExponentialBackOff(step: Duration, cap: Duration, iteration: Int = 0, clock: Clock = Clock.systemUTC(), first: Boolean = true) {
-  def now: Instant = Instant.now(clock)
+class ExponentialBackOff(
+  step:      Duration,
+  cap:       Duration,
+  iteration: Int     = 0,
+  clock:     Clock   = Clock.systemUTC(),
+  first:     Boolean = true,
+) {
+  def now:     Instant = Instant.now(clock)
   val endTime: Instant = now.plus(exponentialInterval(iteration))
 
   def remaining: Duration = Duration.between(now, endTime)
 
   def passed: Boolean = now.isAfter(this.endTime)
 
-  def nextSuccess(): ExponentialBackOff = {
+  def nextSuccess(): ExponentialBackOff =
     new ExponentialBackOff(step, cap, 0, clock, false)
-  }
 
-  def nextFailure(): ExponentialBackOff = {
+  def nextFailure(): ExponentialBackOff =
     new ExponentialBackOff(step, cap, iteration + 1, clock, false)
-  }
 
-  private def exponentialInterval(i: Int): Duration = {
-    if (first) Duration.ofMillis(-1) else Duration.ofMillis(Math.min(cap.toMillis, step.toMillis * Math.pow(2.toDouble, i.toDouble).toLong))
-  }
+  private def exponentialInterval(i: Int): Duration =
+    if (first) Duration.ofMillis(-1)
+    else Duration.ofMillis(Math.min(cap.toMillis, step.toMillis * Math.pow(2.toDouble, i.toDouble).toLong))
 }
-

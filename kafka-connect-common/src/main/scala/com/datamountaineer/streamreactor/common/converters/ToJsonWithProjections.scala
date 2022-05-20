@@ -27,26 +27,30 @@ import com.landoop.json.sql.JsonSql._
 import com.landoop.json.sql.JacksonJson
 import com.landoop.sql.Field
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 @deprecated
 object ToJsonWithProjections extends StrictLogging {
   lazy val simpleJsonConverter = new SimpleJsonConverter()
 
-  def apply(fields: Seq[Field],
-            ignoredFields: Seq[Field],
-            schema: Schema,
-            value: Any,
-            withStructure:Boolean): JsonNode = {
+  def apply(
+    fields:        Seq[Field],
+    ignoredFields: Seq[Field],
+    schema:        Schema,
+    value:         Any,
+    withStructure: Boolean,
+  ): JsonNode = {
     def raiseException(msg: String, t: Throwable) = throw new IllegalArgumentException(msg, t)
 
     if (value == null) {
       if (schema == null || !schema.isOptional) {
         raiseException("Null value is not allowed.", null)
-      }
-      else null
+      } else null
     } else {
       if (schema != null) {
         schema.`type`() match {
@@ -54,7 +58,7 @@ object ToJsonWithProjections extends StrictLogging {
             //we expected to be json
             val array = value match {
               case a: Array[Byte] => a
-              case b: ByteBuffer => b.array()
+              case b: ByteBuffer  => b.array()
               case other => raiseException(s"Invalid payload: [$other] for schema Schema.BYTES.", null)
             }
 
@@ -62,7 +66,7 @@ object ToJsonWithProjections extends StrictLogging {
               case Failure(e) => raiseException("Invalid json.", e)
               case Success(json) =>
                 Try(json.sql(fields, !withStructure)) match {
-                  case Failure(e) => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
+                  case Failure(e)  => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
                   case Success(jn) => jn
                 }
             }
@@ -74,7 +78,7 @@ object ToJsonWithProjections extends StrictLogging {
               case Success(json) =>
                 Try(json.sql(fields, !withStructure)) match {
                   case Success(jn) => jn
-                  case Failure(e) => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
+                  case Failure(e)  => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
                 }
             }
 
@@ -105,7 +109,7 @@ object ToJsonWithProjections extends StrictLogging {
               case Success(json) =>
                 Try(json.sql(fields, !withStructure)) match {
                   case Success(jn) => jn
-                  case Failure(e) => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
+                  case Failure(e)  => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
                 }
             }
 
@@ -114,7 +118,7 @@ object ToJsonWithProjections extends StrictLogging {
               case Failure(e) => raiseException("Invalid json.", e)
               case Success(json) =>
                 Try(json.sql(fields, !withStructure)) match {
-                  case Failure(e) => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
+                  case Failure(e)  => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
                   case Success(jn) => jn
                 }
             }
@@ -125,4 +129,3 @@ object ToJsonWithProjections extends StrictLogging {
     }
   }
 }
-

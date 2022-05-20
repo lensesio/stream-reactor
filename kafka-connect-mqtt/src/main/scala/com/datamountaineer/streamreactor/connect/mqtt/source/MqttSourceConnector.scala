@@ -20,13 +20,15 @@ import com.datamountaineer.streamreactor.common.utils.JarManifest
 
 import java.util
 import java.util.Collections
-import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttSourceConfig, MqttSourceSettings}
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceConfig
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 
-import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class MqttSourceConnector extends SourceConnector with StrictLogging {
   private val configDef = MqttSourceConfig.config
@@ -35,7 +37,7 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
 
   /**
     * States which SourceTask class to use
-    **/
+    */
   override def taskClass(): Class[_ <: Task] = classOf[MqttSourceTask]
 
   /**
@@ -43,11 +45,11 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
     *
     * @param maxTasks The max number of task workers be can spawn
     * @return a List of configuration properties per worker
-    **/
+    */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
 
     val settings = MqttSourceSettings(MqttSourceConfig(configProps))
-    val kcql = settings.kcql
+    val kcql     = settings.kcql
     if (maxTasks == 1 || kcql.length == 1) {
       Collections.singletonList(configProps)
     } else {
@@ -55,18 +57,20 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
 
       // If the option is enabled, copy every KCQL instruction with a shared subscription to every tasks, otherwise
       // the shared subscriptions are distributed as every other instructions.
-      val (replicated, distributed) = if (settings.replicateShared) kcql.partition(shouldReplicate) else (Array[String](), kcql)
+      val (replicated, distributed) =
+        if (settings.replicateShared) kcql.partition(shouldReplicate) else (Array[String](), kcql)
       val configs = Array.fill(maxTasks)(replicated)
         .zipAll(distributed.grouped(groups).toList, Array[String](), Array[String]())
-        .map (z => z._2 ++ z._1)
+        .map(z => z._2 ++ z._1)
         .filter(_.nonEmpty)
         .zipWithIndex
-        .map { case (p, index) =>
-          val map = settings.copy(kcql = p, clientId = settings.clientId + "-" + index).asMap()
-          configProps.asScala
-            .filterNot { case (k, _) => map.containsKey(k) }
-            .foreach { case (k, v) => map.put(k, v) }
-          map
+        .map {
+          case (p, index) =>
+            val map = settings.copy(kcql = p, clientId = settings.clientId + "-" + index).asMap()
+            configProps.asScala
+              .filterNot { case (k, _) => map.containsKey(k) }
+              .foreach { case (k, v) => map.put(k, v) }
+            map
         }
       configs.toList.asJava
     }
@@ -78,18 +82,16 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
     * @return true if the instruction should be replicated and false if
     *         the instruction should be given to only one task
     */
-  def shouldReplicate(instruction: String): Boolean = {
+  def shouldReplicate(instruction: String): Boolean =
     instruction.contains("$share/")
-  }
 
   /**
     * Start the source and set to configuration
     *
     * @param props A map of properties for the connector and worker
-    **/
-  override def start(props: util.Map[String, String]): Unit = {
+    */
+  override def start(props: util.Map[String, String]): Unit =
     configProps = props
-  }
 
   override def stop(): Unit = {}
 

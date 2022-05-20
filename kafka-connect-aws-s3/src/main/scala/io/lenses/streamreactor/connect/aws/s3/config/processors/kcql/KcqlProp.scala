@@ -28,7 +28,8 @@ import scala.jdk.CollectionConverters.IteratorHasAsScala
   * @param entryName    the string representation of the key, for example to use in a yaml document.
   * @param kcqlToString a function that optionally takes a String value from the Kcql object
   */
-sealed abstract class KcqlProp(override val entryName: String, val kcqlToString: Kcql => Option[String]) extends EnumEntry
+sealed abstract class KcqlProp(override val entryName: String, val kcqlToString: Kcql => Option[String])
+    extends EnumEntry
 
 object KcqlProp extends Enum[KcqlProp] {
 
@@ -42,13 +43,16 @@ object KcqlProp extends Enum[KcqlProp] {
 
   case object Partitioner extends KcqlProp("partitioner", k => fromString(k.getWithPartitioner))
 
-  case object Partitions extends KcqlProp("partitions", k => {
-    val filtered: Seq[String] = k.getPartitionBy.asScala.toSeq.filter(_.nonEmpty)
-    filtered.size match {
-      case 0 => Option.empty[String]
-      case _ => Some(filtered.mkString(","))
-    }
-  })
+  case object Partitions
+      extends KcqlProp("partitions",
+                       k => {
+                         val filtered: Seq[String] = k.getPartitionBy.asScala.toSeq.filter(_.nonEmpty)
+                         filtered.size match {
+                           case 0 => Option.empty[String]
+                           case _ => Some(filtered.mkString(","))
+                         }
+                       },
+      )
 
   case object FlushSize extends KcqlProp("flush_size", k => fromLong(k.getWithFlushSize))
 

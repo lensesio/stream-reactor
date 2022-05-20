@@ -18,22 +18,23 @@ package io.lenses.streamreactor.connect.aws.s3.model
 
 import com.datamountaineer.kcql.Kcql
 
-
 case class PartitionSelection(
-                               partitions: Seq[PartitionField],
-                               partitionDisplay: PartitionDisplay = PartitionDisplay.Values
-                             )
+  partitions:       Seq[PartitionField],
+  partitionDisplay: PartitionDisplay = PartitionDisplay.Values,
+)
 
 case object PartitionSelection {
 
   def apply(kcql: Kcql): Option[PartitionSelection] = {
     val partitions = PartitionField(kcql)
-    if (partitions.isEmpty) None else Some(
-      PartitionSelection(
-        partitions,
-        PartitionDisplay(kcql)
+    if (partitions.isEmpty) None
+    else
+      Some(
+        PartitionSelection(
+          partitions,
+          PartitionDisplay(kcql),
+        ),
       )
-    )
   }
 
 }

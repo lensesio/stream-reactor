@@ -1,6 +1,8 @@
 package com.landoop.streamreactor.connect.hive.sink.evolution
 
-import com.landoop.streamreactor.connect.hive.{DatabaseName, HiveSchemas, TableName}
+import com.landoop.streamreactor.connect.hive.DatabaseName
+import com.landoop.streamreactor.connect.hive.HiveSchemas
+import com.landoop.streamreactor.connect.hive.TableName
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.kafka.connect.data.Schema
 
@@ -15,11 +17,15 @@ object AddEvolutionPolicy extends EvolutionPolicy {
 
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
-  override def evolve(dbName: DatabaseName,
-                      tableName: TableName,
-                      metastoreSchema: Schema,
-                      inputSchema: Schema)
-                     (implicit client: IMetaStoreClient): Try[Schema] = Try {
+  override def evolve(
+    dbName:          DatabaseName,
+    tableName:       TableName,
+    metastoreSchema: Schema,
+    inputSchema:     Schema,
+  )(
+    implicit
+    client: IMetaStoreClient,
+  ): Try[Schema] = Try {
 
     val missing = inputSchema.fields.asScala
       .filter(f => metastoreSchema.field(f.name) == null)
@@ -29,7 +35,7 @@ object AddEvolutionPolicy extends EvolutionPolicy {
       logger.info(s"Evolving hive metastore to add: ${missing.mkString(",")}")
 
       val table = client.getTable(dbName.value, tableName.value)
-      val cols = table.getSd.getCols
+      val cols  = table.getSd.getCols
       missing.foreach(field => cols.add(field))
       table.getSd.setCols(cols)
       client.alter_table(dbName.value, tableName.value, table)

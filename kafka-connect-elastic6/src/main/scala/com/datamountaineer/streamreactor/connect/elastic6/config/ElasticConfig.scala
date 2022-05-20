@@ -18,10 +18,13 @@ package com.datamountaineer.streamreactor.connect.elastic6.config
 
 import java.util
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, ErrorPolicySettings, NumberRetriesSettings, WriteTimeoutSettings}
+import com.datamountaineer.streamreactor.common.config.base.traits.BaseConfig
+import com.datamountaineer.streamreactor.common.config.base.traits.ErrorPolicySettings
+import com.datamountaineer.streamreactor.common.config.base.traits.NumberRetriesSettings
+import com.datamountaineer.streamreactor.common.config.base.traits.WriteTimeoutSettings
 import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
-
+import org.apache.kafka.common.config.ConfigDef.Importance
+import org.apache.kafka.common.config.ConfigDef.Type
 
 object ElasticConfig {
 
@@ -35,7 +38,8 @@ object ElasticConfig {
       "Connection",
       1,
       ConfigDef.Width.MEDIUM,
-      ElasticConfigConstants.PROTOCOL)
+      ElasticConfigConstants.PROTOCOL,
+    )
     .define(
       ElasticConfigConstants.HOSTS,
       Type.STRING,
@@ -45,7 +49,8 @@ object ElasticConfig {
       "Connection",
       2,
       ConfigDef.Width.MEDIUM,
-      ElasticConfigConstants.HOSTS)
+      ElasticConfigConstants.HOSTS,
+    )
     .define(
       ElasticConfigConstants.ES_PORT,
       Type.INT,
@@ -55,7 +60,8 @@ object ElasticConfig {
       "Connection",
       3,
       ConfigDef.Width.MEDIUM,
-      ElasticConfigConstants.HOSTS)
+      ElasticConfigConstants.HOSTS,
+    )
     .define(
       ElasticConfigConstants.ES_PREFIX,
       Type.STRING,
@@ -65,7 +71,8 @@ object ElasticConfig {
       "Connection",
       4,
       ConfigDef.Width.MEDIUM,
-      ElasticConfigConstants.HOSTS)
+      ElasticConfigConstants.HOSTS,
+    )
     .define(
       ElasticConfigConstants.ES_CLUSTER_NAME,
       Type.STRING,
@@ -75,8 +82,8 @@ object ElasticConfig {
       "Connection",
       5,
       ConfigDef.Width.MEDIUM,
-      ElasticConfigConstants.ES_CLUSTER_NAME)
-
+      ElasticConfigConstants.ES_CLUSTER_NAME,
+    )
     .define(
       ElasticConfigConstants.WRITE_TIMEOUT_CONFIG,
       Type.INT,
@@ -86,7 +93,8 @@ object ElasticConfig {
       "Connection",
       6,
       ConfigDef.Width.MEDIUM,
-      ElasticConfigConstants.WRITE_TIMEOUT_DISPLAY)
+      ElasticConfigConstants.WRITE_TIMEOUT_DISPLAY,
+    )
     .define(
       ElasticConfigConstants.BATCH_SIZE_CONFIG,
       Type.INT,
@@ -96,7 +104,8 @@ object ElasticConfig {
       "Connection",
       7,
       ConfigDef.Width.MEDIUM,
-      ElasticConfigConstants.BATCH_SIZE_DISPLAY)
+      ElasticConfigConstants.BATCH_SIZE_DISPLAY,
+    )
     .define(
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME,
       Type.STRING,
@@ -106,7 +115,8 @@ object ElasticConfig {
       "Connection",
       8,
       ConfigDef.Width.MEDIUM,
-      ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME)
+      ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME,
+    )
     .define(
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD,
       Type.STRING,
@@ -116,7 +126,8 @@ object ElasticConfig {
       "Connection",
       9,
       ConfigDef.Width.MEDIUM,
-      ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD)
+      ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD,
+    )
     .define(
       ElasticConfigConstants.ERROR_POLICY_CONFIG,
       Type.STRING,
@@ -126,7 +137,8 @@ object ElasticConfig {
       "Error",
       1,
       ConfigDef.Width.MEDIUM,
-      ElasticConfigConstants.ERROR_POLICY_CONFIG)
+      ElasticConfigConstants.ERROR_POLICY_CONFIG,
+    )
     .define(
       ElasticConfigConstants.NBR_OF_RETRIES_CONFIG,
       Type.INT,
@@ -136,12 +148,19 @@ object ElasticConfig {
       "Error",
       2,
       ConfigDef.Width.SHORT,
-      ElasticConfigConstants.NBR_OF_RETRIES_CONFIG
+      ElasticConfigConstants.NBR_OF_RETRIES_CONFIG,
     )
-    .define(ElasticConfigConstants.ERROR_RETRY_INTERVAL, Type.INT,
-      ElasticConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM,
+    .define(
+      ElasticConfigConstants.ERROR_RETRY_INTERVAL,
+      Type.INT,
+      ElasticConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT,
+      Importance.MEDIUM,
       ElasticConfigConstants.ERROR_RETRY_INTERVAL_DOC,
-      "Error", 3, ConfigDef.Width.LONG, ElasticConfigConstants.ERROR_RETRY_INTERVAL)
+      "Error",
+      3,
+      ConfigDef.Width.LONG,
+      ElasticConfigConstants.ERROR_RETRY_INTERVAL,
+    )
     .define(
       ElasticConfigConstants.KCQL,
       Type.STRING,
@@ -150,7 +169,8 @@ object ElasticConfig {
       "KCQL",
       1,
       ConfigDef.Width.LONG,
-      ElasticConfigConstants.KCQL)
+      ElasticConfigConstants.KCQL,
+    )
     .define(
       ElasticConfigConstants.PK_JOINER_SEPARATOR,
       Type.STRING,
@@ -160,8 +180,10 @@ object ElasticConfig {
       "KCQL",
       2,
       ConfigDef.Width.SHORT,
-      ElasticConfigConstants.PK_JOINER_SEPARATOR)
-    .define(ElasticConfigConstants.PROGRESS_COUNTER_ENABLED,
+      ElasticConfigConstants.PK_JOINER_SEPARATOR,
+    )
+    .define(
+      ElasticConfigConstants.PROGRESS_COUNTER_ENABLED,
       Type.BOOLEAN,
       ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
       Importance.MEDIUM,
@@ -169,22 +191,22 @@ object ElasticConfig {
       "Metrics",
       1,
       ConfigDef.Width.MEDIUM,
-      ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
+      ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY,
+    )
 }
 
 /**
   * <h1>ElasticSinkConfig</h1>
   *
   * Holds config, extends AbstractConfig.
-  **/
+  */
 case class ElasticConfig(props: util.Map[String, String])
-  extends BaseConfig(ElasticConfigConstants.CONNECTOR_PREFIX, ElasticConfig.config, props)
+    extends BaseConfig(ElasticConfigConstants.CONNECTOR_PREFIX, ElasticConfig.config, props)
     with WriteTimeoutSettings
     with ErrorPolicySettings
     with NumberRetriesSettings {
   val kcqlConstant: String = ElasticConfigConstants.KCQL
 
-  def getKcql(): Seq[Kcql] = {
+  def getKcql(): Seq[Kcql] =
     getString(kcqlConstant).split(";").filter(_.trim.nonEmpty).map(Kcql.parse).toIndexedSeq
-  }
 }

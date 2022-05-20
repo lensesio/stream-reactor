@@ -34,9 +34,9 @@ object KcqlProcessor extends LazyLogging {
     val (error, validCfgs) = configs.map {
       cfg =>
         for {
-          kcqlConf <- getKcqlConfig(cfg)
+          kcqlConf    <- getKcqlConfig(cfg)
           builderConf <- getBuilderConfig(cfg)
-          cfgs <- singleCfg(Seq(kcqlConf, builderConf).filter(_.nonEmpty))
+          cfgs        <- singleCfg(Seq(kcqlConf, builderConf).filter(_.nonEmpty))
         } yield cfgs
     }.partition(_.isLeft)
 
@@ -45,24 +45,24 @@ object KcqlProcessor extends LazyLogging {
       case None =>
         KcqlMapToStringConverter
           .convert(
-            flattenMap(extractPropMap(validCfgs))
+            flattenMap(extractPropMap(validCfgs)),
           )
           .left.map(new IllegalStateException(_))
-      case Some(Right(_)) => new IllegalStateException("Impossible for this to be Right. Match error avoidance in action.").asLeft
+      case Some(Right(_)) =>
+        new IllegalStateException("Impossible for this to be Right. Match error avoidance in action.").asLeft
     }
   }
 
   private def flattenMap(propMap: Seq[Map[KcqlProp, String]]): Map[KcqlProp, String] = propMap.reduce(_ ++ _)
 
-  private def extractPropMap(allCfg: Seq[Either[Throwable, Map[KcqlProp, String]]]): Seq[Map[KcqlProp, String]] = {
+  private def extractPropMap(allCfg: Seq[Either[Throwable, Map[KcqlProp, String]]]): Seq[Map[KcqlProp, String]] =
     allCfg
       .collect {
         case Right(value: Map[KcqlProp, String]) => value
       }
       .filter(_.nonEmpty)
-  }
 
-  private def getBuilderConfig(config: Map[String, Any]): Either[Throwable, Map[KcqlProp, String]] = {
+  private def getBuilderConfig(config: Map[String, Any]): Either[Throwable, Map[KcqlProp, String]] =
     config.get(S3ConfigSettings.KCQL_BUILDER) match {
       case Some(value: util.Map[_, _]) =>
         YamlToKcqlMapConverter.convert(value)
@@ -71,21 +71,17 @@ object KcqlProcessor extends LazyLogging {
       case other =>
         new IllegalStateException(s"unexpected type specified: $other").asLeft
     }
-  }
 
-
-  private def getKcqlConfig(config: Map[String, Any]): Either[Throwable, Map[KcqlProp, String]] = {
+  private def getKcqlConfig(config: Map[String, Any]): Either[Throwable, Map[KcqlProp, String]] =
     config.get(S3ConfigSettings.KCQL_CONFIG) match {
       case Some(value: String) => StringToKcqlMapConverter.convert(value)
       case _ => Map.empty[KcqlProp, String].asRight
     }
-  }
 
-  private def singleCfg(cfgs: Seq[Map[KcqlProp, String]]): Either[Throwable, Map[KcqlProp, String]] = {
+  private def singleCfg(cfgs: Seq[Map[KcqlProp, String]]): Either[Throwable, Map[KcqlProp, String]] =
     cfgs.size match {
       case 0 => Map.empty[KcqlProp, String].asRight
       case 1 => cfgs.head.asRight
       case _ => new IllegalArgumentException("Too many configs in one profile").asLeft
     }
-  }
 }

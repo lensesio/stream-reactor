@@ -16,7 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting, TimestampType}
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSourceSetting
+import com.datamountaineer.streamreactor.connect.cassandra.config.TimestampType
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 
@@ -24,100 +26,100 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 
 class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLogging {
 
-  private val kcql = setting.kcql
-  private val table = kcql.getSource
-  private val keySpace = setting.keySpace
+  private val kcql          = setting.kcql
+  private val table         = kcql.getSource
+  private val keySpace      = setting.keySpace
   private val selectColumns = getSelectColumns()
   private val incrementMode = setting.timestampColType
-  private val limitRowsSize = if (kcql.getBatchSize == 0) CassandraConfigConstants.BATCH_SIZE_DEFAULT else kcql.getBatchSize
+  private val limitRowsSize =
+    if (kcql.getBatchSize == 0) CassandraConfigConstants.BATCH_SIZE_DEFAULT else kcql.getBatchSize
   private val defaultTimestamp = setting.initialOffset
 
   /**
-   * Build the CQL for the given table.
-   *
-   * @return the CQL statement (as a String)
-   */
+    * Build the CQL for the given table.
+    *
+    * @return the CQL statement (as a String)
+    */
   def getCqlStatement: String = {
     // build the correct CQL statement based on the KCQL mode
     val selectStatement = if (incrementMode.equals(TimestampType.NONE)) {
       generateCqlForBulkMode
     } else {
-      // if we are not in bulk mode 
+      // if we are not in bulk mode
       // we must be in incremental mode
       logger.info(s"The increment mode is $incrementMode")
       incrementMode match {
-        case TimestampType.TIMEUUID => generateCqlForTimeUuidMode
-        case TimestampType.TIMESTAMP => generateCqlForTimestampMode
-        case TimestampType.TOKEN => generateCqlForTokenMode
+        case TimestampType.TIMEUUID           => generateCqlForTimeUuidMode
+        case TimestampType.TIMESTAMP          => generateCqlForTimestampMode
+        case TimestampType.TOKEN              => generateCqlForTokenMode
         case TimestampType.DSESEARCHTIMESTAMP => generateCqlForDseSearchTimestampMode
-        case TimestampType.BUCKETTIMESERIES => generateCqlForBucketTimeSeriesMode
-        case _ => throw new ConfigException(s"Unknown incremental mode ($incrementMode)")
+        case TimestampType.BUCKETTIMESERIES   => generateCqlForBucketTimeSeriesMode
+        case _                                => throw new ConfigException(s"Unknown incremental mode ($incrementMode)")
       }
     }
     logger.info(s"Generated CQL: $selectStatement")
     selectStatement
   }
-  
+
   /**
-   * Build the CQL for the given table when no offset is available.
-   *
-   * @return the CQL statement (as a String)
-   */
+    * Build the CQL for the given table when no offset is available.
+    *
+    * @return the CQL statement (as a String)
+    */
   def getCqlStatementNoOffset: String = {
     // build the correct CQL statement based on the KCQL mode
     val selectStatement = if (incrementMode.equals(TimestampType.NONE)) {
       generateCqlForBulkMode
     } else {
-      // if we are not in bulk mode 
+      // if we are not in bulk mode
       // we must be in incremental mode
       logger.info(s"the increment mode is $incrementMode")
       incrementMode match {
-        case TimestampType.TIMEUUID => generateCqlForTimeUuidMode
-        case TimestampType.TIMESTAMP => generateCqlForTimestampMode
-        case TimestampType.TOKEN => generateCqlForTokenModeNoOffset
+        case TimestampType.TIMEUUID           => generateCqlForTimeUuidMode
+        case TimestampType.TIMESTAMP          => generateCqlForTimestampMode
+        case TimestampType.TOKEN              => generateCqlForTokenModeNoOffset
         case TimestampType.DSESEARCHTIMESTAMP => generateCqlForDseSearchTimestampMode
-        case TimestampType.BUCKETTIMESERIES => generateCqlForBucketTimeSeriesMode
-        case _ => throw new ConfigException(s"unknown incremental mode ($incrementMode)")
+        case TimestampType.BUCKETTIMESERIES   => generateCqlForBucketTimeSeriesMode
+        case _                                => throw new ConfigException(s"unknown incremental mode ($incrementMode)")
       }
     }
     logger.info(s"generated CQL: $selectStatement")
     selectStatement
   }
 
-  def getDefaultOffsetValue(offset: Option[String]): Option[String] = {
+  def getDefaultOffsetValue(offset: Option[String]): Option[String] =
     incrementMode match {
       case TimestampType.TIMESTAMP | TimestampType.DSESEARCHTIMESTAMP | TimestampType.BUCKETTIMESERIES |
-           TimestampType.TIMEUUID | TimestampType.NONE => Some(offset.getOrElse(defaultTimestamp))
+          TimestampType.TIMEUUID | TimestampType.NONE => Some(offset.getOrElse(defaultTimestamp))
       case TimestampType.TOKEN => offset
     }
-  }
 
-  def isTokenBased(): Boolean = {
+  def isTokenBased(): Boolean =
     incrementMode match {
-      case TimestampType.TIMESTAMP | TimestampType.DSESEARCHTIMESTAMP | TimestampType.TIMEUUID | TimestampType.BUCKETTIMESERIES | TimestampType.NONE => false
+      case TimestampType.TIMESTAMP | TimestampType.DSESEARCHTIMESTAMP | TimestampType.TIMEUUID |
+          TimestampType.BUCKETTIMESERIES | TimestampType.NONE => false
       case TimestampType.TOKEN => true
     }
-  }
 
-  def isDSESearchBased(): Boolean = {
+  def isDSESearchBased(): Boolean =
     incrementMode match {
-      case TimestampType.TIMESTAMP | TimestampType.TOKEN | TimestampType.TIMEUUID | TimestampType.BUCKETTIMESERIES | TimestampType.NONE => false
+      case TimestampType.TIMESTAMP | TimestampType.TOKEN | TimestampType.TIMEUUID | TimestampType.BUCKETTIMESERIES |
+          TimestampType.NONE => false
       case TimestampType.DSESEARCHTIMESTAMP => true
     }
-  }
 
-  def isBucketBased(): Boolean = {
+  def isBucketBased(): Boolean =
     incrementMode match {
-      case TimestampType.TIMESTAMP | TimestampType.TOKEN | TimestampType.TIMEUUID | TimestampType.DSESEARCHTIMESTAMP | TimestampType.NONE => false
+      case TimestampType.TIMESTAMP | TimestampType.TOKEN | TimestampType.TIMEUUID | TimestampType.DSESEARCHTIMESTAMP |
+          TimestampType.NONE => false
       case TimestampType.BUCKETTIMESERIES => true
     }
-  }
 
   /**
-   * get the columns for the SELECT statement
-   *
-   * @return the comma separated columns
-   */
+    * get the columns for the SELECT statement
+    *
+    * @return the comma separated columns
+    */
   private def getSelectColumns(): String = {
     val fieldList = kcql.getFields.asScala.map(fa => fa.getName)
     // if no columns set then select all the columns in the table
@@ -177,7 +179,6 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
     generateCqlForBulkMode + whereClause
   }
 
-  private def generateCqlForBulkMode: String = {
+  private def generateCqlForBulkMode: String =
     s"SELECT $selectColumns FROM $keySpace.$table"
-  }
 }

@@ -3,7 +3,7 @@ package com.landoop.streamreactor.connect.hive
 import cats.Show
 import cats.data.NonEmptyList
 import org.apache.hadoop.fs.Path
-import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
+import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 
 case class Topic(value: String) {
   require(value != null && value.trim.nonEmpty)
@@ -48,7 +48,6 @@ case class Serde(serializationLib: String, inputFormat: String, outputFormat: St
 
 // generates the default hive metatstore location string for a partition
 object DefaultPartitionLocation extends Show[Partition] {
-  override def show(t: Partition): String = {
+  override def show(t: Partition): String =
     t.entries.map { case (key, value) => key.value + "=" + value }.toList.mkString("/")
-  }
 }

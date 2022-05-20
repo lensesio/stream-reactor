@@ -16,14 +16,18 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
-import com.datamountaineer.kcql.{FormatType, Kcql}
-import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorPolicy}
+import com.datamountaineer.kcql.FormatType
+import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
 import com.datamountaineer.streamreactor.connect.hazelcast.config.TargetType.TargetType
 import com.hazelcast.core.HazelcastInstance
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
   * Created by andrew@datamountaineer.com on 08/08/16.
@@ -37,36 +41,38 @@ object TargetType extends Enumeration {
 
 case class HazelCastStoreAsType(name: String, targetType: TargetType, ttl: Long = 0)
 
-case class HazelCastSinkSettings(client: HazelcastInstance,
-                                 kcql: Set[Kcql],
-                                 topicObject: Map[String, HazelCastStoreAsType],
-                                 fieldsMap: Map[String, Map[String, String]],
-                                 ignoreFields: Map[String, Set[String]],
-                                 primaryKeys: Map[String, Set[String]],
-                                 errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                                 maxRetries: Int = HazelCastSinkConfigConstants.NBR_OF_RETIRES_DEFAULT,
-                                 format: Map[String, FormatType],
-                                 threadPoolSize: Int,
-                                 allowParallel: Boolean)
+case class HazelCastSinkSettings(
+  client:         HazelcastInstance,
+  kcql:           Set[Kcql],
+  topicObject:    Map[String, HazelCastStoreAsType],
+  fieldsMap:      Map[String, Map[String, String]],
+  ignoreFields:   Map[String, Set[String]],
+  primaryKeys:    Map[String, Set[String]],
+  errorPolicy:    ErrorPolicy = new ThrowErrorPolicy,
+  maxRetries:     Int         = HazelCastSinkConfigConstants.NBR_OF_RETIRES_DEFAULT,
+  format:         Map[String, FormatType],
+  threadPoolSize: Int,
+  allowParallel:  Boolean,
+)
 
 object HazelCastSinkSettings {
   def apply(config: HazelCastSinkConfig): HazelCastSinkSettings = {
 
-    val kcql = config.getKCQL
-    val fieldMap = config.getFieldsMap()
-    val ignoreFields = config.getIgnoreFieldsMap()
-    val primaryKeys = config.getPrimaryKeys()
-    val allowParallel = config.getAllowParallel
-    val format = config.getFormat(this.getFormatType, kcql)
-    val errorPolicy = config.getErrorPolicy
-    val maxRetries = config.getNumberRetries
+    val kcql           = config.getKCQL
+    val fieldMap       = config.getFieldsMap()
+    val ignoreFields   = config.getIgnoreFieldsMap()
+    val primaryKeys    = config.getPrimaryKeys()
+    val allowParallel  = config.getAllowParallel
+    val format         = config.getFormat(this.getFormatType, kcql)
+    val errorPolicy    = config.getErrorPolicy
+    val maxRetries     = config.getNumberRetries
     val threadPoolSize = config.getThreadPoolSize
-    val topicTables = getTopicTables(kcql)
+    val topicTables    = getTopicTables(kcql)
 
     ensureGroupNameExists(config)
 
     val connConfig = HazelCastConnectionConfig(config)
-    val client = HazelCastConnection.buildClient(connConfig)
+    val client     = HazelCastConnection.buildClient(connConfig)
 
     new HazelCastSinkSettings(
       client,
@@ -79,36 +85,33 @@ object HazelCastSinkSettings {
       maxRetries,
       format,
       threadPoolSize,
-      allowParallel
+      allowParallel,
     )
   }
 
-
-  private def getTopicTables(routes: Set[Kcql]): Map[String, HazelCastStoreAsType] = {
-    routes.map(r => {
+  private def getTopicTables(routes: Set[Kcql]): Map[String, HazelCastStoreAsType] =
+    routes.map { r =>
       Try(TargetType.withName(r.getStoredAs.toUpperCase)) match {
         case Success(_) =>
           (r.getSource, HazelCastStoreAsType(r.getTarget, TargetType.withName(r.getStoredAs.toUpperCase), r.getTTL))
         case Failure(_) =>
           (r.getSource, HazelCastStoreAsType(r.getTarget, TargetType.RELIABLE_TOPIC, r.getTTL))
       }
-    }).toMap
-  }
+    }.toMap
 
   private def ensureGroupNameExists(config: HazelCastSinkConfig): Unit = {
     val groupName = config.getString(HazelCastSinkConfigConstants.CLUSTER_NAME)
     require(groupName.nonEmpty, s"No ${HazelCastSinkConfigConstants.CLUSTER_NAME} provided!")
   }
 
-  private def getFormatType(format: FormatType): FormatType = {
+  private def getFormatType(format: FormatType): FormatType =
     if (format == null) {
       FormatType.JSON
     } else {
       format match {
         case FormatType.AVRO | FormatType.JSON | FormatType.TEXT =>
-        case _ => throw new ConnectException(s"Unknown WITHFORMAT type")
+        case _                                                   => throw new ConnectException(s"Unknown WITHFORMAT type")
       }
       format
     }
-  }
 }

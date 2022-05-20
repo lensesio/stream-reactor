@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -30,17 +29,19 @@ import java.io.OutputStreamWriter
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
-class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolean) extends S3FormatWriter with LazyLogging {
+class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolean)
+    extends S3FormatWriter
+    with LazyLogging {
 
   private val outputStream: S3OutputStream = outputStreamFn()
   private val outputStreamWriter = new OutputStreamWriter(outputStream)
-  private val csvWriter = new CSVWriter(outputStreamWriter)
+  private val csvWriter          = new CSVWriter(outputStreamWriter)
 
   private var fieldsWritten = false
 
   private var fields: Array[String] = _
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] = {
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] =
     Try {
       if (!fieldsWritten) {
         writeFields(valueSinkData.schema().orNull)
@@ -50,20 +51,18 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
       csvWriter.writeNext(nextRow)
       csvWriter.flush()
     }.toEither
-  }
 
   override def rolloverFileOnSchemaChange(): Boolean = true
 
-  override def complete(): Either[SinkError, Unit] = {
+  override def complete(): Either[SinkError, Unit] =
     for {
       closed <- outputStream.complete()
-      _ <- Suppress(csvWriter.flush())
-      _ <- Suppress(outputStream.flush())
-      _ <- Suppress(csvWriter.close())
-      _ <- Suppress(outputStreamWriter.close())
-      _ <- Suppress(outputStream.close())
+      _      <- Suppress(csvWriter.flush())
+      _      <- Suppress(outputStream.flush())
+      _      <- Suppress(csvWriter.close())
+      _      <- Suppress(outputStreamWriter.close())
+      _      <- Suppress(outputStream.close())
     } yield closed
-  }
 
   override def getPointer: Long = outputStream.getPointer
 

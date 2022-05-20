@@ -17,8 +17,10 @@
 package io.lenses.streamreactor.connect.aws.s3.model
 
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.{fromSourceOffset, fromSourcePartition}
-import org.apache.kafka.connect.data.{Schema, SchemaAndValue}
+import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.fromSourceOffset
+import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.fromSourcePartition
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaAndValue
 import org.apache.kafka.connect.source.SourceRecord
 
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -32,9 +34,7 @@ abstract class SourceData(lineNumber: Long) {
 
   def getLineNumber: Long = lineNumber
 
-
-  def toSourceRecord(bucketAndPath: RemoteS3PathLocation, targetTopic: String): SourceRecord = {
-
+  def toSourceRecord(bucketAndPath: RemoteS3PathLocation, targetTopic: String): SourceRecord =
     representationKey match {
       case Some(key) =>
         new SourceRecord(
@@ -44,7 +44,7 @@ abstract class SourceData(lineNumber: Long) {
           null,
           key,
           representationSchema.orNull,
-          representationValue
+          representationValue,
         )
       case None =>
         new SourceRecord(
@@ -52,16 +52,15 @@ abstract class SourceData(lineNumber: Long) {
           fromSourceOffset(bucketAndPath, getLineNumber).asJava,
           targetTopic,
           representationSchema.orNull,
-          representationValue
+          representationValue,
         )
     }
-  }
 }
 
 case class SchemaAndValueSourceData(
-                                     data: SchemaAndValue,
-                                     lineNumber: Long
-                                   ) extends SourceData(lineNumber) {
+  data:       SchemaAndValue,
+  lineNumber: Long,
+) extends SourceData(lineNumber) {
 
   override def representationSchema: Option[Schema] = Some(data.schema())
 
@@ -71,9 +70,9 @@ case class SchemaAndValueSourceData(
 }
 
 case class StringSourceData(
-                             data: String,
-                             lineNumber: Long
-                           ) extends SourceData(lineNumber) {
+  data:       String,
+  lineNumber: Long,
+) extends SourceData(lineNumber) {
   override def representationSchema: Option[Schema] = None
 
   override def representationKey: Option[AnyRef] = None
@@ -83,9 +82,9 @@ case class StringSourceData(
 }
 
 case class ByteArraySourceData(
-                                data: BytesOutputRow,
-                                lineNumber: Long
-                              ) extends SourceData(lineNumber) {
+  data:       BytesOutputRow,
+  lineNumber: Long,
+) extends SourceData(lineNumber) {
   override def representationSchema: Option[Schema] = None
 
   override def representationKey: Option[AnyRef] = Some(data.key)

@@ -32,9 +32,9 @@ case class ThrowableEither[T, A](e: Either[T, A]) extends LazyLogging {
     }
     case Left(ex: SinkError) => throw new IllegalStateException(ex.message())
     case Left(ex: String) => throw new IllegalStateException(ex)
-    case Left(_) => throw new IllegalStateException("Unexpected err type")
+    case Left(_)  => throw new IllegalStateException("Unexpected err type")
     case Right(a) => a
-    case other => throw new IllegalStateException(s"Unexpected state we're in: $other")
+    case other    => throw new IllegalStateException(s"Unexpected state we're in: $other")
   }
 }
 

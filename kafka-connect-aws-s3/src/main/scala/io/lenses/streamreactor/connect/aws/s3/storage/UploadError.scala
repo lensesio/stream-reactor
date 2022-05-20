@@ -3,7 +3,7 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import java.io.File
 
 trait UploadError {
-  def message() : String
+  def message(): String
 }
 
 case class NonExistingFileError(file: File) extends UploadError {

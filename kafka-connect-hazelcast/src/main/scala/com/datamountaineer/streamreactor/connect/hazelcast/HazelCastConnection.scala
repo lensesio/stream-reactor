@@ -16,33 +16,38 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast
 
-import java.io.{File, FileNotFoundException}
+import java.io.File
+import java.io.FileNotFoundException
 import java.net.URI
-import java.util.{Properties, UUID}
-import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSocketConfig}
+import java.util.Properties
+import java.util.UUID
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastConnectionConfig
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSocketConfig
 import com.hazelcast.cache.HazelcastCachingProvider
 import com.hazelcast.client.HazelcastClient
-import com.hazelcast.client.config.{ClientConfig, ClientNetworkConfig, SocketOptions}
+import com.hazelcast.client.config.ClientConfig
+import com.hazelcast.client.config.ClientNetworkConfig
+import com.hazelcast.client.config.SocketOptions
 import com.hazelcast.config.SSLConfig
 import com.hazelcast.core.HazelcastInstance
 
-import javax.cache.{CacheManager, Caching}
+import javax.cache.CacheManager
+import javax.cache.Caching
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-
 /**
-  * Created by andrew@datamountaineer.com on 10/08/16. 
+  * Created by andrew@datamountaineer.com on 10/08/16.
   * stream-reactor
   */
 object HazelCastConnection {
   def buildClient(config: HazelCastConnectionConfig): HazelcastInstance = {
-   val clientConfig = new ClientConfig
-   val networkConfig = clientConfig.getNetworkConfig
+    val clientConfig  = new ClientConfig
+    val networkConfig = clientConfig.getNetworkConfig
 
-   if (config.sslEnabled) {
-     setSSLOptions(config)
-     networkConfig.setSSLConfig(new SSLConfig().setEnabled(true))
-   }
+    if (config.sslEnabled) {
+      setSSLOptions(config)
+      networkConfig.setSSLConfig(new SSLConfig().setEnabled(true))
+    }
     networkConfig.setAddresses(config.members.toList.asJava)
 
     clientConfig.setClusterName(config.clusterName)
@@ -52,25 +57,28 @@ object HazelCastConnection {
     HazelcastClient.newHazelcastClient(clientConfig)
   }
 
-  private def buildSocketOptions(clientNetworkConfig: ClientNetworkConfig, socketConfig: HazelCastSocketConfig): SocketOptions = {
-   val socketOptions = clientNetworkConfig.getSocketOptions
-   socketOptions.setKeepAlive(socketConfig.keepAlive)
-   socketOptions.setTcpNoDelay(socketConfig.tcpNoDelay)
-   socketOptions.setReuseAddress(socketConfig.reuseAddress)
-   socketOptions.setLingerSeconds(socketConfig.lingerSeconds)
-   socketOptions.setBufferSize(socketConfig.bufferSize)
-   socketOptions
+  private def buildSocketOptions(
+    clientNetworkConfig: ClientNetworkConfig,
+    socketConfig:        HazelCastSocketConfig,
+  ): SocketOptions = {
+    val socketOptions = clientNetworkConfig.getSocketOptions
+    socketOptions.setKeepAlive(socketConfig.keepAlive)
+    socketOptions.setTcpNoDelay(socketConfig.tcpNoDelay)
+    socketOptions.setReuseAddress(socketConfig.reuseAddress)
+    socketOptions.setLingerSeconds(socketConfig.lingerSeconds)
+    socketOptions.setBufferSize(socketConfig.bufferSize)
+    socketOptions
   }
 
-  def getCacheManager(client: HazelcastInstance, name: String) : CacheManager = {
-    val instanceName = client.getName()
+  def getCacheManager(client: HazelcastInstance, name: String): CacheManager = {
+    val instanceName    = client.getName()
     val cachingProvider = Caching.getCachingProvider()
 
     // Create Properties instance pointing to a named HazelcastInstance
     val properties = new Properties()
     properties.setProperty(HazelcastCachingProvider.HAZELCAST_INSTANCE_NAME, instanceName)
-    val cacheManagerName = new URI(name )
-    val cacheManager = cachingProvider.getCacheManager(cacheManagerName, null, properties )
+    val cacheManagerName = new URI(name)
+    val cacheManager     = cachingProvider.getCacheManager(cacheManagerName, null, properties)
     cacheManager
   }
 

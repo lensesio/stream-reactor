@@ -1,7 +1,8 @@
 package com.landoop.streamreactor.connect.hive.sink.staging
 
 import com.landoop.streamreactor.connect.hive._
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 
 import scala.util.control.NonFatal
@@ -17,21 +18,27 @@ class OffsetSeeker(filenamePolicy: FilenamePolicy) {
 
   import HdfsUtils._
 
-  def seek(db: DatabaseName, tableName: TableName)
-          (implicit fs: FileSystem, client: IMetaStoreClient): Set[TopicPartitionOffset] = {
-
+  def seek(
+    db:        DatabaseName,
+    tableName: TableName,
+  )(
+    implicit
+    fs:     FileSystem,
+    client: IMetaStoreClient,
+  ): Set[TopicPartitionOffset] =
     try {
 
       // the table may not have been created, in which case we have no offsets defined
       if (client.tableExists(db.value, tableName.value)) {
 
-        val loc = com.landoop.streamreactor.connect.hive.tableLocation(db, tableName)
+        val loc    = com.landoop.streamreactor.connect.hive.tableLocation(db, tableName)
         val prefix = filenamePolicy.prefix
 
         fs.ls(new Path(loc), true).map(_.getPath.getName).collect {
           case CommittedFileName(`prefix`, topic, partition, _, end) => TopicPartitionOffset(topic, partition, end)
-        }.toSeq.groupBy(_.toTopicPartition).map { case (tp, tpo) =>
-          tp.withOffset(tpo.maxBy(_.offset.value).offset)
+        }.toSeq.groupBy(_.toTopicPartition).map {
+          case (tp, tpo) =>
+            tp.withOffset(tpo.maxBy(_.offset.value).offset)
         }.toSet
 
       } else {
@@ -43,5 +50,4 @@ class OffsetSeeker(filenamePolicy: FilenamePolicy) {
         logger.error(s"Error seeking table $db.table")
         throw e
     }
-  }
 }

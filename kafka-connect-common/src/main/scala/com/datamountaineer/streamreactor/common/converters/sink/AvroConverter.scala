@@ -22,21 +22,19 @@ import io.confluent.connect.avro.AvroData
 
 import java.io.ByteArrayOutputStream
 import java.io.File
-import org.apache.avro.{Schema => AvroSchema}
+import org.apache.avro.{ Schema => AvroSchema }
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.io.EncoderFactory
 import org.apache.avro.reflect.ReflectDatumWriter
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
-
 class AvroConverter extends Converter {
   private val avroData = new AvroData(8)
-  private var sinkToSchemaMap: Map[String, AvroSchema] = Map.empty
-  private var avroWritersMap: Map[String, ReflectDatumWriter[Object]] = Map.empty
+  private var sinkToSchemaMap: Map[String, AvroSchema]                 = Map.empty
+  private var avroWritersMap:  Map[String, ReflectDatumWriter[Object]] = Map.empty
 
-  override def convert(sinkTopic: String,
-                       data: SinkRecord): SinkRecord = {
+  override def convert(sinkTopic: String, data: SinkRecord): SinkRecord =
     Option(data) match {
       case None =>
         new SinkRecord(
@@ -46,13 +44,16 @@ class AvroConverter extends Converter {
           null,
           avroData.toConnectSchema(sinkToSchemaMap(sinkTopic)),
           null,
-          0
+          0,
         )
       case Some(_) =>
         val kafkaTopic = data.topic()
-        val writer = avroWritersMap.getOrElse(kafkaTopic.toLowerCase, throw new ConfigException(s"Invalid ${AvroConverter.SCHEMA_CONFIG} is not configured for $kafkaTopic"))
+        val writer = avroWritersMap.getOrElse(
+          kafkaTopic.toLowerCase,
+          throw new ConfigException(s"Invalid ${AvroConverter.SCHEMA_CONFIG} is not configured for $kafkaTopic"),
+        )
 
-        val output = new ByteArrayOutputStream();
+        val output  = new ByteArrayOutputStream();
         val decoder = EncoderFactory.get().binaryEncoder(output, null)
         output.reset()
 
@@ -70,17 +71,16 @@ class AvroConverter extends Converter {
           MsgKey.getStruct(sinkTopic, data.key().toString),
           data.valueSchema(),
           arr,
-          0
+          0,
         )
 
-
     }
-  }
 
   override def initialize(config: Map[String, String]): Unit = {
     sinkToSchemaMap = AvroConverter.getSchemas(config)
-    avroWritersMap = sinkToSchemaMap.map { case (key, schema) =>
-      key -> new ReflectDatumWriter[Object](schema)
+    avroWritersMap = sinkToSchemaMap.map {
+      case (key, schema) =>
+        key -> new ReflectDatumWriter[Object](schema)
     }
   }
 }
@@ -88,7 +88,7 @@ class AvroConverter extends Converter {
 object AvroConverter {
   val SCHEMA_CONFIG = "connect.converter.avro.schemas"
 
-  def getSchemas(config: Map[String, String]): Map[String, AvroSchema] = {
+  def getSchemas(config: Map[String, String]): Map[String, AvroSchema] =
     config.getOrElse(SCHEMA_CONFIG, throw new ConfigException(s"[$SCHEMA_CONFIG] is not provided"))
       .split(';')
       .filter(_.trim.nonEmpty)
@@ -106,5 +106,4 @@ object AvroConverter {
           s -> new AvroSchema.Parser().parse(file)
         case _ => throw new ConfigException(s"[$SCHEMA_CONFIG] is not properly set. The format is Mqtt_Sink->AVRO_FILE")
       }.toMap
-  }
 }

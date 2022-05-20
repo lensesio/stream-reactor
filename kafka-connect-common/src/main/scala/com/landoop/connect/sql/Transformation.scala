@@ -18,7 +18,8 @@ package com.landoop.connect.sql
 import java.util
 
 import org.apache.calcite.sql.SqlIdentifier
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
+import org.apache.kafka.common.config.AbstractConfig
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.ConnectRecord
 
 /**
@@ -27,7 +28,7 @@ import org.apache.kafka.connect.connector.ConnectRecord
   * @tparam T
   */
 class Transformation[T <: ConnectRecord[T]] extends org.apache.kafka.connect.transforms.Transformation[T] {
-  private var sqlKeyMap = Map.empty[String, Sql]
+  private var sqlKeyMap   = Map.empty[String, Sql]
   private var sqlValueMap = Map.empty[String, Sql]
 
   override def apply(record: T): T = {
@@ -36,7 +37,8 @@ class Transformation[T <: ConnectRecord[T]] extends org.apache.kafka.connect.tra
     sqlKeyMap.get(topic).map { sql =>
       val (keySchema, keyValue) = Transform(sql, record.keySchema(), record.key(), true, topic, record.kafkaPartition())
       sqlValueMap.get(topic).map { sql =>
-        val (valueSchema, value) = Transform(sql, record.valueSchema(), record.value(), false, topic, record.kafkaPartition())
+        val (valueSchema, value) =
+          Transform(sql, record.valueSchema(), record.value(), false, topic, record.kafkaPartition())
         record.newRecord(
           record.topic(),
           record.kafkaPartition(),
@@ -44,7 +46,7 @@ class Transformation[T <: ConnectRecord[T]] extends org.apache.kafka.connect.tra
           keyValue,
           valueSchema,
           value,
-          record.timestamp()
+          record.timestamp(),
         )
       }.getOrElse {
         record.newRecord(
@@ -54,11 +56,13 @@ class Transformation[T <: ConnectRecord[T]] extends org.apache.kafka.connect.tra
           keyValue,
           record.valueSchema(),
           record.value(),
-          record.timestamp())
+          record.timestamp(),
+        )
       }
     }.getOrElse {
       sqlValueMap.get(topic).map { sql =>
-        val (valueSchema, value) = Transform(sql, record.valueSchema(), record.value(), false, topic, record.kafkaPartition())
+        val (valueSchema, value) =
+          Transform(sql, record.valueSchema(), record.value(), false, topic, record.kafkaPartition())
         record.newRecord(
           topic,
           record.kafkaPartition(),
@@ -66,7 +70,7 @@ class Transformation[T <: ConnectRecord[T]] extends org.apache.kafka.connect.tra
           record.key(),
           valueSchema,
           value,
-          record.timestamp()
+          record.timestamp(),
         )
       }.getOrElse(record)
     }
@@ -89,24 +93,26 @@ class Transformation[T <: ConnectRecord[T]] extends org.apache.kafka.connect.tra
             }.toMap
         }.getOrElse(Map.empty)
 
-    sqlKeyMap = fromConfig(config.getString(Transformation.KEY_SQL_CONFIG))
+    sqlKeyMap   = fromConfig(config.getString(Transformation.KEY_SQL_CONFIG))
     sqlValueMap = fromConfig(config.getString(Transformation.VALUE_SQL_CONFIG))
   }
 }
 
-
 private object Transformation {
 
   val KEY_SQL_CONFIG = "connect.transforms.sql.key"
-  private val KEY_SQL_DOC = "Provides the SQL transformation for the keys. To provide more than one separate them by ';'"
+  private val KEY_SQL_DOC =
+    "Provides the SQL transformation for the keys. To provide more than one separate them by ';'"
   private val KEY_SQL_DISPLAY = "Key(-s) SQL transformation"
 
   val VALUE_SQL_CONFIG = "connect.transforms.sql.value"
-  private val VALUE_SQL_DOC = "Provides the SQL transformation for the Kafka message value. To provide more than one separate them by ';'"
+  private val VALUE_SQL_DOC =
+    "Provides the SQL transformation for the Kafka message value. To provide more than one separate them by ';'"
   private val VALUE_SQL_DISPLAY = "Value(-s) SQL transformation"
 
   val configDef: ConfigDef = new ConfigDef()
-    .define(VALUE_SQL_CONFIG,
+    .define(
+      VALUE_SQL_CONFIG,
       ConfigDef.Type.STRING,
       null,
       ConfigDef.Importance.MEDIUM,
@@ -114,9 +120,10 @@ private object Transformation {
       "Transforms",
       1,
       ConfigDef.Width.LONG,
-      VALUE_SQL_DISPLAY
+      VALUE_SQL_DISPLAY,
     )
-    .define(KEY_SQL_CONFIG,
+    .define(
+      KEY_SQL_CONFIG,
       ConfigDef.Type.STRING,
       null,
       ConfigDef.Importance.MEDIUM,
@@ -124,9 +131,8 @@ private object Transformation {
       "Transforms",
       2,
       ConfigDef.Width.LONG,
-      KEY_SQL_DISPLAY
+      KEY_SQL_DISPLAY,
     )
 }
-
 
 class TransformationConfig(config: util.Map[String, _]) extends AbstractConfig(Transformation.configDef, config)

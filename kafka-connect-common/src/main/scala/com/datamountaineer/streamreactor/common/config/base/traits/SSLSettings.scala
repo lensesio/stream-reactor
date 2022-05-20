@@ -21,15 +21,15 @@ package com.datamountaineer.streamreactor.common.config.base.traits
 import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
 
 /**
-  * Created by andrew@datamountaineer.com on 31/07/2017. 
+  * Created by andrew@datamountaineer.com on 31/07/2017.
   * stream-reactor
   */
-trait SSLSettings  extends BaseSettings {
-  val trustStorePath: String = s"$connectorPrefix.$TRUSTSTORE_PATH_SUFFIX"
-  val trustStorePass: String = s"$connectorPrefix.$TRUSTSTORE_PASS_SUFFIX"
-  val keyStorePath: String = s"$connectorPrefix.$KEYSTORE_PATH_SUFFIX"
-  val keyStorePass: String = s"$connectorPrefix.$KEYSTORE_PASS_SUFFIX"
-  val certificates: String = s"$connectorPrefix.$CERTIFICATES_SUFFIX"
+trait SSLSettings extends BaseSettings {
+  val trustStorePath:      String = s"$connectorPrefix.$TRUSTSTORE_PATH_SUFFIX"
+  val trustStorePass:      String = s"$connectorPrefix.$TRUSTSTORE_PASS_SUFFIX"
+  val keyStorePath:        String = s"$connectorPrefix.$KEYSTORE_PATH_SUFFIX"
+  val keyStorePass:        String = s"$connectorPrefix.$KEYSTORE_PASS_SUFFIX"
+  val certificates:        String = s"$connectorPrefix.$CERTIFICATES_SUFFIX"
   val certificateKeyChain: String = s"$connectorPrefix.$CERTIFICATE_KEY_CHAIN_SUFFIX"
 
   def getTrustStorePath = getString(trustStorePath)
@@ -38,7 +38,7 @@ trait SSLSettings  extends BaseSettings {
   def getKeyStorePath = getString(keyStorePath)
   def getKeyStorePass = getPassword(keyStorePass)
 
-  def getCertificates = getList(certificates)
+  def getCertificates        = getList(certificates)
   def getCertificateKeyChain = getString(certificateKeyChain)
 
 }

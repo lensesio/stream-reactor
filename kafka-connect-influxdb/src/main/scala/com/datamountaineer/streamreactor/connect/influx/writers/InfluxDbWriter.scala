@@ -19,7 +19,8 @@ package com.datamountaineer.streamreactor.connect.influx.writers
 import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.sink.DbWriter
 import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
-import com.datamountaineer.streamreactor.connect.influx.{NanoClock, ValidateStringParameterFn}
+import com.datamountaineer.streamreactor.connect.influx.NanoClock
+import com.datamountaineer.streamreactor.connect.influx.ValidateStringParameterFn
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 import org.influxdb.InfluxDBFactory
@@ -34,9 +35,9 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
   private val influxDB = InfluxDBFactory.connect(settings.connectionUrl, settings.user, settings.password)
-  private val builder = new InfluxBatchPointsBuilder(settings, new NanoClock())
+  private val builder  = new InfluxBatchPointsBuilder(settings, new NanoClock())
 
-  override def write(records: Seq[SinkRecord]): Unit = {
+  override def write(records: Seq[SinkRecord]): Unit =
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
@@ -46,12 +47,9 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
           .flatMap { batchPoints =>
             logger.debug(s"Writing ${batchPoints.getPoints.size()} points to the database...")
             Try(influxDB.write(batchPoints))
-          }.map(_ => logger.debug("Writing complete")))
+          }.map(_ => logger.debug("Writing complete")),
+      )
     }
-  }
 
   override def close(): Unit = {}
 }
-
-
-

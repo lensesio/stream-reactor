@@ -17,7 +17,9 @@
 package com.datamountaineer.streamreactor.connect.pulsar.source
 
 import java.util
-import java.util.concurrent.{Executors, LinkedBlockingQueue, TimeUnit}
+import java.util.concurrent.Executors
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.common.concurrent.ExecutorExtension._
@@ -27,19 +29,20 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.source.SourceRecord
-import org.apache.pulsar.client.api.{Message, PulsarClient}
+import org.apache.pulsar.client.api.Message
+import org.apache.pulsar.client.api.PulsarClient
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
-
-class PulsarManager(client: PulsarClient,
-                    name: String,
-                    kcql: Set[Kcql],
-                    messageConverter: PulsarMessageConverter) extends AutoCloseable with StrictLogging {
+class PulsarManager(client: PulsarClient, name: String, kcql: Set[Kcql], messageConverter: PulsarMessageConverter)
+    extends AutoCloseable
+    with StrictLogging {
   private val executor = Executors.newFixedThreadPool(1)
 
   val consumerFactory = new ConsumerConfigFactory(client)
-  val configs = consumerFactory(name, kcql)
+  val configs         = consumerFactory(name, kcql)
 
   // Once the consumer is created, it can be used for the entire application life-cycle
   private val consumersMap = kcql.map(c => c.getSource -> configs(c.getSource).subscribe()).toMap
@@ -51,17 +54,17 @@ class PulsarManager(client: PulsarClient,
   }
   executor.shutdown()
 
-  private def consumerMessages(): Unit = {
+  private def consumerMessages(): Unit =
     while (!stop) {
-      consumersMap.foreach { case (pulsarTopic, consumer) =>
-        val msg = consumer.receive(1000, TimeUnit.MILLISECONDS)
+      consumersMap.foreach {
+        case (pulsarTopic, consumer) =>
+          val msg = consumer.receive(1000, TimeUnit.MILLISECONDS)
 
-        //TODO: this needs to be implemented to insure exactly once. it require two rounds of poll
-        // Acknowledge processing of message so that it can be deleted
-        if (messageConverter.convertMessages(msg, pulsarTopic)) consumer.acknowledge(msg)
+          //TODO: this needs to be implemented to insure exactly once. it require two rounds of poll
+          // Acknowledge processing of message so that it can be deleted
+          if (messageConverter.convertMessages(msg, pulsarTopic)) consumer.acknowledge(msg)
       }
     }
-  }
 
   override def close(): Unit = {
     stop = true
@@ -73,18 +76,20 @@ class PulsarManager(client: PulsarClient,
   def getRecords(target: util.ArrayList[SourceRecord]) = messageConverter.getRecords(target)
 }
 
-case class PulsarMessageConverter(convertersMap: Map[String, Converter],
-                                  kcql: Set[Kcql],
-                                  throwOnErrors: Boolean,
-                                  pollingTimeout: Int,
-                                  batchSize: Int) extends StrictLogging {
+case class PulsarMessageConverter(
+  convertersMap:  Map[String, Converter],
+  kcql:           Set[Kcql],
+  throwOnErrors:  Boolean,
+  pollingTimeout: Int,
+  batchSize:      Int,
+) extends StrictLogging {
 
   private val sourceToTopicMap = kcql.map(c => c.getSource -> c).toMap
   require(kcql.nonEmpty, s"Invalid $kcql parameter. At least one statement needs to be provided")
 
   private val queue = new LinkedBlockingQueue[SourceRecord]()
 
-  def convertMessages(msg: Message[Array[Byte]], pulsarTopic: String) = {
+  def convertMessages(msg: Message[Array[Byte]], pulsarTopic: String) =
     if (msg != null) {
       val matched = sourceToTopicMap
         .filter(t => compareTopic(pulsarTopic, t._1))
@@ -92,10 +97,18 @@ case class PulsarMessageConverter(convertersMap: Map[String, Converter],
 
       val wildcard = matched.head
       val kafkaTopic = sourceToTopicMap
-        .getOrElse(wildcard, throw new ConfigException(s"Topic $pulsarTopic is not configured. Available topics are:${sourceToTopicMap.keySet.mkString(",")}"))
+        .getOrElse(
+          wildcard,
+          throw new ConfigException(
+            s"Topic $pulsarTopic is not configured. Available topics are:${sourceToTopicMap.keySet.mkString(",")}",
+          ),
+        )
         .getTarget
 
-      val converter = convertersMap.getOrElse(wildcard, throw new RuntimeException(s"$wildcard topic is missing the converter instance."))
+      val converter = convertersMap.getOrElse(
+        wildcard,
+        throw new RuntimeException(s"$wildcard topic is missing the converter instance."),
+      )
       val messageId = Try(msg.getMessageId) match {
         case Success(s) =>
           s.toString
@@ -107,25 +120,33 @@ case class PulsarMessageConverter(convertersMap: Map[String, Converter],
       Option(converter.convert(kafkaTopic, pulsarTopic, messageId, msg.getData)) match {
         case Some(record) =>
           // add the key
-          val newRecord = record.newRecord(kafkaTopic, null, Schema.STRING_SCHEMA, msg.getKey, record.valueSchema(), record.value(), System.currentTimeMillis())
+          val newRecord = record.newRecord(kafkaTopic,
+                                           null,
+                                           Schema.STRING_SCHEMA,
+                                           msg.getKey,
+                                           record.valueSchema(),
+                                           record.value(),
+                                           System.currentTimeMillis(),
+          )
           queue.add(newRecord)
           true
         case None =>
-          logger.warn(s"Error converting message with id:${msg.getMessageId} on topic:$pulsarTopic. 'null' record returned by converter")
+          logger.warn(
+            s"Error converting message with id:${msg.getMessageId} on topic:$pulsarTopic. 'null' record returned by converter",
+          )
           if (throwOnErrors)
-            throw new RuntimeException(s"Error converting message with id:${msg.getMessageId} on topic:$pulsarTopic. 'null' record returned by converter")
+            throw new RuntimeException(
+              s"Error converting message with id:${msg.getMessageId} on topic:$pulsarTopic. 'null' record returned by converter",
+            )
           false
       }
     } else {
       false
     }
-  }
 
-  def compareTopic(actualTopic: String, subscribedTopic: String): Boolean = {
+  def compareTopic(actualTopic: String, subscribedTopic: String): Boolean =
     actualTopic.matches(subscribedTopic.replaceAll("\\+", "[^/]+").replaceAll("#", ".+"))
-  }
 
-  def getRecords(target: util.ArrayList[SourceRecord]): Unit = {
+  def getRecords(target: util.ArrayList[SourceRecord]): Unit =
     QueueHelpers.drainWithTimeoutNoGauva(target, batchSize, pollingTimeout.toLong * 1000000, queue)
-  }
 }

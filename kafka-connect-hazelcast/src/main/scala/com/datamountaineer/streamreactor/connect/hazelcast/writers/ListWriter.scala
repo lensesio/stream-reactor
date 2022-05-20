@@ -22,12 +22,13 @@ import com.hazelcast.collection.IList
 import org.apache.kafka.connect.sink.SinkRecord
 
 /**
-  * Created by andrew@datamountaineer.com on 02/12/2016. 
+  * Created by andrew@datamountaineer.com on 02/12/2016.
   * stream-reactor
   */
-case class ListWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
+case class ListWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings)
+    extends Writer(settings) {
   val listWriter: IList[Object] = client.getList(settings.topicObject(topic).name).asInstanceOf[IList[Object]]
 
-  override def write(record: SinkRecord): Unit = {val _ = listWriter.add(convert(record))}
+  override def write(record: SinkRecord): Unit = { val _ = listWriter.add(convert(record)) }
   override def close(): Unit = {}
 }

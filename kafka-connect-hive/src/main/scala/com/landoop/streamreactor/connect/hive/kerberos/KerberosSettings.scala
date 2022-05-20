@@ -3,13 +3,13 @@ package com.landoop.streamreactor.connect.hive.kerberos
 trait KerberosSettings {
   def CONNECTOR_PREFIX: String
 
-  def KerberosKey = s"$CONNECTOR_PREFIX.security.kerberos.enabled"
-  def KerberosDoc = "Configuration indicating whether HDFS is using Kerberos for authentication."
+  def KerberosKey     = s"$CONNECTOR_PREFIX.security.kerberos.enabled"
+  def KerberosDoc     = "Configuration indicating whether HDFS is using Kerberos for authentication."
   def KerberosDefault = false
   def KerberosDisplay = "HDFS Authentication Kerberos"
 
-  def KerberosDebugKey = s"$CONNECTOR_PREFIX.security.kerberos.debug"
-  def KerberosDebugDoc = "Configuration to enable Kerberos debug logging"
+  def KerberosDebugKey     = s"$CONNECTOR_PREFIX.security.kerberos.debug"
+  def KerberosDebugDoc     = "Configuration to enable Kerberos debug logging"
   def KerberosDebugDefault = false
   def KerberosDebugDisplay = "Kerberos debug logging"
 
@@ -19,7 +19,8 @@ trait KerberosSettings {
   def PrincipalDisplay = "Connect Kerberos Principal"
 
   def KerberosKeyTabKey = s"$CONNECTOR_PREFIX.security.keytab"
-  def KerberosKeyTabDoc = "The path to the keytab file for the HDFS connector principal. This keytab file should only be readable by the connector user."
+  def KerberosKeyTabDoc =
+    "The path to the keytab file for the HDFS connector principal. This keytab file should only be readable by the connector user."
   def KerberosKeyTabDefault: String = null
   def KerberosKeyTabDisplay = "Connect Kerberos Keytab"
 
@@ -33,8 +34,8 @@ trait KerberosSettings {
   def KerberosTicketRenewalDefault: Long = 60000 * 60
   def KerberosTicketRenewalDisplay = "Kerberos Ticket Renew Period (ms)"
 
-  def KerberosAuthModeKey = s"$CONNECTOR_PREFIX.security.kerberos.auth.mode"
-  def KerberosAuthModeDoc = s"The authentication mode for Kerberos. It can be KEYTAB or USERPASSWORD"
+  def KerberosAuthModeKey     = s"$CONNECTOR_PREFIX.security.kerberos.auth.mode"
+  def KerberosAuthModeDoc     = s"The authentication mode for Kerberos. It can be KEYTAB or USERPASSWORD"
   def KerberosAuthModeDefault = "KEYTAB"
   def KerberosAuthModeDisplay = s"Kerberos authentication mode"
 
@@ -63,10 +64,9 @@ trait KerberosSettings {
   def HiveMetastorePrincipalDefault: String = null
   def HiveMetastorePrincipalDisplay = "Hive metastore Kerberos Principal"
 
-
-  def JaasEntryNameKey = s"$CONNECTOR_PREFIX.security.kerberos.jaas.entry.name"
-  def JaasEntryNameDefault  = s"com.sun.security.jgss.initiate"
-  def JaasEntryNameDoc = s"The entry in the jaas file to consider"
+  def JaasEntryNameKey     = s"$CONNECTOR_PREFIX.security.kerberos.jaas.entry.name"
+  def JaasEntryNameDefault = s"com.sun.security.jgss.initiate"
+  def JaasEntryNameDoc     = s"The entry in the jaas file to consider"
   def JaasEntryNameDisplay = s"The entry in the jaas file to consider"
 
 }

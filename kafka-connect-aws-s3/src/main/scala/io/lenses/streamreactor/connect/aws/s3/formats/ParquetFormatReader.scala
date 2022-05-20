@@ -16,14 +16,14 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.formats.parquet.{ParquetInputFile, SeekableByteArrayInputStream}
+import io.lenses.streamreactor.connect.aws.s3.formats.parquet.ParquetInputFile
+import io.lenses.streamreactor.connect.aws.s3.formats.parquet.SeekableByteArrayInputStream
 import org.apache.avro.generic.GenericRecord
 import org.apache.parquet.avro.AvroParquetReader
 import org.apache.parquet.hadoop.ParquetReader
 
 class ParquetFormatReader extends Using {
-  def read(bytes: Array[Byte]): List[GenericRecord] = {
-
+  def read(bytes: Array[Byte]): List[GenericRecord] =
     using(new SeekableByteArrayInputStream(bytes)) {
       inputStream =>
         val inputFile = new ParquetInputFile(inputStream)
@@ -36,7 +36,6 @@ class ParquetFormatReader extends Using {
               .toList
         }
     }
-  }
 
   def accListFromReader[A](reader: ParquetReader[A], acc: Vector[A]): Vector[A] = {
     val current = reader.read()

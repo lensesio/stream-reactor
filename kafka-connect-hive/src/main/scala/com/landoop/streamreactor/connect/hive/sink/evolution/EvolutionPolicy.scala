@@ -1,6 +1,7 @@
 package com.landoop.streamreactor.connect.hive.sink.evolution
 
-import com.landoop.streamreactor.connect.hive.{DatabaseName, TableName}
+import com.landoop.streamreactor.connect.hive.DatabaseName
+import com.landoop.streamreactor.connect.hive.TableName
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.kafka.connect.data.Schema
 
@@ -47,8 +48,13 @@ trait EvolutionPolicy {
     * and it cannot or should not be evolved, then this method should
     * return a [[Failure]].
     */
-  def evolve(dbName: DatabaseName,
-             tableName: TableName,
-             metastoreSchema: Schema,
-             inputSchema: Schema)(implicit client: IMetaStoreClient): Try[Schema]
+  def evolve(
+    dbName:          DatabaseName,
+    tableName:       TableName,
+    metastoreSchema: Schema,
+    inputSchema:     Schema,
+  )(
+    implicit
+    client: IMetaStoreClient,
+  ): Try[Schema]
 }

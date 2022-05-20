@@ -4,7 +4,8 @@ import cats.implicits._
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
 import com.datamountaineer.streamreactor.connect.jms.sink.converters.JMSSinkMessageConverter
-import com.datamountaineer.streamreactor.connect.jms.source.converters.{CommonJMSMessageConverter, JMSSourceMessageConverter}
+import com.datamountaineer.streamreactor.connect.jms.source.converters.CommonJMSMessageConverter
+import com.datamountaineer.streamreactor.connect.jms.source.converters.JMSSourceMessageConverter
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.common.config.ConfigException
 

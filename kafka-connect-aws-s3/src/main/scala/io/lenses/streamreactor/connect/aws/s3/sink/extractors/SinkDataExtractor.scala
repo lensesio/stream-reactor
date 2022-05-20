@@ -20,7 +20,6 @@ import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model._
 
-
 /**
   * Extracts values from a SinkData wrapper type
   */
@@ -29,20 +28,22 @@ object SinkDataExtractor extends LazyLogging {
   /**
     * Returns the value of a struct as a String for text output
     */
-  def extractPathFromSinkData(sinkData: SinkData)(fieldNameOpt: Option[PartitionNamePath]): Either[ExtractorError, String] = {
+  def extractPathFromSinkData(
+    sinkData:     SinkData,
+  )(fieldNameOpt: Option[PartitionNamePath],
+  ): Either[ExtractorError, String] =
     sinkData match {
       case data: PrimitiveSinkData => data.safeVal().toString.asRight[ExtractorError]
       case ByteArraySinkData(array, _) => new String(array).asRight[ExtractorError]
-      case other => fieldNameOpt.fold(ExtractorError(ExtractorErrorType.FieldNameNotSpecified).asLeft[String])(fieldName =>
-        other match {
-          case StructSinkData(structVal) => StructExtractor.extractPathFromStruct(structVal, fieldName)
-          case MapSinkData(map, _) => WrappedMapExtractor.extractPathFromMap(map, fieldName)
-          case ArraySinkData(arrs, _) => WrappedArrayExtractor.extractPathFromArray(arrs, fieldName)
-          case _ => Left(ExtractorError(ExtractorErrorType.UnexpectedType))
-        }
-      )
+      case other =>
+        fieldNameOpt.fold(ExtractorError(ExtractorErrorType.FieldNameNotSpecified).asLeft[String])(fieldName =>
+          other match {
+            case StructSinkData(structVal) => StructExtractor.extractPathFromStruct(structVal, fieldName)
+            case MapSinkData(map, _)       => WrappedMapExtractor.extractPathFromMap(map, fieldName)
+            case ArraySinkData(arrs, _)    => WrappedArrayExtractor.extractPathFromArray(arrs, fieldName)
+            case _                         => Left(ExtractorError(ExtractorErrorType.UnexpectedType))
+          },
+        )
     }
-  }
-
 
 }

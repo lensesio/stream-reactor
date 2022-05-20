@@ -17,22 +17,25 @@ package com.landoop.connect.sql
 
 import java.util
 import com.landoop.connect.sql.StructSchemaSql._
-import com.landoop.sql.{Field, SqlContext}
+import com.landoop.sql.Field
+import com.landoop.sql.SqlContext
 import org.apache.calcite.sql.SqlSelect
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 object StructSql extends FieldValueGetter {
 
   implicit class IndexedRecordExtension(val struct: Struct) extends AnyVal {
-    def get(fieldName: String): Any = {
+    def get(fieldName: String): Any =
       Option(struct.schema().field(fieldName))
         .map(f => struct.get(f.name()))
         .orNull
-    }
   }
 
   implicit class StructSqlConverter(val from: Struct) extends AnyVal {
@@ -62,51 +65,47 @@ object StructSql extends FieldValueGetter {
       Option(from).map { _ =>
         if (!flatten) {
           implicit val kcqlContext = new SqlContext(Field.from(query))
-          val schema = from.schema().copy()
+          val schema               = from.schema().copy()
           kcql(schema)
         } else {
           implicit val fields = Field.from(query)
-          val schema = from.schema().flatten(fields)
+          val schema          = from.schema().flatten(fields)
           kcqlFlatten(schema)
         }
       }
     }.orNull
 
-    def sql(fields: Seq[Field], flatten: Boolean): Struct = {
+    def sql(fields: Seq[Field], flatten: Boolean): Struct =
       Option(from).map { _ =>
         if (!flatten) {
           implicit val kcqlContext = new SqlContext(fields)
-          val schema = from.schema()
+          val schema               = from.schema()
           kcql(schema)
         } else {
           implicit val f = fields
-          val schema = from.schema().flatten(fields)
+          val schema     = from.schema().flatten(fields)
           kcqlFlatten(schema)
         }
       }.orNull
-    }
 
-    def kcql(newSchema: Schema)(implicit sqlContext: SqlContext): Struct = {
+    def kcql(newSchema: Schema)(implicit sqlContext: SqlContext): Struct =
       fromStruct(from, from.schema(), newSchema, Vector.empty[String])
-    }
 
-
-    def kcqlFlatten(newSchema: Schema)(implicit fields: Seq[Field]): Struct = {
+    def kcqlFlatten(newSchema: Schema)(implicit fields: Seq[Field]): Struct =
       flattenStruct(from, newSchema)
-    }
-
 
     def flattenStruct(struct: Struct, newSchema: Schema)(implicit fields: Seq[Field]): Struct = {
-      val fieldsParentMap = fields.foldLeft(Map.empty[String, ArrayBuffer[String]]) { case (map, f) =>
-        val key = Option(f.parents).map(_.mkString(".")).getOrElse("")
-        val buffer = map.getOrElse(key, ArrayBuffer.empty[String])
-        buffer += f.name
-        map + (key -> buffer)
+      val fieldsParentMap = fields.foldLeft(Map.empty[String, ArrayBuffer[String]]) {
+        case (map, f) =>
+          val key    = Option(f.parents).map(_.mkString(".")).getOrElse("")
+          val buffer = map.getOrElse(key, ArrayBuffer.empty[String])
+          buffer += f.name
+          map + (key -> buffer)
       }
 
       val colsMap = collection.mutable.Map.empty[String, Int]
 
-      def getNextFieldName(fieldName: String): String = {
+      def getNextFieldName(fieldName: String): String =
         colsMap.get(fieldName).map { v =>
           colsMap.put(fieldName, v + 1)
           s"${fieldName}_${v + 1}"
@@ -114,35 +113,39 @@ object StructSql extends FieldValueGetter {
           colsMap.put(fieldName, 0)
           fieldName
         }
-      }
 
       val newStruct = new Struct(newSchema)
-      fields.zipWithIndex.foreach { case (field, _) =>
-        if (field.name == "*") {
-          val sourceFields = struct.schema().getFields(Option(field.parents).getOrElse(Seq.empty))
-          val key = Option(field.parents).map(_.mkString(".")).getOrElse("")
-          sourceFields
-            .filter { f =>
-              fieldsParentMap.get(key).forall(!_.contains(f.name()))
-            }.foreach { f =>
-            val extractedValue = get(struct, struct.schema(), Option(field.parents).getOrElse(Seq.empty[String]) :+ f.name())
-            newStruct.put(getNextFieldName(f.name()), extractedValue.orNull)
+      fields.zipWithIndex.foreach {
+        case (field, _) =>
+          if (field.name == "*") {
+            val sourceFields = struct.schema().getFields(Option(field.parents).getOrElse(Seq.empty))
+            val key          = Option(field.parents).map(_.mkString(".")).getOrElse("")
+            sourceFields
+              .filter { f =>
+                fieldsParentMap.get(key).forall(!_.contains(f.name()))
+              }.foreach { f =>
+                val extractedValue =
+                  get(struct, struct.schema(), Option(field.parents).getOrElse(Seq.empty[String]) :+ f.name())
+                newStruct.put(getNextFieldName(f.name()), extractedValue.orNull)
+              }
+          } else {
+            val extractedValue =
+              get(struct, struct.schema(), Option(field.parents).getOrElse(Seq.empty[String]) :+ field.name)
+            newStruct.put(getNextFieldName(field.alias), extractedValue.orNull)
           }
-        }
-        else {
-          val extractedValue = get(struct, struct.schema(), Option(field.parents).getOrElse(Seq.empty[String]) :+ field.name)
-          newStruct.put(getNextFieldName(field.alias), extractedValue.orNull)
-        }
       }
       newStruct
     }
 
-
-    def fromArray(value: Any,
-                  schema: Schema,
-                  targetSchema:
-                  Schema,
-                  parents: Seq[String])(implicit sqlContext: SqlContext): Any = {
+    def fromArray(
+      value:        Any,
+      schema:       Schema,
+      targetSchema: Schema,
+      parents:      Seq[String],
+    )(
+      implicit
+      sqlContext: SqlContext,
+    ): Any =
       value match {
         case c: java.util.Collection[_] =>
           c.asScala.foldLeft(new java.util.ArrayList[Any](c.size())) { (acc, e) =>
@@ -151,12 +154,16 @@ object StructSql extends FieldValueGetter {
           }
         case other => throw new IllegalArgumentException(s"${other.getClass.getName} is not handled")
       }
-    }
 
-    def fromStruct(record: Struct,
-                   schema: Schema,
-                   targetSchema: Schema,
-                   parents: Seq[String])(implicit sqlContext: SqlContext): Struct = {
+    def fromStruct(
+      record:       Struct,
+      schema:       Schema,
+      targetSchema: Schema,
+      parents:      Seq[String],
+    )(
+      implicit
+      sqlContext: SqlContext,
+    ): Struct = {
       val fields = sqlContext.getFieldsForPath(parents)
       //.get(parents.head)
       val fieldsTuple = fields.headOption.map { _ =>
@@ -174,10 +181,16 @@ object StructSql extends FieldValueGetter {
 
           case Left(field) =>
             val sourceField = Option(schema.field(field.name))
-              .getOrElse(throw new IllegalArgumentException(s"${field.name} can't be found in ${schema.fields.asScala.map(_.name).mkString(",")}"))
+              .getOrElse(throw new IllegalArgumentException(
+                s"${field.name} can't be found in ${schema.fields.asScala.map(_.name).mkString(",")}",
+              ))
 
             val targetField = Option(targetSchema.field(field.alias))
-              .getOrElse(throw new IllegalArgumentException(s"${field.alias} can't be found in ${targetSchema.fields.asScala.map(_.name).mkString(",")}"))
+              .getOrElse(
+                throw new IllegalArgumentException(
+                  s"${field.alias} can't be found in ${targetSchema.fields.asScala.map(_.name).mkString(",")}",
+                ),
+              )
 
             List(sourceField -> targetField)
 
@@ -186,7 +199,9 @@ object StructSql extends FieldValueGetter {
               .getOrElse(throw new IllegalArgumentException(s"$field can't be found in $schema"))
 
             val targetField = Option(targetSchema.field(field))
-              .getOrElse(throw new IllegalArgumentException(s"$field can't be found in ${targetSchema.fields.asScala.map(_.name).mkString(",")}"))
+              .getOrElse(throw new IllegalArgumentException(
+                s"$field can't be found in ${targetSchema.fields.asScala.map(_.name).mkString(",")}",
+              ))
 
             List(sourceField -> targetField)
 
@@ -195,26 +210,37 @@ object StructSql extends FieldValueGetter {
         targetSchema.fields().asScala
           .map { f =>
             val sourceField = Option(schema.field(f.name))
-              .getOrElse(throw new IllegalArgumentException(s"Can't find the field ${f.name} in ${schema.fields().asScala.map(_.name()).mkString(",")}"))
+              .getOrElse(
+                throw new IllegalArgumentException(
+                  s"Can't find the field ${f.name} in ${schema.fields().asScala.map(_.name()).mkString(",")}",
+                ),
+              )
             sourceField -> f
           }
       }
 
       val newStruct = new Struct(targetSchema)
-      fieldsTuple.foreach { case (sourceField, targetField) =>
-        val v = from(record.get(sourceField.name()),
-          sourceField.schema(),
-          targetField.schema(),
-          parents :+ sourceField.name)
-        newStruct.put(targetField.name(), v)
+      fieldsTuple.foreach {
+        case (sourceField, targetField) =>
+          val v = from(record.get(sourceField.name()),
+                       sourceField.schema(),
+                       targetField.schema(),
+                       parents :+ sourceField.name,
+          )
+          newStruct.put(targetField.name(), v)
       }
       newStruct
     }
 
-    def fromMap(value: Any,
-                fromSchema: Schema,
-                targetSchema: Schema,
-                parents: Seq[String])(implicit sqlContext: SqlContext): Any = {
+    def fromMap(
+      value:        Any,
+      fromSchema:   Schema,
+      targetSchema: Schema,
+      parents:      Seq[String],
+    )(
+      implicit
+      sqlContext: SqlContext,
+    ): Any =
       Option(value.asInstanceOf[java.util.Map[String, Any]]).map { map =>
         val newMap = new util.HashMap[String, Any]()
         //check if there are keys for this
@@ -230,32 +256,36 @@ object StructSql extends FieldValueGetter {
         fields.headOption.map { _ =>
           fields.filterNot(f => f.isLeft && f.left.exists(_.name != "*"))
             .foldLeft(initialMap) {
-              case (m, Left(f)) => m + (f.name -> f.alias)
-              case (m, Right(f)) => m + (f -> f)
+              case (m, Left(f))  => m + (f.name -> f.alias)
+              case (m, Right(f)) => m + (f      -> f)
             }
         }
           .getOrElse(map.keySet().asScala.map(k => k.toString -> k.toString).toMap)
-          .foreach { case (key, _) =>
-            Option(map.get(key)).foreach { v =>
-              newMap.put(
-                from(key, Schema.STRING_SCHEMA, Schema.STRING_SCHEMA, null).asInstanceOf[String],
-                from(v, fromSchema.valueSchema(), targetSchema.valueSchema(), parents))
-            }
+          .foreach {
+            case (key, _) =>
+              Option(map.get(key)).foreach { v =>
+                newMap.put(
+                  from(key, Schema.STRING_SCHEMA, Schema.STRING_SCHEMA, null).asInstanceOf[String],
+                  from(v, fromSchema.valueSchema(), targetSchema.valueSchema(), parents),
+                )
+              }
           }
         newMap
       }.orNull
-    }
 
-    def from(from: Any,
-             fromSchema: Schema,
-             targetSchema: Schema,
-             parents: Seq[String])(implicit kcqlContext: SqlContext): Any = {
+    def from(
+      from:         Any,
+      fromSchema:   Schema,
+      targetSchema: Schema,
+      parents:      Seq[String],
+    )(
+      implicit
+      kcqlContext: SqlContext,
+    ): Any =
       Option(from).map { _ =>
         fromSchema.`type`() match {
-          case Schema.Type.BOOLEAN |
-               Schema.Type.FLOAT64 | Schema.Type.FLOAT32 |
-               Schema.Type.INT64 | Schema.Type.INT32 | Schema.Type.INT16 | Schema.Type.INT8 |
-               Schema.Type.STRING | Schema.Type.BYTES => from
+          case Schema.Type.BOOLEAN | Schema.Type.FLOAT64 | Schema.Type.FLOAT32 | Schema.Type.INT64 | Schema.Type.INT32 |
+              Schema.Type.INT16 | Schema.Type.INT8 | Schema.Type.STRING | Schema.Type.BYTES => from
 
           case Schema.Type.ARRAY => fromArray(from, fromSchema, targetSchema, parents)
 
@@ -266,7 +296,6 @@ object StructSql extends FieldValueGetter {
           case other => throw new IllegalArgumentException(s"Invalid Avro schema type:$other")
         }
       }.orNull
-    }
   }
 
 }

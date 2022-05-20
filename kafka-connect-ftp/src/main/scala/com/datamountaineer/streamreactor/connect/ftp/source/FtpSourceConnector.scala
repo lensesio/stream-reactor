@@ -24,10 +24,11 @@ import org.apache.kafka.connect.source.SourceConnector
 
 import java.util
 import scala.jdk.CollectionConverters.SeqHasAsJava
-import scala.util.{Failure, Try}
+import scala.util.Failure
+import scala.util.Try
 
 class FtpSourceConnector extends SourceConnector with StrictLogging {
-  private var configProps : Option[util.Map[String, String]] = None
+  private var configProps: Option[util.Map[String, String]] = None
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def taskClass(): Class[_ <: Task] = classOf[FtpSourceTask]
@@ -36,22 +37,23 @@ class FtpSourceConnector extends SourceConnector with StrictLogging {
     logger.info(s"Setting task configurations for $maxTasks workers.")
     configProps match {
       case Some(props) => (1 to maxTasks).map(_ => props).toList.asJava
-      case None => throw new ConnectException("cannot provide taskConfigs without being initialised")
+      case None        => throw new ConnectException("cannot provide taskConfigs without being initialised")
     }
   }
 
-  override def stop(): Unit = {
+  override def stop(): Unit =
     logger.info("stop")
-  }
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/ftp-source-ascii.txt")).mkString + s" $version")
+    logger.info(
+      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/ftp-source-ascii.txt")).mkString + s" $version",
+    )
     logger.info(s"start FtpSourceConnector")
 
     configProps = Some(props)
     Try(new FtpSourceConfig(props)) match {
       case Failure(f) => throw new ConnectException("Couldn't start due to configuration error: " + f.getMessage, f)
-      case _ =>
+      case _          =>
     }
   }
 

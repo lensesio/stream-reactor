@@ -21,13 +21,15 @@ import com.datamountaineer.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.DISABLE_FLUSH_COUNT
 import io.lenses.streamreactor.connect.aws.s3.sink.DefaultCommitPolicy
 
-import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.DurationLong
+import scala.concurrent.duration.FiniteDuration
 
 object S3FlushSettings {
 
-  val defaultFlushSize = 500000000
+  val defaultFlushSize     = 500000000
   val defaultFlushInterval = 3600.seconds
-  val defaultFlushCount = 50000L
+  val defaultFlushCount    = 50000L
 
 }
 
@@ -35,34 +37,28 @@ trait S3FlushSettings extends BaseSettings {
 
   import S3FlushSettings._
 
-  private def isFlushCountDisabled: Boolean = {
+  private def isFlushCountDisabled: Boolean =
     getBoolean(s"$DISABLE_FLUSH_COUNT")
-  }
 
-  private def isFlushCountEnabled: Boolean = {
+  private def isFlushCountEnabled: Boolean =
     !isFlushCountDisabled
-  }
 
   def commitPolicy(kcql: Kcql) = DefaultCommitPolicy(
-    fileSize = flushSize(kcql),
-    interval = Option(flushInterval(kcql)),
-    recordCount = flushCount(kcql)
+    fileSize    = flushSize(kcql),
+    interval    = Option(flushInterval(kcql)),
+    recordCount = flushCount(kcql),
   )
 
-  private def flushInterval(kcql: Kcql): FiniteDuration = {
+  private def flushInterval(kcql: Kcql): FiniteDuration =
     Option(kcql.getWithFlushInterval).filter(_ > 0).map(_.seconds).getOrElse(defaultFlushInterval)
-  }
 
-  private def flushSize(kcql: Kcql): Option[Long] = {
+  private def flushSize(kcql: Kcql): Option[Long] =
     Option(kcql.getWithFlushSize).filter(_ > 0).orElse(Some(defaultFlushSize.toLong))
-  }
 
-  private def flushCount(kcql: Kcql): Option[Long] = {
+  private def flushCount(kcql: Kcql): Option[Long] =
     if (isFlushCountEnabled) {
       Option(kcql.getWithFlushCount).filter(_ > 0).orElse(Some(defaultFlushCount))
     } else {
       None
     }
-  }
 }
-

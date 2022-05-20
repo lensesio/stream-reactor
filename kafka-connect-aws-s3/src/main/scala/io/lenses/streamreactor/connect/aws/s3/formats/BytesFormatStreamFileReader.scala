@@ -18,16 +18,22 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.google.common.io.ByteStreams
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySourceData, BytesWriteMode}
+import io.lenses.streamreactor.connect.aws.s3.model.ByteArraySourceData
+import io.lenses.streamreactor.connect.aws.s3.model.BytesWriteMode
 
 import java.io.InputStream
 import scala.util.Try
 
-class BytesFormatStreamFileReader(inputStreamFn: () => InputStream, fileSizeFn: () => Long, bucketAndPath: RemoteS3PathLocation, bytesWriteMode: BytesWriteMode) extends S3FormatStreamReader[ByteArraySourceData] {
+class BytesFormatStreamFileReader(
+  inputStreamFn:  () => InputStream,
+  fileSizeFn:     () => Long,
+  bucketAndPath:  RemoteS3PathLocation,
+  bytesWriteMode: BytesWriteMode,
+) extends S3FormatStreamReader[ByteArraySourceData] {
 
   private var consumed: Boolean = false
   private val inputStream = inputStreamFn()
-  private val fileSize = fileSizeFn()
+  private val fileSize    = fileSizeFn()
 
   override def hasNext: Boolean = !consumed && fileSize > 0L
 

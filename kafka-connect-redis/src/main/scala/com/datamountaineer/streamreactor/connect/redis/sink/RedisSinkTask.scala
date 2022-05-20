@@ -17,23 +17,28 @@
 package com.datamountaineer.streamreactor.connect.redis.sink
 
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfig
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfigConstants
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import com.datamountaineer.streamreactor.connect.redis.sink.writer._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
-import scala.jdk.CollectionConverters.{IterableHasAsScala, ListHasAsScala}
+import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
   * <h1>RedisSinkTask</h1>
   *
   * Kafka Connect Redis sink task. Called by framework to put records to the
   * target sink
-  **/
+  */
 class RedisSinkTask extends SinkTask with StrictLogging {
   var writer: List[RedisWriter] = List[RedisWriter]()
   private val progressCounter = new ProgressCounter
@@ -42,16 +47,18 @@ class RedisSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Parse the configurations and setup the writer
-    **/
+    */
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/redis-ascii.txt")).mkString + s" $version")
+    logger.info(
+      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/redis-ascii.txt")).mkString + s" $version",
+    )
     logger.info(manifest.printManifest())
 
     val conf = if (context.configs().isEmpty) props else context.configs()
 
     RedisConfig.config.parse(conf)
     val sinkConfig = new RedisConfig(conf)
-    val settings = RedisSinkSettings(sinkConfig)
+    val settings   = RedisSinkSettings(sinkConfig)
     enableProgress = sinkConfig.getBoolean(RedisConfigConstants.PROGRESS_COUNTER_ENABLED)
 
     //if error policy is retry set retry interval
@@ -103,7 +110,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     } ++ mode_GEOADD.kcqlSettings.headOption.map { _ =>
       logger.info(s"Starting [${mode_GEOADD.kcqlSettings.size}] KCQLs with Redis Geo Add mode")
       List(new RedisGeoAdd(mode_GEOADD))
-    }  ++ mode_STREAM.kcqlSettings.headOption.map { _ =>
+    } ++ mode_STREAM.kcqlSettings.headOption.map { _ =>
       logger.info(s"Starting [${mode_STREAM.kcqlSettings.size}] KCQLs with Redis Stream mode")
       val writer = new RedisStreams(mode_STREAM)
       writer.createClient(settings)
@@ -124,8 +131,11 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     */
   def filterModeCache(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
     settings.kcqlSettings
-      .filter(k => k.kcqlConfig.getStoredAs == null
-        && k.kcqlConfig.getPrimaryKeys.size() >= 1))
+      .filter(k =>
+        k.kcqlConfig.getStoredAs == null
+          && k.kcqlConfig.getPrimaryKeys.size() >= 1,
+      ),
+  )
 
   /**
     * Construct a RedisSinkSettings object containing all the kcqlConfigs that use the Sorted Set mode.
@@ -136,13 +146,14 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     * @param settings The RedisSinkSettings containing all kcqlConfigs.
     * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Sorted Set mode.
     */
-  def filterModeInsertSS(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
-    settings.kcqlSettings
-      .filter { k =>
-        Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SORTEDSET") &&
+  def filterModeInsertSS(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(
+    kcqlSettings =
+      settings.kcqlSettings
+        .filter { k =>
+          Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SORTEDSET") &&
           k.kcqlConfig.getTarget != null &&
           k.kcqlConfig.getPrimaryKeys.isEmpty
-      }
+        },
   )
 
   /**
@@ -154,12 +165,13 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     * @param settings The RedisSinkSettings containing all kcqlConfigs.
     * @return A RedisSinkSettings object containing only the kcqlConfigs that use the PubSub mode.
     */
-  def filterModePubSub(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
-    settings.kcqlSettings
-      .filter { k =>
-        Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("PUBSUB") &&
+  def filterModePubSub(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(
+    kcqlSettings =
+      settings.kcqlSettings
+        .filter { k =>
+          Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("PUBSUB") &&
           k.kcqlConfig.getPrimaryKeys.isEmpty
-      }
+        },
   )
 
   /**
@@ -171,12 +183,13 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     * @param settings The RedisSinkSettings containing all kcqlConfigs.
     * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Multiple Sorted Sets mode.
     */
-  def filterModePKSS(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
-    settings.kcqlSettings
-      .filter { k =>
-        Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SORTEDSET") &&
+  def filterModePKSS(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(
+    kcqlSettings =
+      settings.kcqlSettings
+        .filter { k =>
+          Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SORTEDSET") &&
           k.kcqlConfig.getPrimaryKeys.asScala.nonEmpty
-      }
+        },
   )
 
   /**
@@ -189,37 +202,38 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     * @param settings The RedisSinkSettings containing all kcqlConfigs.
     * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Geo Add mode.
     */
-  def filterGeoAddMode(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
-    settings.kcqlSettings
-      .filter { k =>
-        Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("GEOADD") &&
+  def filterGeoAddMode(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(
+    kcqlSettings =
+      settings.kcqlSettings
+        .filter { k =>
+          Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("GEOADD") &&
           k.kcqlConfig.getPrimaryKeys.size() >= 1
-      }
+        },
   )
 
   def filterStream(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
     settings.kcqlSettings
       .filter { k =>
         Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("STREAM")
-      }
+      },
   )
 
-  def filterSearch(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
-    settings.kcqlSettings
-      .filter { k =>
-        Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SEARCH") &&
+  def filterSearch(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(
+    kcqlSettings =
+      settings.kcqlSettings
+        .filter { k =>
+          Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SEARCH") &&
           k.kcqlConfig.getPrimaryKeys.size() >= 1
-      }
+        },
   )
 
   /**
     * Pass the SinkRecords to the writer for Writing
-    **/
-  override def put(records: util.Collection[SinkRecord]): Unit = {
+    */
+  override def put(records: util.Collection[SinkRecord]): Unit =
     if (records.isEmpty) {
       logger.info("Empty list of records received.")
-    }
-    else {
+    } else {
       require(writer.nonEmpty, "Writer is not set!")
       val seq = records.asScala.toVector
       writer.foreach(w => w.write(seq))
@@ -228,11 +242,10 @@ class RedisSinkTask extends SinkTask with StrictLogging {
         progressCounter.update(seq)
       }
     }
-  }
 
   /**
     * Clean up Cassandra connections
-    **/
+    */
   override def stop(): Unit = {
     logger.info("Stopping Redis sink.")
     writer.foreach(w => w.close())

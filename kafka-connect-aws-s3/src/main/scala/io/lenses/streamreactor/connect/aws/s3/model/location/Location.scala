@@ -16,11 +16,10 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model.location
 
-trait Location {
-}
+trait Location {}
 
 trait RootLocation[P <: PathLocation] extends Location {
-  def withPath(path: String) : P
+  def withPath(path: String): P
 }
 
 trait PathLocation extends Location {

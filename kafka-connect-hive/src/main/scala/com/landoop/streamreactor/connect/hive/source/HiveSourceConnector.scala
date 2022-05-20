@@ -11,15 +11,14 @@ import org.apache.kafka.connect.source.SourceConnector
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-
 class HiveSourceConnector extends SourceConnector with StrictLogging {
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   private var props: util.Map[String, String] = _
 
-  override def version(): String = manifest.version()
+  override def version():   String           = manifest.version()
   override def taskClass(): Class[_ <: Task] = classOf[HiveSourceTask]
-  override def config(): ConfigDef = HiveSinkConfigDef.config
+  override def config():    ConfigDef        = HiveSinkConfigDef.config
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Creating hive sink connector")

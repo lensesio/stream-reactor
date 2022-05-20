@@ -23,18 +23,19 @@ import com.landoop.json.sql.JacksonJson
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
 
-
 class JsonPassThroughConverter extends Converter {
-  override def convert(kafkaTopic: String,
-                       sourceTopic: String,
-                       messageId: String,
-                       bytes: Array[Byte],
-                       keys: Seq[String] = Seq.empty,
-                       keyDelimiter: String = ".",
-                       properties: Map[String, String] = Map.empty): SourceRecord = {
+  override def convert(
+    kafkaTopic:   String,
+    sourceTopic:  String,
+    messageId:    String,
+    bytes:        Array[Byte],
+    keys:         Seq[String]         = Seq.empty,
+    keyDelimiter: String              = ".",
+    properties:   Map[String, String] = Map.empty,
+  ): SourceRecord = {
     if (bytes == null) throw new ConnectException("Invalid input. Input cannot be null.")
 
-    val json = new String(bytes, "utf-8")
+    val json     = new String(bytes, "utf-8")
     val jsonNode = JacksonJson.asJson(json)
     var keysValue = keys.flatMap { key =>
       Option(KeyExtractor.extract(jsonNode, key.split('.').toVector)).map(_.toString)
@@ -46,14 +47,12 @@ class JsonPassThroughConverter extends Converter {
     }
 
     new SourceRecord(Collections.singletonMap(Converter.TopicKey, sourceTopic),
-      null,
-      kafkaTopic,
-      null,
-      keysValue,
-      null,
-      json)
+                     null,
+                     kafkaTopic,
+                     null,
+                     keysValue,
+                     null,
+                     json,
+    )
   }
 }
-
-
-

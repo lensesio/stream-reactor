@@ -22,7 +22,8 @@ import org.apache.kafka.connect.storage.OffsetStorageReader
 import java.time.Instant
 import java.util
 import scala.collection.mutable
-import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 // allows storage and retrieval of meta datas into connect framework
 class ConnectFileMetaDataStore(offsetStorage: OffsetStorageReader) extends FileMetaDataStore with StrictLogging {
@@ -30,14 +31,16 @@ class ConnectFileMetaDataStore(offsetStorage: OffsetStorageReader) extends FileM
   private val cache = mutable.Map[String, FileMetaData]()
 
   override def get(path: String): Option[FileMetaData] =
-    cache.get(path).orElse({
+    cache.get(path).orElse {
       val stored = getFromStorage(path)
-      stored.foreach(set(path,_))
+      stored.foreach(set(path, _))
       stored
-    })
+    }
 
   override def set(path: String, fileMetaData: FileMetaData): Unit = {
-    logger.debug(s"ConnectFileMetaDataStore path = ${path}, fileMetaData.offset = ${fileMetaData.offset}, fileMetaData.attribs.size = ${fileMetaData.attribs.size}")
+    logger.debug(
+      s"ConnectFileMetaDataStore path = ${path}, fileMetaData.offset = ${fileMetaData.offset}, fileMetaData.attribs.size = ${fileMetaData.attribs.size}",
+    )
     cache.put(path, fileMetaData)
     ()
   }
@@ -53,34 +56,33 @@ class ConnectFileMetaDataStore(offsetStorage: OffsetStorageReader) extends FileM
         Some(connectOffsetToFileMetas(path, o))
     }
 
-  def fileMetasToConnectPartition(meta:FileMetaData): util.Map[String, String] = {
+  def fileMetasToConnectPartition(meta: FileMetaData): util.Map[String, String] =
     Map("path" -> meta.attribs.path).asJava
-  }
 
-  def connectOffsetToFileMetas(path:String, o:AnyRef): FileMetaData = {
+  def connectOffsetToFileMetas(path: String, o: AnyRef): FileMetaData = {
     val jm = o.asInstanceOf[java.util.Map[String, AnyRef]]
     FileMetaData(
       FileAttributes(
         path,
         jm.get("size").asInstanceOf[Long],
-        Instant.ofEpochMilli(jm.get("timestamp").asInstanceOf[Long])
+        Instant.ofEpochMilli(jm.get("timestamp").asInstanceOf[Long]),
       ),
       jm.get("hash").asInstanceOf[String],
       Instant.ofEpochMilli(jm.get("firstfetched").asInstanceOf[Long]),
       Instant.ofEpochMilli(jm.get("lastmodified").asInstanceOf[Long]),
       Instant.ofEpochMilli(jm.get("lastinspected").asInstanceOf[Long]),
-      jm.asScala.getOrElse("offset", -1L).asInstanceOf[Long]
+      jm.asScala.getOrElse("offset", -1L).asInstanceOf[Long],
     )
   }
 
-  def fileMetasToConnectOffset(meta: FileMetaData): util.Map[String, _] = {
-    Map[String,Any]("size" -> meta.attribs.size,
-      "timestamp" -> meta.attribs.timestamp.toEpochMilli,
-      "hash" -> meta.hash,
-      "firstfetched" -> meta.firstFetched.toEpochMilli,
-      "lastmodified" -> meta.lastModified.toEpochMilli,
+  def fileMetasToConnectOffset(meta: FileMetaData): util.Map[String, _] =
+    Map[String, Any](
+      "size"          -> meta.attribs.size,
+      "timestamp"     -> meta.attribs.timestamp.toEpochMilli,
+      "hash"          -> meta.hash,
+      "firstfetched"  -> meta.firstFetched.toEpochMilli,
+      "lastmodified"  -> meta.lastModified.toEpochMilli,
       "lastinspected" -> meta.lastInspected.toEpochMilli,
-      "offset" -> meta.offset
+      "offset"        -> meta.offset,
     ).asJava
-  }
 }

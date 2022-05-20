@@ -5,11 +5,8 @@ import org.apache.kafka.connect.source.SourceRecord
 
 import javax.jms.Message
 
-
 class JMSStructMessageConverter extends JMSSourceMessageConverter {
 
-  def convert(source: String, target: String, message: Message): SourceRecord = {
+  def convert(source: String, target: String, message: Message): SourceRecord =
     JMSStructMessage.getStruct(target, message)
-  }
 }
-

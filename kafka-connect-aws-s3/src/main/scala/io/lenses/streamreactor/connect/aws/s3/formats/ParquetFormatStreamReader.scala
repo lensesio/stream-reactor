@@ -27,11 +27,16 @@ import org.apache.parquet.hadoop.ParquetReader
 import java.io.InputStream
 import scala.util.Try
 
-class ParquetFormatStreamReader(inputStreamFn: () => InputStream, fileSizeFn: () => Long, bucketAndPath: RemoteS3PathLocation)
-  extends S3FormatStreamReader[SchemaAndValueSourceData] with Using {
+class ParquetFormatStreamReader(
+  inputStreamFn: () => InputStream,
+  fileSizeFn:    () => Long,
+  bucketAndPath: RemoteS3PathLocation,
+) extends S3FormatStreamReader[SchemaAndValueSourceData]
+    with Using {
 
   private val inputFile = new ParquetStreamingInputFile(inputStreamFn, fileSizeFn)
-  private val avroParquetReader: ParquetReader[GenericRecord] = AvroParquetReader.builder[GenericRecord](inputFile).build()
+  private val avroParquetReader: ParquetReader[GenericRecord] =
+    AvroParquetReader.builder[GenericRecord](inputFile).build()
   private val parquetReaderIteratorAdaptor = new ParquetReaderIteratorAdaptor(avroParquetReader)
   private var lineNumber: Long = -1
   private val avroDataConverter = new AvroData(100)

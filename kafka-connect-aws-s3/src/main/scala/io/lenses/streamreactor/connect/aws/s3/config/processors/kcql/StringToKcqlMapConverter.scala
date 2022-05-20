@@ -27,24 +27,22 @@ import scala.util.Try
   */
 object StringToKcqlMapConverter {
 
-  def convert(kcqlString: String): Either[Throwable, Map[KcqlProp, String]] = {
+  def convert(kcqlString: String): Either[Throwable, Map[KcqlProp, String]] =
     for {
       kcql <- Try(Kcql.parse(kcqlString)).toEither
-      map <- kcqlToKcqlMap(kcql).asRight
+      map  <- kcqlToKcqlMap(kcql).asRight
     } yield map
-  }
 
-  private def kcqlToKcqlMap(kcql: Kcql): Map[KcqlProp, String] = {
+  private def kcqlToKcqlMap(kcql: Kcql): Map[KcqlProp, String] =
     KcqlProp
       .values
-      .flatMap(
-        kcqlProp => kcqlProp.kcqlToString(kcql) match {
+      .flatMap(kcqlProp =>
+        kcqlProp.kcqlToString(kcql) match {
           case Some("use_profile") => None
           case Some("USE_PROFILE") => None
-          case Some(value) => Some((kcqlProp, value))
-          case None => None
-        }
+          case Some(value)         => Some((kcqlProp, value))
+          case None                => None
+        },
       )
       .toMap
-  }
 }

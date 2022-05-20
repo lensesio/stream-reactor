@@ -2,21 +2,40 @@ package io.lenses.streamreactor.connect.aws.s3.sink.seek
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
-import io.lenses.streamreactor.connect.aws.s3.model.{TopicPartition, TopicPartitionOffset}
-import io.lenses.streamreactor.connect.aws.s3.sink.{FatalS3SinkError, NonFatalS3SinkError, S3FileNamingStrategy, SinkError}
-import io.lenses.streamreactor.connect.aws.s3.storage.{FileDeleteError, FileLoadError, StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
+import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
+import io.lenses.streamreactor.connect.aws.s3.sink.NonFatalS3SinkError
+import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
+import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
+import io.lenses.streamreactor.connect.aws.s3.storage.FileDeleteError
+import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
-class IndexManager(sinkName: String, maxIndexes: Int, fallbackSeeker: Option[LegacyOffsetSeeker])(implicit storageInterface: StorageInterface) extends OffsetSeeker with LazyLogging {
+class IndexManager(
+  sinkName:       String,
+  maxIndexes:     Int,
+  fallbackSeeker: Option[LegacyOffsetSeeker],
+)(
+  implicit
+  storageInterface: StorageInterface,
+) extends OffsetSeeker
+    with LazyLogging {
 
   /**
-   * deletes all index files except for the one corresponding to topicPartitionOffset
-   *
-   * @param mostRecentIndexFile the latest offset successfully written
-   * @param topicPartition      the topicPartition
-   */
+    * deletes all index files except for the one corresponding to topicPartitionOffset
+    *
+    * @param mostRecentIndexFile the latest offset successfully written
+    * @param topicPartition      the topicPartition
+    */
   def clean(mostRecentIndexFile: RemoteS3PathLocation, topicPartition: TopicPartition): Either[SinkError, Int] = {
-    val remoteS3PathLocation = mostRecentIndexFile.root().withPath(IndexFilenames.indexForTopicPartition(sinkName, topicPartition.topic.value, topicPartition.partition))
+    val remoteS3PathLocation =
+      mostRecentIndexFile.root().withPath(IndexFilenames.indexForTopicPartition(sinkName,
+                                                                                topicPartition.topic.value,
+                                                                                topicPartition.partition,
+      ))
     storageInterface.list(remoteS3PathLocation)
       .leftMap { e =>
         val logLine = s"Couldn't retrieve listing for (${mostRecentIndexFile.path}})"
@@ -36,7 +55,11 @@ class IndexManager(sinkName: String, maxIndexes: Int, fallbackSeeker: Option[Leg
             storageInterface
               .deleteFiles(mostRecentIndexFile.bucket, filtered)
               .map { _ =>
-                logger.debug("[{}] Retaining index file: {}, Deleting files: ({})", sinkName, mostRecentIndexFile.path, filtered.mkString(", "))
+                logger.debug("[{}] Retaining index file: {}, Deleting files: ({})",
+                             sinkName,
+                             mostRecentIndexFile.path,
+                             filtered.mkString(", "),
+                )
                 filtered.size
               }
               .leftMap {
@@ -53,13 +76,16 @@ class IndexManager(sinkName: String, maxIndexes: Int, fallbackSeeker: Option[Leg
     FatalS3SinkError(logLine, topicPartition).asLeft
   }
 
-  def write(topicPartitionOffset: TopicPartitionOffset, s3PathLocation: RemoteS3PathLocation): Either[SinkError, RemoteS3PathLocation] = {
+  def write(
+    topicPartitionOffset: TopicPartitionOffset,
+    s3PathLocation:       RemoteS3PathLocation,
+  ): Either[SinkError, RemoteS3PathLocation] = {
 
     val s3Path = IndexFilenames.indexFilename(
       sinkName,
       topicPartitionOffset.topic.value,
       topicPartitionOffset.partition,
-      topicPartitionOffset.offset.value
+      topicPartitionOffset.offset.value,
     )
 
     logger.debug("[{}] Writing index {} pointing to file {}", sinkName, s3Path, s3PathLocation.path)
@@ -75,31 +101,44 @@ class IndexManager(sinkName: String, maxIndexes: Int, fallbackSeeker: Option[Leg
       }
   }
 
-  def fallbackOffsetSeek(seeker: LegacyOffsetSeeker, topicPartition: TopicPartition, fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: RemoteS3RootLocation): Either[SinkError, Option[TopicPartitionOffset]] = {
+  def fallbackOffsetSeek(
+    seeker:             LegacyOffsetSeeker,
+    topicPartition:     TopicPartition,
+    fileNamingStrategy: S3FileNamingStrategy,
+    bucketAndPrefix:    RemoteS3RootLocation,
+  ): Either[SinkError, Option[TopicPartitionOffset]] =
     seeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix) match {
       case Left(err) =>
-        logger.error(s"[{}] Error retrieving fallback offset seek topicPartition {} for {}", sinkName, topicPartition, bucketAndPrefix.bucket)
+        logger.error(s"[{}] Error retrieving fallback offset seek topicPartition {} for {}",
+                     sinkName,
+                     topicPartition,
+                     bucketAndPrefix.bucket,
+        )
         err.asLeft
       case Right(Some((tpo, path))) =>
         write(tpo, path).map(_ => Some(tpo))
       case Right(None) =>
         None.asRight
     }
-  }
 
   /**
-   * Seeks the filesystem to find the latyest offsets for a topic/partition.
-   *
-   * @param topicPartition     the TopicPartition for which to retrieve the offsets
-   * @param fileNamingStrategy the S3FileNamingStrategy to use in the case that a fallback offset seeker is required.
-   * @param bucketAndPrefix    the configured RemoteS3RootLocation
-   * @return either a SinkError or an option to a TopicPartitionOffset with the seek result.
-   */
-  def seek(topicPartition: TopicPartition, fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: RemoteS3RootLocation): Either[SinkError, Option[TopicPartitionOffset]] = {
-
-    storageInterface.list(bucketAndPrefix.withPath(
-      IndexFilenames.indexForTopicPartition(sinkName, topicPartition.topic.value, topicPartition.partition)
-    ))
+    * Seeks the filesystem to find the latyest offsets for a topic/partition.
+    *
+    * @param topicPartition     the TopicPartition for which to retrieve the offsets
+    * @param fileNamingStrategy the S3FileNamingStrategy to use in the case that a fallback offset seeker is required.
+    * @param bucketAndPrefix    the configured RemoteS3RootLocation
+    * @return either a SinkError or an option to a TopicPartitionOffset with the seek result.
+    */
+  def seek(
+    topicPartition:     TopicPartition,
+    fileNamingStrategy: S3FileNamingStrategy,
+    bucketAndPrefix:    RemoteS3RootLocation,
+  ): Either[SinkError, Option[TopicPartitionOffset]] =
+    storageInterface.list(
+      bucketAndPrefix.withPath(
+        IndexFilenames.indexForTopicPartition(sinkName, topicPartition.topic.value, topicPartition.partition),
+      ),
+    )
       .leftMap { e =>
         logger.error("Error retrieving listing", e.exception)
         new NonFatalS3SinkError("Couldn't retrieve listing", e.exception)
@@ -117,17 +156,20 @@ class IndexManager(sinkName: String, maxIndexes: Int, fallbackSeeker: Option[Leg
             }
           }
       }
-  }
 
-  private def seekAndClean(topicPartition: TopicPartition, bucketAndPrefix: RemoteS3RootLocation, indexes: List[String]) = {
+  private def seekAndClean(
+    topicPartition:  TopicPartition,
+    bucketAndPrefix: RemoteS3RootLocation,
+    indexes:         List[String],
+  ) = {
 
     /**
-     * Parses the filename of the index file, converting it to a TopicPartitionOffset
-     *
-     * @param maybeIndex option of the index filename
-     * @return either an error, or a TopicPartitionOffset
-     */
-    def indexToOffset(maybeIndex: Option[String]): Either[Throwable, Option[TopicPartitionOffset]] = {
+      * Parses the filename of the index file, converting it to a TopicPartitionOffset
+      *
+      * @param maybeIndex option of the index filename
+      * @return either an error, or a TopicPartitionOffset
+      */
+    def indexToOffset(maybeIndex: Option[String]): Either[Throwable, Option[TopicPartitionOffset]] =
       maybeIndex match {
         case Some(index) =>
           for {
@@ -135,14 +177,13 @@ class IndexManager(sinkName: String, maxIndexes: Int, fallbackSeeker: Option[Leg
           } yield Some(topicPartition.withOffset(offset))
         case None => Option.empty[TopicPartitionOffset].asRight
       }
-    }
 
     {
       for {
-        validIndex <- scanIndexes(bucketAndPrefix, indexes)
+        validIndex     <- scanIndexes(bucketAndPrefix, indexes)
         indexesToDelete = indexes.filterNot(validIndex.contains)
-        _ <- storageInterface.deleteFiles(bucketAndPrefix.bucket, indexesToDelete)
-        offset <- indexToOffset(validIndex)
+        _              <- storageInterface.deleteFiles(bucketAndPrefix.bucket, indexesToDelete)
+        offset         <- indexToOffset(validIndex)
       } yield {
         logger.info("[{}] Seeked offset {} for TP {}", sinkName, offset, topicPartition)
         offset
@@ -164,28 +205,30 @@ class IndexManager(sinkName: String, maxIndexes: Int, fallbackSeeker: Option[Leg
   }
 
   /**
-   * Given a bucket and a list of files, attempts to load them to establish the most recent valid index
-   *
-   * @param bucketAndPrefix Remote S3 Root Location of the sink files
-   * @param indexFiles      List of index files
-   * @return either a FileLoadError or an optional string containing the valid index file of the offset
-   */
-  def scanIndexes(bucketAndPrefix: RemoteS3RootLocation, indexFiles: List[String]): Either[FileLoadError, Option[String]] = {
+    * Given a bucket and a list of files, attempts to load them to establish the most recent valid index
+    *
+    * @param bucketAndPrefix Remote S3 Root Location of the sink files
+    * @param indexFiles      List of index files
+    * @return either a FileLoadError or an optional string containing the valid index file of the offset
+    */
+  def scanIndexes(
+    bucketAndPrefix: RemoteS3RootLocation,
+    indexFiles:      List[String],
+  ): Either[FileLoadError, Option[String]] =
     indexFiles
       .foldRight(
-        Option.empty[String].asRight[FileLoadError]
-      ){
+        Option.empty[String].asRight[FileLoadError],
+      ) {
         (idxFileName: String, result: Either[FileLoadError, Option[String]]) =>
           result match {
             case Right(None) =>
               for {
-                targetFileName <- storageInterface.getBlobAsString(bucketAndPrefix.withPath(idxFileName))
+                targetFileName     <- storageInterface.getBlobAsString(bucketAndPrefix.withPath(idxFileName))
                 targetBucketAndPath = bucketAndPrefix.withPath(targetFileName)
-                pathExists <- storageInterface.pathExists(targetBucketAndPath)
+                pathExists         <- storageInterface.pathExists(targetBucketAndPath)
               } yield if (pathExists) Some(idxFileName) else Option.empty[String]
-            case Left(_) => result
+            case Left(_)  => result
             case Right(_) => result
           }
-    }
-  }
+      }
 }

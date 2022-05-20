@@ -18,43 +18,42 @@ package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import com.datamountaineer.kcql.Kcql
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3Config, S3ConfigDefBuilder}
+import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
+import io.lenses.streamreactor.connect.aws.s3.config.S3Config
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 
 object S3SourceConfig {
 
   def apply(s3ConfigDefBuilder: S3ConfigDefBuilder): S3SourceConfig = S3SourceConfig(
     S3Config(s3ConfigDefBuilder.getParsedValues),
-    SourceBucketOptions(s3ConfigDefBuilder)
+    SourceBucketOptions(s3ConfigDefBuilder),
   )
 
 }
 
 case class S3SourceConfig(
-                           s3Config: S3Config,
-                           bucketOptions: Seq[SourceBucketOptions] = Seq.empty
-                         )
+  s3Config:      S3Config,
+  bucketOptions: Seq[SourceBucketOptions] = Seq.empty,
+)
 
 case class SourceBucketOptions(
-                                sourceBucketAndPrefix: RemoteS3RootLocation,
-                                targetTopic: String,
-                                format: FormatSelection,
-                                recordsLimit: Int,
-                                filesLimit: Int,
-                              )
-
+  sourceBucketAndPrefix: RemoteS3RootLocation,
+  targetTopic:           String,
+  format:                FormatSelection,
+  recordsLimit:          Int,
+  filesLimit:            Int,
+)
 
 object SourceBucketOptions {
 
   private val DEFAULT_RECORDS_LIMIT = 1024
-  private val DEFAULT_FILES_LIMIT = 1000
+  private val DEFAULT_FILES_LIMIT   = 1000
 
-  def apply(config: S3ConfigDefBuilder): Seq[SourceBucketOptions] = {
-
+  def apply(config: S3ConfigDefBuilder): Seq[SourceBucketOptions] =
     config.getKCQL.map {
 
       kcql: Kcql =>
-
         val formatSelection: FormatSelection = Option(kcql.getStoredAs) match {
           case Some(format: String) => FormatSelection(format)
           case None => FormatSelection(Json, Set.empty)
@@ -62,12 +61,10 @@ object SourceBucketOptions {
         SourceBucketOptions(
           RemoteS3RootLocation(kcql.getSource, allowSlash = true),
           kcql.getTarget,
-          format = formatSelection,
+          format       = formatSelection,
           recordsLimit = if (kcql.getLimit < 1) DEFAULT_RECORDS_LIMIT else kcql.getLimit,
-          filesLimit = if (kcql.getBatchSize < 1) DEFAULT_FILES_LIMIT else kcql.getBatchSize,
+          filesLimit   = if (kcql.getBatchSize < 1) DEFAULT_FILES_LIMIT else kcql.getBatchSize,
         )
     }.toList
 
-  }
 }
-

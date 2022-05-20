@@ -18,7 +18,8 @@
 
 package com.datamountaineer.streamreactor.common.rowkeys
 
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.jdk.CollectionConverters.ListHasAsScala
@@ -34,13 +35,12 @@ trait StringKeyBuilder {
   * Uses the connect record (topic, partition, offset) to set the schema
   *
   * @param keyDelimiter Row key delimiter
-  * @return a unique string for the message identified by: <topic>|<partition>|<offset> 
+  * @return a unique string for the message identified by: <topic>|<partition>|<offset>
   */
 class StringGenericRowKeyBuilder(keyDelimiter: String = "|") extends StringKeyBuilder {
 
-  override def build(record: SinkRecord): String = {
+  override def build(record: SinkRecord): String =
     Seq(record.topic(), record.kafkaPartition(), record.kafkaOffset().toString).mkString(keyDelimiter)
-  }
 }
 
 /**
@@ -52,7 +52,8 @@ class StringSinkRecordKeyBuilder extends StringKeyBuilder {
     require(`type`.isPrimitive, "The SinkRecord key schema is not a primitive type")
 
     `type`.name() match {
-      case "INT8" | "INT16" | "INT32" | "INT64" | "FLOAT32" | "FLOAT64" | "BOOLEAN" | "STRING" | "BYTES" => record.key().toString
+      case "INT8" | "INT16" | "INT32" | "INT64" | "FLOAT32" | "FLOAT64" | "BOOLEAN" | "STRING" | "BYTES" =>
+        record.key().toString
       case other => throw new IllegalArgumentException(s"$other is not supported by the ${getClass.getName}")
     }
   }
@@ -64,8 +65,7 @@ class StringSinkRecordKeyBuilder extends StringKeyBuilder {
   * @param keys The key to build
   * @param keyDelimiter Row key delimiter
   */
-case class StringStructFieldsStringKeyBuilder(keys: Seq[String],
-                                              keyDelimiter: String = ".") extends StringKeyBuilder {
+case class StringStructFieldsStringKeyBuilder(keys: Seq[String], keyDelimiter: String = ".") extends StringKeyBuilder {
   private val availableSchemaTypes = Set(
     Schema.Type.BOOLEAN,
     Schema.Type.BYTES,
@@ -75,7 +75,7 @@ case class StringStructFieldsStringKeyBuilder(keys: Seq[String],
     Schema.Type.INT16,
     Schema.Type.INT32,
     Schema.Type.INT64,
-    Schema.Type.STRING
+    Schema.Type.STRING,
   )
 
   require(keys.nonEmpty, "Invalid keys provided")
@@ -85,20 +85,25 @@ case class StringStructFieldsStringKeyBuilder(keys: Seq[String],
     *
     * @param record a SinkRecord to build the key for
     * @return A row key string
-    * */
+    */
   override def build(record: SinkRecord): String = {
     val struct = record.value().asInstanceOf[Struct]
     val schema = struct.schema
 
     val availableFields = schema.fields().asScala.map(_.name).toSet
-    val missingKeys = keys.filterNot(availableFields.contains)
-    require(missingKeys.isEmpty, s"[${missingKeys.mkString(",")}] keys are not present in the SinkRecord payload: [${availableFields.mkString(",")}]")
+    val missingKeys     = keys.filterNot(availableFields.contains)
+    require(
+      missingKeys.isEmpty,
+      s"[${missingKeys.mkString(",")}] keys are not present in the SinkRecord payload: [${availableFields.mkString(",")}]",
+    )
 
     keys.flatMap { key =>
       val field = schema.field(key)
       val value = struct.get(field)
 
-      require(value != null, s"[$key] field value is null. Non null value is required for the fields creating the Hbase row key")
+      require(value != null,
+              s"[$key] field value is null. Non null value is required for the fields creating the Hbase row key",
+      )
       if (availableSchemaTypes.contains(field.schema().`type`())) Some(value.toString)
       else None
     }.mkString(keyDelimiter)

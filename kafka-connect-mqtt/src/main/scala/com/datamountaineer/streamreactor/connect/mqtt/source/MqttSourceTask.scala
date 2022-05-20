@@ -17,28 +17,37 @@
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.ProgressCounter
 
 import java.io.File
 import java.util
-import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceConfig
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
-import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
+import org.apache.kafka.connect.source.SourceRecord
+import org.apache.kafka.connect.source.SourceTask
 
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala}
-import scala.util.{Failure, Success, Try}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 class MqttSourceTask extends SourceTask with StrictLogging {
   private val progressCounter = new ProgressCounter
-  private var enableProgress: Boolean = false
-  private var mqttManager: Option[MqttManager] = None
+  private var enableProgress: Boolean             = false
+  private var mqttManager:    Option[MqttManager] = None
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
 
-    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/mqtt-source-ascii.txt")).mkString + s" $version")
+    logger.info(scala.io.Source.fromInputStream(
+      this.getClass.getResourceAsStream("/mqtt-source-ascii.txt"),
+    ).mkString + s" $version")
     logger.info(manifest.printManifest())
 
     val conf = if (context.configs().isEmpty) props else context.configs()
@@ -63,24 +72,28 @@ class MqttSourceTask extends SourceTask with StrictLogging {
       }
     }
 
-    val convertersMap = settings.sourcesToConverters.map { case (topic, clazz) =>
-      logger.info(s"Creating converter instance for $clazz")
-      val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
-        case Success(value) => value.asInstanceOf[Converter]
-        case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
-      }
-      converter.initialize(conf.asScala.toMap)
-      topic -> converter
+    val convertersMap = settings.sourcesToConverters.map {
+      case (topic, clazz) =>
+        logger.info(s"Creating converter instance for $clazz")
+        val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
+          case Success(value) => value.asInstanceOf[Converter]
+          case Failure(_) =>
+            throw new ConfigException(
+              s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!",
+            )
+        }
+        converter.initialize(conf.asScala.toMap)
+        topic -> converter
     }
 
     logger.info("Starting Mqtt source...")
-    mqttManager = Some(new MqttManager(MqttClientConnectionFn.apply, convertersMap, settings))
+    mqttManager    = Some(new MqttManager(MqttClientConnectionFn.apply, convertersMap, settings))
     enableProgress = settings.enableProgress
   }
 
   /**
     * Get all the messages accumulated so far.
-    **/
+    */
   override def poll(): util.List[SourceRecord] = {
 
     val records = mqttManager.map { manager =>
@@ -97,7 +110,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
 
   /**
     * Shutdown connections
-    **/
+    */
   override def stop(): Unit = {
     logger.info("Stopping Mqtt source.")
     mqttManager.foreach(_.close())

@@ -16,7 +16,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model
 
-import enumeratum.{Enum, EnumEntry}
+import enumeratum.Enum
+import enumeratum.EnumEntry
 
 sealed trait S3WriteMode extends EnumEntry
 

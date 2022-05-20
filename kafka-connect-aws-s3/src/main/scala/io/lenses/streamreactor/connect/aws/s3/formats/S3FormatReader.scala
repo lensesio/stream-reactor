@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -28,5 +27,3 @@ trait S3FormatReader extends AutoCloseable {
 
   def getPointer: Long
 }
-
-

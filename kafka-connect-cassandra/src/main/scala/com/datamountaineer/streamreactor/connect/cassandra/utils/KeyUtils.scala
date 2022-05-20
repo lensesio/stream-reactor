@@ -1,7 +1,9 @@
 package com.datamountaineer.streamreactor.connect.cassandra.utils
 
-import com.jayway.jsonpath.{Configuration, JsonPath}
-import org.apache.kafka.connect.data.{Schema, Struct}
+import com.jayway.jsonpath.Configuration
+import com.jayway.jsonpath.JsonPath
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 
 import scala.annotation.tailrec
 
@@ -19,7 +21,6 @@ object KeyUtils {
     fieldNames map { f => JsonPath.read[Object](document, f) }
   }
 
-
   /**
     * Traverse a Struct, returning a list of the values of the given fields.
     *
@@ -32,12 +33,11 @@ object KeyUtils {
     fieldNames.map(getKeyFromStruct(struct, _))
 
   @tailrec
-  private def getKeyFromStruct(struct: Struct, fieldName: String): Object = {
+  private def getKeyFromStruct(struct: Struct, fieldName: String): Object =
     if (fieldName.contains(".")) {
       val Array(nestedObject, nestedField) = fieldName.split("\\.", 2)
       getKeyFromStruct(struct.get(nestedObject).asInstanceOf[Struct], nestedField)
     } else {
       struct.get(fieldName)
     }
-  }
 }

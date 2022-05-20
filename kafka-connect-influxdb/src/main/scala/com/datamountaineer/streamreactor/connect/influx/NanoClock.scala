@@ -1,15 +1,17 @@
 package com.datamountaineer.streamreactor.connect.influx
 
 import java.time.temporal.ChronoField
-import java.time.{Clock, Instant, ZoneId}
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneId
 
 /**
   * Trying to work against JVM time precision where Nano support is not provided until Java 9.
   * @param clock
   */
-class NanoClock(val clock: Clock){
+class NanoClock(val clock: Clock) {
   private val initialNanos = getSystemNanos
-  private val initialInstant:Instant = clock.instant()
+  private val initialInstant: Instant = clock.instant()
 
   def this() = {
     this(Clock.systemUTC)
@@ -23,7 +25,7 @@ class NanoClock(val clock: Clock){
 
   def getEpochNanos: Long = {
     val now = instant
-    now.toEpochMilli * 1000000L + (now.getLong(ChronoField.NANO_OF_SECOND)%1000000)
+    now.toEpochMilli * 1000000L + (now.getLong(ChronoField.NANO_OF_SECOND) % 1000000)
   }
   private def getSystemNanos = System.nanoTime
 }

@@ -22,10 +22,11 @@ import com.hazelcast.collection.IQueue
 import org.apache.kafka.connect.sink.SinkRecord
 
 /**
-  * Created by andrew@datamountaineer.com on 02/12/2016. 
+  * Created by andrew@datamountaineer.com on 02/12/2016.
   * stream-reactor
   */
-case class QueueWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
+case class QueueWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings)
+    extends Writer(settings) {
   val queueWriter: IQueue[Object] = client.getQueue(settings.topicObject(topic).name).asInstanceOf[IQueue[Object]]
 
   override def write(record: SinkRecord): Unit = queueWriter.put(convert(record))

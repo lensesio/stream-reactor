@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.elastic7
 
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.ProgressCounter
 import com.datamountaineer.streamreactor.connect.elastic7.config.ElasticConfig
 import com.datamountaineer.streamreactor.connect.elastic7.config.ElasticConfigConstants
 import com.datamountaineer.streamreactor.connect.elastic7.config.ElasticSettings
@@ -38,9 +39,11 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Parse the configurations and setup the writer
-    * */
+    */
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/elastic-ascii.txt")).mkString + s" $version")
+    logger.info(
+      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/elastic-ascii.txt")).mkString + s" $version",
+    )
     logger.info(manifest.printManifest())
 
     val conf = if (context.configs().isEmpty) props else context.configs()
@@ -53,7 +56,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     val settings = ElasticSettings(sinkConfig)
     settings.errorPolicy match {
       case RetryErrorPolicy() => context.timeout(sinkConfig.getInt(ElasticConfigConstants.ERROR_RETRY_INTERVAL).toLong)
-      case _ =>
+      case _                  =>
     }
 
     writer = Some(ElasticWriter(sinkConfig))
@@ -61,7 +64,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Pass the SinkRecords to the writer for Writing
-    * */
+    */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     val seq = records.asScala.toVector
@@ -74,16 +77,15 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Clean up writer
-    * */
+    */
   override def stop(): Unit = {
     logger.info("Stopping Elastic sink.")
     writer.foreach(w => w.close())
     progressCounter.empty()
   }
 
-  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
+  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit =
     logger.info("Flushing Elastic Sink")
-  }
 
   override def version: String = manifest.version()
 }

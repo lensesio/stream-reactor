@@ -16,7 +16,8 @@
 
 package com.landoop.streamreactor.connect.hive.source.offset
 
-import com.landoop.streamreactor.connect.hive.source.{SourceOffset, SourcePartition}
+import com.landoop.streamreactor.connect.hive.source.SourceOffset
+import com.landoop.streamreactor.connect.hive.source.SourcePartition
 
 trait HiveSourceOffsetStorageReader {
 

@@ -18,16 +18,17 @@
 
 package com.datamountaineer.streamreactor.common.config.base.traits
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.{PASSWORD_SUFFIX, USERNAME_SUFFIX}
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.PASSWORD_SUFFIX
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.USERNAME_SUFFIX
 
 /**
-  * Created by andrew@datamountaineer.com on 29/07/2017. 
+  * Created by andrew@datamountaineer.com on 29/07/2017.
   * stream-reactor
   */
 trait UserSettings extends BaseSettings {
   val passwordConst = s"$connectorPrefix.$PASSWORD_SUFFIX"
   val usernameConst = s"$connectorPrefix.$USERNAME_SUFFIX"
 
-  def getSecret = getPassword(passwordConst)
+  def getSecret   = getPassword(passwordConst)
   def getUsername = getString(usernameConst)
 }

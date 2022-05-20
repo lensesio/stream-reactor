@@ -22,10 +22,10 @@ import java.util
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 31/08/2017. 
+  * Created by andrew@datamountaineer.com on 31/08/2017.
   * Default (Template) Project
   */
-class NopSourceRecordConverter extends SourceRecordConverter{
+class NopSourceRecordConverter extends SourceRecordConverter {
   override def configure(props: util.Map[String, _]): Unit = {}
 
   override def convert(in: SourceRecord): util.List[SourceRecord] = Seq(in).asJava

@@ -17,8 +17,10 @@
 package com.datamountaineer.streamreactor.connect.hbase.avro
 
 import org.apache.avro.Schema
-import org.apache.avro.file.{DataFileReader, SeekableByteArrayInput}
-import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
+import org.apache.avro.file.DataFileReader
+import org.apache.avro.file.SeekableByteArrayInput
+import org.apache.avro.generic.GenericDatumReader
+import org.apache.avro.generic.GenericRecord
 import org.apache.avro.io.DecoderFactory
 
 /**
@@ -35,8 +37,7 @@ class AvroDeserializer(schema: Schema) {
 
 /**
   * Deserialize an Avro to a Json string.
-  *
-  * */
+  */
 class AvroJsonDeserializer(schema: Schema) {
   private val reader = new GenericDatumReader[GenericRecord](schema)
 

@@ -7,6 +7,6 @@ object BytesVectorWriter extends OrcVectorWriter[BytesColumnVector, Array[Byte]]
     case Some(bytes) => vector.setRef(offset, bytes, 0, bytes.length)
     case _ =>
       vector.isNull(offset) = true
-      vector.noNulls = false
+      vector.noNulls        = false
   }
 }

@@ -1,6 +1,8 @@
 package com.datamountaineer.streamreactor.connect.hbase.config
 
-import com.datamountaineer.streamreactor.connect.hbase.kerberos.{Kerberos, KeytabSettings, UserPasswordSettings}
+import com.datamountaineer.streamreactor.connect.hbase.kerberos.Kerberos
+import com.datamountaineer.streamreactor.connect.hbase.kerberos.KeytabSettings
+import com.datamountaineer.streamreactor.connect.hbase.kerberos.UserPasswordSettings
 import org.apache.hadoop.conf.Configuration
 
 object HBaseConfigExtension {
@@ -10,7 +12,7 @@ object HBaseConfigExtension {
     def withKerberos(kerberos: Kerberos): Unit = {
       configuration.set("hadoop.security.authentication", "kerberos")
       kerberos.auth match {
-        case Left(keytab) => withKeyTab(keytab)
+        case Left(keytab)   => withKeyTab(keytab)
         case Right(userPwd) => withUserPassword(userPwd)
       }
     }

@@ -26,12 +26,13 @@ import io.lenses.streamreactor.connect.aws.s3.source.files.SourceFileQueue
   * Given a sourceBucketOptions, manages readers for all of the files
   */
 class S3ReaderManager(
-                             sourceName: String,
-                             recordsLimit: Int,
-                             startingOffset: Option[RemoteS3PathLocationWithLine],
-                             fileSource: SourceFileQueue,
-                             readerFn: RemoteS3PathLocationWithLine => Either[Throwable, ResultReader]
-                          ) extends LazyLogging with AutoCloseable {
+  sourceName:     String,
+  recordsLimit:   Int,
+  startingOffset: Option[RemoteS3PathLocationWithLine],
+  fileSource:     SourceFileQueue,
+  readerFn:       RemoteS3PathLocationWithLine => Either[Throwable, ResultReader],
+) extends LazyLogging
+    with AutoCloseable {
 
   sealed trait ReaderState extends AutoCloseable with LazyLogging {
 
@@ -39,36 +40,32 @@ class S3ReaderManager(
 
     override def close(): Unit = {}
 
-    def toExceptionState(err: Throwable) : ExceptionReaderState = {
+    def toExceptionState(err: Throwable): ExceptionReaderState =
       ExceptionReaderState(err)
-    }
 
-    def toExceptionState(err: String) : ExceptionReaderState = {
+    def toExceptionState(err: String): ExceptionReaderState =
       ExceptionReaderState(new IllegalStateException(err))
-    }
   }
 
   sealed trait MoreFilesAvailableState extends ReaderState {
 
-    def readNextFile : ReaderState = {
+    def readNextFile: ReaderState =
       fileSource.next() match {
         case Left(exception: Throwable) =>
           toExceptionState(exception)
         case Right(Some(nextFile)) =>
           logger.debug(s"[$sourceName] readNextFile - Next file ($nextFile) found")
           readerFn(nextFile) match {
-            case Right(reader) => toInitialisedState(reader)
+            case Right(reader)   => toInitialisedState(reader)
             case Left(exception) => toExceptionState(exception)
           }
         case Right(None) =>
           logger.debug(s"[$sourceName] readNextFile - No next file found")
           toNoFurtherFilesState()
       }
-    }
 
-    def toInitialisedState(reader: ResultReader): ReaderState = {
+    def toInitialisedState(reader: ResultReader): ReaderState =
       InitialisedReaderState(reader)
-    }
 
     def toNoFurtherFilesState(): ReaderState = NoMoreFilesReaderState()
 
@@ -124,8 +121,8 @@ class S3ReaderManager(
 
       state match {
         case ExceptionReaderState(err) => throw err
-        case fileState : MoreFilesAvailableState => state =
-          fileState.readNextFile
+        case fileState: MoreFilesAvailableState => state =
+            fileState.readNextFile
         case InitialisedReaderState(_) =>
       }
 
@@ -145,7 +142,7 @@ class S3ReaderManager(
 
       moreFiles = state match {
         case NoMoreFilesReaderState() => false
-        case _ => true
+        case _                        => true
       }
 
     } while (allLimit > 0 && moreFiles)

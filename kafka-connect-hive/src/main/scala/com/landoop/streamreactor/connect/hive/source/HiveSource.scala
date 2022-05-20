@@ -2,11 +2,17 @@ package com.landoop.streamreactor.connect.hive.source
 
 import com.landoop.streamreactor.connect.hive
 import com.landoop.streamreactor.connect.hive._
-import com.landoop.streamreactor.connect.hive.formats.{HiveFormat, HiveReader, Record}
-import com.landoop.streamreactor.connect.hive.kerberos.{KerberosExecute, UgiExecute}
-import com.landoop.streamreactor.connect.hive.source.SourcePartition.{fromSourceOffset, fromSourcePartition}
-import com.landoop.streamreactor.connect.hive.source.config.{HiveSourceConfig, SourceTableOptions}
-import com.landoop.streamreactor.connect.hive.source.mapper.{PartitionValueMapper, ProjectionMapper}
+import com.landoop.streamreactor.connect.hive.formats.HiveFormat
+import com.landoop.streamreactor.connect.hive.formats.HiveReader
+import com.landoop.streamreactor.connect.hive.formats.Record
+import com.landoop.streamreactor.connect.hive.kerberos.KerberosExecute
+import com.landoop.streamreactor.connect.hive.kerberos.UgiExecute
+import com.landoop.streamreactor.connect.hive.source.SourcePartition.fromSourceOffset
+import com.landoop.streamreactor.connect.hive.source.SourcePartition.fromSourcePartition
+import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
+import com.landoop.streamreactor.connect.hive.source.config.SourceTableOptions
+import com.landoop.streamreactor.connect.hive.source.mapper.PartitionValueMapper
+import com.landoop.streamreactor.connect.hive.source.mapper.ProjectionMapper
 import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceOffsetStorageReader
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
@@ -26,50 +32,57 @@ import scala.jdk.CollectionConverters.MapHasAsJava
   * @param tableName the table to read from
   * @param config    required for read options
   */
-class HiveSource(db: DatabaseName,
-                 tableName: TableName,
-                 topic: Topic,
-                 offsetReader: HiveSourceOffsetStorageReader,
-                 config: HiveSourceConfig,
-                 ugi: UgiExecute = new UgiExecute {
-                   override def execute[T](thunk: => T): T = thunk
-                 })
-                (implicit client: IMetaStoreClient, fs: FileSystem) extends Iterator[SourceRecord]
-  with KerberosExecute {
+class HiveSource(
+  db:           DatabaseName,
+  tableName:    TableName,
+  topic:        Topic,
+  offsetReader: HiveSourceOffsetStorageReader,
+  config:       HiveSourceConfig,
+  ugi: UgiExecute = new UgiExecute {
+    override def execute[T](thunk: => T): T = thunk
+  },
+)(
+  implicit
+  client: IMetaStoreClient,
+  fs:     FileSystem,
+) extends Iterator[SourceRecord]
+    with KerberosExecute {
 
   val tableConfig: SourceTableOptions = config.tableOptions.filter(_.tableName == tableName).find(_.topic == topic)
-    .getOrElse(throw new ConnectException(s"Cannot find table configuration for ${db.value}.${tableName.value} => ${topic.value}"))
+    .getOrElse(throw new ConnectException(
+      s"Cannot find table configuration for ${db.value}.${tableName.value} => ${topic.value}",
+    ))
 
-  private val table = client.getTable(db.value, tableName.value)
-  private val format = HiveFormat(hive.serde(table))
+  private val table           = client.getTable(db.value, tableName.value)
+  private val format          = HiveFormat(hive.serde(table))
   private val metastoreSchema = HiveSchemas.toKafka(table)
-  private val parts = TableFileScanner.scan(db, tableName)
+  private val parts           = TableFileScanner.scan(db, tableName)
   private val offsets: mutable.Map[SourcePartition, SourceOffset] = mutable.Map.empty[SourcePartition, SourceOffset]
 
-  private val readers = parts.map { case (path, partition) =>
+  private val readers = parts.map {
+    case (path, partition) =>
+      val fns: Seq[Struct => Struct] = Seq(
+        partition.map(new PartitionValueMapper(_).map _),
+        tableConfig.projection.map(new ProjectionMapper(_).map _),
+      ).flatten
+      val mapper: Struct => Struct = Function.chain(fns)
 
-    val fns: Seq[Struct => Struct] = Seq(
-      partition.map(new PartitionValueMapper(_).map _),
-      tableConfig.projection.map(new ProjectionMapper(_).map _)
-    ).flatten
-    val mapper: Struct => Struct = Function.chain(fns)
+      val lastSeenOffset = offsetReader.offset(SourcePartition(db, tableName, topic, path))
+      val readFromRow    = lastSeenOffset.fold(0)(_.rowNumber + 1)
 
-    val lastSeenOffset = offsetReader.offset(SourcePartition(db, tableName, topic, path))
-    val readFromRow = lastSeenOffset.fold(0)(_.rowNumber + 1)
-
-    new HiveReader {
+      new HiveReader {
         lazy val reader: HiveReader = ugi.execute {
-        format.reader(path, readFromRow, metastoreSchema, ugi)
-      }
-
-      override def iterator: Iterator[Record] = ugi.execute {
-        reader.iterator.map { record =>
-          Record(mapper(record.struct), record.path, record.offset)
+          format.reader(path, readFromRow, metastoreSchema, ugi)
         }
-      }
 
-      override def close(): Unit = reader.close()
-    }
+        override def iterator: Iterator[Record] = ugi.execute {
+          reader.iterator.map { record =>
+            Record(mapper(record.struct), record.path, record.offset)
+          }
+        }
+
+        override def close(): Unit = reader.close()
+      }
   }
 
   private val recordIterator: Iterator[Record] = ugi.execute {
@@ -83,9 +96,9 @@ class HiveSource(db: DatabaseName,
 
   override def next(): SourceRecord = ugi.execute {
 
-    val record = recordIterator.next()
+    val record          = recordIterator.next()
     val sourcePartition = SourcePartition(db, tableName, topic, record.path)
-    val offset = SourceOffset(record.offset)
+    val offset          = SourceOffset(record.offset)
     offsets.put(sourcePartition, offset)
 
     new SourceRecord(
@@ -93,7 +106,7 @@ class HiveSource(db: DatabaseName,
       fromSourceOffset(offset).asJava,
       topic.value,
       record.struct.schema,
-      record.struct
+      record.struct,
     )
   }
 
