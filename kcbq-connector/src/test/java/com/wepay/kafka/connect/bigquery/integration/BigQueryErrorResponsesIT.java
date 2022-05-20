@@ -109,6 +109,21 @@ public class BigQueryErrorResponsesIT extends BaseConnectorIT {
     );
     logger.info("Deleted {} successfully", table(table));
 
+    TestUtils.waitForCondition(
+        () -> {
+          // Try to write to it...
+          try {
+            bigQuery.insertAll(InsertAllRequest.of(table, RowToInsert.of(Collections.singletonMap("f1", "v1"))));
+            return false;
+          } catch (BigQueryException e) {
+            logger.debug("Deleted table write error", e);
+            return BigQueryErrorResponses.isNonExistentTableError(e);
+          }
+        },
+        60_000L,
+        "Never failed to write to just-deleted table"
+    );
+
     // Recreate it...
     bigQuery.create(TableInfo.newBuilder(table, StandardTableDefinition.of(schema)).build());
 
@@ -120,11 +135,11 @@ public class BigQueryErrorResponsesIT extends BaseConnectorIT {
             return true;
           } catch (BigQueryException e) {
             logger.debug("Recreated table write error", e);
-            return BigQueryErrorResponses.isNonExistentTableError(e);
+            return false;
           }
         },
         60_000L,
-        "Never failed to write to just-recreated table"
+        "Never succeeded to write to just-recreated table"
     );
   }
 
