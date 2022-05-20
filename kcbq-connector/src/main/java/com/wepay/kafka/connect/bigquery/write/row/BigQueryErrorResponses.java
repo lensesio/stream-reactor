@@ -22,6 +22,7 @@ package com.wepay.kafka.connect.bigquery.write.row;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 
+import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -40,7 +41,7 @@ public class BigQueryErrorResponses {
   private static final int SERVICE_UNAVAILABLE_CODE = 503;
 
   private static final String BAD_REQUEST_REASON = "badRequest";
-  private static final String INVALID_REASON = "invalid"; 
+  private static final String INVALID_REASON = "invalid";
   private static final String NOT_FOUND_REASON = "notFound";
   private static final String QUOTA_EXCEEDED_REASON = "quotaExceeded";
   private static final String RATE_LIMIT_EXCEEDED_REASON = "rateLimitExceeded";
@@ -105,6 +106,11 @@ public class BigQueryErrorResponses {
     return BAD_REQUEST_CODE == exception.getCode()
         && INVALID_REASON.equalsIgnoreCase(exception.getReason())
         && message(exception.getError()).startsWith("too many rows present in the request");
+  }
+
+  public static boolean isIOError(BigQueryException error) {
+    return BigQueryException.UNKNOWN_CODE == error.getCode()
+        && error.getCause() instanceof IOException;
   }
 
   public static boolean isUnrecognizedFieldError(BigQueryError error) {

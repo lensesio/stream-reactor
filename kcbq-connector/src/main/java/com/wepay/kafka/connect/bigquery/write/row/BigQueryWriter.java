@@ -135,6 +135,9 @@ public abstract class BigQueryWriter {
         } else if (BigQueryErrorResponses.isRateLimitExceededError(err)) {
           logger.warn("Rate limit exceeded for table {}, attempting retry", table);
           retryCount++;
+        } else if (BigQueryErrorResponses.isIOError(err)){
+          logger.warn("IO Exception: {}, attempting retry", err.getCause().getMessage());
+          retryCount++;
         } else {
           throw err;
         }
