@@ -20,6 +20,7 @@
 package com.wepay.kafka.connect.bigquery;
 
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
@@ -45,14 +46,17 @@ import com.wepay.kafka.connect.bigquery.write.batch.MergeBatches;
 import com.wepay.kafka.connect.bigquery.write.batch.TableWriter;
 import com.wepay.kafka.connect.bigquery.write.batch.TableWriterBuilder;
 import com.wepay.kafka.connect.bigquery.write.row.AdaptiveBigQueryWriter;
+import com.wepay.kafka.connect.bigquery.write.row.BigQueryErrorResponses;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 import com.wepay.kafka.connect.bigquery.write.row.GCSToBQWriter;
 import com.wepay.kafka.connect.bigquery.write.row.SimpleBigQueryWriter;
 import com.wepay.kafka.connect.bigquery.write.row.UpsertDeleteBigQueryWriter;
+import java.io.IOException;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.errors.ConnectException;
+import org.apache.kafka.connect.errors.RetriableException;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.slf4j.Logger;
@@ -335,7 +339,19 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private Table retrieveCachedTable(TableId tableId) {
-    return getCache().computeIfAbsent(tableId, k -> getBigQuery().getTable(tableId));
+    return getCache().computeIfAbsent(tableId, this::retrieveTable);
+  }
+
+  private Table retrieveTable(TableId tableId) {
+    try {
+      return getBigQuery().getTable(tableId);
+    } catch (BigQueryException e) {
+      if (BigQueryErrorResponses.isIOError(e)) {
+        throw new RetriableException("Failed to retrieve information for table " + tableId, e);
+      } else {
+        throw e;
+      }
+    }
   }
 
   private BigQuery newBigQuery() {
