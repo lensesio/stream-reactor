@@ -174,6 +174,9 @@ class FtpMonitor(settings: FtpMonitorSettings, fileConverter: FileConverter) ext
         Using(ftp.retrieveFileStream(file.path())) {
           inputStream =>
             IOUtils.copyLarge(inputStream, outputStream, 0, sliceSize.toLong)
+        } match {
+          case Failure(exception) => throw exception
+          case Success(_value)    => _value
         }
         if (outputStream.size() > 0) Some(outputStream.toByteArray) else None
     }
