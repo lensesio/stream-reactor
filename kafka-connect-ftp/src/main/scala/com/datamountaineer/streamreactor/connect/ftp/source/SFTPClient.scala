@@ -36,6 +36,7 @@ class SFTPClient extends FTPClient with StrictLogging {
   private var maybeExplicitPort:   Option[Int]         = None
   private var maybeJschSession:    Option[Session]     = None
   private var maybeChannelSftp:    Option[ChannelSftp] = None
+  private var restartOffset:       Long                = 0
 
   private val dateFormat = DateTimeFormatter.ofPattern("EEE MMM d HH:mm:ss zzz uuuu")
 
@@ -142,12 +143,25 @@ class SFTPClient extends FTPClient with StrictLogging {
       logger.debug(s"SFTPClient Error, channel not initiated in path $remote.")
       false
     } { channel =>
+      if (!channel.isConnected) connectChannel(channel)
       channel.get(remote, fileBody)
-      logger.debug(s"SFTPClient Successful retrieving files in path $remote.")
       true
     }
 
-  private def getFTPFiles(pathname: String, channel: ChannelSftp): List[FTPFile] =
+  override def retrieveFileStream(remote: String): java.io.InputStream =
+    maybeChannelSftp.fold {
+      throw new Exception(s"SFTPClient Error, channel not initiated in path $remote.")
+    } { channel =>
+      if (!channel.isConnected) connectChannel(channel)
+      val stream = channel.get(remote, null, restartOffset)
+      restartOffset = 0
+      stream
+    }
+
+  override def setRestartOffset(offset: Long): Unit =
+    if (offset >= 0) restartOffset = offset
+
+  private def getFTPFiles(pathname: String, channel: ChannelSftp) =
     (for {
       _        <- Try(channel.cd(pathname))
       ftpFiles <- fetchFiles(pathname, channel)
