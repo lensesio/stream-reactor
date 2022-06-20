@@ -20,8 +20,12 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Kafka Compatibility
 
-*    Kafka 2.5+ (Confluent 5.5) - Stream reactor 2.0.0+
-*    Kafka 2.0 -> 2.4 (Confluent 5.4) - Stream reactor 1.2.7
+From version 4.0.0 separate artifacts are built targeting Kafka 3.1 and Kafka 2.8.
+
+* Kafka 3.1 (Confluent 7.1) - Stream Reactor 4.0.0 (Kafka 3.1 Build)
+* Kafka 2.8 (Confluent 6.2) - Stream Reactor 4.0.0 (Kafka 2.8 Build)
+* Kafka 2.5 (Confluent 5.5) - Stream reactor 2.0.0+
+* Kafka 2.0 -> 2.4 (Confluent 5.4) - Stream reactor 1.2.7
 
 ## DEPRECATION NOTICE
 
@@ -32,6 +36,10 @@ The following connectors have been deprecated and are no longer included in any 
 * Rethink
 * VoltDB
 
+The following connectors have been deprecated and are no longer included in any release from 4.0.
+
+* Coap
+* Hive 1.1
 
 ### Connectors
 
@@ -43,8 +51,6 @@ The following connectors have been deprecated and are no longer included in any 
 | AzureDocumentDb| Sink   | Copy data from Kafka and Azure Document Db.                                          | [Docs](https://docs.lenses.io/connectors/sink/azuredocdb.html)             |
 | Cassandra      | Source | Copy data from Cassandra to Kafka.                          | [Docs](https://docs.lenses.io/connectors/source/cassandra.html)            |
 | *Cassandra     | Sink   | Certified DSE Cassandra, copy data from Kafka to Cassandra.   | [Docs](https://docs.lenses.io/connectors/sink/cassandra.html)              |
-| Coap           | Source | Copy data from IoT Coap endpoints (using Californium) to Kafka.                  | [Docs](https://docs.lenses.io/connectors/source/coap.html)                 |
-| Coap           | Sink   | Copy data from Kafka to IoT Coap endpoints.| [Docs](https://docs.lenses.io/connectors/sink/coap.html)                   |
 | Elastic 6      | Sink   | Copy data from Kafka to Elastic Search 6.x w. tcp or http      | [Docs](https://docs.lenses.io/connectors/sink/elastic6.html)               |
 | FTP/HTTP       | Source | Copy data from FTP/HTTP to Kafka.                       | [Docs](https://docs.lenses.io/connectors/source/ftp.html)                  |
 | Hazelcast      | Sink   | Copy data from Kafka to Hazelcast.                      | [Docs](https://docs.lenses.io/connectors/sink/hazelcast.html)              |
@@ -88,10 +94,16 @@ To create assemblies:
 sbt assembly
 ```
 
-To build a particular project:
+To build a particular project for kafka 2.8:
 
 ```bash
 sbt "project cassandra-kafka-2-8" compile
+```
+
+To build a particular project for kafka 3.1:
+
+```bash
+sbt "project cassandra-kafka-3-1" compile
 ```
 
 To test a particular project:
@@ -130,9 +142,10 @@ sbt e2e:test
 
 ## Contributing
 
-We'd love to accept your contributions! Please use GitHub pull requests: fork the repo, develop and test your code, 
+We'd love to accept your contributions! Please use GitHub pull requests: fork the repo, develop and test your code,
 [semantically commit](http://karma-runner.github.io/1.0/dev/git-commit-msg.html) and submit a pull request. Thanks!
 
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Flensesio%2Fstream-reactor.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Flensesio%2Fstream-reactor?ref=badge_large)
+
