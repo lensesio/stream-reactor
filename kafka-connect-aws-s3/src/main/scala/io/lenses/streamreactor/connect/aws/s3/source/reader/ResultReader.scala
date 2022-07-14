@@ -23,8 +23,13 @@ import io.lenses.streamreactor.connect.aws.s3.model.SourceData
 
 import scala.annotation.tailrec
 
-class ResultReader(reader: S3FormatStreamReader[_ <: SourceData], targetTopic: String)
-    extends LazyLogging
+class ResultReader(
+  reader:      S3FormatStreamReader[_ <: SourceData],
+  targetTopic: String,
+)(
+  implicit
+  partitionFn: String => Option[Int],
+) extends LazyLogging
     with AutoCloseable {
 
   /**

@@ -13,23 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import com.datamountaineer.kcql.Kcql
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
+import io.lenses.streamreactor.connect.aws.s3.config.S3Config.getString
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.AWS_REGION
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
+import io.lenses.streamreactor.connect.aws.s3.model.PartitionExtractor
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 
 object S3SourceConfig {
 
-  def apply(s3ConfigDefBuilder: S3ConfigDefBuilder): S3SourceConfig = S3SourceConfig(
-    S3Config(s3ConfigDefBuilder.getParsedValues),
-    SourceBucketOptions(s3ConfigDefBuilder),
-  )
+  def apply(s3ConfigDefBuilder: S3ConfigDefBuilder): S3SourceConfig = {
+    val parsedValues = s3ConfigDefBuilder.getParsedValues
+    S3SourceConfig(
+      S3Config(parsedValues),
+      SourceBucketOptions(
+        s3ConfigDefBuilder,
+        PartitionExtractor(
+          getString(parsedValues, AWS_REGION).getOrElse("none"),
+          getString(parsedValues, AWS_REGION),
+        ),
+      ),
+    )
 
+  }
 }
 
 case class S3SourceConfig(
@@ -43,14 +54,20 @@ case class SourceBucketOptions(
   format:                FormatSelection,
   recordsLimit:          Int,
   filesLimit:            Int,
-)
+  partitionExtractor:    Option[PartitionExtractor],
+) {
+
+  def getPartitionExtractorFn: String => Option[Int] =
+    partitionExtractor.fold((_: String) => Option.empty[Int])(_.extract)
+
+}
 
 object SourceBucketOptions {
 
   private val DEFAULT_RECORDS_LIMIT = 1024
   private val DEFAULT_FILES_LIMIT   = 1000
 
-  def apply(config: S3ConfigDefBuilder): Seq[SourceBucketOptions] =
+  def apply(config: S3ConfigDefBuilder, partitionExtractor: Option[PartitionExtractor]): Seq[SourceBucketOptions] =
     config.getKCQL.map {
 
       kcql: Kcql =>
@@ -61,9 +78,10 @@ object SourceBucketOptions {
         SourceBucketOptions(
           RemoteS3RootLocation(kcql.getSource, allowSlash = true),
           kcql.getTarget,
-          format       = formatSelection,
-          recordsLimit = if (kcql.getLimit < 1) DEFAULT_RECORDS_LIMIT else kcql.getLimit,
-          filesLimit   = if (kcql.getBatchSize < 1) DEFAULT_FILES_LIMIT else kcql.getBatchSize,
+          format             = formatSelection,
+          recordsLimit       = if (kcql.getLimit < 1) DEFAULT_RECORDS_LIMIT else kcql.getLimit,
+          filesLimit         = if (kcql.getBatchSize < 1) DEFAULT_FILES_LIMIT else kcql.getBatchSize,
+          partitionExtractor = partitionExtractor,
         )
     }.toList
 

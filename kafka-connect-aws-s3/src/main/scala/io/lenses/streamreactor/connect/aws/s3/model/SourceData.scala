@@ -34,27 +34,34 @@ abstract class SourceData(lineNumber: Long) {
 
   def getLineNumber: Long = lineNumber
 
-  def toSourceRecord(bucketAndPath: RemoteS3PathLocation, targetTopic: String): SourceRecord =
-    representationKey match {
-      case Some(key) =>
-        new SourceRecord(
-          fromSourcePartition(bucketAndPath.root()).asJava,
-          fromSourceOffset(bucketAndPath, getLineNumber).asJava,
-          targetTopic,
-          null,
-          key,
-          representationSchema.orNull,
-          representationValue,
-        )
-      case None =>
-        new SourceRecord(
-          fromSourcePartition(bucketAndPath.root()).asJava,
-          fromSourceOffset(bucketAndPath, getLineNumber).asJava,
-          targetTopic,
-          representationSchema.orNull,
-          representationValue,
-        )
-    }
+  def toSourceRecord(
+    bucketAndPath: RemoteS3PathLocation,
+    targetTopic:   String,
+  )(
+    implicit
+    partitionFn: String => Option[Int],
+  ): SourceRecord = representationKey match {
+    case Some(key) =>
+      new SourceRecord(
+        fromSourcePartition(bucketAndPath.root()).asJava,
+        fromSourceOffset(bucketAndPath, getLineNumber).asJava,
+        targetTopic,
+        partitionFn(bucketAndPath.path).map(Int.box).orNull,
+        null,
+        key,
+        representationSchema.orNull,
+        representationValue,
+      )
+    case None =>
+      new SourceRecord(
+        fromSourcePartition(bucketAndPath.root()).asJava,
+        fromSourceOffset(bucketAndPath, getLineNumber).asJava,
+        targetTopic,
+        partitionFn(bucketAndPath.path).map(Int.box).orNull,
+        representationSchema.orNull,
+        representationValue,
+      )
+  }
 }
 
 case class SchemaAndValueSourceData(

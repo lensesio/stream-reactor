@@ -80,7 +80,9 @@ class S3SourceTask extends SourceTask with LazyLogging {
             bOpts.filesLimit,
             new S3SourceLister(bOpts.format.format)(sourceStorageInterface),
           ),
-          new ReaderCreator(sourceName, bOpts.format, bOpts.targetTopic)(storageInterface).create,
+          new ReaderCreator(sourceName, bOpts.format, bOpts.targetTopic)(storageInterface,
+                                                                         bOpts.getPartitionExtractorFn,
+          ).create,
         ),
       )
     } yield readerManagers

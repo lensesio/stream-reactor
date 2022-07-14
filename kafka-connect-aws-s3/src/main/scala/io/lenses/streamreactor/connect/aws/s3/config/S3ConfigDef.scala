@@ -17,7 +17,6 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import cats.implicits.catsSyntaxEitherId
-import com.datamountaineer.streamreactor.common.config.base.traits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.processors.ConfigDefProcessor
 import io.lenses.streamreactor.connect.aws.s3.config.processors.DeprecationConfigDefProcessor
@@ -183,6 +182,28 @@ object S3ConfigDef {
       2,
       ConfigDef.Width.LONG,
       SEEK_MAX_INDEX_FILES,
+    )
+    .define(
+      SOURCE_PARTITION_EXTRACTOR_TYPE,
+      Type.STRING,
+      null,
+      Importance.LOW,
+      SOURCE_PARTITION_EXTRACTOR_TYPE_DOC,
+      "Source",
+      1,
+      ConfigDef.Width.MEDIUM,
+      SOURCE_PARTITION_EXTRACTOR_TYPE,
+    )
+    .define(
+      SOURCE_PARTITION_EXTRACTOR_REGEX,
+      Type.STRING,
+      null,
+      Importance.LOW,
+      SOURCE_PARTITION_EXTRACTOR_REGEX_DOC,
+      "Source",
+      2,
+      ConfigDef.Width.MEDIUM,
+      SOURCE_PARTITION_EXTRACTOR_REGEX,
     )
     .define(
       POOL_MAX_CONNECTIONS,
