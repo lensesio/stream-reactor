@@ -146,4 +146,10 @@ object MqttConfigConstants {
   val LOG_MESSAGE_ARRIVED_KEY     = s"$CONNECTOR_PREFIX.log.message"
   val LOG_MESSAGE_ARRIVED_DISPLAY = "Logs received MQTT messages"
   val LOG_MESSAGE_ARRIVED_DEFAULT = false
+
+  val PROCESS_DUPES_CONFIG = s"$CONNECTOR_PREFIX.process.duplicates"
+  val PROCESS_DUPES_DOC =
+    "Process MQTT messages that are marked as duplicates"
+  val PROCESS_DUPES_DISPLAY = "Process Duplicates"
+
 }

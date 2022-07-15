@@ -16,19 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.config
 
-import com.datamountaineer.streamreactor.common.config.base.traits.BaseConfig
-import com.datamountaineer.streamreactor.common.config.base.traits.ConnectionSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.ErrorPolicySettings
-import com.datamountaineer.streamreactor.common.config.base.traits.KcqlSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.NumberRetriesSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.SSLSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.UserSettings
-
-import java.util
-
+import com.datamountaineer.streamreactor.common.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
+
+import java.util
 
 /**
   * Created by andrew@datamountaineer.com on 27/08/2017.
@@ -238,6 +231,17 @@ object MqttSourceConfig {
       1,
       ConfigDef.Width.MEDIUM,
       MqttConfigConstants.LOG_MESSAGE_ARRIVED_DISPLAY,
+    )
+    .define(
+      MqttConfigConstants.PROCESS_DUPES_CONFIG,
+      Type.BOOLEAN,
+      false,
+      Importance.LOW,
+      MqttConfigConstants.PROCESS_DUPES_DOC,
+      "Connection",
+      1,
+      ConfigDef.Width.SHORT,
+      MqttConfigConstants.PROCESS_DUPES_DISPLAY,
     )
 }
 
