@@ -16,6 +16,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.config
 
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
+
 object S3ConfigSettings {
 
   val CONNECTOR_PREFIX = "connect.s3"
