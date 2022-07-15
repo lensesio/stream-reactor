@@ -18,8 +18,6 @@ package com.datamountaineer.streamreactor.connect.mqtt.sink
 
 import com.datamountaineer.streamreactor.common.config.Helpers
 import com.datamountaineer.streamreactor.common.utils.JarManifest
-
-import java.util
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkConfig
 import com.typesafe.scalalogging.StrictLogging
@@ -27,6 +25,8 @@ import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
+import java.util
+import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
@@ -53,7 +53,17 @@ class MqttSinkConnector extends SinkConnector with StrictLogging {
 
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
-    (1 to maxTasks).map(_ => configProps.get).toList.asJava
+
+    val props    = configProps.get.asScala.toMap
+    val clientId = props.get(MqttConfigConstants.CLIENT_ID_CONFIG)
+
+    def ensureUniqueClientId(idx: Int): Map[String, String] =
+      maxTasks match {
+        case 1 => props
+        case _ => clientId.fold(props)(cId => props + (MqttConfigConstants.CLIENT_ID_CONFIG -> s"$cId-$idx"))
+      }
+
+    (1 to maxTasks).map(ensureUniqueClientId(_).asJava).toList.asJava
   }
 
   override def config(): ConfigDef = configDef
