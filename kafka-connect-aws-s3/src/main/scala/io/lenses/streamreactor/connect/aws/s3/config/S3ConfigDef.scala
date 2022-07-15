@@ -17,6 +17,7 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import cats.implicits.catsSyntaxEitherId
+import com.datamountaineer.streamreactor.common.config.base.traits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.processors.ConfigDefProcessor
 import io.lenses.streamreactor.connect.aws.s3.config.processors.DeprecationConfigDefProcessor
