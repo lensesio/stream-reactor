@@ -56,6 +56,8 @@ case class LongSinkData(primVal: Long, schema: Option[Schema] = None) extends Pr
 
 case class IntSinkData(primVal: Int, schema: Option[Schema] = None) extends PrimitiveSinkData
 
+case class ShortSinkData(primVal: Short, schema: Option[Schema] = None) extends PrimitiveSinkData
+
 case class ByteSinkData(primVal: Byte, schema: Option[Schema] = None) extends PrimitiveSinkData
 
 case class DoubleSinkData(primVal: Double, schema: Option[Schema] = None) extends PrimitiveSinkData
