@@ -155,7 +155,7 @@ public class MergeQueriesTest {
             + "FROM " + table(INTERMEDIATE_TABLE) + " x "
             + "WHERE batchNumber=" + BATCH_NUMBER + " "
             + "GROUP BY key.k1, key.k2.nested_k1.doubly_nested_k, key.k2.nested_k2)) "
-          + "ONdstTableAlias." + KEY + "=src.key "
+          + "ON dstTableAlias." + KEY + "=src.key "
           + "WHEN MATCHED "
             + "THEN UPDATE SET dstTableAlias.`f1`=src.value.f1, dstTableAlias.`f2`=src.value.f2, dstTableAlias.`f3`=src.value.f3, dstTableAlias.`f4`=src.value.f4 "
           + "WHEN NOT MATCHED "
