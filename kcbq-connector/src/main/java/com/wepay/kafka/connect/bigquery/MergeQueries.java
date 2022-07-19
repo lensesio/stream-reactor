@@ -48,6 +48,7 @@ public class MergeQueries {
   public static final String INTERMEDIATE_TABLE_ITERATION_FIELD_NAME = "i";
   public static final String INTERMEDIATE_TABLE_PARTITION_TIME_FIELD_NAME = "partitionTime";
   public static final String INTERMEDIATE_TABLE_BATCH_NUMBER_FIELD = "batchNumber";
+  public static final String DESTINATION_TABLE_ALIAS = "dstTableAlias";
 
   private static final Logger logger = LoggerFactory.getLogger(MergeQueries.class);
 
@@ -217,7 +218,7 @@ public class MergeQueries {
     final String value = INTERMEDIATE_TABLE_VALUE_FIELD_NAME;
     final String batch = INTERMEDIATE_TABLE_BATCH_NUMBER_FIELD;
 
-    return "MERGE " + table(destinationTable) + " "
+    return "MERGE " + table(destinationTable) + " " + DESTINATION_TABLE_ALIAS + " "
         + "USING ("
           + "SELECT * FROM ("
             + "SELECT ARRAY_AGG("
@@ -228,9 +229,9 @@ public class MergeQueries {
             + "GROUP BY " + String.join(", ", keyFields)
           + ")"
         + ") "
-        + "ON `" + destinationTable.getTable() + "`." + keyFieldName + "=src." + key + " "
+        + "ON " + DESTINATION_TABLE_ALIAS + "." + keyFieldName + "=src." + key + " "
         + "WHEN MATCHED AND src." + value + " IS NOT NULL "
-          + "THEN UPDATE SET " + valueColumns.stream().map(col -> "`" + col + "`=src." + value + "." + col).collect(Collectors.joining(", ")) + " "
+          + "THEN UPDATE SET " + valueColumns.stream().map(col -> DESTINATION_TABLE_ALIAS + ".`" + col + "`=src." + value + "." + col).collect(Collectors.joining(", ")) + " "
         + "WHEN MATCHED AND src." + value + " IS NULL "
           + "THEN DELETE "
         + "WHEN NOT MATCHED AND src." + value + " IS NOT NULL "
@@ -284,7 +285,7 @@ public class MergeQueries {
     final String value = INTERMEDIATE_TABLE_VALUE_FIELD_NAME;
     final String batch = INTERMEDIATE_TABLE_BATCH_NUMBER_FIELD;
 
-    return "MERGE " + table(destinationTable) + " "
+    return "MERGE " + table(destinationTable) + " " + DESTINATION_TABLE_ALIAS + " "
         + "USING ("
           + "SELECT * FROM ("
             + "SELECT ARRAY_AGG("
@@ -295,9 +296,9 @@ public class MergeQueries {
             + "GROUP BY " + String.join(", ", keyFields)
           + ")"
         + ") "
-        + "ON `" + destinationTable.getTable() + "`." + keyFieldName + "=src." + key + " "
+        + "ON " + DESTINATION_TABLE_ALIAS + "." + keyFieldName + "=src." + key + " "
         + "WHEN MATCHED "
-          + "THEN UPDATE SET " + valueColumns.stream().map(col -> "`" + col + "`=src." + value + "." + col).collect(Collectors.joining(", ")) + " "
+          + "THEN UPDATE SET " + valueColumns.stream().map(col -> DESTINATION_TABLE_ALIAS + ".`" + col + "`=src." + value + "." + col).collect(Collectors.joining(", ")) + " "
         + "WHEN NOT MATCHED "
           + "THEN INSERT (`"
             + keyFieldName + "`, "
