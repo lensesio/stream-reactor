@@ -162,6 +162,14 @@ public class BigQuerySinkConfig extends AbstractConfig {
       "Whether to automatically sanitize topic names before using them as table names;"
       + " if not enabled topic names will be used directly as table names";
 
+  public static final String TOPIC2TABLE_MAP_CONFIG =                     "topic2TableMap";
+  private static final ConfigDef.Type TOPIC2TABLE_MAP_TYPE =              ConfigDef.Type.STRING;
+  public static final String TOPIC2TABLE_MAP_DEFAULT = "";
+  private static final ConfigDef.Importance TOPIC2TABLE_MAP_IMPORTANCE =  ConfigDef.Importance.LOW;
+  public static final String TOPIC2TABLE_MAP_DOC = "Map of topics to tables (optional). "
+          + "Format: comma-separated tuples, e.g. <topic-1>:<table-1>,<topic-2>:<table-2>,... " +
+          "Note that topic name should not be modified using regex SMT if using this option.";
+
   public static final String SANITIZE_FIELD_NAME_CONFIG =                     "sanitizeFieldNames";
   private static final ConfigDef.Type SANITIZE_FIELD_NAME_TYPE =              ConfigDef.Type.BOOLEAN;
   public static final Boolean SANITIZE_FIELD_NAME_DEFAULT =                   false;
@@ -555,6 +563,12 @@ public class BigQuerySinkConfig extends AbstractConfig {
             SANITIZE_TOPICS_IMPORTANCE,
             SANITIZE_TOPICS_DOC
         ).define(
+            TOPIC2TABLE_MAP_CONFIG,
+            TOPIC2TABLE_MAP_TYPE,
+            TOPIC2TABLE_MAP_DEFAULT,
+            TOPIC2TABLE_MAP_IMPORTANCE,
+            TOPIC2TABLE_MAP_DOC
+          ).define(
             SANITIZE_FIELD_NAME_CONFIG,
             SANITIZE_FIELD_NAME_TYPE,
             SANITIZE_FIELD_NAME_DEFAULT,
