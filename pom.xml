@@ -38,7 +38,7 @@
         <confluent.version>5.5.1</confluent.version>
         <debezium.version>0.6.1</debezium.version>
         <google.auth.version>0.21.1</google.auth.version>
-        <google.cloud.version>1.119.0</google.cloud.version>
+        <google.cloud.version>2.10.9</google.cloud.version>
         <google.cloud.storage.version>1.113.4</google.cloud.storage.version>
         <jackson.version>2.10.2</jackson.version>
         <kafka.version>2.5.0</kafka.version>
