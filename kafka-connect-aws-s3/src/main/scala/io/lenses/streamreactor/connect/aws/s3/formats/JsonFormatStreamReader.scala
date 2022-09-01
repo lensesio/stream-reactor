@@ -54,8 +54,9 @@ class JsonFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: Re
         "Invalid state reached: the file content has been consumed, no further calls to next() are possible.",
       )
     }
-    val value = sourceLines.next().getBytes();
-    val schemaAndValue = jsonConverter.toConnectData("", value)
+    val genericRecordData = sourceLines.next();
+    val genericRecord = if (genericRecordData == null) null else genericRecordData.getBytes();
+    val schemaAndValue = jsonConverter.toConnectData("", genericRecord)
     SchemaAndValueSourceData(schemaAndValue, lineNumber)
   }
 
