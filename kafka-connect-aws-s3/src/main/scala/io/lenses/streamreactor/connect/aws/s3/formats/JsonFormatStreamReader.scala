@@ -23,6 +23,7 @@ import java.io.InputStream
 import scala.io.Source
 import scala.util.Try
 
+import scala.jdk.CollectionConverters.MapHasAsJava
 import org.apache.kafka.connect.json.JsonConverter
 
 class JsonFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: RemoteS3PathLocation)
@@ -35,10 +36,10 @@ class JsonFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: Re
 
   private val jsonConverter = new JsonConverter
 
-//  jsonConverter.configure(
-//    Map("schemas.enable" -> false).asJava,
-//    false,
-//  )
+  jsonConverter.configure(
+    Map("schemas.enable" -> false).asJava,
+    false,
+  )
 
   override def close(): Unit = {
     val _ = Try(source.close())
