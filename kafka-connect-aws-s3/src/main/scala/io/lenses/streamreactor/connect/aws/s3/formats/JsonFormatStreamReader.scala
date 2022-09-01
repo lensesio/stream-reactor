@@ -16,15 +16,14 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import org.apache.kafka.connect.json.JsonConverter
 import io.lenses.streamreactor.connect.aws.s3.model.SchemaAndValueSourceData
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import org.apache.avro.file.DataFileStream
-import org.apache.avro.generic.GenericDatumReader
-import org.apache.avro.generic.GenericRecord
 
 import java.io.InputStream
+import scala.io.Source
 import scala.util.Try
+
+import org.apache.kafka.connect.json.JsonConverter
 
 class JsonFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: RemoteS3PathLocation)
   extends S3FormatStreamReader[SchemaAndValueSourceData] {
@@ -36,10 +35,10 @@ class JsonFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: Re
 
   private val jsonConverter = new JsonConverter
 
-  jsonConverter.configure(
-    Map("schemas.enable" -> false).asJava,
-    false,
-  )
+//  jsonConverter.configure(
+//    Map("schemas.enable" -> false).asJava,
+//    false,
+//  )
 
   override def close(): Unit = {
     val _ = Try(source.close())
@@ -48,15 +47,15 @@ class JsonFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: Re
   override def hasNext: Boolean = sourceLines.hasNext
 
 
-  override def next(): StringSourceData = {
+  override def next(): SchemaAndValueSourceData = {
     lineNumber += 1
     if (!sourceLines.hasNext) {
       throw FormatWriterException(
         "Invalid state reached: the file content has been consumed, no further calls to next() are possible.",
       )
     }
-    val value = sourceLines.next()
-    val schemaAndValue = jsonConverter.toConnectData(this.topic, value)
+    val value = sourceLines.next().getBytes();
+    val schemaAndValue = jsonConverter.toConnectData("", value)
     SchemaAndValueSourceData(schemaAndValue, lineNumber)
   }
 
