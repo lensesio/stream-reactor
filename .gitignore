@@ -86,3 +86,5 @@ classes/*
 /kafka-connect-hive/it/.project
 /kafka-connect-hive/it/.settings/
 /kafka-connect-hive/it/bin/
+
+!kafka-connect-aws-s3/target/kafka-3-1-jvm-2.13/libs/
