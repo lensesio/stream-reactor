@@ -506,7 +506,7 @@ public class BigQuerySinkTask extends SinkTask {
     }
 
     recordConverter = getConverter(config);
-    topic2TableMap = parseTopic2TableMapConfig(config.getString(TOPIC2TABLE_MAP_CONFIG));
+    topic2TableMap = config.getTopic2TableMap(sanitize).orElse(null);
   }
 
   private void startGCSToBQLoadTask() {
@@ -540,60 +540,13 @@ public class BigQuerySinkTask extends SinkTask {
     if (topic2TableMapString.isEmpty()) {
       return null;
     }
-
     Map<String, String> topic2TableMap = new HashMap<>();
-
+    // It's already validated, so we can just populate the map
     for (String str : topic2TableMapString.split(",")) {
       String[] tt = str.split(":");
-
-      if (tt.length != 2) {
-        throw new ConfigException(
-                TOPIC2TABLE_MAP_CONFIG,
-                topic2TableMapString,
-                "One of the topic to table mappings has an invalid format."
-        );
-      }
-
       String topic = tt[0].trim();
       String table = tt[1].trim();
-
-      if (topic.isEmpty() || table.isEmpty()) {
-        throw new ConfigException(
-                TOPIC2TABLE_MAP_CONFIG,
-                topic2TableMapString,
-                "One of the topic to table mappings has an invalid format."
-        );
-      }
-
-      if (topic2TableMap.containsKey(topic)) {
-        throw new ConfigException(
-                TOPIC2TABLE_MAP_CONFIG,
-                topic2TableMapString,
-                String.format(
-                        "The topic name %s is duplicated. Topic names cannot be duplicated.",
-                        topic
-                )
-        );
-      }
-
-      if (topic2TableMap.containsValue(table)) {
-        throw new ConfigException(
-                TOPIC2TABLE_MAP_CONFIG,
-                topic2TableMapString,
-                String.format(
-                        "The table name %s is duplicated. Table names cannot be duplicated.",
-                        table
-                )
-        );
-      }
-      if (sanitize) {
-        table = FieldNameSanitizer.sanitizeName(table);
-      }
-      topic2TableMap.put(topic, table);
-    }
-
-    if (topic2TableMap.isEmpty()) {
-      return null;
+      topic2TableMap.put(topic, sanitize ? FieldNameSanitizer.sanitizeName(table) : table);
     }
     return topic2TableMap;
   }

@@ -27,11 +27,7 @@ import org.apache.kafka.common.config.ConfigException;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.CONNECTOR_RUNTIME_PROVIDER_CONFIG;
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.CONNECTOR_RUNTIME_PROVIDER_DEFAULT;
@@ -232,4 +228,72 @@ public class BigQuerySinkConfigTest {
     BigQuerySinkConfig config = new BigQuerySinkConfig(configProperties);
     assertEquals(testKafkaProvider, config.getString(CONNECTOR_RUNTIME_PROVIDER_CONFIG));
   }
+
+  @Test (expected = ConfigException.class)
+  public void testTopic2TableInvalidFormat() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG, "topic:");
+    new BigQuerySinkConfig(configProperties);
+  }
+
+  @Test (expected = ConfigException.class)
+  public void testTopic2TableDuplicateTopic() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG, "topic:table, topic:table2");
+    new BigQuerySinkConfig(configProperties);
+  }
+
+  @Test (expected = ConfigException.class)
+  public void testTopic2TableDuplicateTable() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG, "topic:table, topic2:table");
+    new BigQuerySinkConfig(configProperties);
+  }
+
+  @Test (expected = ConfigException.class)
+  public void testTopic2TableSemicolonOnly() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG, ":");
+    new BigQuerySinkConfig(configProperties);
+  }
+
+  @Test
+  public void testValidTopic2TableMap() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG, "topic:table, topic2:table2");
+    BigQuerySinkConfig config = new BigQuerySinkConfig(configProperties);
+    Map<String, String> topic2TableMap = new HashMap<>();
+    topic2TableMap.put("topic", "table");
+    topic2TableMap.put("topic2", "table2");
+    assertEquals(topic2TableMap, config.getTopic2TableMap(config.getBoolean(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG)).get());
+  }
+
+  @Test
+  public void testTopic2TableEmptyString() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG, "");
+    BigQuerySinkConfig config = new BigQuerySinkConfig(configProperties);
+    assertFalse(config.getTopic2TableMap(config.getBoolean(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG)).isPresent());
+  }
+
+  @Test
+  public void testTopic2TableCommaOnly() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG, ",");
+    BigQuerySinkConfig config = new BigQuerySinkConfig(configProperties);
+    assertFalse(config.getTopic2TableMap(config.getBoolean(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG)).isPresent());
+  }
+
+  @Test
+  public void testTopicNameShouldGetSanitizedIfSanitizeFlagTrue() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
+    configProperties.put(BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG, "topic:table#badname, topic2:2table2");
+    BigQuerySinkConfig config = new BigQuerySinkConfig(configProperties);
+    Map<String, String> topic2TableMap = new HashMap<>();
+    topic2TableMap.put("topic", "table_badname");
+    topic2TableMap.put("topic2", "_2table2");
+    assertEquals(topic2TableMap, config.getTopic2TableMap(config.getBoolean(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG)).get());
+  }
+
 }
