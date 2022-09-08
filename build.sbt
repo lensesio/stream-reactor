@@ -26,6 +26,7 @@ lazy val subProjects: Seq[ProjectMatrix] = Seq(
   hbase,
   hive,
   influxdb,
+  influxdb2,
   jms,
   kudu,
   mongodb,
@@ -228,6 +229,24 @@ lazy val influxdb = (projectMatrix in file("kafka-connect-influxdb"))
   .configureAssembly()
   .configureTests(baseTestDeps)
   .enablePlugins(PackPlugin)
+
+lazy val influxdb2 = (projectMatrix in file("kafka-connect-influxdb2"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-influxdb2",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectInfluxDb2Deps,
+        publish / skip := true,
+        dependencyOverrides ++= nettyOverrides,
+      ),
+  )
+  .kafka2Row()
+  .kafka3Row()
+  .configureAssembly()
+  .configureTests(baseTestDeps)
+
 
 lazy val jms = (projectMatrix in file("kafka-connect-jms"))
   .dependsOn(common)
