@@ -23,7 +23,7 @@ import com.datamountaineer.streamreactor.connect.influx.NanoClock
 import com.datamountaineer.streamreactor.connect.influx.ValidateStringParameterFn
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
-import com.influxdb.InfluxDBFactory
+import com.influxdb.client.InfluxDBClientFactory
 
 import scala.util.Try
 
@@ -34,7 +34,7 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
 
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
-  private val influxDB = InfluxDBFactory.connect(settings.connectionUrl, settings.user, settings.password)
+  private val influxDB = InfluxDBClientFactory.connect(settings.connectionUrl, settings.user, settings.password)
   private val builder  = new InfluxBatchPointsBuilder(settings, new NanoClock())
 
   override def write(records: Seq[SinkRecord]): Unit =

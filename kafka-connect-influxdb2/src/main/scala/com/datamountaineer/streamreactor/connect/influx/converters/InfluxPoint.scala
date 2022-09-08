@@ -5,7 +5,7 @@ import com.datamountaineer.streamreactor.connect.influx.converters.SinkRecordPar
 import com.datamountaineer.streamreactor.connect.influx.helpers.Util
 import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails
 import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails.{ConstantTag, DynamicTag, Path}
-import com.influxdb.dto.Point
+import com.influxdb.client.write.Point
 
 import java.time.Instant
 import java.util.Date
