@@ -29,7 +29,7 @@ import java.util
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
-import com.influxdb.InfluxDB.ConsistencyLevel
+import com.influxdb.client.domain.WriteConsistency
 
 object InfluxConfig {
 
@@ -164,5 +164,5 @@ case class InfluxConfig(props: util.Map[String, String])
     with ErrorPolicySettings
     with NumberRetriesSettings
     with DatabaseSettings
-    with ConsistencyLevelSettings[ConsistencyLevel]
+    with ConsistencyLevelSettings[WriteConsistency]
     with UserSettings

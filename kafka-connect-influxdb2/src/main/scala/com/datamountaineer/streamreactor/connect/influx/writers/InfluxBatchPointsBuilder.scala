@@ -30,7 +30,7 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkRecord
 import com.influxdb.dto.BatchPoints
-import com.influxdb.dto.Point
+import com.influxdb.client.write.Point
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Failure
