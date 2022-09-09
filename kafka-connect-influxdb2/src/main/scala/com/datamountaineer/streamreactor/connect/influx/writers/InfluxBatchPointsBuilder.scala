@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.influx.writers
+package com.datamountaineer.streamreactor.connect.influx2.writers
 
 import java.util.concurrent.TimeUnit
 import com.datamountaineer.kcql.Field
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.kcql.Tag
-import com.datamountaineer.streamreactor.connect.influx.NanoClock
-import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
-import com.datamountaineer.streamreactor.connect.influx.converters.InfluxPoint
-import com.datamountaineer.streamreactor.connect.influx.converters.SinkRecordParser
-import com.datamountaineer.streamreactor.connect.influx.helpers.Util
-import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails._
+import com.datamountaineer.streamreactor.connect.influx2.NanoClock
+import com.datamountaineer.streamreactor.connect.influx2.config.InfluxSettings
+import com.datamountaineer.streamreactor.connect.influx2.converters.InfluxPoint
+import com.datamountaineer.streamreactor.connect.influx2.converters.SinkRecordParser
+import com.datamountaineer.streamreactor.connect.influx2.helpers.Util
+import com.datamountaineer.streamreactor.connect.influx2.writers.KcqlDetails._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkRecord
-import com.influxdb.dto.BatchPoints
+import com.datamountaineer.streamreactor.connect.influx2.javadto.BatchPoints
 import com.influxdb.client.write.Point
 
 import scala.jdk.CollectionConverters.ListHasAsScala
@@ -111,9 +111,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
     }
 
   def build(records: Iterable[SinkRecord]): Try[BatchPoints] = {
-    val batchPoints = BatchPoints
-      .database(settings.database)
-      .retentionPolicy(settings.retentionPolicy)
+    val batchPoints: BatchPoints = BatchPoints.bucket(settings.bucket)
       .consistency(settings.consistencyLevel)
       .build()
 
@@ -133,8 +131,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
       .foldLeft(Try(Seq.empty[Seq[Point]]))(Util.shortCircuitOnFailure)
       .map(_.flatten)
       .map { points =>
-        points.foreach(batchPoints.point)
-        batchPoints
+        batchPoints.setPoints(points)
       }
   }
 }
@@ -149,7 +146,7 @@ case class KcqlDetails(
   dynamicTarget:  Option[Path],
   target:         String,
   timestampField: Option[Path],
-  timestampUnit:  TimeUnit,
+  timestampUnit:  TimeUnit
 ) {
   val IgnoredAndAliasFields: Set[Path] =
     fields

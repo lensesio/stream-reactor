@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.influx.config
+package com.datamountaineer.streamreactor.connect.influx2.config
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
@@ -24,10 +24,10 @@ import com.influxdb.client.domain.WriteConsistency
 
 case class InfluxSettings(
   connectionUrl:    String,
-  user:             String,
-  password:         String,
-  database:         String,
-  retentionPolicy:  String,
+  org:              String,
+  token:            String,
+  bucket:           String,
+  /*retentionPolicy:  String,*/
   consistencyLevel: WriteConsistency,
   /*topicToMeasurementMap: Map[String, String],
                           fieldsExtractorMap: Map[String, StructFieldsExtractor],
@@ -52,23 +52,24 @@ object InfluxSettings {
       throw new ConfigException(s"${InfluxConfigConstants.INFLUX_URL_CONFIG} is not set correctly")
     }
 
-    val user = config.getUsername
+    val org = config.getString(InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG)
 
-    if (user == null || user.trim.length == 0) {
-      throw new ConfigException(s"${InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG} is not set correctly")
+    if (org == null || org.trim.length == 0) {
+      throw new ConfigException(s"${InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG} is not set correctly")
     }
 
-    val passwordRaw = config.getSecret
+    val tokenRaw = config.getSecret
 
-    val password = passwordRaw.value() match {
+    val token = tokenRaw.value() match {
       case "" => null
-      case _  => passwordRaw.value()
+      case _  => tokenRaw.value()
     }
 
-    val database = config.getDatabase
+    val bucket = config.getString(InfluxConfigConstants.INFLUX_BUCKET_CONFIG)
 
-    if (database == null || database.trim.isEmpty) {
-      throw new ConfigException(s"${InfluxConfigConstants.INFLUX_DATABASE_CONFIG} is not set correctly")
+
+    if (bucket == null || bucket.trim.isEmpty) {
+      throw new ConfigException(s"${InfluxConfigConstants.INFLUX_BUCKET_CONFIG} is not set correctly")
     }
 
     //TODO: common lib should not return Set[Kcql] but Seq[Kcq;
@@ -84,15 +85,15 @@ object InfluxSettings {
       (rm.getSource, StructFieldsExtractor(rm.isIncludeAllFields, fields(rm.getSource), timestampField, rm.getIgnoredField.toSet))
     }.toMap*/
 
-    val retentionPolicy = config.getString(InfluxConfigConstants.RETENTION_POLICY_CONFIG)
+    /*val retentionPolicy = config.getString(InfluxConfigConstants.RETENTION_POLICY_CONFIG)*/
 
     val consistencyLevel = config.getConsistencyLevel.get
 
     new InfluxSettings(url,
-                       user,
-                       password,
-                       database,
-                       retentionPolicy,
+                       org,
+                       token,
+                       bucket,
+                       /*retentionPolicy,*/
                        consistencyLevel,
                        config.getKCQL.toVector,
                        errorPolicy,
