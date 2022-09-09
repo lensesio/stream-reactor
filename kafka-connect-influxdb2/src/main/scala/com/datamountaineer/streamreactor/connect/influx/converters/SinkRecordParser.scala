@@ -1,8 +1,8 @@
-package com.datamountaineer.streamreactor.connect.influx.converters
+package com.datamountaineer.streamreactor.connect.influx2.converters
 
-import com.datamountaineer.streamreactor.connect.influx.helpers.Util
-import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails.Path
-import com.datamountaineer.streamreactor.connect.influx.writers.ValuesExtractor
+import com.datamountaineer.streamreactor.connect.influx2.helpers.Util
+import com.datamountaineer.streamreactor.connect.influx2.writers.KcqlDetails.Path
+import com.datamountaineer.streamreactor.connect.influx2.writers.ValuesExtractor
 import com.fasterxml.jackson.databind.JsonNode
 import com.landoop.json.sql.JacksonJson
 import org.apache.kafka.connect.data.Schema

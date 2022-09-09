@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.influx
+package com.datamountaineer.streamreactor.connect.influx2
 
 import java.time.temporal.ChronoField
 import java.time.Clock

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.influx
+package com.datamountaineer.streamreactor.connect.influx2
 
 object ValidateStringParameterFn {
   def apply(value: String, parameterName: String): Unit =

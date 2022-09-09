@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.influx.helpers
+package com.datamountaineer.streamreactor.connect.influx2.helpers
 
 import scala.util.Failure
 import scala.util.Success

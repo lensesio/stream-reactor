@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.influx.writers
+package com.datamountaineer.streamreactor.connect.influx2.writers
 
-import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
+import com.datamountaineer.streamreactor.connect.influx2.config.InfluxSettings
 import com.typesafe.scalalogging.StrictLogging
 
 /**
