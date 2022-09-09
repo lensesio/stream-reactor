@@ -45,35 +45,35 @@ object InfluxConfig {
       InfluxConfigConstants.INFLUX_URL_CONFIG,
     )
     .define(
-      InfluxConfigConstants.INFLUX_DATABASE_CONFIG,
+      InfluxConfigConstants.INFLUX_BUCKET_CONFIG,
       Type.STRING,
       Importance.HIGH,
-      InfluxConfigConstants.INFLUX_DATABASE_DOC,
+      InfluxConfigConstants.INFLUX_BUCKET_DOC,
       "Connection",
       2,
       ConfigDef.Width.MEDIUM,
-      InfluxConfigConstants.INFLUX_DATABASE_CONFIG,
+      InfluxConfigConstants.INFLUX_BUCKET_CONFIG,
     )
     .define(
-      InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG,
+      InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG,
       Type.STRING,
       Importance.HIGH,
-      InfluxConfigConstants.INFLUX_CONNECTION_USER_DOC,
+      InfluxConfigConstants.INFLUX_CONNECTION_ORG_DOC,
       "Connection",
       3,
       ConfigDef.Width.MEDIUM,
-      InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG,
+      InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG,
     )
     .define(
-      InfluxConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG,
+      InfluxConfigConstants.INFLUX_CONNECTION_TOKEN_CONFIG,
       Type.PASSWORD,
       "",
       Importance.HIGH,
-      InfluxConfigConstants.INFLUX_CONNECTION_PASSWORD_DOC,
+      InfluxConfigConstants.INFLUX_CONNECTION_TOKEN_DOC,
       "Connection",
       4,
       ConfigDef.Width.MEDIUM,
-      InfluxConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG,
+      InfluxConfigConstants.INFLUX_CONNECTION_TOKEN_CONFIG,
     )
     .define(
       InfluxConfigConstants.KCQL_CONFIG,
@@ -117,17 +117,6 @@ object InfluxConfig {
       3,
       ConfigDef.Width.MEDIUM,
       InfluxConfigConstants.NBR_OF_RETRIES_CONFIG,
-    )
-    .define(
-      InfluxConfigConstants.RETENTION_POLICY_CONFIG,
-      Type.STRING,
-      InfluxConfigConstants.RETENTION_POLICY_DEFAULT,
-      Importance.HIGH,
-      InfluxConfigConstants.RETENTION_POLICY_DOC,
-      "Writes",
-      1,
-      ConfigDef.Width.MEDIUM,
-      InfluxConfigConstants.RETENTION_POLICY_DOC,
     )
     .define(
       InfluxConfigConstants.CONSISTENCY_CONFIG,

@@ -24,30 +24,14 @@ object InfluxConfigConstants {
   val INFLUX_URL_CONFIG = s"$CONNECTOR_PREFIX.$URL_SUFFIX"
   val INFLUX_URL_DOC    = "The InfluxDB database url."
 
-  val INFLUX_DATABASE_CONFIG = s"$CONNECTOR_PREFIX.$DATABASE_PROP_SUFFIX"
-  val INFLUX_DATABASE_DOC    = "The database to store the values to."
+  val INFLUX_BUCKET_CONFIG = s"$CONNECTOR_PREFIX.$BUCKET_PROP_SUFFIX"
+  val INFLUX_BUCKET_DOC    = "The bucket to store the values to."
 
-  val INFLUX_CONNECTION_USER_CONFIG = s"$CONNECTOR_PREFIX.$USERNAME_SUFFIX"
-  val INFLUX_CONNECTION_USER_DOC    = "The user to connect to the influx database"
+  val INFLUX_CONNECTION_ORG_CONFIG = s"$CONNECTOR_PREFIX.$ORG_SUFFIX"
+  val INFLUX_CONNECTION_ORG_DOC    = "The organization to connect to the influx database"
 
-  val INFLUX_CONNECTION_PASSWORD_CONFIG = s"$CONNECTOR_PREFIX.$PASSWORD_SUFFIX"
-  val INFLUX_CONNECTION_PASSWORD_DOC    = "The password for the influxdb user."
-
-  val RETENTION_POLICY_CONFIG = s"$CONNECTOR_PREFIX.retention.policy"
-  val RETENTION_POLICY_DOC: String =
-    """
-      |Determines how long InfluxDB keeps the data - the options for specifying the duration of the retention policy are listed below.
-      |Note that the minimum retention period is one hour.
-      |DURATION determines how long InfluxDB keeps the data - the options for specifying the duration of the retention policy are listed below. Note that the minimum retention period is one hour.
-      |m minutes
-      |h hours
-      |d days
-      |w weeks
-      |INF infinite
-      |
-      |Default retention is `autogen` from 1.0 onwards or `default` for any previous version
-    """.stripMargin
-  val RETENTION_POLICY_DEFAULT = "autogen"
+  val INFLUX_CONNECTION_TOKEN_CONFIG = s"$CONNECTOR_PREFIX.$TOKEN_SUFFIX"
+  val INFLUX_CONNECTION_TOKEN_DOC    = "The password for the influxdb user."
 
   val KCQL_CONFIG  = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_DOC     = "KCQL expression describing field selection and target measurements."

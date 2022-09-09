@@ -30,11 +30,14 @@ import scala.util.Try
 class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLogging with ErrorHandler {
 
   ValidateStringParameterFn(settings.connectionUrl, "settings")
-  ValidateStringParameterFn(settings.user, "settings")
+  /*ValidateStringParameterFn(settings.token, "settings")*/
+  ValidateStringParameterFn(settings.org, "settings")
+  ValidateStringParameterFn(settings.bucket, "settings")  
 
+  val token=settings.token.toCharArray()
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
-  private val influxDB = InfluxDBClientFactory.connect(settings.connectionUrl, settings.user, settings.password)
+  private val influxDB = InfluxDBClientFactory.create(settings.connectionUrl, token, settings.org, settings.bucket)
   private val builder  = new InfluxBatchPointsBuilder(settings, new NanoClock())
 
   override def write(records: Seq[SinkRecord]): Unit =

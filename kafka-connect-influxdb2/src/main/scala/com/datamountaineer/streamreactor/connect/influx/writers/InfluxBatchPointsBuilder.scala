@@ -112,8 +112,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
 
   def build(records: Iterable[SinkRecord]): Try[Array[Point]] = {
     val batchPoints: Array[Point] = new Array()
-      .database(settings.database)
-      .retentionPolicy(settings.retentionPolicy)
+      .bucket(settings.bucket)
       .consistency(settings.consistencyLevel)
       .build()
 
