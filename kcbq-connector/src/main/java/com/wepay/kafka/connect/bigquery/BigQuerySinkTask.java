@@ -506,7 +506,7 @@ public class BigQuerySinkTask extends SinkTask {
     }
 
     recordConverter = getConverter(config);
-    topic2TableMap = config.getTopic2TableMap(sanitize).orElse(null);
+    topic2TableMap = config.getTopic2TableMap().orElse(null);
   }
 
   private void startGCSToBQLoadTask() {

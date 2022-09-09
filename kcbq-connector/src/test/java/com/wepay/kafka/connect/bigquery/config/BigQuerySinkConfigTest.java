@@ -265,7 +265,7 @@ public class BigQuerySinkConfigTest {
     Map<String, String> topic2TableMap = new HashMap<>();
     topic2TableMap.put("topic", "table");
     topic2TableMap.put("topic2", "table2");
-    assertEquals(topic2TableMap, config.getTopic2TableMap(config.getBoolean(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG)).get());
+    assertEquals(topic2TableMap, config.getTopic2TableMap().get());
   }
 
   @Test
@@ -273,7 +273,7 @@ public class BigQuerySinkConfigTest {
     Map<String, String> configProperties = propertiesFactory.getProperties();
     configProperties.put(BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG, "");
     BigQuerySinkConfig config = new BigQuerySinkConfig(configProperties);
-    assertFalse(config.getTopic2TableMap(config.getBoolean(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG)).isPresent());
+    assertFalse(config.getTopic2TableMap().isPresent());
   }
 
   @Test
@@ -281,19 +281,7 @@ public class BigQuerySinkConfigTest {
     Map<String, String> configProperties = propertiesFactory.getProperties();
     configProperties.put(BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG, ",");
     BigQuerySinkConfig config = new BigQuerySinkConfig(configProperties);
-    assertFalse(config.getTopic2TableMap(config.getBoolean(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG)).isPresent());
-  }
-
-  @Test
-  public void testTopicNameShouldGetSanitizedIfSanitizeFlagTrue() {
-    Map<String, String> configProperties = propertiesFactory.getProperties();
-    configProperties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
-    configProperties.put(BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG, "topic:table#badname, topic2:2table2");
-    BigQuerySinkConfig config = new BigQuerySinkConfig(configProperties);
-    Map<String, String> topic2TableMap = new HashMap<>();
-    topic2TableMap.put("topic", "table_badname");
-    topic2TableMap.put("topic2", "_2table2");
-    assertEquals(topic2TableMap, config.getTopic2TableMap(config.getBoolean(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG)).get());
+    assertFalse(config.getTopic2TableMap().isPresent());
   }
 
 }

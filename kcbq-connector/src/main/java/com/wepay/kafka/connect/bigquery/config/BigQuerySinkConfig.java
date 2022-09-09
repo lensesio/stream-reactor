@@ -166,8 +166,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
   public static final String TOPIC2TABLE_MAP_DOC = "Map of topics to tables (optional). "
           + "Format: comma-separated tuples, e.g. <topic-1>:<table-1>,<topic-2>:<table-2>,... " +
           "Note that topic name should not be modified using regex SMT while using this option." +
-          "Also note that if sanitizeTopics is true, then the table names supplied in this config " +
-          "would be sanitized according to the same rules";
+          "Also note that SANITIZE_TOPICS_CONFIG would be ignored if this config is set.";
   private static final ConfigDef.Validator TOPIC2TABLE_MAP_VALIDATOR = (name, value) -> {
     String topic2TableMapString = (String) ConfigDef.parseType(name, value, TOPIC2TABLE_MAP_TYPE);
 
@@ -1010,8 +1009,8 @@ public class BigQuerySinkConfig extends AbstractConfig {
     return parseTimePartitioningType(getString(TIME_PARTITIONING_TYPE_CONFIG));
   }
 
-  public Optional<Map<String, String>> getTopic2TableMap(boolean sanitize) {
-    return Optional.ofNullable(parseTopic2TableMapConfig(getString(TOPIC2TABLE_MAP_CONFIG), sanitize));
+  public Optional<Map<String, String>> getTopic2TableMap() {
+    return Optional.ofNullable(parseTopic2TableMapConfig(getString(TOPIC2TABLE_MAP_CONFIG)));
   }
 
   private Optional<TimePartitioning.Type> parseTimePartitioningType(String rawPartitioningType) {
@@ -1035,7 +1034,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
     }
   }
 
-  private Map<String, String> parseTopic2TableMapConfig(String topic2TableMapString, boolean sanitize) {
+  private Map<String, String> parseTopic2TableMapConfig(String topic2TableMapString) {
     if (topic2TableMapString.isEmpty()) {
       return null;
     }
@@ -1045,7 +1044,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
       String[] tt = str.split(":");
       String topic = tt[0].trim();
       String table = tt[1].trim();
-      topic2TableMap.put(topic, sanitize ? FieldNameSanitizer.sanitizeName(table) : table);
+      topic2TableMap.put(topic, table);
     }
     return topic2TableMap.isEmpty() ? null : topic2TableMap;
   }
