@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.influx.writers
+package com.datamountaineer.streamreactor.connect.influx2.writers
 
 import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.sink.DbWriter
-import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
-import com.datamountaineer.streamreactor.connect.influx.NanoClock
-import com.datamountaineer.streamreactor.connect.influx.ValidateStringParameterFn
+import com.datamountaineer.streamreactor.connect.influx2.config.InfluxSettings
+import com.datamountaineer.streamreactor.connect.influx2.NanoClock
+import com.datamountaineer.streamreactor.connect.influx2.ValidateStringParameterFn
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 import com.influxdb.client.InfluxDBClientFactory
@@ -45,7 +45,7 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
         builder
           .build(records)
           .flatMap { batchPoints =>
-            logger.debug(s"Writing ${batchPoints.getPoints.size()} points to the database...")
+            logger.debug(s"Writing ${batchPoints.length} points to the database...")
             Try(influxDB.write(batchPoints))
           }.map(_ => logger.debug("Writing complete")),
       )

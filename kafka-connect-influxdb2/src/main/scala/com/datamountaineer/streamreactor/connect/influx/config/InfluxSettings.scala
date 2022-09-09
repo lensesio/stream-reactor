@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.influx.config
+package com.datamountaineer.streamreactor.connect.influx2.config
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicy

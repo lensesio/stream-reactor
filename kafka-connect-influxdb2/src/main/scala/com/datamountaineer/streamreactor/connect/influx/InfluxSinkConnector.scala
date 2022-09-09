@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.influx
+package com.datamountaineer.streamreactor.connect.influx2
 
 import com.datamountaineer.streamreactor.common.config.Helpers
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 
 import java.util
-import com.datamountaineer.streamreactor.connect.influx.config.InfluxConfig
-import com.datamountaineer.streamreactor.connect.influx.config.InfluxConfigConstants
+import com.datamountaineer.streamreactor.connect.influx2.config.InfluxConfig
+import com.datamountaineer.streamreactor.connect.influx2.config.InfluxConfigConstants
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
