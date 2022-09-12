@@ -38,6 +38,7 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
   private val influxDB = InfluxDBClientFactory.create(settings.connectionUrl, token, settings.org, settings.bucket)
+  private val writeAPI = influxDB.makeWriteApi()
   private val builder  = new InfluxBatchPointsBuilder(settings, new NanoClock())
 
   override def write(records: Seq[SinkRecord]): Unit =
@@ -48,8 +49,8 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
         builder
           .build(records)
           .flatMap { batchPoints =>
-            logger.debug(s"Writing ${batchPoints.length} points to the database...")
-            Try(influxDB.write(batchPoints))
+            logger.debug(s"Writing ${batchPoints.getPoints.size()} points to the database...")
+            Try(writeAPI.writePoints(batchPoints.getPoints()))
           }.map(_ => logger.debug("Writing complete")),
       )
     }
