@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.influx2.writers
 
 import java.util.concurrent.TimeUnit
-import com.influxdb.client.domain.WritePrecision
 import com.datamountaineer.kcql.Field
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.kcql.Tag
@@ -133,7 +132,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
       .foldLeft(Try(Seq.empty[Seq[Point]]))(Util.shortCircuitOnFailure)
       .map(_.flatten)
       .map { points =>
-        batchPoints.points(_)
+        batchPoints.setPoints(points)
       }
   }
 }
