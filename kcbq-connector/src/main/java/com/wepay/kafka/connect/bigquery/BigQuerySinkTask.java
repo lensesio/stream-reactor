@@ -181,11 +181,7 @@ public class BigQuerySinkTask extends SinkTask {
     String tableName;
     String dataset = config.getString(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG);
     if (topic2TableMap != null) {
-      // TODO what if the map doesn't contain the topic name?
-      // We don't need an explicit call to sanitize here because if the
-      // sanitize flag is true, then the topic2TableMap would already contain
-      // sanitized table names.
-      tableName = topic2TableMap.get(record.topic());
+      tableName = topic2TableMap.getOrDefault(record.topic(), record.topic());
     } else {
       String[] smtReplacement = record.topic().split(":");
 
@@ -535,22 +531,6 @@ public class BigQuerySinkTask extends SinkTask {
     int intervalSec = config.getInt(BigQuerySinkConfig.BATCH_LOAD_INTERVAL_SEC_CONFIG);
     loadExecutor.scheduleAtFixedRate(loadRunnable, intervalSec, intervalSec, TimeUnit.SECONDS);
   }
-
-  private Map<String, String> parseTopic2TableMapConfig(String topic2TableMapString) {
-    if (topic2TableMapString.isEmpty()) {
-      return null;
-    }
-    Map<String, String> topic2TableMap = new HashMap<>();
-    // It's already validated, so we can just populate the map
-    for (String str : topic2TableMapString.split(",")) {
-      String[] tt = str.split(":");
-      String topic = tt[0].trim();
-      String table = tt[1].trim();
-      topic2TableMap.put(topic, sanitize ? FieldNameSanitizer.sanitizeName(table) : table);
-    }
-    return topic2TableMap;
-  }
-
 
   private void maybeStartMergeFlushTask() {
     long intervalMs = config.getLong(BigQuerySinkConfig.MERGE_INTERVAL_MS_CONFIG);

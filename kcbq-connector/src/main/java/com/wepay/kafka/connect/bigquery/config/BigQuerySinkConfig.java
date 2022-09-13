@@ -166,7 +166,9 @@ public class BigQuerySinkConfig extends AbstractConfig {
   public static final String TOPIC2TABLE_MAP_DOC = "Map of topics to tables (optional). "
           + "Format: comma-separated tuples, e.g. <topic-1>:<table-1>,<topic-2>:<table-2>,... " +
           "Note that topic name should not be modified using regex SMT while using this option." +
-          "Also note that SANITIZE_TOPICS_CONFIG would be ignored if this config is set.";
+          "Also note that SANITIZE_TOPICS_CONFIG would be ignored if this config is set." +
+          "Lastly, if the topic2table map doesn't contain the topic for a record, a table" +
+          " with the same name as the topic name would be created";
   private static final ConfigDef.Validator TOPIC2TABLE_MAP_VALIDATOR = (name, value) -> {
     String topic2TableMapString = (String) ConfigDef.parseType(name, value, TOPIC2TABLE_MAP_TYPE);
 
