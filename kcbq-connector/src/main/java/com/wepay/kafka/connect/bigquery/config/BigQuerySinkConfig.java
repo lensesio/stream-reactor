@@ -28,6 +28,7 @@ import com.wepay.kafka.connect.bigquery.convert.BigQuerySchemaConverter;
 import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 import com.wepay.kafka.connect.bigquery.retrieve.IdentitySchemaRetriever;
+import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.Config;
 import org.apache.kafka.common.config.ConfigDef;
@@ -40,11 +41,7 @@ import org.apache.kafka.connect.sink.SinkConnector;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -161,6 +158,73 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final String SANITIZE_TOPICS_DOC =
       "Whether to automatically sanitize topic names before using them as table names;"
       + " if not enabled topic names will be used directly as table names";
+
+  public static final String TOPIC2TABLE_MAP_CONFIG =                     "topic2TableMap";
+  private static final ConfigDef.Type TOPIC2TABLE_MAP_TYPE =              ConfigDef.Type.STRING;
+  public static final String TOPIC2TABLE_MAP_DEFAULT = "";
+  private static final ConfigDef.Importance TOPIC2TABLE_MAP_IMPORTANCE =  ConfigDef.Importance.LOW;
+  public static final String TOPIC2TABLE_MAP_DOC = "Map of topics to tables (optional). "
+          + "Format: comma-separated tuples, e.g. <topic-1>:<table-1>,<topic-2>:<table-2>,... " +
+          "Note that topic name should not be modified using regex SMT while using this option." +
+          "Also note that SANITIZE_TOPICS_CONFIG would be ignored if this config is set." +
+          "Lastly, if the topic2table map doesn't contain the topic for a record, a table" +
+          " with the same name as the topic name would be created";
+  private static final ConfigDef.Validator TOPIC2TABLE_MAP_VALIDATOR = (name, value) -> {
+    String topic2TableMapString = (String) ConfigDef.parseType(name, value, TOPIC2TABLE_MAP_TYPE);
+
+    if (topic2TableMapString.isEmpty()) {
+      return;
+    }
+
+    Map<String, String> topic2TableMap = new HashMap<>();
+
+    for (String str : topic2TableMapString.split(",")) {
+      String[] tt = str.split(":");
+
+      if (tt.length != 2) {
+        throw new ConfigException(
+                name,
+                topic2TableMapString,
+                "One of the topic to table mappings has an invalid format."
+        );
+      }
+
+      String topic = tt[0].trim();
+      String table = tt[1].trim();
+
+      if (topic.isEmpty() || table.isEmpty()) {
+        throw new ConfigException(
+                name,
+                topic2TableMapString,
+                "One of the topic to table mappings has an invalid format."
+        );
+      }
+
+      if (topic2TableMap.containsKey(topic)) {
+        throw new ConfigException(
+                name,
+                name,
+                String.format(
+                        "The topic name %s is duplicated. Topic names cannot be duplicated.",
+                        topic
+                )
+        );
+      }
+
+      if (topic2TableMap.containsValue(table)) {
+        throw new ConfigException(
+                name,
+                topic2TableMapString,
+                String.format(
+                        "The table name %s is duplicated. Table names cannot be duplicated.",
+                        table
+                )
+        );
+      }
+      topic2TableMap.put(topic, table);
+    }
+  };
+
 
   public static final String SANITIZE_FIELD_NAME_CONFIG =                     "sanitizeFieldNames";
   private static final ConfigDef.Type SANITIZE_FIELD_NAME_TYPE =              ConfigDef.Type.BOOLEAN;
@@ -555,6 +619,13 @@ public class BigQuerySinkConfig extends AbstractConfig {
             SANITIZE_TOPICS_IMPORTANCE,
             SANITIZE_TOPICS_DOC
         ).define(
+            TOPIC2TABLE_MAP_CONFIG,
+            TOPIC2TABLE_MAP_TYPE,
+            TOPIC2TABLE_MAP_DEFAULT,
+            TOPIC2TABLE_MAP_VALIDATOR,
+            TOPIC2TABLE_MAP_IMPORTANCE,
+            TOPIC2TABLE_MAP_DOC
+          ).define(
             SANITIZE_FIELD_NAME_CONFIG,
             SANITIZE_FIELD_NAME_TYPE,
             SANITIZE_FIELD_NAME_DEFAULT,
@@ -940,6 +1011,10 @@ public class BigQuerySinkConfig extends AbstractConfig {
     return parseTimePartitioningType(getString(TIME_PARTITIONING_TYPE_CONFIG));
   }
 
+  public Optional<Map<String, String>> getTopic2TableMap() {
+    return Optional.ofNullable(parseTopic2TableMapConfig(getString(TOPIC2TABLE_MAP_CONFIG)));
+  }
+
   private Optional<TimePartitioning.Type> parseTimePartitioningType(String rawPartitioningType) {
     if (rawPartitioningType == null) {
       throw new ConfigException(TIME_PARTITIONING_TYPE_CONFIG,
@@ -959,6 +1034,21 @@ public class BigQuerySinkConfig extends AbstractConfig {
           rawPartitioningType,
           "Must be one of " + String.join(", ", TIME_PARTITIONING_TYPES));
     }
+  }
+
+  private Map<String, String> parseTopic2TableMapConfig(String topic2TableMapString) {
+    if (topic2TableMapString.isEmpty()) {
+      return null;
+    }
+    Map<String, String> topic2TableMap = new HashMap<>();
+    // It's already validated, so we can just populate the map
+    for (String str : topic2TableMapString.split(",")) {
+      String[] tt = str.split(":");
+      String topic = tt[0].trim();
+      String table = tt[1].trim();
+      topic2TableMap.put(topic, table);
+    }
+    return topic2TableMap.isEmpty() ? null : topic2TableMap;
   }
 
   /**

@@ -54,6 +54,7 @@ import com.wepay.kafka.connect.bigquery.write.row.UpsertDeleteBigQueryWriter;
 import java.io.IOException;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.errors.RetriableException;
@@ -63,13 +64,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -77,6 +72,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG;
 import static com.wepay.kafka.connect.bigquery.utils.TableNameUtils.intTable;
 
 /**
@@ -115,6 +111,7 @@ public class BigQuerySinkTask extends SinkTask {
   private ScheduledExecutorService loadExecutor;
 
   private Map<TableId, Table> cache;
+  private Map<String, String> topic2TableMap;
 
   /**
    * Create a new BigquerySinkTask.
@@ -183,25 +180,38 @@ public class BigQuerySinkTask extends SinkTask {
   private PartitionedTableId getRecordTable(SinkRecord record) {
     String tableName;
     String dataset = config.getString(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG);
-    String[] smtReplacement = record.topic().split(":");
-
-    if (smtReplacement.length == 2) {
-      dataset = smtReplacement[0];
-      tableName = smtReplacement[1];
-    } else if (smtReplacement.length == 1) {
-      tableName = smtReplacement[0];
+    if (topic2TableMap != null) {
+      tableName = topic2TableMap.getOrDefault(record.topic(), record.topic());
     } else {
-      throw new ConnectException(String.format(
-          "Incorrect regex replacement format in topic name '%s'. "
-              + "SMT replacement should either produce the <dataset>:<tableName> format " 
-              + "or just the <tableName> format.",
-          record.topic()
-      ));
+      String[] smtReplacement = record.topic().split(":");
+
+      if (smtReplacement.length == 2) {
+        dataset = smtReplacement[0];
+        tableName = smtReplacement[1];
+      } else if (smtReplacement.length == 1) {
+        tableName = smtReplacement[0];
+      } else {
+        throw new ConnectException(String.format(
+                "Incorrect regex replacement format in topic name '%s'. "
+                        + "SMT replacement should either produce the <dataset>:<tableName> format "
+                        + "or just the <tableName> format.",
+                record.topic()
+        ));
+      }
+      if (sanitize) {
+        tableName = FieldNameSanitizer.sanitizeName(tableName);
+      }
     }
 
-    if (sanitize) {
-      tableName = FieldNameSanitizer.sanitizeName(tableName);
-    }
+    // TODO: Order of execution of topic/table name modifications =>
+    // regex router SMT modifies topic name in sinkrecord.
+    // It could be either : separated or not.
+
+    // should we use topic2table map with sanitize table name? doesn't make sense.
+
+    // we use table name from above to sanitize table name further.
+
+
     TableId baseTableId = TableId.of(dataset, tableName);
     if (upsertDelete) {
       TableId intermediateTableId = mergeBatches.intermediateTableFor(baseTableId);
@@ -492,6 +502,7 @@ public class BigQuerySinkTask extends SinkTask {
     }
 
     recordConverter = getConverter(config);
+    topic2TableMap = config.getTopic2TableMap().orElse(null);
   }
 
   private void startGCSToBQLoadTask() {
