@@ -107,6 +107,7 @@ jobs:
   integration-test:
     needs: initiate
     timeout-minutes: 30
+    continue-on-error: true
     runs-on: ubuntu-latest
     strategy:
       matrix:
