@@ -30,7 +30,7 @@ jobs:
           then
               draft_release=true
           else
-              echo "Existing, github ref needs to be a tag with format x.y.z or x.y.z+(alpha|beta|rc)"
+              echo "Exiting, github ref needs to be a tag with format x.y.z or x.y.z+(alpha|beta|rc)"
               exit 1
           fi
           echo "::set-output name=draft_release::$draft_release"
@@ -50,6 +50,11 @@ jobs:
       - validate-tag
       - build
     strategy:
+      # Avoid parallel uploads
+      max-parallel: 1
+      # GitHub will NOT cancel all in-progress and queued jobs in the matrix if any job in the matrix fails, which could create inconsistencies.
+      # If any matrix job fails, the job will be marked as failure
+      fail-fast: false
       matrix:
         module: ${{fromJSON(needs.build.outputs.modules)}}
     env:
