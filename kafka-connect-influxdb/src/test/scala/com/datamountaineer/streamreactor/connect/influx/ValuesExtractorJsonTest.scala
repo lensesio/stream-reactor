@@ -22,11 +22,14 @@ import com.landoop.json.sql.JacksonJson
 import com.typesafe.scalalogging.LazyLogging
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.generic.GenericData
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.util.{Success, Try}
+import scala.util.Success
+import scala.util.Try
 
 class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging {
   val avroData = new AvroData(8)
@@ -44,9 +47,8 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging
         .put("lastName", "Smith")
         .put("age", 30)
 
-
       val json = JacksonJson.asJson(avroData.fromConnectData(schema, struct).toString)
-      val map = ValuesExtractor.extractAllFields(json, Set.empty[String]).toMap
+      val map  = ValuesExtractor.extractAllFields(json, Set.empty[String]).toMap
       map("firstName") shouldBe "Alex"
       map("lastName") shouldBe "Smith"
       map("age") shouldBe 30
@@ -65,12 +67,11 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging
         .put("age", 30)
 
       val json = JacksonJson.asJson(avroData.fromConnectData(schema, struct).toString)
-      val map = ValuesExtractor.extractAllFields(json, Set("lastName")).toMap
+      val map  = ValuesExtractor.extractAllFields(json, Set("lastName")).toMap
       map("firstName") shouldBe "Alex"
       map.contains("lastName") shouldBe false
       map("age") shouldBe 30
     }
-
 
     "throw an exception if the ts field is not present in the struct" in {
       val schema = SchemaBuilder.struct().name("com.example.Person")
@@ -83,14 +84,13 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging
         .put("lastName", "Smith")
         .put("age", 30)
 
-      val json = JacksonJson.asJson(avroData.fromConnectData(schema, struct).toString)
-      val path = Vector("ts")
+      val json   = JacksonJson.asJson(avroData.fromConnectData(schema, struct).toString)
+      val path   = Vector("ts")
       val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(json, path), path)
       result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[IllegalArgumentException]
 
     }
-
 
     "throw an exception if the select * from includes another struct" in {
       val schema = SchemaBuilder.struct().name("com.example.Person")
@@ -104,7 +104,6 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging
         .field("age", Schema.INT32_SCHEMA)
         .field("dependant", schema)
         .build()
-
 
       val dependant = new Struct(schema)
         .put("firstName", "Alex")
@@ -136,7 +135,6 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging
         .field("dependant", schema)
         .build()
 
-
       val dependant = new Struct(schema)
         .put("firstName", "Olivia")
         .put("lastName", "Miru")
@@ -163,7 +161,8 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging
 
       // TODO: The behaviour of avro.toString has changed so it no longer converts to JSON, breaking this test.
 
-      val avroAsString = """{"v": 100, "map": {"key1": {"s": "value1", "t": 1.4}, "key2": {"s": "value2", "t": 0.11}}}"""
+      val avroAsString =
+        """{"v": 100, "map": {"key1": {"s": "value1", "t": 1.4}, "key2": {"s": "value2", "t": 0.11}}}"""
       val json = JacksonJson.asJson(avroAsString)
 
       ValuesExtractor.extract(json, Vector("map", "key1", "s")) shouldBe "value1"
@@ -182,7 +181,6 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging
         .field("age", Schema.INT32_SCHEMA)
         .field("dependant", schema)
         .build()
-
 
       val dependant = new Struct(schema)
         .put("firstName", "Alex")
@@ -203,7 +201,6 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging
       map("age") shouldBe 30
     }
 
-
     "throw an exception if the timestamp field is a string and incorrect format" in {
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("good", Schema.STRING_SCHEMA)
@@ -217,8 +214,12 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging
 
       val json = JacksonJson.asJson(avroData.fromConnectData(schema, struct).toString)
 
-      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(json, Vector("good")), Vector("good")) shouldBe Success(1483228800000L)
-      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(json, Vector("millis")), Vector("millis")) shouldBe Success(1483228800123L)
+      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(json, Vector("good")), Vector("good")) shouldBe Success(
+        1483228800000L,
+      )
+      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(json, Vector("millis")), Vector("millis")) shouldBe Success(
+        1483228800123L,
+      )
 
       val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(json, Vector("bad")), Vector("bad"))
       result shouldBe Symbol("Failure")
@@ -243,7 +244,8 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging
           // Therefore the string below is hard-coded for the time being
           //val json = avroData.toString
           val json = JacksonJson.asJson("{\"bibble\": {\"bytes\": \"\\u0001y\\u0091\"}}")
-          val result: Try[(Any, Vector[String])] = Try((ValuesExtractor.extract(json, Vector("bibble")), Vector("bibble")))
+          val result: Try[(Any, Vector[String])] =
+            Try((ValuesExtractor.extract(json, Vector("bibble")), Vector("bibble")))
           result shouldBe Symbol("Failure")
           result.failed.get shouldBe a[IllegalArgumentException]
 

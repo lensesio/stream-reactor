@@ -16,7 +16,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatOptions}
+import io.lenses.streamreactor.connect.aws.s3.config.Format
+import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
@@ -24,25 +25,25 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.File
 
-
 class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers {
 
   val PrefixName = "streamReactorBackups"
-  val TopicName = "myTopic"
+  val TopicName  = "myTopic"
 
-  def setUpBucketData(bucketName: String, format: Format, formatOption: Option[FormatOptions], dir: String): Unit = {
-
+  def setUpBucketData(bucketName: String, format: Format, formatOption: Option[FormatOptions], dir: String): Unit =
     1 to 5 foreach {
       fileNum =>
         copyResourceToBucket(
           s"/${format.entryName.toLowerCase}${generateFormatString(formatOption)}/$fileNum.${format.entryName.toLowerCase}",
           bucketName,
-          s"$PrefixName/$dir/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}"
+          s"$PrefixName/$dir/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}",
         )
 
-        storageInterface.pathExists(RemoteS3PathLocation(bucketName, s"$PrefixName/$dir/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}")) should be(Right(true))
+        storageInterface.pathExists(RemoteS3PathLocation(
+          bucketName,
+          s"$PrefixName/$dir/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}",
+        )) should be(Right(true))
     }
-  }
 
   def totalFileLengthBytes(format: Format, formatOption: Option[FormatOptions]): Int = {
     1 to 5 map {
@@ -53,13 +54,12 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
     }
   }.sum
 
-  def generateFormatString(formatOptions: Option[FormatOptions]): String = {
+  def generateFormatString(formatOptions: Option[FormatOptions]): String =
     formatOptions.fold("")(option => s"_${option.entryName.toLowerCase}")
-  }
 
   private def fileLengthBytes(
-                       resourceSourceFilename: String
-                     ): Int = {
+    resourceSourceFilename: String,
+  ): Int = {
 
     val inputStream = classOf[S3ProxyContainerTest].getResourceAsStream(resourceSourceFilename)
     require(inputStream != null)
@@ -67,16 +67,16 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
   }
 
   private def copyResourceToBucket(
-                            resourceSourceFilename: String,
-                            blobStoreContainerName: String,
-                            blobStoreTargetFilename: String,
-                          ): Unit = {
+    resourceSourceFilename:  String,
+    blobStoreContainerName:  String,
+    blobStoreTargetFilename: String,
+  ): Unit = {
 
     val resource = classOf[S3ProxyContainerTest].getResource(resourceSourceFilename)
     require(resource != null)
     val _ = storageInterface.uploadFile(
       new File(resource.getFile),
-      RemoteS3PathLocation(blobStoreContainerName, blobStoreTargetFilename)
+      RemoteS3PathLocation(blobStoreContainerName, blobStoreTargetFilename),
     )
   }
 

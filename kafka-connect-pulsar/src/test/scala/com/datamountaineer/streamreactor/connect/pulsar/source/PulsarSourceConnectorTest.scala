@@ -8,23 +8,23 @@ import org.scalatest.wordspec.AnyWordSpec
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 24/01/2018. 
+  * Created by andrew@datamountaineer.com on 24/01/2018.
   * stream-reactor
   */
 class PulsarSourceConnectorTest extends AnyWordSpec with Matchers {
 
-  val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
+  val pulsarTopic  = "persistent://landoop/standalone/connect/kafka-topic"
   val pulsarTopic1 = "persistent://landoop/standalone/connect/kafka-topic1"
 
   "should start a connector with shared consumer" in {
-    val kcql = s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH = 10 WITHSUBSCRIPTION = SHARED"
+    val kcql  = s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH = 10 WITHSUBSCRIPTION = SHARED"
     val kcql1 = s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic1 BATCH = 10 WITHSUBSCRIPTION = FAILOVER"
 
-    val props =  Map(
-      PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"$kcql;$kcql1",
+    val props = Map(
+      PulsarConfigConstants.HOSTS_CONFIG                   -> "pulsar://localhost:6650",
+      PulsarConfigConstants.KCQL_CONFIG                    -> s"$kcql;$kcql1",
       PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-      PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
+      PulsarConfigConstants.POLLING_TIMEOUT_CONFIG         -> "500",
     ).asJava
 
     val connector = new PulsarSourceConnector()
@@ -35,11 +35,11 @@ class PulsarSourceConnectorTest extends AnyWordSpec with Matchers {
   }
 
   "should fail to start a connector with exclusive consumer and more than one task" in {
-    val props =  Map(
-      PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH = 10 WITHSUBSCRIPTION = exclusive;INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH = 10 WITHSUBSCRIPTION = FAILOVER",
+    val props = Map(
+      PulsarConfigConstants.HOSTS_CONFIG                   -> "pulsar://localhost:6650",
+      PulsarConfigConstants.KCQL_CONFIG                    -> s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH = 10 WITHSUBSCRIPTION = exclusive;INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH = 10 WITHSUBSCRIPTION = FAILOVER",
       PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-      PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
+      PulsarConfigConstants.POLLING_TIMEOUT_CONFIG         -> "500",
     ).asJava
 
     val connector = new PulsarSourceConnector()

@@ -17,7 +17,8 @@
 package io.lenses.streamreactor.connect.aws.s3.model
 
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.sink.{HierarchicalS3FileNamingStrategy, PartitionedS3FileNamingStrategy}
+import io.lenses.streamreactor.connect.aws.s3.sink.HierarchicalS3FileNamingStrategy
+import io.lenses.streamreactor.connect.aws.s3.sink.PartitionedS3FileNamingStrategy
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -28,11 +29,14 @@ class S3StoredFileTest extends AnyFlatSpec with Matchers {
 
   "apply" should "parse hierarchical scheme" in {
 
-    implicit val hierarchical: HierarchicalS3FileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection("`JSON`"))
+    implicit val hierarchical: HierarchicalS3FileNamingStrategy =
+      new HierarchicalS3FileNamingStrategy(FormatSelection("`JSON`"))
 
-    S3StoredFile("dragon-test/myTopicName/1/1.json") should be (Some(S3StoredFile("dragon-test/myTopicName/1/1.json", Topic("myTopicName").withPartition(1).withOffset(1))))
+    S3StoredFile("dragon-test/myTopicName/1/1.json") should be(Some(S3StoredFile(
+      "dragon-test/myTopicName/1/1.json",
+      Topic("myTopicName").withPartition(1).withOffset(1),
+    )))
   }
-
 
   "apply" should "parse partitioned scheme" in {
 
@@ -41,6 +45,9 @@ class S3StoredFileTest extends AnyFlatSpec with Matchers {
       PartitionSelection(Seq.empty[PartitionField]),
     )
 
-    S3StoredFile("dragon-test/myTopicName(1_2).json") should be (Some(S3StoredFile("dragon-test/myTopicName(1_2).json", Topic("myTopicName").withPartition(1).withOffset(2))))
+    S3StoredFile("dragon-test/myTopicName(1_2).json") should be(Some(S3StoredFile(
+      "dragon-test/myTopicName(1_2).json",
+      Topic("myTopicName").withPartition(1).withOffset(2),
+    )))
   }
 }

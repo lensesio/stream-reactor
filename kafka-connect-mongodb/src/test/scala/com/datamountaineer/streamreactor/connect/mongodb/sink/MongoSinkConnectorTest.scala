@@ -23,17 +23,15 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-
 class MongoSinkConnectorTest extends AnyWordSpec with Matchers with MockitoSugar {
   "MongoSinkConnector" should {
 
-
     "return one task when multiple routes are provided but maxTasks is 1" in {
       val map = Map(
-        "topics" -> "topic1, topicA",
-        MongoConfigConstants.DATABASE_CONFIG -> "database1",
+        "topics"                               -> "topic1, topicA",
+        MongoConfigConstants.DATABASE_CONFIG   -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
-        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1; INSERT INTO coll2 SELECT * FROM topicA"
+        MongoConfigConstants.KCQL_CONFIG       -> "INSERT INTO collection1 SELECT * FROM topic1; INSERT INTO coll2 SELECT * FROM topicA",
       ).asJava
 
       val connector = new MongoSinkConnector()

@@ -18,29 +18,39 @@
 
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
-import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSetting, JMSSettings}
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
+import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
+import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
 import com.datamountaineer.streamreactor.connect.jms.TestBase
-import com.datamountaineer.streamreactor.example.{AddressedPerson, TimedPerson}
-import org.apache.kafka.connect.data.{Schema, Struct}
+import com.datamountaineer.streamreactor.example.AddressedPerson
+import com.datamountaineer.streamreactor.example.TimedPerson
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfterAll, EitherValues}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with TestBase with BeforeAndAfterAll with EitherValues {
+class ProtoStoredAsConverterTest
+    extends AnyWordSpec
+    with Matchers
+    with TestBase
+    with BeforeAndAfterAll
+    with EitherValues {
 
   "create a BytesMessage with sinkrecord payload with storedAs properties" in {
     val converter = ProtoStoredAsConverter()
 
     val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = UUID.randomUUID().toString
-    val kcql = getKCQLStoreAsTimedPerson(queueName, kafkaTopic1, "QUEUE", getProtoPath)
-    val props = getProps(kcql, JMS_URL)
-    val schema = getProtobufSchemaTimestamp
+    val queueName   = UUID.randomUUID().toString
+    val kcql        = getKCQLStoreAsTimedPerson(queueName, kafkaTopic1, "QUEUE", getProtoPath)
+    val props       = getProps(kcql, JMS_URL)
+    val schema      = getProtobufSchemaTimestamp
 
     val struct = getProtobufStructTimestamp(schema, "non-addressed-person", 101, "1970-01-01T00:00:00Z")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
@@ -52,11 +62,11 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with TestBase
   }
 
   "create a BytesMessage with sinkrecord payload with connector config proto path properties" in {
-    val converter = ProtoStoredAsConverter()
+    val converter   = ProtoStoredAsConverter()
     val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = UUID.randomUUID().toString
-    val path = getProtoPath
-    val kcql = getKCQLEmptyStoredAsNonAddressedPerson(queueName, kafkaTopic1, "QUEUE")
+    val queueName   = UUID.randomUUID().toString
+    val path        = getProtoPath
+    val kcql        = getKCQLEmptyStoredAsNonAddressedPerson(queueName, kafkaTopic1, "QUEUE")
     val props = getProps(kcql, JMS_URL) ++
       Map("connect.sink.converter.proto_path" -> path)
     val schema = getProtobufSchema
@@ -69,13 +79,13 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with TestBase
   }
 
   "create a BytesMessage with sinkrecord payload with only storedAs Name" in {
-    val converter = ProtoStoredAsConverter()
+    val converter   = ProtoStoredAsConverter()
     val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = UUID.randomUUID().toString
-    val kcql = getKCQLStoredAsWithNameOnly(queueName, kafkaTopic1, "QUEUE")
-    val props = getProps(kcql, JMS_URL)
-    val schema = getProtobufSchema
-    val struct = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
+    val queueName   = UUID.randomUUID().toString
+    val kcql        = getKCQLStoredAsWithNameOnly(queueName, kafkaTopic1, "QUEUE")
+    val props       = getProps(kcql, JMS_URL)
+    val schema      = getProtobufSchema
+    val struct      = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
     val convertedValue: Array[Byte] = converter.convert(record, setting).value
@@ -84,13 +94,13 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with TestBase
   }
 
   "should throw exception for invalid value for storedAs" in {
-    val converter = ProtoStoredAsConverter()
+    val converter   = ProtoStoredAsConverter()
     val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = UUID.randomUUID().toString
-    val kcql = getKCQLStoredAsWithInvalidData(queueName, kafkaTopic1, "QUEUE")
-    val props = getProps(kcql, JMS_URL)
-    val schema = getProtobufSchema
-    val struct = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
+    val queueName   = UUID.randomUUID().toString
+    val kcql        = getKCQLStoredAsWithInvalidData(queueName, kafkaTopic1, "QUEUE")
+    val props       = getProps(kcql, JMS_URL)
+    val schema      = getProtobufSchema
+    val struct      = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
     val caught = the[DataException] thrownBy converter.convert(record, setting)
@@ -99,13 +109,13 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with TestBase
   }
 
   "should throw exception for invalid package name for storedAs when protopath is present" in {
-    val converter = ProtoStoredAsConverter()
+    val converter   = ProtoStoredAsConverter()
     val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = UUID.randomUUID().toString
-    val kcql = getKCQLStoredAsWithInvalidPackageNameWithProtopath(queueName, kafkaTopic1, "QUEUE", getProtoPath)
-    val props = getProps(kcql, JMS_URL)
-    val schema = getProtobufSchema
-    val struct = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
+    val queueName   = UUID.randomUUID().toString
+    val kcql        = getKCQLStoredAsWithInvalidPackageNameWithProtopath(queueName, kafkaTopic1, "QUEUE", getProtoPath)
+    val props       = getProps(kcql, JMS_URL)
+    val schema      = getProtobufSchema
+    val struct      = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
     val caught = the[DataException] thrownBy converter.convert(record, setting)
@@ -114,13 +124,13 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with TestBase
   }
 
   "should throw exception for valid package name for storedAs but invalid protopath which has no files in it" in {
-    val converter = ProtoStoredAsConverter()
+    val converter   = ProtoStoredAsConverter()
     val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = UUID.randomUUID().toString
-    val kcql = getKCQLStoredAsWithProtopath(queueName, kafkaTopic1, "QUEUE", "/resources/path")
-    val props = getProps(kcql, JMS_URL)
-    val schema = getProtobufSchema
-    val struct = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
+    val queueName   = UUID.randomUUID().toString
+    val kcql        = getKCQLStoredAsWithProtopath(queueName, kafkaTopic1, "QUEUE", "/resources/path")
+    val props       = getProps(kcql, JMS_URL)
+    val schema      = getProtobufSchema
+    val struct      = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
     val caught = the[DataException] thrownBy converter.convert(record, setting)
@@ -129,13 +139,13 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with TestBase
   }
 
   "should throw exception for for incorrect proto file name" in {
-    val converter = ProtoStoredAsConverter()
+    val converter   = ProtoStoredAsConverter()
     val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = UUID.randomUUID().toString
-    val kcql = getKCQLStoreAsWithFileAndPath(queueName, kafkaTopic1, "QUEUE", "`NonExisting.proto`", getProtoPath)
-    val props = getProps(kcql, JMS_URL)
-    val schema = getProtobufSchema
-    val struct = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
+    val queueName   = UUID.randomUUID().toString
+    val kcql        = getKCQLStoreAsWithFileAndPath(queueName, kafkaTopic1, "QUEUE", "`NonExisting.proto`", getProtoPath)
+    val props       = getProps(kcql, JMS_URL)
+    val schema      = getProtobufSchema
+    val struct      = getProtobufStruct(schema, "addressed-person", 103, "addressed-person@gmail.com")
     val (setting: JMSSetting, record: SinkRecord) = getRecordAndSetting(converter, kafkaTopic1, props, schema, struct)
 
     val caught = the[DataException] thrownBy converter.convert(record, setting)
@@ -150,10 +160,16 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with TestBase
     person.getId shouldBe id
   }
 
-  private def getRecordAndSetting(converter: ProtoStoredAsConverter, kafkaTopic1: String, props: Map[String, String], schema: Schema, struct: Struct) = {
-    val config = JMSConfig(props.asJava)
+  private def getRecordAndSetting(
+    converter:   ProtoStoredAsConverter,
+    kafkaTopic1: String,
+    props:       Map[String, String],
+    schema:      Schema,
+    struct:      Struct,
+  ) = {
+    val config   = JMSConfig(props.asJava)
     val settings = JMSSettings(config, true)
-    val setting = settings.settings.head
+    val setting  = settings.settings.head
 
     converter.initialize(props)
     val record = new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1)
@@ -168,10 +184,9 @@ class ProtoStoredAsConverterTest extends AnyWordSpec with Matchers with TestBase
     person.getEmail shouldBe email
   }
 
-  private def getProtoPath = {
+  private def getProtoPath =
     getClass.getClassLoader
       .getResource("example/AddressedPerson.proto")
       .getPath
       .replace("AddressedPerson.proto", "")
-  }
 }

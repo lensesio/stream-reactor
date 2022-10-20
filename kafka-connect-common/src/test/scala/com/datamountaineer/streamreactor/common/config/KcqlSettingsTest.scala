@@ -24,7 +24,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import java.util
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-
 class KcqlSettingsTest extends AnyWordSpec with Matchers {
 
   case class KS(kcql: String) extends KcqlSettings {
@@ -32,20 +31,21 @@ class KcqlSettingsTest extends AnyWordSpec with Matchers {
     override def connectorPrefix: String = "66686723939"
     override def getString(key: String): String = key match {
       case `kcqlConstant` => kcql
-      case _ => null
+      case _              => null
     }
-    override def getInt(key: String): Integer = 0
-    override def getBoolean(key: String): java.lang.Boolean = false
-    override def getPassword(key: String): Password = null
-    override def getList(key: String): util.List[String] = List.empty[String].asJava
+    override def getInt(key:      String): Integer           = 0
+    override def getBoolean(key:  String): java.lang.Boolean = false
+    override def getPassword(key: String): Password          = null
+    override def getList(key:     String): util.List[String] = List.empty[String].asJava
   }
 
   def testUpsertKeys(
-    kcql: String, 
-    expectedKeys: Set[String], 
-    topic: String = "t",
-    preserve: Boolean = false) = {
-    val keys = KS(kcql).getUpsertKeys(preserveFullKeys=preserve)(topic)
+    kcql:         String,
+    expectedKeys: Set[String],
+    topic:        String  = "t",
+    preserve:     Boolean = false,
+  ) = {
+    val keys = KS(kcql).getUpsertKeys(preserveFullKeys = preserve)(topic)
     // get rid of ListSet to avoid ordering issues:
     keys.toList.toSet shouldBe expectedKeys
   }
@@ -61,18 +61,18 @@ class KcqlSettingsTest extends AnyWordSpec with Matchers {
 
     "return full keys if requested" in {
 
-      testUpsertKeys("UPSERT INTO coll SELECT * FROM t PK a", Set("a"), preserve=true)
-      testUpsertKeys("UPSERT INTO coll SELECT * FROM t PK a, b.m", Set("a", "b.m"), preserve=true)
-      testUpsertKeys("UPSERT INTO coll SELECT * FROM t PK a, b.m, b.n.x", Set("a", "b.m", "b.n.x"), preserve=true)
-      testUpsertKeys("UPSERT INTO coll SELECT * FROM t PK b.m.x", Set("b.m.x"), preserve=true)
+      testUpsertKeys("UPSERT INTO coll SELECT * FROM t PK a", Set("a"), preserve                             = true)
+      testUpsertKeys("UPSERT INTO coll SELECT * FROM t PK a, b.m", Set("a", "b.m"), preserve                 = true)
+      testUpsertKeys("UPSERT INTO coll SELECT * FROM t PK a, b.m, b.n.x", Set("a", "b.m", "b.n.x"), preserve = true)
+      testUpsertKeys("UPSERT INTO coll SELECT * FROM t PK b.m.x", Set("b.m.x"), preserve                     = true)
     }
 
     "return keys in the expected order - as listed in the PK clause" in {
 
-      val kcql = "UPSERT INTO coll SELECT * FROM t PK a,b,c,d"
-      val expectedKeys = List("a","b","c","d")
-      val keys = KS(kcql).getUpsertKeys(preserveFullKeys=true)("t").toList.sorted
-      // SCALA 2.12 WARNING: If this fails when you upgrade to 2.12, you need to 
+      val kcql         = "UPSERT INTO coll SELECT * FROM t PK a,b,c,d"
+      val expectedKeys = List("a", "b", "c", "d")
+      val keys         = KS(kcql).getUpsertKeys(preserveFullKeys = true)("t").toList.sorted
+      // SCALA 2.12 WARNING: If this fails when you upgrade to 2.12, you need to
       // modify KcqlSettings to remove all the reverse() calls when constructing
       // the ListSets.
       keys shouldBe expectedKeys

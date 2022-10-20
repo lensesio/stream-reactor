@@ -30,8 +30,8 @@ import scala.reflect.runtime.universe._
   */
 class S3ConfigSettingsTest extends AnyFlatSpec with Matchers with LazyLogging {
 
-  private val currentMirror = scala.reflect.runtime.currentMirror
-  private val instanceMirror = currentMirror.reflect(S3ConfigSettings)
+  private val currentMirror              = scala.reflect.runtime.currentMirror
+  private val instanceMirror             = currentMirror.reflect(S3ConfigSettings)
   private val ignorePropertiesWithSuffix = Set("_DOC", "_DEFAULT", "_DISPLAY")
 
   "S3ConfigSettings" should "ensure all keys are lower case" in {
@@ -53,15 +53,13 @@ class S3ConfigSettingsTest extends AnyFlatSpec with Matchers with LazyLogging {
     }
   }
 
-  private def getMembersForClass(clazz: S3ConfigSettings.type) = {
+  private def getMembersForClass(clazz: S3ConfigSettings.type) =
     currentMirror
       .classSymbol(clazz.getClass)
       .toType
       .members
-  }
 
-  private def getValue(method: universe.MethodSymbol) = {
+  private def getValue(method: universe.MethodSymbol) =
     instanceMirror.reflectMethod(method).apply().toString()
-  }
 
 }

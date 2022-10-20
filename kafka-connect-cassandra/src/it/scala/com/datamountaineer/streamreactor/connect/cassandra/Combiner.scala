@@ -17,11 +17,16 @@
 package com.datamountaineer.streamreactor.connect.cassandra
 
 import com.datamountaineer.streamreactor.connect.cassandra.sink.TestCassandraJsonWriter
-import com.datamountaineer.streamreactor.connect.cassandra.source.{TestCassandraSourceConnector, TestCassandraSourceTaskTimestamp, TestCassandraSourceTaskTimestampLong, TestCassandraSourceTaskTimeuuid, TestCassandraSourceTaskTimeuuidLong}
+import com.datamountaineer.streamreactor.connect.cassandra.source.TestCassandraSourceConnector
+import com.datamountaineer.streamreactor.connect.cassandra.source.TestCassandraSourceTaskTimestamp
+import com.datamountaineer.streamreactor.connect.cassandra.source.TestCassandraSourceTaskTimestampLong
+import com.datamountaineer.streamreactor.connect.cassandra.source.TestCassandraSourceTaskTimeuuid
+import com.datamountaineer.streamreactor.connect.cassandra.source.TestCassandraSourceTaskTimeuuidLong
 import com.dimafeng.testcontainers.CassandraContainer
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.Suite
 
 import scala.collection.immutable
 
@@ -43,7 +48,7 @@ class Combiner extends AnyFlatSpec with ItTestConfig with BeforeAndAfterAll with
     new TestCassandraSourceTaskTimeuuidLong(),
   )
 
-  override def nestedSuites : immutable.IndexedSeq[Suite] = {
+  override def nestedSuites: immutable.IndexedSeq[Suite] = {
 
     container.start()
 
@@ -52,11 +57,7 @@ class Combiner extends AnyFlatSpec with ItTestConfig with BeforeAndAfterAll with
 
   }
 
-  override def afterAll(): Unit = {
-
+  override def afterAll(): Unit =
     container.stop()
 
-  }
-
 }
-

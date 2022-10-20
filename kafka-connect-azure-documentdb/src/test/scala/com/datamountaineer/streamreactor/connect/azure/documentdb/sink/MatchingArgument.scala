@@ -16,8 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
-import org.mockito.{ArgumentMatcher, ArgumentMatchers}
-
+import org.mockito.ArgumentMatcher
+import org.mockito.ArgumentMatchers
 
 trait MatchingArgument {
   def argThat[T](thunk: T => Boolean): T = ArgumentMatchers.argThat {

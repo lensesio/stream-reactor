@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -18,7 +17,9 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
-import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, BytesWriteMode, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.ByteArraySinkData
+import io.lenses.streamreactor.connect.aws.s3.model.BytesWriteMode
+import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import org.apache.commons.io.IOUtils
@@ -27,13 +28,13 @@ import org.scalatest.matchers.should.Matchers
 
 class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
-  val bytes: Array[Byte] = getPixelBytes
-  val byteArrayValue: ByteArraySinkData = ByteArraySinkData(bytes, None)
-  val pixelLengthBytes: Array[Byte] = ByteArrayUtils.longToByteArray(bytes.length.longValue())
+  val bytes:            Array[Byte]       = getPixelBytes
+  val byteArrayValue:   ByteArraySinkData = ByteArraySinkData(bytes, None)
+  val pixelLengthBytes: Array[Byte]       = ByteArrayUtils.longToByteArray(bytes.length.longValue())
 
   "convert" should "write a string to byte stream" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.ValueOnly)
     bytesFormatWriter.write(None, ByteArraySinkData("Sausages".getBytes, None), topic)
 
@@ -44,7 +45,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write binary with ValueOnly" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.ValueOnly)
     bytesFormatWriter.write(None, byteArrayValue, topic)
 
@@ -56,7 +57,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write binary with KeyOnly" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.KeyOnly)
     bytesFormatWriter.write(Some(byteArrayValue), ByteArraySinkData("notUsed".getBytes, None), topic)
 
@@ -66,10 +67,9 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
   }
 
-
   "convert" should "write binary with KeyAndValueWithSizes" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.KeyAndValueWithSizes)
     bytesFormatWriter.write(Some(byteArrayValue), byteArrayValue, topic)
 
@@ -81,7 +81,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write binary with KeyWithSize" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.KeyWithSize)
 
     bytesFormatWriter.write(Some(byteArrayValue), ByteArraySinkData("notUsed".getBytes, None), topic)
@@ -92,10 +92,9 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
   }
 
-
   "convert" should "write binary with ValueWithSize" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.ValueWithSize)
     bytesFormatWriter.write(Some(ByteArraySinkData("notUsed".getBytes, None)), byteArrayValue, topic)
 
@@ -111,7 +110,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val bytes: Array[Byte] = IOUtils.toByteArray(stream)
     val (bytes1, bytes2) = bytes.splitAt(bytes.length / 2)
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.ValueOnly)
     bytesFormatWriter.write(None, ByteArraySinkData(bytes1, None), topic)
     bytesFormatWriter.write(None, ByteArraySinkData(bytes2, None), topic)
@@ -123,11 +122,11 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "throw error when avro value is supplied" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.ValueOnly)
-    val caught = bytesFormatWriter.write(None, StructSinkData(users.head), topic)
+    val caught            = bytesFormatWriter.write(None, StructSinkData(users.head), topic)
     bytesFormatWriter.complete()
-    caught should be .leftSide
+    caught should be.leftSide
   }
 
   private def getPixelBytes = {

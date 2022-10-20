@@ -19,14 +19,17 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 import com.datamountaineer.streamreactor.common.queues.QueueHelpers
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.cassandra.ItTestConfig
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigSource, CassandraSettings}
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSource
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSettings
 import com.datastax.driver.core.Session
 import com.fasterxml.jackson.databind.JsonNode
 import org.apache.kafka.connect.source.SourceRecord
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Suite}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.DoNotDiscover
+import org.scalatest.Suite
 
 import java.util.concurrent.LinkedBlockingQueue
 import scala.annotation.nowarn
@@ -34,7 +37,8 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 
 @DoNotDiscover
 @nowarn
-class TestCassandraSourceTaskTimestampLong extends AnyWordSpec
+class TestCassandraSourceTaskTimestampLong
+    extends AnyWordSpec
     with Matchers
     with MockitoSugar
     with ItTestConfig
@@ -47,7 +51,7 @@ class TestCassandraSourceTaskTimestampLong extends AnyWordSpec
   var tableName: String = _
 
   override def beforeAll(): Unit = {
-    session = createKeySpace(keyspace, secure = true)
+    session   = createKeySpace(keyspace, secure = true)
     tableName = createTimestampTable(session, keyspace)
   }
 
@@ -56,15 +60,16 @@ class TestCassandraSourceTaskTimestampLong extends AnyWordSpec
     session.getCluster.close()
   }
 
-  "CassandraReader should read in incremental mode with timestamp and time slices (long)" in  {
+  "CassandraReader should read in incremental mode with timestamp and time slices (long)" in {
     val taskContext = getSourceTaskContextDefault
-    val taskConfig = new CassandraConfigSource(getCassandraConfigDefault)
+    val taskConfig  = new CassandraConfigSource(getCassandraConfigDefault)
 
     // queue for reader to put records in
-    val queue = new LinkedBlockingQueue[SourceRecord](100)
+    val queue   = new LinkedBlockingQueue[SourceRecord](100)
     val setting = CassandraSettings.configureSource(taskConfig).head
 
-    val reader = CassandraTableReader(name = "test", session = session, setting = setting, context = taskContext, queue = queue)
+    val reader =
+      CassandraTableReader(name = "test", session = session, setting = setting, context = taskContext, queue = queue)
 
     insertIntoTimestampTable(session, keyspace, tableName, "id1", "magic_string", getFormattedDateNow(), 1.toByte)
 
@@ -91,7 +96,7 @@ class TestCassandraSourceTaskTimestampLong extends AnyWordSpec
     Thread.sleep(11000)
 
     // insert another record
-    insertIntoTimestampTable(session, keyspace, tableName, "id4", "magic_string4", getFormattedDateNow() , 1.toByte)
+    insertIntoTimestampTable(session, keyspace, tableName, "id4", "magic_string4", getFormattedDateNow(), 1.toByte)
 
     //read
     reader.read()
@@ -129,7 +134,8 @@ class TestCassandraSourceTaskTimestampLong extends AnyWordSpec
   }
 
   private def getCassandraConfigDefault = {
-    val myKcql = s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $tableName PK timestamp_field INCREMENTALMODE=timestamp"
+    val myKcql =
+      s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $tableName PK timestamp_field INCREMENTALMODE=timestamp"
     getCassandraConfig(keyspace, tableName, myKcql, strPort())
   }
 

@@ -18,9 +18,13 @@
 
 package com.datamountaineer.streamreactor.connect.jms.source
 
-import com.datamountaineer.streamreactor.connect.fixtures.broker.{testWithBroker, testWithBrokerOnPort}
-import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, JMSConfig, JMSSettings}
-import com.datamountaineer.streamreactor.connect.jms.{ItTestBase, JMSSessionProvider}
+import com.datamountaineer.streamreactor.connect.fixtures.broker.testWithBroker
+import com.datamountaineer.streamreactor.connect.fixtures.broker.testWithBrokerOnPort
+import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
+import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
+import com.datamountaineer.streamreactor.connect.jms.ItTestBase
+import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
 import org.apache.activemq.ActiveMQConnection
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
@@ -38,12 +42,12 @@ class JMSSessionProviderTest extends ItTestBase with BeforeAndAfterAll with Even
 
   "should only create JMS Queue Consumer when reading from JMS Queue" in testWithBrokerOnPort { (_, brokerUrl) =>
     val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = UUID.randomUUID().toString
-    val kcql = getKCQL(kafkaTopic, queueName, "QUEUE")
-    val props = getProps(kcql, brokerUrl)
-    val config = JMSConfig(props.asJava)
-    val settings = JMSSettings(config, forAJmsConsumer)
-    val provider = JMSSessionProvider(settings, forAJmsConsumer)
+    val queueName  = UUID.randomUUID().toString
+    val kcql       = getKCQL(kafkaTopic, queueName, "QUEUE")
+    val props      = getProps(kcql, brokerUrl)
+    val config     = JMSConfig(props.asJava)
+    val settings   = JMSSettings(config, forAJmsConsumer)
+    val provider   = JMSSessionProvider(settings, forAJmsConsumer)
     provider.queueConsumers.size shouldBe 1
     provider.queueProducers.size shouldBe 0
     provider.topicsConsumers.size shouldBe 0
@@ -53,12 +57,12 @@ class JMSSessionProviderTest extends ItTestBase with BeforeAndAfterAll with Even
 
   "should only create JMS Topic Consumer when reading from JMS Topic" in testWithBrokerOnPort { (_, brokerUrl) =>
     val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
-    val topicName = UUID.randomUUID().toString
-    val kcql = getKCQL(kafkaTopic, topicName, "TOPIC")
-    val props = getProps(kcql, brokerUrl)
-    val config = JMSConfig(props.asJava)
-    val settings = JMSSettings(config, forAJmsConsumer)
-    val provider = JMSSessionProvider(settings, forAJmsConsumer)
+    val topicName  = UUID.randomUUID().toString
+    val kcql       = getKCQL(kafkaTopic, topicName, "TOPIC")
+    val props      = getProps(kcql, brokerUrl)
+    val config     = JMSConfig(props.asJava)
+    val settings   = JMSSettings(config, forAJmsConsumer)
+    val provider   = JMSSessionProvider(settings, forAJmsConsumer)
     provider.queueConsumers.size shouldBe 0
     provider.queueProducers.size shouldBe 0
     provider.topicsConsumers.size shouldBe 1
@@ -68,12 +72,12 @@ class JMSSessionProviderTest extends ItTestBase with BeforeAndAfterAll with Even
 
   "should only create JMS Queue Producer when writing to JMS Queue" in testWithBrokerOnPort { (_, brokerUrl) =>
     val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = UUID.randomUUID().toString
-    val kcql = getKCQL(kafkaTopic, queueName, "QUEUE")
-    val props = getProps(kcql, brokerUrl)
-    val config = JMSConfig(props.asJava)
-    val settings = JMSSettings(config, forAJmsProducer)
-    val provider = JMSSessionProvider(settings, forAJmsProducer)
+    val queueName  = UUID.randomUUID().toString
+    val kcql       = getKCQL(kafkaTopic, queueName, "QUEUE")
+    val props      = getProps(kcql, brokerUrl)
+    val config     = JMSConfig(props.asJava)
+    val settings   = JMSSettings(config, forAJmsProducer)
+    val provider   = JMSSessionProvider(settings, forAJmsProducer)
     provider.queueConsumers.size shouldBe 0
     provider.queueProducers.size shouldBe 1
     provider.topicsConsumers.size shouldBe 0
@@ -83,12 +87,12 @@ class JMSSessionProviderTest extends ItTestBase with BeforeAndAfterAll with Even
 
   "should only create JMS Topic Producer when writing to JMS Topic" in testWithBrokerOnPort { (_, brokerUrl) =>
     val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
-    val topicName = UUID.randomUUID().toString
-    val kcql = getKCQL(kafkaTopic, topicName, "TOPIC")
-    val props = getProps(kcql, brokerUrl)
-    val config = JMSConfig(props.asJava)
-    val settings = JMSSettings(config, forAJmsProducer)
-    val provider = JMSSessionProvider(settings, forAJmsProducer)
+    val topicName  = UUID.randomUUID().toString
+    val kcql       = getKCQL(kafkaTopic, topicName, "TOPIC")
+    val props      = getProps(kcql, brokerUrl)
+    val config     = JMSConfig(props.asJava)
+    val settings   = JMSSettings(config, forAJmsProducer)
+    val provider   = JMSSessionProvider(settings, forAJmsProducer)
     provider.queueConsumers.size shouldBe 0
     provider.queueProducers.size shouldBe 0
     provider.topicsConsumers.size shouldBe 0
@@ -98,12 +102,12 @@ class JMSSessionProviderTest extends ItTestBase with BeforeAndAfterAll with Even
 
   "should close the connection when the task is stopped" in testWithBrokerOnPort { (_, brokerUrl) =>
     val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
-    val topicName = UUID.randomUUID().toString
-    val kcql = getKCQL(kafkaTopic, topicName, "TOPIC")
-    val props = getProps(kcql, brokerUrl)
-    val config = JMSConfig(props.asJava)
-    val settings = JMSSettings(config, forAJmsProducer)
-    val provider = JMSSessionProvider(settings, forAJmsProducer)
+    val topicName  = UUID.randomUUID().toString
+    val kcql       = getKCQL(kafkaTopic, topicName, "TOPIC")
+    val props      = getProps(kcql, brokerUrl)
+    val config     = JMSConfig(props.asJava)
+    val settings   = JMSSettings(config, forAJmsProducer)
+    val provider   = JMSSessionProvider(settings, forAJmsProducer)
     provider.close().isSuccess shouldBe true
     Try(provider.connection.createSession(false, Session.CLIENT_ACKNOWLEDGE)).isFailure shouldBe true
     ()
@@ -111,12 +115,12 @@ class JMSSessionProviderTest extends ItTestBase with BeforeAndAfterAll with Even
 
   "should close connection and free resources on exception when configuring session provider" in
     testWithBroker(clientID = Some("static-client-id")) { brokerUrl =>
-      val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
-      val topicName = UUID.randomUUID().toString
-      val kcql = getKCQL(kafkaTopic, topicName, "TOPIC")
-      val props = getProps(kcql, brokerUrl)
-      val config = JMSConfig(props.asJava)
-      val validSettings = JMSSettings(config, forAJmsConsumer)
+      val kafkaTopic      = s"kafka-${UUID.randomUUID().toString}"
+      val topicName       = UUID.randomUUID().toString
+      val kcql            = getKCQL(kafkaTopic, topicName, "TOPIC")
+      val props           = getProps(kcql, brokerUrl)
+      val config          = JMSConfig(props.asJava)
+      val validSettings   = JMSSettings(config, forAJmsConsumer)
       val invalidSettings = validSettings.copy(destinationSelector = DestinationSelector.JNDI)
 
       assertThrows[NameNotFoundException] {

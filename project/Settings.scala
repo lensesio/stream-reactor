@@ -116,7 +116,7 @@ object Settings extends Dependencies {
     version := artifactVersion,
     scalaOrganization := scalaOrganizationUsed,
     scalaVersion := scalaVersionUsed,
-    headerLicense := Some(HeaderLicense.Custom(licenseHeader)),
+    headerLicense := None,
     headerEmptyLine := false,
     isSnapshot := artifactVersion.contains("SNAPSHOT"),
     semanticdbEnabled := true,

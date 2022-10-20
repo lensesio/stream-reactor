@@ -24,7 +24,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 28/04/16. 
+  * Created by andrew@datamountaineer.com on 28/04/16.
   * kafka-connect-common
   */
 /**
@@ -34,15 +34,15 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 class TestOffsetHandler extends AnyWordSpec with Matchers with MockitoSugar with TestUtilsBase {
   "should return an offset" in {
     val lookupPartitionKey = "test_lk_key"
-    val offsetValue = "2013-01-01 00:05+0000"
-    val offsetColumn = "my_timeuuid_col"
-    val table = "testTable"
-    val taskContext = getSourceTaskContext(lookupPartitionKey, offsetValue,offsetColumn, table)
+    val offsetValue        = "2013-01-01 00:05+0000"
+    val offsetColumn       = "my_timeuuid_col"
+    val table              = "testTable"
+    val taskContext        = getSourceTaskContext(lookupPartitionKey, offsetValue, offsetColumn, table)
 
     //check we can read it back
-    val tables = List(table)
+    val tables           = List(table)
     val offsetsRecovered = OffsetHandler.recoverOffsets(lookupPartitionKey, tables.asJava, taskContext)
-    val offsetRecovered = OffsetHandler.recoverOffset[String](offsetsRecovered, lookupPartitionKey, table, offsetColumn)
-    offsetRecovered.get shouldBe (offsetValue)
+    val offsetRecovered  = OffsetHandler.recoverOffset[String](offsetsRecovered, lookupPartitionKey, table, offsetColumn)
+    offsetRecovered.get shouldBe offsetValue
   }
 }

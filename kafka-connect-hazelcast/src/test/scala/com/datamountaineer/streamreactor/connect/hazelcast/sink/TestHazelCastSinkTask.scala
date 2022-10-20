@@ -16,8 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
-import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSinkConfig}
-import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, MessageListenerImplJson, SlowTest, TestBase}
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastConnectionConfig
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfig
+import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
+import com.datamountaineer.streamreactor.connect.hazelcast.MessageListenerImplJson
+import com.datamountaineer.streamreactor.connect.hazelcast.SlowTest
+import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
 import com.hazelcast.config.Config
 import com.hazelcast.core.Hazelcast
 import com.hazelcast.topic.ITopic
@@ -26,36 +30,35 @@ import org.mockito.MockitoSugar
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-
 /**
-  * Created by andrew@datamountaineer.com on 12/08/16. 
+  * Created by andrew@datamountaineer.com on 12/08/16.
   * stream-reactor
   */
 class TestHazelCastSinkTask extends TestBase with MockitoSugar {
 
   "should start SinkTask and write json" taggedAs SlowTest in {
     val configApp1 = new Config()
-    configApp1.setProperty( "hazelcast.logging.type", "slf4j" )
+    configApp1.setProperty("hazelcast.logging.type", "slf4j")
     configApp1.setClusterName(TESTS_CLUSTER_NAME)
     val instance = Hazelcast.newHazelcastInstance(configApp1)
 
-    val props = getPropsJson
-    val context = mock[SinkTaskContext]
+    val props      = getPropsJson
+    val context    = mock[SinkTaskContext]
     val assignment = getAssignment
     when(context.assignment()).thenReturn(assignment)
     when(context.configs()).thenReturn(props)
     val records = getTestRecords()
-    val task = new HazelCastSinkTask
+    val task    = new HazelCastSinkTask
     //initialise the tasks context
     task.initialize(context)
     //start task
     task.start(props)
 
     //get client and check hazelcast
-    val config = new HazelCastSinkConfig(props)
-    val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
+    val config        = new HazelCastSinkConfig(props)
+    val conn          = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
     val reliableTopic = conn.getReliableTopic(TABLE).asInstanceOf[ITopic[Object]]
-    val listener = new MessageListenerImplJson
+    val listener      = new MessageListenerImplJson
     reliableTopic.addMessageListener(listener)
 
     //write

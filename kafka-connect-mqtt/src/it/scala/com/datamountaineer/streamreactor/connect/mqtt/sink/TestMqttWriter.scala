@@ -17,15 +17,22 @@
 package com.datamountaineer.streamreactor.connect.mqtt.sink
 
 import com.datamountaineer.streamreactor.common.converters.sink.Converter
-import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSinkConfig, MqttSinkSettings}
-import com.dimafeng.testcontainers.{ForEachTestContainer, GenericContainer}
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkConfig
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkSettings
+import com.dimafeng.testcontainers.ForEachTestContainer
+import com.dimafeng.testcontainers.GenericContainer
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
+import org.apache.avro.generic.GenericData
+import org.apache.avro.generic.GenericDatumWriter
+import org.apache.avro.generic.GenericRecord
 import org.apache.avro.io.EncoderFactory
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.record.TimestampType
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.eclipse.paho.client.mqttv3._
 import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence
@@ -38,8 +45,12 @@ import java.nio.file.Paths
 import java.util.UUID
 import scala.collection.mutable
 import scala.io.Source
-import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
-import scala.util.{Failure, Success, Try, Using}
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
+import scala.util.Using
 
 /**
   * Created by andrew@datamountaineer.com on 27/08/2017.
@@ -53,24 +64,25 @@ class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestConta
 
   protected def getMqttConnectionUrl = s"tcp://${container.host}:${container.mappedPort(mqttPort)}"
 
-  val mqttUser = "user"
+  val mqttUser     = "user"
   val mqttPassword = "passwd"
 
-  val queue : mutable.Queue[MqttMessage] = mutable.Queue()
+  val queue: mutable.Queue[MqttMessage] = mutable.Queue()
 
-  val JSON = "{\"id\":\"kafka_topic2-12-1\",\"int_field\":12,\"long_field\":12,\"string_field\":\"foo\",\"float_field\":0.1,\"float64_field\":0.199999,\"boolean_field\":true,\"byte_field\":\"Ynl0ZXM=\"}"
+  val JSON =
+    "{\"id\":\"kafka_topic2-12-1\",\"int_field\":12,\"long_field\":12,\"string_field\":\"foo\",\"float_field\":0.1,\"float64_field\":0.199999,\"boolean_field\":true,\"byte_field\":\"Ynl0ZXM=\"}"
   val JSON_IGNORE_ID = "{\"id\":\"kafka_topic2-12-1\"}}"
-  val TOPIC = "kafka_topic"
-  val TOPIC2 = "kafka_topic2"
-  val TARGET = "mqtt_topic"
-  val TARGET2 = "mqtt_topic2"
-  protected val PARTITION: Int = 12
-  protected val PARTITION2: Int = 13
-  protected val TOPIC_PARTITION: TopicPartition = new TopicPartition(TOPIC, PARTITION)
+  val TOPIC          = "kafka_topic"
+  val TOPIC2         = "kafka_topic2"
+  val TARGET         = "mqtt_topic"
+  val TARGET2        = "mqtt_topic2"
+  protected val PARTITION:        Int            = 12
+  protected val PARTITION2:       Int            = 13
+  protected val TOPIC_PARTITION:  TopicPartition = new TopicPartition(TOPIC, PARTITION)
   protected val TOPIC_PARTITION2: TopicPartition = new TopicPartition(TOPIC, PARTITION2)
   protected val TOPIC_PARTITION3: TopicPartition = new TopicPartition(TOPIC2, PARTITION)
   //Set topic assignments
-  protected val ASSIGNMENT : Set[TopicPartition] = Set(TOPIC_PARTITION, TOPIC_PARTITION2, TOPIC_PARTITION3)
+  protected val ASSIGNMENT: Set[TopicPartition] = Set(TOPIC_PARTITION, TOPIC_PARTITION2, TOPIC_PARTITION3)
 
   private def withSubscribedMqttClient(fun: => Any): Unit = {
     val conOpt = new MqttConnectOptions
@@ -91,12 +103,20 @@ class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestConta
     client.close()
   }
 
-  def createSinkRecord(record: Struct, topic: String, offset: Long): SinkRecord = {
-    new SinkRecord(topic, 1, Schema.STRING_SCHEMA, "key", record.schema(), record, offset, System.currentTimeMillis(), TimestampType.CREATE_TIME)
-  }
+  def createSinkRecord(record: Struct, topic: String, offset: Long): SinkRecord =
+    new SinkRecord(topic,
+                   1,
+                   Schema.STRING_SCHEMA,
+                   "key",
+                   record.schema(),
+                   record,
+                   offset,
+                   System.currentTimeMillis(),
+                   TimestampType.CREATE_TIME,
+    )
 
   //build a test record schema
-  def createSchema: Schema = {
+  def createSchema: Schema =
     SchemaBuilder.struct.name("record")
       .version(1)
       .field("id", Schema.STRING_SCHEMA)
@@ -108,10 +128,9 @@ class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestConta
       .field("boolean_field", Schema.BOOLEAN_SCHEMA)
       .field("byte_field", Schema.BYTES_SCHEMA)
       .build
-  }
 
   //build a test record
-  def createRecord(schema: Schema, id: String): Struct = {
+  def createRecord(schema: Schema, id: String): Struct =
     new Struct(schema)
       .put("id", id)
       .put("int_field", 12)
@@ -121,26 +140,35 @@ class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestConta
       .put("float64_field", 0.199999)
       .put("boolean_field", true)
       .put("byte_field", ByteBuffer.wrap("bytes".getBytes))
-  }
 
   //generate some test records
   def getTestRecords: Set[SinkRecord] = {
     val schema = createSchema
     val assignment: Set[TopicPartition] = ASSIGNMENT
 
-    assignment.flatMap(a => {
-      (1 to 1).map(i => {
+    assignment.flatMap { a =>
+      (1 to 1).map { i =>
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i.toLong, System.currentTimeMillis(), TimestampType.CREATE_TIME)
-      })
-    })
+        new SinkRecord(a.topic(),
+                       a.partition(),
+                       Schema.STRING_SCHEMA,
+                       "key",
+                       schema,
+                       record,
+                       i.toLong,
+                       System.currentTimeMillis(),
+                       TimestampType.CREATE_TIME,
+        )
+      }
+    }
   }
 
   // create a avro record of the test data
   def createAvroRecord(avro_schema_file: String): Array[Byte] = {
 
     // Avro schema
-    val avro_schema_source = Using(Source.fromFile(avro_schema_file)) {_.mkString}.getOrElse(fail("Unable to load schema file"))
+    val avro_schema_source =
+      Using(Source.fromFile(avro_schema_file))(_.mkString).getOrElse(fail("Unable to load schema file"))
     val avro_schema = new org.apache.avro.Schema.Parser().parse(avro_schema_source)
 
     // Generic Record
@@ -155,8 +183,8 @@ class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestConta
     genericValues.put("byte_field", ByteBuffer.wrap("bytes".getBytes))
 
     // Serialize Generic Record
-    val out = new ByteArrayOutputStream()
-    val encoder = EncoderFactory.get().binaryEncoder(out, null)
+    val out         = new ByteArrayOutputStream()
+    val encoder     = EncoderFactory.get().binaryEncoder(out, null)
     val avro_writer = new GenericDatumWriter[GenericRecord](avro_schema)
 
     avro_writer.write(genericValues, encoder)
@@ -168,35 +196,39 @@ class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestConta
 
   "writer should writer all fields" in {
     val props = Map(
-      MqttConfigConstants.HOSTS_CONFIG -> getMqttConnectionUrl,
-      MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $TARGET SELECT * FROM $TOPIC;INSERT INTO $TARGET SELECT * FROM $TOPIC2",
-      MqttConfigConstants.QS_CONFIG -> "1",
-      MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-      MqttConfigConstants.CLIENT_ID_CONFIG -> UUID.randomUUID().toString,
-      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+      MqttConfigConstants.HOSTS_CONFIG               -> getMqttConnectionUrl,
+      MqttConfigConstants.KCQL_CONFIG                -> s"INSERT INTO $TARGET SELECT * FROM $TOPIC;INSERT INTO $TARGET SELECT * FROM $TOPIC2",
+      MqttConfigConstants.QS_CONFIG                  -> "1",
+      MqttConfigConstants.CLEAN_SESSION_CONFIG       -> "true",
+      MqttConfigConstants.CLIENT_ID_CONFIG           -> UUID.randomUUID().toString,
+      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG  -> "1000",
       MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
-      MqttConfigConstants.PASSWORD_CONFIG -> mqttPassword,
-      MqttConfigConstants.USER_CONFIG -> mqttUser
+      MqttConfigConstants.PASSWORD_CONFIG            -> mqttPassword,
+      MqttConfigConstants.USER_CONFIG                -> mqttUser,
     )
 
-    val config = MqttSinkConfig(props.asJava)
+    val config   = MqttSinkConfig(props.asJava)
     val settings = MqttSinkSettings(config)
 
-    val convertersMap = settings.sinksToConverters.map { case (topic, clazz) =>
+    val convertersMap = settings.sinksToConverters.map {
+      case (topic, clazz) =>
         logger.info(s"Creating converter instance for $clazz and $topic")
         if (clazz == null) {
           topic -> null
         } else {
           val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
             case Success(value: Converter) => value
-            case _ => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
+            case _ =>
+              throw new ConfigException(
+                s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!",
+              )
           }
           converter.initialize(props)
           topic -> converter
         }
-      }
+    }
 
-    val writer = MqttWriter(settings, convertersMap)
+    val writer  = MqttWriter(settings, convertersMap)
     val records = getTestRecords
 
     withSubscribedMqttClient {
@@ -219,39 +251,43 @@ class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestConta
 
   "writer should writer all fields in avro" in {
 
-    val res = getClass.getClassLoader.getResource("test.avsc")
+    val res        = getClass.getClassLoader.getResource("test.avsc")
     val schemaPath = Paths.get(res.toURI).toFile.getAbsolutePath
 
     val sinkAvroSchemas = s"kafka_topic=$schemaPath;kafka_topic2=$schemaPath"
 
     val props = Map(
-      MqttConfigConstants.HOSTS_CONFIG -> getMqttConnectionUrl,
-      MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $TARGET SELECT * FROM $TOPIC WITHCONVERTER=`com.datamountaineer.streamreactor.common.converters.sink.AvroConverter` WITHTARGET=string_field;INSERT INTO $TARGET SELECT * FROM $TOPIC2 WITHCONVERTER=`com.datamountaineer.streamreactor.common.converters.sink.AvroConverter` WITHTARGET=string_field",
-      MqttConfigConstants.QS_CONFIG -> "1",
+      MqttConfigConstants.HOSTS_CONFIG                 -> getMqttConnectionUrl,
+      MqttConfigConstants.KCQL_CONFIG                  -> s"INSERT INTO $TARGET SELECT * FROM $TOPIC WITHCONVERTER=`com.datamountaineer.streamreactor.common.converters.sink.AvroConverter` WITHTARGET=string_field;INSERT INTO $TARGET SELECT * FROM $TOPIC2 WITHCONVERTER=`com.datamountaineer.streamreactor.common.converters.sink.AvroConverter` WITHTARGET=string_field",
+      MqttConfigConstants.QS_CONFIG                    -> "1",
       MqttConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES -> sinkAvroSchemas,
-      MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-      MqttConfigConstants.CLIENT_ID_CONFIG -> UUID.randomUUID().toString,
-      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
-      MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
-      MqttConfigConstants.PASSWORD_CONFIG -> mqttPassword,
-      MqttConfigConstants.USER_CONFIG -> mqttUser
+      MqttConfigConstants.CLEAN_SESSION_CONFIG         -> "true",
+      MqttConfigConstants.CLIENT_ID_CONFIG             -> UUID.randomUUID().toString,
+      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG    -> "1000",
+      MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG   -> "1000",
+      MqttConfigConstants.PASSWORD_CONFIG              -> mqttPassword,
+      MqttConfigConstants.USER_CONFIG                  -> mqttUser,
     ).asJava
 
-    val config = MqttSinkConfig(props)
+    val config   = MqttSinkConfig(props)
     val settings = MqttSinkSettings(config)
 
-    val convertersMap = settings.sinksToConverters.map { case (topic, clazz) =>
-      logger.info(s"Creating converter instance for $clazz")
-      val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
-        case Success(value) => value.asInstanceOf[Converter]
-        case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
-      }
+    val convertersMap = settings.sinksToConverters.map {
+      case (topic, clazz) =>
+        logger.info(s"Creating converter instance for $clazz")
+        val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
+          case Success(value) => value.asInstanceOf[Converter]
+          case Failure(_) =>
+            throw new ConfigException(
+              s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!",
+            )
+        }
 
-      converter.initialize(props.asScala.toMap)
-      topic -> converter
+        converter.initialize(props.asScala.toMap)
+        topic -> converter
     }
 
-    val writer = MqttWriter(settings, convertersMap)
+    val writer  = MqttWriter(settings, convertersMap)
     val records = getTestRecords
 
     withSubscribedMqttClient {

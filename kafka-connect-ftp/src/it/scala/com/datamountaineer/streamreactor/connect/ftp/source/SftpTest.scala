@@ -19,7 +19,8 @@ class SftpTest extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   test(
     "Sftp:Same content mode with SimpleFileConverter : " +
-      "after update file with same data, we detect same info so no data must be sent") {
+      "after update file with same data, we detect same info so no data must be sent",
+  ) {
 
     withSftpServer { server =>
       server.addUser("demo", "password")
@@ -64,7 +65,8 @@ class SftpTest extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   test(
     "Sftp:Update mode with MonitorUpdate and SimpleFileConverter :" +
-      " after update of file, all file data must be sent") {
+      " after update of file, all file data must be sent",
+  ) {
     withSftpServer { server =>
       server.addUser("demo", "password")
 
@@ -108,7 +110,8 @@ class SftpTest extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   test(
     "Sftp:Update mode with MonitorTail and SimpleFileConverter :" +
-      " after update of file, only new data must be sent") {
+      " after update of file, only new data must be sent",
+  ) {
     withSftpServer { server =>
       server.addUser("demo", "password")
 

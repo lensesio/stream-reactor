@@ -20,16 +20,16 @@ import com.datamountaineer.streamreactor.common.TestUtilsBase
 import org.apache.kafka.common.config.ConfigException
 
 /**
-  * Created by andrew@datamountaineer.com on 23/08/2017. 
+  * Created by andrew@datamountaineer.com on 23/08/2017.
   * kafka-connect-common
   */
-class TestHelpers extends TestUtilsBase  {
+class TestHelpers extends TestUtilsBase {
 
   val kcqlConstant: String = "myconnector.kcql"
 
   "should throw exception if topics not specified in connector props" in {
     val props = Map("topics" -> "t1",
-      s"$kcqlConstant" -> "insert into table select  * from t1;insert into table2 select * from t2"
+                    s"$kcqlConstant" -> "insert into table select  * from t1;insert into table2 select * from t2",
     )
 
     intercept[ConfigException] {
@@ -39,9 +39,7 @@ class TestHelpers extends TestUtilsBase  {
   }
 
   "should throw exception if topics not specified in kcql" in {
-    val props = Map("topics" -> "t1,t2",
-      s"$kcqlConstant" -> "insert into table select  * from t1"
-    )
+    val props = Map("topics" -> "t1,t2", s"$kcqlConstant" -> "insert into table select  * from t1")
 
     intercept[ConfigException] {
       Helpers.checkInputTopics(kcqlConstant, props)
@@ -50,7 +48,7 @@ class TestHelpers extends TestUtilsBase  {
 
   "should not throw exception if all good" in {
     val props = Map("topics" -> "t1,t2",
-      s"$kcqlConstant" -> "insert into table select  * from t1;insert into table2 select * from t2"
+                    s"$kcqlConstant" -> "insert into table select  * from t1;insert into table2 select * from t2",
     )
 
     val res = Helpers.checkInputTopics(kcqlConstant, props)
@@ -59,7 +57,7 @@ class TestHelpers extends TestUtilsBase  {
 
   "should add topics involved in kcql error to message" in {
     val props = Map("topics" -> "topic1",
-      s"$kcqlConstant" -> "insert into table select time,c1,c2 from topic1 WITH TIMESTAMP time"
+                    s"$kcqlConstant" -> "insert into table select time,c1,c2 from topic1 WITH TIMESTAMP time",
     )
 
     val e = intercept[ConfigException] {

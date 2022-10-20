@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.elastic7
 
 import com.datamountaineer.streamreactor.connect.elastic7.CreateLocalNodeClientUtil.createLocalNode
-import com.datamountaineer.streamreactor.connect.elastic7.config.{ElasticConfig, ElasticSettings}
+import com.datamountaineer.streamreactor.connect.elastic7.config.ElasticConfig
+import com.datamountaineer.streamreactor.connect.elastic7.config.ElasticSettings
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.kafka.connect.sink.SinkTaskContext
@@ -44,7 +45,7 @@ class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
+    val writer   = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -70,14 +71,15 @@ class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecordsNested
     //get config
-    val config = new ElasticConfig( getBaseElasticSinkConfigProps(s"INSERT INTO $INDEX SELECT id, nested.string_field FROM $TOPIC"))
+    val config =
+      new ElasticConfig(getBaseElasticSinkConfigProps(s"INSERT INTO $INDEX SELECT id, nested.string_field FROM $TOPIC"))
 
     val localNode = createLocalNode()
     val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
+    val writer   = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -108,7 +110,7 @@ class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
     val localNode = createLocalNode()
     val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
+    val writer   = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //First run writes records to elastic
     writer.write(testRecords)
 
@@ -147,12 +149,14 @@ class ElasticWriterSelectionTest extends ITBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecordsNested
     //get config
-    val config = new ElasticConfig(getBaseElasticSinkConfigProps(s"UPSERT INTO $INDEX SELECT nested.id, string_field FROM $TOPIC PK nested.id"))
+    val config = new ElasticConfig(
+      getBaseElasticSinkConfigProps(s"UPSERT INTO $INDEX SELECT nested.id, string_field FROM $TOPIC PK nested.id"),
+    )
 
     val localNode = createLocalNode()
     val client: ElasticClient = CreateLocalNodeClientUtil.createLocalNodeClient(localNode)
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
+    val writer   = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //First run writes records to elastic
     writer.write(testRecords)
 

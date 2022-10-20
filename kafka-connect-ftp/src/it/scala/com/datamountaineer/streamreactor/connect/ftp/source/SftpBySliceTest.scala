@@ -17,7 +17,8 @@ class SftpBySliceTest extends AnyFunSuite with Matchers with BeforeAndAfter with
   val fileContent1 = (0 to 10000).map(index => s"line_${index}${lineSep}").mkString.getBytes
 
   test(
-    "Sftp:Same content mode by slices mode with SimpleFileConverter") {
+    "Sftp:Same content mode by slices mode with SimpleFileConverter",
+  ) {
 
     withSftpServer { server =>
       server.addUser("demo", "password")

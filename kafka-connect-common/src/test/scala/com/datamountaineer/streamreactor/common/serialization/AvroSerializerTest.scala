@@ -16,23 +16,24 @@
 
 package com.datamountaineer.streamreactor.common.serialization
 
-import com.sksamuel.avro4s.{AvroSchema, RecordFormat}
+import com.sksamuel.avro4s.AvroSchema
+import com.sksamuel.avro4s.RecordFormat
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
-
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 
 class AvroSerializerTest extends AnyWordSpec with Matchers {
 
   implicit val recordFormat = RecordFormat[Book]
-  implicit val avroSchema = AvroSchema[Book]
+  implicit val avroSchema   = AvroSchema[Book]
 
   "AvroSerializer" should {
     "read and write from and to Avro" in {
       val book = Book("On Intelligence", Author("Jeff", "Hawkins", 1957), "0805078533", 273, 14.72)
 
-      implicit  val os = new ByteArrayOutputStream()
+      implicit val os = new ByteArrayOutputStream()
       AvroSerializer.write(book)
 
       implicit val is = new ByteArrayInputStream(os.toByteArray)

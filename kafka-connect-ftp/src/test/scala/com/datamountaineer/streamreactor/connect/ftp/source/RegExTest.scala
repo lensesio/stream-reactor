@@ -8,8 +8,7 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-
-class RegExTest extends AnyFunSuite with Matchers with BeforeAndAfter with StrictLogging with MockitoSugar  {
+class RegExTest extends AnyFunSuite with Matchers with BeforeAndAfter with StrictLogging with MockitoSugar {
   def mockFile(name: String) = {
     val f = mock[FTPFile]
     when(f.isFile).thenReturn(true)
@@ -17,7 +16,7 @@ class RegExTest extends AnyFunSuite with Matchers with BeforeAndAfter with Stric
     when(f.getName()).thenReturn(name)
     f
   }
-  test("Matches RegEx"){
+  test("Matches RegEx") {
     FtpSourceConfig.fileFilter -> ".*"
 
     val f: source.AbsoluteFtpFile = new AbsoluteFtpFile(mockFile("file.txt"), "\\");

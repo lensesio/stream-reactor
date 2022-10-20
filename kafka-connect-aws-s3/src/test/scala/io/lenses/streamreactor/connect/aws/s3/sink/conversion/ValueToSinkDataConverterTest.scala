@@ -16,8 +16,13 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
-import io.lenses.streamreactor.connect.aws.s3.model.{MapSinkData, NullSinkData, StringSinkData, StructSinkData}
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import io.lenses.streamreactor.connect.aws.s3.model.MapSinkData
+import io.lenses.streamreactor.connect.aws.s3.model.NullSinkData
+import io.lenses.streamreactor.connect.aws.s3.model.StringSinkData
+import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -38,12 +43,12 @@ class ValueToSinkDataConverterTest extends AnyFlatSpec with Matchers {
 
     val map = Map(
       "catA" -> struct,
-      "catB" -> null
+      "catB" -> null,
     ).asJava
 
     val mapSchema = SchemaBuilder.map(
       Schema.STRING_SCHEMA,
-      structSchema
+      structSchema,
     ).build()
 
     ValueToSinkDataConverter(map, Some(mapSchema)) shouldBe MapSinkData(
@@ -51,7 +56,7 @@ class ValueToSinkDataConverterTest extends AnyFlatSpec with Matchers {
         StringSinkData("catA") -> StructSinkData(struct),
         StringSinkData("catB") -> NullSinkData(),
       ),
-      Some(mapSchema)
+      Some(mapSchema),
     )
 
   }

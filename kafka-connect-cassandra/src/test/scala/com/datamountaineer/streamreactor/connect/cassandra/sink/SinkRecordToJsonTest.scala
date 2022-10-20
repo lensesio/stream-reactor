@@ -16,7 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.converters.{FieldConverter, ToJsonWithProjections}
+import com.datamountaineer.streamreactor.common.converters.FieldConverter
+import com.datamountaineer.streamreactor.common.converters.ToJsonWithProjections
 import com.datamountaineer.streamreactor.common.errors.NoopErrorPolicy
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSinkSetting
@@ -29,35 +30,38 @@ import org.scalatest.wordspec.AnyWordSpec
 import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-
 @nowarn
 class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil {
   "SinkRecordToDocument" should {
     "convert Kafka Struct to a JSON" in {
       implicit val settings = CassandraSinkSetting(
         "keyspace1",
-        s"INSERT INTO topic1 SELECT * FROM topic1;INSERT INTO topic2 SELECT * FROM topic2".split(';').map(Kcql.parse).toIndexedSeq,
+        s"INSERT INTO topic1 SELECT * FROM topic1;INSERT INTO topic2 SELECT * FROM topic2".split(';').map(
+          Kcql.parse,
+        ).toIndexedSeq,
         Map.empty,
         Map.empty,
         NoopErrorPolicy(),
         2,
-        None)
-      val kcqlMap=settings.kcqls.map{k=> k.getSource ->k}.toMap
+        None,
+      )
+      val kcqlMap = settings.kcqls.map(k => k.getSource -> k).toMap
 
       for (i <- 1 to 4) {
-        val json = scala.io.Source.fromFile(getClass.getResource(s"/output$i.json").toURI.getPath).mkString
+        val json   = scala.io.Source.fromFile(getClass.getResource(s"/output$i.json").toURI.getPath).mkString
         val output = Json.fromJson[Output](json)
 
         val record = new SinkRecord("topic1", 0, null, null, Output.ConnectSchema, output.toStruct(), 0)
 
-        val kcql= kcqlMap(record.topic())
+        val kcql = kcqlMap(record.topic())
         @nowarn
         val actual = ToJsonWithProjections(
           kcql.getFields.asScala.map(FieldConverter.apply).toSeq,
           kcql.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
           record.valueSchema(),
           record.value(),
-          kcql.hasRetainStructure()).toString
+          kcql.hasRetainStructure(),
+        ).toString
 
         //comparing string representation; we have more specific types given the schema
         actual shouldBe JacksonJson.asJson(json).toString
@@ -67,27 +71,31 @@ class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil 
     "convert String Schema + Json payload to JSON" in {
       implicit val settings = CassandraSinkSetting(
         "keyspace1",
-        s"INSERT INTO topic1 SELECT * FROM topic1;INSERT INTO topic2 SELECT * FROM topic2".split(';').map(Kcql.parse).toIndexedSeq,
+        s"INSERT INTO topic1 SELECT * FROM topic1;INSERT INTO topic2 SELECT * FROM topic2".split(';').map(
+          Kcql.parse,
+        ).toIndexedSeq,
         Map.empty,
         Map.empty,
         NoopErrorPolicy(),
         2,
-        None)
+        None,
+      )
 
-      val kcqlMap=settings.kcqls.map{k=> k.getSource ->k}.toMap
+      val kcqlMap = settings.kcqls.map(k => k.getSource -> k).toMap
 
       for (i <- 1 to 4) {
         val json = scala.io.Source.fromFile(getClass.getResource(s"/output$i.json").toURI.getPath).mkString
 
         val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
-        val kcql= kcqlMap(record.topic())
+        val kcql = kcqlMap(record.topic())
         val actual = ToJsonWithProjections(
           kcql.getFields.asScala.map(FieldConverter.apply).toSeq,
           kcql.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
           record.valueSchema(),
           record.value(),
-          kcql.hasRetainStructure()).toString
+          kcql.hasRetainStructure(),
+        ).toString
 
         //comparing string representation; we have more specific types given the schema
         actual shouldBe JacksonJson.asJson(json).toString
@@ -98,27 +106,31 @@ class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil 
 
       implicit val settings = CassandraSinkSetting(
         "keyspace1",
-        s"INSERT INTO topic1 SELECT * FROM topic1;INSERT INTO topic2 SELECT * FROM topic2".split(';').map(Kcql.parse).toIndexedSeq,
+        s"INSERT INTO topic1 SELECT * FROM topic1;INSERT INTO topic2 SELECT * FROM topic2".split(';').map(
+          Kcql.parse,
+        ).toIndexedSeq,
         Map.empty,
         Map.empty,
         NoopErrorPolicy(),
         2,
-        None)
+        None,
+      )
 
-      val kcqlMap=settings.kcqls.map{k=> k.getSource ->k}.toMap
+      val kcqlMap = settings.kcqls.map(k => k.getSource -> k).toMap
 
       for (i <- 1 to 4) {
         val json = scala.io.Source.fromFile(getClass.getResource(s"/output$i.json").toURI.getPath).mkString
 
         val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
-        val kcql= kcqlMap(record.topic())
+        val kcql = kcqlMap(record.topic())
         val actual = ToJsonWithProjections(
           kcql.getFields.asScala.map(FieldConverter.apply).toSeq,
           kcql.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
           record.valueSchema(),
           record.value(),
-          kcql.hasRetainStructure()).toString
+          kcql.hasRetainStructure(),
+        ).toString
 
         //comparing string representation; we have more specific types given the schema
         actual shouldBe JacksonJson.asJson(json).toString

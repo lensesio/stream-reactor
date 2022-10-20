@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.converters.source
 
 import com.datamountaineer.streamreactor.common.converters.MsgKey
-import com.sksamuel.avro4s.{AvroSchema, RecordFormat}
+import com.sksamuel.avro4s.AvroSchema
+import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.Struct
@@ -28,22 +29,22 @@ import org.scalatest.wordspec.AnyWordSpec
 import java.util.Collections
 
 class JsonConverterWithSchemaEvolutionTest extends AnyWordSpec with Matchers {
-  val topic = "the_real_topic"
+  val topic       = "the_real_topic"
   val sourceTopic = "source_topic"
-  val avroData = new AvroData(4)
+  val avroData    = new AvroData(4)
 
   "JsonConverter" should {
     "throw IllegalArgumentException if payload is null" in {
       intercept[ConnectException] {
         val converter = new JsonConverterWithSchemaEvolution
-        val _ = converter.convert("topic", "somesource", "1000", null)
+        val _         = converter.convert("topic", "somesource", "1000", null)
       }
     }
 
     "handle a simple json" in {
-      val json = JacksonJson.toJson(Car("LaFerrari", "Ferrari", 2015, 963, 0.0001))
+      val json      = JacksonJson.toJson(Car("LaFerrari", "Ferrari", 2015, 963, 0.0001))
       val converter = new JsonConverterWithSchemaEvolution
-      val record = converter.convert(topic, sourceTopic, "100", json.getBytes)
+      val record    = converter.convert(topic, sourceTopic, "100", json.getBytes)
       record.keySchema() shouldBe MsgKey.schema
       record.key().asInstanceOf[Struct].getString("topic") shouldBe sourceTopic
       record.key().asInstanceOf[Struct].getString("id") shouldBe "100"
@@ -52,30 +53,33 @@ class JsonConverterWithSchemaEvolutionTest extends AnyWordSpec with Matchers {
         new Schema.Parser().parse(
           AvroSchema[CarOptional].toString
             .replace("\"name\":\"CarOptional\"", s"""\"name\":\"$sourceTopic\"""")
-            .replace(s""",\"namespace\":\"${getClass.getCanonicalName.dropRight(getClass.getSimpleName.length+1)}\"""", "")
+            .replace(
+              s""",\"namespace\":\"${getClass.getCanonicalName.dropRight(getClass.getSimpleName.length + 1)}\"""",
+              "",
+            ),
         )
       val format = RecordFormat[CarOptional]
-      val carOptional = format.to(CarOptional(Option("LaFerrari"), Option("Ferrari"), Option(2015), Option(963), Option(0.0001)))
+      val carOptional =
+        format.to(CarOptional(Option("LaFerrari"), Option("Ferrari"), Option(2015), Option(963), Option(0.0001)))
 
       record.valueSchema() shouldBe avroData.toConnectSchema(schema)
 
       record.value() shouldBe avroData.toConnectData(schema, carOptional).value()
       record.sourcePartition() shouldBe null
-      record.sourceOffset() shouldBe Collections.singletonMap(JsonConverterWithSchemaEvolution.ConfigKey, avroData.fromConnectSchema(avroData.toConnectSchema(schema)).toString())
+      record.sourceOffset() shouldBe Collections.singletonMap(
+        JsonConverterWithSchemaEvolution.ConfigKey,
+        avroData.fromConnectSchema(avroData.toConnectSchema(schema)).toString(),
+      )
     }
   }
 }
 
+case class Car(name: String, manufacturer: String, model: Long, bhp: Long, price: Double)
 
-case class Car(name: String,
-               manufacturer: String,
-               model: Long,
-               bhp: Long,
-               price: Double)
-
-
-case class CarOptional(name: Option[String],
-                       manufacturer: Option[String],
-                       model: Option[Long],
-                       bhp: Option[Long],
-                       price: Option[Double])
+case class CarOptional(
+  name:         Option[String],
+  manufacturer: Option[String],
+  model:        Option[Long],
+  bhp:          Option[Long],
+  price:        Option[Double],
+)

@@ -1,13 +1,15 @@
 package com.landoop.streamreactor.connect.hive.sink.mapper
 
 import cats.data.NonEmptyList
-import com.landoop.streamreactor.connect.hive.{PartitionKey, PartitionPlan, TableName}
-import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
+import com.landoop.streamreactor.connect.hive.PartitionKey
+import com.landoop.streamreactor.connect.hive.PartitionPlan
+import com.landoop.streamreactor.connect.hive.TableName
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.jdk.CollectionConverters.ListHasAsScala
-
 
 class DropPartitionValuesMapperTest extends AnyFunSuite with Matchers {
 
@@ -20,7 +22,7 @@ class DropPartitionValuesMapperTest extends AnyFunSuite with Matchers {
       .field("z", SchemaBuilder.string().required().build())
       .build()
 
-    val plan = PartitionPlan(TableName("foo"), NonEmptyList.of(PartitionKey("p"), PartitionKey("q")))
+    val plan   = PartitionPlan(TableName("foo"), NonEmptyList.of(PartitionKey("p"), PartitionKey("q")))
     val struct = new Struct(schema).put("a", "a").put("p", "p").put("q", "q").put("z", "z")
     val output = new DropPartitionValuesMapper(plan).map(struct)
     output.schema().fields().asScala.map(_.name) shouldBe Seq("a", "z")
@@ -34,8 +36,7 @@ class DropPartitionValuesMapperTest extends AnyFunSuite with Matchers {
       .field("z", SchemaBuilder.string().required().build())
       .build()
 
-
-    val plan = PartitionPlan(TableName("foo"), NonEmptyList.of(PartitionKey("p"), PartitionKey("q")))
+    val plan   = PartitionPlan(TableName("foo"), NonEmptyList.of(PartitionKey("p"), PartitionKey("q")))
     val struct = new Struct(schema).put("a", "a").put("q", "q").put("z", "z")
     val output = new DropPartitionValuesMapper(plan).map(struct)
     output.schema().fields().asScala.map(_.name) shouldBe Seq("a", "z")

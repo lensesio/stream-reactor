@@ -38,9 +38,11 @@ class RedisConfigTest extends AnyWordSpec with Matchers {
 
   }
 
-  val propsWithoutPass : Map[String,_] = Map(RedisConfigConstants.REDIS_HOST -> "localhost",
-    RedisConfigConstants.REDIS_PORT -> 8453,
-    RedisConfigConstants.KCQL_CONFIG -> "SELECT * FROM topicA",
-    RedisConfigConstants.ERROR_POLICY -> "THROW")
+  val propsWithoutPass: Map[String, _] = Map(
+    RedisConfigConstants.REDIS_HOST   -> "localhost",
+    RedisConfigConstants.REDIS_PORT   -> 8453,
+    RedisConfigConstants.KCQL_CONFIG  -> "SELECT * FROM topicA",
+    RedisConfigConstants.ERROR_POLICY -> "THROW",
+  )
 
 }

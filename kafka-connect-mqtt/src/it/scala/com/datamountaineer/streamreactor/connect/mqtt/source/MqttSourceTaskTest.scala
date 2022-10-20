@@ -18,22 +18,31 @@ package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import com.datamountaineer.streamreactor.common.converters.MsgKey
 import com.datamountaineer.streamreactor.common.serialization.AvroSerializer
-import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, JsonSimpleConverter}
+import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
+import com.datamountaineer.streamreactor.connect.converters.source.BytesConverter
+import com.datamountaineer.streamreactor.connect.converters.source.JsonSimpleConverter
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
-import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
-import com.sksamuel.avro4s.{AvroSchema, RecordFormat}
+import com.dimafeng.testcontainers.ForAllTestContainer
+import com.dimafeng.testcontainers.GenericContainer
+import com.sksamuel.avro4s.AvroSchema
+import com.sksamuel.avro4s.RecordFormat
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceTaskContext
-import org.eclipse.paho.client.mqttv3.{MqttClient, MqttMessage}
+import org.eclipse.paho.client.mqttv3.MqttClient
+import org.eclipse.paho.client.mqttv3.MqttMessage
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import java.io.{BufferedWriter, File, FileWriter}
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileWriter
 import java.nio.file.Paths
 import java.util.UUID
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class MqttSourceTaskTest
     extends AnyWordSpec

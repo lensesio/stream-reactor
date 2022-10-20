@@ -29,8 +29,8 @@ class ParquetStreamingInputFileTest extends AnyFlatSpec with Matchers with Mocki
   "newStream" should "return a new stream ready to read" in {
 
     val byteArrayInputStream = new ByteArrayInputStream(bytes)
-    val initialSize = byteArrayInputStream.available().longValue()
-    val target = new ParquetStreamingInputFile(() => byteArrayInputStream, () => initialSize)
+    val initialSize          = byteArrayInputStream.available().longValue()
+    val target               = new ParquetStreamingInputFile(() => byteArrayInputStream, () => initialSize)
 
     target.newStream().read().toChar should be('a')
   }
@@ -38,8 +38,8 @@ class ParquetStreamingInputFileTest extends AnyFlatSpec with Matchers with Mocki
   "getLength" should "return length of the stream" in {
 
     val byteArrayInputStream = new ByteArrayInputStream(bytes)
-    val initialSize = byteArrayInputStream.available().longValue()
-    val target = new ParquetStreamingInputFile(() => byteArrayInputStream, () => initialSize)
+    val initialSize          = byteArrayInputStream.available().longValue()
+    val target               = new ParquetStreamingInputFile(() => byteArrayInputStream, () => initialSize)
 
     target.getLength should be(26)
 

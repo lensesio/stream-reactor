@@ -19,10 +19,14 @@
 package com.datamountaineer.streamreactor.connect.jms.sink.writers
 
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.jms.{ItTestBase, Using}
-import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
+import com.datamountaineer.streamreactor.connect.jms.ItTestBase
+import com.datamountaineer.streamreactor.connect.jms.Using
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
+import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
 import com.datamountaineer.streamreactor.connect.jms.sink.IteratorToSeqFn
-import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
+import com.fasterxml.jackson.databind.node.ArrayNode
+import com.fasterxml.jackson.databind.node.IntNode
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
 import org.apache.kafka.common.record.TimestampType
@@ -30,11 +34,15 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.header.ConnectHeaders
 import org.apache.kafka.connect.json.JsonDeserializer
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.BeforeAndAfterAll
 
 import java.io.File
 import java.util.UUID
-import javax.jms.{Message, MessageListener, Session, TextMessage}
+import javax.jms.Message
+import javax.jms.MessageListener
+import javax.jms.Session
+import javax.jms.TextMessage
 import scala.annotation.nowarn
 import scala.language.reflectiveCalls
 import scala.reflect.io.Path
@@ -75,8 +83,10 @@ class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with Conve
 
     val headers = new ConnectHeaders
     headers.add("customGroupId", "1111", Schema.STRING_SCHEMA)
-    val record1 = new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1, null, TimestampType.NO_TIMESTAMP_TYPE, headers)
-    val record2 = new SinkRecord(kafkaTopic2, 0, null, null, schema, struct, 5, null, TimestampType.NO_TIMESTAMP_TYPE, headers)
+    val record1 =
+      new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1, null, TimestampType.NO_TIMESTAMP_TYPE, headers)
+    val record2 =
+      new SinkRecord(kafkaTopic2, 0, null, null, schema, struct, 5, null, TimestampType.NO_TIMESTAMP_TYPE, headers)
 
     val connectionFactory = new ActiveMQConnectionFactory()
     connectionFactory.setBrokerURL(brokerUrl)
@@ -111,7 +121,7 @@ class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with Conve
         val kcqlT            = getKCQL(topicName, kafkaTopic2, "TOPIC")
         val messageType      = "TextMessage"
         val corellationId    = "5"
-        val jmsxGroupId = "101011"
+        val jmsxGroupId      = "101011"
         val topicMessageType = "JSON"
         val props = getSinkProps(
           s"$kcqlQ;$kcqlT",
@@ -119,7 +129,7 @@ class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with Conve
           brokerUrl,
           Map(
             JMSConfigConstants.HEADERS_CONFIG ->
-              s"$queueName=JMSType:$messageType,JMSCorrelationID:$corellationId,JMSXGroupID:$jmsxGroupId;$topicName=JMSType:$topicMessageType"
+              s"$queueName=JMSType:$messageType,JMSCorrelationID:$corellationId,JMSXGroupID:$jmsxGroupId;$topicName=JMSType:$topicMessageType",
           ),
         )
         val config   = JMSConfig(props)

@@ -21,27 +21,40 @@ import com.opencsv.CSVReader
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.formats.{AvroFormatReader, BytesFormatWriter, ParquetFormatReader}
+import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
+import io.lenses.streamreactor.connect.aws.s3.formats.BytesFormatWriter
+import io.lenses.streamreactor.connect.aws.s3.formats.ParquetFormatReader
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
-import org.apache.commons.io.{FileUtils, IOUtils}
+import org.apache.commons.io.FileUtils
+import org.apache.commons.io.IOUtils
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
-import org.apache.kafka.connect.errors.{ConnectException, RetriableException}
-import org.apache.kafka.connect.header.{ConnectHeaders, Header}
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.errors.RetriableException
+import org.apache.kafka.connect.header.ConnectHeaders
+import org.apache.kafka.connect.header.Header
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import java.io.{File, StringReader}
+import java.io.File
+import java.io.StringReader
 import java.nio.file.Files
-import java.time.{LocalDate, ZoneOffset}
+import java.time.LocalDate
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import java.{lang, util}
-import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala, SeqHasAsJava}
+import java.lang
+import java.util
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Try
 
 class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with MockitoSugar with LazyLogging {

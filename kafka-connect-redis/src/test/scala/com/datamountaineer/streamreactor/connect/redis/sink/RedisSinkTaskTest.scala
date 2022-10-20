@@ -1,12 +1,13 @@
 package com.datamountaineer.streamreactor.connect.redis.sink
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfig
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfigConstants
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSupport
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.jdk.CollectionConverters.MapHasAsJava
-
 
 class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport {
 
@@ -14,12 +15,12 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
     val KCQL = s"INSERT INTO cache SELECT price from yahoo-fx PK symbol;"
     println("Testing mode for KCQL : " + KCQL)
     val props = Map(
-      RedisConfigConstants.REDIS_HOST->"localhost",
-      RedisConfigConstants.REDIS_PORT->"0000",
-      RedisConfigConstants.KCQL_CONFIG->KCQL
+      RedisConfigConstants.REDIS_HOST  -> "localhost",
+      RedisConfigConstants.REDIS_PORT  -> "0000",
+      RedisConfigConstants.KCQL_CONFIG -> KCQL,
     ).asJava
 
-    val config = RedisConfig(props)
+    val config   = RedisConfig(props)
     val settings = RedisSinkSettings(config)
 
     val task = new RedisSinkTask
@@ -33,12 +34,12 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
     val KCQL = s"INSERT INTO topic-1 SELECT * FROM topic1 STOREAS SortedSet(score=ts);"
     println("Testing mode for KCQL : " + KCQL)
     val props = Map(
-      RedisConfigConstants.REDIS_HOST->"localhost",
-      RedisConfigConstants.REDIS_PORT->"0000",
-      RedisConfigConstants.KCQL_CONFIG->KCQL
+      RedisConfigConstants.REDIS_HOST  -> "localhost",
+      RedisConfigConstants.REDIS_PORT  -> "0000",
+      RedisConfigConstants.KCQL_CONFIG -> KCQL,
     ).asJava
 
-    val config = RedisConfig(props)
+    val config   = RedisConfig(props)
     val settings = RedisSinkSettings(config)
 
     val task = new RedisSinkTask
@@ -52,12 +53,12 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
     val KCQL = s"SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet(score=timestamp);"
     println("Testing mode for KCQL : " + KCQL)
     val props = Map(
-      RedisConfigConstants.REDIS_HOST->"localhost",
-      RedisConfigConstants.REDIS_PORT->"0000",
-      RedisConfigConstants.KCQL_CONFIG->KCQL
+      RedisConfigConstants.REDIS_HOST  -> "localhost",
+      RedisConfigConstants.REDIS_PORT  -> "0000",
+      RedisConfigConstants.KCQL_CONFIG -> KCQL,
     ).asJava
 
-    val config = RedisConfig(props)
+    val config   = RedisConfig(props)
     val settings = RedisSinkSettings(config)
 
     val task = new RedisSinkTask
@@ -70,20 +71,20 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
   "work with Multiple Modes" -> {
     val KCQL =
       s"SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet(score=timestamp);" +
-      s"SELECT temperature, humidity FROM sensorsTopic2 PK sensorID STOREAS SortedSet(score=timestamp);" +
-      s"INSERT INTO cache1 SELECT price from yahoo-fx PK symbol;" +
-      s"INSERT INTO cache2 SELECT price from googl-fx PK symbol;" +
-      s"INSERT INTO cache3 SELECT price from appl-fx PK symbol;" +
-      s"INSERT INTO topic-1 SELECT * FROM topic1 STOREAS SortedSet(score=ts);" +
-      s"INSERT INTO topic-2 SELECT * FROM topic2 STOREAS SortedSet(score=ts);"
+        s"SELECT temperature, humidity FROM sensorsTopic2 PK sensorID STOREAS SortedSet(score=timestamp);" +
+        s"INSERT INTO cache1 SELECT price from yahoo-fx PK symbol;" +
+        s"INSERT INTO cache2 SELECT price from googl-fx PK symbol;" +
+        s"INSERT INTO cache3 SELECT price from appl-fx PK symbol;" +
+        s"INSERT INTO topic-1 SELECT * FROM topic1 STOREAS SortedSet(score=ts);" +
+        s"INSERT INTO topic-2 SELECT * FROM topic2 STOREAS SortedSet(score=ts);"
     println("Testing mode for KCQL : " + KCQL)
     val props = Map(
-      RedisConfigConstants.REDIS_HOST->"localhost",
-      RedisConfigConstants.REDIS_PORT->"0000",
-      RedisConfigConstants.KCQL_CONFIG->KCQL
+      RedisConfigConstants.REDIS_HOST  -> "localhost",
+      RedisConfigConstants.REDIS_PORT  -> "0000",
+      RedisConfigConstants.KCQL_CONFIG -> KCQL,
     ).asJava
 
-    val config = RedisConfig(props)
+    val config   = RedisConfig(props)
     val settings = RedisSinkSettings(config)
 
     val task = new RedisSinkTask
@@ -112,12 +113,12 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
     val KCQL = s"SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS STREAM;"
     println("Testing mode for KCQL : " + KCQL)
     val props = Map(
-      RedisConfigConstants.REDIS_HOST->"localhost",
-      RedisConfigConstants.REDIS_PORT->"0000",
-      RedisConfigConstants.KCQL_CONFIG->KCQL
+      RedisConfigConstants.REDIS_HOST  -> "localhost",
+      RedisConfigConstants.REDIS_PORT  -> "0000",
+      RedisConfigConstants.KCQL_CONFIG -> KCQL,
     ).asJava
 
-    val config = RedisConfig(props)
+    val config   = RedisConfig(props)
     val settings = RedisSinkSettings(config)
 
     val task = new RedisSinkTask

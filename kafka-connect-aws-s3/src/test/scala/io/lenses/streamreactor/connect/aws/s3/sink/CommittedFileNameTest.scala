@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -17,7 +16,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import io.lenses.streamreactor.connect.aws.s3.config.Format.{Avro, Csv, Json}
+import io.lenses.streamreactor.connect.aws.s3.config.Format.Avro
+import io.lenses.streamreactor.connect.aws.s3.config.Format.Csv
+import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.model._
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -29,11 +30,14 @@ class CommittedFileNameTest extends AnyFlatSpecLike with Matchers {
     implicit val impFileNamingStrategy: S3FileNamingStrategy = fileNamingStrategy
   }
 
-  val partitions: PartitionSelection = PartitionSelection(Vector(ValuePartitionField(PartitionNamePath("partition1")), ValuePartitionField(PartitionNamePath("partition2"))))
+  val partitions: PartitionSelection = PartitionSelection(Vector(ValuePartitionField(PartitionNamePath("partition1")),
+                                                                 ValuePartitionField(PartitionNamePath("partition2")),
+  ))
 
   class HierarchicalJsonTestContext extends TestContext(new HierarchicalS3FileNamingStrategy(FormatSelection(Json)))
 
-  class PartitionedAvroTestContext extends TestContext(new PartitionedS3FileNamingStrategy(FormatSelection(Avro), partitions))
+  class PartitionedAvroTestContext
+      extends TestContext(new PartitionedS3FileNamingStrategy(FormatSelection(Avro), partitions))
 
   "unapply" should "recognise hierarchical filenames in prefix/topic/927/77.json format" in new HierarchicalJsonTestContext {
     CommittedFileName.unapply("prefix/topic/927/77.json") should be(Some((Topic("topic"), 927, Offset(77), Json)))
@@ -52,9 +56,17 @@ class CommittedFileNameTest extends AnyFlatSpecLike with Matchers {
   }
 
   "unapply" should "recognise partitioned filenames in prefix/topic/927/77.json format" in new PartitionedAvroTestContext {
-    CommittedFileName.unapply("prefix/partition1=something/topic(927_77).json") should be(Some((Topic("topic"), 927, Offset(77), Json)))
-    CommittedFileName.unapply("prefix/partition1=something/partition2=else/topic(927_77).json") should be(Some((Topic("topic"), 927, Offset(77), Json)))
-    CommittedFileName.unapply("prefix/partition1=something/partition2=else/partition3=sausages/topic(927_77).json") should be(Some((Topic("topic"), 927, Offset(77), Json)))
+    CommittedFileName.unapply("prefix/partition1=something/topic(927_77).json") should be(Some((Topic("topic"),
+                                                                                                927,
+                                                                                                Offset(77),
+                                                                                                Json,
+    )))
+    CommittedFileName.unapply("prefix/partition1=something/partition2=else/topic(927_77).json") should be(
+      Some((Topic("topic"), 927, Offset(77), Json)),
+    )
+    CommittedFileName.unapply(
+      "prefix/partition1=something/partition2=else/partition3=sausages/topic(927_77).json",
+    ) should be(Some((Topic("topic"), 927, Offset(77), Json)))
   }
 
   "unapply" should "not recognise partitioned filenames other formats" in new PartitionedAvroTestContext {
@@ -66,13 +78,16 @@ class CommittedFileNameTest extends AnyFlatSpecLike with Matchers {
   }
 
   "unapply" should "not recognise partitioned filenames for a long path" in new PartitionedAvroTestContext {
-    CommittedFileName.unapply("extra/long/prefix/partition1=something/partition2=else/topic(927_77).doc") should be(None)
+    CommittedFileName.unapply("extra/long/prefix/partition1=something/partition2=else/topic(927_77).doc") should be(
+      None,
+    )
   }
 
   "unapply" should "support valid kafka topic name" in new PartitionedAvroTestContext {
-    CommittedFileName.unapply("extra/long/prefix/partition1=something/partition2=else/REAL_val1d-T0PIC.name(927_77).csv") should
+    CommittedFileName.unapply(
+      "extra/long/prefix/partition1=something/partition2=else/REAL_val1d-T0PIC.name(927_77).csv",
+    ) should
       be(Some((Topic("REAL_val1d-T0PIC.name"), 927, Offset(77), Csv)))
   }
 
 }
-

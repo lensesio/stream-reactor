@@ -2,15 +2,17 @@ package com.landoop.streamreactor.connect.hive.parquet
 
 import com.landoop.streamreactor.connect.hive.StructUtils
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 class ParquetWriterTest extends AnyWordSpec with Matchers {
 
   implicit val conf = new Configuration()
-  implicit val fs = FileSystem.getLocal(conf)
+  implicit val fs   = FileSystem.getLocal(conf)
 
   "ParquetWriter" should {
     "write parquet files" in {
@@ -23,7 +25,7 @@ class ParquetWriterTest extends AnyWordSpec with Matchers {
 
       val users = List(
         new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43),
-        new Struct(schema).put("name", "laura").put("title", "ms").put("salary", 429.06)
+        new Struct(schema).put("name", "laura").put("title", "ms").put("salary", 429.06),
       )
 
       val path = new Path("sinktest.parquet")
@@ -50,7 +52,7 @@ class ParquetWriterTest extends AnyWordSpec with Matchers {
 
       val users = List(
         new Struct(schema).put("name", "sam").put("title", null).put("salary", 100.43),
-        new Struct(schema).put("name", "laura").put("title", "ms").put("salary", 429.06)
+        new Struct(schema).put("name", "laura").put("title", "ms").put("salary", 429.06),
       )
 
       val path = new Path("sinktest.parquet")

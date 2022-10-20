@@ -16,9 +16,16 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
-import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSinkConfig, HazelCastSinkConfigConstants, HazelCastSinkSettings}
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastConnectionConfig
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfig
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfigConstants
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
 import com.datamountaineer.streamreactor.connect.hazelcast.writers.HazelCastWriter
-import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, MessageListenerImplAvro, MessageListenerImplJson, SlowTest, TestBase}
+import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
+import com.datamountaineer.streamreactor.connect.hazelcast.MessageListenerImplAvro
+import com.datamountaineer.streamreactor.connect.hazelcast.MessageListenerImplJson
+import com.datamountaineer.streamreactor.connect.hazelcast.SlowTest
+import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
 import com.hazelcast.core._
 import com.hazelcast.map.IMap
 import com.hazelcast.multimap.MultiMap
@@ -30,14 +37,12 @@ import org.apache.kafka.common.config.SslConfigs
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-
-
 /**
-  * Created by andrew@datamountaineer.com on 11/08/16. 
+  * Created by andrew@datamountaineer.com on 11/08/16.
   * stream-reactor
   */
 class TestHazelCastWriter extends TestBase {
-  var instance : HazelcastInstance = _
+  var instance: HazelcastInstance = _
 
   before {
     instance = Hazelcast.newHazelcastInstance()
@@ -49,17 +54,16 @@ class TestHazelCastWriter extends TestBase {
 
   "should write avro to hazelcast reliable topic" taggedAs SlowTest in {
 
-    val props = getProps
-    val config = new HazelCastSinkConfig(props)
+    val props    = getProps
+    val config   = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
-    val writer = HazelCastWriter(settings)
-    val records = getTestRecords()
-
+    val writer   = HazelCastWriter(settings)
+    val records  = getTestRecords()
 
     //get client and check hazelcast
-    val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
+    val conn          = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
     val reliableTopic = conn.getReliableTopic(settings.topicObject(TOPIC).name).asInstanceOf[ITopic[Object]]
-    val listener = new MessageListenerImplAvro
+    val listener      = new MessageListenerImplAvro
     reliableTopic.addMessageListener(listener)
 
     //write
@@ -67,7 +71,7 @@ class TestHazelCastWriter extends TestBase {
     writer.close()
 
     while (!listener.gotMessage) {
-     Thread.sleep(1000)
+      Thread.sleep(1000)
     }
 
     val message = listener.message.get
@@ -75,22 +79,22 @@ class TestHazelCastWriter extends TestBase {
     message.get("int_field") shouldBe 12
     message.get("string_field").toString shouldBe "foo"
     conn.shutdown()
-   }
+  }
 
   "should write avro to hazelcast ringbuffer" taggedAs SlowTest in {
 
-    val props = getPropsRB
-    val config = new HazelCastSinkConfig(props)
+    val props    = getPropsRB
+    val config   = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
-    val writer = HazelCastWriter(settings)
-    val records = getTestRecords()
+    val writer   = HazelCastWriter(settings)
+    val records  = getTestRecords()
 
     //write
     writer.write(records)
     writer.close()
 
     //get client and check hazelcast
-    val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
+    val conn       = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
     val ringbuffer = conn.getRingbuffer(settings.topicObject(TOPIC).name).asInstanceOf[Ringbuffer[String]]
 
     val message = ringbuffer.readOne(ringbuffer.headSequence())
@@ -98,20 +102,18 @@ class TestHazelCastWriter extends TestBase {
     conn.shutdown()
   }
 
-
   "should write json to hazelcast reliable topic" taggedAs SlowTest in {
 
-    val props = getPropsJson
-    val config = new HazelCastSinkConfig(props)
+    val props    = getPropsJson
+    val config   = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
-    val writer = HazelCastWriter(settings)
-    val records = getTestRecords()
-
+    val writer   = HazelCastWriter(settings)
+    val records  = getTestRecords()
 
     //get client and check hazelcast
-    val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
+    val conn          = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
     val reliableTopic = conn.getReliableTopic(settings.topicObject(TOPIC).name).asInstanceOf[ITopic[Object]]
-    val listener = new MessageListenerImplJson
+    val listener      = new MessageListenerImplJson
     reliableTopic.addMessageListener(listener)
 
     //write
@@ -129,19 +131,19 @@ class TestHazelCastWriter extends TestBase {
 
   "should write json to hazelcast queue" taggedAs SlowTest in {
 
-    val props = getPropsJsonQueue
-    val config = new HazelCastSinkConfig(props)
+    val props    = getPropsJsonQueue
+    val config   = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
-    val writer = HazelCastWriter(settings)
-    val records = getTestRecords()
+    val writer   = HazelCastWriter(settings)
+    val records  = getTestRecords()
 
     //write
     writer.write(records)
     writer.close()
 
     //get client and check hazelcast
-    val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
-    val queue = conn.getQueue(settings.topicObject(TOPIC).name).asInstanceOf[IQueue[String]]
+    val conn    = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
+    val queue   = conn.getQueue(settings.topicObject(TOPIC).name).asInstanceOf[IQueue[String]]
     val message = queue.take()
     message shouldBe json
     conn.shutdown()
@@ -149,19 +151,19 @@ class TestHazelCastWriter extends TestBase {
 
   "should write json to hazelcast set" taggedAs SlowTest in {
 
-    val props = getPropsJsonSet
-    val config = new HazelCastSinkConfig(props)
+    val props    = getPropsJsonSet
+    val config   = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
-    val writer = HazelCastWriter(settings)
-    val records = getTestRecords()
+    val writer   = HazelCastWriter(settings)
+    val records  = getTestRecords()
 
     //write
     writer.write(records)
     writer.close()
 
     //get client and check hazelcast
-    val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
-    val set = conn.getSet(settings.topicObject(TOPIC).name).asInstanceOf[ISet[String]]
+    val conn    = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
+    val set     = conn.getSet(settings.topicObject(TOPIC).name).asInstanceOf[ISet[String]]
     val message = set.iterator().next()
     message shouldBe json
     conn.shutdown()
@@ -169,19 +171,19 @@ class TestHazelCastWriter extends TestBase {
 
   "should write json to hazelcast list" taggedAs SlowTest in {
 
-    val props = getPropsJsonList
-    val config = new HazelCastSinkConfig(props)
+    val props    = getPropsJsonList
+    val config   = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
-    val writer = HazelCastWriter(settings)
-    val records = getTestRecords()
+    val writer   = HazelCastWriter(settings)
+    val records  = getTestRecords()
 
     //write
     writer.write(records)
     writer.close()
 
     //get client and check hazelcast
-    val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
-    val set = conn.getList(settings.topicObject(TOPIC).name).asInstanceOf[IList[String]]
+    val conn    = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
+    val set     = conn.getList(settings.topicObject(TOPIC).name).asInstanceOf[IList[String]]
     val message = set.iterator().next()
     message shouldBe json
     conn.shutdown()
@@ -189,19 +191,19 @@ class TestHazelCastWriter extends TestBase {
 
   "should write json to hazelcast map default pks" taggedAs SlowTest in {
 
-    val props = getPropsJsonMapDefaultPKS
-    val config = new HazelCastSinkConfig(props)
+    val props    = getPropsJsonMapDefaultPKS
+    val config   = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
-    val writer = HazelCastWriter(settings)
-    val records = getTestRecords()
+    val writer   = HazelCastWriter(settings)
+    val records  = getTestRecords()
 
     //write
     writer.write(records)
     writer.close()
 
     //get client and check hazelcast
-    val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
-    val map = conn.getMap(settings.topicObject(TOPIC).name).asInstanceOf[IMap[String, String]]
+    val conn    = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
+    val map     = conn.getMap(settings.topicObject(TOPIC).name).asInstanceOf[IMap[String, String]]
     val message = map.get(s"${TOPIC}-${PARTITION}-1")
     message shouldBe json
     conn.shutdown()
@@ -209,14 +211,15 @@ class TestHazelCastWriter extends TestBase {
 
   "should write json to hazelcast map default pks and TTL" taggedAs SlowTest in {
 
-    val props = Map(HazelCastSinkConfigConstants.KCQL->s"INSERT INTO ${TABLE}_multi SELECT * FROM $TOPIC WITHFORMAT json STOREAS IMAP TTL=5000",
-      HazelCastSinkConfigConstants.CLUSTER_NAME->TESTS_CLUSTER_NAME,
-      HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
+    val props = Map(
+      HazelCastSinkConfigConstants.KCQL            -> s"INSERT INTO ${TABLE}_multi SELECT * FROM $TOPIC WITHFORMAT json STOREAS IMAP TTL=5000",
+      HazelCastSinkConfigConstants.CLUSTER_NAME    -> TESTS_CLUSTER_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_MEMBERS -> "localhost",
     )
-    val config = new HazelCastSinkConfig(props.asJava)
+    val config   = new HazelCastSinkConfig(props.asJava)
     val settings = HazelCastSinkSettings(config)
-    val writer = HazelCastWriter(settings)
-    val records = getTestRecords()
+    val writer   = HazelCastWriter(settings)
+    val records  = getTestRecords()
 
     //write
     writer.write(records)
@@ -226,53 +229,53 @@ class TestHazelCastWriter extends TestBase {
 
     //get client and check hazelcast
     val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
-    val map = conn.getMap(settings.topicObject(TOPIC).name).asInstanceOf[IMap[String, String]]
+    val map  = conn.getMap(settings.topicObject(TOPIC).name).asInstanceOf[IMap[String, String]]
     map.size() shouldBe 0
     conn.shutdown()
   }
 
   "should write json to hazelcast multi map default pks" taggedAs SlowTest in {
 
-    val props = getPropsJsonMultiMapDefaultPKS
-    val config = new HazelCastSinkConfig(props)
+    val props    = getPropsJsonMultiMapDefaultPKS
+    val config   = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
-    val writer = HazelCastWriter(settings)
-    val records = getTestRecords()
+    val writer   = HazelCastWriter(settings)
+    val records  = getTestRecords()
 
     //write
     writer.write(records)
     writer.close()
 
     //get client and check hazelcast
-    val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
-    val map = conn.getMultiMap(settings.topicObject(TOPIC).name).asInstanceOf[MultiMap[String, String]]
+    val conn    = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
+    val map     = conn.getMultiMap(settings.topicObject(TOPIC).name).asInstanceOf[MultiMap[String, String]]
     val message = map.get(s"${TOPIC}-${PARTITION}-1").iterator().next()
     message shouldBe json
     conn.shutdown()
   }
 
-
   "Should set SSL system props" taggedAs SlowTest in {
 
     val truststoreFilePath = getClass.getResource("/truststore.jks").getPath
-    val keystoreFilePath = getClass.getResource("/keystore.jks").getPath
+    val keystoreFilePath   = getClass.getResource("/keystore.jks").getPath
 
     val ssl = Map(
-      HazelCastSinkConfigConstants.KCQL->KCQL_MAP_IGNORED,
-      HazelCastSinkConfigConstants.CLUSTER_NAME->TESTS_CLUSTER_NAME,
-      HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost",
-      HazelCastSinkConfigConstants.SSL_ENABLED -> "true",
-      SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG -> truststoreFilePath,
-      SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG -> "truststore-password",
-      SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG -> keystoreFilePath,
-      SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG -> "keystore-password")
+      HazelCastSinkConfigConstants.KCQL            -> KCQL_MAP_IGNORED,
+      HazelCastSinkConfigConstants.CLUSTER_NAME    -> TESTS_CLUSTER_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_MEMBERS -> "localhost",
+      HazelCastSinkConfigConstants.SSL_ENABLED     -> "true",
+      SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG    -> truststoreFilePath,
+      SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG    -> "truststore-password",
+      SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG      -> keystoreFilePath,
+      SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG      -> "keystore-password",
+    )
 
-    val config = new HazelCastSinkConfig(ssl.asJava)
+    val config    = new HazelCastSinkConfig(ssl.asJava)
     val conConfig = HazelCastConnectionConfig(config)
 
     conConfig.sslEnabled shouldBe true
     conConfig.trustStoreLocation shouldBe Some(truststoreFilePath)
-    conConfig.keyStoreLocation shouldBe  Some(keystoreFilePath)
+    conConfig.keyStoreLocation shouldBe Some(keystoreFilePath)
     conConfig.trustStorePassword shouldBe Some("truststore-password")
     conConfig.keyStorePassword shouldBe Some("keystore-password")
 
@@ -318,4 +321,3 @@ class TestHazelCastWriter extends TestBase {
 //    conn.shutdown()
 //  }
 }
-

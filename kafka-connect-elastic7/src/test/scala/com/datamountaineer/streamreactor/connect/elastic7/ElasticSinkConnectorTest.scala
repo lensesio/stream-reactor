@@ -20,7 +20,6 @@ import com.datamountaineer.streamreactor.connect.elastic7.config.ElasticConfigCo
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-
 class ElasticSinkConnectorTest extends TestBase {
   "Should start a Elastic Search Connector" in {
     //get config

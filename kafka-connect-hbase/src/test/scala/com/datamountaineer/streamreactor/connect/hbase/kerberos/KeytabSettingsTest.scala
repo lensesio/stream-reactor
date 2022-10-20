@@ -1,12 +1,12 @@
 package com.datamountaineer.streamreactor.connect.hbase.kerberos
 
-import com.datamountaineer.streamreactor.connect.hbase.config.{HBaseConfig, HBaseConfigConstants}
+import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfig
+import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigConstants
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.jdk.CollectionConverters.MapHasAsJava
-
 
 class KeytabSettingsTest extends AnyFunSuite with Matchers with FileCreation {
   test("validate a keytab setting") {
@@ -15,18 +15,17 @@ class KeytabSettingsTest extends AnyFunSuite with Matchers with FileCreation {
       val principal = "hdfs-user@MYCORP.NET"
       val config = HBaseConfig(
         Map(
-          HBaseConfigConstants.KCQL_QUERY->s"INSERT INTO someTable SELECT * FROM someTable",
-          HBaseConfigConstants.COLUMN_FAMILY->"someColumnFamily",
-          HBaseConfigConstants.KerberosKey -> "true",
-          HBaseConfigConstants.PrincipalKey -> principal,
-          HBaseConfigConstants.KerberosKeyTabKey -> file.getAbsolutePath
-        ).asJava
+          HBaseConfigConstants.KCQL_QUERY        -> s"INSERT INTO someTable SELECT * FROM someTable",
+          HBaseConfigConstants.COLUMN_FAMILY     -> "someColumnFamily",
+          HBaseConfigConstants.KerberosKey       -> "true",
+          HBaseConfigConstants.PrincipalKey      -> principal,
+          HBaseConfigConstants.KerberosKeyTabKey -> file.getAbsolutePath,
+        ).asJava,
       )
 
       val actualSettings = KeytabSettings.from(config, HBaseConfigConstants)
       actualSettings shouldBe KeytabSettings(principal, file.getAbsolutePath, None)
-    }
-    finally {
+    } finally {
       file.delete()
       ()
     }
@@ -37,18 +36,17 @@ class KeytabSettingsTest extends AnyFunSuite with Matchers with FileCreation {
     try {
       val config = HBaseConfig(
         Map(
-          HBaseConfigConstants.KCQL_QUERY->s"INSERT INTO someTable SELECT * FROM someTable",
-          HBaseConfigConstants.COLUMN_FAMILY->"someColumnFamily",
-          HBaseConfigConstants.KerberosKey -> "true",
-          HBaseConfigConstants.KerberosKeyTabKey -> file.getAbsolutePath
-        ).asJava
+          HBaseConfigConstants.KCQL_QUERY        -> s"INSERT INTO someTable SELECT * FROM someTable",
+          HBaseConfigConstants.COLUMN_FAMILY     -> "someColumnFamily",
+          HBaseConfigConstants.KerberosKey       -> "true",
+          HBaseConfigConstants.KerberosKeyTabKey -> file.getAbsolutePath,
+        ).asJava,
       )
 
       intercept[ConfigException] {
         KeytabSettings.from(config, HBaseConfigConstants)
       }
-    }
-    finally {
+    } finally {
       file.delete()
       ()
     }
@@ -58,12 +56,12 @@ class KeytabSettingsTest extends AnyFunSuite with Matchers with FileCreation {
     val principal = "hdfs-user@MYCORP.NET"
     val config = HBaseConfig(
       Map(
-        HBaseConfigConstants.KCQL_QUERY->s"INSERT INTO someTable SELECT * FROM someTable",
-        HBaseConfigConstants.COLUMN_FAMILY->"someColumnFamily",
-        HBaseConfigConstants.KerberosKey -> "true",
-        HBaseConfigConstants.PrincipalKey -> principal,
-        HBaseConfigConstants.KerberosKeyTabKey -> "does_not_exists.keytab"
-      ).asJava
+        HBaseConfigConstants.KCQL_QUERY        -> s"INSERT INTO someTable SELECT * FROM someTable",
+        HBaseConfigConstants.COLUMN_FAMILY     -> "someColumnFamily",
+        HBaseConfigConstants.KerberosKey       -> "true",
+        HBaseConfigConstants.PrincipalKey      -> principal,
+        HBaseConfigConstants.KerberosKeyTabKey -> "does_not_exists.keytab",
+      ).asJava,
     )
 
     intercept[ConfigException] {

@@ -22,15 +22,15 @@ import org.scalatest.wordspec.AnyWordSpec
 import java.util.Collections
 
 class JsonPassThroughConverterTest extends AnyWordSpec with Matchers {
-  val topic = "the_real_topic"
+  val topic       = "the_real_topic"
   val sourceTopic = "source_topic"
 
   "JsonPassThroughConverter" should {
     "pass single message with no key through as json" in {
-      val car = Car("LaFerrari", "Ferrari", 2015, 963, 0.0001)
-      val json = JacksonJson.toJson(car)
+      val car       = Car("LaFerrari", "Ferrari", 2015, 963, 0.0001)
+      val json      = JacksonJson.toJson(car)
       val converter = new JsonPassThroughConverter
-      val record = converter.convert(topic, sourceTopic, "100", json.getBytes)
+      val record    = converter.convert(topic, sourceTopic, "100", json.getBytes)
       record.keySchema() shouldBe null
       record.key() shouldBe "source_topic.100"
 
@@ -42,11 +42,11 @@ class JsonPassThroughConverterTest extends AnyWordSpec with Matchers {
     }
 
     "pass single message with key through as json" in {
-      val car = Car("LaFerrari", "Ferrari", 2015, 963, 0.0001)
-      val json = JacksonJson.toJson(car)
+      val car       = Car("LaFerrari", "Ferrari", 2015, 963, 0.0001)
+      val json      = JacksonJson.toJson(car)
       val converter = new JsonPassThroughConverter
-      val keys = List("name", "manufacturer")
-      val record = converter.convert(topic, sourceTopic, "100", json.getBytes, keys)
+      val keys      = List("name", "manufacturer")
+      val record    = converter.convert(topic, sourceTopic, "100", json.getBytes, keys)
       record.keySchema() shouldBe null
       record.key() shouldBe "LaFerrari.Ferrari"
 

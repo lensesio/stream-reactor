@@ -23,13 +23,15 @@ import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
 import org.scalatest.BeforeAndAfterAll
 
 import java.util.UUID
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.reflect.io.Path
 
 /**
- * Created by andrew@datamountaineer.com on 24/03/2017.
- * stream-reactor
- */
+  * Created by andrew@datamountaineer.com on 24/03/2017.
+  * stream-reactor
+  */
 class JMSSourceConnectorTest extends TestBase with BeforeAndAfterAll {
 
   override def afterAll(): Unit = {
@@ -38,8 +40,8 @@ class JMSSourceConnectorTest extends TestBase with BeforeAndAfterAll {
 
   "should start a JMS Source Connector" in {
     val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = UUID.randomUUID().toString
-    val topicName = UUID.randomUUID().toString
+    val queueName  = UUID.randomUUID().toString
+    val topicName  = UUID.randomUUID().toString
 
     val kcqlT = getKCQL(kafkaTopic, topicName, "TOPIC")
     val kcqlQ = getKCQL(kafkaTopic, queueName, "QUEUE")
@@ -57,18 +59,18 @@ class JMSSourceConnectorTest extends TestBase with BeforeAndAfterAll {
 
   "should use the tasks.max to do parallelization" in {
     val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = UUID.randomUUID().toString
-    val topicName = UUID.randomUUID().toString
+    val queueName  = UUID.randomUUID().toString
+    val topicName  = UUID.randomUUID().toString
 
     val kcqlT = getKCQL(kafkaTopic, topicName, "TOPIC")
     val kcqlQ = getKCQL(kafkaTopic, queueName, "QUEUE")
-    val kcql = kcqlQ + ";" + kcqlT
+    val kcql  = kcqlQ + ";" + kcqlT
     val props = getProps(kcql, "") + (JMSConfigConstants.TASK_PARALLELIZATION_TYPE -> "default")
 
     val connector = new JMSSourceConnector()
     connector.start(props = props.asJava)
     val _ = connector.taskConfigs(3).asScala.toList match {
-      case l@List(_, _, _) =>
+      case l @ List(_, _, _) =>
         l.foreach {
           _.get(JMSConfigConstants.KCQL) shouldEqual kcql
         }
