@@ -1,7 +1,9 @@
 package com.landoop.connect.sql
 
 import com.landoop.connect.sql.StructSql._
-import com.sksamuel.avro4s.{RecordFormat, SchemaFor, ToRecord}
+import com.sksamuel.avro4s.RecordFormat
+import com.sksamuel.avro4s.SchemaFor
+import com.sksamuel.avro4s.ToRecord
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
@@ -28,7 +30,8 @@ class StructSqlWithRetainStructureTest extends AnyWordSpec with Matchers {
     }
 
     "handle 'SELECT * FROM topic withstructure' for a struct" in {
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       //implicit val toRecord = ToRecord[Pizza]
       val record = RecordFormat[Pizza].to(pepperoni)
@@ -40,62 +43,100 @@ class StructSqlWithRetainStructureTest extends AnyWordSpec with Matchers {
 
     "handle 'SELECT *, name as fieldName FROM topic withstructure' for a struct" in {
       case class LocalIngredient(name: String, sugar: Double, fat: Double)
-      case class LocalPizza(ingredients: Seq[LocalIngredient], vegetarian: Boolean, vegan: Boolean, calories: Int, fieldName: String)
+      case class LocalPizza(
+        ingredients: Seq[LocalIngredient],
+        vegetarian:  Boolean,
+        vegan:       Boolean,
+        calories:    Int,
+        fieldName:   String,
+      )
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
+      val record            = RecordFormat[Pizza].to(pepperoni)
 
       val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
       val actual = struct.sql("SELECT *, name as fieldName FROM topic withstructure")
 
-      val newpepperoni = LocalPizza(Seq(LocalIngredient("pepperoni", 12, 4.4), LocalIngredient("onions", 1, 0.4)), false, false, 98, "pepperoni")
+      val newpepperoni = LocalPizza(Seq(LocalIngredient("pepperoni", 12, 4.4), LocalIngredient("onions", 1, 0.4)),
+                                    false,
+                                    false,
+                                    98,
+                                    "pepperoni",
+      )
       compare(actual, newpepperoni)
     }
 
     "handle 'SELECT *, ingredients as stuff FROM topic withstructure' for a struct" in {
       case class LocalIngredient(name: String, sugar: Double, fat: Double)
-      case class LocalPizza(name: String, vegetarian: Boolean, vegan: Boolean, calories: Int, stuff: Seq[LocalIngredient])
+      case class LocalPizza(
+        name:       String,
+        vegetarian: Boolean,
+        vegan:      Boolean,
+        calories:   Int,
+        stuff:      Seq[LocalIngredient],
+      )
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
-      val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
+      val record            = RecordFormat[Pizza].to(pepperoni)
+      val struct            = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
       val actual = struct.sql("SELECT *, ingredients as stuff FROM topic withstructure")
 
-
-      val newpepperoni = LocalPizza(pepperoni.name, pepperoni.vegetarian, pepperoni.vegan, pepperoni.calories, Seq(LocalIngredient("pepperoni", 12, 4.4), LocalIngredient("onions", 1, 0.4)))
+      val newpepperoni = LocalPizza(
+        pepperoni.name,
+        pepperoni.vegetarian,
+        pepperoni.vegan,
+        pepperoni.calories,
+        Seq(LocalIngredient("pepperoni", 12, 4.4), LocalIngredient("onions", 1, 0.4)),
+      )
       compare(actual, newpepperoni)
     }
 
     "handle 'SELECT name as fieldName, * FROM topic withstructure' for a struct" in {
       case class LocalIngredient(name: String, sugar: Double, fat: Double)
-      case class LocalPizza(fieldName: String, ingredients: Seq[LocalIngredient], vegetarian: Boolean, vegan: Boolean, calories: Int)
+      case class LocalPizza(
+        fieldName:   String,
+        ingredients: Seq[LocalIngredient],
+        vegetarian:  Boolean,
+        vegan:       Boolean,
+        calories:    Int,
+      )
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
-      val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
+      val record            = RecordFormat[Pizza].to(pepperoni)
+      val struct            = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
       val actual = struct.sql("SELECT name as fieldName, * FROM topic withstructure")
 
-      val newpepperoni = LocalPizza(pepperoni.name, Seq(LocalIngredient("pepperoni", 12, 4.4), LocalIngredient("onions", 1, 0.4)), pepperoni.vegetarian, pepperoni.vegan, pepperoni.calories)
+      val newpepperoni = LocalPizza(
+        pepperoni.name,
+        Seq(LocalIngredient("pepperoni", 12, 4.4), LocalIngredient("onions", 1, 0.4)),
+        pepperoni.vegetarian,
+        pepperoni.vegan,
+        pepperoni.calories,
+      )
       compare(actual, newpepperoni)
     }
 
     "handle 'SELECT vegan FROM topic withstructure' for a struct" in {
       case class LocalPizza(vegan: Boolean)
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
-      val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
+      val record            = RecordFormat[Pizza].to(pepperoni)
+      val struct            = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
       val actual = struct.sql("SELECT vegan FROM topic withstructure")
 
@@ -106,11 +147,12 @@ class StructSqlWithRetainStructureTest extends AnyWordSpec with Matchers {
     "handle 'SELECT vegan as veganA FROM topic withstructure' for a struct" in {
       case class LocalPizza(veganA: Boolean)
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
-      val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
+      val record            = RecordFormat[Pizza].to(pepperoni)
+      val struct            = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
       val actual = struct.sql("SELECT vegan as veganA FROM topic withstructure")
 
@@ -122,11 +164,12 @@ class StructSqlWithRetainStructureTest extends AnyWordSpec with Matchers {
       case class LocalIngredient(name: String)
       case class LocalPizza(ingredients: Seq[LocalIngredient])
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
-      val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
+      val record            = RecordFormat[Pizza].to(pepperoni)
+      val struct            = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
       val actual = struct.sql("SELECT ingredients.name FROM topic withstructure")
 
@@ -138,11 +181,12 @@ class StructSqlWithRetainStructureTest extends AnyWordSpec with Matchers {
       case class LocalIngredient(name: String, sugar: Double)
       case class LocalPizza(ingredients: Seq[LocalIngredient])
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
-      val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
+      val record            = RecordFormat[Pizza].to(pepperoni)
+      val struct            = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
       val actual = struct.sql("SELECT ingredients.name, ingredients.sugar FROM topic withstructure")
 
@@ -154,30 +198,34 @@ class StructSqlWithRetainStructureTest extends AnyWordSpec with Matchers {
       case class LocalIngredient(fieldName: String, fieldSugar: Double)
       case class LocalPizza(ingredients: Seq[LocalIngredient])
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
-      val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
+      val record            = RecordFormat[Pizza].to(pepperoni)
+      val struct            = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
-      val actual = struct.sql("SELECT ingredients.name as fieldName, ingredients.sugar as fieldSugar FROM topic withstructure")
+      val actual =
+        struct.sql("SELECT ingredients.name as fieldName, ingredients.sugar as fieldSugar FROM topic withstructure")
 
       val newpepperoni = LocalPizza(Seq(LocalIngredient("pepperoni", 12), LocalIngredient("onions", 1)))
       compare(actual, newpepperoni)
     }
 
-
     "handle 'SELECT ingredients.*,ingredients.name as fieldName, ingredients.sugar as fieldSugar FROM topic withstructure' for a struct" in {
       case class LocalIngredient(fat: Double, fieldName: String, fieldSugar: Double)
       case class LocalPizza(ingredients: Seq[LocalIngredient])
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
-      val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
+      val record            = RecordFormat[Pizza].to(pepperoni)
+      val struct            = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
-      val actual = struct.sql("SELECT ingredients.*,ingredients.name as fieldName, ingredients.sugar as fieldSugar FROM topic withstructure")
+      val actual = struct.sql(
+        "SELECT ingredients.*,ingredients.name as fieldName, ingredients.sugar as fieldSugar FROM topic withstructure",
+      )
 
       val newpepperoni = LocalPizza(Seq(LocalIngredient(4.4, "pepperoni", 12), LocalIngredient(0.4, "onions", 1)))
       compare(actual, newpepperoni)
@@ -187,13 +235,16 @@ class StructSqlWithRetainStructureTest extends AnyWordSpec with Matchers {
       case class LocalIngredient(fieldName: String, fat: Double, fieldSugar: Double)
       case class LocalPizza(ingredients: Seq[LocalIngredient])
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
-      val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
+      val record            = RecordFormat[Pizza].to(pepperoni)
+      val struct            = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
-      val actual = struct.sql("SELECT ingredients.name as fieldName,ingredients.*, ingredients.sugar as fieldSugar FROM topic withstructure")
+      val actual = struct.sql(
+        "SELECT ingredients.name as fieldName,ingredients.*, ingredients.sugar as fieldSugar FROM topic withstructure",
+      )
 
       val newpepperoni = LocalPizza(Seq(LocalIngredient("pepperoni", 4.4, 12), LocalIngredient("onions", 0.4, 1)))
       compare(actual, newpepperoni)
@@ -203,32 +254,38 @@ class StructSqlWithRetainStructureTest extends AnyWordSpec with Matchers {
       case class LocalIngredient(fieldName: String, fieldSugar: Double, fat: Double)
       case class LocalPizza(ingredients: Seq[LocalIngredient])
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
-      val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
+      val record            = RecordFormat[Pizza].to(pepperoni)
+      val struct            = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
-      val actual = struct.sql("SELECT ingredients.name as fieldName, ingredients.sugar as fieldSugar, ingredients.* FROM topic withstructure")
+      val actual = struct.sql(
+        "SELECT ingredients.name as fieldName, ingredients.sugar as fieldSugar, ingredients.* FROM topic withstructure",
+      )
 
       val newpepperoni = LocalPizza(Seq(LocalIngredient("pepperoni", 12, 4.4), LocalIngredient("onions", 1, 0.4)))
       compare(actual, newpepperoni)
     }
 
-
     "handle 'SELECT name, ingredients.name as fieldName, ingredients.sugar as fieldSugar, ingredients.* FROM topic withstructure' for a struct" in {
       case class LocalIngredient(fieldName: String, fieldSugar: Double, fat: Double)
       case class LocalPizza(name: String, ingredients: Seq[LocalIngredient])
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
-      val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
+      val record            = RecordFormat[Pizza].to(pepperoni)
+      val struct            = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
-      val actual = struct.sql("SELECT name, ingredients.name as fieldName, ingredients.sugar as fieldSugar, ingredients.* FROM topic withstructure")
+      val actual = struct.sql(
+        "SELECT name, ingredients.name as fieldName, ingredients.sugar as fieldSugar, ingredients.* FROM topic withstructure",
+      )
 
-      val newpepperoni = LocalPizza("pepperoni", Seq(LocalIngredient("pepperoni", 12, 4.4), LocalIngredient("onions", 1, 0.4)))
+      val newpepperoni =
+        LocalPizza("pepperoni", Seq(LocalIngredient("pepperoni", 12, 4.4), LocalIngredient("onions", 1, 0.4)))
       compare(actual, newpepperoni)
     }
 
@@ -236,15 +293,19 @@ class StructSqlWithRetainStructureTest extends AnyWordSpec with Matchers {
       case class LocalIngredient(fieldName: String, fieldSugar: Double, fat: Double)
       case class LocalPizza(name: String, ingredients: Seq[LocalIngredient], cals: Int)
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
-      val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
+      val record            = RecordFormat[Pizza].to(pepperoni)
+      val struct            = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
 
-      val actual = struct.sql("SELECT name, ingredients.name as fieldName, ingredients.sugar as fieldSugar, ingredients.*, calories as cals FROM topic withstructure")
+      val actual = struct.sql(
+        "SELECT name, ingredients.name as fieldName, ingredients.sugar as fieldSugar, ingredients.*, calories as cals FROM topic withstructure",
+      )
 
-      val newpepperoni = LocalPizza("pepperoni", Seq(LocalIngredient("pepperoni", 12, 4.4), LocalIngredient("onions", 1, 0.4)), 98)
+      val newpepperoni =
+        LocalPizza("pepperoni", Seq(LocalIngredient("pepperoni", 12, 4.4), LocalIngredient("onions", 1, 0.4)), 98)
       compare(actual, newpepperoni)
     }
 
@@ -252,15 +313,19 @@ class StructSqlWithRetainStructureTest extends AnyWordSpec with Matchers {
       case class LocalIngredient(fieldName: String, fieldSugar: Double, fat: Double)
       case class LocalPizza(name: String, ingredients: Seq[LocalIngredient], cals: Int)
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
+      val record            = RecordFormat[Pizza].to(pepperoni)
 
       val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
-      val actual = struct.sql("SELECT name, ingredients.name as fieldName, calories as cals, ingredients.sugar as fieldSugar, ingredients.* FROM topic withstructure")
+      val actual = struct.sql(
+        "SELECT name, ingredients.name as fieldName, calories as cals, ingredients.sugar as fieldSugar, ingredients.* FROM topic withstructure",
+      )
 
-      val newpepperoni = LocalPizza("pepperoni", Seq(LocalIngredient("pepperoni", 12, 4.4), LocalIngredient("onions", 1, 0.4)), 98)
+      val newpepperoni =
+        LocalPizza("pepperoni", Seq(LocalIngredient("pepperoni", 12, 4.4), LocalIngredient("onions", 1, 0.4)), 98)
       compare(actual, newpepperoni)
     }
   }

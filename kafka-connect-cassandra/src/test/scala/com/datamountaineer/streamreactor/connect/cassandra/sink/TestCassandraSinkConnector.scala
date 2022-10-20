@@ -18,21 +18,23 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import org.scalatest.{BeforeAndAfter, Suite}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.Suite
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class TestCassandraSinkConnector extends AnyWordSpec with BeforeAndAfter with Matchers with TestConfig {
   "Should start a Cassandra Sink Connector" in {
-    val props =  Map(
-      "topics" -> s"$TOPIC1, $TOPIC2",
+    val props = Map(
+      "topics"                                -> s"$TOPIC1, $TOPIC2",
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
-      CassandraConfigConstants.USERNAME -> USERNAME,
-      CassandraConfigConstants.PASSWD -> PASSWD,
-      CassandraConfigConstants.KCQL -> QUERY_ALL
+      CassandraConfigConstants.KEY_SPACE      -> CASSANDRA_SINK_KEYSPACE,
+      CassandraConfigConstants.USERNAME       -> USERNAME,
+      CassandraConfigConstants.PASSWD         -> PASSWD,
+      CassandraConfigConstants.KCQL           -> QUERY_ALL,
     ).asJava
 
     val connector = new CassandraSinkConnector()

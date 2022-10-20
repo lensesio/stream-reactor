@@ -9,25 +9,25 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 class SourceConverterConfigWrapperTest extends AnyWordSpecLike with MockitoSugar with EitherValues with Matchers {
   private val converter = mock[JMSSourceMessageConverter]
-  private val wrapper = SourceConverterConfigWrapper(converter)
+  private val wrapper   = SourceConverterConfigWrapper(converter)
 
   "should return the converter when requesting converter for source" in {
-    wrapper.forSource.value shouldBe (converter)
+    wrapper.forSource.value shouldBe converter
   }
 
   "should return an error when requesting converter for sink" in {
-    wrapper.forSink.left.value should be ("Configured source, requested sink")
+    wrapper.forSink.left.value should be("Configured source, requested sink")
   }
 }
 class SinkConverterConfigWrapperTest extends AnyWordSpecLike with MockitoSugar with EitherValues with Matchers {
   private val converter = mock[JMSSinkMessageConverter]
-  private val wrapper = SinkConverterConfigWrapper(converter)
+  private val wrapper   = SinkConverterConfigWrapper(converter)
 
   "should return the converter when requesting converter for sink" in {
-    wrapper.forSink.value shouldBe (converter)
+    wrapper.forSink.value shouldBe converter
   }
 
   "should return an error when requesting converter for source" in {
-    wrapper.forSource.left.value should be ("Configured sink, requested source")
+    wrapper.forSource.left.value should be("Configured sink, requested source")
   }
 }

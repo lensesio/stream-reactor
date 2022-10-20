@@ -18,20 +18,26 @@
 
 package com.datamountaineer.streamreactor.connect.jms.sink
 
-import com.datamountaineer.streamreactor.connect.jms.{ItTestBase, Using}
-import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
+import com.datamountaineer.streamreactor.connect.jms.ItTestBase
+import com.datamountaineer.streamreactor.connect.jms.Using
+import com.fasterxml.jackson.databind.node.ArrayNode
+import com.fasterxml.jackson.databind.node.IntNode
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.json.JsonDeserializer
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
 
 import java.io.File
 import java.util
 import java.util.UUID
-import javax.jms.{Message, MessageListener, Session, TextMessage}
+import javax.jms.Message
+import javax.jms.MessageListener
+import javax.jms.Session
+import javax.jms.TextMessage
 import scala.language.reflectiveCalls
 import scala.reflect.io.Path
 

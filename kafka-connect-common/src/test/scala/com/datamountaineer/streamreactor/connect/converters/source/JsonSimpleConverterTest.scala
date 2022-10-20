@@ -25,15 +25,15 @@ import java.util.Collections
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 class JsonSimpleConverterTest extends AnyWordSpec with Matchers {
-  val topic = "the_real_topic"
+  val topic       = "the_real_topic"
   val sourceTopic = "source_topic"
 
   "JsonSimpleConverter" should {
     "convert from json to the struct" in {
-      val car = Car("LaFerrari", "Ferrari", 2015, 963, 0.0001)
-      val json = JacksonJson.toJson(car)
+      val car       = Car("LaFerrari", "Ferrari", 2015, 963, 0.0001)
+      val json      = JacksonJson.toJson(car)
       val converter = new JsonSimpleConverter
-      val record = converter.convert(topic, sourceTopic, "100", json.getBytes)
+      val record    = converter.convert(topic, sourceTopic, "100", json.getBytes)
       record.keySchema() shouldBe MsgKey.schema
       record.key() shouldBe MsgKey.getStruct(sourceTopic, "100")
 

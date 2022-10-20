@@ -16,16 +16,23 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
-import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfig
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfigConstants
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConnectionInfo
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
+import com.dimafeng.testcontainers.ForAllTestContainer
+import com.dimafeng.testcontainers.GenericContainer
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar
 import org.scalatest.concurrent.Eventually._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import redis.clients.jedis.{Jedis, JedisPubSub}
+import redis.clients.jedis.Jedis
+import redis.clients.jedis.JedisPubSub
 
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.MapHasAsJava

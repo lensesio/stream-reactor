@@ -17,11 +17,12 @@
 package com.datamountaineer.streamreactor.common.sink
 
 import com.datamountaineer.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-
 
 class StringStructFieldsStringKeyBuilderTest extends AnyWordSpec with Matchers {
   "StructFieldsStringKeyBuilder" should {

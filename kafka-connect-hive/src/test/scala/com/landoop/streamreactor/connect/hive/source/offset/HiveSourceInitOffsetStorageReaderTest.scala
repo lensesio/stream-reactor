@@ -16,8 +16,11 @@
 
 package com.landoop.streamreactor.connect.hive.source.offset
 
-import com.landoop.streamreactor.connect.hive.source.{SourceOffset, SourcePartition}
-import com.landoop.streamreactor.connect.hive.{DatabaseName, TableName, Topic}
+import com.landoop.streamreactor.connect.hive.source.SourceOffset
+import com.landoop.streamreactor.connect.hive.source.SourcePartition
+import com.landoop.streamreactor.connect.hive.DatabaseName
+import com.landoop.streamreactor.connect.hive.TableName
+import com.landoop.streamreactor.connect.hive.Topic
 import org.apache.hadoop.fs.Path
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
@@ -25,9 +28,11 @@ import org.scalatest.matchers.should.Matchers
 
 class HiveSourceInitOffsetStorageReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
-  private val sourcePartitionNoOffset = SourcePartition(DatabaseName("databaseName2"), TableName("tableName2"), Topic("topic2"), new Path("path2"))
+  private val sourcePartitionNoOffset =
+    SourcePartition(DatabaseName("databaseName2"), TableName("tableName2"), Topic("topic2"), new Path("path2"))
 
-  private val sourcePartition = SourcePartition(DatabaseName("databaseName1"), TableName("tableName1"), Topic("topic1"), new Path("path1"))
+  private val sourcePartition =
+    SourcePartition(DatabaseName("databaseName1"), TableName("tableName1"), Topic("topic1"), new Path("path1"))
 
   private val sourceOffset = SourceOffset(100)
 
@@ -37,13 +42,12 @@ class HiveSourceInitOffsetStorageReaderTest extends AnyFlatSpec with MockitoSuga
 
   "offset" should "find offset recorded in OffsetStorageReader" in {
 
-    target.offset(sourcePartition) should be (Some(sourceOffset))
+    target.offset(sourcePartition) should be(Some(sourceOffset))
   }
 
   "offset" should "return None when none found" in {
 
-    target.offset(sourcePartitionNoOffset) should be (None)
+    target.offset(sourcePartitionNoOffset) should be(None)
   }
-
 
 }

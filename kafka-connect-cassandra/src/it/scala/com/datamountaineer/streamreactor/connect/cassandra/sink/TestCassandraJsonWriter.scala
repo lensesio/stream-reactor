@@ -19,21 +19,33 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.cassandra.ItTestConfig
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink}
-import com.datastax.driver.core.{ConsistencyLevel, Session}
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
+import com.datastax.driver.core.ConsistencyLevel
+import com.datastax.driver.core.Session
 import com.datastax.driver.core.utils.UUIDs
 import org.apache.kafka.common.record.TimestampType
-import org.apache.kafka.connect.data.{Decimal, Schema, SchemaBuilder, Struct}
-import org.apache.kafka.connect.errors.{ConnectException, RetriableException}
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
+import org.apache.kafka.connect.data.Decimal
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.errors.RetriableException
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, DoNotDiscover, Suite}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.DoNotDiscover
+import org.scalatest.Suite
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.util.UUID
 import scala.annotation.nowarn
-import scala.jdk.CollectionConverters.{IterableHasAsScala, ListHasAsScala, MapHasAsJava, SeqHasAsJava}
+import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
   * Created by andrew@datamountaineer.com on 04/05/16.

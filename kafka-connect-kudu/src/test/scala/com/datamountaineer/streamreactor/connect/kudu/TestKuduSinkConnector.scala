@@ -17,19 +17,18 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfigConstants
-import com.datamountaineer.streamreactor.connect.kudu.sink.{KuduSinkConnector, KuduSinkTask}
+import com.datamountaineer.streamreactor.connect.kudu.sink.KuduSinkConnector
+import com.datamountaineer.streamreactor.connect.kudu.sink.KuduSinkTask
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-
-
 /**
-  * Created by andrew@datamountaineer.com on 24/02/16. 
+  * Created by andrew@datamountaineer.com on 24/02/16.
   * stream-reactor
   */
 class TestKuduSinkConnector extends TestBase {
   "Should start a Kudu Connector" in {
-    val config = getConfig
+    val config    = getConfig
     val connector = new KuduSinkConnector()
     connector.start(config)
     val taskConfigs = connector.taskConfigs(1).asScala

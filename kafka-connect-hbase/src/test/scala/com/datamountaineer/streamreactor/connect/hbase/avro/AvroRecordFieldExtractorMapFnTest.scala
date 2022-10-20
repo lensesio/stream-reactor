@@ -44,11 +44,11 @@ class AvroRecordFieldExtractorMapFnTest extends AnyWordSpec with Matchers {
       val mappings = AvroRecordFieldExtractorMapFn(schema, Seq("firstName", "age"))
 
       val fnFirstName = mappings("firstName")
-      val firstName = "Beaky"
+      val firstName   = "Beaky"
       fnFirstName(firstName) shouldBe Bytes.toBytes(firstName)
 
       val fnAge = mappings("age")
-      val age = 31
+      val age   = 31
       fnAge(age) shouldBe Bytes.toBytes(age)
       intercept[ClassCastException] {
         fnAge(12.4)

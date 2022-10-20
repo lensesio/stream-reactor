@@ -18,23 +18,27 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
 import java.util
 import java.util.Collections
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceRecord
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-case class Transaction(lock_time: Long,
-                       ver: Int,
-                       size: Long,
-                       inputs: Seq[Input],
-                       rbf: Option[Boolean],
-                       time: Long,
-                       tx_index: Long,
-                       vin_sz: Int,
-                       hash: String,
-                       vout_sz: Int,
-                       relayed_by: String,
-                       out: Seq[Output]) {
+case class Transaction(
+  lock_time:  Long,
+  ver:        Int,
+  size:       Long,
+  inputs:     Seq[Input],
+  rbf:        Option[Boolean],
+  time:       Long,
+  tx_index:   Long,
+  vin_sz:     Int,
+  hash:       String,
+  vout_sz:    Int,
+  relayed_by: String,
+  out:        Seq[Output],
+) {
   def toHashMap: util.HashMap[String, Any] = {
     val map = new util.HashMap[String, Any]()
     map.put("lock_time", lock_time)
@@ -58,7 +62,6 @@ case class Transaction(lock_time: Long,
   }
 }
 
-
 object Transaction {
   val ConnectSchema = SchemaBuilder.struct
     .name("transaction")
@@ -77,17 +80,16 @@ object Transaction {
     .build()
 
   implicit class TransactionToSourceRecordConverter(val tx: Transaction) extends AnyVal {
-    def toSourceRecord(topic: String, partition: Int, key: Option[String]) = {
+    def toSourceRecord(topic: String, partition: Int, key: Option[String]) =
       new SourceRecord(Option(key).map(Collections.singletonMap("Blockchain", _)).orNull,
-        getOffset(),
-        topic,
-        partition,
-        key.map(_ => Schema.STRING_SCHEMA).orNull,
-        key.orNull,
-        ConnectSchema,
-        tx.toStruct()
+                       getOffset(),
+                       topic,
+                       partition,
+                       key.map(_ => Schema.STRING_SCHEMA).orNull,
+                       key.orNull,
+                       ConnectSchema,
+                       tx.toStruct(),
       )
-    }
 
     private def getOffset() = Collections.singletonMap("position", System.currentTimeMillis())
 

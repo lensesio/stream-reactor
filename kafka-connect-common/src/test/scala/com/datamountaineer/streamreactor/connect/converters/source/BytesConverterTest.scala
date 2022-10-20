@@ -23,7 +23,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class BytesConverterTest extends AnyWordSpec with Matchers {
   private val converter = new BytesConverter()
-  private val topic = "topicA"
+  private val topic     = "topicA"
 
   "BytesConverter" should {
     "handle null payloads" in {

@@ -17,11 +17,11 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import com.datamountaineer.streamreactor.connect.kudu.sink.KuduSinkTask
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
-
 
 /**
   * Created by andrew@datamountaineer.com on 04/03/16.
@@ -29,7 +29,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
   */
 class TestKuduSink extends TestBase with MockitoSugar {
   "Should start a Kudu Sink" taggedAs SlowTest in {
-    val config = getConfig
+    val config  = getConfig
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
     when(context.configs()).thenReturn(config)

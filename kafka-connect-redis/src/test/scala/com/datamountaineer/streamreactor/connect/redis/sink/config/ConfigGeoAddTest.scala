@@ -4,8 +4,8 @@ import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSup
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala}
-
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
   * Using `SELECT .. FROM .. PK .. STOREAS GeoAdd` we can insert a record form topic into Redis with GEOADD command
@@ -21,9 +21,9 @@ class ConfigGeoAddTest extends AnyWordSpec with Matchers with RedisMockSupport {
   // GEOADD with PK
   val KCQL1 = "SELECT * from addressTopic PK addressId STOREAS GeoAdd"
   KCQL1 in {
-    val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL1))
+    val config   = getRedisSinkConfig(password = true, KCQL = Option(KCQL1))
     val settings = RedisSinkSettings(config)
-    val route = settings.kcqlSettings.head.kcqlConfig
+    val route    = settings.kcqlSettings.head.kcqlConfig
 
     route.getStoredAs shouldBe "GeoAdd"
     route.getFields.asScala.exists(_.getName.equals("*")) shouldBe true
@@ -35,9 +35,9 @@ class ConfigGeoAddTest extends AnyWordSpec with Matchers with RedisMockSupport {
   // GEOADD with PK and prefix
   val KCQL2 = "INSERT INTO address_set SELECT * from addressTopic PK addressId STOREAS GeoAdd"
   KCQL2 in {
-    val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL2))
+    val config   = getRedisSinkConfig(password = true, KCQL = Option(KCQL2))
     val settings = RedisSinkSettings(config)
-    val route = settings.kcqlSettings.head.kcqlConfig
+    val route    = settings.kcqlSettings.head.kcqlConfig
 
     route.getStoredAs shouldBe "GeoAdd"
     route.getFields.asScala.exists(_.getName.equals("*")) shouldBe true
@@ -50,10 +50,10 @@ class ConfigGeoAddTest extends AnyWordSpec with Matchers with RedisMockSupport {
   val KCQL3: String = "INSERT INTO address_set SELECT country from addressTopic PK addressId " +
     "STOREAS GeoAdd (longitudeField=lng, latitudeField=lat)"
   KCQL3 in {
-    val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL3))
+    val config   = getRedisSinkConfig(password = true, KCQL = Option(KCQL3))
     val settings = RedisSinkSettings(config)
-    val route = settings.kcqlSettings.head.kcqlConfig
-    val fields = route.getFields.asScala.toList
+    val route    = settings.kcqlSettings.head.kcqlConfig
+    val fields   = route.getFields.asScala.toList
 
     route.getFields.asScala.exists(_.getName.equals("*")) shouldBe false
     fields.length shouldBe 1

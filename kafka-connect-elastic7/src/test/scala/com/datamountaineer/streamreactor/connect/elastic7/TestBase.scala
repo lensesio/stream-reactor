@@ -54,14 +54,14 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfter {
     ASSIGNMENT
 
   def getElasticSinkConfigProps(
-                                 clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-                               ): util.Map[String, String] =
+    clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
+  ): util.Map[String, String] =
     getBaseElasticSinkConfigProps(QUERY, clusterName)
 
   def getBaseElasticSinkConfigProps(
-                                     query:       String,
-                                     clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-                                   ): util.Map[String, String] =
+    query:       String,
+    clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
+  ): util.Map[String, String] =
     Map(
       "topics"                               -> TOPIC,
       ElasticConfigConstants.HOSTS           -> ELASTIC_SEARCH_HOSTNAMES,
@@ -71,20 +71,20 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfter {
     ).asJava
 
   def getElasticSinkConfigPropsHTTPClient(
-                                           autoCreate:  Boolean,
-                                           auth:        Boolean = false,
-                                           clusterName: String  = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-                                         ): util.Map[String, String] =
+    autoCreate:  Boolean,
+    auth:        Boolean = false,
+    clusterName: String  = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
+  ): util.Map[String, String] =
     Map(
       ElasticConfigConstants.HOSTS           -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
       ElasticConfigConstants.PROTOCOL        -> ElasticConfigConstants.PROTOCOL_DEFAULT,
       ElasticConfigConstants.KCQL            -> QUERY,
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME -> (if (auth) BASIC_AUTH_USERNAME
-      else
-        ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT),
+                                                                 else
+                                                                   ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT),
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD -> (if (auth) BASIC_AUTH_PASSWORD
-      else
-        ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT),
+                                                                 else
+                                                                   ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT),
     ).asJava
 }

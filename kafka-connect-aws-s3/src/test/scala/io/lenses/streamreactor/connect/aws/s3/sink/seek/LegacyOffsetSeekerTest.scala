@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -20,16 +19,27 @@ package io.lenses.streamreactor.connect.aws.s3.sink.seek
 import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
-import io.lenses.streamreactor.connect.aws.s3.model.{Offset, Topic, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.aws.s3.model.Topic
+import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.aws.s3.sink.HierarchicalS3FileNamingStrategy
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{BeforeAndAfter, EitherValues, OptionValues}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.EitherValues
+import org.scalatest.OptionValues
 
-class LegacyOffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers with BeforeAndAfter with EitherValues with OptionValues {
+class LegacyOffsetSeekerTest
+    extends AnyFlatSpec
+    with MockitoSugar
+    with Matchers
+    with BeforeAndAfter
+    with EitherValues
+    with OptionValues {
 
   private val fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json))
 
@@ -37,9 +47,9 @@ class LegacyOffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers
 
   private val offsetSeeker = new LegacyOffsetSeeker("mySinkName")
 
-  private val topicPartition = Topic("myTopic").withPartition(0)
+  private val topicPartition  = Topic("myTopic").withPartition(0)
   private val bucketAndPrefix = RemoteS3RootLocation("my-bucket:path")
-  private val bucketAndPath = RemoteS3PathLocation("my-bucket", Some("path"), "path/myTopic/0/")
+  private val bucketAndPath   = RemoteS3PathLocation("my-bucket", Some("path"), "path/myTopic/0/")
 
   after {
     reset(storageInterface)
@@ -62,8 +72,8 @@ class LegacyOffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers
     offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).value.value should be(
       (
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(100)),
-        bucketAndPrefix.withPath("path/myTopic/0/100.json")
-      )
+        bucketAndPrefix.withPath("path/myTopic/0/100.json"),
+      ),
     )
 
     verify(storageInterface).list(bucketAndPath)
@@ -73,31 +83,36 @@ class LegacyOffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers
 
     when(storageInterface.pathExists(bucketAndPath)).thenReturn(true.asRight)
     when(storageInterface.list(bucketAndPath)).thenReturn(
-      List("path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json").asRight
+      List("path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json").asRight,
     )
 
     offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).value.value should be(
       (
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(300)),
-        bucketAndPrefix.withPath("path/myTopic/0/300.json")
-      )
+        bucketAndPrefix.withPath("path/myTopic/0/300.json"),
+      ),
     )
   }
-
 
   "seek" should "return highest offset for multiple offsets of different files" in {
 
     when(storageInterface.pathExists(bucketAndPath)).thenReturn(true.asRight)
     when(storageInterface.list(bucketAndPath)).thenReturn(
-      List("path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json",
-        "path/notMyTopic/0/300.json", "path/notMyTopic/0/200.json", "path/notMyTopic/0/100.json").asRight
+      List(
+        "path/myTopic/0/100.json",
+        "path/myTopic/0/200.json",
+        "path/myTopic/0/300.json",
+        "path/notMyTopic/0/300.json",
+        "path/notMyTopic/0/200.json",
+        "path/notMyTopic/0/100.json",
+      ).asRight,
     )
 
     offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).value.value should be(
       (
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(300)),
-        bucketAndPrefix.withPath("path/myTopic/0/300.json")
-      )
+        bucketAndPrefix.withPath("path/myTopic/0/300.json"),
+      ),
     )
   }
 
@@ -106,16 +121,19 @@ class LegacyOffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers
     when(storageInterface.pathExists(bucketAndPath)).thenReturn(true.asRight)
     when(storageInterface.list(bucketAndPath)).thenReturn(
       List(
-        "path/myTopic/0/100.avro", "path/myTopic/0/200.avro", "path/myTopic/0/300.avro",
-        "path/myTopic/0/100.json", "path/myTopic/0/200.json"
-      ).asRight
+        "path/myTopic/0/100.avro",
+        "path/myTopic/0/200.avro",
+        "path/myTopic/0/300.avro",
+        "path/myTopic/0/100.json",
+        "path/myTopic/0/200.json",
+      ).asRight,
     )
 
     offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).value.value should be(
       (
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(200)),
-        bucketAndPrefix.withPath("path/myTopic/0/200.json")
-      )
+        bucketAndPrefix.withPath("path/myTopic/0/200.json"),
+      ),
     )
   }
 
@@ -124,35 +142,40 @@ class LegacyOffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers
     when(storageInterface.pathExists(bucketAndPath)).thenReturn(true.asRight)
     when(storageInterface.list(bucketAndPath)).thenReturn(
       List(
-        "path/myTopic/0/100.doc", "path/myTopic/0/200.xls", "path/myTopic/0/300.ppt",
-        "path/myTopic/0/100.json", "path/myTopic/0/200.json"
-      ).asRight
+        "path/myTopic/0/100.doc",
+        "path/myTopic/0/200.xls",
+        "path/myTopic/0/300.ppt",
+        "path/myTopic/0/100.json",
+        "path/myTopic/0/200.json",
+      ).asRight,
     )
 
     offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).value.value should be(
       (
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(200)),
-        bucketAndPrefix.withPath("path/myTopic/0/200.json")
-      )
+        bucketAndPrefix.withPath("path/myTopic/0/200.json"),
+      ),
     )
   }
-
 
   "seek" should "ignore files with no extensions" in {
 
     when(storageInterface.pathExists(bucketAndPath)).thenReturn(true.asRight)
     when(storageInterface.list(bucketAndPath)).thenReturn(
       List(
-        "path/myTopic/0/100", "path/myTopic/0/200", "path/myTopic/0/300",
-        "path/myTopic/0/100.json", "path/myTopic/0/200.json"
-      ).asRight
+        "path/myTopic/0/100",
+        "path/myTopic/0/200",
+        "path/myTopic/0/300",
+        "path/myTopic/0/100.json",
+        "path/myTopic/0/200.json",
+      ).asRight,
     )
 
     offsetSeeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix).value.value should be(
       (
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(200)),
-        bucketAndPrefix.withPath("path/myTopic/0/200.json")
-      )
+        bucketAndPrefix.withPath("path/myTopic/0/200.json"),
+      ),
     )
   }
 

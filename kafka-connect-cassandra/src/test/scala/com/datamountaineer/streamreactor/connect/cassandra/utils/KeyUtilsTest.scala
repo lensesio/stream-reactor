@@ -2,7 +2,9 @@ package com.datamountaineer.streamreactor.connect.cassandra.utils
 
 import java.util.UUID
 
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -97,7 +99,10 @@ class KeyUtilsTest extends AnyWordSpec with Matchers {
       keyStruct.put("key1", key1)
       keyStruct.put("nested", nested)
 
-      KeyUtils.keysFromStruct(keyStruct, keySchema, Seq("key1", "nested.inside", "nested.nestedOfNested.insideOfNested")) shouldEqual Seq(key1, key2, key3)
+      KeyUtils.keysFromStruct(keyStruct,
+                              keySchema,
+                              Seq("key1", "nested.inside", "nested.nestedOfNested.insideOfNested"),
+      ) shouldEqual Seq(key1, key2, key3)
     }
 
     "return key values in correct key types for obligatory schema" in {
@@ -124,15 +129,15 @@ class KeyUtilsTest extends AnyWordSpec with Matchers {
       keyStruct.put("bytes", "bytes".getBytes)
 
       val fieldNames = Seq("int8", "int16", "int32", "int64", "float32", "float64", "bool", "string", "bytes")
-      val objects = KeyUtils.keysFromStruct(keyStruct, keySchema, fieldNames)
-      objects(0) shouldBe a [java.lang.Byte]
-      objects(1) shouldBe a [java.lang.Short]
-      objects(2) shouldBe a [java.lang.Integer]
-      objects(3) shouldBe a [java.lang.Long]
-      objects(4) shouldBe a [java.lang.Float]
-      objects(5) shouldBe a [java.lang.Double]
-      objects(6) shouldBe a [java.lang.Boolean]
-      objects(7) shouldBe a [java.lang.String]
+      val objects    = KeyUtils.keysFromStruct(keyStruct, keySchema, fieldNames)
+      objects(0) shouldBe a[java.lang.Byte]
+      objects(1) shouldBe a[java.lang.Short]
+      objects(2) shouldBe a[java.lang.Integer]
+      objects(3) shouldBe a[java.lang.Long]
+      objects(4) shouldBe a[java.lang.Float]
+      objects(5) shouldBe a[java.lang.Double]
+      objects(6) shouldBe a[java.lang.Boolean]
+      objects(7) shouldBe a[java.lang.String]
       objects(8).getClass.isArray shouldBe true
       objects(8).getClass.getComponentType.getCanonicalName shouldBe "byte"
     }

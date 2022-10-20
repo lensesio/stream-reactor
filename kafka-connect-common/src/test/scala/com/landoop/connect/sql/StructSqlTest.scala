@@ -1,7 +1,9 @@
 package com.landoop.connect.sql
 
 import com.landoop.connect.sql.StructSql._
-import com.sksamuel.avro4s.{RecordFormat, SchemaFor, ToRecord}
+import com.sksamuel.avro4s.RecordFormat
+import com.sksamuel.avro4s.SchemaFor
+import com.sksamuel.avro4s.ToRecord
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
@@ -31,15 +33,15 @@ class StructSqlTest extends AnyWordSpec with Matchers {
       null.asInstanceOf[Struct].sql("SELECT * FROM topic") shouldBe null.asInstanceOf[Any]
     }
 
-
     "handle 'SELECT name,vegan, calories  FROM topic' for a struct" in {
 
       case class LocalPizza(name: String, vegan: Boolean, calories: Int)
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
+      val record            = RecordFormat[Pizza].to(pepperoni)
 
       val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
       val actual = struct.sql("SELECT name,vegan, calories FROM topic")
@@ -52,10 +54,11 @@ class StructSqlTest extends AnyWordSpec with Matchers {
     "handle 'SELECT name as fieldName,vegan as V, calories as C FROM topic' for a struct" in {
       case class LocalPizza(fieldName: String, V: Boolean, C: Int)
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
-      val record = RecordFormat[Pizza].to(pepperoni)
+      val record            = RecordFormat[Pizza].to(pepperoni)
 
       val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
       val actual = struct.sql("SELECT name as fieldName,vegan as V, calories as C FROM topic")
@@ -68,7 +71,8 @@ class StructSqlTest extends AnyWordSpec with Matchers {
     "handle 'SELECT calories as C ,vegan as V ,name as fieldName FROM topic' for a struct" in {
       case class LocalPizza(C: Int, V: Boolean, fieldName: String)
 
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       implicit val toRecord = ToRecord[LocalPizza]
 
@@ -82,7 +86,8 @@ class StructSqlTest extends AnyWordSpec with Matchers {
     }
 
     "throw an exception when selecting arrays ' for a struct" in {
-      val pepperoni = Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
+      val pepperoni =
+        Pizza("pepperoni", Seq(Ingredient("pepperoni", 12, 4.4), Ingredient("onions", 1, 0.4)), false, false, 98)
 
       val record = RecordFormat[Pizza].to(pepperoni)
       val struct = avroData.toConnectData(SchemaFor[Pizza].schema, record).value.asInstanceOf[Struct]
@@ -97,9 +102,9 @@ class StructSqlTest extends AnyWordSpec with Matchers {
       val person = Person("Rick", Address(Street("Rock St"), None, "MtV", "CA", "94041", "USA"))
 
       implicit val toRecord = ToRecord[LocalPerson]
-      val record = RecordFormat[Person].to(person)
-      val struct = avroData.toConnectData(SchemaFor[Person].schema, record).value.asInstanceOf[Struct]
-      val actual = struct.sql("SELECT name, address.street.name FROM topic")
+      val record            = RecordFormat[Person].to(person)
+      val struct            = avroData.toConnectData(SchemaFor[Person].schema, record).value.asInstanceOf[Struct]
+      val actual            = struct.sql("SELECT name, address.street.name FROM topic")
 
       val localPerson = LocalPerson(person.name, person.address.street.name)
       compare(actual, localPerson)
@@ -108,7 +113,7 @@ class StructSqlTest extends AnyWordSpec with Matchers {
     "handle 'SELECT name, address.street.name as streetName FROM topic' from struct" in {
       case class LocalPerson(name: String, streetName: String)
 
-      val person = Person("Rick", Address(Street("Rock St"), None, "MtV", "CA", "94041", "USA"))
+      val person            = Person("Rick", Address(Street("Rock St"), None, "MtV", "CA", "94041", "USA"))
       implicit val toRecord = ToRecord[LocalPerson]
 
       val record = RecordFormat[Person].to(person)
@@ -123,14 +128,15 @@ class StructSqlTest extends AnyWordSpec with Matchers {
     "handle 'SELECT name, address.street.name as streetName, address.street2.name as streetName2 FROM topic' from struct" in {
       case class LocalPerson(name: String, streetName: String, streetName2: Option[String])
 
-      val person = Person("Rick", Address(Street("Rock St"), None, "MtV", "CA", "94041", "USA"))
+      val person            = Person("Rick", Address(Street("Rock St"), None, "MtV", "CA", "94041", "USA"))
       implicit val toRecord = ToRecord[LocalPerson]
 
       val record = RecordFormat[Person].to(person)
 
       val struct = avroData.toConnectData(SchemaFor[Person].schema, record).value.asInstanceOf[Struct]
 
-      val actual = struct.sql("SELECT name, address.street.name as streetName, address.street2.name as streetName2 FROM topic")
+      val actual =
+        struct.sql("SELECT name, address.street.name as streetName, address.street2.name as streetName2 FROM topic")
 
       val localPerson = LocalPerson(person.name, person.address.street.name, person.address.street2.map(_.name))
       compare(actual, localPerson)
@@ -139,7 +145,7 @@ class StructSqlTest extends AnyWordSpec with Matchers {
     "handle 'SELECT name, address.street.*, address.street2.name as streetName2 FROM topic' from struct" in {
       case class LocalPerson(name: String, name_1: String, streetName2: Option[String])
 
-      val person = Person("Rick", Address(Street("Rock St"), None, "MtV", "CA", "94041", "USA"))
+      val person            = Person("Rick", Address(Street("Rock St"), None, "MtV", "CA", "94041", "USA"))
       implicit val toRecord = ToRecord[LocalPerson]
 
       val record = RecordFormat[Person].to(person)
@@ -154,7 +160,7 @@ class StructSqlTest extends AnyWordSpec with Matchers {
     "handle 'SELECT name, address.street.*, address.street2.* FROM topic' from struct" in {
       case class LocalPerson(name: String, name_1: String, name_2: Option[String])
 
-      val person = Person("Rick", Address(Street("Rock St"), None, "MtV", "CA", "94041", "USA"))
+      val person            = Person("Rick", Address(Street("Rock St"), None, "MtV", "CA", "94041", "USA"))
       implicit val toRecord = ToRecord[LocalPerson]
 
       val record = RecordFormat[Person].to(person)
@@ -168,7 +174,7 @@ class StructSqlTest extends AnyWordSpec with Matchers {
       //val person1 = Person("Rick", Address(Street("Rock St"), Some(Street("412 East")), "MtV", "CA", "94041", "USA"))
       //val record1 = RecordFormat[Person].to(person1)
 
-      val actual1 = struct.sql("SELECT name, address.street.*, address.street2.* FROM topic")
+      val actual1      = struct.sql("SELECT name, address.street.*, address.street2.* FROM topic")
       val localPerson1 = LocalPerson(person.name, person.address.street.name, person.address.street2.map(_.name))
       compare(actual1, localPerson1)
 
@@ -177,7 +183,7 @@ class StructSqlTest extends AnyWordSpec with Matchers {
     "handle 'SELECT address.state, address.city,name, address.street.name FROM topic' from struct" in {
       case class LocalPerson(state: String, city: String, name: String, name_1: String)
 
-      val person = Person("Rick", Address(Street("Rock St"), None, "MtV", "CA", "94041", "USA"))
+      val person            = Person("Rick", Address(Street("Rock St"), None, "MtV", "CA", "94041", "USA"))
       implicit val toRecord = ToRecord[LocalPerson]
 
       val record = RecordFormat[Person].to(person)
@@ -192,7 +198,7 @@ class StructSqlTest extends AnyWordSpec with Matchers {
     "handle 'SELECT address.state as S, address.city as C,name, address.street.name FROM topic' from struct" in {
       case class LocalPerson(S: String, C: String, name: String, name_1: String)
 
-      val person = Person("Rick", Address(Street("Rock St"), None, "MtV", "CA", "94041", "USA"))
+      val person            = Person("Rick", Address(Street("Rock St"), None, "MtV", "CA", "94041", "USA"))
       implicit val toRecord = ToRecord[LocalPerson]
 
       val record = RecordFormat[Person].to(person)
@@ -215,7 +221,6 @@ class StructSqlTest extends AnyWordSpec with Matchers {
       }
     }
 
-
     "handle 'SELECT * FROM simpleAddress' from struct" in {
       val address = SimpleAddress("Rock St", "MtV", "CA", "94041", "USA")
 
@@ -229,7 +234,7 @@ class StructSqlTest extends AnyWordSpec with Matchers {
     "handle 'SELECT street as S, city, state, zip as Z, country as C  FROM simpleAddress' from struct" in {
       case class LocalSimpleAddress(S: String, city: String, state: String, Z: String, C: String)
 
-      val address = SimpleAddress("Rock St", "MtV", "CA", "94041", "USA")
+      val address           = SimpleAddress("Rock St", "MtV", "CA", "94041", "USA")
       implicit val toRecord = ToRecord[LocalSimpleAddress]
 
       val record = RecordFormat[SimpleAddress].to(address)
@@ -245,7 +250,7 @@ class StructSqlTest extends AnyWordSpec with Matchers {
     "handle 'SELECT  zip as Z, * FROM simpleAddress' from struct" in {
       case class LocalSimpleAddress(Z: String, street: String, city: String, state: String, country: String)
 
-      val address = SimpleAddress("Rock St", "MtV", "CA", "94041", "USA")
+      val address           = SimpleAddress("Rock St", "MtV", "CA", "94041", "USA")
       implicit val toRecord = ToRecord[LocalSimpleAddress]
 
       val record = RecordFormat[SimpleAddress].to(address)
@@ -261,7 +266,7 @@ class StructSqlTest extends AnyWordSpec with Matchers {
     "handle 'SELECT  zip as Z, *, state as S FROM simpleAddress' from struct" in {
       case class LocalSimpleAddress(Z: String, street: String, city: String, country: String, S: String)
 
-      val address = SimpleAddress("Rock St", "MtV", "CA", "94041", "USA")
+      val address           = SimpleAddress("Rock St", "MtV", "CA", "94041", "USA")
       implicit val toRecord = ToRecord[LocalSimpleAddress]
 
       val record = RecordFormat[SimpleAddress].to(address)
@@ -275,4 +280,3 @@ class StructSqlTest extends AnyWordSpec with Matchers {
     }
   }
 }
-

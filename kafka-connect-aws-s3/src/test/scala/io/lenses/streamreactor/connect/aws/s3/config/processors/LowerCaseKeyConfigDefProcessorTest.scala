@@ -41,18 +41,24 @@ class LowerCaseKeyConfigDefProcessorTest extends AnyFlatSpec with Matchers {
   }
 
   "lower case key processor" should "work with real example keys" in {
-    processor.process(Map(
-      AWS_ACCESS_KEY.toUpperCase() -> "identity",
-      AWS_SECRET_KEY -> "credential",
-      AUTH_MODE.toUpperCase() -> "Credentials",
-      CUSTOM_ENDPOINT -> "http://127.0.0.1:8099",
-      ENABLE_VIRTUAL_HOST_BUCKETS.toUpperCase() -> "true",
-    )) should be(Right(Map(
-      AWS_ACCESS_KEY -> "identity",
-      AWS_SECRET_KEY -> "credential",
-      AUTH_MODE -> "Credentials",
-      CUSTOM_ENDPOINT -> "http://127.0.0.1:8099",
-      ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
-    )))
+    processor.process(
+      Map(
+        AWS_ACCESS_KEY.toUpperCase()              -> "identity",
+        AWS_SECRET_KEY                            -> "credential",
+        AUTH_MODE.toUpperCase()                   -> "Credentials",
+        CUSTOM_ENDPOINT                           -> "http://127.0.0.1:8099",
+        ENABLE_VIRTUAL_HOST_BUCKETS.toUpperCase() -> "true",
+      ),
+    ) should be(
+      Right(
+        Map(
+          AWS_ACCESS_KEY              -> "identity",
+          AWS_SECRET_KEY              -> "credential",
+          AUTH_MODE                   -> "Credentials",
+          CUSTOM_ENDPOINT             -> "http://127.0.0.1:8099",
+          ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
+        ),
+      ),
+    )
   }
 }

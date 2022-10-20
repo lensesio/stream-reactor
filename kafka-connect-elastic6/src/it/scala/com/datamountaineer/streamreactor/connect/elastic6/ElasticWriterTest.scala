@@ -16,8 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.elastic6
 
-import com.datamountaineer.streamreactor.connect.elastic6.CreateLocalNodeClientUtil.{createLocalNode, createLocalNodeClient}
-import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticSettings}
+import com.datamountaineer.streamreactor.connect.elastic6.CreateLocalNodeClientUtil.createLocalNode
+import com.datamountaineer.streamreactor.connect.elastic6.CreateLocalNodeClientUtil.createLocalNodeClient
+import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticConfig
+import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticSettings
 import com.sksamuel.elastic4s.http.ElasticClient
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import org.elasticsearch.common.settings.Settings

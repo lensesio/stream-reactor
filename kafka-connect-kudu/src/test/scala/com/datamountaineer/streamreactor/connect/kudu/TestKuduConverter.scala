@@ -17,15 +17,18 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import java.util.Collections
-import com.datamountaineer.kcql.{Bucketing, Kcql}
+import com.datamountaineer.kcql.Bucketing
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import org.apache.avro.{Schema, SchemaBuilder}
-import org.apache.kudu.client.{KuduTable, Upsert}
+import org.apache.avro.Schema
+import org.apache.avro.SchemaBuilder
+import org.apache.kudu.client.KuduTable
+import org.apache.kudu.client.Upsert
 import org.mockito.MockitoSugar
 
 import scala.annotation.nowarn
-import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
-
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
   * Created by andrew@datamountaineer.com on 04/03/16.
@@ -35,51 +38,51 @@ import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
 @nowarn
 class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil with MockitoSugar {
   "Should convert a SinkRecord Schema to Kudu Schema" taggedAs SlowTest in {
-    val kcql = mock[Kcql]
+    val kcql      = mock[Kcql]
     val bucketing = mock[Bucketing]
     when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
     when(kcql.getBucketing).thenReturn(bucketing)
-    val record = getTestRecords.head
+    val record        = getTestRecords.head
     val connectSchema = record.valueSchema()
     val connectFields = connectSchema.fields()
-    val kuduSchema = convertToKuduSchema(record, kcql)
+    val kuduSchema    = convertToKuduSchema(record, kcql)
 
     val columns = kuduSchema.getColumns
     columns.size() shouldBe connectFields.size()
   }
 
   "Should convert a SinkRecord into a Kudu Insert operation" taggedAs SlowTest in {
-    val kcql = mock[Kcql]
+    val kcql      = mock[Kcql]
     val bucketing = mock[Bucketing]
     when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
     when(kcql.getBucketing).thenReturn(bucketing)
-    val record = getTestRecords.head
-    val fields = record.valueSchema().fields().asScala.map(f => (f.name(), f.name())).toMap
+    val record     = getTestRecords.head
+    val fields     = record.valueSchema().fields().asScala.map(f => (f.name(), f.name())).toMap
     val kuduSchema = convertToKuduSchema(record, kcql)
-    val kuduRow = kuduSchema.newPartialRow()
-    val insert = mock[Upsert]
+    val kuduRow    = kuduSchema.newPartialRow()
+    val insert     = mock[Upsert]
     when(insert.getRow).thenReturn(kuduRow)
     val table = mock[KuduTable]
     when(table.newUpsert()).thenReturn(insert)
     when(table.getSchema).thenReturn(kuduSchema)
     @nowarn
-    val converted = convert(record, fields)
+    val converted  = convert(record, fields)
     val kuduInsert = convertToKuduUpsert(converted, table)
     kuduRow shouldBe kuduInsert.getRow
   }
 
   "Should convert a SinkRecord into a Kudu Insert operation with Field Selection" taggedAs SlowTest in {
-    val kcql = mock[Kcql]
+    val kcql      = mock[Kcql]
     val bucketing = mock[Bucketing]
     when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
     when(kcql.getBucketing).thenReturn(bucketing)
     val fields = Map("id" -> "id", "long_field" -> "new_field_name")
     val record = getTestRecords.head
     @nowarn
-    val converted = convert(record, fields)
+    val converted  = convert(record, fields)
     val kuduSchema = convertToKuduSchema(converted, kcql)
-    val kuduRow = kuduSchema.newPartialRow()
-    val insert = mock[Upsert]
+    val kuduRow    = kuduSchema.newPartialRow()
+    val insert     = mock[Upsert]
     when(insert.getRow).thenReturn(kuduRow)
     val table = mock[KuduTable]
     when(table.newUpsert()).thenReturn(insert)
@@ -88,14 +91,16 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
     kuduRow shouldBe kuduInsert.getRow
   }
 
-
   "Should convert an Avro to Kudu" taggedAs SlowTest in {
-    val stringSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.STRING)).asJava)
+    val stringSchema =
+      Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.STRING)).asJava)
     val intSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.INT)).asJava)
-    val booleanSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.BOOLEAN)).asJava)
-    val doubleSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.DOUBLE)).asJava)
+    val booleanSchema =
+      Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.BOOLEAN)).asJava)
+    val doubleSchema =
+      Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.DOUBLE)).asJava)
     val floatSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.FLOAT)).asJava)
-    val longSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.LONG)).asJava)
+    val longSchema  = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.LONG)).asJava)
     val bytesSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.BYTES)).asJava)
 
     val schema = SchemaBuilder
@@ -109,7 +114,6 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
       .name("long_field").`type`(longSchema).withDefault(null)
       .name("bytes_field").`type`(bytesSchema).withDefault(null)
       .endRecord()
-
 
     val kuduFields = schema.getFields.asScala.map(f => fromAvro(f.schema(), f.name()).build())
     kuduFields.head.getName shouldBe "string_field"

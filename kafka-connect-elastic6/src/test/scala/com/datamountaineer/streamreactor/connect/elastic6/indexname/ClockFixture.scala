@@ -16,7 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.elastic6.indexname
 
-import java.time.{Clock, Instant, ZoneOffset}
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 
 trait ClockFixture {
   val TestClock = Clock.fixed(Instant.parse("2016-10-02T14:00:00.00Z"), ZoneOffset.UTC)

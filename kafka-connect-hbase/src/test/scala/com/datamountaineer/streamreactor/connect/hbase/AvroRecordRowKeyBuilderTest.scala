@@ -32,13 +32,13 @@ class AvroRecordRowKeyBuilderTest extends AnyWordSpec with Matchers with Mockito
 
   "AvroRecordRowKeyBuilder" should {
     "extract the values from the avro record and create the key" in {
-      val keys = Seq("firstName", "lastName", "age")
+      val keys          = Seq("firstName", "lastName", "age")
       val rowKeyBuilder = new AvroRecordRowKeyBuilderBytes(AvroRecordFieldExtractorMapFn(schema, keys), keys)
 
       val sinkRecord = mock[SinkRecord]
-      val firstName = "Jack"
-      val lastName = "Smith"
-      val age = 29
+      val firstName  = "Jack"
+      val lastName   = "Smith"
+      val age        = 29
 
       val record = new GenericRecord {
 
@@ -50,9 +50,7 @@ class AvroRecordRowKeyBuilderTest extends AnyWordSpec with Matchers with Mockito
 
         override def get(i: Int): AnyRef = throw new ConnectException("not supported")
 
-
         override def put(i: Int, v: scala.Any): Unit = throw new ConnectException("not supported")
-
 
         override def getSchema: Schema = throw new ConnectException("not supported")
       }
@@ -63,7 +61,9 @@ class AvroRecordRowKeyBuilderTest extends AnyWordSpec with Matchers with Mockito
           rowKeyBuilder.delimBytes,
           lastName.fromString(),
           rowKeyBuilder.delimBytes,
-          age.fromInt()))
+          age.fromInt(),
+        ),
+      )
       rowKeyBuilder.build(sinkRecord, record) shouldBe expectedValue
     }
   }

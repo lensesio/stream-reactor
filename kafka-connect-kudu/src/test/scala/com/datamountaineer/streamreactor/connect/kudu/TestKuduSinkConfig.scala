@@ -16,10 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.kudu
 
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduConfigConstants}
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfig
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfigConstants
 
 /**
-  * Created by andrew@datamountaineer.com on 24/02/16. 
+  * Created by andrew@datamountaineer.com on 24/02/16.
   * stream-reactor
   */
 class TestKuduSinkConfig extends TestBase {

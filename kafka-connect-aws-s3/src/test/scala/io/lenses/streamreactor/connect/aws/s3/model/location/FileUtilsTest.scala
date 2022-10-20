@@ -8,16 +8,16 @@ import java.nio.file.Files
 class FileUtilsTest extends AnyFunSuite with Matchers {
 
   test("create parent files") {
-    val tmpDir = Files.createTempDirectory("FileUtilsTest")
+    val tmpDir   = Files.createTempDirectory("FileUtilsTest")
     val filePath = tmpDir.resolve("i/can/haz/cheeseburger.txt")
-    val file = filePath.toFile
+    val file     = filePath.toFile
 
-    file.exists should be (false)
+    file.exists should be(false)
 
     FileUtils.createFileAndParents(filePath.toFile)
 
-    file.exists should be (true)
-    file.isFile should be (true)
+    file.exists should be(true)
+    file.isFile should be(true)
   }
 
 }

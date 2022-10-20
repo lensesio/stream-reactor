@@ -20,7 +20,8 @@ import com.datamountaineer.streamreactor.common.rowkeys.StringStructFieldsString
 import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSupport
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
   * Using `SELECT .. FROM .. PK .. STOREAS SortedSet` we can promote the value of one field to a Redis Sorted Set (SS)
@@ -35,9 +36,9 @@ class ConfigMultipleSortedSetsTest extends AnyWordSpec with Matchers with RedisM
   // A Sorted Set will be used for every sensorID
   val KCQL1 = "SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet TTL = 60"
   KCQL1 in {
-    val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL1))
+    val config   = getRedisSinkConfig(password = true, KCQL = Option(KCQL1))
     val settings = RedisSinkSettings(config)
-    val route = settings.kcqlSettings.head.kcqlConfig
+    val route    = settings.kcqlSettings.head.kcqlConfig
 
     settings.kcqlSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
 
@@ -48,13 +49,14 @@ class ConfigMultipleSortedSetsTest extends AnyWordSpec with Matchers with RedisM
   }
 
   // If you want your Sorted Set to be prefixed use the INSERT
-  val KCQL2 = "INSERT INTO SENSOR- SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet TTL = 60"
+  val KCQL2 =
+    "INSERT INTO SENSOR- SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet TTL = 60"
   // This will store the SortedSet as   Key=SENSOR-<sensorID>
   KCQL2 in {
-    val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL2))
+    val config   = getRedisSinkConfig(password = true, KCQL = Option(KCQL2))
     val settings = RedisSinkSettings(config)
-    val route = settings.kcqlSettings.head.kcqlConfig
-    val fields = route.getFields.asScala.toList
+    val route    = settings.kcqlSettings.head.kcqlConfig
+    val fields   = route.getFields.asScala.toList
 
     route.getPrimaryKeys.asScala.head.getName shouldBe "sensorID"
     route.getFields.asScala.exists(_.getName.equals("*")) shouldBe false
@@ -67,9 +69,9 @@ class ConfigMultipleSortedSetsTest extends AnyWordSpec with Matchers with RedisM
   // Define which field to use to `score` the entry in the Set
   val KCQL3 = "SELECT * FROM sensorsTopic PK sensorID STOREAS SortedSet (score=ts)"
   KCQL3 in {
-    val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL3))
+    val config   = getRedisSinkConfig(password = true, KCQL = Option(KCQL3))
     val settings = RedisSinkSettings(config)
-    val route = settings.kcqlSettings.head.kcqlConfig
+    val route    = settings.kcqlSettings.head.kcqlConfig
 
     route.getStoredAsParameters.asScala shouldBe Map("score" -> "ts")
     route.getPrimaryKeys.asScala.head.getName shouldBe "sensorID"
@@ -80,12 +82,13 @@ class ConfigMultipleSortedSetsTest extends AnyWordSpec with Matchers with RedisM
   }
 
   // Define the Date | DateTime format to use to parse the `score` field (store millis in redis)
-  val KCQL4 = "SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet (score=ts, to=yyyyMMddHHmmss)"
+  val KCQL4 =
+    "SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet (score=ts, to=yyyyMMddHHmmss)"
   KCQL4 in {
-    val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL4))
+    val config   = getRedisSinkConfig(password = true, KCQL = Option(KCQL4))
     val settings = RedisSinkSettings(config)
-    val route = settings.kcqlSettings.head.kcqlConfig
-    val fields = route.getFields.asScala.toList
+    val route    = settings.kcqlSettings.head.kcqlConfig
+    val fields   = route.getFields.asScala.toList
 
     route.getPrimaryKeys.asScala.head.getName shouldBe "sensorID"
     route.getFields.asScala.exists(_.getName.equals("*")) shouldBe false

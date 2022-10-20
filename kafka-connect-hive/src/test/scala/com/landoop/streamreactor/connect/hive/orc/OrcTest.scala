@@ -16,7 +16,7 @@ import org.scalatest.matchers.should.Matchers
 class OrcTest extends AnyFlatSpec with Matchers {
 
   implicit val conf = new Configuration()
-  implicit val fs = FileSystem.getLocal(conf)
+  implicit val fs   = FileSystem.getLocal(conf)
 
   "Orc" should "read and write orc files" in {
 
@@ -29,7 +29,7 @@ class OrcTest extends AnyFlatSpec with Matchers {
 
     val users = Seq(
       new Struct(schema).put("name", "sammy").put("age", 38).put("salary", 54.67),
-      new Struct(schema).put("name", "laura").put("age", 37).put("salary", 91.84)
+      new Struct(schema).put("name", "laura").put("age", 37).put("salary", 91.84),
     )
 
     val path = new Path("orctest.orc")

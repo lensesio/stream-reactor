@@ -16,24 +16,29 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfig
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfigConstants
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConnectionInfo
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import com.dimafeng.testcontainers
 import com.dimafeng.testcontainers.ForAllTestContainer
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.Jedis
 
-import scala.jdk.CollectionConverters.{MapHasAsJava, SetHasAsScala}
-
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.SetHasAsScala
 
 class RedisInsertSortedSetTest extends AnyWordSpec with Matchers with MockitoSugar with ForAllTestContainer {
 
   override val container = testcontainers.GenericContainer(
-    dockerImage = "redis:6-alpine",
-    exposedPorts = Seq(6379)
+    dockerImage  = "redis:6-alpine",
+    exposedPorts = Seq(6379),
   )
 
   "Redis INSERT into Sorted Set (SS) writer" should {
@@ -41,18 +46,18 @@ class RedisInsertSortedSetTest extends AnyWordSpec with Matchers with MockitoSug
     "write Kafka records to a Redis Sorted Set" in {
 
       val TOPIC = "cpuTopic"
-      val KCQL = s"INSERT INTO cpu_stats SELECT * from $TOPIC STOREAS SortedSet(score=ts)"
+      val KCQL  = s"INSERT INTO cpu_stats SELECT * from $TOPIC STOREAS SortedSet(score=ts)"
       println("Testing KCQL : " + KCQL)
       val props = Map(
-        RedisConfigConstants.REDIS_HOST-> "localhost",
-        RedisConfigConstants.REDIS_PORT-> container.mappedPort(6379).toString,
-        RedisConfigConstants.KCQL_CONFIG-> KCQL
+        RedisConfigConstants.REDIS_HOST  -> "localhost",
+        RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,
+        RedisConfigConstants.KCQL_CONFIG -> KCQL,
       ).asJava
 
-      val config = RedisConfig(props)
+      val config         = RedisConfig(props)
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
-      val settings = RedisSinkSettings(config)
-      val writer = new RedisInsertSortedSet(settings)
+      val settings       = RedisSinkSettings(config)
+      val writer         = new RedisInsertSortedSet(settings)
       writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Cpu")
@@ -61,9 +66,12 @@ class RedisInsertSortedSetTest extends AnyWordSpec with Matchers with MockitoSug
         .field("voltage", Schema.FLOAT64_SCHEMA)
         .field("ts", Schema.INT64_SCHEMA).build()
 
-      val struct1 = new Struct(schema).put("type", "Xeon").put("temperature", 60.4).put("voltage", 90.1).put("ts", 1482180657010L)
-      val struct2 = new Struct(schema).put("type", "i7").put("temperature", 62.1).put("voltage", 103.3).put("ts", 1482180657020L)
-      val struct3 = new Struct(schema).put("type", "i7-i").put("temperature", 64.5).put("voltage", 101.1).put("ts", 1482180657030L)
+      val struct1 =
+        new Struct(schema).put("type", "Xeon").put("temperature", 60.4).put("voltage", 90.1).put("ts", 1482180657010L)
+      val struct2 =
+        new Struct(schema).put("type", "i7").put("temperature", 62.1).put("voltage", 103.3).put("ts", 1482180657020L)
+      val struct3 =
+        new Struct(schema).put("type", "i7-i").put("temperature", 64.5).put("voltage", 101.1).put("ts", 1482180657030L)
 
       val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
       val sinkRecord2 = new SinkRecord(TOPIC, 0, null, null, schema, struct2, 2)
@@ -80,7 +88,7 @@ class RedisInsertSortedSetTest extends AnyWordSpec with Matchers with MockitoSug
       jedis.zcard("cpu_stats") shouldBe 3
 
       val allSSrecords = jedis.zrange("cpu_stats", 0, 999999999999L)
-      val results = allSSrecords.asScala.toList
+      val results      = allSSrecords.asScala.toList
       results.head shouldBe """{"type":"Xeon","temperature":60.4,"voltage":90.1,"ts":1482180657010}"""
       results(1) shouldBe """{"type":"i7","temperature":62.1,"voltage":103.3,"ts":1482180657020}"""
       results(2) shouldBe """{"type":"i7-i","temperature":64.5,"voltage":101.1,"ts":1482180657030}"""

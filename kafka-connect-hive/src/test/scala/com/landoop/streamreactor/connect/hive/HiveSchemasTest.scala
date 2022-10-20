@@ -1,10 +1,10 @@
 package com.landoop.streamreactor.connect.hive
 
 import org.apache.hadoop.hive.metastore.api.FieldSchema
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
 
 class HiveSchemasTest extends AnyFlatSpec with Matchers {
 
@@ -65,10 +65,18 @@ class HiveSchemasTest extends AnyFlatSpec with Matchers {
   //  }
 
   it should "support arrays" in {
-    HiveSchemas.toKafka("array<string>", "myfield", true) shouldBe SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build()
-    HiveSchemas.toKafka("array<    boolean    >", "myfield", true) shouldBe SchemaBuilder.array(Schema.OPTIONAL_BOOLEAN_SCHEMA).optional().build()
-    HiveSchemas.toKafka("array<bigint    >", "myfield", true) shouldBe SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build()
-    HiveSchemas.toKafka("array<   float>", "myfield", true) shouldBe SchemaBuilder.array(Schema.OPTIONAL_FLOAT32_SCHEMA).optional().build()
+    HiveSchemas.toKafka("array<string>", "myfield", true) shouldBe SchemaBuilder.array(
+      Schema.OPTIONAL_STRING_SCHEMA,
+    ).optional().build()
+    HiveSchemas.toKafka("array<    boolean    >", "myfield", true) shouldBe SchemaBuilder.array(
+      Schema.OPTIONAL_BOOLEAN_SCHEMA,
+    ).optional().build()
+    HiveSchemas.toKafka("array<bigint    >", "myfield", true) shouldBe SchemaBuilder.array(
+      Schema.OPTIONAL_INT64_SCHEMA,
+    ).optional().build()
+    HiveSchemas.toKafka("array<   float>", "myfield", true) shouldBe SchemaBuilder.array(
+      Schema.OPTIONAL_FLOAT32_SCHEMA,
+    ).optional().build()
   }
 
   it should "support structs" in {
@@ -82,7 +90,7 @@ class HiveSchemasTest extends AnyFlatSpec with Matchers {
     a shouldBe b
     HiveSchemas.toKafka("struct<  a   : boolean  , b   : float  >", "myfield", true)
     SchemaBuilder.struct()
-      //.name("myfield")
+    //.name("myfield")
       .field("a", Schema.OPTIONAL_BOOLEAN_SCHEMA)
       .field("b", Schema.OPTIONAL_FLOAT32_SCHEMA)
       .build()
@@ -105,11 +113,11 @@ class HiveSchemasTest extends AnyFlatSpec with Matchers {
       new FieldSchema("b", "boolean", null),
       new FieldSchema("c", "bigint", null),
       new FieldSchema("d", "double", null),
-      new FieldSchema("e", "char(4)", null)
+      new FieldSchema("e", "char(4)", null),
     )
     val parts = Seq(
       new FieldSchema("x", "string", null),
-      new FieldSchema("y", "boolean", null)
+      new FieldSchema("y", "boolean", null),
     )
     val a = HiveSchemas.toKafka(fields, parts, "mystruct")
     val b = SchemaBuilder.struct()
@@ -163,12 +171,14 @@ class HiveSchemasTest extends AnyFlatSpec with Matchers {
   }
 
   it should "support structs" in {
-    HiveSchemas.toHiveType(SchemaBuilder.struct()
-      .optional()
-      .name("mystruct")
-      .field("a", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-      .field("b", Schema.OPTIONAL_FLOAT32_SCHEMA)
-      .build()) shouldBe
+    HiveSchemas.toHiveType(
+      SchemaBuilder.struct()
+        .optional()
+        .name("mystruct")
+        .field("a", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+        .field("b", Schema.OPTIONAL_FLOAT32_SCHEMA)
+        .build(),
+    ) shouldBe
       """struct<a:boolean,b:float>"""
   }
 
@@ -178,7 +188,8 @@ class HiveSchemasTest extends AnyFlatSpec with Matchers {
         .name("mystruct")
         .field("a", Schema.OPTIONAL_BOOLEAN_SCHEMA)
         .field("b", SchemaBuilder.array(Schema.OPTIONAL_FLOAT32_SCHEMA).build())
-        .build())
+        .build(),
+    )
   }
 
 }

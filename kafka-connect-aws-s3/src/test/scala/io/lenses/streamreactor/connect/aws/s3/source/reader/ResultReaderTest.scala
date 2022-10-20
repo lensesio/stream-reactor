@@ -18,7 +18,9 @@ package io.lenses.streamreactor.connect.aws.s3.source.reader
 
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatStreamReader
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.{PollResults, SourceData, StringSourceData}
+import io.lenses.streamreactor.connect.aws.s3.model.PollResults
+import io.lenses.streamreactor.connect.aws.s3.model.SourceData
+import io.lenses.streamreactor.connect.aws.s3.model.StringSourceData
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -26,9 +28,9 @@ import org.scalatest.matchers.should.Matchers
 class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   private val readerBucketAndPath = RemoteS3PathLocation("bucket-and-path", Some("MyPrefix"), "prefix")
-  private val targetTopic = "MyTargetTopic"
-  private val limit = 10
-  private val reader = mock[S3FormatStreamReader[_ <: SourceData]]
+  private val targetTopic         = "MyTargetTopic"
+  private val limit               = 10
+  private val reader              = mock[S3FormatStreamReader[_ <: SourceData]]
 
   private val result1 = StringSourceData("myJsonStuff0", 0)
   private val result2 = StringSourceData("myJsonStuff1", 1)
@@ -45,8 +47,8 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
       PollResults(
         Vector(result1),
         readerBucketAndPath,
-        targetTopic
-      )
+        targetTopic,
+      ),
     ))
   }
 
@@ -58,11 +60,13 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
     target.retrieveResults(limit) should be(Some(
       PollResults(
         Vector(
-          result1, result2, result3
+          result1,
+          result2,
+          result3,
         ),
         readerBucketAndPath,
-        targetTopic
-      )
+        targetTopic,
+      ),
     ))
   }
 
@@ -72,7 +76,6 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
     target.retrieveResults(limit) should be(None)
   }
-
 
   "resultReader" should "only read up to the limit" in {
 
@@ -84,16 +87,16 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
       PollResults(
         Vector(result1, result2),
         readerBucketAndPath,
-        targetTopic
-      )
+        targetTopic,
+      ),
     ))
 
     target.retrieveResults(2) should be(Some(
       PollResults(
         Vector(result3),
         readerBucketAndPath,
-        targetTopic
-      )
+        targetTopic,
+      ),
     ))
   }
 }

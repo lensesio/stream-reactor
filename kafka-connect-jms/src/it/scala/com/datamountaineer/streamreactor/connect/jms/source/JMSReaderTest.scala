@@ -21,7 +21,8 @@ package com.datamountaineer.streamreactor.connect.jms.source
 import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
 import com.datamountaineer.streamreactor.connect.fixtures.broker.testWithBrokerOnPort
 import com.datamountaineer.streamreactor.connect.jms.ItTestBase
-import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
+import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
 import org.apache.kafka.connect.data.Struct
@@ -30,7 +31,8 @@ import org.scalatest.concurrent.Eventually
 
 import java.util.UUID
 import javax.jms.Session
-import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.reflect.io.Path
 
 /**
@@ -73,8 +75,9 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     val kafkaTopic   = s"kafka-${UUID.randomUUID().toString}"
     val queueName    = s"avro-${UUID.randomUUID().toString}"
 
-    val kcql  = getKCQLAvroSource(kafkaTopic, queueName, "QUEUE")
-    val props = getProps(kcql, brokerUrl) ++ Map(AvroConverter.CONNECT_SOURCE_CONVERTER_SCHEMA_CONFIG -> getAvroProp(queueName))
+    val kcql = getKCQLAvroSource(kafkaTopic, queueName, "QUEUE")
+    val props =
+      getProps(kcql, brokerUrl) ++ Map(AvroConverter.CONNECT_SOURCE_CONVERTER_SCHEMA_CONFIG -> getAvroProp(queueName))
 
     val session      = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
     val avro         = session.createQueue(queueName)

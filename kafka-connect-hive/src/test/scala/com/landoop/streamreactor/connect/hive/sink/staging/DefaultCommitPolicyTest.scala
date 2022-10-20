@@ -1,9 +1,16 @@
 package com.landoop.streamreactor.connect.hive.sink.staging
 
-import com.landoop.streamreactor.connect.hive.{Offset, SlowTest, Topic, TopicPartitionOffset}
+import com.landoop.streamreactor.connect.hive.Offset
+import com.landoop.streamreactor.connect.hive.SlowTest
+import com.landoop.streamreactor.connect.hive.Topic
+import com.landoop.streamreactor.connect.hive.TopicPartitionOffset
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileSystem, LocalFileSystem, Path}
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.LocalFileSystem
+import org.apache.hadoop.fs.Path
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -17,8 +24,8 @@ class DefaultCommitPolicyTest extends AnyWordSpec with Matchers {
 
   val struct = new Struct(schema)
 
-  implicit val conf: Configuration = new Configuration()
-  implicit val fs: LocalFileSystem = FileSystem.getLocal(conf)
+  implicit val conf: Configuration   = new Configuration()
+  implicit val fs:   LocalFileSystem = FileSystem.getLocal(conf)
   val tpo = TopicPartitionOffset(Topic("mytopic"), 1, Offset(100))
 
   private def shouldFlush(policy: CommitPolicy, path: Path, count: Long) = {
@@ -30,7 +37,7 @@ class DefaultCommitPolicyTest extends AnyWordSpec with Matchers {
     "roll over after interval" taggedAs SlowTest in {
 
       val policy = DefaultCommitPolicy(None, Option(2.seconds), None)
-      val path = new Path("foo")
+      val path   = new Path("foo")
       fs.create(path)
 
       shouldFlush(policy, path, 10) shouldBe false
@@ -41,7 +48,7 @@ class DefaultCommitPolicyTest extends AnyWordSpec with Matchers {
     }
     "roll over after file count" in {
       val policy = DefaultCommitPolicy(None, None, Some(9))
-      val path = new Path("foo")
+      val path   = new Path("foo")
       fs.create(path)
 
       shouldFlush(policy, path, 7) shouldBe false
@@ -53,8 +60,8 @@ class DefaultCommitPolicyTest extends AnyWordSpec with Matchers {
     }
     "roll over after file size" in {
       val policy = DefaultCommitPolicy(Some(10), None, None)
-      val path = new Path("foo")
-      val out = fs.create(path)
+      val path   = new Path("foo")
+      val out    = fs.create(path)
       shouldFlush(policy, path, 7) shouldBe false
       out.writeBytes("wibble wobble wabble wubble")
       out.close()

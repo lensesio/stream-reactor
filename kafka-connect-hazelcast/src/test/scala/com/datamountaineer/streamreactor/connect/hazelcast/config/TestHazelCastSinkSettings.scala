@@ -19,18 +19,18 @@ package com.datamountaineer.streamreactor.connect.hazelcast.config
 import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
 import com.hazelcast.config.Config
-import com.hazelcast.core.{Hazelcast, HazelcastInstance}
+import com.hazelcast.core.Hazelcast
+import com.hazelcast.core.HazelcastInstance
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-
 /**
-  * Created by andrew@datamountaineer.com on 08/08/16. 
+  * Created by andrew@datamountaineer.com on 08/08/16.
   * stream-reactor
   */
 class TestHazelCastSinkSettings extends TestBase {
 
-  var instance : HazelcastInstance = _
+  var instance: HazelcastInstance = _
 
   before {
     val configApp1 = new Config()
@@ -43,8 +43,8 @@ class TestHazelCastSinkSettings extends TestBase {
   }
 
   "Should build settings object from a config" in {
-    val props = getProps
-    val config = new HazelCastSinkConfig(props)
+    val props    = getProps
+    val config   = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
 
     settings.topicObject(TOPIC) shouldBe HazelCastStoreAsType(s"${TABLE}_avro", TargetType.RELIABLE_TOPIC)
@@ -54,15 +54,15 @@ class TestHazelCastSinkSettings extends TestBase {
   }
 
   "Should build settings object from a config with selection" in {
-    val props = getPropsSelection
-    val config = new HazelCastSinkConfig(props)
+    val props    = getPropsSelection
+    val config   = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
 
     settings.topicObject(TOPIC) shouldBe HazelCastStoreAsType(TABLE, TargetType.RELIABLE_TOPIC)
     settings.ignoreFields(TOPIC).size shouldBe 0
     settings.kcql.head.getIgnoredFields.isEmpty shouldBe true
     settings.errorPolicy.isInstanceOf[ThrowErrorPolicy] shouldBe true
-    val fields  = settings.fieldsMap(TOPIC)
+    val fields = settings.fieldsMap(TOPIC)
     fields("a") shouldBe "a"
     fields("b") shouldBe "b"
     fields("c") shouldBe "c"
@@ -70,8 +70,8 @@ class TestHazelCastSinkSettings extends TestBase {
   }
 
   "Should build settings object from a config with ignore" in {
-    val props = getPropsIgnored
-    val config = new HazelCastSinkConfig(props)
+    val props    = getPropsIgnored
+    val config   = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
 
     settings.topicObject(TOPIC) shouldBe HazelCastStoreAsType(TABLE, TargetType.RELIABLE_TOPIC)

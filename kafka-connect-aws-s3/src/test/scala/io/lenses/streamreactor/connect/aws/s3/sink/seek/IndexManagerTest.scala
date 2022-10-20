@@ -1,36 +1,49 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.seek
 
 import cats.implicits.catsSyntaxEitherId
-import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
-import io.lenses.streamreactor.connect.aws.s3.model.{Topic, TopicPartitionOffset}
-import io.lenses.streamreactor.connect.aws.s3.sink.{FatalS3SinkError, NonFatalS3SinkError, S3FileNamingStrategy, SinkError}
-import io.lenses.streamreactor.connect.aws.s3.storage.{FileCreateError, FileDeleteError, FileLoadError, StorageInterface}
-import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.Topic
+import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
+import io.lenses.streamreactor.connect.aws.s3.sink.NonFatalS3SinkError
+import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
+import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
+import io.lenses.streamreactor.connect.aws.s3.storage.FileCreateError
+import io.lenses.streamreactor.connect.aws.s3.storage.FileDeleteError
+import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.ArgumentMatchers.{ eq => eqTo }
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers._
-import org.scalatest.{BeforeAndAfter, EitherValues, OptionValues}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.EitherValues
+import org.scalatest.OptionValues
 
 class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues with OptionValues with BeforeAndAfter {
 
-  private val sinkName = "mySinkName"
+  private val sinkName   = "mySinkName"
   private val bucketName = "my-bucket"
 
   private val targetRoot = RemoteS3RootLocation(s"$bucketName:myPrefix")
 
-  private val targetPath = targetRoot.withPath("myPrefix/myTopic/5/100.json")
-  private val indexPath = targetRoot.withPath(".indexes/mySinkName/myTopic/00005/00000000000000000100")
+  private val targetPath         = targetRoot.withPath("myPrefix/myTopic/5/100.json")
+  private val indexPath          = targetRoot.withPath(".indexes/mySinkName/myTopic/00005/00000000000000000100")
   private val topicPartitionRoot = targetRoot.withPath(".indexes/mySinkName/myTopic/00005/")
-  private val topicPartition = Topic("myTopic").withPartition(5)
+  private val topicPartition     = Topic("myTopic").withPartition(5)
 
   private val maxIndexes = 5
 
-  private val storageInterface = mock[StorageInterface]
+  private val storageInterface   = mock[StorageInterface]
   private val fileNamingStrategy = mock[S3FileNamingStrategy]
   private val legacyOffsetSeeker = mock[LegacyOffsetSeeker]
 
   private val indexManager = new IndexManager(sinkName, maxIndexes, None)(storageInterface)
-  private val indexManagerLegacySeeker = new IndexManager(sinkName, maxIndexes, Some(legacyOffsetSeeker))(storageInterface)
+  private val indexManagerLegacySeeker =
+    new IndexManager(sinkName, maxIndexes, Some(legacyOffsetSeeker))(storageInterface)
 
   after {
     reset(storageInterface, fileNamingStrategy, legacyOffsetSeeker)
@@ -41,7 +54,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
 
     val res = indexManager.write(
       Topic("myTopic").withPartition(5).withOffset(100),
-      targetPath
+      targetPath,
     )
 
     res.value should be(indexPath)
@@ -49,12 +62,15 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
   }
 
   "write" should "return an error when unable to write" in {
-    val exception = FileCreateError(new IllegalArgumentException("Drying mode on. Jacket drying."), "Your jacket is now DRY")
-    when(storageInterface.writeStringToFile(any(classOf[RemoteS3PathLocation]), anyString())).thenReturn(exception.asLeft)
+    val exception =
+      FileCreateError(new IllegalArgumentException("Drying mode on. Jacket drying."), "Your jacket is now DRY")
+    when(storageInterface.writeStringToFile(any(classOf[RemoteS3PathLocation]), anyString())).thenReturn(
+      exception.asLeft,
+    )
 
     val res = indexManager.write(
       Topic("myTopic").withPartition(5).withOffset(100),
-      targetPath
+      targetPath,
     )
 
     res.left.value shouldBe a[NonFatalS3SinkError]
@@ -62,7 +78,11 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
   }
 
   "clean" should "successfully clean old valid indexes" in {
-    val existingIndexes = List(".indexes/mySinkName/myTopic/00005/00000000000000000050", ".indexes/mySinkName/myTopic/00005/00000000000000000070", ".indexes/mySinkName/myTopic/00005/00000000000000000100")
+    val existingIndexes = List(
+      ".indexes/mySinkName/myTopic/00005/00000000000000000050",
+      ".indexes/mySinkName/myTopic/00005/00000000000000000070",
+      ".indexes/mySinkName/myTopic/00005/00000000000000000100",
+    )
     when(storageInterface.list(any[RemoteS3PathLocation])).thenReturn(existingIndexes.asRight)
     when(storageInterface.deleteFiles(anyString, any[Seq[String]])).thenReturn(().asRight)
 
@@ -70,7 +90,12 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
 
     val cleanInOrder = inOrder(storageInterface)
     cleanInOrder.verify(storageInterface).list(topicPartitionRoot)
-    cleanInOrder.verify(storageInterface).deleteFiles(bucketName, Seq(".indexes/mySinkName/myTopic/00005/00000000000000000050", ".indexes/mySinkName/myTopic/00005/00000000000000000070"))
+    cleanInOrder.verify(storageInterface).deleteFiles(
+      bucketName,
+      Seq(".indexes/mySinkName/myTopic/00005/00000000000000000050",
+          ".indexes/mySinkName/myTopic/00005/00000000000000000070",
+      ),
+    )
     cleanInOrder.verifyNoMoreInteractions()
   }
 
@@ -105,15 +130,27 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
   }
 
   "clean" should "return ignore error when files fail to delete" in {
-    val existingIndexes = List(".indexes/mySinkName/myTopic/00005/00000000000000000050", ".indexes/mySinkName/myTopic/00005/00000000000000000070", ".indexes/mySinkName/myTopic/00005/00000000000000000100")
+    val existingIndexes = List(
+      ".indexes/mySinkName/myTopic/00005/00000000000000000050",
+      ".indexes/mySinkName/myTopic/00005/00000000000000000070",
+      ".indexes/mySinkName/myTopic/00005/00000000000000000100",
+    )
     when(storageInterface.list(any[RemoteS3PathLocation])).thenReturn(existingIndexes.asRight)
-    when(storageInterface.deleteFiles(anyString(), any[Seq[String]])).thenReturn(FileDeleteError(new IllegalArgumentException("Well, this was a disaster"), "myFilename").asLeft)
+    when(storageInterface.deleteFiles(anyString(), any[Seq[String]])).thenReturn(FileDeleteError(
+      new IllegalArgumentException("Well, this was a disaster"),
+      "myFilename",
+    ).asLeft)
 
     indexManager.clean(indexPath, topicPartition).value should be(0)
 
     val cleanInOrder = inOrder(storageInterface)
     cleanInOrder.verify(storageInterface).list(topicPartitionRoot)
-    cleanInOrder.verify(storageInterface).deleteFiles(bucketName, Seq(".indexes/mySinkName/myTopic/00005/00000000000000000050", ".indexes/mySinkName/myTopic/00005/00000000000000000070"))
+    cleanInOrder.verify(storageInterface).deleteFiles(
+      bucketName,
+      Seq(".indexes/mySinkName/myTopic/00005/00000000000000000050",
+          ".indexes/mySinkName/myTopic/00005/00000000000000000070",
+      ),
+    )
     cleanInOrder.verifyNoMoreInteractions()
   }
 
@@ -127,11 +164,20 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
 
     val seekInOrder = inOrder(storageInterface)
     seekInOrder.verify(storageInterface).list(topicPartitionRoot)
-    seekInOrder.verify(storageInterface).getBlobAsString(targetRoot.withPath(".indexes/mySinkName/myTopic/00005/00000000000000000100"))
+    seekInOrder.verify(storageInterface).getBlobAsString(
+      targetRoot.withPath(".indexes/mySinkName/myTopic/00005/00000000000000000100"),
+    )
     seekInOrder.verify(storageInterface).pathExists(targetRoot.withPath("/myTopic/5/100.csv"))
-    seekInOrder.verify(storageInterface).getBlobAsString(targetRoot.withPath(".indexes/mySinkName/myTopic/00005/00000000000000000070"))
+    seekInOrder.verify(storageInterface).getBlobAsString(
+      targetRoot.withPath(".indexes/mySinkName/myTopic/00005/00000000000000000070"),
+    )
     seekInOrder.verify(storageInterface).pathExists(targetRoot.withPath("/myTopic/5/70.csv"))
-    seekInOrder.verify(storageInterface).deleteFiles(bucketName, List(".indexes/mySinkName/myTopic/00005/00000000000000000050", ".indexes/mySinkName/myTopic/00005/00000000000000000100"))
+    seekInOrder.verify(storageInterface).deleteFiles(
+      bucketName,
+      List(".indexes/mySinkName/myTopic/00005/00000000000000000050",
+           ".indexes/mySinkName/myTopic/00005/00000000000000000100",
+      ),
+    )
     seekInOrder.verifyNoMoreInteractions()
   }
 
@@ -143,7 +189,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     when(storageInterface.pathExists(any[RemoteS3PathLocation])).thenReturn(true.asRight)
     when(storageInterface.deleteFiles(eqTo(bucketName), any[List[String]])).thenReturn(().asRight)
 
-    val seekRes = indexManager.seek(topicPartition, fileNamingStrategy, targetRoot)
+    val seekRes    = indexManager.seek(topicPartition, fileNamingStrategy, targetRoot)
     val capturedEx = seekRes.left.value
     capturedEx shouldBe a[FatalS3SinkError]
     capturedEx.message() should startWith("Too many index files have accumulated")
@@ -156,16 +202,22 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
   "seek" should "fallback to legacy seeker when configured in legacy mode" in {
 
     when(storageInterface.list(any[RemoteS3PathLocation])).thenReturn(List.empty.asRight)
-    when(legacyOffsetSeeker.seek(topicPartition, fileNamingStrategy, targetRoot)).thenReturn(Some((topicPartition.withOffset(123), targetRoot.withPath("/my/returned/location"))).asRight)
+    when(legacyOffsetSeeker.seek(topicPartition, fileNamingStrategy, targetRoot)).thenReturn(
+      Some((topicPartition.withOffset(123), targetRoot.withPath("/my/returned/location"))).asRight,
+    )
     when(storageInterface.writeStringToFile(any[RemoteS3PathLocation], anyString())).thenReturn(().asRight)
 
-    val offset: Either[SinkError, Option[TopicPartitionOffset]] = indexManagerLegacySeeker.seek(topicPartition, fileNamingStrategy, targetRoot)
+    val offset: Either[SinkError, Option[TopicPartitionOffset]] =
+      indexManagerLegacySeeker.seek(topicPartition, fileNamingStrategy, targetRoot)
     offset.value.value should be(topicPartition.withOffset(123))
 
     val seekInOrder = inOrder(storageInterface, legacyOffsetSeeker, fileNamingStrategy)
     seekInOrder.verify(storageInterface).list(topicPartitionRoot)
     seekInOrder.verify(legacyOffsetSeeker).seek(topicPartition, fileNamingStrategy, targetRoot)
-    seekInOrder.verify(storageInterface).writeStringToFile(targetRoot.withPath(".indexes/mySinkName/myTopic/00005/00000000000000000123"), "/my/returned/location")
+    seekInOrder.verify(storageInterface).writeStringToFile(
+      targetRoot.withPath(".indexes/mySinkName/myTopic/00005/00000000000000000123"),
+      "/my/returned/location",
+    )
     seekInOrder.verifyNoMoreInteractions()
   }
 
@@ -173,12 +225,18 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
 
     val existingIndexes = setUpExistingIndexes
 
-    indexManager.scanIndexes(targetRoot, existingIndexes.map(_._1).toList) should be(Right(Some(".indexes/mySinkName/myTopic/00005/00000000000000000070")))
+    indexManager.scanIndexes(targetRoot, existingIndexes.map(_._1).toList) should be(
+      Right(Some(".indexes/mySinkName/myTopic/00005/00000000000000000070")),
+    )
 
     val scannedInOrder = inOrder(storageInterface)
-    scannedInOrder.verify(storageInterface).getBlobAsString(targetRoot.withPath(".indexes/mySinkName/myTopic/00005/00000000000000000100"))
+    scannedInOrder.verify(storageInterface).getBlobAsString(
+      targetRoot.withPath(".indexes/mySinkName/myTopic/00005/00000000000000000100"),
+    )
     scannedInOrder.verify(storageInterface).pathExists(targetRoot.withPath("/myTopic/5/100.csv"))
-    scannedInOrder.verify(storageInterface).getBlobAsString(targetRoot.withPath(".indexes/mySinkName/myTopic/00005/00000000000000000070"))
+    scannedInOrder.verify(storageInterface).getBlobAsString(
+      targetRoot.withPath(".indexes/mySinkName/myTopic/00005/00000000000000000070"),
+    )
     scannedInOrder.verify(storageInterface).pathExists(targetRoot.withPath("/myTopic/5/70.csv"))
     scannedInOrder.verifyNoMoreInteractions()
   }
@@ -213,7 +271,9 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     indexManager.scanIndexes(targetRoot, existingIndexes.map(_._1).toList).left.value should be(err)
 
     val scannedInOrder = inOrder(storageInterface)
-    scannedInOrder.verify(storageInterface).getBlobAsString(targetRoot.withPath(".indexes/mySinkName/myTopic/00005/00000000000000000100"))
+    scannedInOrder.verify(storageInterface).getBlobAsString(
+      targetRoot.withPath(".indexes/mySinkName/myTopic/00005/00000000000000000100"),
+    )
     scannedInOrder.verifyNoMoreInteractions()
   }
 }

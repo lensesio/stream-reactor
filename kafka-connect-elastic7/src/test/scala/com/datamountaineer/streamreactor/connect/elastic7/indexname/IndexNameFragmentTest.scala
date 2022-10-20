@@ -19,7 +19,6 @@ package com.datamountaineer.streamreactor.connect.elastic7.indexname
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-
 class IndexNameFragmentTest extends AnyFlatSpec with Matchers {
 
 //  "TextFragment" should "return the original text when using getFragment()" in {

@@ -20,7 +20,8 @@ import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.errors.NoopErrorPolicy
 import com.datamountaineer.streamreactor.connect.mongodb.Transaction._
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
-import com.datamountaineer.streamreactor.connect.mongodb.sink.{ConverterUtilProxy, SinkRecordToDocument}
+import com.datamountaineer.streamreactor.connect.mongodb.sink.ConverterUtilProxy
+import com.datamountaineer.streamreactor.connect.mongodb.sink.SinkRecordToDocument
 import com.mongodb.AuthenticationMechanism
 import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.data.Schema
@@ -34,7 +35,7 @@ class SinkRecordToDocumentTest extends AnyWordSpec with Matchers with ConverterU
     "convert Kafka Struct to a Mongo Document" in {
       for (i <- 1 to 4) {
         val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath).mkString
-        val tx = Json.fromJson[Transaction](json)
+        val tx   = Json.fromJson[Transaction](json)
 
         val record = new SinkRecord("topic1", 0, null, null, Transaction.ConnectSchema, tx.toStruct(), 0)
 
@@ -48,9 +49,10 @@ class SinkRecordToDocumentTest extends AnyWordSpec with Matchers with ConverterU
           Map("topic1" -> Set.empty),
           Map("topic1" -> Map.empty[String, String]),
           Map("topic1" -> Set.empty),
-          NoopErrorPolicy())
+          NoopErrorPolicy(),
+        )
         val (document, _) = SinkRecordToDocument(record)
-        val expected = Document.parse(json)
+        val expected      = Document.parse(json)
 
         //comparing string representation; we have more specific types given the schema
         document.toString shouldBe expected.toString
@@ -73,9 +75,10 @@ class SinkRecordToDocumentTest extends AnyWordSpec with Matchers with ConverterU
           Map("topic1" -> Set.empty),
           Map("topic1" -> Map("*" -> "*")),
           Map("topic1" -> Set.empty),
-          NoopErrorPolicy())
+          NoopErrorPolicy(),
+        )
         val (document, _) = SinkRecordToDocument(record)
-        val expected = Document.parse(json)
+        val expected      = Document.parse(json)
 
         //comparing string representation; we have more specific types given the schema
         document.toString() shouldBe expected.toString
@@ -87,26 +90,26 @@ class SinkRecordToDocumentTest extends AnyWordSpec with Matchers with ConverterU
         val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath).mkString
 
         val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
-        val kcql = Kcql.parse("insert into x select * from topic1")
+        val kcql   = Kcql.parse("insert into x select * from topic1")
 
         implicit val settings = MongoSettings(
-          connection = "",
-          username = "",
-          password = new Password(""),
+          connection              = "",
+          username                = "",
+          password                = new Password(""),
           authenticationMechanism = AuthenticationMechanism.SCRAM_SHA_1,
-          database = "database",
-          kcql = Set(kcql),
-          keyBuilderMap = Map("topic1" -> Set.empty),
-          fields = Map("topic1" -> Map("lock_time" -> "colc")),
-          ignoredField = Map.empty,
-          NoopErrorPolicy()
+          database                = "database",
+          kcql                    = Set(kcql),
+          keyBuilderMap           = Map("topic1" -> Set.empty),
+          fields                  = Map("topic1" -> Map("lock_time" -> "colc")),
+          ignoredField            = Map.empty,
+          NoopErrorPolicy(),
         )
 
         val (document, _) = SinkRecordToDocument(record)
         document.size() shouldBe 1
         document.containsKey("colc")
+      }
     }
-  }
 
     "convert Schemaless + Json payload to a Mongo Document" in {
       // TODO: This test is exactly the same as the above test "convert String Schema + Json payload to a Mongo Document".
@@ -126,9 +129,10 @@ class SinkRecordToDocumentTest extends AnyWordSpec with Matchers with ConverterU
           Map("topic1" -> Set.empty),
           Map("topic1" -> Map("*" -> "*")),
           Map("topic1" -> Set.empty),
-          NoopErrorPolicy())
+          NoopErrorPolicy(),
+        )
         val (document, _) = SinkRecordToDocument(record)
-        val expected = Document.parse(json)
+        val expected      = Document.parse(json)
 
         //comparing string representation; we have more specific types given the schema
         document.toString() shouldBe expected.toString

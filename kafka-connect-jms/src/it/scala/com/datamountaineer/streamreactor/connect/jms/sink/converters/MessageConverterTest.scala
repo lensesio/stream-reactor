@@ -18,8 +18,10 @@
 
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
-import com.datamountaineer.streamreactor.connect.jms.{ItTestBase, Using}
-import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
+import com.datamountaineer.streamreactor.connect.jms.ItTestBase
+import com.datamountaineer.streamreactor.connect.jms.Using
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
+import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
 import com.datamountaineer.streamreactor.connect.jms.sink.AvroDeserializer
 import com.datamountaineer.streamreactor.example.AddressedPerson
 import io.confluent.connect.avro.AvroData
@@ -33,8 +35,13 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import java.nio.ByteBuffer
 import java.util.UUID
-import javax.jms.{BytesMessage, MapMessage, ObjectMessage, TextMessage}
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala}
+import javax.jms.BytesMessage
+import javax.jms.MapMessage
+import javax.jms.ObjectMessage
+import javax.jms.TextMessage
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.reflect.io.Path
 
 class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItTestBase with BeforeAndAfterAll {
@@ -48,23 +55,23 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItT
 
   "ObjectMessageConverter" should {
     "create an instance of jms ObjectMessage" in {
-      val converter = new ObjectMessageConverter()
+      val converter   = new ObjectMessageConverter()
       val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
-      val topicName = UUID.randomUUID().toString
-      val queueName = UUID.randomUUID().toString
-      val kcqlT = getKCQL(topicName, kafkaTopic1, "TOPIC")
-      val kcqlQ = getKCQL(queueName, kafkaTopic1, "QUEUE")
-      val props = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
-      val config = JMSConfig(props.asJava)
-      val settings = JMSSettings(config, true)
-      val setting = settings.settings.head
+      val topicName   = UUID.randomUUID().toString
+      val queueName   = UUID.randomUUID().toString
+      val kcqlT       = getKCQL(topicName, kafkaTopic1, "TOPIC")
+      val kcqlQ       = getKCQL(queueName, kafkaTopic1, "QUEUE")
+      val props       = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
+      val config      = JMSConfig(props.asJava)
+      val settings    = JMSSettings(config, true)
+      val setting     = settings.settings.head
 
       val connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false")
 
       using(connectionFactory.createConnection()) { connection =>
         using(connection.createSession(false, 1)) { session =>
           val record = getSinkRecords(kafkaTopic1).head
-          val msg = converter.convert(record, session, setting)._2.asInstanceOf[ObjectMessage]
+          val msg    = converter.convert(record, session, setting)._2.asInstanceOf[ObjectMessage]
 
           Option(msg).isDefined shouldBe true
 
@@ -93,22 +100,22 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItT
   "MapMessageConverter" should {
     "create a JMS MapMessage" in {
       val connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false")
-      val converter = new MapMessageConverter()
+      val converter         = new MapMessageConverter()
 
       val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
-      val topicName = UUID.randomUUID().toString
-      val queueName = UUID.randomUUID().toString
-      val kcqlT = getKCQL(topicName, kafkaTopic1, "TOPIC")
-      val kcqlQ = getKCQL(queueName, kafkaTopic1, "QUEUE")
-      val props = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
-      val config = JMSConfig(props.asJava)
-      val settings = JMSSettings(config, true)
-      val setting = settings.settings.head
+      val topicName   = UUID.randomUUID().toString
+      val queueName   = UUID.randomUUID().toString
+      val kcqlT       = getKCQL(topicName, kafkaTopic1, "TOPIC")
+      val kcqlQ       = getKCQL(queueName, kafkaTopic1, "QUEUE")
+      val props       = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
+      val config      = JMSConfig(props.asJava)
+      val settings    = JMSSettings(config, true)
+      val setting     = settings.settings.head
 
       using(connectionFactory.createConnection()) { connection =>
         using(connection.createSession(false, 1)) { session =>
           val record = getSinkRecords(kafkaTopic1).head
-          val msg = converter.convert(record, session, setting)._2.asInstanceOf[MapMessage]
+          val msg    = converter.convert(record, session, setting)._2.asInstanceOf[MapMessage]
 
           Option(msg).isDefined shouldBe true
 
@@ -141,12 +148,12 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItT
       val converter = new JsonMessageConverter()
 
       val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
-      val queueName = UUID.randomUUID().toString
-      val kcql = getKCQL(queueName, kafkaTopic1, "QUEUE")
-      val props = getProps(kcql, JMS_URL)
-      val config = JMSConfig(props.asJava)
-      val settings = JMSSettings(config, true)
-      val setting = settings.settings.head
+      val queueName   = UUID.randomUUID().toString
+      val kcql        = getKCQL(queueName, kafkaTopic1, "QUEUE")
+      val props       = getProps(kcql, JMS_URL)
+      val config      = JMSConfig(props.asJava)
+      val settings    = JMSSettings(config, true)
+      val setting     = settings.settings.head
 
       val connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false")
 
@@ -156,7 +163,7 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItT
           val struct = getStruct(schema)
 
           val record = new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1)
-          val msg = converter.convert(record, session, setting)._2.asInstanceOf[TextMessage]
+          val msg    = converter.convert(record, session, setting)._2.asInstanceOf[TextMessage]
           Option(msg).isDefined shouldBe true
 
           val json = msg.getText
@@ -171,24 +178,22 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItT
   "AvroMessageConverter" should {
     "create a BytesMessage with avro payload" in {
 
-
       lazy val avroData = new AvroData(128)
-      val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
-      val topicName = UUID.randomUUID().toString
-      val queueName = UUID.randomUUID().toString
+      val kafkaTopic1   = s"kafka-${UUID.randomUUID().toString}"
+      val topicName     = UUID.randomUUID().toString
+      val queueName     = UUID.randomUUID().toString
 
       val kcqlT = getKCQL(topicName, kafkaTopic1, "TOPIC")
       val kcqlQ = getKCQL(queueName, kafkaTopic1, "QUEUE")
 
-      val props = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
-      val config = JMSConfig(props.asJava)
+      val props    = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
+      val config   = JMSConfig(props.asJava)
       val settings = JMSSettings(config, true)
-      val setting = settings.settings.head
+      val setting  = settings.settings.head
       using(connectionFactory.createConnection()) { connection =>
         using(connection.createSession(false, 1)) { session =>
-
           val record = getSinkRecords(kafkaTopic1).head
-          val msg = converter.convert(record, session, setting)._2.asInstanceOf[BytesMessage]
+          val msg    = converter.convert(record, session, setting)._2.asInstanceOf[BytesMessage]
 
           Option(msg).isDefined shouldBe true
 
@@ -211,7 +216,7 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItT
           avroRecord.get("string").toString shouldBe "foo"
           avroRecord.get("bytes").asInstanceOf[ByteBuffer].array() shouldBe "foo".getBytes()
           val array = avroRecord.get("array").asInstanceOf[GenericData.Array[Utf8]]
-          val iter = array.iterator()
+          val iter  = array.iterator()
           new Iterator[String] {
             override def hasNext: Boolean = iter.hasNext
 
@@ -222,7 +227,8 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItT
           map.keys.head.toString shouldBe "field"
           map.get(map.keys.head) shouldBe Some(1)
 
-          val iterRecord = avroRecord.get("mapNonStringKeys").asInstanceOf[GenericData.Array[GenericData.Record]].iterator()
+          val iterRecord =
+            avroRecord.get("mapNonStringKeys").asInstanceOf[GenericData.Array[GenericData.Record]].iterator()
           iterRecord.hasNext shouldBe true
           val r = iterRecord.next()
           r.get("key") shouldBe 1
@@ -234,14 +240,14 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItT
 
   "ProtoMessageConverter" should {
     "create a BytesMessage with sinkrecord payload when storedAs is null" in {
-      val converter = new ProtoMessageConverter()
-      val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
-      val queueName = UUID.randomUUID().toString
-      val kcql = getKCQL(queueName, kafkaTopic1, "QUEUE")
-      val props = getProps(kcql, JMS_URL)
-      val config = JMSConfig(props.asJava)
-      val settings = JMSSettings(config, true)
-      val setting = settings.settings.head
+      val converter         = new ProtoMessageConverter()
+      val kafkaTopic1       = s"kafka-${UUID.randomUUID().toString}"
+      val queueName         = UUID.randomUUID().toString
+      val kcql              = getKCQL(queueName, kafkaTopic1, "QUEUE")
+      val props             = getProps(kcql, JMS_URL)
+      val config            = JMSConfig(props.asJava)
+      val settings          = JMSSettings(config, true)
+      val setting           = settings.settings.head
       val connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false")
       using(connectionFactory.createConnection()) { connection =>
         using(connection.createSession(false, 1)) { session =>
@@ -267,14 +273,14 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItT
     "create a BytesMessage with sinkrecord payload with storedAs data" in {
       val converter = new ProtoMessageConverter()
 
-      val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
-      val queueName = UUID.randomUUID().toString
-      val kcql = getKCQLStoredAsWithNameOnly(queueName, kafkaTopic1, "QUEUE")
-      val props = getProps(kcql, JMS_URL)
-      val schema = getProtobufSchema
-      val struct = getProtobufStruct(schema, "addrressed-person", 103, "addressed-person@gmail.com")
-      val config = JMSConfig(props.asJava)
-      val settings = JMSSettings(config, true)
+      val kafkaTopic1       = s"kafka-${UUID.randomUUID().toString}"
+      val queueName         = UUID.randomUUID().toString
+      val kcql              = getKCQLStoredAsWithNameOnly(queueName, kafkaTopic1, "QUEUE")
+      val props             = getProps(kcql, JMS_URL)
+      val schema            = getProtobufSchema
+      val struct            = getProtobufStruct(schema, "addrressed-person", 103, "addressed-person@gmail.com")
+      val config            = JMSConfig(props.asJava)
+      val settings          = JMSSettings(config, true)
       val connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false")
       using(connectionFactory.createConnection()) { connection =>
         using(connection.createSession(false, 1)) { session =>

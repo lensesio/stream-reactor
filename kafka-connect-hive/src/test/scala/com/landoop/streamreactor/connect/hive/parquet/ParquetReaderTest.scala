@@ -2,25 +2,25 @@ package com.landoop.streamreactor.connect.hive.parquet
 
 import com.landoop.streamreactor.connect.hive.StructUtils
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-
 class ParquetReaderTest extends AnyWordSpec with Matchers {
 
   implicit val conf = new Configuration()
-  implicit val fs = FileSystem.getLocal(conf)
+  implicit val fs   = FileSystem.getLocal(conf)
 
   "ParquetReader" should {
     "read parquet files" in {
 
-      val path = new Path("file://" + getClass.getResource("/userdata.parquet").getFile)
+      val path   = new Path("file://" + getClass.getResource("/userdata.parquet").getFile)
       val reader = parquetReader(path)
-      val users = Iterator.continually(reader.read).takeWhile(_ != null).toList
+      val users  = Iterator.continually(reader.read).takeWhile(_ != null).toList
 
       val schema = SchemaBuilder.struct()
         .field("registration_dttm", SchemaBuilder.string().optional().build())
@@ -53,7 +53,7 @@ class ParquetReaderTest extends AnyWordSpec with Matchers {
         "3/8/1971",
         49756.53,
         "Internal Auditor",
-        "1E+02"
+        "1E+02",
       )
     }
   }
