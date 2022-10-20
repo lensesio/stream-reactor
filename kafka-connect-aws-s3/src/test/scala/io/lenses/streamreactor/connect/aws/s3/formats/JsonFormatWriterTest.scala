@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -30,7 +29,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write byte output stream with json for a single record" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
     jsonFormatWriter.write(None, StructSinkData(users.head), topic)
 
@@ -40,7 +39,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write byte output stream with json for multiple records" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
     firstUsers.foreach(e => jsonFormatWriter.write(None, StructSinkData(e), topic))
 
@@ -50,50 +49,48 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write primitive to json for a single record without schemas" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
     jsonFormatWriter.write(None, StringSinkData("bees", None), topic)
 
     val objectMapper = new ObjectMapper()
-    val tree = objectMapper.readTree(outputStream.toString())
+    val tree         = objectMapper.readTree(outputStream.toString())
 
     tree.textValue() should be("bees")
   }
 
-
   "convert" should "write primitive with new line characters to single line" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
     jsonFormatWriter.write(None, StringSinkData("apple\nbucket", None), topic)
 
     val objectMapper = new ObjectMapper()
-    val tree = objectMapper.readTree(outputStream.toString())
+    val tree         = objectMapper.readTree(outputStream.toString())
 
     tree.textValue() should be("apple\\nbucket")
   }
 
   "convert" should "write primitive to json for a single record" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
     jsonFormatWriter.write(None, StringSinkData("bees", Some(SchemaBuilder.string().build())), topic)
 
     val objectMapper = new ObjectMapper()
-    val tree = objectMapper.readTree(outputStream.toString())
+    val tree         = objectMapper.readTree(outputStream.toString())
 
     tree.textValue() should be("bees")
   }
 
-
   "convert" should "write primitives to json for multiple records" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
     jsonFormatWriter.write(None, StringSinkData("bees", Some(SchemaBuilder.string().build())), topic)
     jsonFormatWriter.write(None, StringSinkData("wasps", Some(SchemaBuilder.string().build())), topic)
 
-    val lines = outputStream.toString().split(System.lineSeparator())
+    val lines     = outputStream.toString().split(System.lineSeparator())
     val treeLine1 = new ObjectMapper().readTree(lines(0))
     treeLine1.textValue() should be("bees")
 
@@ -101,37 +98,42 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     treeLine2.textValue() should be("wasps")
   }
 
-
   "convert" should "write array to json for multiple records" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
-    jsonFormatWriter.write(None, ArraySinkData(
-      Seq(
-        StringSinkData("bees"),
-        StringSinkData("wasps")
-      )
-    ), topic)
+    jsonFormatWriter.write(None,
+                           ArraySinkData(
+                             Seq(
+                               StringSinkData("bees"),
+                               StringSinkData("wasps"),
+                             ),
+                           ),
+                           topic,
+    )
 
-    val lines = outputStream.toString().split(System.lineSeparator())
+    val lines     = outputStream.toString().split(System.lineSeparator())
     val treeLine1 = new ObjectMapper().readTree(lines(0))
     treeLine1.get(0).textValue() should be("bees")
     treeLine1.get(1).textValue() should be("wasps")
   }
 
-
   "convert" should "write map to json" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
-    jsonFormatWriter.write(None, MapSinkData(
-      Map(
-        StringSinkData("bees") -> StringSinkData("sting when scared"),
-        StringSinkData("wasps") -> StringSinkData("sting for fun")
-      )
-    ), topic)
+    jsonFormatWriter.write(
+      None,
+      MapSinkData(
+        Map(
+          StringSinkData("bees")  -> StringSinkData("sting when scared"),
+          StringSinkData("wasps") -> StringSinkData("sting for fun"),
+        ),
+      ),
+      topic,
+    )
 
-    val lines = outputStream.toString().split(System.lineSeparator())
+    val lines     = outputStream.toString().split(System.lineSeparator())
     val treeLine1 = new ObjectMapper().readTree(lines(0))
     treeLine1.get("bees").textValue() should be("sting when scared")
     treeLine1.get("wasps").textValue() should be("sting for fun")
@@ -139,17 +141,21 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write maps containing nulls as null in json" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
-    jsonFormatWriter.write(None, MapSinkData(
-      Map(
-        StringSinkData("bees") -> StringSinkData("sting when scared"),
-        StringSinkData("wasps") -> NullSinkData()
+    jsonFormatWriter.write(
+      None,
+      MapSinkData(
+        Map(
+          StringSinkData("bees")  -> StringSinkData("sting when scared"),
+          StringSinkData("wasps") -> NullSinkData(),
+        ),
+        Some(SchemaBuilder.map(SchemaBuilder.string().build(), SchemaBuilder.string().optional().build()).build()),
       ),
-      Some(SchemaBuilder.map(SchemaBuilder.string().build(), SchemaBuilder.string().optional().build()).build())
-    ), topic)
+      topic,
+    )
 
-    val lines = outputStream.toString().split(System.lineSeparator())
+    val lines     = outputStream.toString().split(System.lineSeparator())
     val treeLine1 = new ObjectMapper().readTree(lines(0))
     treeLine1.get("bees").textValue() should be("sting when scared")
     treeLine1.get("wasps") shouldBe a[NullNode]

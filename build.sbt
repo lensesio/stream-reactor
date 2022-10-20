@@ -41,6 +41,7 @@ lazy val root = (projectMatrix in file("."))
     publish := {},
     publishArtifact := false,
     name := "stream-reactor",
+    headerLicense := None,
   )
   .aggregate(
     subProjectsRefs: _*,
@@ -374,11 +375,11 @@ lazy val `test-common` = (projectMatrix in file("test-common"))
 
 addCommandAlias(
   "validateAll",
-  ";headerCheck;test:headerCheck;fun:headerCheck;it:headerCheck;scalafmtCheck;test:scalafmtCheck;it:scalafmtCheck;fun:scalafmtCheck;e2e:scalafmtCheck",
+  ";scalafmtCheck;test:scalafmtCheck;it:scalafmtCheck;fun:scalafmtCheck;e2e:scalafmtCheck",
 )
 addCommandAlias(
   "formatAll",
-  ";headerCreate;test:headerCreate;fun:headerCreate;it:headerCreate;scalafmt;test:scalafmt;it:scalafmt;fun:scalafmt;e2e:scalafmt",
+  ";scalafmt;test:scalafmt;it:scalafmt;fun:scalafmt",
 )
 addCommandAlias("fullTest", ";test;it:test;fun:test")
 addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")

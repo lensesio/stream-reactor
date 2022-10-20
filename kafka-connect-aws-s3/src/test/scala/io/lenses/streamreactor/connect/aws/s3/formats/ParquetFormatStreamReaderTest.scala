@@ -21,20 +21,25 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-
 class ParquetFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
   private val bucketAndPath = RemoteS3PathLocation("my-bucket", "myPath")
 
   "iteration" should "read parquet files" in {
     val inputStreamFn = () => getClass.getResourceAsStream("/parquet/1.parquet")
-    val fileSizeFn = () => inputStreamFn().available().longValue()
-    val target = new ParquetFormatStreamReader(inputStreamFn, fileSizeFn, bucketAndPath)
-    val list = target.toList
+    val fileSizeFn    = () => inputStreamFn().available().longValue()
+    val target        = new ParquetFormatStreamReader(inputStreamFn, fileSizeFn, bucketAndPath)
+    val list          = target.toList
     list should have size 200
-    list(0).data.value().asInstanceOf[Struct].getString("name") should be("dbiriwtgyelferkqjmgvmakxreoPnovkObfyjSCzhsaidymngstfqgkbocypzglotuahzMojaViltqGmJpBnrIew")
-    list(1).data.value().asInstanceOf[Struct].getString("name") should be("oyiirzenfdzzujavsdawjyctxvpckyqkyhzzvmaoimnywcohhSnbquwbixpeDfxttbdhupeKZolcyAjwknobmoucvwoxxytytxg")
-    list(199).data.value().asInstanceOf[Struct].getString("name") should be("cfmfgbDpeklnFumaugcdcHokwtockrhsyflNqKbuwsAnXpxqzicbLzleviwhZaaIaylptfegvwFwe")
+    list(0).data.value().asInstanceOf[Struct].getString("name") should be(
+      "dbiriwtgyelferkqjmgvmakxreoPnovkObfyjSCzhsaidymngstfqgkbocypzglotuahzMojaViltqGmJpBnrIew",
+    )
+    list(1).data.value().asInstanceOf[Struct].getString("name") should be(
+      "oyiirzenfdzzujavsdawjyctxvpckyqkyhzzvmaoimnywcohhSnbquwbixpeDfxttbdhupeKZolcyAjwknobmoucvwoxxytytxg",
+    )
+    list(199).data.value().asInstanceOf[Struct].getString("name") should be(
+      "cfmfgbDpeklnFumaugcdcHokwtockrhsyflNqKbuwsAnXpxqzicbLzleviwhZaaIaylptfegvwFwe",
+    )
   }
 
 }

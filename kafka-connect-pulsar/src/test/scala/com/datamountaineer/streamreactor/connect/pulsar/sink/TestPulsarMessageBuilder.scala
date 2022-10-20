@@ -16,21 +16,31 @@
 
 package com.datamountaineer.streamreactor.connect.pulsar.sink
 
-import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSinkConfig, PulsarSinkSettings}
+import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarConfigConstants
+import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSinkConfig
+import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSinkSettings
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfterAll, OptionValues}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-class TestPulsarMessageBuilder extends AnyWordSpec with Matchers with BeforeAndAfterAll with StrictLogging with OptionValues {
+class TestPulsarMessageBuilder
+    extends AnyWordSpec
+    with Matchers
+    with BeforeAndAfterAll
+    with StrictLogging
+    with OptionValues {
 
   val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
 
-  def getSchema: Schema = {
+  def getSchema: Schema =
     SchemaBuilder.struct
       .field("int8", SchemaBuilder.int8().defaultValue(2.toByte).doc("int8 field").build())
       .field("int16", Schema.INT16_SCHEMA)
@@ -41,10 +51,8 @@ class TestPulsarMessageBuilder extends AnyWordSpec with Matchers with BeforeAndA
       .field("boolean", Schema.BOOLEAN_SCHEMA)
       .field("string", Schema.STRING_SCHEMA)
       .build()
-  }
 
-
-  def getStruct(schema: Schema): Struct = {
+  def getStruct(schema: Schema): Struct =
     new Struct(schema)
       .put("int8", 12.toByte)
       .put("int16", 12.toShort)
@@ -54,22 +62,21 @@ class TestPulsarMessageBuilder extends AnyWordSpec with Matchers with BeforeAndA
       .put("float64", 12.2)
       .put("boolean", true)
       .put("string", "foo")
-  }
-
 
   "should create json messages singlePartition mode" in {
-    val config = PulsarSinkConfig(Map(
-      PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER = SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY =  1000"
-    ).asJava)
-
+    val config = PulsarSinkConfig(
+      Map(
+        PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
+        PulsarConfigConstants.KCQL_CONFIG  -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER = SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY =  1000",
+      ).asJava,
+    )
 
     val settings = PulsarSinkSettings(config)
-    val builder = PulsarMessageTemplateBuilder(settings)
+    val builder  = PulsarMessageTemplateBuilder(settings)
 
-    val schema = getSchema
-    val struct = getStruct(schema)
-    val record1 = new SinkRecord("kafka_topic", 0, null, null, schema, struct, 1)
+    val schema   = getSchema
+    val struct   = getStruct(schema)
+    val record1  = new SinkRecord("kafka_topic", 0, null, null, schema, struct, 1)
     val messages = builder.create(List(record1))
 
     messages.head.pulsarTopic shouldBe pulsarTopic
@@ -77,22 +84,23 @@ class TestPulsarMessageBuilder extends AnyWordSpec with Matchers with BeforeAndA
   }
 
   "should create json messages with key for key hash" in {
-    val config = PulsarSinkConfig(Map(
-      PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic WITHKEY(string) WITHPARTITIONER = CustomPartition WITHCOMPRESSION = ZLIB WITHDELAY = 1000"
-    ).asJava)
-
+    val config = PulsarSinkConfig(
+      Map(
+        PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
+        PulsarConfigConstants.KCQL_CONFIG  -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic WITHKEY(string) WITHPARTITIONER = CustomPartition WITHCOMPRESSION = ZLIB WITHDELAY = 1000",
+      ).asJava,
+    )
 
     val settings = PulsarSinkSettings(config)
-    val builder = PulsarMessageTemplateBuilder(settings)
+    val builder  = PulsarMessageTemplateBuilder(settings)
 
     val schema = SchemaBuilder.struct.field("string", Schema.STRING_SCHEMA)
-    val struct =  new Struct(schema).put("string", "landoop")
+    val struct = new Struct(schema).put("string", "landoop")
 
     val valueSchema = getSchema
     val valueStruct = getStruct(valueSchema)
 
-    val record1 = new SinkRecord("kafka_topic", 0, schema, struct, valueSchema, valueStruct, 1)
+    val record1  = new SinkRecord("kafka_topic", 0, schema, struct, valueSchema, valueStruct, 1)
     val messages = builder.create(List(record1))
 
     messages.head.pulsarTopic shouldBe pulsarTopic
@@ -101,22 +109,23 @@ class TestPulsarMessageBuilder extends AnyWordSpec with Matchers with BeforeAndA
   }
 
   "should create json message with key for round robin" in {
-    val config = PulsarSinkConfig(Map(
-      PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHKEY(string)  WITHPARTITIONER = RoundRobinPartition WITHDELAY = 1000"
-    ).asJava)
-
+    val config = PulsarSinkConfig(
+      Map(
+        PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
+        PulsarConfigConstants.KCQL_CONFIG  -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHKEY(string)  WITHPARTITIONER = RoundRobinPartition WITHDELAY = 1000",
+      ).asJava,
+    )
 
     val settings = PulsarSinkSettings(config)
-    val builder = PulsarMessageTemplateBuilder(settings)
+    val builder  = PulsarMessageTemplateBuilder(settings)
 
     val schema = SchemaBuilder.struct.field("string", Schema.STRING_SCHEMA)
-    val struct =  new Struct(schema).put("string", "landoop")
+    val struct = new Struct(schema).put("string", "landoop")
 
     val valueSchema = getSchema
     val valueStruct = getStruct(valueSchema)
 
-    val record1 = new SinkRecord("kafka_topic", 0, schema, struct, valueSchema, valueStruct, 1)
+    val record1  = new SinkRecord("kafka_topic", 0, schema, struct, valueSchema, valueStruct, 1)
     val messages = builder.create(List(record1))
 
     messages.head.pulsarTopic shouldBe pulsarTopic

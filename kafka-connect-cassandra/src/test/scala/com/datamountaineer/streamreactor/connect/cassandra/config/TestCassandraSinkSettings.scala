@@ -18,7 +18,8 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.util
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.{ErrorPolicyEnum, RetryErrorPolicy}
+import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
+import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datastax.driver.core.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigException
@@ -30,30 +31,28 @@ import org.scalatest.wordspec.AnyWordSpec
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 28/04/16. 
+  * Created by andrew@datamountaineer.com on 28/04/16.
   * stream-reactor
   */
 class TestCassandraSinkSettings extends AnyWordSpec with Matchers with MockitoSugar with TestConfig {
 
-  def getCassandraConfigSinkPropsRetry = {
+  def getCassandraConfigSinkPropsRetry =
     Map(
-      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
-      CassandraConfigConstants.USERNAME -> USERNAME,
-      CassandraConfigConstants.PASSWD -> PASSWD,
-      CassandraConfigConstants.KCQL -> QUERY_ALL,
-      CassandraConfigConstants.ERROR_POLICY -> ErrorPolicyEnum.RETRY.toString,
-      CassandraConfigConstants.ERROR_RETRY_INTERVAL->"500"
+      CassandraConfigConstants.CONTACT_POINTS       -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE            -> CASSANDRA_SINK_KEYSPACE,
+      CassandraConfigConstants.USERNAME             -> USERNAME,
+      CassandraConfigConstants.PASSWD               -> PASSWD,
+      CassandraConfigConstants.KCQL                 -> QUERY_ALL,
+      CassandraConfigConstants.ERROR_POLICY         -> ErrorPolicyEnum.RETRY.toString,
+      CassandraConfigConstants.ERROR_RETRY_INTERVAL -> "500",
     ).asJava
-  }
-
 
   "CassandraSettings should return setting for a sink" in {
     val context = mock[SinkTaskContext]
     //mock the assignment to simulate getting a list of assigned topics
     when(context.assignment()).thenReturn(getAssignment)
     val taskConfig = CassandraConfigSink(getCassandraConfigSinkPropsRetry)
-    val settings = CassandraSettings.configureSink(taskConfig)
+    val settings   = CassandraSettings.configureSink(taskConfig)
 
     val parsedConf: List[Kcql] = settings.kcqls.toList
     parsedConf.size shouldBe 2
@@ -99,14 +98,14 @@ class TestCassandraSinkSettings extends AnyWordSpec with Matchers with MockitoSu
 
   "CassandraSettings should throw an exception if the consistency level is not valid for a source" in {
 
-    val props =  Map(
-      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
-      CassandraConfigConstants.USERNAME -> USERNAME,
-      CassandraConfigConstants.PASSWD -> PASSWD,
-      CassandraConfigConstants.KCQL -> "INSERT INTO TABLE SELECT * FROM TOPIC",
+    val props = Map(
+      CassandraConfigConstants.CONTACT_POINTS  -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE       -> CASSANDRA_SOURCE_KEYSPACE,
+      CassandraConfigConstants.USERNAME        -> USERNAME,
+      CassandraConfigConstants.PASSWD          -> PASSWD,
+      CassandraConfigConstants.KCQL            -> "INSERT INTO TABLE SELECT * FROM TOPIC",
       CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
-      CassandraConfigConstants.POLL_INTERVAL -> "1000"
+      CassandraConfigConstants.POLL_INTERVAL   -> "1000",
     ).asJava
 
     val map = new util.HashMap[String, String](props)
@@ -117,16 +116,15 @@ class TestCassandraSinkSettings extends AnyWordSpec with Matchers with MockitoSu
   }
 
   "CassandraSettings should allow setting the consistency level as Quorum for a source" in {
-    val props =  Map(
-      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
-      CassandraConfigConstants.USERNAME -> USERNAME,
-      CassandraConfigConstants.PASSWD -> PASSWD,
-      CassandraConfigConstants.KCQL -> "INSERT INTO TABLE SELECT * FROM TOPIC",
+    val props = Map(
+      CassandraConfigConstants.CONTACT_POINTS  -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE       -> CASSANDRA_SOURCE_KEYSPACE,
+      CassandraConfigConstants.USERNAME        -> USERNAME,
+      CassandraConfigConstants.PASSWD          -> PASSWD,
+      CassandraConfigConstants.KCQL            -> "INSERT INTO TABLE SELECT * FROM TOPIC",
       CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
-      CassandraConfigConstants.POLL_INTERVAL -> "1000"
+      CassandraConfigConstants.POLL_INTERVAL   -> "1000",
     ).asJava
-
 
     val map = new util.HashMap[String, String](props)
     map.put(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG, ConsistencyLevel.QUORUM.name())

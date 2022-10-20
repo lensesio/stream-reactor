@@ -17,22 +17,24 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import java.util.Collections
-import com.datamountaineer.kcql.{Bucketing, Kcql}
+import com.datamountaineer.kcql.Bucketing
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduSettings}
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfig
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduSettings
 import com.datamountaineer.streamreactor.connect.kudu.sink.KuduWriter
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kudu.client.SessionConfiguration.FlushMode
 import org.apache.kudu.client._
-import org.mockito.ArgumentMatchers.{any, eq => mockEq}
+import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.{ eq => mockEq }
 import org.mockito.MockitoSugar
 import org.scalatest.EitherValues
 
 import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.SeqHasAsJava
-
 
 /**
   * Created by andrew@datamountaineer.com on 04/03/16.
@@ -41,23 +43,23 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 @nowarn
 class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with ConverterUtil with EitherValues {
   "A Kudu Writer should write" in {
-    val kcql = mock[Kcql]
+    val kcql      = mock[Kcql]
     val bucketing = mock[Bucketing]
     when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
     when(kcql.getBucketing).thenReturn(bucketing)
     val record = getTestRecords.head
 
     val kuduSchema = convertToKuduSchema(record, kcql)
-    val kuduRow = kuduSchema.newPartialRow()
+    val kuduRow    = kuduSchema.newPartialRow()
 
     //mock out kudu client
-    val insert = mock[Upsert]
-    val table = mock[KuduTable]
-    val client = mock[KuduClient]
+    val insert      = mock[Upsert]
+    val table       = mock[KuduTable]
+    val client      = mock[KuduClient]
     val kuduSession = mock[KuduSession]
-    val resp = mock[ListTablesResponse]
+    val resp        = mock[ListTablesResponse]
 
-    val config = new KuduConfig(getConfigAutoCreate(""))
+    val config   = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
@@ -96,23 +98,23 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
         | }
       """.stripMargin
 
-    val topic = "sink_test"
+    val topic  = "sink_test"
     val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
     @nowarn
     val payload = convertFromStringAsJson(record, Map.empty, Set.empty)
 
     val kuduSchema = convertToKuduSchemaFromJson(payload.value.converted, topic)
-    val kuduRow = kuduSchema.newPartialRow()
+    val kuduRow    = kuduSchema.newPartialRow()
 
     //mock out kudu client
-    val insert = mock[Upsert]
-    val table = mock[KuduTable]
-    val client = mock[KuduClient]
+    val insert      = mock[Upsert]
+    val table       = mock[KuduTable]
+    val client      = mock[KuduClient]
     val kuduSession = mock[KuduSession]
-    val resp = mock[ListTablesResponse]
+    val resp        = mock[ListTablesResponse]
 
-    val config = new KuduConfig(getConfigAutoCreate(""))
+    val config   = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
@@ -130,24 +132,23 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     writer.close()
   }
 
-
   "A Kudu Writer should create table on arrival of first record" in {
-    val kcql = mock[Kcql]
+    val kcql      = mock[Kcql]
     val bucketing = mock[Bucketing]
     when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
     when(kcql.getBucketing).thenReturn(bucketing)
-    val record = getTestRecords.head
+    val record     = getTestRecords.head
     val kuduSchema = convertToKuduSchema(record, kcql)
-    val kuduRow = kuduSchema.newPartialRow()
+    val kuduRow    = kuduSchema.newPartialRow()
 
     //mock out kudu client
-    val insert = mock[Upsert]
-    val table = mock[KuduTable]
-    val client = mock[KuduClient]
+    val insert      = mock[Upsert]
+    val table       = mock[KuduTable]
+    val client      = mock[KuduClient]
     val kuduSession = mock[KuduSession]
-    val resp = mock[ListTablesResponse]
+    val resp        = mock[ListTablesResponse]
 
-    val config = new KuduConfig(getConfigAutoCreate(""))
+    val config   = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
@@ -159,7 +160,6 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     when(kuduSession.getFlushMode).thenReturn(FlushMode.AUTO_FLUSH_SYNC)
     when(client.getTablesList).thenReturn(resp)
     when(resp.getTablesList).thenReturn(List.empty[String].asJava)
-
 
     val writer = new KuduWriter(client, settings)
     writer.write(getTestRecords.toSeq)
@@ -187,23 +187,23 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
         | }
       """.stripMargin
 
-    val topic = "sink_test"
+    val topic  = "sink_test"
     val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
     @nowarn
     val payload = convertFromStringAsJson(record, Map.empty, Set.empty)
 
     val kuduSchema = convertToKuduSchemaFromJson(payload.value.converted, topic)
-    val kuduRow = kuduSchema.newPartialRow()
+    val kuduRow    = kuduSchema.newPartialRow()
 
     //mock out kudu client
-    val insert = mock[Upsert]
-    val table = mock[KuduTable]
-    val client = mock[KuduClient]
+    val insert      = mock[Upsert]
+    val table       = mock[KuduTable]
+    val client      = mock[KuduClient]
     val kuduSession = mock[KuduSession]
-    val resp = mock[ListTablesResponse]
+    val resp        = mock[ListTablesResponse]
 
-    val config = new KuduConfig(getConfigAutoCreate(""))
+    val config   = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
@@ -222,29 +222,29 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
   }
 
   "should identify schema change from source records" in {
-    val kcql = mock[Kcql]
+    val kcql      = mock[Kcql]
     val bucketing = mock[Bucketing]
     when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
     when(kcql.getBucketing).thenReturn(bucketing)
     val schema1 = createSchema
     val schema2 = createSchema5
 
-    val rec1 = createSinkRecord(createRecord(schema1, "1"), TOPIC, 1)
-    val rec2 = createSinkRecord(createRecord5(schema2, "2"), TOPIC, 2)
+    val rec1       = createSinkRecord(createRecord(schema1, "1"), TOPIC, 1)
+    val rec2       = createSinkRecord(createRecord5(schema2, "2"), TOPIC, 2)
     val kuduSchema = createKuduSchema
 
     val kuduSchema2 = createKuduSchema5
-    val kuduRow2 = kuduSchema2.newPartialRow()
+    val kuduRow2    = kuduSchema2.newPartialRow()
 
     //mock out kudu client
-    val client = mock[KuduClient]
+    val client      = mock[KuduClient]
     val kuduSession = mock[KuduSession]
-    val table = mock[KuduTable]
-    val insert = mock[Upsert]
-    val atrm = mock[AlterTableResponse]
-    val resp = mock[ListTablesResponse]
+    val table       = mock[KuduTable]
+    val insert      = mock[Upsert]
+    val atrm        = mock[AlterTableResponse]
+    val resp        = mock[ListTablesResponse]
 
-    val config = new KuduConfig(getConfigAutoCreateAndEvolve(""))
+    val config   = new KuduConfig(getConfigAutoCreateAndEvolve(""))
     val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
@@ -266,24 +266,24 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
   }
 
   "A Kudu Writer should throw retry on flush errors" in {
-    val kcql = mock[Kcql]
+    val kcql      = mock[Kcql]
     val bucketing = mock[Bucketing]
     when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
     when(kcql.getBucketing).thenReturn(bucketing)
-    val record = getTestRecords.head
+    val record     = getTestRecords.head
     val kuduSchema = convertToKuduSchema(record, kcql)
-    val kuduRow = kuduSchema.newPartialRow()
+    val kuduRow    = kuduSchema.newPartialRow()
 
     //mock out kudu client
-    val insert = mock[Upsert]
-    val table = mock[KuduTable]
-    val client = mock[KuduClient]
+    val insert      = mock[Upsert]
+    val table       = mock[KuduTable]
+    val client      = mock[KuduClient]
     val kuduSession = mock[KuduSession]
-    val resp = mock[OperationResponse]
-    val errorRow = mock[RowError]
-    val tableresp = mock[ListTablesResponse]
+    val resp        = mock[OperationResponse]
+    val errorRow    = mock[RowError]
+    val tableresp   = mock[ListTablesResponse]
 
-    val config = new KuduConfig(getConfigAutoCreateRetry(""))
+    val config   = new KuduConfig(getConfigAutoCreateRetry(""))
     val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
@@ -308,25 +308,25 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
   }
 
   "A Kudu Writer should check pending errors and throw exception" in {
-    val kcql = mock[Kcql]
+    val kcql      = mock[Kcql]
     val bucketing = mock[Bucketing]
     when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
     when(kcql.getBucketing).thenReturn(bucketing)
-    val record = getTestRecords.head
+    val record     = getTestRecords.head
     val kuduSchema = convertToKuduSchema(record, kcql)
-    val kuduRow = kuduSchema.newPartialRow()
+    val kuduRow    = kuduSchema.newPartialRow()
 
     //mock out kudu client
-    val insert = mock[Upsert]
-    val table = mock[KuduTable]
-    val client = mock[KuduClient]
-    val kuduSession = mock[KuduSession]
-    val errorRow = mock[RowError]
+    val insert                     = mock[Upsert]
+    val table                      = mock[KuduTable]
+    val client                     = mock[KuduClient]
+    val kuduSession                = mock[KuduSession]
+    val errorRow                   = mock[RowError]
     val rowErrorsAndOverflowStatus = mock[RowErrorsAndOverflowStatus]
-    val resp = mock[ListTablesResponse]
+    val resp                       = mock[ListTablesResponse]
     when(rowErrorsAndOverflowStatus.getRowErrors()).thenReturn(Array[RowError](errorRow))
 
-    val config = new KuduConfig(getConfigAutoCreateRetryWithBackgroundFlush(""))
+    val config   = new KuduConfig(getConfigAutoCreateRetryWithBackgroundFlush(""))
     val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
@@ -340,7 +340,6 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     when(kuduSession.getPendingErrors()).thenReturn(rowErrorsAndOverflowStatus)
     when(client.getTablesList).thenReturn(resp)
     when(resp.getTablesList).thenReturn(List.empty[String].asJava)
-
 
     val writer = new KuduWriter(client, settings)
     verify(kuduSession, times(1)).setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND)

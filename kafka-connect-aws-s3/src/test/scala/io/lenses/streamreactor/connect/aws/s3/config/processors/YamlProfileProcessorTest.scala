@@ -32,19 +32,19 @@ class YamlProfileProcessorTest extends AnyFlatSpec with Matchers with LazyLoggin
     val result = process(Map(), "/example.yaml")
 
     result.value.size should be(12)
-    result.value should contain allOf(
-      "connect.s3.retry.interval" -> 10000,
-      "connect.s3.error.policy" -> "RETRY",
-      "connect.s3.http.max.retries" -> 20,
-      "connect.s3.kcql" -> "INSERT INTO `target-bucket:target-path` SELECT * FROM `source.bucket` STOREAS `text` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000",
-      "connect.s3.aws.access.key" -> "myAccessKey",
-      "connect.s3.max.retries" -> 10,
-      "connect.s3.vhost.bucket" -> true,
-      "connect.s3.aws.secret.key" -> "mySecretKey",
-      "connect.s3.aws.region" -> "us-east-1",
+    result.value should contain allOf (
+      "connect.s3.retry.interval"      -> 10000,
+      "connect.s3.error.policy"        -> "RETRY",
+      "connect.s3.http.max.retries"    -> 20,
+      "connect.s3.kcql"                -> "INSERT INTO `target-bucket:target-path` SELECT * FROM `source.bucket` STOREAS `text` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000",
+      "connect.s3.aws.access.key"      -> "myAccessKey",
+      "connect.s3.max.retries"         -> 10,
+      "connect.s3.vhost.bucket"        -> true,
+      "connect.s3.aws.secret.key"      -> "mySecretKey",
+      "connect.s3.aws.region"          -> "us-east-1",
       "connect.s3.http.retry.interval" -> 20000,
-      "connect.s3.custom.endpoint" -> "aws-endpoint.com",
-      "connect.s3.aws.auth.mode" -> "Credentials",
+      "connect.s3.custom.endpoint"     -> "aws-endpoint.com",
+      "connect.s3.aws.auth.mode"       -> "Credentials",
     )
 
   }
@@ -53,11 +53,11 @@ class YamlProfileProcessorTest extends AnyFlatSpec with Matchers with LazyLoggin
     val result = process(Map(), "/default.yaml")
 
     result.value.size should be(4)
-    result.value should contain allOf(
-      "connect.s3.kcql" -> "INSERT INTO `target-bucket:target-path` SELECT * FROM `source.bucket` PARTITIONBY name,title,salary STOREAS `text` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000",
+    result.value should contain allOf (
+      "connect.s3.kcql"           -> "INSERT INTO `target-bucket:target-path` SELECT * FROM `source.bucket` PARTITIONBY name,title,salary STOREAS `text` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000",
       "connect.s3.aws.access.key" -> "myAccessKey",
       "connect.s3.aws.secret.key" -> "mySecretKey",
-      "connect.s3.aws.auth.mode" -> "myAuthMode",
+      "connect.s3.aws.auth.mode"  -> "myAuthMode",
     )
   }
 
@@ -65,11 +65,11 @@ class YamlProfileProcessorTest extends AnyFlatSpec with Matchers with LazyLoggin
     val result = process(Map(), "/default.yaml", "/override.yaml")
 
     result.value.size should be(5)
-    result.value should contain allOf(
-      "connect.s3.kcql" -> "INSERT INTO `target-bucket:target-path` SELECT * FROM `source.bucket` PARTITIONBY name,title,salary STOREAS `text` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000",
-      "connect.s3.aws.access.key" -> "overrideAccessKey",
-      "connect.s3.aws.secret.key" -> "mySecretKey",
-      "connect.s3.aws.auth.mode" -> "myAuthMode",
+    result.value should contain allOf (
+      "connect.s3.kcql"                -> "INSERT INTO `target-bucket:target-path` SELECT * FROM `source.bucket` PARTITIONBY name,title,salary STOREAS `text` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000",
+      "connect.s3.aws.access.key"      -> "overrideAccessKey",
+      "connect.s3.aws.secret.key"      -> "mySecretKey",
+      "connect.s3.aws.auth.mode"       -> "myAuthMode",
       "connect.s3.local.tmp.directory" -> "/my/local/tmp/dir",
     )
   }
@@ -78,38 +78,58 @@ class YamlProfileProcessorTest extends AnyFlatSpec with Matchers with LazyLoggin
     val result = process(Map(), "/kcql_all.yaml", "/kcql_override.yaml")
 
     result.value.size should be(1)
-    result.value("connect.s3.kcql") should be("INSERT INTO `myOverrideBucket:myOverridePartition` SELECT * FROM `my-kafka-override-topic` PARTITIONBY name,title,salary STOREAS `parquet` WITHPARTITIONER = Values WITH_FLUSH_SIZE = 1 WITH_FLUSH_INTERVAL = 2 WITH_FLUSH_COUNT = 3")
+    result.value("connect.s3.kcql") should be(
+      "INSERT INTO `myOverrideBucket:myOverridePartition` SELECT * FROM `my-kafka-override-topic` PARTITIONBY name,title,salary STOREAS `parquet` WITHPARTITIONER = Values WITH_FLUSH_SIZE = 1 WITH_FLUSH_INTERVAL = 2 WITH_FLUSH_COUNT = 3",
+    )
   }
 
   "process" should "merge kcql options from kcql string and builder" in {
     val result = process(Map(), "/default.yaml", "/kcql_override.yaml")
 
     result.value.size should be(4)
-    result.value("connect.s3.kcql") should be("INSERT INTO `myOverrideBucket:myOverridePartition` SELECT * FROM `my-kafka-override-topic` PARTITIONBY name,title,salary STOREAS `parquet` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000")
+    result.value("connect.s3.kcql") should be(
+      "INSERT INTO `myOverrideBucket:myOverridePartition` SELECT * FROM `my-kafka-override-topic` PARTITIONBY name,title,salary STOREAS `parquet` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000",
+    )
   }
 
   "process" should "merge allow overriding kcql properties with connector config" in {
-    val result = process(Map(KCQL_CONFIG -> "INSERT INTO expectedTarget SELECT * FROM expectedSource PARTITIONBY name,title,salary STOREAS `parquet` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000"), "/default.yaml", "/kcql_override.yaml")
+    val result = process(
+      Map(
+        KCQL_CONFIG -> "INSERT INTO expectedTarget SELECT * FROM expectedSource PARTITIONBY name,title,salary STOREAS `parquet` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000",
+      ),
+      "/default.yaml",
+      "/kcql_override.yaml",
+    )
 
     result.value.size should be(4)
-    result.value("connect.s3.kcql") should be("INSERT INTO `expectedTarget` SELECT * FROM `expectedSource` PARTITIONBY name,title,salary STOREAS `parquet` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000")
+    result.value("connect.s3.kcql") should be(
+      "INSERT INTO `expectedTarget` SELECT * FROM `expectedSource` PARTITIONBY name,title,salary STOREAS `parquet` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000",
+    )
   }
 
   "process" should "merge allow retaining kcql properties when overriding" in {
-    val result = process(Map(KCQL_CONFIG -> "INSERT INTO use_profile SELECT * FROM use_profile PARTITIONBY name,title,salary STOREAS `parquet` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000"), "/default.yaml", "/kcql_override.yaml")
+    val result = process(
+      Map(
+        KCQL_CONFIG -> "INSERT INTO use_profile SELECT * FROM use_profile PARTITIONBY name,title,salary STOREAS `parquet` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000",
+      ),
+      "/default.yaml",
+      "/kcql_override.yaml",
+    )
 
     result.value.size should be(4)
-    result.value("connect.s3.kcql") should be("INSERT INTO `myOverrideBucket:myOverridePartition` SELECT * FROM `my-kafka-override-topic` PARTITIONBY name,title,salary STOREAS `parquet` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000")
+    result.value("connect.s3.kcql") should be(
+      "INSERT INTO `myOverrideBucket:myOverridePartition` SELECT * FROM `my-kafka-override-topic` PARTITIONBY name,title,salary STOREAS `parquet` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000",
+    )
   }
 
-  private def process(properties: Map[String, String], yamls: String*): Either[Throwable, Map[String, Any]] = {
+  private def process(properties: Map[String, String], yamls: String*): Either[Throwable, Map[String, Any]] =
     getResourcesDirectory() match {
       case Left(ex) => ex.asLeft
-      case Right(resourcesDir) => new YamlProfileProcessor().process(Map[String, String](
-        "connect.s3.config.profiles" -> yamls.map(resourcesDir + _).mkString(","),
-      ).combine(properties))
+      case Right(resourcesDir) =>
+        new YamlProfileProcessor().process(Map[String, String](
+          "connect.s3.config.profiles" -> yamls.map(resourcesDir + _).mkString(","),
+        ).combine(properties))
     }
-  }
 
   private def getResourcesDirectory(): Either[Throwable, String] = {
     val url = classOf[YamlProfileProcessorTest].getResource("/profiles/")

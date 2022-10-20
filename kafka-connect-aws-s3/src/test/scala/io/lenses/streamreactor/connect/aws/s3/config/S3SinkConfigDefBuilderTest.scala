@@ -21,16 +21,19 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters.{IteratorHasAsScala, MapHasAsJava}
+import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   val PrefixName = "streamReactorBackups"
-  val TopicName = "myTopic"
+  val TopicName  = "myTopic"
   val BucketName = "myBucket"
 
   "apply" should "respect defined properties" in {
-    val props = Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1")
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
+    )
 
     val kcql = S3ConfigDefBuilder(None, props.asJava).getKCQL
     kcql should have size 1
@@ -46,10 +49,11 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
 
   "apply" should "respect default flush settings" in {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values"
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values",
     )
 
-    val commitPolicy = S3ConfigDefBuilder(None, props.asJava).commitPolicy(S3ConfigDefBuilder(None, props.asJava).getKCQL.head)
+    val commitPolicy =
+      S3ConfigDefBuilder(None, props.asJava).commitPolicy(S3ConfigDefBuilder(None, props.asJava).getKCQL.head)
 
     commitPolicy.recordCount should be(Some(S3FlushSettings.defaultFlushCount))
     commitPolicy.fileSize should be(Some(S3FlushSettings.defaultFlushSize))
@@ -59,10 +63,11 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
   "apply" should "respect disabled flush count" in {
     val props = Map(
       "connect.s3.disable.flush.count" -> true.toString,
-      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values"
+      "connect.s3.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values",
     )
 
-    val commitPolicy = S3ConfigDefBuilder(None, props.asJava).commitPolicy(S3ConfigDefBuilder(None, props.asJava).getKCQL.head)
+    val commitPolicy =
+      S3ConfigDefBuilder(None, props.asJava).commitPolicy(S3ConfigDefBuilder(None, props.asJava).getKCQL.head)
 
     commitPolicy.recordCount should be(None)
     commitPolicy.fileSize should be(Some(S3FlushSettings.defaultFlushSize))
@@ -70,9 +75,12 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
   }
 
   "apply" should "respect custom flush settings" in {
-    val props = Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITH_FLUSH_SIZE = 3 WITH_FLUSH_INTERVAL = 2 WITH_FLUSH_COUNT = 1")
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITH_FLUSH_SIZE = 3 WITH_FLUSH_INTERVAL = 2 WITH_FLUSH_COUNT = 1",
+    )
 
-    val commitPolicy = S3ConfigDefBuilder(None, props.asJava).commitPolicy(S3ConfigDefBuilder(None, props.asJava).getKCQL.head)
+    val commitPolicy =
+      S3ConfigDefBuilder(None, props.asJava).commitPolicy(S3ConfigDefBuilder(None, props.asJava).getKCQL.head)
 
     commitPolicy.recordCount should be(Some(1))
     commitPolicy.fileSize should be(Some(3))
@@ -80,12 +88,14 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
   }
 
   "apply" should "respect custom batch size and limit" in {
-    val props = Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName BATCH = 150 STOREAS `CSV` LIMIT 550")
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName BATCH = 150 STOREAS `CSV` LIMIT 550",
+    )
 
     val kcql = S3ConfigDefBuilder(None, props.asJava).getKCQL
 
-    kcql.head.getBatchSize should be (150)
-    kcql.head.getLimit should be (550)
+    kcql.head.getBatchSize should be(150)
+    kcql.head.getLimit should be(550)
   }
 
 }

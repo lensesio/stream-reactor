@@ -1,16 +1,23 @@
 package io.lenses.streamreactor.connect.aws.s3.utils
 
-import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
+import com.dimafeng.testcontainers.ForAllTestContainer
+import com.dimafeng.testcontainers.GenericContainer
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
-import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, AwsClient, S3Config}
+import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
+import io.lenses.streamreactor.connect.aws.s3.config.AwsClient
+import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither._
-import io.lenses.streamreactor.connect.aws.s3.storage.{JCloudsStorageInterface, StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.JCloudsStorageInterface
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.testcontainers.containers.wait.strategy.Wait
 import software.amazon.awssdk.services.s3.S3Client
-import software.amazon.awssdk.services.s3.model.{CreateBucketRequest, Delete, DeleteObjectsRequest, ObjectIdentifier}
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest
+import software.amazon.awssdk.services.s3.model.Delete
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier
 
 import java.io.File
 import java.nio.file.Files
@@ -23,8 +30,8 @@ trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with Laz
   val Credential: String = "credential"
   val BucketName: String = "employees"
 
-  var storageInterfaceOpt: Option[StorageInterface]     = None
-  var s3ClientOpt:         Option[S3Client]             = None
+  var storageInterfaceOpt: Option[StorageInterface] = None
+  var s3ClientOpt:         Option[S3Client]         = None
   var helperOpt:           Option[RemoteFileHelper] = None
 
   var localRoot: File = _
@@ -32,7 +39,7 @@ trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with Laz
 
   implicit lazy val storageInterface: StorageInterface =
     storageInterfaceOpt.getOrElse(throw new IllegalStateException("Test not initialised"))
-  lazy val s3Client: S3Client             = s3ClientOpt.getOrElse(throw new IllegalStateException("Test not initialised"))
+  lazy val s3Client: S3Client         = s3ClientOpt.getOrElse(throw new IllegalStateException("Test not initialised"))
   lazy val helper:   RemoteFileHelper = helperOpt.getOrElse(throw new IllegalStateException("Test not initialised"))
 
   override val container: GenericContainer = GenericContainer(

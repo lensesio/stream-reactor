@@ -17,15 +17,19 @@
 package com.datamountaineer.streamreactor.connect.influx
 
 import com.datamountaineer.streamreactor.connect.influx.converters.InfluxPoint
-import com.datamountaineer.streamreactor.connect.influx.data.{Foo, FooInner}
+import com.datamountaineer.streamreactor.connect.influx.data.Foo
+import com.datamountaineer.streamreactor.connect.influx.data.FooInner
 import com.datamountaineer.streamreactor.connect.influx.writers.ValuesExtractor
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.util.{Success, Try}
+import scala.util.Success
+import scala.util.Try
 
 class ValuesExtractorStructTest extends AnyWordSpec with Matchers {
   "ValuesExtractor" should {
@@ -40,7 +44,6 @@ class ValuesExtractorStructTest extends AnyWordSpec with Matchers {
         .put("firstName", "Alex")
         .put("lastName", "Smith")
         .put("age", 30)
-
 
       val map = ValuesExtractor.extractAllFields(struct, Set.empty[String]).toMap
       map("firstName") shouldBe "Alex"
@@ -60,13 +63,11 @@ class ValuesExtractorStructTest extends AnyWordSpec with Matchers {
         .put("lastName", "Smith")
         .put("age", 30)
 
-
       val map = ValuesExtractor.extractAllFields(struct, Set("lastName")).toMap
       map("firstName") shouldBe "Alex"
       map.contains("lastName") shouldBe false
       map("age") shouldBe 30
     }
-
 
     "throw an exception if the ts field is not present in the struct" in {
       val schema = SchemaBuilder.struct().name("com.example.Person")
@@ -79,14 +80,12 @@ class ValuesExtractorStructTest extends AnyWordSpec with Matchers {
         .put("lastName", "Smith")
         .put("age", 30)
 
-      val path = Vector("ts")
+      val path   = Vector("ts")
       val result = Try(ValuesExtractor.extract(struct, path))
       result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[IllegalArgumentException]
 
-
     }
-
 
     "throw an exception if the select * from includes another struct" in {
       val schema = SchemaBuilder.struct().name("com.example.Person")
@@ -100,7 +99,6 @@ class ValuesExtractorStructTest extends AnyWordSpec with Matchers {
         .field("age", Schema.INT32_SCHEMA)
         .field("dependant", schema)
         .build()
-
 
       val dependant = new Struct(schema)
         .put("firstName", "Alex")
@@ -131,7 +129,6 @@ class ValuesExtractorStructTest extends AnyWordSpec with Matchers {
         .field("dependant", schema)
         .build()
 
-
       val dependant = new Struct(schema)
         .put("firstName", "Olivia")
         .put("lastName", "Miru")
@@ -143,7 +140,6 @@ class ValuesExtractorStructTest extends AnyWordSpec with Matchers {
         .put("age", 30)
         .put("dependant", dependant)
 
-
       ValuesExtractor.extract(parent, Vector("dependant", "firstName")) shouldBe "Olivia"
       ValuesExtractor.extract(parent, Vector("dependant", "lastName")) shouldBe "Miru"
       ValuesExtractor.extract(parent, Vector("dependant", "age")) shouldBe 3
@@ -152,10 +148,10 @@ class ValuesExtractorStructTest extends AnyWordSpec with Matchers {
 
     "extract from Struct when map is involved" in {
 
-      val s = RecordFormat[Foo]
-      val avro = s.to(Foo(100, Map("key1" -> FooInner("value1", 1.4), "key2" -> FooInner("value2", 0.11))))
+      val s        = RecordFormat[Foo]
+      val avro     = s.to(Foo(100, Map("key1" -> FooInner("value1", 1.4), "key2" -> FooInner("value2", 0.11))))
       val avroData = new AvroData(1)
-      val foo = avroData.toConnectData(avro.getSchema, avro).value().asInstanceOf[Struct]
+      val foo      = avroData.toConnectData(avro.getSchema, avro).value().asInstanceOf[Struct]
 
       ValuesExtractor.extract(foo, Vector("map", "key1", "s")) shouldBe "value1"
       ValuesExtractor.extract(foo, Vector("map", "key2", "t")) shouldBe 0.11
@@ -174,7 +170,6 @@ class ValuesExtractorStructTest extends AnyWordSpec with Matchers {
         .field("dependant", schema)
         .build()
 
-
       val dependant = new Struct(schema)
         .put("firstName", "Alex")
         .put("lastName", "Smith")
@@ -186,13 +181,11 @@ class ValuesExtractorStructTest extends AnyWordSpec with Matchers {
         .put("age", 30)
         .put("dependant", dependant)
 
-
       val map = ValuesExtractor.extractAllFields(parent, Set("dependant", "lastName")).toMap
       map.size shouldBe 2
       map("firstName") shouldBe "Alex"
       map("age") shouldBe 30
     }
-
 
     "throw an exception if the timestamp field is a string and incorrect format" in {
       val schema = SchemaBuilder.struct().name("com.example.Person")
@@ -205,10 +198,14 @@ class ValuesExtractorStructTest extends AnyWordSpec with Matchers {
         .put("millis", "2017-01-01T00:00:00.123Z")
         .put("bad", "not a time")
 
-      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(struct, Vector("good")), Vector("good")) shouldBe Success(1483228800000L)
-      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(struct, Vector("millis")), Vector("millis")) shouldBe Success(1483228800123L)
+      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(struct, Vector("good")), Vector("good")) shouldBe Success(
+        1483228800000L,
+      )
+      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(struct, Vector("millis")), Vector("millis")) shouldBe Success(
+        1483228800123L,
+      )
 
-      val path = Vector("bad")
+      val path   = Vector("bad")
       val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(struct, Vector("bad")), path)
       result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[IllegalArgumentException]

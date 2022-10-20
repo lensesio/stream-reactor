@@ -11,7 +11,7 @@ class CassandraUtilsTest extends AnyWordSpec with Matchers {
   "CassandraUtilsTest.getBucketsBetweenDates" should {
 
     "return correct single bucket from SECOND bucket" in {
-      val previous = Instant.parse("2020-08-12T18:35:24.00Z");
+      val previous   = Instant.parse("2020-08-12T18:35:24.00Z");
       val upperBound = Instant.parse("2020-08-12T18:35:24.55Z");
 
       val result = CassandraUtils.getBucketsBetweenDates(previous, upperBound, BucketMode.SECOND, "yyMMddHHmmss")
@@ -19,7 +19,7 @@ class CassandraUtilsTest extends AnyWordSpec with Matchers {
     }
 
     "return correct single bucket from MINUTE bucket" in {
-      val previous = Instant.parse("2020-08-12T18:35:24.00Z");
+      val previous   = Instant.parse("2020-08-12T18:35:24.00Z");
       val upperBound = Instant.parse("2020-08-12T18:35:58.10Z");
 
       val result = CassandraUtils.getBucketsBetweenDates(previous, upperBound, BucketMode.MINUTE, "yyMMddHHmm")
@@ -27,7 +27,7 @@ class CassandraUtilsTest extends AnyWordSpec with Matchers {
     }
 
     "return correct single bucket from HOUR bucket" in {
-      val previous = Instant.parse("2020-08-12T18:35:24.00Z");
+      val previous   = Instant.parse("2020-08-12T18:35:24.00Z");
       val upperBound = Instant.parse("2020-08-12T18:55:58.10Z");
 
       val result = CassandraUtils.getBucketsBetweenDates(previous, upperBound, BucketMode.HOUR, "yyMMddHH")
@@ -35,7 +35,7 @@ class CassandraUtilsTest extends AnyWordSpec with Matchers {
     }
 
     "return correct single bucket from DAY bucket" in {
-      val previous = Instant.parse("2020-08-12T18:35:24.00Z");
+      val previous   = Instant.parse("2020-08-12T18:35:24.00Z");
       val upperBound = Instant.parse("2020-08-12T23:35:58.10Z");
 
       val result = CassandraUtils.getBucketsBetweenDates(previous, upperBound, BucketMode.DAY, "yyMMdd")
@@ -43,7 +43,7 @@ class CassandraUtilsTest extends AnyWordSpec with Matchers {
     }
 
     "return correct multiple buckets from SECOND bucket" in {
-      val previous = Instant.parse("2020-08-12T18:35:24.00Z");
+      val previous   = Instant.parse("2020-08-12T18:35:24.00Z");
       val upperBound = Instant.parse("2020-08-12T18:35:28.10Z");
 
       val result = CassandraUtils.getBucketsBetweenDates(previous, upperBound, BucketMode.SECOND, "yyMMddHHmmss")
@@ -56,7 +56,7 @@ class CassandraUtilsTest extends AnyWordSpec with Matchers {
     }
 
     "return correct multiple buckets from MINUTE bucket" in {
-      val previous = Instant.parse("2020-08-12T18:35:24.00Z");
+      val previous   = Instant.parse("2020-08-12T18:35:24.00Z");
       val upperBound = Instant.parse("2020-08-12T18:39:20.10Z");
 
       val result = CassandraUtils.getBucketsBetweenDates(previous, upperBound, BucketMode.MINUTE, "yyMMddHHmm")
@@ -69,7 +69,7 @@ class CassandraUtilsTest extends AnyWordSpec with Matchers {
     }
 
     "return correct multiple buckets from HOUR bucket" in {
-      val previous = Instant.parse("2020-08-12T18:35:24.00Z");
+      val previous   = Instant.parse("2020-08-12T18:35:24.00Z");
       val upperBound = Instant.parse("2020-08-12T22:39:28.10Z");
 
       val result = CassandraUtils.getBucketsBetweenDates(previous, upperBound, BucketMode.HOUR, "yyMMddHH")
@@ -82,7 +82,7 @@ class CassandraUtilsTest extends AnyWordSpec with Matchers {
     }
 
     "return correct multiple buckets from DAY bucket" in {
-      val previous = Instant.parse("2020-08-12T18:35:24.00Z");
+      val previous   = Instant.parse("2020-08-12T18:35:24.00Z");
       val upperBound = Instant.parse("2020-08-16T22:39:20.10Z");
 
       val result = CassandraUtils.getBucketsBetweenDates(previous, upperBound, BucketMode.DAY, "yyMMdd")
@@ -95,7 +95,7 @@ class CassandraUtilsTest extends AnyWordSpec with Matchers {
     }
 
     "return correct quantity of buckets buckets from MINUTE bucket" in {
-      val previous = Instant.parse("2020-08-12T18:35:24.00Z");
+      val previous   = Instant.parse("2020-08-12T18:35:24.00Z");
       val upperBound = Instant.parse("2020-09-12T22:39:28.10Z");
 
       val result = CassandraUtils.getBucketsBetweenDates(previous, upperBound, BucketMode.MINUTE, "yyMMddHHmm")

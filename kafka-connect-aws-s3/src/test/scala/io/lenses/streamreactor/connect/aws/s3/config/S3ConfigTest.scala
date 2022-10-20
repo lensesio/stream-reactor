@@ -16,7 +16,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import com.datamountaineer.streamreactor.common.errors.{NoopErrorPolicy, RetryErrorPolicy, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.common.errors.NoopErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.common.config.types.Password
 import org.scalatest.flatspec.AnyFlatSpec
@@ -28,7 +30,7 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
   "S3Config" should "get string value" in {
     val map = Map(
       "defined" -> "hello",
-      "blank" -> ""
+      "blank"   -> "",
     )
     S3Config.getString(map, "defined") should be(Some("hello"))
     S3Config.getString(map, "blank") should be(None)
@@ -37,10 +39,10 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
 
   "S3Config" should "get password value" in {
     val map = Map(
-      "definedPass" -> new Password("hello"),
-      "emptyPass" -> new Password(""),
+      "definedPass"   -> new Password("hello"),
+      "emptyPass"     -> new Password(""),
       "definedString" -> "defined",
-      "emptyString" -> "",
+      "emptyString"   -> "",
     )
     S3Config.getPassword(map, "definedPass") should be(Some("hello"))
     S3Config.getPassword(map, "emptyPass") should be(None)
@@ -52,11 +54,11 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
 
   "S3Config" should "get boolean value" in {
     val map = Map(
-      "trueBoolProp" -> true,
-      "falseBoolProp" -> false,
-      "trueStringProp" -> "true",
+      "trueBoolProp"    -> true,
+      "falseBoolProp"   -> false,
+      "trueStringProp"  -> "true",
       "falseStringProp" -> "false",
-      "emptyProp" -> ""
+      "emptyProp"       -> "",
     )
     S3Config.getBoolean(map, "trueBoolProp") should be(Some(true))
     S3Config.getBoolean(map, "falseBoolProp") should be(Some(false))
@@ -99,9 +101,9 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
       (name: String, ret: Any, interval: Any, result: RetryConfig) =>
         logger.debug("Executing {}", name)
         S3Config(Map(
-          "connect.s3.max.retries" -> ret,
-          "connect.s3.retry.interval" -> interval)
-        ).connectorRetryConfig should be(result)
+          "connect.s3.max.retries"    -> ret,
+          "connect.s3.retry.interval" -> interval,
+        )).connectorRetryConfig should be(result)
     }
   }
 
@@ -110,9 +112,9 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
       (name: String, ret: Any, interval: Any, result: RetryConfig) =>
         logger.debug("Executing {}", name)
         S3Config(Map(
-          "connect.s3.http.max.retries" -> ret,
-          "connect.s3.http.retry.interval" -> interval)
-        ).httpRetryConfig should be(result)
+          "connect.s3.http.max.retries"    -> ret,
+          "connect.s3.http.retry.interval" -> interval,
+        )).httpRetryConfig should be(result)
     }
   }
 

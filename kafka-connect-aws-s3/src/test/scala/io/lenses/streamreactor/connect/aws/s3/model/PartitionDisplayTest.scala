@@ -17,7 +17,8 @@
 package io.lenses.streamreactor.connect.aws.s3.model
 
 import com.datamountaineer.kcql.Kcql
-import io.lenses.streamreactor.connect.aws.s3.model.PartitionDisplay.{KeysAndValues, Values}
+import io.lenses.streamreactor.connect.aws.s3.model.PartitionDisplay.KeysAndValues
+import io.lenses.streamreactor.connect.aws.s3.model.PartitionDisplay.Values
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

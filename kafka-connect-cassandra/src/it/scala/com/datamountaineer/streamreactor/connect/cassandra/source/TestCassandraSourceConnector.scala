@@ -20,9 +20,11 @@ import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfi
 import com.datamountaineer.streamreactor.connect.cassandra.ItTestConfig
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{DoNotDiscover, Suite}
+import org.scalatest.DoNotDiscover
+import org.scalatest.Suite
 
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
   * Created by andrew@datamountaineer.com on 20/04/16.
@@ -32,15 +34,15 @@ import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 @DoNotDiscover
 class TestCassandraSourceConnector extends AnyWordSpec with Matchers with ItTestConfig {
   "Should start a Cassandra Source Connector" in {
-    val props =  Map(
-      CassandraConfigConstants.PORT -> strPort(),
-      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
-      CassandraConfigConstants.USERNAME -> USERNAME,
-      CassandraConfigConstants.PASSWD -> PASSWD,
-      CassandraConfigConstants.KCQL -> IMPORT_QUERY_ALL,
+    val props = Map(
+      CassandraConfigConstants.PORT            -> strPort(),
+      CassandraConfigConstants.CONTACT_POINTS  -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE       -> CASSANDRA_SOURCE_KEYSPACE,
+      CassandraConfigConstants.USERNAME        -> USERNAME,
+      CassandraConfigConstants.PASSWD          -> PASSWD,
+      CassandraConfigConstants.KCQL            -> IMPORT_QUERY_ALL,
       CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
-      CassandraConfigConstants.POLL_INTERVAL -> "1000"
+      CassandraConfigConstants.POLL_INTERVAL   -> "1000",
     ).asJava
 
     val connector = new CassandraSourceConnector()

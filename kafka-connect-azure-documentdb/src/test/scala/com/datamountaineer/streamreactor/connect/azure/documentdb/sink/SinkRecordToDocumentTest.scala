@@ -20,7 +20,8 @@ import com.datamountaineer.streamreactor.common.errors.NoopErrorPolicy
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.azure.documentdb.Json
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbSinkSettings
-import com.microsoft.azure.documentdb.{ConsistencyLevel, Document}
+import com.microsoft.azure.documentdb.ConsistencyLevel
+import com.microsoft.azure.documentdb.Document
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.matchers.should.Matchers
@@ -36,7 +37,7 @@ class SinkRecordToDocumentTest extends AnyWordSpec with Matchers with ConverterU
     "convert Kafka Struct to a Azure Document Db Document" in {
       for (i <- 1 to 4) {
         val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath).mkString
-        val tx = Json.fromJson[Transaction](json)
+        val tx   = Json.fromJson[Transaction](json)
 
         val record = new SinkRecord("topic1", 0, null, null, Transaction.ConnectSchema, tx.toStruct(), 0)
 
@@ -51,9 +52,10 @@ class SinkRecordToDocumentTest extends AnyWordSpec with Matchers with ConverterU
           NoopErrorPolicy(),
           ConsistencyLevel.Session,
           false,
-          None)
+          None,
+        )
         val (document, _) = SinkRecordToDocument(record)
-        val expected = new Document(json)
+        val expected      = new Document(json)
 
         //comparing string representation; we have more specific types given the schema
         document.toString shouldBe expected.toString
@@ -77,10 +79,11 @@ class SinkRecordToDocumentTest extends AnyWordSpec with Matchers with ConverterU
           NoopErrorPolicy(),
           ConsistencyLevel.Session,
           false,
-          None)
+          None,
+        )
 
         val (document, _) = SinkRecordToDocument(record)
-        val expected = new Document(json)
+        val expected      = new Document(json)
 
         //comparing string representation; we have more specific types given the schema
         document.toString() shouldBe expected.toString
@@ -90,7 +93,6 @@ class SinkRecordToDocumentTest extends AnyWordSpec with Matchers with ConverterU
     "convert Schemaless + Json payload to a Azure Document DB Document" in {
       for (i <- 1 to 4) {
         val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath).mkString
-
 
         val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
@@ -105,10 +107,11 @@ class SinkRecordToDocumentTest extends AnyWordSpec with Matchers with ConverterU
           NoopErrorPolicy(),
           ConsistencyLevel.Session,
           false,
-          None)
+          None,
+        )
 
         val (document, _) = SinkRecordToDocument(record)
-        val expected = new Document(json)
+        val expected      = new Document(json)
 
         //comparing string representation; we have more specific types given the schema
         document.toString() shouldBe expected.toString

@@ -21,36 +21,40 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
-import java.io.{ByteArrayInputStream, DataInputStream}
+import java.io.ByteArrayInputStream
+import java.io.DataInputStream
 import java.util
 
 object BytesOutputRowTest extends Matchers {
 
   val outputKeyAndValueWithSizes: BytesOutputRow = BytesOutputRow(Some(4L), Some(5L), "fish".getBytes, "chips".getBytes)
-  private val outputKeyWithSize = BytesOutputRow(Some(4L), None, "fish".getBytes, Array())
+  private val outputKeyWithSize   = BytesOutputRow(Some(4L), None, "fish".getBytes, Array())
   private val outputValueWithSize = BytesOutputRow(None, Some(5L), Array(), "chips".getBytes)
-  private val outputKeyOnly = BytesOutputRow(None, None, "fish".getBytes, Array())
-  private val outputValueOnly = BytesOutputRow(None, None, Array(), "chips".getBytes)
+  private val outputKeyOnly       = BytesOutputRow(None, None, "fish".getBytes, Array())
+  private val outputValueOnly     = BytesOutputRow(None, None, Array(), "chips".getBytes)
   private val outputLongKeyValueSizes = BytesOutputRow(
     Some(50000),
     Some(2000),
     List.fill(50000)("a").mkString.getBytes,
-    List.fill(2000)("b").mkString.getBytes
+    List.fill(2000)("b").mkString.getBytes,
   )
 
-
-  val bytesKeyAndValueWithSizes: Array[Byte] = ByteArrayUtils.longToByteArray(4L) ++ ByteArrayUtils.longToByteArray(5) ++ "fishchips".getBytes
-  private val bytesKeyWithSize: Array[Byte] = ByteArrayUtils.longToByteArray(4L) ++ "fish".getBytes
+  val bytesKeyAndValueWithSizes: Array[Byte] =
+    ByteArrayUtils.longToByteArray(4L) ++ ByteArrayUtils.longToByteArray(5) ++ "fishchips".getBytes
+  private val bytesKeyWithSize:   Array[Byte] = ByteArrayUtils.longToByteArray(4L) ++ "fish".getBytes
   private val bytesValueWithSize: Array[Byte] = ByteArrayUtils.longToByteArray(5L) ++ "chips".getBytes
-  private val bytesKeyOnly: Array[Byte] = Array('f', 'i', 's', 'h')
-  private val bytesValueOnly: Array[Byte] = Array('c', 'h', 'i', 'p', 's')
-  private val bytesLongKeyValueSizes: Array[Byte] = ByteArrayUtils.longToByteArray(50000L) ++ ByteArrayUtils.longToByteArray(2000L) ++ List.fill(50000)("a").mkString.getBytes ++ List.fill(2000)("b").mkString.getBytes
+  private val bytesKeyOnly:       Array[Byte] = Array('f', 'i', 's', 'h')
+  private val bytesValueOnly:     Array[Byte] = Array('c', 'h', 'i', 'p', 's')
+  private val bytesLongKeyValueSizes: Array[Byte] =
+    ByteArrayUtils.longToByteArray(50000L) ++ ByteArrayUtils.longToByteArray(2000L) ++ List.fill(50000)(
+      "a",
+    ).mkString.getBytes ++ List.fill(2000)("b").mkString.getBytes
 
   def checkEqualsByteArrayValue(res: BytesOutputRow, expected: BytesOutputRow): Any = {
     res.keySize should be(expected.keySize)
     res.valueSize should be(expected.valueSize)
-    util.Objects.deepEquals(res.key, expected.key) should be (true)
-    util.Objects.deepEquals(res.value, expected.value) should be (true)
+    util.Objects.deepEquals(res.key, expected.key) should be(true)
+    util.Objects.deepEquals(res.value, expected.value) should be(true)
   }
 }
 
@@ -63,7 +67,7 @@ class BytesOutputRowTest extends AnyFlatSpec with Matchers {
     (outputKeyAndValueWithSizes, bytesKeyAndValueWithSizes, BytesWriteMode.KeyAndValueWithSizes),
     (outputKeyWithSize, bytesKeyWithSize, BytesWriteMode.KeyWithSize),
     (outputValueWithSize, bytesValueWithSize, BytesWriteMode.ValueWithSize),
-    (outputLongKeyValueSizes, bytesLongKeyValueSizes, BytesWriteMode.KeyAndValueWithSizes)
+    (outputLongKeyValueSizes, bytesLongKeyValueSizes, BytesWriteMode.KeyAndValueWithSizes),
   )
 
   private val testDataKeyOrValueOnly = Table(
@@ -85,9 +89,10 @@ class BytesOutputRowTest extends AnyFlatSpec with Matchers {
   }
 
   "apply" should "create output rows from byte arrays keys or values only" in {
-    forAll(testDataKeyOrValueOnly) { (outputRow: BytesOutputRow, byteArray: Array[Byte], bytesWriteMode: BytesWriteMode) =>
-      val res = bytesWriteMode.read(byteArray)
-      checkEqualsByteArrayValue(res, outputRow)
+    forAll(testDataKeyOrValueOnly) {
+      (outputRow: BytesOutputRow, byteArray: Array[Byte], bytesWriteMode: BytesWriteMode) =>
+        val res = bytesWriteMode.read(byteArray)
+        checkEqualsByteArrayValue(res, outputRow)
     }
   }
 
@@ -97,6 +102,5 @@ class BytesOutputRowTest extends AnyFlatSpec with Matchers {
       checkEqualsByteArrayValue(res, outputRow)
     }
   }
-
 
 }

@@ -16,11 +16,14 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
-import io.lenses.streamreactor.connect.aws.s3.model.{ArraySinkData, MapSinkData, StringSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.ArraySinkData
+import io.lenses.streamreactor.connect.aws.s3.model.MapSinkData
+import io.lenses.streamreactor.connect.aws.s3.model.StringSinkData
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class ToJsonDataConverterTest extends AnyFlatSpec with Matchers {
 
@@ -30,28 +33,27 @@ class ToJsonDataConverterTest extends AnyFlatSpec with Matchers {
       Map(
         StringSinkData("abc") -> ArraySinkData(
           Seq(
-            StringSinkData("def")
-          )
-        )
-      )) should be(
+            StringSinkData("def"),
+          ),
+        ),
+      ),
+    ) should be(
       Map(
-        "abc" -> List("def").asJava
-      ).asJava
+        "abc" -> List("def").asJava,
+      ).asJava,
     )
 
-
   }
-
 
   "convertArray" should "be able to handle an array of maps" in {
 
     ToJsonDataConverter.convertArray(
       Seq(
         MapSinkData(
-          Map(StringSinkData("abc") -> StringSinkData("def"))
-        )
-      )) should be(List(Map("abc" -> "def").asJava).asJava)
-
+          Map(StringSinkData("abc") -> StringSinkData("def")),
+        ),
+      ),
+    ) should be(List(Map("abc" -> "def").asJava).asJava)
 
   }
 }

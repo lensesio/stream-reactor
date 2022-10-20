@@ -16,7 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.config
 
-import com.datamountaineer.streamreactor.common.rowkeys.{StringGenericRowKeyBuilder, StringStructFieldsStringKeyBuilder}
+import com.datamountaineer.streamreactor.common.rowkeys.StringGenericRowKeyBuilder
+import com.datamountaineer.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
 import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSupport
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.matchers.should.Matchers
@@ -32,28 +33,29 @@ class RedisSinkSettingsTest extends AnyWordSpec with Matchers with RedisMockSupp
   }
 
   "work without a <password>" in {
-    val KCQL = "SELECT * FROM topicA PK lastName"
+    val KCQL     = "SELECT * FROM topicA PK lastName"
     val settings = RedisSinkSettings(getRedisSinkConfig(password = false, KCQL = Option(KCQL)))
     settings.connectionInfo.password shouldBe None
   }
 
   "default primary key delimiter" in {
-    val KCQL = "SELECT * FROM topicA PK lastName"
+    val KCQL     = "SELECT * FROM topicA PK lastName"
     val settings = RedisSinkSettings(getRedisSinkConfig(password = false, KCQL = Option(KCQL)))
     settings.pkDelimiter shouldBe RedisConfigConstants.REDIS_PK_DELIMITER_DEFAULT_VALUE
   }
 
   "custom primary key delimiter" in {
     val delimiter = "-"
-    val KCQL = "SELECT * FROM topicA PK lastName"
-    val settings = RedisSinkSettings(getRedisSinkConfig(password = false, KCQL = Option(KCQL), pkDelimiter = Option(delimiter)))
+    val KCQL      = "SELECT * FROM topicA PK lastName"
+    val settings =
+      RedisSinkSettings(getRedisSinkConfig(password = false, KCQL = Option(KCQL), pkDelimiter = Option(delimiter)))
     settings.pkDelimiter shouldBe delimiter
   }
 
   "should throw an expection as no PK set in Cache Mode : SELECT * FROM topicA" in {
     val QUERY_ALL = "SELECT * FROM topicA"
-    val config = getRedisSinkConfig(password = true, KCQL = Option(QUERY_ALL))
-    val settings = RedisSinkSettings(config)
+    val config    = getRedisSinkConfig(password = true, KCQL = Option(QUERY_ALL))
+    val settings  = RedisSinkSettings(config)
 
     settings.connectionInfo.password shouldBe Some("secret")
     settings.kcqlSettings.head.builder.isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
@@ -65,10 +67,10 @@ class RedisSinkSettingsTest extends AnyWordSpec with Matchers with RedisMockSupp
   }
 
   "work with KCQL : SELECT * FROM topicA PK lastName" in {
-    val KCQL = s"INSERT INTO xx SELECT * FROM topicA PK lastName"
-    val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL))
+    val KCQL     = s"INSERT INTO xx SELECT * FROM topicA PK lastName"
+    val config   = getRedisSinkConfig(password = true, KCQL = Option(KCQL))
     val settings = RedisSinkSettings(config)
-    val route = settings.kcqlSettings.head.kcqlConfig
+    val route    = settings.kcqlSettings.head.kcqlConfig
 
     settings.kcqlSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
 
@@ -78,11 +80,11 @@ class RedisSinkSettingsTest extends AnyWordSpec with Matchers with RedisMockSupp
   }
 
   "work with KCQL : SELECT firstName, lastName as surname FROM topicA" in {
-    val KCQL = s"INSERT INTO xx SELECT firstName, lastName as surname FROM topicA"
-    val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL))
+    val KCQL     = s"INSERT INTO xx SELECT firstName, lastName as surname FROM topicA"
+    val config   = getRedisSinkConfig(password = true, KCQL = Option(KCQL))
     val settings = RedisSinkSettings(config).kcqlSettings.head
-    val route = settings.kcqlConfig
-    val fields = route.getFields.asScala.toList
+    val route    = settings.kcqlConfig
+    val fields   = route.getFields.asScala.toList
 
     settings.builder.isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
 
@@ -96,11 +98,11 @@ class RedisSinkSettingsTest extends AnyWordSpec with Matchers with RedisMockSupp
   }
 
   "work with KCQL : SELECT firstName, lastName as surname FROM topicA PK surname" in {
-    val KCQL = s"INSERT INTO xx SELECT firstName, lastName as surname FROM topicA PK surname"
-    val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL))
+    val KCQL     = s"INSERT INTO xx SELECT firstName, lastName as surname FROM topicA PK surname"
+    val config   = getRedisSinkConfig(password = true, KCQL = Option(KCQL))
     val settings = RedisSinkSettings(config)
-    val route = settings.kcqlSettings.head.kcqlConfig
-    val fields = route.getFields.asScala.toList
+    val route    = settings.kcqlSettings.head.kcqlConfig
+    val fields   = route.getFields.asScala.toList
 
     settings.kcqlSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
 
@@ -114,8 +116,8 @@ class RedisSinkSettingsTest extends AnyWordSpec with Matchers with RedisMockSupp
   }
 
   "check multiple kcqls" in {
-    val KCQL = "INSERT INTO prefix1: SELECT * FROM topic1 PK id; INSERT INTO prefix2: SELECT * FROM topic2 PK id"
-    val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL))
+    val KCQL     = "INSERT INTO prefix1: SELECT * FROM topic1 PK id; INSERT INTO prefix2: SELECT * FROM topic2 PK id"
+    val config   = getRedisSinkConfig(password = true, KCQL = Option(KCQL))
     val settings = RedisSinkSettings(config)
 
     settings.kcqlSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true

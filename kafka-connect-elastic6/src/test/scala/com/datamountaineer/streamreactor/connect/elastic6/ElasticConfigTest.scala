@@ -16,7 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.elastic6
 
-import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticConfigConstants}
+import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticConfig
+import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticConfigConstants
 
 class ElasticConfigTest extends TestBase {
   "A ElasticConfig should return the client mode and hostnames" in {

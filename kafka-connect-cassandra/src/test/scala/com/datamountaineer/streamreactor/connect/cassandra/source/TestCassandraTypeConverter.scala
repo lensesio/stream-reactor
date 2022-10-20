@@ -4,32 +4,37 @@ import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.util.UUID
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSettings}
-import com.datastax.driver.core.{CodecRegistry, _}
-import org.apache.kafka.connect.data.{Decimal, Schema, Struct, Timestamp}
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSource
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSettings
+import com.datastax.driver.core.CodecRegistry
+import com.datastax.driver.core._
+import org.apache.kafka.connect.data.Decimal
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.Timestamp
 import org.apache.kafka.connect.errors.DataException
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.jdk.CollectionConverters.{IterableHasAsScala, ListHasAsScala, MapHasAsJava}
+import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
 
-class TestCassandraTypeConverter extends AnyWordSpec
-  with TestConfig
-  with Matchers
-  with MockitoSugar {
+class TestCassandraTypeConverter extends AnyWordSpec with TestConfig with Matchers with MockitoSugar {
 
-  val OPTIONAL_DATE_SCHEMA = org.apache.kafka.connect.data.Date.builder().optional().build()
+  val OPTIONAL_DATE_SCHEMA      = org.apache.kafka.connect.data.Date.builder().optional().build()
   val OPTIONAL_TIMESTAMP_SCHEMA = Timestamp.builder().optional().build()
-  val OPTIONAL_DECIMAL_SCHEMA = Decimal.builder(18).optional().build()
-  val uuid = UUID.randomUUID()
+  val OPTIONAL_DECIMAL_SCHEMA   = Decimal.builder(18).optional().build()
+  val uuid                      = UUID.randomUUID()
 
   val codecRegistry: CodecRegistry = new CodecRegistry();
 
   "should handle null when converting a Cassandra row schema to a Connect schema" in {
     val cassandraTypeConverter = new CassandraTypeConverter(codecRegistry = codecRegistry, setting = getSettings(false))
-    val schema = cassandraTypeConverter.convertToConnectSchema(null, "test")
-    val schemaFields = schema.fields().asScala
+    val schema                 = cassandraTypeConverter.convertToConnectSchema(null, "test")
+    val schemaFields           = schema.fields().asScala
     schemaFields.size shouldBe 0
     schema.name() shouldBe "test"
   }
@@ -37,7 +42,7 @@ class TestCassandraTypeConverter extends AnyWordSpec
   "should convert a Cassandra row schema to a Connect schema" in {
     val cassandraTypeConverter = new CassandraTypeConverter(codecRegistry = codecRegistry, setting = getSettings(false))
     val cols: ColumnDefinitions = TestUtils.getColumnDefs
-    val schema = cassandraTypeConverter.convertToConnectSchema(cols.asScala.toList, "test")
+    val schema       = cassandraTypeConverter.convertToConnectSchema(cols.asScala.toList, "test")
     val schemaFields = schema.fields().asScala
     schemaFields.size shouldBe cols.asList().size()
     schema.name() shouldBe "test"
@@ -46,8 +51,8 @@ class TestCassandraTypeConverter extends AnyWordSpec
 
   "should convert a Cassandra row to a Struct" in {
     val cassandraTypeConverter = new CassandraTypeConverter(codecRegistry = codecRegistry, setting = getSettings(false))
-    val row = mock[Row]
-    val cols = TestUtils.getColumnDefs
+    val row                    = mock[Row]
+    val cols                   = TestUtils.getColumnDefs
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
     val colDefList = cassandraTypeConverter.getStructColumns(row, Set.empty)
@@ -61,13 +66,13 @@ class TestCassandraTypeConverter extends AnyWordSpec
 
   "should convert a Cassandra row to a Struct with map in sub struct" in {
     val cassandraTypeConverter = new CassandraTypeConverter(codecRegistry = codecRegistry, setting = getSettings(false))
-    val row = mock[Row]
-    val cols = TestUtils.getColumnDefs
+    val row                    = mock[Row]
+    val cols                   = TestUtils.getColumnDefs
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
 
-    when(row.getMap("mapCol", classOf[String], classOf[String])).thenReturn(new java.util.HashMap[String,String] {
-      put("sub1","sub1value");
+    when(row.getMap("mapCol", classOf[String], classOf[String])).thenReturn(new java.util.HashMap[String, String] {
+      put("sub1", "sub1value");
     })
 
     val colDefList = cassandraTypeConverter.getStructColumns(row, Set.empty)
@@ -75,18 +80,18 @@ class TestCassandraTypeConverter extends AnyWordSpec
     val schema = sr.schema()
     checkCols(schema)
 
-    sr.getMap[String,String]("mapCol").get("sub1") shouldBe "sub1value"
+    sr.getMap[String, String]("mapCol").get("sub1") shouldBe "sub1value"
   }
 
   "should convert a Cassandra row to a Struct with map in json" in {
     val cassandraTypeConverter = new CassandraTypeConverter(codecRegistry = codecRegistry, setting = getSettings(true))
-    val row = mock[Row]
-    val cols = TestUtils.getColumnDefs
+    val row                    = mock[Row]
+    val cols                   = TestUtils.getColumnDefs
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
 
-    when(row.getMap("mapCol", classOf[String], classOf[String])).thenReturn(new java.util.HashMap[String,String] {
-      put("sub1","sub1value");
+    when(row.getMap("mapCol", classOf[String], classOf[String])).thenReturn(new java.util.HashMap[String, String] {
+      put("sub1", "sub1value");
     })
 
     val colDefList = cassandraTypeConverter.getStructColumns(row, Set.empty)
@@ -99,12 +104,12 @@ class TestCassandraTypeConverter extends AnyWordSpec
 
   "should convert a Cassandra row to a Struct with list in sub struct" in {
     val cassandraTypeConverter = new CassandraTypeConverter(codecRegistry = codecRegistry, setting = getSettings(false))
-    val row = mock[Row]
-    val cols = TestUtils.getColumnDefs
+    val row                    = mock[Row]
+    val cols                   = TestUtils.getColumnDefs
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
 
-    when(row.getList("listCol", classOf[String])).thenReturn(new java.util.ArrayList[String]{
+    when(row.getList("listCol", classOf[String])).thenReturn(new java.util.ArrayList[String] {
       add("A");
       add("B");
       add("C");
@@ -122,12 +127,12 @@ class TestCassandraTypeConverter extends AnyWordSpec
 
   "should convert a Cassandra row to a Struct with list in json" in {
     val cassandraTypeConverter = new CassandraTypeConverter(codecRegistry = codecRegistry, setting = getSettings(true))
-    val row = mock[Row]
-    val cols = TestUtils.getColumnDefs
+    val row                    = mock[Row]
+    val cols                   = TestUtils.getColumnDefs
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
 
-    when(row.getList("listCol", classOf[String])).thenReturn(new java.util.ArrayList[String]{
+    when(row.getList("listCol", classOf[String])).thenReturn(new java.util.ArrayList[String] {
       add("A");
       add("B");
       add("C");
@@ -143,12 +148,12 @@ class TestCassandraTypeConverter extends AnyWordSpec
 
   "should convert a Cassandra row to a Struct with set" in {
     val cassandraTypeConverter = new CassandraTypeConverter(codecRegistry = codecRegistry, setting = getSettings(false))
-    val row = mock[Row]
-    val cols = TestUtils.getColumnDefs
+    val row                    = mock[Row]
+    val cols                   = TestUtils.getColumnDefs
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
 
-    when(row.getSet("setCol", classOf[String])).thenReturn(new java.util.HashSet[String]{
+    when(row.getSet("setCol", classOf[String])).thenReturn(new java.util.HashSet[String] {
       add("A");
       add("B");
       add("C");
@@ -166,8 +171,8 @@ class TestCassandraTypeConverter extends AnyWordSpec
 
   "should convert a Cassandra row to a Struct no columns" in {
     val cassandraTypeConverter = new CassandraTypeConverter(codecRegistry = codecRegistry, setting = getSettings(false))
-    val row = mock[Row]
-    val cols = TestUtils.getColumnDefs
+    val row                    = mock[Row]
+    val cols                   = TestUtils.getColumnDefs
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
     val colDefList = null
@@ -178,8 +183,8 @@ class TestCassandraTypeConverter extends AnyWordSpec
 
   "should convert a Cassandra row to a Struct and ignore some" in {
     val cassandraTypeConverter = new CassandraTypeConverter(codecRegistry = codecRegistry, setting = getSettings(false))
-    val row = mock[Row]
-    val cols = TestUtils.getColumnDefs
+    val row                    = mock[Row]
+    val cols                   = TestUtils.getColumnDefs
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
 
@@ -257,13 +262,13 @@ class TestCassandraTypeConverter extends AnyWordSpec
 
   def getSettings(mappingCollectionToJson: Boolean) = {
     val config = Map(
-      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
-      CassandraConfigConstants.USERNAME -> USERNAME,
-      CassandraConfigConstants.PASSWD -> PASSWD,
-      CassandraConfigConstants.KCQL -> "INSERT INTO cassandra-source SELECT * FROM orders PK created",
-      CassandraConfigConstants.POLL_INTERVAL -> "1000",
-      CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON -> mappingCollectionToJson.toString
+      CassandraConfigConstants.CONTACT_POINTS             -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE                  -> CASSANDRA_SINK_KEYSPACE,
+      CassandraConfigConstants.USERNAME                   -> USERNAME,
+      CassandraConfigConstants.PASSWD                     -> PASSWD,
+      CassandraConfigConstants.KCQL                       -> "INSERT INTO cassandra-source SELECT * FROM orders PK created",
+      CassandraConfigConstants.POLL_INTERVAL              -> "1000",
+      CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON -> mappingCollectionToJson.toString,
     )
     val taskConfig = CassandraConfigSource(config.asJava);
     CassandraSettings.configureSource(taskConfig).toList.head

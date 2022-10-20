@@ -18,7 +18,9 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import java.util
 
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 
 case class Input(sequence: Long, prev_out: Option[Output], script: String) {
   def toHashMap: util.HashMap[String, Any] = {

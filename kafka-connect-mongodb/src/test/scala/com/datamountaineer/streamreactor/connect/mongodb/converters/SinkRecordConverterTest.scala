@@ -16,15 +16,22 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb.converters
 
-import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants, MongoSettings}
+import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfig
+import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfigConstants
+import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import org.bson.Document
 import org.json4s.jackson.JsonMethods._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.time.OffsetDateTime
-import java.util.{Date, LinkedList, Map => JavaMap}
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SetHasAsScala}
+import java.util.Date
+import java.util.LinkedList
+import java.util.{ Map => JavaMap }
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SetHasAsScala
 import scala.util.Try
 
 class SinkRecordConverterTest extends AnyWordSpec with Matchers {
@@ -64,73 +71,76 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
 
   val jsonInt =
     s"""{
-      |  "a": ${OffsetDateTime.parse("2000-12-25T05:59:59.999Z").toInstant().toEpochMilli()},
-      |  "b": ${OffsetDateTime.parse("2001-12-25T05:59:59.999Z").toInstant().toEpochMilli()},
-      |  "c": {
-      |    "m": ${OffsetDateTime.parse("2002-12-25T05:59:59.999+00:00").toInstant().toEpochMilli()},
-      |    "n": ${OffsetDateTime.parse("2003-12-25T05:59:59.999+00:00").toInstant().toEpochMilli()},
-      |    "o": ${OffsetDateTime.parse("2004-12-25T05:59:59.999+00:00").toInstant().toEpochMilli()}
-      |  },
-      |  "d": ${OffsetDateTime.parse("2005-12-25T05:59:59.999Z").toInstant().toEpochMilli()},
-      |  "e": {
-      |    "m": ${OffsetDateTime.parse("2006-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()},
-      |    "n": {
-      |      "x": ${OffsetDateTime.parse("2007-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()},
-      |      "y": ${OffsetDateTime.parse("2008-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()},
-      |      "z": ${OffsetDateTime.parse("2009-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()}
-      |    },
-      |    "o": ${OffsetDateTime.parse("2010-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()},
-      |    "p": ${OffsetDateTime.parse("2010-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()},
-      |    "q": ${OffsetDateTime.parse("2010-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()}
-      |  },
-      |  "f": ${OffsetDateTime.parse("2011-12-25T05:59:59.999Z").toInstant().toEpochMilli()},
-      |  "g": ${OffsetDateTime.parse("2012-12-25T05:59:59.999Z").toInstant().toEpochMilli()}
-      |}""".stripMargin
+       |  "a": ${OffsetDateTime.parse("2000-12-25T05:59:59.999Z").toInstant().toEpochMilli()},
+       |  "b": ${OffsetDateTime.parse("2001-12-25T05:59:59.999Z").toInstant().toEpochMilli()},
+       |  "c": {
+       |    "m": ${OffsetDateTime.parse("2002-12-25T05:59:59.999+00:00").toInstant().toEpochMilli()},
+       |    "n": ${OffsetDateTime.parse("2003-12-25T05:59:59.999+00:00").toInstant().toEpochMilli()},
+       |    "o": ${OffsetDateTime.parse("2004-12-25T05:59:59.999+00:00").toInstant().toEpochMilli()}
+       |  },
+       |  "d": ${OffsetDateTime.parse("2005-12-25T05:59:59.999Z").toInstant().toEpochMilli()},
+       |  "e": {
+       |    "m": ${OffsetDateTime.parse("2006-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()},
+       |    "n": {
+       |      "x": ${OffsetDateTime.parse("2007-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()},
+       |      "y": ${OffsetDateTime.parse("2008-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()},
+       |      "z": ${OffsetDateTime.parse("2009-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()}
+       |    },
+       |    "o": ${OffsetDateTime.parse("2010-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()},
+       |    "p": ${OffsetDateTime.parse("2010-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()},
+       |    "q": ${OffsetDateTime.parse("2010-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()}
+       |  },
+       |  "f": ${OffsetDateTime.parse("2011-12-25T05:59:59.999Z").toInstant().toEpochMilli()},
+       |  "g": ${OffsetDateTime.parse("2012-12-25T05:59:59.999Z").toInstant().toEpochMilli()}
+       |}""".stripMargin
 
   val baseConfig = Map(
-    MongoConfigConstants.DATABASE_CONFIG -> "db",
+    MongoConfigConstants.DATABASE_CONFIG   -> "db",
     MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
-    MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO coll SELECT * FROM top"
+    MongoConfigConstants.KCQL_CONFIG       -> "INSERT INTO coll SELECT * FROM top",
   )
 
   "fromJson()" should {
 
     "not modify any values for date fields when jsonDateTimeFields is NOT specified" in {
       implicit val settings = MongoSettings(MongoConfig(baseConfig.asJava))
-      val doc: Document = SinkRecordConverter.fromJson( parse(jsonStr) )
+      val doc: Document                           = SinkRecordConverter.fromJson(parse(jsonStr))
       val map: Set[JavaMap.Entry[String, AnyRef]] = doc.entrySet().asScala.toSet
 
-      def check(set: Set[JavaMap.Entry[String, AnyRef]]): Unit = {
-        set.foreach{ entry => entry.getValue match {
-          case _: String => // OK
-          case _: java.util.Date => println(s"ERROR: entry is $entry"); fail()
-          case doc: Document => check(doc.entrySet().asScala.toSet)
-          case _ => println(s"UNKNOWN TYPE ERROR: entry is $entry"); fail()
-        }}
-      }
+      def check(set: Set[JavaMap.Entry[String, AnyRef]]): Unit =
+        set.foreach { entry =>
+          entry.getValue match {
+            case _:   String         => // OK
+            case _:   java.util.Date => println(s"ERROR: entry is $entry"); fail()
+            case doc: Document       => check(doc.entrySet().asScala.toSet)
+            case _ => println(s"UNKNOWN TYPE ERROR: entry is $entry"); fail()
+          }
+        }
       check(map)
     }
 
     val expectedDates = Map(
-      "a"-> new java.util.Date(OffsetDateTime.parse("2000-12-25T05:59:59.999Z").toInstant().toEpochMilli()),
-      "c.n"-> new java.util.Date(OffsetDateTime.parse("2003-12-25T05:59:59.999+00:00").toInstant().toEpochMilli()),
-      "e.n.y"-> new java.util.Date(OffsetDateTime.parse("2008-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()),
-      "e.p"-> new java.util.Date(OffsetDateTime.parse("2010-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()),
-      "g"-> new java.util.Date(OffsetDateTime.parse("2012-12-25T05:59:59.999Z").toInstant().toEpochMilli())
+      "a"     -> new java.util.Date(OffsetDateTime.parse("2000-12-25T05:59:59.999Z").toInstant().toEpochMilli()),
+      "c.n"   -> new java.util.Date(OffsetDateTime.parse("2003-12-25T05:59:59.999+00:00").toInstant().toEpochMilli()),
+      "e.n.y" -> new java.util.Date(OffsetDateTime.parse("2008-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()),
+      "e.p"   -> new java.util.Date(OffsetDateTime.parse("2010-12-25T05:59:59.999-05:00").toInstant().toEpochMilli()),
+      "g"     -> new java.util.Date(OffsetDateTime.parse("2012-12-25T05:59:59.999Z").toInstant().toEpochMilli()),
     )
 
     // convert strings
     "add java.util.Date datetime values for string fields when jsonDateTimeFields are specified" in {
-      implicit val settings = MongoSettings(MongoConfig((baseConfig ++
-        Map(
-          MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG->
-            expectedDates.keySet.mkString(",")
-        )).asJava))
-      val doc: Document = SinkRecordConverter.fromJson( parse(jsonStr) )
+      implicit val settings = MongoSettings(
+        MongoConfig((baseConfig ++
+          Map(
+            MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG ->
+              expectedDates.keySet.mkString(","),
+          )).asJava),
+      )
+      val doc: Document                           = SinkRecordConverter.fromJson(parse(jsonStr))
       val map: Set[JavaMap.Entry[String, AnyRef]] = doc.entrySet().asScala.toSet
 
-      def check(set: Set[JavaMap.Entry[String, AnyRef]], parents: List[String] = Nil): Unit = {
-        set.foreach{ entry =>
+      def check(set: Set[JavaMap.Entry[String, AnyRef]], parents: List[String] = Nil): Unit =
+        set.foreach { entry =>
           val fullPath = parents :+ entry.getKey() mkString "."
           println(s"fullPath = $fullPath")
           entry.getValue match {
@@ -138,11 +148,10 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
               expectedDates.contains(fullPath) shouldBe false
             case _: java.util.Date =>
               expectedDates.get(fullPath) shouldBe Some(entry.getValue)
-            case doc: Document => check(doc.entrySet().asScala.toSet, parents:+entry.getKey)
+            case doc: Document => check(doc.entrySet().asScala.toSet, parents :+ entry.getKey)
             case _ => { println(s"UNKNOWN TYPE ERROR: entry is $entry; parents: $parents"); fail() }
           }
         }
-      }
       check(map)
     }
 
@@ -150,16 +159,18 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
     "add java.util.Date datetime values for Int fields when jsonDateTimeFields are specified" in {
       println(s"jsonInt = $jsonInt")
 
-      implicit val settings = MongoSettings(MongoConfig((baseConfig ++
-        Map(
-          MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG->
-            expectedDates.keySet.mkString(",")
-        )).asJava))
-      val doc: Document = SinkRecordConverter.fromJson( parse(jsonInt) )
+      implicit val settings = MongoSettings(
+        MongoConfig((baseConfig ++
+          Map(
+            MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG ->
+              expectedDates.keySet.mkString(","),
+          )).asJava),
+      )
+      val doc: Document                           = SinkRecordConverter.fromJson(parse(jsonInt))
       val map: Set[JavaMap.Entry[String, AnyRef]] = doc.entrySet().asScala.toSet
 
-      def check(set: Set[JavaMap.Entry[String, AnyRef]], parents: List[String] = Nil): Unit = {
-        set.foreach{ entry =>
+      def check(set: Set[JavaMap.Entry[String, AnyRef]], parents: List[String] = Nil): Unit =
+        set.foreach { entry =>
           val fullPath = parents :+ entry.getKey() mkString "."
           entry.getValue match {
             case _: java.lang.Long =>
@@ -167,12 +178,11 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
             case _: java.util.Date =>
               expectedDates.get(fullPath) shouldBe Some(entry.getValue)
             case doc: Document =>
-              check(doc.entrySet().asScala.toSet, parents:+entry.getKey)
+              check(doc.entrySet().asScala.toSet, parents :+ entry.getKey)
             case other =>
               println(s"UNKNOWN TYPE ERROR: other is $other; entry is $entry; parents: $parents"); fail()
           }
         }
-      }
       check(map)
     }
 
@@ -189,24 +199,23 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
 
       implicit val settings: MongoSettings = MongoSettings(MongoConfig((baseConfig ++
         Map(
-          MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG->
-            "a, b, c, d, e, f"
+          MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG ->
+            "a, b, c, d, e, f",
         )).asJava))
 
       val doc: Document = filterNonParsableDates(SinkRecordConverter.fromJson(parse(jsonStr)))
 
       val map: Set[JavaMap.Entry[String, AnyRef]] = doc.entrySet().asScala.toSet
 
-      def check(set: Set[JavaMap.Entry[String, AnyRef]], parents: List[String] = Nil): Unit = {
-        set.foreach{ entry =>
+      def check(set: Set[JavaMap.Entry[String, AnyRef]], parents: List[String] = Nil): Unit =
+        set.foreach { entry =>
           entry.getValue match {
-            case _: String => // OK
-            case _: Date => fail()
-            case doc: Document => check(doc.entrySet().asScala.toSet, parents:+entry.getKey)
+            case _:   String   => // OK
+            case _:   Date     => fail()
+            case doc: Document => check(doc.entrySet().asScala.toSet, parents :+ entry.getKey)
             case _ => println(s"UNKNOWN TYPE ERROR: entry is $entry; parents: $parents"); fail()
           }
         }
-      }
       check(map)
     }
 
@@ -233,22 +242,22 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
 
       implicit val settings = MongoSettings(MongoConfig((baseConfig ++
         Map(
-          MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG->
-            "c.ts, e.n.x.ts"
+          MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG ->
+            "c.ts, e.n.x.ts",
         )).asJava))
-      val doc: Document = SinkRecordConverter.fromJson( parse(json) )
+      val doc: Document                           = SinkRecordConverter.fromJson(parse(json))
       val map: Set[JavaMap.Entry[String, AnyRef]] = doc.entrySet().asScala.toSet
 
       def check(
-        set: Set[JavaMap.Entry[String, AnyRef]],
-        parents: List[String] = Nil): Unit = {
-
-        set.foreach{ entry =>
-          val key = entry.getKey
+        set:     Set[JavaMap.Entry[String, AnyRef]],
+        parents: List[String] = Nil,
+      ): Unit =
+        set.foreach { entry =>
+          val key   = entry.getKey
           val value = entry.getValue
           value match {
-            case _: String => key should not be ("ts")
-            case _: java.util.Date => key should be ("ts")
+            case _:     String => key should not be "ts"
+            case _:     java.util.Date => key should be("ts")
             case array: java.util.ArrayList[_] =>
               val list = array.asScala.toList
               list.foreach {
@@ -257,29 +266,27 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
                 case _ => fail() // expect Document types
               }
             case doc: Document => {
-              check(doc.entrySet().asScala.toSet, parents:+entry.getKey)
+              check(doc.entrySet().asScala.toSet, parents :+ entry.getKey)
             }
             case _ => println(s"UNKNOWN TYPE ERROR: entry is $entry; parents: $parents"); fail()
           }
         }
-      }
       check(map)
     }
-    
+
   }
 
   /**
-   * The date parsing depends on the JDK.  So as to avoid test failure we must filter out any dates that do manage to
-   * parse.
-   * TODO: find a more platform-agnostic way to parse dates.
-   */
-  private def filterNonParsableDates(doc: Document) = {
+    * The date parsing depends on the JDK.  So as to avoid test failure we must filter out any dates that do manage to
+    * parse.
+    * TODO: find a more platform-agnostic way to parse dates.
+    */
+  private def filterNonParsableDates(doc: Document) =
     new Document(doc.asScala.collect {
       case (k: String, v: String) =>
         Try(OffsetDateTime.parse(v)).isFailure
         (k, v.asInstanceOf[Object])
     }.toMap.asJava)
-  }
 
   "fromMap()" should {
 
@@ -291,17 +298,16 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
       // simplify the json tests like this one.
       val map = Map[String, AnyRef](
         "A" -> Integer.valueOf(10),
-        "B" -> new Document( Map[String, Object](
-            "M" -> "2009-12-25T05:59:59.999-05:00",
-            "N" -> "2009-12-25T05:59:59.999-05:00"
-          ).asJava
-        )
+        "B" -> new Document(Map[String, Object](
+          "M" -> "2009-12-25T05:59:59.999-05:00",
+          "N" -> "2009-12-25T05:59:59.999-05:00",
+        ).asJava),
       ).asJava
 
       implicit val settings = MongoSettings(MongoConfig((baseConfig ++
         Map(
-          MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG->
-            "A, B.N"
+          MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG ->
+            "A, B.N",
         )).asJava))
 
       val doc = SinkRecordConverter.fromMap(map)
@@ -314,17 +320,18 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
     }
   }
 
-
   "convertTimestamps()" should {
 
     // used in the tests below
     def testDocumentConversion(doc: Document): Unit = {
 
-      implicit val settings = MongoSettings(MongoConfig((baseConfig ++
-        Map(
-          MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG->
-            "subDoc.N, timestamp, subList.Y"
-        )).asJava))
+      implicit val settings = MongoSettings(
+        MongoConfig((baseConfig ++
+          Map(
+            MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG ->
+              "subDoc.N, timestamp, subList.Y",
+          )).asJava),
+      )
 
       println(s"doc is ${doc.toString}")
       //map is {A=0, subList=[Document{{X=100, Y=101}}, Document{{Y=102}}],
@@ -369,7 +376,7 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
       map.put("subDoc", subDoc)
 
       val subList = new LinkedList[Document]()
-      val xDoc = new Document()
+      val xDoc    = new Document()
       xDoc.put("X", 100)
       xDoc.put("Y", 101)
       val yDoc = new Document()
@@ -400,7 +407,7 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
       map.put("subDoc", subDoc)
 
       val subList = new LinkedList[Document]()
-      val xDoc = new Document()
+      val xDoc    = new Document()
       xDoc.put("X", 100)
       xDoc.put("Y", 101)
       val yDoc = new Document()
@@ -419,4 +426,3 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
   }
 
 }
-

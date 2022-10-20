@@ -16,7 +16,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.auth
 
-import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, AwsClient, S3Config}
+import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
+import io.lenses.streamreactor.connect.aws.s3.config.AwsClient
+import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.providers.ProviderMetadata
 import org.jclouds.rest.internal.ApiContextImpl
@@ -24,14 +26,15 @@ import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import software.amazon.awssdk.auth.credentials.{AwsCredentials, AwsCredentialsProvider}
+import software.amazon.awssdk.auth.credentials.AwsCredentials
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider
 
 class JCloudsS3ContextCreatorTest extends AnyFlatSpec with MockitoSugar with Matchers with BeforeAndAfter {
 
   private val AWS_ACCESS_KEY_ID = "awsAccessKeyId"
 
-  private val awsCredentials = mock[AwsCredentials]
-  private val credentialsProvider = mock[AwsCredentialsProvider]
+  private val awsCredentials        = mock[AwsCredentials]
+  private val credentialsProvider   = mock[AwsCredentialsProvider]
   private val credentialsProviderFn = mock[() => AwsCredentialsProvider]
 
   private val target = new JCloudsS3ContextCreator(credentialsProviderFn)
@@ -47,7 +50,7 @@ class JCloudsS3ContextCreatorTest extends AnyFlatSpec with MockitoSugar with Mat
     when(credentialsProviderFn.apply()).thenReturn(credentialsProvider)
 
     val blobStoreContext = target.fromConfig(
-      S3Config(None, None, None, AwsClient.Aws, AuthMode.Default)
+      S3Config(None, None, None, AwsClient.Aws, AuthMode.Default),
     )
 
     getIdentityFromContext(blobStoreContext) should be(AWS_ACCESS_KEY_ID)
@@ -62,8 +65,8 @@ class JCloudsS3ContextCreatorTest extends AnyFlatSpec with MockitoSugar with Mat
         Some("CONFIGURED_ACCESS_KEY_ID"),
         Some("CONFIGURED_SECRET"),
         AwsClient.Aws,
-        AuthMode.Credentials
-      )
+        AuthMode.Credentials,
+      ),
     )
 
     getIdentityFromContext(blobStoreContext) should be("CONFIGURED_ACCESS_KEY_ID")
@@ -74,12 +77,14 @@ class JCloudsS3ContextCreatorTest extends AnyFlatSpec with MockitoSugar with Mat
   "fromConfig" should "fail when auth mode is 'Credentials' but no credentials are supplied" in {
 
     val blobStoreContext = target.fromConfig(
-      S3Config(None, None, None, AwsClient.Aws, AuthMode.Credentials)
+      S3Config(None, None, None, AwsClient.Aws, AuthMode.Credentials),
     )
 
     intercept[IllegalArgumentException] {
       getIdentityFromContext(blobStoreContext)
-    }.getMessage should be("Configured to use credentials however one or both of `AWS_ACCESS_KEY` or `AWS_SECRET_KEY` are missing.")
+    }.getMessage should be(
+      "Configured to use credentials however one or both of `AWS_ACCESS_KEY` or `AWS_SECRET_KEY` are missing.",
+    )
 
     verifyZeroInteractions(credentialsProviderFn, credentialsProvider, awsCredentials)
 
@@ -104,12 +109,14 @@ class JCloudsS3ContextCreatorTest extends AnyFlatSpec with MockitoSugar with Mat
   "fromConfig" should "fail when empty string credentials are provided" in {
 
     val blobStoreContext = target.fromConfig(
-      S3Config(None, Some(""), Some(""), AwsClient.Aws, AuthMode.Credentials)
+      S3Config(None, Some(""), Some(""), AwsClient.Aws, AuthMode.Credentials),
     )
 
     intercept[IllegalArgumentException] {
       getIdentityFromContext(blobStoreContext)
-    }.getMessage should be("Configured to use credentials however one or both of `AWS_ACCESS_KEY` or `AWS_SECRET_KEY` are missing.")
+    }.getMessage should be(
+      "Configured to use credentials however one or both of `AWS_ACCESS_KEY` or `AWS_SECRET_KEY` are missing.",
+    )
 
     verifyZeroInteractions(credentialsProviderFn, credentialsProvider, awsCredentials)
 

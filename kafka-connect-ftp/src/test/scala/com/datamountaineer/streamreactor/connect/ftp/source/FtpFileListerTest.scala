@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.ftp.source
 
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.commons.net.ftp.{FTPClient, FTPFile}
+import org.apache.commons.net.ftp.FTPClient
+import org.apache.commons.net.ftp.FTPFile
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
@@ -45,16 +46,17 @@ class FtpFileListerTest extends AnyFunSuite with Matchers with BeforeAndAfter wi
   }
 
   test("Fixed path") {
-    val ftp = mock[FTPClient]
-    val file = mockFile("file.txt")
-    val thisDir = mockDir(".")
+    val ftp       = mock[FTPClient]
+    val file      = mockFile("file.txt")
+    val thisDir   = mockDir(".")
     val parentDir = mockDir("..")
 
     when(ftp.listFiles("/a/path/")).thenReturn(Array[FTPFile](file, thisDir, parentDir))
 
     FtpFileLister(ftp).listFiles("/a/path/file.txt").toList should contain theSameElementsAs List(
-      AbsoluteFtpFile(file, "/a/path/")
-    )}
+      AbsoluteFtpFile(file, "/a/path/"),
+    )
+  }
 
   test("Glob path") {
     val ftp = mock[FTPClient]
@@ -69,9 +71,9 @@ class FtpFileListerTest extends AnyFunSuite with Matchers with BeforeAndAfter wi
       *       /path/file4.csv
       */
 
-    val dira = mockDir("dira")
-    val dirb = mockDir("dirb")
-    val thisDir = mockDir(".")
+    val dira      = mockDir("dira")
+    val dirb      = mockDir("dirb")
+    val thisDir   = mockDir(".")
     val parentDir = mockDir("..")
     when(ftp.listFiles("/a/")).thenReturn(Array[FTPFile](dira, dirb, thisDir, parentDir))
 
@@ -91,7 +93,7 @@ class FtpFileListerTest extends AnyFunSuite with Matchers with BeforeAndAfter wi
 
     FtpFileLister(ftp).listFiles("/a/dir?/path/*.txt").toList should contain theSameElementsAs Seq(
       AbsoluteFtpFile(file1, "/a/dira/path/"),
-      AbsoluteFtpFile(file3, "/a/dirb/path/")
+      AbsoluteFtpFile(file3, "/a/dirb/path/"),
     )
   }
 }

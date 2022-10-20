@@ -17,52 +17,54 @@
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import java.util
-import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceConfig
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
-
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class MqttSourceConnectorTest extends AnyWordSpec with Matchers {
   val baseProps: Map[String, String] = Map(
     MqttConfigConstants.HOSTS_CONFIG -> "tcp://0.0.0.0:1883",
-    MqttConfigConstants.QS_CONFIG -> "1"
+    MqttConfigConstants.QS_CONFIG    -> "1",
   )
 
   val mqttSourceConnector = new MqttSourceConnector()
-  val targets = Array("test", "topic", "stream")
+  val targets             = Array("test", "topic", "stream")
 
   val normalSources = Array(
     "/test/#",
     "/mqttTopic/+/test",
     "/stream",
     "/some/other/topic",
-    "/alot/+/+/fourth"
+    "/alot/+/+/fourth",
   )
   val sharedSources = Array(
     "$share/some-group/test/#",
     "$share/aservice/mqttTopic/+/test",
     "$share/connectorGroup/stream",
     "$share/g1/some/other/topic",
-    "$share/grouped/alot/+/+/fourth"
+    "$share/grouped/alot/+/+/fourth",
   )
 
-  val normalKcql: Array[String] = normalSources.zip(targets).map{
-    case (source, target) =>  s"INSERT INTO `$target` SELECT * FROM `$source`"
+  val normalKcql: Array[String] = normalSources.zip(targets).map {
+    case (source, target) => s"INSERT INTO `$target` SELECT * FROM `$source`"
   }
-  val sharedKcql: Array[String] = sharedSources.zip(targets).map{
-    case (source, target) =>  s"INSERT INTO `$target` SELECT * FROM `$source`"
+  val sharedKcql: Array[String] = sharedSources.zip(targets).map {
+    case (source, target) => s"INSERT INTO `$target` SELECT * FROM `$source`"
   }
   val allKcql: Array[String] = normalKcql ++ sharedKcql
 
   "The MqttSourceConnector" should {
     "indicate that shared subscription instructions should be replicated" in {
-      all (sharedKcql.map(mqttSourceConnector.shouldReplicate)) should be (true)
+      all(sharedKcql.map(mqttSourceConnector.shouldReplicate)) should be(true)
     }
 
     "indicate that normal subscription instructions should not be replicated" in {
-      all (normalKcql.map(mqttSourceConnector.shouldReplicate)) should be (false)
+      all(normalKcql.map(mqttSourceConnector.shouldReplicate)) should be(false)
     }
   }
 
@@ -75,7 +77,7 @@ class MqttSourceConnectorTest extends AnyWordSpec with Matchers {
         mqttSourceConnector.start(props.asJava)
 
         val maxTasks = 2
-        val kcqls = extractKcqls(mqttSourceConnector.taskConfigs(maxTasks))
+        val kcqls    = extractKcqls(mqttSourceConnector.taskConfigs(maxTasks))
         kcqls.flatten should have length normalKcql.length.toLong
       }
 
@@ -84,8 +86,8 @@ class MqttSourceConnectorTest extends AnyWordSpec with Matchers {
         mqttSourceConnector.start(props.asJava)
 
         val maxTasks = 2
-        val kcqls = extractKcqls(mqttSourceConnector.taskConfigs(maxTasks))
-        all (kcqls) should have length sharedKcql.length.toLong
+        val kcqls    = extractKcqls(mqttSourceConnector.taskConfigs(maxTasks))
+        all(kcqls) should have length sharedKcql.length.toLong
       }
 
       "correctly distribute instructions when there is a mix of instructions" in {
@@ -93,9 +95,9 @@ class MqttSourceConnectorTest extends AnyWordSpec with Matchers {
         mqttSourceConnector.start(props.asJava)
 
         val maxTasks = 2
-        val kcqls = extractKcqls(mqttSourceConnector.taskConfigs(maxTasks))
-        kcqls.flatten should have length((sharedKcql.length * maxTasks + normalKcql.length).toLong)
-        all (kcqls.map(_.length)) should be >= sharedKcql.length
+        val kcqls    = extractKcqls(mqttSourceConnector.taskConfigs(maxTasks))
+        kcqls.flatten should have length ((sharedKcql.length * maxTasks + normalKcql.length).toLong)
+        all(kcqls.map(_.length)) should be >= sharedKcql.length
       }
     }
 
@@ -105,13 +107,12 @@ class MqttSourceConnectorTest extends AnyWordSpec with Matchers {
         mqttSourceConnector.start(props.asJava)
 
         val maxTasks = 2
-        val kcqls = extractKcqls(mqttSourceConnector.taskConfigs(maxTasks))
+        val kcqls    = extractKcqls(mqttSourceConnector.taskConfigs(maxTasks))
         kcqls.flatten should have length allKcql.length.toLong
       }
     }
   }
 
-  def extractKcqls(configs: util.List[util.Map[String, String]]): Array[Array[String]] = {
+  def extractKcqls(configs: util.List[util.Map[String, String]]): Array[Array[String]] =
     configs.asScala.map(t => MqttSourceSettings(MqttSourceConfig(t)).kcql).toArray
-  }
 }

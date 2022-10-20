@@ -41,7 +41,9 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
     val reader = setUpReader(List(), includesHeaders = false)
     intercept[FormatWriterException] {
       reader.next()
-    }.getMessage should be("Invalid state reached: the file content has been consumed, no further calls to next() are possible.")
+    }.getMessage should be(
+      "Invalid state reached: the file content has been consumed, no further calls to next() are possible.",
+    )
     reader.close()
   }
 
@@ -49,7 +51,9 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
     val reader = setUpReader(List(TestSampleSchemaAndData.csvHeader), includesHeaders = true)
     intercept[FormatWriterException] {
       reader.next()
-    }.getMessage should be("Invalid state reached: the file content has been consumed, no further calls to next() are possible.")
+    }.getMessage should be(
+      "Invalid state reached: the file content has been consumed, no further calls to next() are possible.",
+    )
     reader.close()
   }
 
@@ -83,15 +87,15 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
     reader.getBucketAndPath should be(bucketAndPath)
   }
 
-  private def setUpReader(recordsToReturn: List[String], includesHeaders: Boolean) = {
+  private def setUpReader(recordsToReturn: List[String], includesHeaders: Boolean) =
     new CsvFormatStreamReader(
-      inputStreamFn = () => new ByteArrayInputStream(
-        recordsToReturn.mkString(System.lineSeparator()).getBytes()
-      ),
+      inputStreamFn = () =>
+        new ByteArrayInputStream(
+          recordsToReturn.mkString(System.lineSeparator()).getBytes(),
+        ),
       bucketAndPath = bucketAndPath,
-      hasHeaders = includesHeaders
+      hasHeaders    = includesHeaders,
     )
-  }
 
   private def checkResult(results: Seq[StringSourceData]) = {
     results(0).data should be(""""sam","mr","100.43"""")

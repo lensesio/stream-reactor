@@ -16,17 +16,19 @@
 
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfig
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfigConstants
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbSinkSettings
 import com.microsoft.azure.documentdb._
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
-import org.mockito.ArgumentMatchers.{any, eq => mockEq}
+import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.{ eq => mockEq }
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.jdk.CollectionConverters.MapHasAsJava
-
 
 class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoSugar with MatchingArgument {
   private val connection = "https://accountName.documents.azure.com:443/"
@@ -34,18 +36,17 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
   "DocumentDbSinkTask" should {
     "handle json INSERTS with default consistency level" in {
       val map = Map(
-        DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
+        DocumentDbConfigConstants.DATABASE_CONFIG   -> "database1",
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
-        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO coll1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topic2"
+        DocumentDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO coll1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topic2",
       ).asJava
 
       val documentClient = mock[DocumentClient]
       val dbResource: ResourceResponse[Database] = mock[ResourceResponse[Database]]
       when(dbResource.getResource).thenReturn(mock[Database])
 
-      Seq("dbs/database1/colls/coll1",
-        "dbs/database1/colls/coll2").foreach { c =>
+      Seq("dbs/database1/colls/coll1", "dbs/database1/colls/coll2").foreach { c =>
         val resource = mock[ResourceResponse[DocumentCollection]]
         when(resource.getResource).thenReturn(mock[DocumentCollection])
 
@@ -56,7 +57,6 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
 
       when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
-
 
 //      val task = new DocumentDbSinkTask(_ => documentClient)
 //      val context = mock[SinkTaskContext]
@@ -71,7 +71,7 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
       val sinkRecord2 = new SinkRecord("topic2", 0, null, null, Schema.STRING_SCHEMA, json2, 1000)
 
       val doc1 = new Document(json1)
-      val r1 = mock[ResourceResponse[Document]]
+      val r1   = mock[ResourceResponse[Document]]
       when(r1.getResource).thenReturn(doc1)
 
       when(
@@ -81,13 +81,14 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
             argThat { argument: Document =>
               argument != null && argument.toString == doc1.toString
             },
-            argThat { argument: RequestOptions => argument.getConsistencyLevel == ConsistencyLevel.Session
-            },
-            mockEq(false)))
+            argThat { argument: RequestOptions => argument.getConsistencyLevel == ConsistencyLevel.Session },
+            mockEq(false),
+          ),
+      )
         .thenReturn(r1)
 
       val doc2 = new Document(json2)
-      val r2 = mock[ResourceResponse[Document]]
+      val r2   = mock[ResourceResponse[Document]]
       when(r2.getResource).thenReturn(doc2)
 
       when(
@@ -97,14 +98,15 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
             argThat { argument: Document =>
               argument != null && argument.toString == doc2.toString
             },
-            argThat { argument: RequestOptions => argument.getConsistencyLevel == ConsistencyLevel.Session
-            },
-            mockEq(false)))
+            argThat { argument: RequestOptions => argument.getConsistencyLevel == ConsistencyLevel.Session },
+            mockEq(false),
+          ),
+      )
         .thenReturn(r2)
 
-      val config = DocumentDbConfig(map)
+      val config   = DocumentDbConfig(map)
       val settings = DocumentDbSinkSettings(config)
-      val kcqlMap = settings.kcql.map(c => c.getSource -> c).toMap
+      val kcqlMap  = settings.kcql.map(c => c.getSource -> c).toMap
 
       val writer = new DocumentDbWriter(kcqlMap, settings, documentClient)
       writer.write(Seq(sinkRecord1, sinkRecord2))
@@ -118,7 +120,8 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
           argThat { argument: RequestOptions =>
             argument.getConsistencyLevel == ConsistencyLevel.Session
           },
-          mockEq(false))
+          mockEq(false),
+        )
 
       verify(documentClient)
         .createDocument(
@@ -129,24 +132,24 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
           argThat { argument: RequestOptions =>
             argument.getConsistencyLevel == ConsistencyLevel.Session
           },
-          mockEq(false))
+          mockEq(false),
+        )
     }
 
     "handle json INSERTS with Eventual consistency level" in {
       val map = Map(
-        DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
-        DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
-        DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfigConstants.DATABASE_CONFIG    -> "database1",
+        DocumentDbConfigConstants.CONNECTION_CONFIG  -> connection,
+        DocumentDbConfigConstants.MASTER_KEY_CONFIG  -> "secret",
         DocumentDbConfigConstants.CONSISTENCY_CONFIG -> ConsistencyLevel.Eventual.toString,
-        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO coll1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topic2"
+        DocumentDbConfigConstants.KCQL_CONFIG        -> "INSERT INTO coll1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topic2",
       ).asJava
 
       val documentClient = mock[DocumentClient]
       val dbResource: ResourceResponse[Database] = mock[ResourceResponse[Database]]
       when(dbResource.getResource).thenReturn(mock[Database])
 
-      Seq("dbs/database1/colls/coll1",
-        "dbs/database1/colls/coll2").foreach { c =>
+      Seq("dbs/database1/colls/coll1", "dbs/database1/colls/coll2").foreach { c =>
         val resource = mock[ResourceResponse[DocumentCollection]]
         when(resource.getResource).thenReturn(mock[DocumentCollection])
 
@@ -171,7 +174,7 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
       val sinkRecord2 = new SinkRecord("topic2", 0, null, null, Schema.STRING_SCHEMA, json2, 1000)
 
       val doc1 = new Document(json1)
-      val r1 = mock[ResourceResponse[Document]]
+      val r1   = mock[ResourceResponse[Document]]
       when(r1.getResource).thenReturn(doc1)
 
       when(
@@ -181,13 +184,14 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
             argThat { argument: Document =>
               argument != null && argument.toString == doc1.toString
             },
-            argThat { argument: RequestOptions => argument.getConsistencyLevel == ConsistencyLevel.Eventual
-            },
-            mockEq(false)))
+            argThat { argument: RequestOptions => argument.getConsistencyLevel == ConsistencyLevel.Eventual },
+            mockEq(false),
+          ),
+      )
         .thenReturn(r1)
 
       val doc2 = new Document(json2)
-      val r2 = mock[ResourceResponse[Document]]
+      val r2   = mock[ResourceResponse[Document]]
       when(r2.getResource).thenReturn(doc2)
 
       when(
@@ -197,14 +201,15 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
             argThat { argument: Document =>
               argument != null && argument.toString == doc2.toString
             },
-            argThat { argument: RequestOptions => argument.getConsistencyLevel == ConsistencyLevel.Eventual
-            },
-            mockEq(false)))
+            argThat { argument: RequestOptions => argument.getConsistencyLevel == ConsistencyLevel.Eventual },
+            mockEq(false),
+          ),
+      )
         .thenReturn(r2)
 
-      val config = DocumentDbConfig(map)
+      val config   = DocumentDbConfig(map)
       val settings = DocumentDbSinkSettings(config)
-      val kcqlMap = settings.kcql.map(c => c.getSource -> c).toMap
+      val kcqlMap  = settings.kcql.map(c => c.getSource -> c).toMap
 
       val writer = new DocumentDbWriter(kcqlMap, settings, documentClient)
       writer.write(Seq(sinkRecord1, sinkRecord2))
@@ -218,7 +223,8 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
           argThat { argument: RequestOptions =>
             argument.getConsistencyLevel == ConsistencyLevel.Eventual
           },
-          mockEq(false))
+          mockEq(false),
+        )
 
       verify(documentClient)
         .createDocument(
@@ -228,30 +234,29 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
           },
           argThat { argument: RequestOptions =>
             argument.getConsistencyLevel == ConsistencyLevel.Eventual
-          }, mockEq(false))
+          },
+          mockEq(false),
+        )
     }
-
 
     "handle json UPSERT with Eventual consistency level" in {
       val map = Map(
-        DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
-        DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
-        DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfigConstants.DATABASE_CONFIG    -> "database1",
+        DocumentDbConfigConstants.CONNECTION_CONFIG  -> connection,
+        DocumentDbConfigConstants.MASTER_KEY_CONFIG  -> "secret",
         DocumentDbConfigConstants.CONSISTENCY_CONFIG -> ConsistencyLevel.Eventual.toString,
-        DocumentDbConfigConstants.KCQL_CONFIG -> "UPSERT INTO coll1 SELECT * FROM topic1 PK time"
+        DocumentDbConfigConstants.KCQL_CONFIG        -> "UPSERT INTO coll1 SELECT * FROM topic1 PK time",
       ).asJava
 
       val documentClient = mock[DocumentClient]
       val dbResource: ResourceResponse[Database] = mock[ResourceResponse[Database]]
       when(dbResource.getResource).thenReturn(mock[Database])
 
-
       val resource = mock[ResourceResponse[DocumentCollection]]
       when(resource.getResource).thenReturn(mock[DocumentCollection])
 
       when(documentClient.readCollection(mockEq("dbs/database1/colls/coll1"), any(classOf[RequestOptions])))
         .thenReturn(resource)
-
 
       when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
@@ -283,7 +288,10 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
             },
             argThat { argument: RequestOptions =>
               argument.getConsistencyLevel == ConsistencyLevel.Eventual
-            }, mockEq(true)))
+            },
+            mockEq(true),
+          ),
+      )
         .thenReturn(r1)
 
       val doc2 = new Document(json2)
@@ -300,12 +308,15 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
             },
             argThat { argument: RequestOptions =>
               argument.getConsistencyLevel == ConsistencyLevel.Eventual
-            }, mockEq(true)))
+            },
+            mockEq(true),
+          ),
+      )
         .thenReturn(r2)
 
-      val config = DocumentDbConfig(map)
+      val config   = DocumentDbConfig(map)
       val settings = DocumentDbSinkSettings(config)
-      val kcqlMap = settings.kcql.map(c => c.getSource -> c).toMap
+      val kcqlMap  = settings.kcql.map(c => c.getSource -> c).toMap
 
       val writer = new DocumentDbWriter(kcqlMap, settings, documentClient)
       writer.write(Seq(sinkRecord1, sinkRecord2))
@@ -318,7 +329,9 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
           },
           argThat { argument: RequestOptions =>
             argument.getConsistencyLevel == ConsistencyLevel.Eventual
-          }, mockEq(true))
+          },
+          mockEq(true),
+        )
 
       verify(documentClient)
         .upsertDocument(
@@ -329,11 +342,9 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
           argThat { argument: RequestOptions =>
             argument.getConsistencyLevel == ConsistencyLevel.Eventual
           },
-          mockEq(true))
+          mockEq(true),
+        )
     }
-
 
   }
 }
-
-

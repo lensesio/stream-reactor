@@ -1,7 +1,12 @@
 package com.datamountaineer.streamreactor.connect.pulsar
 
-import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSinkConfig, PulsarSinkSettings}
-import org.apache.pulsar.client.api.{CompressionType, MessageRoutingMode, ProducerBuilder, PulsarClient}
+import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarConfigConstants
+import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSinkConfig
+import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSinkSettings
+import org.apache.pulsar.client.api.CompressionType
+import org.apache.pulsar.client.api.MessageRoutingMode
+import org.apache.pulsar.client.api.ProducerBuilder
+import org.apache.pulsar.client.api.PulsarClient
 import org.mockito.ArgumentMatchersSugar.any
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
@@ -11,17 +16,16 @@ import org.scalatest.wordspec.AnyWordSpec
 import java.util.concurrent.TimeUnit
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-
 /**
-  * Created by andrew@datamountaineer.com on 23/01/2018. 
+  * Created by andrew@datamountaineer.com on 23/01/2018.
   * stream-reactor
   */
 class ProducerConfigFactoryTest extends AnyWordSpec with Matchers with MockitoSugar with BeforeAndAfter {
 
   val pulsarClient = mock[PulsarClient]
-  val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
+  val pulsarTopic  = "persistent://landoop/standalone/connect/kafka-topic"
 
-  val producerBuilder = mock[ProducerBuilder[Array[Byte]]]
+  val producerBuilder       = mock[ProducerBuilder[Array[Byte]]]
   val producerConfigFactory = new ProducerConfigFactory(pulsarClient)
 
   before {
@@ -32,12 +36,14 @@ class ProducerConfigFactoryTest extends AnyWordSpec with Matchers with MockitoSu
   }
 
   "should create a SinglePartition with batching" in {
-    val config = PulsarSinkConfig(Map(
-      PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER = SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY = 1000"
-    ).asJava)
+    val config = PulsarSinkConfig(
+      Map(
+        PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
+        PulsarConfigConstants.KCQL_CONFIG  -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER = SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY = 1000",
+      ).asJava,
+    )
 
-    val settings = PulsarSinkSettings(config)
+    val settings       = PulsarSinkSettings(config)
     val producerConfig = producerConfigFactory("test", settings.kcql)
 
     verify(producerConfig(pulsarTopic)).enableBatching(true)
@@ -49,12 +55,14 @@ class ProducerConfigFactoryTest extends AnyWordSpec with Matchers with MockitoSu
   }
 
   "should create a CustomPartition with no batching and no compression" in {
-    val config = PulsarSinkConfig(Map(
-      PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic WITHPARTITIONER = CustomPartition"
-    ).asJava)
+    val config = PulsarSinkConfig(
+      Map(
+        PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
+        PulsarConfigConstants.KCQL_CONFIG  -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic WITHPARTITIONER = CustomPartition",
+      ).asJava,
+    )
 
-    val settings = PulsarSinkSettings(config)
+    val settings       = PulsarSinkSettings(config)
     val producerConfig = producerConfigFactory("test", settings.kcql)
 
     verify(producerConfig(pulsarTopic), never).enableBatching(true)
@@ -63,12 +71,14 @@ class ProducerConfigFactoryTest extends AnyWordSpec with Matchers with MockitoSu
   }
 
   "should create a roundrobin with batching and no compression no delay" in {
-    val config = PulsarSinkConfig(Map(
-      PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH  = 10 WITHPARTITIONER = ROUNDROBINPARTITION"
-    ).asJava)
+    val config = PulsarSinkConfig(
+      Map(
+        PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
+        PulsarConfigConstants.KCQL_CONFIG  -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH  = 10 WITHPARTITIONER = ROUNDROBINPARTITION",
+      ).asJava,
+    )
 
-    val settings = PulsarSinkSettings(config)
+    val settings       = PulsarSinkSettings(config)
     val producerConfig = producerConfigFactory("test", settings.kcql)
 
     verify(producerConfig(pulsarTopic)).enableBatching(true)

@@ -16,19 +16,22 @@
 
 package com.datamountaineer.streamreactor.connect.kudu
 
-
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduConfigConstants, KuduSettings}
-import com.datamountaineer.streamreactor.connect.kudu.sink.{CreateTableProps, DbHandler}
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfig
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfigConstants
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduSettings
+import com.datamountaineer.streamreactor.connect.kudu.sink.CreateTableProps
+import com.datamountaineer.streamreactor.connect.kudu.sink.DbHandler
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kudu.client._
 import org.mockito.MockitoSugar
 
-import scala.jdk.CollectionConverters.{ListHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Try
 
 /**
-  * Created by andrew@datamountaineer.com on 13/06/16. 
+  * Created by andrew@datamountaineer.com on 13/06/16.
   * stream-reactor-maven
   */
 class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
@@ -49,7 +52,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
   }
 
   "Should throw because auto create with no distribute by keys" in {
-    val config = new KuduConfig(getConfig)
+    val config   = new KuduConfig(getConfig)
     val settings = KuduSettings(config)
     val schema =
       """
@@ -74,15 +77,15 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
   }
 
   "Should return a Kudu create schema" in {
-    val config = new KuduConfig(getConfigAutoCreate(""))
+    val config   = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
     val creates = settings.kcql.map(r => DbHandler.getKuduSchema(r, schema))
-    val create = creates.head
+    val create  = creates.head
     create.getColumnCount shouldBe 8
     create.getPrimaryKeyColumnCount shouldBe 2
     val cols = create.getColumns
-    val pks = create.getPrimaryKeyColumns
+    val pks  = create.getPrimaryKeyColumns
     pks.get(0).getName shouldBe "name"
     pks.get(0).getType shouldBe org.apache.kudu.Type.STRING
 
@@ -94,15 +97,15 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
   }
 
   "Should return a Kudu Create schema with default" in {
-    val config = new KuduConfig(getConfigAutoCreate(""))
+    val config   = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
     val creates = settings.kcql.map(r => DbHandler.getKuduSchema(r, schemaDefaults))
-    val create = creates.head
+    val create  = creates.head
     create.getColumnCount shouldBe 8
     create.getPrimaryKeyColumnCount shouldBe 2
     val cols = create.getColumns
-    val pks = create.getPrimaryKeyColumns
+    val pks  = create.getPrimaryKeyColumns
     pks.get(0).getName shouldBe "name"
     pks.get(0).getType shouldBe org.apache.kudu.Type.STRING
 
@@ -116,10 +119,10 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
 
   "Should build a insert table cache" taggedAs SlowTest in {
 
-    val table = mock[KuduTable]
-    val client = mock[KuduClient]
+    val table       = mock[KuduTable]
+    val client      = mock[KuduClient]
     val kuduSession = mock[KuduSession]
-    val resp = mock[ListTablesResponse]
+    val resp        = mock[ListTablesResponse]
 
     when(client.tableExists(TABLE)).thenReturn(true)
     when(client.openTable(TABLE)).thenReturn(table)
@@ -127,18 +130,18 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     when(client.getTablesList).thenReturn(resp)
     when(resp.getTablesList).thenReturn(List.empty[String].asJava)
 
-    val config = new KuduConfig(getConfigAutoCreate(""))
+    val config   = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
-    val cache = DbHandler.buildTableCache(settings, client)
+    val cache    = DbHandler.buildTableCache(settings, client)
     cache(TOPIC) shouldBe table
   }
 
   "Should throw table not found when building insert cache" taggedAs SlowTest in {
 
-    val table = mock[KuduTable]
-    val client = mock[KuduClient]
+    val table       = mock[KuduTable]
+    val client      = mock[KuduClient]
     val kuduSession = mock[KuduSession]
-    val resp = mock[ListTablesResponse]
+    val resp        = mock[ListTablesResponse]
 
     //force table not found
     when(client.tableExists(TABLE)).thenReturn(false)
@@ -147,7 +150,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     when(client.getTablesList).thenReturn(resp)
     when(resp.getTablesList).thenReturn(List.empty[String].asJava)
 
-    val config = new KuduConfig(getConfig)
+    val config   = new KuduConfig(getConfig)
     val settings = KuduSettings(config)
     intercept[ConnectException] {
       DbHandler.buildTableCache(settings, client)
@@ -172,22 +175,23 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
       """.stripMargin
 
     //set up configs
-    val config = new KuduConfig(getConfigAutoCreate("http://localhost:8081"))
+    val config   = new KuduConfig(getConfigAutoCreate("http://localhost:8081"))
     val settings = KuduSettings(config)
 
     //mock out kudu client
-    val table = mock[KuduTable]
+    val table  = mock[KuduTable]
     val client = mock[KuduClient]
 
     val kuduSchemas = DbHandler.createTableProps(
       rawSchema,
       settings.kcql.head,
       config.getString(KuduConfigConstants.SCHEMA_REGISTRY_URL),
-      client)
+      client,
+    )
 
     val kuduSchema = kuduSchemas.head.schema
-    val cto = new CreateTableOptions
-    val pks = settings.kcql.head.getPrimaryKeys.asScala.map(_.getName).asJava
+    val cto        = new CreateTableOptions
+    val pks        = settings.kcql.head.getPrimaryKeys.asScala.map(_.getName).asJava
     cto.addHashPartitions(pks, 10)
     when(client.createTable(TABLE, kuduSchema, cto)).thenReturn(table)
     val ctp = CreateTableProps(TABLE, kuduSchema, cto)
@@ -198,9 +202,9 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
   "should alter table" taggedAs SlowTest in {
     //mock out kudu client
     val client = mock[KuduClient]
-    val table = mock[KuduTable]
-    val atrm = mock[AlterTableResponse]
-    val ato = DbHandler.compare(createKuduSchema, createKuduSchema4).head
+    val table  = mock[KuduTable]
+    val atrm   = mock[AlterTableResponse]
+    val ato    = DbHandler.compare(createKuduSchema, createKuduSchema4).head
     when(client.tableExists(TABLE)).thenReturn(true)
     when(client.alterTable(TABLE, ato)).thenReturn(atrm)
     when(client.openTable(TABLE)).thenReturn(table)
@@ -213,22 +217,22 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val client = mock[KuduClient]
 
     val record: SinkRecord = getTestRecords.head
-    val config = new KuduConfig(getConfigAutoCreate(""))
+    val config   = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
-    val ret = DbHandler.createTableFromSinkRecord(settings.kcql.head, record.valueSchema(), client)
+    val ret      = DbHandler.createTableFromSinkRecord(settings.kcql.head, record.valueSchema(), client)
     ret.isInstanceOf[Try[KuduTable]] shouldBe true
   }
 
   "Should not create table as it already exists" taggedAs SlowTest in {
     //set up configs
-    val config = new KuduConfig(getConfigAutoCreate("http://localhost:8081"))
+    val config   = new KuduConfig(getConfigAutoCreate("http://localhost:8081"))
     val settings = KuduSettings(config)
 
     //mock out kudu client
-    val table = mock[KuduTable]
-    val client = mock[KuduClient]
+    val table       = mock[KuduTable]
+    val client      = mock[KuduClient]
     val kuduSession = mock[KuduSession]
-    val resp = mock[ListTablesResponse]
+    val resp        = mock[ListTablesResponse]
 
     when(client.tableExists(TABLE)).thenReturn(true)
     when(client.openTable(TABLE)).thenReturn(table)

@@ -6,9 +6,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-
 /**
-  * Created by andrew@datamountaineer.com on 24/01/2018. 
+  * Created by andrew@datamountaineer.com on 24/01/2018.
   * stream-reactor
   */
 class PulsarSinkConnectorTest extends AnyWordSpec with Matchers {
@@ -17,9 +16,9 @@ class PulsarSinkConnectorTest extends AnyWordSpec with Matchers {
 
   "should start a Connector and split correctly" in {
     val props = Map(
-      "topics" -> "kafka_topic",
+      "topics"                           -> "kafka_topic",
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER = SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY = 1000"
+      PulsarConfigConstants.KCQL_CONFIG  -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER = SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY = 1000",
     ).asJava
 
     val connector = new PulsarSinkConnector()
@@ -32,9 +31,9 @@ class PulsarSinkConnectorTest extends AnyWordSpec with Matchers {
 
   "should throw as topic doesn't match kcql" in {
     val props = Map(
-      "topics" -> "bad",
+      "topics"                           -> "bad",
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER =  SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY = 1000"
+      PulsarConfigConstants.KCQL_CONFIG  -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER =  SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY = 1000",
     ).asJava
 
     val connector = new PulsarSinkConnector()

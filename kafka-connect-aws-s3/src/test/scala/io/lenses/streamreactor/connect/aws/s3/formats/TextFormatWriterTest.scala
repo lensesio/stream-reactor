@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -17,7 +16,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.model.{StringSinkData, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.StringSinkData
+import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import org.scalatest.EitherValues
@@ -28,18 +28,18 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "write byte output stream with text format for a single record" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new TextFormatWriter(() => outputStream)
     jsonFormatWriter.write(None, StringSinkData("Sausages"), topic)
 
     outputStream.toString should be("Sausages\n")
-    outputStream.getPointer should be (9L)
+    outputStream.getPointer should be(9L)
 
   }
 
   "convert" should "write byte output stream with json for multiple records" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new TextFormatWriter(() => outputStream)
     jsonFormatWriter.write(None, StringSinkData("Sausages"), topic)
     jsonFormatWriter.write(None, StringSinkData("Mash"), topic)
@@ -51,9 +51,9 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "throw error when avro value is supplied" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val textFormatWriter = new TextFormatWriter(() => outputStream)
-    val caught = textFormatWriter.write(None, StructSinkData(users.head), topic)
-    caught.left.value shouldBe a [FormatWriterException]
+    val caught           = textFormatWriter.write(None, StructSinkData(users.head), topic)
+    caught.left.value shouldBe a[FormatWriterException]
   }
 }

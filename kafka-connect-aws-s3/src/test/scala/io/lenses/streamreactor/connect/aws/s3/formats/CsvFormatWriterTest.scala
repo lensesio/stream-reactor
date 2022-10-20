@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -24,7 +23,9 @@ import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import org.apache.kafka.connect.data.Schema.STRING_SCHEMA
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.scalatest.Assertions
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -56,16 +57,15 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
-    firstUsers.foreach(
-      e =>
-        formatWriter.write(
-          None,
-          StructSinkData(e),
-          topic
-        )
+    firstUsers.foreach(e =>
+      formatWriter.write(
+        None,
+        StructSinkData(e),
+        topic,
+      ),
     )
 
-    val reader = new StringReader(new String(outputStream.toByteArray))
+    val reader    = new StringReader(new String(outputStream.toByteArray))
     val csvReader = new CSVReader(reader)
 
     csvReader.readNext() should be(Array("name", "title", "salary"))
@@ -104,7 +104,6 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
       .put("myInt32", 32)
       .put("myInt64", 64.toLong)
 
-
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
     formatWriter.write(None, StructSinkData(struct), topic)
@@ -113,7 +112,16 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val csvReader = new CSVReader(reader)
 
-    csvReader.readNext() should be(Array("myString", "myBool", "myBytes", "myFloat32", "myFloat64", "myInt8", "myInt16", "myInt32", "myInt64"))
+    csvReader.readNext() should be(Array("myString",
+                                         "myBool",
+                                         "myBytes",
+                                         "myFloat32",
+                                         "myFloat64",
+                                         "myInt8",
+                                         "myInt16",
+                                         "myInt32",
+                                         "myInt64",
+    ))
     csvReader.readNext() should be(Array("testString", "true", "testBytes", "32.0", "64.02", "8", "16", "32", "64"))
     csvReader.readNext() should be(null)
 
@@ -135,7 +143,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val caught = formatWriter.write(None, StructSinkData(struct), topic)
     formatWriter.complete()
-    caught should be (Left(ExtractorError(UnexpectedType)))
+    caught should be(Left(ExtractorError(UnexpectedType)))
   }
 
   "convert" should "not allow complex struct types" in {
@@ -147,8 +155,8 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val struct = new Struct(envelopingSchema)
       .put("myEnvelopingStruct",
-        new Struct(insideSchema)
-          .put("myStringStruct", "myStringFieldValue")
+           new Struct(insideSchema)
+             .put("myStringStruct", "myStringFieldValue"),
       )
 
     val outputStream = new S3ByteArrayOutputStream()
@@ -156,6 +164,6 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val caught = formatWriter.write(None, StructSinkData(struct), topic)
     formatWriter.complete()
-    caught should be (Left(ExtractorError(UnexpectedType)))
+    caught should be(Left(ExtractorError(UnexpectedType)))
   }
 }

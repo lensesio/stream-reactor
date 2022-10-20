@@ -23,23 +23,23 @@ import org.scalatest.wordspec.AnyWordSpec
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
-  * Created by andrew@datamountaineer.com on 28/04/16. 
+  * Created by andrew@datamountaineer.com on 28/04/16.
   * stream-reactor
   */
 class TestCassandraSourceSettings extends AnyWordSpec with Matchers with TestConfig {
   "CassandraSettings should return setting for a source" in {
-    val props =  Map(
-      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
-      CassandraConfigConstants.USERNAME -> USERNAME,
-      CassandraConfigConstants.PASSWD -> PASSWD,
-      CassandraConfigConstants.KCQL -> IMPORT_QUERY_ALL,
+    val props = Map(
+      CassandraConfigConstants.CONTACT_POINTS  -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE       -> CASSANDRA_SOURCE_KEYSPACE,
+      CassandraConfigConstants.USERNAME        -> USERNAME,
+      CassandraConfigConstants.PASSWD          -> PASSWD,
+      CassandraConfigConstants.KCQL            -> IMPORT_QUERY_ALL,
       CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
-      CassandraConfigConstants.POLL_INTERVAL -> "1000"
+      CassandraConfigConstants.POLL_INTERVAL   -> "1000",
     ).asJava
 
     val taskConfig = CassandraConfigSource(props)
-    val settings = CassandraSettings.configureSource(taskConfig).toList
+    val settings   = CassandraSettings.configureSource(taskConfig).toList
     settings.size shouldBe 2
     settings.head.kcql.getSource shouldBe TABLE1
     settings.head.kcql.getTarget shouldBe TABLE1 //no table mapping provided so should be the table
@@ -52,14 +52,14 @@ class TestCassandraSourceSettings extends AnyWordSpec with Matchers with TestCon
   "CassandraSettings should return setting for a source with one table" in {
     val map = Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
-      CassandraConfigConstants.USERNAME -> USERNAME,
-      CassandraConfigConstants.PASSWD -> PASSWD,
-      CassandraConfigConstants.KCQL -> "INSERT INTO cassandra-source SELECT * FROM orders PK created",
-      CassandraConfigConstants.POLL_INTERVAL -> "1000"
+      CassandraConfigConstants.KEY_SPACE      -> CASSANDRA_SINK_KEYSPACE,
+      CassandraConfigConstants.USERNAME       -> USERNAME,
+      CassandraConfigConstants.PASSWD         -> PASSWD,
+      CassandraConfigConstants.KCQL           -> "INSERT INTO cassandra-source SELECT * FROM orders PK created",
+      CassandraConfigConstants.POLL_INTERVAL  -> "1000",
     )
     val taskConfig = CassandraConfigSource(map.asJava)
-    val settings = CassandraSettings.configureSource(taskConfig).toList
+    val settings   = CassandraSettings.configureSource(taskConfig).toList
     settings.size shouldBe 1
   }
 }

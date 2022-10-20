@@ -20,8 +20,8 @@ import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSup
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala}
-
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
   * Using INSERT we can store data from one Kafka topic into one Redis Sorted Set (SS)
@@ -38,9 +38,9 @@ class ConfigInsertSortedSetTest extends AnyWordSpec with Matchers with RedisMock
   // Insert into a Single Sorted Set
   val KCQL1 = "INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SortedSet"
   KCQL1 in {
-    val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL1))
+    val config   = getRedisSinkConfig(password = true, KCQL = Option(KCQL1))
     val settings = RedisSinkSettings(config)
-    val route = settings.kcqlSettings.head.kcqlConfig
+    val route    = settings.kcqlSettings.head.kcqlConfig
 
     route.getStoredAs shouldBe "SortedSet"
     route.getFields.asScala.exists(_.getName.equals("*")) shouldBe true
@@ -52,10 +52,10 @@ class ConfigInsertSortedSetTest extends AnyWordSpec with Matchers with RedisMock
   // Define which field to use to `score` the entry in the Set
   val KCQL2 = "INSERT INTO cpu_stats_SS SELECT temperature from cpuTopic STOREAS SortedSet (score=ts)"
   KCQL2 in {
-    val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL2))
+    val config   = getRedisSinkConfig(password = true, KCQL = Option(KCQL2))
     val settings = RedisSinkSettings(config)
-    val route = settings.kcqlSettings.head.kcqlConfig
-    val fields = route.getFields.asScala.toList
+    val route    = settings.kcqlSettings.head.kcqlConfig
+    val fields   = route.getFields.asScala.toList
 
     route.getFields.asScala.exists(_.getName.equals("*")) shouldBe false
     fields.length shouldBe 1
@@ -70,9 +70,9 @@ class ConfigInsertSortedSetTest extends AnyWordSpec with Matchers with RedisMock
   val KCQL3 = "INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SortedSet (score=ts,to=YYYYMMDDHHSS)"
   KCQL3 in {
     //(param1 = value1 , param2 = value2,param3=value3)
-    val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL3))
+    val config   = getRedisSinkConfig(password = true, KCQL = Option(KCQL3))
     val settings = RedisSinkSettings(config)
-    val route = settings.kcqlSettings.head.kcqlConfig
+    val route    = settings.kcqlSettings.head.kcqlConfig
 
     route.getFields.asScala.exists(_.getName.equals("*")) shouldBe true
     route.getTarget shouldBe "cpu_stats_SS"

@@ -2,12 +2,12 @@ package com.landoop.streamreactor.connect.hive.sink
 
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.landoop.json.sql.JacksonJson
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.jdk.CollectionConverters.ListHasAsScala
-
 
 class MapValueConverterTest extends AnyFunSuite with Matchers {
   test("converts nested payload") {
@@ -33,12 +33,19 @@ class MapValueConverterTest extends AnyFunSuite with Matchers {
         |}
         |""".stripMargin
 
-   val typeRef= new TypeReference[Map[String,Object]]() {}
-    val map = JacksonJson.mapper.readValue(json, typeRef)
+    val typeRef = new TypeReference[Map[String, Object]]() {}
+    val map     = JacksonJson.mapper.readValue(json, typeRef)
 
     val struct = MapValueConverter.convert(map)
     //Jackson transforming the json to Map the fields order is not retained
-    struct.schema().fields().asScala.map(_.name()).sorted shouldBe List("idType", "colorDepth", "threshold", "evars", "exclude", "cars", "nums").sorted
+    struct.schema().fields().asScala.map(_.name()).sorted shouldBe List("idType",
+                                                                        "colorDepth",
+                                                                        "threshold",
+                                                                        "evars",
+                                                                        "exclude",
+                                                                        "cars",
+                                                                        "nums",
+    ).sorted
 
     struct.schema().field("idType").schema() shouldBe Schema.OPTIONAL_INT64_SCHEMA
 
@@ -60,7 +67,7 @@ class MapValueConverterTest extends AnyFunSuite with Matchers {
     evarsInner.schema().field("eVar1").schema() shouldBe Schema.OPTIONAL_STRING_SCHEMA
     evarsInner.schema().field("eVar2").schema() shouldBe Schema.OPTIONAL_INT64_SCHEMA
 
-    val exclude  = struct.schema().field("exclude").schema()
+    val exclude = struct.schema().field("exclude").schema()
     exclude.schema().`type`() shouldBe Schema.Type.STRUCT
     exclude.schema().isOptional shouldBe true
     exclude.schema().fields().asScala.map(_.name()).sorted shouldBe List("id", "value").sorted
@@ -69,7 +76,7 @@ class MapValueConverterTest extends AnyFunSuite with Matchers {
 
     struct.get("idType") shouldBe 3L
     struct.get("colorDepth") shouldBe ""
-    struct.get("threshold") shouldBe 45.77D
+    struct.get("threshold") shouldBe 45.77d
 
     val evarsStruct = struct.get("evars").asInstanceOf[Struct].get("evars").asInstanceOf[Struct]
     evarsStruct.get("eVar1") shouldBe "Tue Aug 27 2019 12:08:10"

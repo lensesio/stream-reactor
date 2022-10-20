@@ -20,8 +20,7 @@ class FileUtilsTest extends AnyFunSuite with Matchers {
       intercept[ConfigException] {
         FileUtils.throwIfNotExists(file.getAbsolutePath, "k1")
       }
-    }
-    finally {
+    } finally {
       file.delete()
       ()
     }
@@ -32,12 +31,10 @@ class FileUtilsTest extends AnyFunSuite with Matchers {
     file.createNewFile() shouldBe true
     try {
       FileUtils.throwIfNotExists(file.getAbsolutePath, "k1")
-    }
-    catch {
+    } catch {
       case throwable: Throwable =>
         fail("Should not raise an exception", throwable)
-    }
-    finally {
+    } finally {
       file.delete()
       ()
     }

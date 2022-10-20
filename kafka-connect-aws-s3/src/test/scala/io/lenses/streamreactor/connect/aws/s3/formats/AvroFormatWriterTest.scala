@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -22,7 +21,8 @@ import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -37,7 +37,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "write byte output stream with avro for a single record" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     avroFormatWriter.write(None, StructSinkData(users.head), topic)
     avroFormatWriter.complete()
@@ -50,7 +50,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "write byte output stream with avro for multiple records" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     firstUsers.foreach(u => avroFormatWriter.write(None, StructSinkData(u), topic))
     avroFormatWriter.complete()
@@ -59,10 +59,9 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
     genericRecords.size should be(3)
   }
 
-
   "convert" should "write byte output stream with avro for a single primitive record" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     avroFormatWriter.write(None, IntSinkData(100, Some(Schema.OPTIONAL_INT32_SCHEMA)), topic)
     avroFormatWriter.complete()
@@ -75,7 +74,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "write byte output stream with avro for a multiple primitive records" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     avroFormatWriter.write(None, IntSinkData(100, Some(Schema.OPTIONAL_INT32_SCHEMA)), topic)
     avroFormatWriter.write(None, IntSinkData(200, Some(Schema.OPTIONAL_INT32_SCHEMA)), topic)
@@ -88,10 +87,9 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
     genericRecords(1) should be(200)
   }
 
-
   "convert" should "write byte output stream with avro for single array record" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     avroFormatWriter.write(
       None,
@@ -99,9 +97,12 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
         Seq(
           StringSinkData("batman"),
           StringSinkData("robin"),
-          StringSinkData("alfred")
-        ), Some(arraySchema)),
-      topic)
+          StringSinkData("alfred"),
+        ),
+        Some(arraySchema),
+      ),
+      topic,
+    )
     avroFormatWriter.complete()
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
@@ -113,7 +114,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "write byte output stream with avro for multiple array record" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     avroFormatWriter.write(
       None,
@@ -121,17 +122,23 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
         Seq(
           StringSinkData("batman"),
           StringSinkData("robin"),
-          StringSinkData("alfred")
-        ), Some(arraySchema)),
-      topic)
+          StringSinkData("alfred"),
+        ),
+        Some(arraySchema),
+      ),
+      topic,
+    )
     avroFormatWriter.write(
       None,
       ArraySinkData(
         Seq(
           StringSinkData("superman"),
-          StringSinkData("lois lane")
-        ), Some(arraySchema)),
-      topic)
+          StringSinkData("lois lane"),
+        ),
+        Some(arraySchema),
+      ),
+      topic,
+    )
     avroFormatWriter.complete()
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
@@ -144,17 +151,19 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "throw an error when writing array without schema" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     val caught = avroFormatWriter.write(
-        None,
-        ArraySinkData(
-          Seq(
-            StringSinkData("batman"),
-            StringSinkData("robin"),
-            StringSinkData("alfred")
-          )),
-        topic)
+      None,
+      ArraySinkData(
+        Seq(
+          StringSinkData("batman"),
+          StringSinkData("robin"),
+          StringSinkData("alfred"),
+        ),
+      ),
+      topic,
+    )
 
     caught.left.value.getMessage should be("Schema-less data is not supported for Avro/Parquet")
   }
@@ -162,25 +171,31 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
   "convert" should "write byte output stream with avro for multiple map records" in {
     val mapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA)
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     avroFormatWriter.write(
       None,
       MapSinkData(
         Map(
           StringSinkData("batman") -> IntSinkData(1),
-          StringSinkData("robin") -> IntSinkData(2),
-          StringSinkData("alfred") -> IntSinkData(3)
-        ), Some(mapSchema)),
-      topic)
+          StringSinkData("robin")  -> IntSinkData(2),
+          StringSinkData("alfred") -> IntSinkData(3),
+        ),
+        Some(mapSchema),
+      ),
+      topic,
+    )
     avroFormatWriter.write(
       None,
       MapSinkData(
         Map(
-          StringSinkData("superman") -> IntSinkData(4),
-          StringSinkData("lois lane") -> IntSinkData(5)
-        ), Some(mapSchema)),
-      topic)
+          StringSinkData("superman")  -> IntSinkData(4),
+          StringSinkData("lois lane") -> IntSinkData(5),
+        ),
+        Some(mapSchema),
+      ),
+      topic,
+    )
     avroFormatWriter.complete()
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
@@ -188,13 +203,13 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
     readFromStringKeyedMap(genericRecords, 0) should be(Map(
       "batman" -> 1,
-      "robin" -> 2,
-      "alfred" -> 3
+      "robin"  -> 2,
+      "alfred" -> 3,
     ))
 
     readFromStringKeyedMap(genericRecords, 1) should be(Map(
-      "superman" -> 4,
-      "lois lane" -> 5
+      "superman"  -> 4,
+      "lois lane" -> 5,
     ))
 
   }
@@ -202,7 +217,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
   "convert" should "write byte to avro" in {
     val byteSchema = SchemaBuilder.bytes().build()
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     avroFormatWriter.write(None, ByteArraySinkData("Sausages".getBytes(), Some(byteSchema)), topic)
     avroFormatWriter.write(None, ByteArraySinkData("Mash".getBytes(), Some(byteSchema)), topic)

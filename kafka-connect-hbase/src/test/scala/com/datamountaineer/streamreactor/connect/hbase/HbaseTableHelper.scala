@@ -17,15 +17,16 @@
 package com.datamountaineer.streamreactor.connect.hbase
 
 import org.apache.hadoop.hbase.TableName
-import org.apache.hadoop.hbase.client.{ColumnFamilyDescriptorBuilder, Connection, TableDescriptorBuilder}
+import org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder
+import org.apache.hadoop.hbase.client.Connection
+import org.apache.hadoop.hbase.client.TableDescriptorBuilder
 
 object HbaseTableHelper {
 
-  def createTable(tableName: String, columnFamily: String)(implicit connection: Connection): Unit = {
+  def createTable(tableName: String, columnFamily: String)(implicit connection: Connection): Unit =
     createTable(TableName.valueOf(tableName), columnFamily)
-  }
 
-  def createTable(tableName: TableName, columnFamily: String)(implicit connection: Connection): Unit = {
+  def createTable(tableName: TableName, columnFamily: String)(implicit connection: Connection): Unit =
     HbaseHelper.autoclose(connection.getAdmin) { admin =>
       if (admin.tableExists(tableName))
         throw new IllegalArgumentException(s"${tableName.getNameAsString}")
@@ -36,16 +37,13 @@ object HbaseTableHelper {
 
       admin.createTable(descriptor)
     }
-  }
 
-  def deleteTable(tableName: TableName)(implicit connection: Connection): Unit = {
+  def deleteTable(tableName: TableName)(implicit connection: Connection): Unit =
     HbaseHelper.autoclose(connection.getAdmin) { admin =>
       admin.disableTable(tableName)
       admin.deleteTable(tableName)
     }
-  }
 
-  def deleteTable(tableName: String)(implicit connection: Connection): Unit = {
+  def deleteTable(tableName: String)(implicit connection: Connection): Unit =
     deleteTable(TableName.valueOf(tableName))
-  }
 }

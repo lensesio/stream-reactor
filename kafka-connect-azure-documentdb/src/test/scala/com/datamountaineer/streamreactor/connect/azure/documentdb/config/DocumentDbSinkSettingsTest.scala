@@ -23,16 +23,15 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-
 class DocumentDbSinkSettingsTest extends AnyWordSpec with Matchers {
   private val connection = "https://accountName.documents.azure.com:443/"
 
   "DocumentDbSinkSettings" should {
     "throw an exception if master key is missing" in {
       val map = Map(
-        DocumentDbConfigConstants.DATABASE_CONFIG -> "dbs/database1",
+        DocumentDbConfigConstants.DATABASE_CONFIG   -> "dbs/database1",
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
-        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
+        DocumentDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO collection1 SELECT * FROM topic1",
       ).asJava
 
       intercept[ConfigException] {
@@ -42,9 +41,9 @@ class DocumentDbSinkSettingsTest extends AnyWordSpec with Matchers {
 
     "throw an exception if connection is missing" in {
       val map = Map(
-        DocumentDbConfigConstants.DATABASE_CONFIG -> "dbs/database1",
+        DocumentDbConfigConstants.DATABASE_CONFIG   -> "dbs/database1",
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
-        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
+        DocumentDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO collection1 SELECT * FROM topic1",
       ).asJava
 
       intercept[ConfigException] {
@@ -55,13 +54,13 @@ class DocumentDbSinkSettingsTest extends AnyWordSpec with Matchers {
     "handle two topics" in {
 
       val map = Map(
-        DocumentDbConfigConstants.DATABASE_CONFIG -> "dbs/database1",
+        DocumentDbConfigConstants.DATABASE_CONFIG   -> "dbs/database1",
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
-        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT a as F1, b as F2 FROM topic2"
+        DocumentDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT a as F1, b as F2 FROM topic2",
       ).asJava
 
-      val config = DocumentDbConfig(map)
+      val config   = DocumentDbConfig(map)
       val settings = DocumentDbSinkSettings(config)
       settings.database shouldBe "dbs/database1"
       settings.endpoint shouldBe connection
@@ -73,13 +72,13 @@ class DocumentDbSinkSettingsTest extends AnyWordSpec with Matchers {
 
     "handle ingore fields" in {
       val map = Map(
-        DocumentDbConfigConstants.DATABASE_CONFIG -> "db/database1",
+        DocumentDbConfigConstants.DATABASE_CONFIG   -> "db/database1",
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
-        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 IGNORE a,b,c"
+        DocumentDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO collection1 SELECT * FROM topic1 IGNORE a,b,c",
       ).asJava
 
-      val config = DocumentDbConfig(map)
+      val config   = DocumentDbConfig(map)
       val settings = DocumentDbSinkSettings(config)
       settings.database shouldBe "db/database1"
       settings.endpoint shouldBe connection
@@ -92,13 +91,13 @@ class DocumentDbSinkSettingsTest extends AnyWordSpec with Matchers {
 
     "handle primary key fields" in {
       val map = Map(
-        DocumentDbConfigConstants.DATABASE_CONFIG -> "dbs/database1",
+        DocumentDbConfigConstants.DATABASE_CONFIG   -> "dbs/database1",
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
-        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 PK a,b"
+        DocumentDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO collection1 SELECT * FROM topic1 PK a,b",
       ).asJava
 
-      val config = DocumentDbConfig(map)
+      val config   = DocumentDbConfig(map)
       val settings = DocumentDbSinkSettings(config)
       settings.keyBuilderMap.size shouldBe 0
       settings.kcql.size shouldBe 1
@@ -109,11 +108,11 @@ class DocumentDbSinkSettingsTest extends AnyWordSpec with Matchers {
 
     "throw an exception if the consistency level is invalid" in {
       val map = Map(
-        DocumentDbConfigConstants.DATABASE_CONFIG -> "dbs/database1",
-        DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
-        DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfigConstants.DATABASE_CONFIG    -> "dbs/database1",
+        DocumentDbConfigConstants.CONNECTION_CONFIG  -> connection,
+        DocumentDbConfigConstants.MASTER_KEY_CONFIG  -> "secret",
         DocumentDbConfigConstants.CONSISTENCY_CONFIG -> "invalid",
-        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 PK a,b"
+        DocumentDbConfigConstants.KCQL_CONFIG        -> "INSERT INTO collection1 SELECT * FROM topic1 PK a,b",
       ).asJava
 
       val config = DocumentDbConfig(map)
@@ -124,10 +123,10 @@ class DocumentDbSinkSettingsTest extends AnyWordSpec with Matchers {
 
     "throw an exception if the kcql is not valid" in {
       val map = Map(
-        DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
+        DocumentDbConfigConstants.DATABASE_CONFIG   -> "database1",
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
-        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO  SELECT * FROM topic1"
+        DocumentDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO  SELECT * FROM topic1",
       ).asJava
 
       val config = DocumentDbConfig(map)
@@ -136,13 +135,12 @@ class DocumentDbSinkSettingsTest extends AnyWordSpec with Matchers {
       }
     }
 
-
     "throw an exception if the database is an empty string" in {
       val map = Map(
-        DocumentDbConfigConstants.DATABASE_CONFIG -> "",
+        DocumentDbConfigConstants.DATABASE_CONFIG   -> "",
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
-        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
+        DocumentDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO collection1 SELECT * FROM topic1",
       ).asJava
 
       val config = DocumentDbConfig(map)

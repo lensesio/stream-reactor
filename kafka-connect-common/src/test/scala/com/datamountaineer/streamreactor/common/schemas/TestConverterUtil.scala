@@ -20,14 +20,19 @@ import com.datamountaineer.streamreactor.common.TestUtilsBase
 import com.datamountaineer.streamreactor.common.config.base.settings.Projections
 import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
 import io.confluent.connect.avro.AvroData
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.header.ConnectHeaders
 import org.apache.kafka.connect.json.JsonConverter
 import org.apache.kafka.connect.sink.SinkRecord
 
 import java.util
 import scala.annotation.nowarn
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
   * Created by andrew@datamountaineer.com on 29/02/16.
@@ -39,20 +44,20 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
   "ConverterUtil" should {
     "convert a SinkRecord Value to json" in {
       val testRecord = getTestRecord
-      val json = convertValueToJson(testRecord).toString
+      val json       = convertValueToJson(testRecord).toString
       json shouldBe VALUE_JSON_STRING
     }
 
     "convert a SinkRecord Key to json" in {
       val testRecord = getTestRecord
-      val json = convertKeyToJson(testRecord).asText()
+      val json       = convertKeyToJson(testRecord).asText()
       json shouldBe KEY
     }
 
     "convert a SinkRecord Key to avro" in {
       val testRecord = getTestRecord
-      val avro = convertValueToGenericAvro(testRecord)
-      val testAvro = buildAvro()
+      val avro       = convertValueToGenericAvro(testRecord)
+      val testAvro   = buildAvro()
       avro.get("id") shouldBe testAvro.get("id")
       avro.get("int_field") shouldBe testAvro.get("int_field")
       avro.get("long_field") shouldBe testAvro.get("long_field")
@@ -71,17 +76,11 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
     }
 
     "handle nested fields" in {
-      val avroData = new AvroData(1)
-      val avro = buildNestedAvro()
+      val avroData   = new AvroData(1)
+      val avro       = buildNestedAvro()
       val testRecord = avroData.toConnectData(avro.getSchema, avro)
-      val input = new SinkRecord(TOPIC,
-                                 1,
-                                 Schema.STRING_SCHEMA,
-                                 KEY,
-                                 testRecord.schema(),
-                                 testRecord.value(),
-                                 1)
-      val converted = convert(input, Map("x" -> "x", "y.a" -> "a"))
+      val input      = new SinkRecord(TOPIC, 1, Schema.STRING_SCHEMA, KEY, testRecord.schema(), testRecord.value(), 1)
+      val converted  = convert(input, Map("x" -> "x", "y.a" -> "a"))
       val fields =
         converted.valueSchema().fields().asScala.map(f => f.name()).toSet
       fields.contains("x") shouldBe true
@@ -112,13 +111,13 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         val record =
           new SinkRecord("t", 0, null, null, null, "Should not be here", 0)
         val projections = new Projections(
-          targets = Map.empty,
+          targets      = Map.empty,
           headerFields = Map.empty,
-          keyFields = Map.empty,
-          valueFields = Map("t" -> Map("*" -> "*")),
+          keyFields    = Map.empty,
+          valueFields  = Map("t" -> Map("*" -> "*")),
           ignoreFields = Map.empty,
-          primaryKeys = Map.empty,
-          writeMode = Map.empty
+          primaryKeys  = Map.empty,
+          writeMode    = Map.empty,
         )
         record.newFilteredRecordAsStruct(projections)
       }
@@ -134,13 +133,13 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
 
       val projections =
         new Projections(
-          targets = Map.empty,
+          targets      = Map.empty,
           headerFields = Map.empty,
-          keyFields = Map.empty,
-          valueFields = Map("t" -> Map("*" -> "*")),
+          keyFields    = Map.empty,
+          valueFields  = Map("t" -> Map("*" -> "*")),
           ignoreFields = Map("t" -> Set("toremove")),
-          primaryKeys = Map.empty,
-          writeMode = Map.empty
+          primaryKeys  = Map.empty,
+          writeMode    = Map.empty,
         )
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
 
@@ -159,14 +158,14 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val record = new SinkRecord("t", 0, null, null, null, map, 0)
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
+        keyFields    = Map.empty,
         valueFields =
           Map("t" -> Map("field1" -> "field1", "field2" -> "fieldRenamed")),
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
@@ -186,16 +185,15 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val record = new SinkRecord("t", 0, null, null, null, map, 0)
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
+        keyFields    = Map.empty,
         valueFields = Map(
-          "t" -> Map("field1" -> "field1",
-                     "field2" -> "fieldRenamed",
-                     "field3" -> "field3")),
+          "t" -> Map("field1" -> "field1", "field2" -> "fieldRenamed", "field3" -> "field3"),
+        ),
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
@@ -220,27 +218,24 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
           |    "price": 12.50,
           |    "tags": ["home", "green"]
           |}
-        """.stripMargin.getBytes
+        """.stripMargin.getBytes,
       )
 
       val map =
         schemaAndValue.value().asInstanceOf[java.util.Map[String, Any]].asScala
-      map shouldBe Map("id" -> 1,
-                       "name" -> "A green door",
-                       "price" -> 12.5,
-                       "tags" -> List("home", "green").asJava)
+      map shouldBe Map("id" -> 1, "name" -> "A green door", "price" -> 12.5, "tags" -> List("home", "green").asJava)
 
       val record =
         new SinkRecord("t", 0, null, null, null, schemaAndValue.value, 0)
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
-        valueFields = Map("t" -> Map("id" -> "id", "tags" -> "tagsRenamed")),
+        keyFields    = Map.empty,
+        valueFields  = Map("t" -> Map("id" -> "id", "tags" -> "tagsRenamed")),
         ignoreFields = Map("t" -> Set("price")),
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
@@ -257,13 +252,13 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
           new SinkRecord("t", 0, null, null, null, Map.empty[String, String], 0)
 
         val projections = new Projections(
-          targets = Map.empty,
+          targets      = Map.empty,
           headerFields = Map.empty,
-          keyFields = Map.empty,
-          valueFields = Map("t" -> Map("id" -> "id", "tags" -> "tagsRenamed")),
+          keyFields    = Map.empty,
+          valueFields  = Map("t" -> Map("id" -> "id", "tags" -> "tagsRenamed")),
           ignoreFields = Map("t" -> Set("price")),
-          primaryKeys = Map.empty,
-          writeMode = Map.empty
+          primaryKeys  = Map.empty,
+          writeMode    = Map.empty,
         )
 
         record.newFilteredRecordAsStruct(projections)
@@ -284,13 +279,13 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         new SinkRecord("t", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
-        valueFields = Map("t" -> Map("*" -> "*")),
+        keyFields    = Map.empty,
+        valueFields  = Map("t" -> Map("*" -> "*")),
         ignoreFields = Map("t" -> Set("toremove")),
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
@@ -315,14 +310,14 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         new SinkRecord("t", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
+        keyFields    = Map.empty,
         valueFields =
           Map("t" -> Map("field1" -> "field1", "field2" -> "fieldRenamed")),
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
@@ -347,14 +342,14 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         new SinkRecord("t", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
+        keyFields    = Map.empty,
         valueFields =
           Map("t" -> Map("field1" -> "field1", "field2" -> "fieldRenamed")),
         ignoreFields = Map("t" -> Set("toremove")),
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
@@ -380,13 +375,13 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         new SinkRecord("t", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
-        valueFields = Map("t" -> Map("id" -> "id", "tags" -> "tagsRenamed")),
+        keyFields    = Map.empty,
+        valueFields  = Map("t" -> Map("id" -> "id", "tags" -> "tagsRenamed")),
         ignoreFields = Map("t" -> Set("price")),
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
@@ -406,14 +401,17 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         targets = Map.empty,
         headerFields = Map(
           originalRecord.topic() -> Map(
-            "header_field_3" -> "header_alias_field_3")),
+            "header_field_3" -> "header_alias_field_3",
+          ),
+        ),
         keyFields = Map(
-          originalRecord.topic() -> Map("key_int_field" -> "key_int_field")),
+          originalRecord.topic() -> Map("key_int_field" -> "key_int_field"),
+        ),
         valueFields =
           Map(originalRecord.topic() -> Map("int_field" -> "int_field")),
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
@@ -438,18 +436,19 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val originalRecord = sinkRecordWithKeyHeaders()
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
+        keyFields    = Map.empty,
         valueFields = Map(
           originalRecord.topic() -> createSchema
             .fields()
             .asScala
             .map(f => (f.name(), f.name()))
-            .toMap),
+            .toMap,
+        ),
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
@@ -473,13 +472,13 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
 
       val originalRecord = getTestRecord
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
-        valueFields = Map(originalRecord.topic() -> Map("*" -> "*")),
+        keyFields    = Map.empty,
+        valueFields  = Map(originalRecord.topic() -> Map("*" -> "*")),
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
@@ -494,7 +493,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         simpleJsonConverter
           .fromConnectData(originalRecord.valueSchema(), originalRecord.value())
           .toString
-      )
+        )
     }
 
     "select * from key fields for struct" in {
@@ -502,13 +501,13 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val originalRecord = sinkRecordWithKeyHeaders()
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map(originalRecord.topic() -> Map("*" -> "*")),
-        valueFields = Map.empty,
+        keyFields    = Map(originalRecord.topic() -> Map("*" -> "*")),
+        valueFields  = Map.empty,
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
@@ -523,7 +522,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         simpleJsonConverter
           .fromConnectData(originalRecord.keySchema(), originalRecord.key())
           .toString
-      )
+        )
     }
 
     "select * from headers fields for struct" in {
@@ -531,13 +530,13 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val originalRecord = sinkRecordWithKeyHeaders()
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map(originalRecord.topic() -> Map("*" -> "*")),
-        keyFields = Map.empty,
-        valueFields = Map.empty,
+        keyFields    = Map.empty,
+        valueFields  = Map.empty,
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
@@ -559,12 +558,13 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val projections = new Projections(
         targets = Map.empty,
         headerFields = Map(
-          originalRecord.topic() -> Map("header_field_1" -> "my_header_alias")),
-        keyFields = Map.empty,
-        valueFields = Map.empty,
+          originalRecord.topic() -> Map("header_field_1" -> "my_header_alias"),
+        ),
+        keyFields    = Map.empty,
+        valueFields  = Map.empty,
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
@@ -580,13 +580,13 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
 
       val originalRecord = sinkRecordWithKeyHeaders()
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
-        valueFields = Map.empty,
+        keyFields    = Map.empty,
+        valueFields  = Map.empty,
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
@@ -598,13 +598,13 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val originalRecord = getTestRecord
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
-        valueFields = Map(originalRecord.topic() -> Map("*" -> "*")),
+        keyFields    = Map.empty,
+        valueFields  = Map(originalRecord.topic() -> Map("*" -> "*")),
         ignoreFields = Map(originalRecord.topic() -> Set("int_field")),
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
@@ -641,18 +641,20 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         new SinkRecord("t", 0, null, keys, null, fields, 0, null, null, headers)
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map("t" -> Map("*" -> "*")),
-        keyFields = Map("t" -> Map("key_field1" -> "key_field1_alias")),
+        keyFields    = Map("t" -> Map("key_field1" -> "key_field1_alias")),
         valueFields = Map(
           "t" -> Map("field2" -> "field2_alias",
                      "field3" -> "field3",
                      "field4" -> "field4",
                      "field5" -> "field5",
-                     "field6" -> "field6")),
+                     "field6" -> "field6",
+          ),
+        ),
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
@@ -684,22 +686,16 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
           |}
         """.stripMargin
 
-      val record = new SinkRecord("t",
-                                  0,
-                                  Schema.STRING_SCHEMA,
-                                  keyJson,
-                                  Schema.STRING_SCHEMA,
-                                  json,
-                                  0)
+      val record = new SinkRecord("t", 0, Schema.STRING_SCHEMA, keyJson, Schema.STRING_SCHEMA, json, 0)
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map("t" -> Map("key_field1" -> "key_field1_alias")),
-        valueFields = Map("t" -> Map("field1" -> "field1_alias")),
+        keyFields    = Map("t" -> Map("key_field1" -> "key_field1_alias")),
+        valueFields  = Map("t" -> Map("field1" -> "field1_alias")),
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
@@ -731,22 +727,16 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
           |}
         """.stripMargin
 
-      val record = new SinkRecord("t",
-                                  0,
-                                  Schema.STRING_SCHEMA,
-                                  keyJson,
-                                  Schema.STRING_SCHEMA,
-                                  json,
-                                  0)
+      val record = new SinkRecord("t", 0, Schema.STRING_SCHEMA, keyJson, Schema.STRING_SCHEMA, json, 0)
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
-        valueFields = Map.empty,
+        keyFields    = Map.empty,
+        valueFields  = Map.empty,
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
@@ -771,13 +761,13 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         new SinkRecord("t", 0, Schema.STRING_SCHEMA, keyJson, null, null, 0)
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map("t" -> Map("header1" -> "header_alias")),
-        keyFields = Map("t" -> Map("key_field1" -> "key_field1_alias")),
-        valueFields = Map.empty,
+        keyFields    = Map("t" -> Map("key_field1" -> "key_field1_alias")),
+        valueFields  = Map.empty,
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
@@ -814,19 +804,20 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         new SinkRecord("t", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
+        keyFields    = Map.empty,
         valueFields = Map(
           "t" -> Map(
-            "fieldMap.f1" -> "fm1_alias",
-            "moreComplex.nested1.n1" -> "moreComplex.nested1.n1",
-            "moreComplex.nested1.arr" -> "moreComplex.nested1.arr",
-            "moreComplex.nested1.nested2.n2" -> "moreComplex.nested1.nested2.n2"
-          )),
+            "fieldMap.f1"                    -> "fm1_alias",
+            "moreComplex.nested1.n1"         -> "moreComplex.nested1.n1",
+            "moreComplex.nested1.arr"        -> "moreComplex.nested1.arr",
+            "moreComplex.nested1.nested2.n2" -> "moreComplex.nested1.nested2.n2",
+          ),
+        ),
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
@@ -866,19 +857,20 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         new SinkRecord("t", 0, null, null, null, fields, 0)
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
+        keyFields    = Map.empty,
         valueFields = Map(
           "t" -> Map(
-            "fieldMap.f1" -> "fm1_alias",
-            "moreComplex.nested1" -> "moreComplex.nested1",
-            "moreComplex.nested1.n1" -> "moreComplex.nested1.n1",
-            "moreComplex.nested1.arr" -> "moreComplex.nested1.arr"
-          )),
+            "fieldMap.f1"             -> "fm1_alias",
+            "moreComplex.nested1"     -> "moreComplex.nested1",
+            "moreComplex.nested1.n1"  -> "moreComplex.nested1.n1",
+            "moreComplex.nested1.arr" -> "moreComplex.nested1.arr",
+          ),
+        ),
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
@@ -920,18 +912,19 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val record = new SinkRecord("t", 0, null, null, root, rootV, 0)
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
+        keyFields    = Map.empty,
         valueFields = Map(
           "t" -> Map(
-            "id" -> "id_alias",
-            "inner.long_field" -> "inner_long",
-            "inner.string_field" -> "inner.string_field"
-          )),
+            "id"                 -> "id_alias",
+            "inner.long_field"   -> "inner_long",
+            "inner.string_field" -> "inner.string_field",
+          ),
+        ),
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
@@ -973,18 +966,19 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val record = new SinkRecord("t", 0, null, null, root, rootV, 0)
 
       val projections = new Projections(
-        targets = Map.empty,
+        targets      = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map.empty,
+        keyFields    = Map.empty,
         valueFields = Map(
           "t" -> Map(
-            "id" -> "id_alias",
-            "inner.long_field" -> "inner_long",
-            "inner.string_field" -> "inner.string_field"
-          )),
+            "id"                 -> "id_alias",
+            "inner.long_field"   -> "inner_long",
+            "inner.string_field" -> "inner.string_field",
+          ),
+        ),
         ignoreFields = Map.empty,
-        primaryKeys = Map.empty,
-        writeMode = Map.empty
+        primaryKeys  = Map.empty,
+        writeMode    = Map.empty,
       )
 
       val combinedRecord = record.newFilteredRecordAsStruct(projections)

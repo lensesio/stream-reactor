@@ -12,9 +12,8 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-
 /**
-  * Created by andrew@datamountaineer.com on 24/01/2018. 
+  * Created by andrew@datamountaineer.com on 24/01/2018.
   * stream-reactor
   */
 class PulsarSinkTaskTest extends AnyWordSpec with Matchers with MockitoSugar {
@@ -24,12 +23,11 @@ class PulsarSinkTaskTest extends AnyWordSpec with Matchers with MockitoSugar {
   "should start a Sink" taggedAs SlowTest in {
     val props = Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER = SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY = 1000"
+      PulsarConfigConstants.KCQL_CONFIG  -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER = SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY = 1000",
     ).asJava
 
-
     val assignment: util.Set[TopicPartition] = new util.HashSet[TopicPartition]
-    val partition: TopicPartition = new TopicPartition("kafka_topic", 1)
+    val partition:  TopicPartition           = new TopicPartition("kafka_topic", 1)
     //Set topic assignments
     assignment.add(partition)
     val context = mock[SinkTaskContext]

@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2021 Lenses.io
  *
@@ -57,11 +56,10 @@ class BuildLocalOutputStreamTest extends AnyFlatSpec with Matchers with Using wi
 
   }
 
-  private def readFileContents = {
+  private def readFileContents =
     using(Source.fromFile(testFile)) {
       _.getLines().mkString
     }
-  }
 
   after {
     testFile.delete()
@@ -73,4 +71,3 @@ class BuildLocalOutputStreamTest extends AnyFlatSpec with Matchers with Using wi
   }
 
 }
-

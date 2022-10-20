@@ -16,7 +16,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
-import io.lenses.streamreactor.connect.aws.s3.model.{MapSinkData, NullSinkData, StringSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.MapSinkData
+import io.lenses.streamreactor.connect.aws.s3.model.NullSinkData
+import io.lenses.streamreactor.connect.aws.s3.model.StringSinkData
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -27,10 +29,12 @@ class MapSinkDataConverterTest extends AnyFlatSpec with Matchers {
     MapSinkDataConverter(
       Map(
         "key1" -> "val1",
-        "key2" -> null
+        "key2" -> null,
       ),
-      None
-    ) should be(MapSinkData(Map(StringSinkData("key1") -> StringSinkData("val1"), StringSinkData("key2") -> NullSinkData())))
+      None,
+    ) should be(MapSinkData(Map(StringSinkData("key1") -> StringSinkData("val1"),
+                                StringSinkData("key2") -> NullSinkData(),
+    )))
   }
 
   "convert" should "convert null values in maps to NullSinkData with schemas" in {
@@ -38,16 +42,15 @@ class MapSinkDataConverterTest extends AnyFlatSpec with Matchers {
     MapSinkDataConverter(
       Map(
         "key1" -> "val1",
-        "key2" -> null
+        "key2" -> null,
       ),
-      Some(schema)
+      Some(schema),
     ) should be(
       MapSinkData(
         Map(StringSinkData("key1") -> StringSinkData("val1"), StringSinkData("key2") -> NullSinkData()),
-        Some(schema)
-      )
+        Some(schema),
+      ),
     )
   }
-
 
 }

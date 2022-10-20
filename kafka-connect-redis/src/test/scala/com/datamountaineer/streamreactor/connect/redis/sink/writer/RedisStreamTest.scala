@@ -16,14 +16,19 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
  * limitations under the License.
  */
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfig
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfigConstants
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import redis.clients.jedis.{Jedis, StreamEntryID}
+import redis.clients.jedis.Jedis
+import redis.clients.jedis.StreamEntryID
 
 import java.util
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -41,18 +46,18 @@ class RedisStreamTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
     "write Kafka records to a Redis Stream" in {
 
       val TOPIC = "cpuTopic"
-      val KCQL = s"INSERT INTO stream1 SELECT * from $TOPIC STOREAS STREAM"
+      val KCQL  = s"INSERT INTO stream1 SELECT * from $TOPIC STOREAS STREAM"
       println("Testing KCQL : " + KCQL)
       val props = Map(
-        RedisConfigConstants.REDIS_HOST->"localhost",
-        RedisConfigConstants.REDIS_PORT->"6379",
-        RedisConfigConstants.KCQL_CONFIG->KCQL,
-        RedisConfigConstants.REDIS_PASSWORD -> ""
+        RedisConfigConstants.REDIS_HOST     -> "localhost",
+        RedisConfigConstants.REDIS_PORT     -> "6379",
+        RedisConfigConstants.KCQL_CONFIG    -> KCQL,
+        RedisConfigConstants.REDIS_PASSWORD -> "",
       ).asJava
 
-      val config = RedisConfig(props)
+      val config   = RedisConfig(props)
       val settings = RedisSinkSettings(config)
-      val writer = new RedisStreams(settings)
+      val writer   = new RedisStreams(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Cpu")
         .field("type", Schema.STRING_SCHEMA)
@@ -60,7 +65,8 @@ class RedisStreamTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
         .field("voltage", Schema.FLOAT64_SCHEMA)
         .field("ts", Schema.INT64_SCHEMA).build()
 
-      val struct1 = new Struct(schema).put("type", "Xeon").put("temperature", 60.4).put("voltage", 90.1).put("ts", 1482180657010L)
+      val struct1 =
+        new Struct(schema).put("type", "Xeon").put("temperature", 60.4).put("voltage", 90.1).put("ts", 1482180657010L)
 
       val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
 

@@ -21,14 +21,13 @@ import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkC
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-
 /**
-  * Created by andrew@datamountaineer.com on 10/08/16. 
+  * Created by andrew@datamountaineer.com on 10/08/16.
   * stream-reactor
   */
 class TestHazelCastSinkConnector extends TestBase {
   "should start a Hazelcast sink connector" in {
-    val props = getProps
+    val props     = getProps
     val connector = new HazelCastSinkConnector
     connector.start(props)
     val taskConfigs = connector.taskConfigs(1)

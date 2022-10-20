@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -17,7 +16,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import io.lenses.streamreactor.connect.aws.s3.model.{Offset, Topic, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.aws.s3.model.Topic
+import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -26,14 +27,14 @@ import scala.concurrent.duration._
 class DefaultCommitPolicyTest extends AnyWordSpec with Matchers {
 
   private def shouldFlush(
-                           policy: CommitPolicy,
-                           count: Long,
-                           fileSize: Long,
-                           creationTimestampAdjuster: Long => Long = nowTime => nowTime,
-                           lastFlushTimestampAdjust: Option[Long] = None
-                         ) = {
+    policy:                    CommitPolicy,
+    count:                     Long,
+    fileSize:                  Long,
+    creationTimestampAdjuster: Long => Long = nowTime => nowTime,
+    lastFlushTimestampAdjust:  Option[Long] = None,
+  ) = {
 
-    val nowTime = System.currentTimeMillis()
+    val nowTime              = System.currentTimeMillis()
     val creationTimeAdjusted = creationTimestampAdjuster(nowTime)
     val lastFlushTimeAdjusted: Option[Long] = lastFlushTimestampAdjust.fold(Option.empty[Long])(e => Some(nowTime + e))
     val tpo = TopicPartitionOffset(Topic("myTopic"), 1, Offset(100))

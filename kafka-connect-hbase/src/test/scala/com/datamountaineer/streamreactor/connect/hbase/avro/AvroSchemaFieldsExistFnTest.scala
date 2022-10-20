@@ -21,7 +21,6 @@ import org.apache.avro.Schema
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-
 class AvroSchemaFieldsExistFnTest extends AnyWordSpec with Matchers {
   val schema: Schema = new Schema.Parser().parse(PersonAvroSchema.schema)
 
