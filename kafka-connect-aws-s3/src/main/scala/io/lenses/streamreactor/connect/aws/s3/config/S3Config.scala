@@ -219,8 +219,8 @@ object S3Config {
       getLong(props, HTTP_CONNECTION_TIMEOUT),
     ),
     ConnectionPoolConfig(
-      getInt(props, POOL_MAX_CONNECTIONS)
-    )
+      getInt(props, POOL_MAX_CONNECTIONS),
+    ),
   )
 
   private def getErrorPolicy(props: Map[String, _]) =
@@ -236,9 +236,8 @@ case class HttpTimeoutConfig(socketTimeout: Option[Int], connectionTimeout: Opti
 case class ConnectionPoolConfig(maxConnections: Int)
 
 object ConnectionPoolConfig {
-  def apply(maxConns: Option[Int]): Option[ConnectionPoolConfig] = {
+  def apply(maxConns: Option[Int]): Option[ConnectionPoolConfig] =
     maxConns.filterNot(_ == -1).map(ConnectionPoolConfig(_))
-  }
 }
 
 case class S3Config(
@@ -247,11 +246,11 @@ case class S3Config(
   secretKey:                Option[String],
   awsClient:                AwsClient,
   authMode:                 AuthMode,
-  customEndpoint:           Option[String]    = None,
-  enableVirtualHostBuckets: Boolean           = false,
-  errorPolicy:              ErrorPolicy       = ThrowErrorPolicy(),
-  connectorRetryConfig:     RetryConfig       = RetryConfig(NBR_OF_RETIRES_DEFAULT, ERROR_RETRY_INTERVAL_DEFAULT),
-  httpRetryConfig:          RetryConfig       = RetryConfig(HTTP_NBR_OF_RETIRES_DEFAULT, HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
-  timeouts:                 HttpTimeoutConfig = HttpTimeoutConfig(None, None),
-  connectionPoolConfig:     Option[ConnectionPoolConfig] = Option.empty
-                   )
+  customEndpoint:           Option[String]               = None,
+  enableVirtualHostBuckets: Boolean                      = false,
+  errorPolicy:              ErrorPolicy                  = ThrowErrorPolicy(),
+  connectorRetryConfig:     RetryConfig                  = RetryConfig(NBR_OF_RETIRES_DEFAULT, ERROR_RETRY_INTERVAL_DEFAULT),
+  httpRetryConfig:          RetryConfig                  = RetryConfig(HTTP_NBR_OF_RETIRES_DEFAULT, HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
+  timeouts:                 HttpTimeoutConfig            = HttpTimeoutConfig(None, None),
+  connectionPoolConfig:     Option[ConnectionPoolConfig] = Option.empty,
+)

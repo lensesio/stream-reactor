@@ -7,7 +7,7 @@ import org.scalatest.matchers.should.Matchers
 class ConnectionPoolConfigTest extends AnyFlatSpec with Matchers {
 
   "ConnectionPoolConfig" should "ignore -1" in {
-    ConnectionPoolConfig(Option(-1)) should be (Option.empty)
+    ConnectionPoolConfig(Option(-1)) should be(Option.empty)
   }
 
   "ConnectionPoolConfig" should "ignore empty" in {
