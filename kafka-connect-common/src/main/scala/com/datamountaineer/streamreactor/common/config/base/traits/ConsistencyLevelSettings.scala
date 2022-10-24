@@ -36,7 +36,13 @@ trait ConsistencyLevelSettings[T <: Enum[T]] extends BaseSettings {
     val consistencyLevel = getString(consistencyLevelConstant) match {
       case "" => None
       case other =>
-        Try(Enum.valueOf[T](enum, other)) match {
+        Try(Enum.valueOf[T](enum, other))
+          .orElse(
+            Try(Enum.valueOf[T](enum, other.toLowerCase)),
+          )
+          .orElse(
+            Try(Enum.valueOf[T](enum, other.toUpperCase)),
+          ) match {
           case Failure(_) =>
             throw new ConfigException(s"'$other' is not a valid $consistencyLevelConstant. " +
               s"Available values are:${enum.getEnumConstants.map(_.toString).mkString(",")}")

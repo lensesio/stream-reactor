@@ -89,7 +89,7 @@ object InfluxPoint {
       }
       .getOrElse(Try(TimeUnit.NANOSECONDS -> nanoClock.getEpochNanos))
 
-  private[influx2] def coerceTimeStamp(
+  def coerceTimeStamp(
       value: Any,
       fieldPath: Iterable[String]): Try[Long] = {
     value match {
@@ -117,12 +117,12 @@ object InfluxPoint {
   def writeField(builder: Point)(field: String,
                                          v: Any): Try[Point] = v match {
     case value: Long                 => Try(builder.addField(field, value))
-    case value: Int                  => Try(builder.addField(field, value))
+    case value: Int                  => Try(builder.addField(field, value.toLong))
     case value: BigInt               => Try(builder.addField(field, value))
-    case value: Byte                 => Try(builder.addField(field, value.toShort))
-    case value: Short                => Try(builder.addField(field, value))
+    case value: Byte                 => Try(builder.addField(field, value.toLong))
+    case value: Short                => Try(builder.addField(field, value.toLong))
     case value: Double               => Try(builder.addField(field, value))
-    case value: Float                => Try(builder.addField(field, value))
+    case value: Float                => Try(builder.addField(field, value.toDouble))
     case value: Boolean              => Try(builder.addField(field, value))
     case value: java.math.BigDecimal => Try(builder.addField(field, value))
     case value: BigDecimal           => Try(builder.addField(field, value.bigDecimal))

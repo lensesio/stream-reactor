@@ -16,8 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.influx
 
-import com.datamountaineer.streamreactor.connect.influx.converters.InfluxPoint
-import com.datamountaineer.streamreactor.connect.influx.writers.ValuesExtractor
+import com.datamountaineer.streamreactor.connect.influx2.converters.InfluxPoint
+import com.datamountaineer.streamreactor.connect.influx2.writers.ValuesExtractor
 import com.landoop.json.sql.JacksonJson
 import com.typesafe.scalalogging.LazyLogging
 import io.confluent.connect.avro.AvroData
@@ -84,7 +84,7 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging
         .put("age", 30)
 
       val json = JacksonJson.asJson(avroData.fromConnectData(schema, struct).toString)
-      val path = Vector("ts")
+      val path: Seq[String] = Vector("ts")
       val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(json, path), path)
       result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[IllegalArgumentException]

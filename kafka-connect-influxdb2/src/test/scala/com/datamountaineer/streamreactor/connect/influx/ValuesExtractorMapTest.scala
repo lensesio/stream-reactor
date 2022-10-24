@@ -16,9 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.influx
 
-import com.datamountaineer.streamreactor.connect.influx.converters.InfluxPoint
 import com.datamountaineer.streamreactor.connect.influx.data.{Foo, FooInner}
-import com.datamountaineer.streamreactor.connect.influx.writers.ValuesExtractor
+import com.datamountaineer.streamreactor.connect.influx2.converters.InfluxPoint
+import com.datamountaineer.streamreactor.connect.influx2.writers.ValuesExtractor
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.Struct

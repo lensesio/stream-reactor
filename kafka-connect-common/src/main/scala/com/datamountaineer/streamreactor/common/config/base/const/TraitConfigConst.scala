@@ -36,7 +36,7 @@ object TraitConfigConst {
   val CERTIFICATES_SUFFIX              = "certs"
   val ORG_SUFFIX                       = "organization"
   val BUCKET_PROP_SUFFIX               = "bucket"
-  val TOKEN_SUFFIX                     = "suffix"
+  val TOKEN_SUFFIX                     = "token"
   val CERTIFICATE_KEY_CHAIN_SUFFIX     = "cert.chain.key"
   val CERT_KEY                         = "cert.key"
 

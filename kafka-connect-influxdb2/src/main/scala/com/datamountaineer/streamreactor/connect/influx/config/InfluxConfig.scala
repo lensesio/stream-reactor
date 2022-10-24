@@ -16,20 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.influx2.config
 
-import com.datamountaineer.streamreactor.common.config.base.traits.BaseConfig
-import com.datamountaineer.streamreactor.common.config.base.traits.ConsistencyLevelSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.DatabaseSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.ErrorPolicySettings
-import com.datamountaineer.streamreactor.common.config.base.traits.KcqlSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.NumberRetriesSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.UserSettings
+import com.datamountaineer.streamreactor.common.config.base.traits._
+import com.influxdb.client.domain.WriteConsistency
+import org.apache.kafka.common.config.ConfigDef
+import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
 import java.util
-
-import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.common.config.ConfigDef.Importance
-import org.apache.kafka.common.config.ConfigDef.Type
-import com.influxdb.client.domain.WriteConsistency
 
 object InfluxConfig {
 
@@ -154,4 +146,3 @@ case class InfluxConfig(props: util.Map[String, String])
     with NumberRetriesSettings
     with DatabaseSettings
     with ConsistencyLevelSettings[WriteConsistency]
-    with UserSettings

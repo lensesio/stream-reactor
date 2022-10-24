@@ -25,6 +25,7 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 import com.influxdb.client.InfluxDBClientFactory
 
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Try
 
 class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLogging with ErrorHandler {
@@ -49,8 +50,8 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
         builder
           .build(records)
           .flatMap { batchPoints =>
-            logger.debug(s"Writing ${batchPoints.getPoints.size()} points to the database...")
-            Try(writeAPI.writePoints(batchPoints.getPoints()))
+            logger.debug(s"Writing ${batchPoints.size} points to the database...")
+            Try(writeAPI.writePoints(batchPoints.asJava))
           }.map(_ => logger.debug("Writing complete")),
       )
     }

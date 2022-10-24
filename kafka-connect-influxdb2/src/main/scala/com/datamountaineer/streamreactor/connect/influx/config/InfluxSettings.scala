@@ -48,17 +48,17 @@ object InfluxSettings {
   def apply(config: InfluxConfig): InfluxSettings = {
     val url = config.getString(InfluxConfigConstants.INFLUX_URL_CONFIG)
 
-    if (url == null || url.trim.length == 0) {
+    if (url == null || url.trim.isEmpty) {
       throw new ConfigException(s"${InfluxConfigConstants.INFLUX_URL_CONFIG} is not set correctly")
     }
 
     val org = config.getString(InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG)
 
-    if (org == null || org.trim.length == 0) {
+    if (org == null || org.trim.isEmpty) {
       throw new ConfigException(s"${InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG} is not set correctly")
     }
 
-    val tokenRaw = config.getSecret
+    val tokenRaw = config.getPassword(InfluxConfigConstants.INFLUX_CONNECTION_TOKEN_CONFIG)
 
     val token = tokenRaw.value() match {
       case "" => null
