@@ -98,6 +98,9 @@ class JCloudsS3ContextCreator(credentialsProviderFn: () => AwsCredentialsProvide
     awsConfig.timeouts.connectionTimeout.foreach {
       overrides.put(org.jclouds.Constants.PROPERTY_CONNECTION_TIMEOUT, _)
     }
+    awsConfig.connectionPoolConfig.foreach { t =>
+      overrides.put(org.jclouds.Constants.PROPERTY_MAX_CONNECTIONS_PER_CONTEXT, t.maxConnections)
+    }
     overrides
   }
 
