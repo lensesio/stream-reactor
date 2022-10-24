@@ -114,7 +114,7 @@ object InfluxPoint {
     }
   }
 
-  def writeField(builder: Point)(field: String,
+  private def writeField(builder: Point)(field: String,
                                          v: Any): Try[Point] = v match {
     case value: Long                 => Try(builder.addField(field, value))
     case value: Int                  => Try(builder.addField(field, value.toLong))

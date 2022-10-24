@@ -35,7 +35,25 @@ case class InfluxSettings(
   kcqls:       Seq[Kcql],
   errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
   maxRetries:  Int         = InfluxConfigConstants.NBR_OF_RETIRES_DEFAULT,
-)
+) {
+
+
+  def validate(): Either[String, Unit] = {
+
+    for {
+      _ <- validateParam(connectionUrl, "settings")
+      /*ValidateStringParameterFn(settings.token, "settings")*/
+      _ <- validateParam(org, "settings")
+      _ <- validateParam(bucket, "settings")
+    } yield ()
+  }
+
+  private def validateParam(value: String, parameterName: String): Either[String, Unit] =
+    Either.cond(
+      Option(value).exists(_.trim.nonEmpty), (),
+      s"Invalid $parameterName. Expecting non null non empty string"
+    )
+}
 
 object InfluxSettings {
 

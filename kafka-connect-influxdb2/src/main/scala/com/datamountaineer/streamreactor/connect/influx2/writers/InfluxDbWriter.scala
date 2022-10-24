@@ -20,26 +20,23 @@ import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.sink.DbWriter
 import com.datamountaineer.streamreactor.connect.influx2.config.InfluxSettings
 import com.datamountaineer.streamreactor.connect.influx2.NanoClock
-import com.datamountaineer.streamreactor.connect.influx2.ValidateStringParameterFn
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 import com.influxdb.client.InfluxDBClientFactory
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Try
+import cats.implicits._
 
 class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLogging with ErrorHandler {
 
-  ValidateStringParameterFn(settings.connectionUrl, "settings")
-  /*ValidateStringParameterFn(settings.token, "settings")*/
-  ValidateStringParameterFn(settings.org, "settings")
-  ValidateStringParameterFn(settings.bucket, "settings")  
+  settings.validate().leftMap(ex => throw new IllegalArgumentException(ex))
 
-  val token=settings.token.toCharArray()
+  val token=settings.token.toCharArray
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
-  private val influxDB = InfluxDBClientFactory.create(settings.connectionUrl, token, settings.org, settings.bucket)
-  private val writeAPI = influxDB.makeWriteApi()
+
+  private val writeAPI = InfluxDBClientFactory.create(settings.connectionUrl, token, settings.org, settings.bucket).makeWriteApi()
   private val builder  = new InfluxBatchPointsBuilder(settings, new NanoClock())
 
   override def write(records: Seq[SinkRecord]): Unit =
