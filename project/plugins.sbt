@@ -11,3 +11,5 @@ addSbtPlugin("net.vonbuchholtz"    % "sbt-dependency-check" % "4.0.0")
 libraryDependencies += "org.slf4j" % "slf4j-nop"            % "1.7.36"
 
 addSbtPlugin("com.eed3si9n" % "sbt-projectmatrix" % "0.9.0")
+
+addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.14")
