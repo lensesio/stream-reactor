@@ -372,6 +372,7 @@ lazy val `test-common` = (projectMatrix in file("test-common"))
   )
   .kafka2Row()
   .kafka3Row()
+  .disablePlugins(AssemblyPlugin)
 
 addCommandAlias(
   "validateAll",
