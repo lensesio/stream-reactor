@@ -28,6 +28,7 @@ import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
+import org.scalatest.time.{Minute, Span}
 
 import java.util.UUID
 import javax.jms.Session
@@ -40,6 +41,7 @@ import scala.reflect.io.Path
   * stream-reactor
   */
 class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
+  override implicit def patienceConfig: PatienceConfig = PatienceConfig(timeout = Span(1, Minute))
 
   override def afterAll(): Unit = {
     val _ = Path(AVRO_FILE).delete()
@@ -63,10 +65,11 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     val settings = JMSSettings(config, false)
     val reader   = JMSReader(settings)
 
-    val _ = eventually {
+    eventually {
       val messagesRead = reader.poll()
       messagesRead.size shouldBe messageCount
       messagesRead.head._2.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
+      ()
     }
   }
 
@@ -89,13 +92,14 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     val settings = JMSSettings(config, sink = false)
     val reader   = JMSReader(settings)
 
-    val _ = eventually {
+    eventually {
       val messagesRead = reader.poll()
       messagesRead.nonEmpty shouldBe true
       val sourceRecord = messagesRead.head._2
       sourceRecord.value().isInstanceOf[Struct] shouldBe true
       val struct = sourceRecord.value().asInstanceOf[Struct]
       struct.getString("name") shouldBe "andrew"
+      ()
     }
   }
 
@@ -126,21 +130,22 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
 
     messages.foreach(m => topicProducer.send(m))
 
-    Thread.sleep(2000)
+    eventually {
 
-    val messagesRead = reader.poll()
-    messagesRead.size shouldBe messageCount / 2
-    messagesRead.foreach {
-      case (msg, _) =>
-        msg.getStringProperty("Fruit") shouldBe "apples"
+      val messagesRead = reader.poll()
+      messagesRead.size shouldBe messageCount / 2
+      messagesRead.foreach {
+        case (msg, _) =>
+          msg.getStringProperty("Fruit") shouldBe "apples"
+      }
+
+      val sourceRecord = messagesRead.head._2
+      sourceRecord.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
+      sourceRecord.value().isInstanceOf[Struct] shouldBe true
+
+      val struct = sourceRecord.value().asInstanceOf[Struct]
+      struct.getMap("properties").asScala shouldBe Map("Fruit" -> "apples")
+      ()
     }
-
-    val sourceRecord = messagesRead.head._2
-    sourceRecord.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
-    sourceRecord.value().isInstanceOf[Struct] shouldBe true
-
-    val struct = sourceRecord.value().asInstanceOf[Struct]
-    struct.getMap("properties").asScala shouldBe Map("Fruit" -> "apples")
-    ()
   }
 }
