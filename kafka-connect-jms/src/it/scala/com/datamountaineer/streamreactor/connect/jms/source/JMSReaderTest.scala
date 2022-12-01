@@ -139,22 +139,19 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
 
     messages.foreach(m => topicProducer.send(m))
 
-    eventually {
-
-      val messagesRead = reader.poll()
-      messagesRead.size shouldBe messageCount / 2
-      messagesRead.foreach {
-        case (msg, _) =>
-          msg.getStringProperty("Fruit") shouldBe "apples"
-      }
-
-      val sourceRecord = messagesRead.head._2
-      sourceRecord.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
-      sourceRecord.value().isInstanceOf[Struct] shouldBe true
-
-      val struct = sourceRecord.value().asInstanceOf[Struct]
-      struct.getMap("properties").asScala shouldBe Map("Fruit" -> "apples")
+    val messagesRead = pollUntilCount(reader, 5)
+    messagesRead.size shouldBe 5
+    messagesRead.foreach {
+      case (msg, _) =>
+        msg.getStringProperty("Fruit") shouldBe "apples"
     }
+
+    val sourceRecord = messagesRead.head._2
+    sourceRecord.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
+    sourceRecord.value().isInstanceOf[Struct] shouldBe true
+
+    val struct = sourceRecord.value().asInstanceOf[Struct]
+    struct.getMap("properties").asScala shouldBe Map("Fruit" -> "apples")
     ()
   }
 }
