@@ -69,8 +69,8 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
       val messagesRead = reader.poll()
       messagesRead.size shouldBe messageCount
       messagesRead.head._2.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
-      ()
     }
+    ()
   }
 
   "should read and convert to avro" in testWithBrokerOnPort { (conn, brokerUrl) =>
@@ -99,8 +99,8 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
       sourceRecord.value().isInstanceOf[Struct] shouldBe true
       val struct = sourceRecord.value().asInstanceOf[Struct]
       struct.getString("name") shouldBe "andrew"
-      ()
     }
+    ()
   }
 
   "should read messages from JMS queue with message selector" in testWithBrokerOnPort { (conn, brokerUrl) =>
@@ -145,7 +145,7 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
 
       val struct = sourceRecord.value().asInstanceOf[Struct]
       struct.getMap("properties").asScala shouldBe Map("Fruit" -> "apples")
-      ()
     }
+    ()
   }
 }
