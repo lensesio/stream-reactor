@@ -74,6 +74,10 @@ lazy val `aws-s3` = (projectMatrix in file("kafka-connect-aws-s3"))
         libraryDependencies ++= baseDeps ++ kafkaConnectS3Deps,
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .kafka2Row()
@@ -81,6 +85,7 @@ lazy val `aws-s3` = (projectMatrix in file("kafka-connect-aws-s3"))
   .configureAssembly()
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectS3TestDeps)
+  .enablePlugins(PackPlugin)
 
 lazy val `azure-documentdb` = (projectMatrix in file("kafka-connect-azure-documentdb"))
   .dependsOn(common)
@@ -92,12 +97,17 @@ lazy val `azure-documentdb` = (projectMatrix in file("kafka-connect-azure-docume
         libraryDependencies ++= baseDeps ++ kafkaConnectAzureDocumentDbDeps,
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()
   .configureTests(baseTestDeps)
+  .enablePlugins(PackPlugin)
 
 lazy val cassandra = (projectMatrix in file("kafka-connect-cassandra"))
   .dependsOn(common)
@@ -111,6 +121,10 @@ lazy val cassandra = (projectMatrix in file("kafka-connect-cassandra"))
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides,
         FunctionalTest / baseDirectory := (LocalRootProject / baseDirectory).value,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .kafka2Row()
@@ -119,6 +133,7 @@ lazy val cassandra = (projectMatrix in file("kafka-connect-cassandra"))
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectCassandraTestDeps)
   .configureFunctionalTests()
+  .enablePlugins(PackPlugin)
 
 lazy val elastic6 = (projectMatrix in file("kafka-connect-elastic6"))
   .dependsOn(common)
@@ -132,6 +147,10 @@ lazy val elastic6 = (projectMatrix in file("kafka-connect-elastic6"))
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides,
         FunctionalTest / baseDirectory := (LocalRootProject / baseDirectory).value,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .kafka2Row()
@@ -140,6 +159,7 @@ lazy val elastic6 = (projectMatrix in file("kafka-connect-elastic6"))
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectElastic6TestDeps)
   .configureFunctionalTests()
+  .enablePlugins(PackPlugin)
 
 lazy val elastic7 = (projectMatrix in file("kafka-connect-elastic7"))
   .dependsOn(common)
@@ -151,6 +171,10 @@ lazy val elastic7 = (projectMatrix in file("kafka-connect-elastic7"))
         libraryDependencies ++= baseDeps ++ kafkaConnectElastic7Deps,
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .kafka2Row()
@@ -158,6 +182,7 @@ lazy val elastic7 = (projectMatrix in file("kafka-connect-elastic7"))
   .configureAssembly()
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectElastic7TestDeps)
+  .enablePlugins(PackPlugin)
 
 lazy val hazelcast = (projectMatrix in file("kafka-connect-hazelcast"))
   .dependsOn(common)
@@ -169,6 +194,10 @@ lazy val hazelcast = (projectMatrix in file("kafka-connect-hazelcast"))
         libraryDependencies ++= baseDeps ++ kafkaConnectHazelCastDeps,
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides ++ kafkaConnectHazelCastDeps,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .kafka2Row()
@@ -176,6 +205,7 @@ lazy val hazelcast = (projectMatrix in file("kafka-connect-hazelcast"))
   .configureAssembly()
   .configureTests(baseTestDeps)
   .disableParallel()
+  .enablePlugins(PackPlugin)
 
 lazy val influxdb = (projectMatrix in file("kafka-connect-influxdb"))
   .dependsOn(common)
@@ -187,12 +217,17 @@ lazy val influxdb = (projectMatrix in file("kafka-connect-influxdb"))
         libraryDependencies ++= baseDeps ++ kafkaConnectInfluxDbDeps,
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()
   .configureTests(baseTestDeps)
+  .enablePlugins(PackPlugin)
 
 lazy val jms = (projectMatrix in file("kafka-connect-jms"))
   .dependsOn(common)
@@ -204,6 +239,10 @@ lazy val jms = (projectMatrix in file("kafka-connect-jms"))
         libraryDependencies ++= baseDeps ++ kafkaConnectJmsDeps,
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .configureProtobufSources()
@@ -213,6 +252,7 @@ lazy val jms = (projectMatrix in file("kafka-connect-jms"))
   .configureTests(kafkaConnectJmsTestDeps)
   .configureIntegrationTests(kafkaConnectJmsTestDeps)
   .disableParallel()
+  .enablePlugins(PackPlugin)
 
 lazy val kudu = (projectMatrix in file("kafka-connect-kudu"))
   .dependsOn(common)
@@ -224,12 +264,17 @@ lazy val kudu = (projectMatrix in file("kafka-connect-kudu"))
         libraryDependencies ++= baseDeps ++ kafkaConnectKuduDeps,
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()
   .configureTests(baseTestDeps)
+  .enablePlugins(PackPlugin)
 
 lazy val mqtt = (projectMatrix in file("kafka-connect-mqtt"))
   .dependsOn(common)
@@ -241,6 +286,10 @@ lazy val mqtt = (projectMatrix in file("kafka-connect-mqtt"))
         libraryDependencies ++= baseDeps ++ kafkaConnectMqttDeps,
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .kafka2Row()
@@ -249,6 +298,7 @@ lazy val mqtt = (projectMatrix in file("kafka-connect-mqtt"))
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectMqttTestDeps)
   .disableParallel()
+  .enablePlugins(PackPlugin)
 
 lazy val pulsar = (projectMatrix in file("kafka-connect-pulsar"))
   .dependsOn(common)
@@ -260,12 +310,17 @@ lazy val pulsar = (projectMatrix in file("kafka-connect-pulsar"))
         libraryDependencies ++= baseDeps ++ kafkaConnectPulsarDeps,
         publish / skip := true,
         dependencyOverrides ++= (nettyOverrides ++ avroOverrides),
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()
   .configureTests(baseTestDeps)
+  .enablePlugins(PackPlugin)
 
 lazy val ftp = (projectMatrix in file("kafka-connect-ftp"))
   .dependsOn(common)
@@ -277,6 +332,10 @@ lazy val ftp = (projectMatrix in file("kafka-connect-ftp"))
         libraryDependencies ++= baseDeps ++ kafkaConnectFtpDeps,
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .kafka2Row()
@@ -284,6 +343,7 @@ lazy val ftp = (projectMatrix in file("kafka-connect-ftp"))
   .configureAssembly()
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectFtpTestDeps)
+  .enablePlugins(PackPlugin)
 
 lazy val hbase = (projectMatrix in file("kafka-connect-hbase"))
   .dependsOn(common)
@@ -295,12 +355,17 @@ lazy val hbase = (projectMatrix in file("kafka-connect-hbase"))
         libraryDependencies ++= baseDeps ++ kafkaConnectHbaseDeps,
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()
   .configureTests(baseTestDeps)
+  .enablePlugins(PackPlugin)
 
 lazy val hive = (projectMatrix in file("kafka-connect-hive"))
   .dependsOn(common)
@@ -312,12 +377,17 @@ lazy val hive = (projectMatrix in file("kafka-connect-hive"))
         libraryDependencies ++= baseDeps ++ kafkaConnectHiveDeps,
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .kafka2Row()
   .kafka3Row()
   .configureAssembly()
   .configureTests(kafkaConnectHiveTestDeps)
+  .enablePlugins(PackPlugin)
 
 lazy val mongodb = (projectMatrix in file("kafka-connect-mongodb"))
   .dependsOn(common)
@@ -331,6 +401,10 @@ lazy val mongodb = (projectMatrix in file("kafka-connect-mongodb"))
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides,
         FunctionalTest / baseDirectory := (LocalRootProject / baseDirectory).value,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .kafka2Row()
@@ -339,6 +413,7 @@ lazy val mongodb = (projectMatrix in file("kafka-connect-mongodb"))
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectMongoDbTestDeps)
   .configureFunctionalTests()
+  .enablePlugins(PackPlugin)
 
 lazy val redis = (projectMatrix in file("kafka-connect-redis"))
   .dependsOn(common)
@@ -352,6 +427,10 @@ lazy val redis = (projectMatrix in file("kafka-connect-redis"))
         publish / skip := true,
         dependencyOverrides ++= nettyOverrides,
         FunctionalTest / baseDirectory := (LocalRootProject / baseDirectory).value,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
       ),
   )
   .kafka2Row()
@@ -360,6 +439,7 @@ lazy val redis = (projectMatrix in file("kafka-connect-redis"))
   .configureTests(baseTestDeps ++ Seq(gson))
   .configureIntegrationTests(kafkaConnectRedisTestDeps)
   .configureFunctionalTests()
+  .enablePlugins(PackPlugin)
 
 lazy val `test-common` = (projectMatrix in file("test-common"))
   .dependsOn(`aws-s3`)
@@ -372,6 +452,7 @@ lazy val `test-common` = (projectMatrix in file("test-common"))
   )
   .kafka2Row()
   .kafka3Row()
+  .disablePlugins(AssemblyPlugin)
 
 addCommandAlias(
   "validateAll",
