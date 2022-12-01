@@ -74,14 +74,6 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     ()
   }
 
-  def pollUntilCount(jmsReader: JMSReader, messageCount: Int): Vector[(Message, SourceRecord)] = {
-    var messages = Vector[(Message, SourceRecord)]()
-    while (messages.size < messageCount) {
-      messages ++= jmsReader.poll()
-    }
-    messages
-  }
-
   "should read and convert to avro" in testWithBrokerOnPort { (conn, brokerUrl) =>
     val messageCount = 10
     val kafkaTopic   = s"kafka-${UUID.randomUUID().toString}"
@@ -154,4 +146,13 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     struct.getMap("properties").asScala shouldBe Map("Fruit" -> "apples")
     ()
   }
+
+  private def pollUntilCount(jmsReader: JMSReader, messageCount: Int): Vector[(Message, SourceRecord)] = {
+    var messages = Vector[(Message, SourceRecord)]()
+    while (messages.size < messageCount) {
+      messages ++= jmsReader.poll()
+    }
+    messages
+  }
+
 }
