@@ -29,7 +29,8 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.Eventually
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.{Minute, Span}
+import org.scalatest.time.Minute
+import org.scalatest.time.Span
 
 import java.nio.charset.Charset
 import java.nio.file.Path
