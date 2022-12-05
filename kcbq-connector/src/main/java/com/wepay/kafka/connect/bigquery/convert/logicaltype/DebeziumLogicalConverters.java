@@ -101,7 +101,7 @@ public class DebeziumLogicalConverters {
 
       Long microRemainder = microTimestamp % MICROS_IN_SEC;
 
-      return formattedSecondsTimestamp + "." + microRemainder;
+      return formattedSecondsTimestamp + "." + String.format("%06d", microRemainder);
     }
   }
 
@@ -132,7 +132,7 @@ public class DebeziumLogicalConverters {
 
       Long microRemainder = microTimestamp % MICROS_IN_SEC;
 
-      return formattedSecondsTimestamp + "." + microRemainder;
+      return formattedSecondsTimestamp + "." + String.format("%06d", microRemainder);
     }
   }
 
