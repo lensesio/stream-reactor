@@ -26,10 +26,14 @@ import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
+import org.scalatest.time.Seconds
+import org.scalatest.time.Span
 
 import java.util.UUID
+import javax.jms.Message
 import javax.jms.Session
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
@@ -40,6 +44,7 @@ import scala.reflect.io.Path
   * stream-reactor
   */
 class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
+  override implicit def patienceConfig: PatienceConfig = PatienceConfig(timeout = Span(10, Seconds))
 
   override def afterAll(): Unit = {
     val _ = Path(AVRO_FILE).delete()
@@ -63,11 +68,10 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     val settings = JMSSettings(config, false)
     val reader   = JMSReader(settings)
 
-    val _ = eventually {
-      val messagesRead = reader.poll()
-      messagesRead.size shouldBe messageCount
-      messagesRead.head._2.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
-    }
+    val messagesRead = pollUntilCount(reader, messageCount)
+    messagesRead.size shouldBe messageCount
+    messagesRead.head._2.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
+    ()
   }
 
   "should read and convert to avro" in testWithBrokerOnPort { (conn, brokerUrl) =>
@@ -89,7 +93,7 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     val settings = JMSSettings(config, sink = false)
     val reader   = JMSReader(settings)
 
-    val _ = eventually {
+    eventually {
       val messagesRead = reader.poll()
       messagesRead.nonEmpty shouldBe true
       val sourceRecord = messagesRead.head._2
@@ -97,6 +101,7 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
       val struct = sourceRecord.value().asInstanceOf[Struct]
       struct.getString("name") shouldBe "andrew"
     }
+    ()
   }
 
   "should read messages from JMS queue with message selector" in testWithBrokerOnPort { (conn, brokerUrl) =>
@@ -126,10 +131,8 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
 
     messages.foreach(m => topicProducer.send(m))
 
-    Thread.sleep(2000)
-
-    val messagesRead = reader.poll()
-    messagesRead.size shouldBe messageCount / 2
+    val messagesRead = pollUntilCount(reader, 5)
+    messagesRead.size shouldBe 5
     messagesRead.foreach {
       case (msg, _) =>
         msg.getStringProperty("Fruit") shouldBe "apples"
@@ -143,4 +146,13 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     struct.getMap("properties").asScala shouldBe Map("Fruit" -> "apples")
     ()
   }
+
+  private def pollUntilCount(jmsReader: JMSReader, messageCount: Int): Vector[(Message, SourceRecord)] = {
+    var messages = Vector[(Message, SourceRecord)]()
+    while (messages.size < messageCount) {
+      messages ++= jmsReader.poll()
+    }
+    messages
+  }
+
 }
