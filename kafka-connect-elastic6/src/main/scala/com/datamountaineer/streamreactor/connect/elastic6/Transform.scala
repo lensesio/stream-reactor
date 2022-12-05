@@ -17,8 +17,8 @@
 package com.datamountaineer.streamreactor.connect.elastic6
 
 import java.nio.ByteBuffer
-
 import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.JsonNode
 import com.landoop.connect.sql.StructSql._
 import com.landoop.json.sql.JacksonJson
@@ -94,7 +94,8 @@ private object Transform extends StrictLogging {
         value match {
           case m: java.util.Map[_, _] =>
             val map = m.asInstanceOf[java.util.Map[String, Any]]
-            val jsonNode: JsonNode = JacksonJson.mapper.valueToTree[JsonNode](map)
+            val jsonNode: JsonNode =
+              JacksonJson.mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS).valueToTree[JsonNode](map)
             Try(jsonNode.sql(fields, !withStructure)) match {
               case Success(j) => j
               case Failure(e) => raiseException(s"A KCQL exception occurred.${e.getMessage}", e)
