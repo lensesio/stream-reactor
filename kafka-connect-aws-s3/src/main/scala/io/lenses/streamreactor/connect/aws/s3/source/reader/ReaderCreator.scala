@@ -1,3 +1,6 @@
+/*
+ * Copyright 2017-2022 Celonis Ltd
+ */
 package io.lenses.streamreactor.connect.aws.s3.source.reader
 
 import com.typesafe.scalalogging.LazyLogging
@@ -5,9 +8,10 @@ import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatStreamReader
 import io.lenses.streamreactor.connect.aws.s3.model.SourceData
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
+import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither._
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.apache.kafka.common.errors.OffsetOutOfRangeException
-import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither._
+
 import scala.util.Try
 
 class ReaderCreator(
@@ -17,6 +21,7 @@ class ReaderCreator(
 )(
   implicit
   storageInterface: StorageInterface,
+  partitionFn:      String => Option[Int],
 ) extends LazyLogging {
 
   def create(pathWithLine: RemoteS3PathLocationWithLine): Either[Throwable, ResultReader] =

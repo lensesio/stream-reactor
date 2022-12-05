@@ -101,6 +101,13 @@ object S3ConfigSettings {
     s"Maximum index files to allow per topic/partition.  Advisable to not raise this: if a large number of files build up this means there is a problem with file deletion."
   val SEEK_MAX_INDEX_FILES_DEFAULT = 5
 
+  val SOURCE_PARTITION_EXTRACTOR_TYPE = s"$CONNECTOR_PREFIX.source.partition.extractor.type"
+  val SOURCE_PARTITION_EXTRACTOR_TYPE_DOC =
+    "If you want to read to specific partitions when running the source.  Options are 'hierarchical' (to match the sink's hierarchical file storage pattern) and 'regex' (supply a custom regex).  Any other value will ignore original partitions and they should be evenly distributed through available partitions (Kafka dependent)."
+
+  val SOURCE_PARTITION_EXTRACTOR_REGEX     = s"$CONNECTOR_PREFIX.source.partition.extractor.regex"
+  val SOURCE_PARTITION_EXTRACTOR_REGEX_DOC = "If reading filename from regex, supply the regex here."
+
   val POOL_MAX_CONNECTIONS     = s"$CONNECTOR_PREFIX.pool.max.connections"
   val POOL_MAX_CONNECTIONS_DOC = "Max connections in pool.  -1: Use default according to underlying client."
   val POOL_MAX_CONNECTIONS_DEFAULT: Int = -1

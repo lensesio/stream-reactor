@@ -185,6 +185,28 @@ object S3ConfigDef {
       SEEK_MAX_INDEX_FILES,
     )
     .define(
+      SOURCE_PARTITION_EXTRACTOR_TYPE,
+      Type.STRING,
+      null,
+      Importance.LOW,
+      SOURCE_PARTITION_EXTRACTOR_TYPE_DOC,
+      "Source",
+      1,
+      ConfigDef.Width.MEDIUM,
+      SOURCE_PARTITION_EXTRACTOR_TYPE,
+    )
+    .define(
+      SOURCE_PARTITION_EXTRACTOR_REGEX,
+      Type.STRING,
+      null,
+      Importance.LOW,
+      SOURCE_PARTITION_EXTRACTOR_REGEX_DOC,
+      "Source",
+      2,
+      ConfigDef.Width.MEDIUM,
+      SOURCE_PARTITION_EXTRACTOR_REGEX,
+    )
+    .define(
       POOL_MAX_CONNECTIONS,
       Type.INT,
       POOL_MAX_CONNECTIONS_DEFAULT,
