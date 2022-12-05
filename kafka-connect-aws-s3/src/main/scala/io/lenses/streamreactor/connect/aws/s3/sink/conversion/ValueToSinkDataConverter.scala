@@ -27,6 +27,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 object ValueToSinkDataConverter {
 
   def apply(value: Any, schema: Option[Schema]): SinkData = value match {
+    case shortVal:  Short          => ShortSinkData(shortVal, schema)
     case boolVal:   Boolean        => BooleanSinkData(boolVal, schema)
     case stringVal: String         => StringSinkData(stringVal, schema)
     case longVal:   Long           => LongSinkData(longVal, schema)
