@@ -45,6 +45,7 @@ case class MqttSourceSettings(
   enableProgress:       Boolean = MqttConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
   logMessageReceived:   Boolean = false,
   avro:                 Boolean = false,
+  processDuplicates:    Boolean = false,
 ) {
 
   def asMap(): java.util.Map[String, String] = {
@@ -63,6 +64,7 @@ case class MqttSourceSettings(
     map.put(MqttConfigConstants.QS_CONFIG, mqttQualityOfService.toString)
     map.put(MqttConfigConstants.KCQL_CONFIG, kcql.mkString(";"))
     map.put(MqttConfigConstants.LOG_MESSAGE_ARRIVED_KEY, logMessageReceived.toString)
+    map.put(MqttConfigConstants.PROCESS_DUPES_CONFIG, processDuplicates.toString)
     map
   }
 }
@@ -142,7 +144,8 @@ object MqttSourceSettings {
       replicateShared,
       progressEnabled,
       config.getBoolean(MqttConfigConstants.LOG_MESSAGE_ARRIVED_KEY),
-      avro = avro,
+      avro              = avro,
+      processDuplicates = config.getBoolean(MqttConfigConstants.PROCESS_DUPES_CONFIG),
     )
   }
 }

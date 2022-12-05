@@ -16,10 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
-import java.util
-import java.util.Base64
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
@@ -29,6 +25,10 @@ import org.apache.kafka.connect.source.SourceRecord
 import org.eclipse.paho.client.mqttv3._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
+import java.util
+import java.util.Base64
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 class MqttManager(
@@ -114,7 +114,7 @@ class MqttManager(
     // is we are dealing with avro we need the wildcard to lookup the avro schema
     val sourceTopic = if (settings.avro) wildcard else topic
 
-    if (!message.isDuplicate) {
+    if (!message.isDuplicate || (settings.processDuplicates && message.isDuplicate)) {
       try {
         val keys = Option(kcql.getWithKeys).map { l =>
           val scalaList: Seq[String] = l.asScala.toSeq
