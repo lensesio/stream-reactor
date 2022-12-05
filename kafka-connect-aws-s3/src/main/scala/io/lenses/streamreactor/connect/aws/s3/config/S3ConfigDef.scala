@@ -178,13 +178,19 @@ object S3ConfigDef {
       Type.INT,
       SEEK_MAX_INDEX_FILES_DEFAULT,
       Importance.LOW,
-      SEEK_MIGRATION_DOC,
+      SEEK_MAX_INDEX_FILES_DOC,
       "Sink Seek",
       2,
       ConfigDef.Width.LONG,
       SEEK_MAX_INDEX_FILES,
     )
-
+    .define(
+      POOL_MAX_CONNECTIONS,
+      Type.INT,
+      POOL_MAX_CONNECTIONS_DEFAULT,
+      Importance.LOW,
+      POOL_MAX_CONNECTIONS_DOC,
+    )
 }
 
 class S3ConfigDef() extends ConfigDef with LazyLogging {

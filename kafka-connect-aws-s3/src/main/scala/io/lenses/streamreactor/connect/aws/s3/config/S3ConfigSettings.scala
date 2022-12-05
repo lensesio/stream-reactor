@@ -101,4 +101,8 @@ object S3ConfigSettings {
     s"Maximum index files to allow per topic/partition.  Advisable to not raise this: if a large number of files build up this means there is a problem with file deletion."
   val SEEK_MAX_INDEX_FILES_DEFAULT = 5
 
+  val POOL_MAX_CONNECTIONS     = s"$CONNECTOR_PREFIX.pool.max.connections"
+  val POOL_MAX_CONNECTIONS_DOC = "Max connections in pool.  -1: Use default according to underlying client."
+  val POOL_MAX_CONNECTIONS_DEFAULT: Int = -1
+
 }
