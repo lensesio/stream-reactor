@@ -90,7 +90,6 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
             LazyList.empty
         }
       } else {
-        logger.info("WE DID SLEEP... zzzzzzzzzzz")
         Thread.sleep(1000)
         LazyList.empty
       },

@@ -26,9 +26,11 @@ import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.storage.OffsetStorageReader
 import org.scalatest.BeforeAndAfter
-import org.scalatest.concurrent.Eventually.eventually
+import org.scalatest.concurrent.Eventually
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.Minute
+import org.scalatest.time.Span
 
 import java.nio.charset.Charset
 import java.nio.file.Path
@@ -92,7 +94,9 @@ object EndToEnd {
 }
 
 // spins up an embedded ftp server, updates files, uses FtpSourcePoller to obtain SourceRecords which are verified
-class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with StrictLogging {
+class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with StrictLogging with Eventually {
+  override implicit def patienceConfig: PatienceConfig = PatienceConfig(timeout = Span(1, Minute))
+
   val sEmpty = new Array[Byte](0)
   val s0     = (0 to 255).map(_.toByte).toArray
   val s1     = "Hebban olla vogala nestas hagunnan hinase hic enda thu wat unbidan we nu\r\n\t\u0000:)".getBytes
@@ -297,8 +301,9 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
       val cfg     = new FtpSourceConfig(configMap.asJava)
       val offsets = new DummyOffsetStorage
       val poller  = new FtpSourcePoller(cfg, offsets)
-      Thread.sleep(1000)
-      poller.poll().size shouldBe 1
+      eventually {
+        poller.poll().size shouldBe 1
+      }
       ()
     }
   }
@@ -324,8 +329,9 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
       poller.poll().size shouldBe 0
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
       server.putFile("/directory/file2.txt", "bla bla bla", Charset.defaultCharset())
-      Thread.sleep(1000)
-      poller.poll().size shouldBe 2
+      eventually {
+        poller.poll().size shouldBe 2
+      }
       ()
     }
 
@@ -350,8 +356,9 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
       val cfg     = new FtpSourceConfig(configMap.asJava)
       val offsets = new DummyOffsetStorage
       val poller  = new FtpSourcePoller(cfg, offsets)
-      Thread.sleep(1000)
-      poller.poll().size shouldBe 0
+      eventually {
+        poller.poll().size shouldBe 0
+      }
       ()
     }
   }
@@ -400,8 +407,9 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
       val cfg     = new FtpSourceConfig(configMap.asJava)
       val offsets = new DummyOffsetStorage
       val poller  = new FtpSourcePoller(cfg, offsets)
-      Thread.sleep(1000)
-      poller.poll().size shouldBe 0
+      eventually {
+        poller.poll().size shouldBe 0
+      }
       ()
     }
   }
@@ -426,8 +434,9 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
       val cfg     = new FtpSourceConfig(configMap.asJava)
       val offsets = new DummyOffsetStorage
       val poller  = new FtpSourcePoller(cfg, offsets)
-      Thread.sleep(1000)
-      poller.poll().size shouldBe 0
+      eventually {
+        poller.poll().size shouldBe 0
+      }
       ()
     }
   }
