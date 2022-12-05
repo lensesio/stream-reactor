@@ -67,6 +67,7 @@ class AwsS3ClientCreator(config: S3Config) {
       config.timeouts.connectionTimeout.foreach(t =>
         apacheHttpClientBuilder.connectionTimeout(Duration.ofMillis(t.toLong)),
       )
+      config.connectionPoolConfig.foreach(t => apacheHttpClientBuilder.maxConnections(t.maxConnections))
 
       val s3ClientBuilder = credentialsProvider match {
         case Left(err) => return err.asLeft
