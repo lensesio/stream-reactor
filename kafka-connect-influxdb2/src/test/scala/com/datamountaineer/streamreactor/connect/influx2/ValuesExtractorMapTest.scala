@@ -16,7 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.influx
 
-import com.datamountaineer.streamreactor.connect.influx.data.{Foo, FooInner}
+import com.datamountaineer.streamreactor.connect.influx.data.Foo
+import com.datamountaineer.streamreactor.connect.influx.data.FooInner
 import com.datamountaineer.streamreactor.connect.influx2.converters.InfluxPoint
 import com.datamountaineer.streamreactor.connect.influx2.writers.ValuesExtractor
 import com.sksamuel.avro4s.RecordFormat
@@ -25,7 +26,8 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.util.{Success, Try}
+import scala.util.Success
+import scala.util.Try
 
 class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
   "ValuesExtractor" should {
@@ -34,7 +36,6 @@ class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
       payload.put("firstName", "Alex")
       payload.put("lastName", "Smith")
       payload.put("age", 30)
-
 
       val map = ValuesExtractor.extractAllFields(payload, Set.empty[String]).toMap
       map("firstName") shouldBe "Alex"
@@ -49,13 +50,11 @@ class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
       payload.put("lastName", "Smith")
       payload.put("age", 30)
 
-
       val map = ValuesExtractor.extractAllFields(payload, Set("lastName")).toMap
       map("firstName") shouldBe "Alex"
       map.contains("lastName") shouldBe false
       map("age") shouldBe 30
     }
-
 
     "throw an exception if the ts field is not present in the struct" in {
       val payload = new java.util.HashMap[String, Any]()
@@ -63,12 +62,11 @@ class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
       payload.put("lastName", "Smith")
       payload.put("age", 30)
 
-      val path = Vector("ts")
+      val path   = Vector("ts")
       val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, path), path)
       result shouldBe Symbol("Failure")
       result.failed.get shouldBe a[IllegalArgumentException]
     }
-
 
     "throw an exception if the select * from includes another complex type" in {
       val dependantMap = new java.util.HashMap[String, Any]()
@@ -99,7 +97,6 @@ class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
       payload.put("age", 30)
       payload.put("dependant", dependantMap)
 
-
       ValuesExtractor.extract(payload, Vector("dependant", "firstName")) shouldBe "Olivia"
       ValuesExtractor.extract(payload, Vector("dependant", "lastName")) shouldBe "Miru"
       ValuesExtractor.extract(payload, Vector("dependant", "age")) shouldBe 3
@@ -116,7 +113,6 @@ class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
       dependantMap2.put("s", "value2")
       dependantMap2.put("t", 0.11)
 
-
       val inner = new java.util.HashMap[String, Any]()
       inner.put("key1", dependantMap1)
       inner.put("key2", dependantMap2)
@@ -126,10 +122,10 @@ class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
       payload.put("threshold", 100)
       payload.put("map", inner)
 
-      val s = RecordFormat[Foo]
-      val avro = s.to(Foo(100, Map("key1" -> FooInner("value1", 1.4), "key2" -> FooInner("value2", 0.11))))
+      val s        = RecordFormat[Foo]
+      val avro     = s.to(Foo(100, Map("key1" -> FooInner("value1", 1.4), "key2" -> FooInner("value2", 0.11))))
       val avroData = new AvroData(1)
-      val foo = avroData.toConnectData(avro.getSchema, avro).value().asInstanceOf[Struct]
+      val foo      = avroData.toConnectData(avro.getSchema, avro).value().asInstanceOf[Struct]
 
       ValuesExtractor.extract(foo, Vector("map", "key1", "s")) shouldBe "value1"
       ValuesExtractor.extract(foo, Vector("map", "key2", "t")) shouldBe 0.11
@@ -148,13 +144,11 @@ class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
       payload.put("age", 30)
       payload.put("dependant", dependant)
 
-
       val map = ValuesExtractor.extractAllFields(payload, Set("dependant", "lastName")).toMap
       map.size shouldBe 2
       map("firstName") shouldBe "Alex"
       map("age") shouldBe 30
     }
-
 
     "throw an exception if the timestamp field is a string and incorrect format" in {
 
@@ -164,8 +158,12 @@ class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
       payload.put("millis", "2017-01-01T00:00:00.123Z")
       payload.put("bad", "not a time")
 
-      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("good")), Vector("good")) shouldBe Success(1483228800000L)
-      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("millis")), Vector("millis")) shouldBe Success(1483228800123L)
+      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("good")), Vector("good")) shouldBe Success(
+        1483228800000L,
+      )
+      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("millis")),
+                                  Vector("millis"),
+      ) shouldBe Success(1483228800123L)
 
       val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("bad")), Vector("bad"))
       result shouldBe Symbol("Failure")
@@ -178,7 +176,9 @@ class ValuesExtractorMapTest extends AnyWordSpec with Matchers {
 
       payload.put("double", 1651794924.081999)
 
-      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("double")),Vector("double")) shouldBe Success(1651794924081999L)
+      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("double")),
+                                  Vector("double"),
+      ) shouldBe Success(1651794924081999L)
 
     }
 

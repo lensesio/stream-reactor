@@ -109,8 +109,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
         )
     }
 
-  def build(records: Iterable[SinkRecord]): Try[Seq[Point]] = {
-
+  def build(records: Iterable[SinkRecord]): Try[Seq[Point]] =
     records
       .map { record =>
         SinkRecordParser
@@ -127,7 +126,6 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
       .foldLeft(Try(Seq.empty[Seq[Point]]))(Util.shortCircuitOnFailure)
       .map(_.flatten)
 
-  }
 }
 
 /**
@@ -140,7 +138,7 @@ case class KcqlDetails(
   dynamicTarget:  Option[Path],
   target:         String,
   timestampField: Option[Path],
-  timestampUnit:  TimeUnit
+  timestampUnit:  TimeUnit,
 ) {
   val IgnoredAndAliasFields: Set[Path] =
     fields

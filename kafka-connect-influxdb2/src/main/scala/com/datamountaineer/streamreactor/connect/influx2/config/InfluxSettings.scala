@@ -23,10 +23,10 @@ import org.apache.kafka.common.config.ConfigException
 import com.influxdb.client.domain.WriteConsistency
 
 case class InfluxSettings(
-  connectionUrl:    String,
-  org:              String,
-  token:            String,
-  bucket:           String,
+  connectionUrl: String,
+  org:           String,
+  token:         String,
+  bucket:        String,
   /*retentionPolicy:  String,*/
   consistencyLevel: WriteConsistency,
   /*topicToMeasurementMap: Map[String, String],
@@ -37,21 +37,19 @@ case class InfluxSettings(
   maxRetries:  Int         = InfluxConfigConstants.NBR_OF_RETIRES_DEFAULT,
 ) {
 
-
-  def validate(): Either[String, Unit] = {
-
+  def validate(): Either[String, Unit] =
     for {
       _ <- validateParam(connectionUrl, "settings")
       /*ValidateStringParameterFn(settings.token, "settings")*/
       _ <- validateParam(org, "settings")
       _ <- validateParam(bucket, "settings")
     } yield ()
-  }
 
   private def validateParam(value: String, parameterName: String): Either[String, Unit] =
     Either.cond(
-      Option(value).exists(_.trim.nonEmpty), (),
-      s"Invalid $parameterName. Expecting non null non empty string"
+      Option(value).exists(_.trim.nonEmpty),
+      (),
+      s"Invalid $parameterName. Expecting non null non empty string",
     )
 }
 
@@ -84,7 +82,6 @@ object InfluxSettings {
     }
 
     val bucket = config.getString(InfluxConfigConstants.INFLUX_BUCKET_CONFIG)
-
 
     if (bucket == null || bucket.trim.isEmpty) {
       throw new ConfigException(s"${InfluxConfigConstants.INFLUX_BUCKET_CONFIG} is not set correctly")

@@ -18,33 +18,35 @@ package com.datamountaineer.streamreactor.connect.influx.config
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
-import com.datamountaineer.streamreactor.connect.influx2.config.{InfluxConfig, InfluxConfigConstants, InfluxSettings}
+import com.datamountaineer.streamreactor.connect.influx2.config.InfluxConfig
+import com.datamountaineer.streamreactor.connect.influx2.config.InfluxConfigConstants
+import com.datamountaineer.streamreactor.connect.influx2.config.InfluxSettings
 import com.influxdb.client.domain.WriteConsistency
 import org.apache.kafka.common.config.ConfigException
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
-
-
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
 
-  val MEASURE_NAME = "someMeasurement"
-  val TOPIC_NAME = "mykafkatopic"
-  val QUERY_ALL = s"INSERT INTO $MEASURE_NAME SELECT * FROM $TOPIC_NAME"
-  val QUERY_SELECT = s"INSERT INTO $MEASURE_NAME SELECT lastName as surname, firstName FROM $TOPIC_NAME"
+  val MEASURE_NAME               = "someMeasurement"
+  val TOPIC_NAME                 = "mykafkatopic"
+  val QUERY_ALL                  = s"INSERT INTO $MEASURE_NAME SELECT * FROM $TOPIC_NAME"
+  val QUERY_SELECT               = s"INSERT INTO $MEASURE_NAME SELECT lastName as surname, firstName FROM $TOPIC_NAME"
   val QUERY_SELECT_AND_TIMESTAMP = s"INSERT INTO $MEASURE_NAME SELECT * FROM $TOPIC_NAME WITHTIMESTAMP ts"
-  val QUERY_SELECT_AND_TIMESTAMP_SYSTEM = s"INSERT INTO $MEASURE_NAME SELECT * FROM $TOPIC_NAME WITHTIMESTAMP ${Kcql.TIMESTAMP}"
+  val QUERY_SELECT_AND_TIMESTAMP_SYSTEM =
+    s"INSERT INTO $MEASURE_NAME SELECT * FROM $TOPIC_NAME WITHTIMESTAMP ${Kcql.TIMESTAMP}"
 
   "raise a configuration exception if the connection url is missing" in {
     intercept[ConfigException] {
       val props = Map(
-        InfluxConfigConstants.INFLUX_BUCKET_CONFIG -> "mydb",
-        InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG -> "myuser",
+        InfluxConfigConstants.INFLUX_BUCKET_CONFIG           -> "mydb",
+        InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG   -> "myuser",
         InfluxConfigConstants.INFLUX_CONNECTION_TOKEN_CONFIG -> "apass",
-        InfluxConfigConstants.KCQL_CONFIG -> QUERY_ALL
+        InfluxConfigConstants.KCQL_CONFIG                    -> QUERY_ALL,
       ).asJava
 
       val config = InfluxConfig(props)
@@ -55,11 +57,11 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
   "raise a configuration exception if the database is not set" in {
     intercept[ConfigException] {
       val props = Map(
-        InfluxConfigConstants.INFLUX_URL_CONFIG -> "http://localhost:8081",
-        InfluxConfigConstants.INFLUX_BUCKET_CONFIG -> "",
-        InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG -> "myuser",
+        InfluxConfigConstants.INFLUX_URL_CONFIG              -> "http://localhost:8081",
+        InfluxConfigConstants.INFLUX_BUCKET_CONFIG           -> "",
+        InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG   -> "myuser",
         InfluxConfigConstants.INFLUX_CONNECTION_TOKEN_CONFIG -> "apass",
-        InfluxConfigConstants.KCQL_CONFIG -> QUERY_ALL
+        InfluxConfigConstants.KCQL_CONFIG                    -> QUERY_ALL,
       ).asJava
 
       val config = InfluxConfig(props)
@@ -69,16 +71,16 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
 
   "raise a configuration exception if the Consistency Level is wrong" in {
     intercept[ConfigException] {
-      val url = "http://localhost:8081"
+      val url      = "http://localhost:8081"
       val database = "mydatabase"
-      val user = "myuser"
+      val user     = "myuser"
 
       val props = Map(
-        InfluxConfigConstants.INFLUX_URL_CONFIG -> url,
-        InfluxConfigConstants.INFLUX_BUCKET_CONFIG -> database,
+        InfluxConfigConstants.INFLUX_URL_CONFIG            -> url,
+        InfluxConfigConstants.INFLUX_BUCKET_CONFIG         -> database,
         InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG -> user,
-        InfluxConfigConstants.KCQL_CONFIG -> QUERY_ALL,
-        InfluxConfigConstants.CONSISTENCY_CONFIG -> "SOMELEVEL"
+        InfluxConfigConstants.KCQL_CONFIG                  -> QUERY_ALL,
+        InfluxConfigConstants.CONSISTENCY_CONFIG           -> "SOMELEVEL",
       ).asJava
 
       val config = InfluxConfig(props)
@@ -88,15 +90,15 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
 
   "raise a configuration exception if the user is not set" in {
     intercept[ConfigException] {
-      val url = "http://localhost:8081"
+      val url      = "http://localhost:8081"
       val database = "mydatabase"
 
       val props = Map(
-        InfluxConfigConstants.INFLUX_URL_CONFIG -> url,
-        InfluxConfigConstants.INFLUX_BUCKET_CONFIG -> database,
-        InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG -> "",
-        InfluxConfigConstants.KCQL_CONFIG -> QUERY_ALL,
-        InfluxConfigConstants.INFLUX_CONNECTION_TOKEN_CONFIG -> "apass"
+        InfluxConfigConstants.INFLUX_URL_CONFIG              -> url,
+        InfluxConfigConstants.INFLUX_BUCKET_CONFIG           -> database,
+        InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG   -> "",
+        InfluxConfigConstants.KCQL_CONFIG                    -> QUERY_ALL,
+        InfluxConfigConstants.INFLUX_CONNECTION_TOKEN_CONFIG -> "apass",
       ).asJava
 
       val config = InfluxConfig(props)
@@ -105,16 +107,16 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
   }
 
   "create a settings with all fields" in {
-    val url = "http://localhost:8081"
+    val url      = "http://localhost:8081"
     val database = "mydatabase"
-    val user = "myuser"
+    val user     = "myuser"
 
     val props = Map(
-      InfluxConfigConstants.INFLUX_URL_CONFIG -> url,
-      InfluxConfigConstants.INFLUX_BUCKET_CONFIG -> database,
+      InfluxConfigConstants.INFLUX_URL_CONFIG            -> url,
+      InfluxConfigConstants.INFLUX_BUCKET_CONFIG         -> database,
       InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG -> user,
-      InfluxConfigConstants.KCQL_CONFIG -> QUERY_ALL,
-      InfluxConfigConstants.CONSISTENCY_CONFIG -> WriteConsistency.QUORUM.toString
+      InfluxConfigConstants.KCQL_CONFIG                  -> QUERY_ALL,
+      InfluxConfigConstants.CONSISTENCY_CONFIG           -> WriteConsistency.QUORUM.toString,
     ).asJava
 
     val config = InfluxConfig(props)
@@ -130,18 +132,18 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
   }
 
   "create a settings with selected fields" in {
-    val url = "http://localhost:8081"
+    val url      = "http://localhost:8081"
     val database = "mydatabase"
-    val user = "myuser"
-    val pass = "mememe"
+    val user     = "myuser"
+    val pass     = "mememe"
 
     val props = Map(
-      InfluxConfigConstants.INFLUX_URL_CONFIG -> url,
-      InfluxConfigConstants.INFLUX_BUCKET_CONFIG -> database,
-      InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG -> user,
+      InfluxConfigConstants.INFLUX_URL_CONFIG              -> url,
+      InfluxConfigConstants.INFLUX_BUCKET_CONFIG           -> database,
+      InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG   -> user,
       InfluxConfigConstants.INFLUX_CONNECTION_TOKEN_CONFIG -> pass,
-      InfluxConfigConstants.KCQL_CONFIG -> QUERY_SELECT,
-      InfluxConfigConstants.CONSISTENCY_CONFIG -> WriteConsistency.ANY.toString
+      InfluxConfigConstants.KCQL_CONFIG                    -> QUERY_SELECT,
+      InfluxConfigConstants.CONSISTENCY_CONFIG             -> WriteConsistency.ANY.toString,
     ).asJava
 
     val config = InfluxConfig(props)
@@ -158,18 +160,18 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
   }
 
   "create a settings with selected fields with timestamp set to a field" in {
-    val url = "http://localhost:8081"
+    val url      = "http://localhost:8081"
     val database = "mydatabase"
-    val user = "myuser"
-    val pass = "mememe"
+    val user     = "myuser"
+    val pass     = "mememe"
 
     val props = Map(
-      InfluxConfigConstants.INFLUX_URL_CONFIG -> url,
-      InfluxConfigConstants.INFLUX_BUCKET_CONFIG -> database,
-      InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG -> user,
+      InfluxConfigConstants.INFLUX_URL_CONFIG              -> url,
+      InfluxConfigConstants.INFLUX_BUCKET_CONFIG           -> database,
+      InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG   -> user,
       InfluxConfigConstants.INFLUX_CONNECTION_TOKEN_CONFIG -> pass,
-      InfluxConfigConstants.KCQL_CONFIG -> QUERY_SELECT_AND_TIMESTAMP,
-      InfluxConfigConstants.CONSISTENCY_CONFIG -> WriteConsistency.ONE.toString
+      InfluxConfigConstants.KCQL_CONFIG                    -> QUERY_SELECT_AND_TIMESTAMP,
+      InfluxConfigConstants.CONSISTENCY_CONFIG             -> WriteConsistency.ONE.toString,
     ).asJava
 
     val config = InfluxConfig(props)
@@ -187,22 +189,21 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
   }
 
   "create a settings with selected fields with timestamp set to a sys_timestamp" in {
-    val url = "http://localhost:8081"
+    val url      = "http://localhost:8081"
     val database = "mydatabase"
-    val user = "myuser"
-    val pass = "mememe"
+    val user     = "myuser"
+    val pass     = "mememe"
 
     val props = Map(
-      InfluxConfigConstants.INFLUX_URL_CONFIG -> url,
-      InfluxConfigConstants.INFLUX_BUCKET_CONFIG -> database,
-      InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG -> user,
+      InfluxConfigConstants.INFLUX_URL_CONFIG              -> url,
+      InfluxConfigConstants.INFLUX_BUCKET_CONFIG           -> database,
+      InfluxConfigConstants.INFLUX_CONNECTION_ORG_CONFIG   -> user,
       InfluxConfigConstants.INFLUX_CONNECTION_TOKEN_CONFIG -> pass,
-      InfluxConfigConstants.KCQL_CONFIG -> QUERY_SELECT_AND_TIMESTAMP_SYSTEM,
-      InfluxConfigConstants.CONSISTENCY_CONFIG -> WriteConsistency.ONE.toString
+      InfluxConfigConstants.KCQL_CONFIG                    -> QUERY_SELECT_AND_TIMESTAMP_SYSTEM,
+      InfluxConfigConstants.CONSISTENCY_CONFIG             -> WriteConsistency.ONE.toString,
     ).asJava
 
     val config = InfluxConfig(props)
-
 
     val settings = InfluxSettings(config)
     settings.connectionUrl shouldBe url

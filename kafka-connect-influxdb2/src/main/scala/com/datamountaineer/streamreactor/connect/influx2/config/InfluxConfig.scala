@@ -19,7 +19,8 @@ package com.datamountaineer.streamreactor.connect.influx2.config
 import com.datamountaineer.streamreactor.common.config.base.traits._
 import com.influxdb.client.domain.WriteConsistency
 import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
+import org.apache.kafka.common.config.ConfigDef.Importance
+import org.apache.kafka.common.config.ConfigDef.Type
 
 import java.util
 

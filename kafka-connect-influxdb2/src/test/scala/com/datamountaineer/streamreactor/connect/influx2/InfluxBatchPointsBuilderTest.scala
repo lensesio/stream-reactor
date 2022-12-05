@@ -24,15 +24,18 @@ import com.fasterxml.jackson.core.`type`.TypeReference
 import com.influxdb.client.domain.WriteConsistency
 import com.influxdb.client.write.Point
 import com.landoop.json.sql.JacksonJson
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.util
-import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Try
-
 
 class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
   private val nanoClock = new NanoClock()
@@ -58,44 +61,44 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
     """.stripMargin
 
   val defaultJsonResult: Map[String, Any] = Map(
-    "_id" -> "580151bca6f3a2f0577baaac",
-    "index" -> 0,
-    "guid" -> "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-    "isActive" -> false,
-    "balance" -> 3589.15,
-    "age" -> 27,
-    "eyeColor" -> "brown",
-    "name" -> "Clements Crane",
-    "company" -> "TERRAGEN",
-    "email" -> "clements.crane@terragen.io",
-    "phone" -> "+1 (905) 514-3719",
-    "address" -> "316 Hoyt Street, Welda, Puerto Rico, 1474",
-    "latitude" -> "-49.817964",
-    "longitude" -> "-141.645812"
+    "_id"       -> "580151bca6f3a2f0577baaac",
+    "index"     -> 0,
+    "guid"      -> "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
+    "isActive"  -> false,
+    "balance"   -> 3589.15,
+    "age"       -> 27,
+    "eyeColor"  -> "brown",
+    "name"      -> "Clements Crane",
+    "company"   -> "TERRAGEN",
+    "email"     -> "clements.crane@terragen.io",
+    "phone"     -> "+1 (905) 514-3719",
+    "address"   -> "316 Hoyt Street, Welda, Puerto Rico, 1474",
+    "latitude"  -> "-49.817964",
+    "longitude" -> "-141.645812",
   )
 
-  val topic: String = "topic1"
+  val topic:       String = "topic1"
   val measurement: String = "measurement1"
 
   class Fixture(valueSchema: Schema, value: Any, query: String, keySchema: Schema = null, key: Any = null) {
     val before: Long = nanoClock.getEpochNanos
     val record = new SinkRecord(topic, 0, keySchema, key, valueSchema, value, 0)
-    val settings = InfluxSettings("connection", "user", "password", "database1", WriteConsistency.ALL, Seq(Kcql.parse(query)))
+    val settings =
+      InfluxSettings("connection", "user", "password", "database1", WriteConsistency.ALL, Seq(Kcql.parse(query)))
     val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
     val batchPoints: Try[Seq[Point]] = builder.build(Seq(record))
 
   }
 
-
   "InfluxBatchPointsBuilder" should {
     "convert a sink record with a json string payload when all fields are selected" in {
       val f = new Fixture(
         valueSchema = Schema.STRING_SCHEMA,
-        value = defaultJsonPayload,
-        query = s"INSERT INTO $measurement SELECT * FROM $topic"
+        value       = defaultJsonPayload,
+        query       = s"INSERT INTO $measurement SELECT * FROM $topic",
       )
 
-      f.batchPoints.isSuccess shouldBe (true)
+      f.batchPoints.isSuccess shouldBe true
       val points = f.batchPoints.get
       points.size shouldBe 1
       val point = points.head
@@ -115,8 +118,8 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
     "not throw an exception while converting a sink record with a json string payload and the tag field is missing" in {
       val f = new Fixture(
         valueSchema = Schema.STRING_SCHEMA,
-        value = defaultJsonPayload,
-        query = s"INSERT INTO $measurement SELECT * FROM $topic WITHTAG(abc)"
+        value       = defaultJsonPayload,
+        query       = s"INSERT INTO $measurement SELECT * FROM $topic WITHTAG(abc)",
       )
       f.batchPoints.get.size shouldBe 1
     }
@@ -147,11 +150,13 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
           |}
         """.stripMargin
 
-      val sourceMap: util.HashMap[String, Any] = JacksonJson.mapper.readValue(jsonPayload, new TypeReference[util.HashMap[String, Any]]() {})
+      val sourceMap: util.HashMap[String, Any] =
+        JacksonJson.mapper.readValue(jsonPayload, new TypeReference[util.HashMap[String, Any]]() {})
       val f = new Fixture(
         valueSchema = null,
-        value = sourceMap,
-        query = s"INSERT INTO $measurement SELECT * FROM $topic IGNORE ptype, pid WITHTIMESTAMP time WITHTAG (ptype, pid)"
+        value       = sourceMap,
+        query =
+          s"INSERT INTO $measurement SELECT * FROM $topic IGNORE ptype, pid WITHTIMESTAMP time WITHTAG (ptype, pid)",
       )
       val points = f.batchPoints.get
       points.size shouldBe 1
@@ -176,11 +181,11 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
     "convert a sink record with a json string payload when all fields are selected and tags are applied" in {
       val f = new Fixture(
         valueSchema = Schema.STRING_SCHEMA,
-        value = defaultJsonPayload,
-        query = s"INSERT INTO $measurement SELECT * FROM $topic WITHTAG(eyeColor, c1=value1)"
+        value       = defaultJsonPayload,
+        query       = s"INSERT INTO $measurement SELECT * FROM $topic WITHTAG(eyeColor, c1=value1)",
       )
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -199,8 +204,8 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
     "convert a sink record with a json string payload when all fields are selected and tags are not defined for the topic" in {
       val f = new Fixture(
         valueSchema = Schema.STRING_SCHEMA,
-        value = defaultJsonPayload,
-        query = s"INSERT INTO $measurement SELECT * FROM $topic"
+        value       = defaultJsonPayload,
+        query       = s"INSERT INTO $measurement SELECT * FROM $topic",
       )
 
       val points = f.batchPoints.get
@@ -243,12 +248,12 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
 
       val f = new Fixture(
         valueSchema = Schema.STRING_SCHEMA,
-        value = jsonPayload,
-        query = s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp"
+        value       = jsonPayload,
+        query       = s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp",
       )
 
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -296,13 +301,17 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
           | }
         """.stripMargin
 
-      val topic = "topic1"
+      val topic       = "topic1"
       val measurement = "measurement1"
-      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+      val record      = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-
-      val settings = InfluxSettings("connection", "user", "password", "database1", WriteConsistency.ALL,
-        Seq(Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp"))
+      val settings = InfluxSettings(
+        "connection",
+        "user",
+        "password",
+        "database1",
+        WriteConsistency.ALL,
+        Seq(Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp")),
       )
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
@@ -315,7 +324,8 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
     "convert a sink record with a json string payload with fields ignored" in {
       val f = new Fixture(
         Schema.STRING_SCHEMA,
-        defaultJsonPayload, s"INSERT INTO $measurement SELECT * FROM $topic IGNORE longitude, latitude"
+        defaultJsonPayload,
+        s"INSERT INTO $measurement SELECT * FROM $topic IGNORE longitude, latitude",
       )
       val points = f.batchPoints.get
       points.size shouldBe 1
@@ -342,15 +352,14 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       map("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
     }
 
-
     "convert sink record with a json string payload with all fields selected and one aliased" in {
       val f = new Fixture(
         Schema.STRING_SCHEMA,
         defaultJsonPayload,
-        s"INSERT INTO $measurement SELECT *, name as this_is_renamed FROM $topic"
+        s"INSERT INTO $measurement SELECT *, name as this_is_renamed FROM $topic",
       )
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -369,10 +378,10 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         Schema.STRING_SCHEMA,
         defaultJsonPayload,
-        s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic"
+        s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic",
       )
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -393,10 +402,10 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         Schema.STRING_SCHEMA,
         defaultJsonPayload,
-        s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic WITHTAG(age, eyeColor)"
+        s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic WITHTAG(age, eyeColor)",
       )
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -420,10 +429,10 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         Schema.STRING_SCHEMA,
         defaultJsonPayload,
-        s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic WITHTARGET=company WITHTAG(age, eyeColor)"
+        s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic WITHTARGET=company WITHTAG(age, eyeColor)",
       )
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
       PointMapFieldGetter.measurement(point) shouldBe "TERRAGEN"
@@ -446,10 +455,10 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         Schema.STRING_SCHEMA,
         defaultJsonPayload,
-        s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic WITHTARGET=company WITHTAG(age as AgeTag, eyeColor)"
+        s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic WITHTARGET=company WITHTAG(age as AgeTag, eyeColor)",
       )
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
       PointMapFieldGetter.measurement(point) shouldBe "TERRAGEN"
@@ -468,7 +477,6 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       tags shouldBe Map("AgeTag" -> "27", "eyeColor" -> "brown")
     }
 
-
     "throw an error of if nested json since there is no flattening of json for a sink record with string json payload" in {
       val jsonPayload =
         """
@@ -484,7 +492,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         Schema.STRING_SCHEMA,
         jsonPayload,
-        s"INSERT INTO $measurement SELECT * FROM $topic"
+        s"INSERT INTO $measurement SELECT * FROM $topic",
       )
 
       f.batchPoints shouldBe Symbol("Failure")
@@ -504,13 +512,12 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
           |      "ad"
           |    ]
           | }
-        """.
-          stripMargin
+        """.stripMargin
 
       val f = new Fixture(
         Schema.STRING_SCHEMA,
         jsonPayload,
-        s"INSERT INTO $measurement SELECT * FROM $topic"
+        s"INSERT INTO $measurement SELECT * FROM $topic",
       )
       f.batchPoints shouldBe Symbol("Failure")
       f.batchPoints.failed.get shouldBe a[RuntimeException]
@@ -538,7 +545,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         null,
         sourceMap,
-        s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp"
+        s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp",
       )
 
       val result = f.batchPoints
@@ -567,10 +574,10 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         null,
         sourceMap,
-        s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp"
+        s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp",
       )
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -620,7 +627,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         null,
         sourceMap,
-        s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp WITHTAG(abc)"
+        s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp WITHTAG(abc)",
       )
 
       val pb = f.batchPoints
@@ -649,10 +656,10 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         null,
         sourceMap,
-        s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp WITHTAG(xyz=zyx, age)"
+        s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp WITHTAG(xyz=zyx, age)",
       )
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -700,11 +707,11 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         null,
         sourceMap,
-        s"INSERT INTO $measurement SELECT * FROM $topic"
+        s"INSERT INTO $measurement SELECT * FROM $topic",
       )
 
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -751,11 +758,11 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         null,
         sourceMap,
-        s"INSERT INTO $measurement SELECT * FROM $topic IGNORE longitude,latitude"
+        s"INSERT INTO $measurement SELECT * FROM $topic IGNORE longitude,latitude",
       )
 
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -780,7 +787,6 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       map("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
     }
 
-
     "convert a schemaless sink record with all fields selected and one aliased" in {
       val sourceMap = new util.HashMap[String, Any]()
       sourceMap.put("_id", "580151bca6f3a2f0577baaac")
@@ -801,11 +807,11 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         null,
         sourceMap,
-        s"INSERT INTO $measurement SELECT *, name as this_is_renamed FROM $topic"
+        s"INSERT INTO $measurement SELECT *, name as this_is_renamed FROM $topic",
       )
 
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -852,11 +858,11 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         null,
         sourceMap,
-        s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic"
+        s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic",
       )
 
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -872,7 +878,6 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       map("email") shouldBe "clements.crane@terragen.io"
 
     }
-
 
     "convert a schemaless sink record with specific fields being selected and dynamic measurement" in {
       val sourceMap = new util.HashMap[String, Any]()
@@ -894,10 +899,10 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         null,
         sourceMap,
-        s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic WITHTARGET=guid"
+        s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic WITHTARGET=guid",
       )
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
       PointMapFieldGetter.measurement(point) shouldBe "dynamic1"
@@ -934,7 +939,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         null,
         sourceMap,
-        s"INSERT INTO $measurement SELECT * FROM $topic"
+        s"INSERT INTO $measurement SELECT * FROM $topic",
       )
       val result = f.batchPoints
       result shouldBe Symbol("Failure")
@@ -962,7 +967,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       val f = new Fixture(
         null,
         sourceMap,
-        s"INSERT INTO $measurement SELECT * FROM $topic"
+        s"INSERT INTO $measurement SELECT * FROM $topic",
       )
       val result = f.batchPoints
       result shouldBe Symbol("Failure")
@@ -980,14 +985,14 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
         new util.HashMap[String, Any](),
         s"INSERT INTO $measurement SELECT _key.* FROM $topic",
         null,
-        sourceMap
+        sourceMap,
       )
 
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
-      val time = PointMapFieldGetter.time(point)
+      val time  = PointMapFieldGetter.time(point)
       f.before <= time shouldBe true
       time <= nanoClock.getEpochNanos shouldBe true
 
@@ -998,7 +1003,6 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       map("index") shouldBe 0
       map("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
     }
-
 
     "allow specifying key fields with alias" in {
       val sourceMap = new util.HashMap[String, Any]()
@@ -1011,14 +1015,14 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
         new util.HashMap[String, Any](),
         s"INSERT INTO $measurement SELECT _key.*, _key.index as renamed FROM $topic",
         null,
-        sourceMap
+        sourceMap,
       )
 
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
-      val time = PointMapFieldGetter.time(point)
+      val time  = PointMapFieldGetter.time(point)
       f.before <= time shouldBe true
       time <= nanoClock.getEpochNanos shouldBe true
 
@@ -1044,14 +1048,14 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
         valueMap,
         s"INSERT INTO $measurement SELECT  _key._id, index FROM $topic",
         null,
-        keyMap
+        keyMap,
       )
 
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
-      val time = PointMapFieldGetter.time(point)
+      val time  = PointMapFieldGetter.time(point)
       f.before <= time shouldBe true
       time <= nanoClock.getEpochNanos shouldBe true
 
@@ -1073,14 +1077,14 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
         new util.HashMap[String, Any](),
         s"INSERT INTO $measurement SELECT _key.* FROM $topic IGNORE index",
         null,
-        sourceMap
+        sourceMap,
       )
 
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
-      val time = PointMapFieldGetter.time(point)
+      val time  = PointMapFieldGetter.time(point)
       f.before <= time shouldBe true
       time <= nanoClock.getEpochNanos shouldBe true
 
@@ -1103,14 +1107,14 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
         new util.HashMap[String, Any](),
         s"INSERT INTO $measurement SELECT _key.* FROM $topic IGNORE _key.index",
         null,
-        sourceMap
+        sourceMap,
       )
 
       val batchPoints = f.batchPoints
-      val points = batchPoints.get
+      val points      = batchPoints.get
       points.size shouldBe 1
       val point = points.head
-      val time = PointMapFieldGetter.time(point)
+      val time  = PointMapFieldGetter.time(point)
       f.before <= time shouldBe true
       time <= nanoClock.getEpochNanos shouldBe true
 
@@ -1123,7 +1127,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
     }
 
     "flatten sink record arrays" in {
-      val topic = "topic1"
+      val topic       = "topic1"
       val measurement = "measurement1"
 
       val schema = SchemaBuilder.struct().name("foo")
@@ -1139,11 +1143,16 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
         .put("name", "Empty array")
         .put("array", new util.ArrayList[Double](List().asJava))
 
-      val sinkRecord = new SinkRecord(topic, 0, null, null, schema, struct, 1)
+      val sinkRecord           = new SinkRecord(topic, 0, null, null, schema, struct, 1)
       val sinkRecordEmptyArray = new SinkRecord(topic, 0, null, null, schema, structEmptyArray, 2)
 
-      val settings = InfluxSettings("connection", "user", "password", "database1", WriteConsistency.ALL,
-        Seq(Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic"))
+      val settings = InfluxSettings(
+        "connection",
+        "user",
+        "password",
+        "database1",
+        WriteConsistency.ALL,
+        Seq(Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic")),
       )
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
@@ -1154,7 +1163,7 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       points.size shouldBe 2
 
       val point = points.head
-      val map = PointMapFieldGetter.fields(point)
+      val map   = PointMapFieldGetter.fields(point)
       map.size shouldBe 4
       map("name") shouldBe "Array with floats"
       map("array0") shouldBe 1.0
@@ -1162,19 +1171,21 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       map("array2") shouldBe 3.0
 
       val pointEmptyArray = points.lift(1).get
-      val mapEmptyArray = PointMapFieldGetter.fields(pointEmptyArray)
+      val mapEmptyArray   = PointMapFieldGetter.fields(pointEmptyArray)
       mapEmptyArray.size shouldBe 1
       mapEmptyArray("name") shouldBe "Empty array"
     }
 
     object PointMapFieldGetter {
-      def fields(point: Point): Map[String, Any] = extractField("fields", point).asInstanceOf[java.util.Map[String, Any]].asScala.toMap
+      def fields(point: Point): Map[String, Any] =
+        extractField("fields", point).asInstanceOf[java.util.Map[String, Any]].asScala.toMap
 
       def time(point: Point): Long = extractField("time", point).asInstanceOf[Long]
 
       def measurement(point: Point): String = extractField("name", point).asInstanceOf[String]
 
-      def tags(point: Point): Map[String, String] = extractField("tags", point).asInstanceOf[java.util.Map[String, String]].asScala.toMap
+      def tags(point: Point): Map[String, String] =
+        extractField("tags", point).asInstanceOf[java.util.Map[String, String]].asScala.toMap
 
       private def extractField(fieldName: String, point: Point): Any = {
         val field = point.getClass.getDeclaredField(fieldName)

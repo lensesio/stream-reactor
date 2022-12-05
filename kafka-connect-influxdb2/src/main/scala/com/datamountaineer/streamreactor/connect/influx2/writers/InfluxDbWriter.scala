@@ -32,12 +32,13 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
 
   settings.validate().leftMap(ex => throw new IllegalArgumentException(ex))
 
-  val token=settings.token.toCharArray
+  val token = settings.token.toCharArray
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
 
-  private val writeAPI = InfluxDBClientFactory.create(settings.connectionUrl, token, settings.org, settings.bucket).makeWriteApi()
-  private val builder  = new InfluxBatchPointsBuilder(settings, new NanoClock())
+  private val writeAPI =
+    InfluxDBClientFactory.create(settings.connectionUrl, token, settings.org, settings.bucket).makeWriteApi()
+  private val builder = new InfluxBatchPointsBuilder(settings, new NanoClock())
 
   override def write(records: Seq[SinkRecord]): Unit =
     if (records.isEmpty) {

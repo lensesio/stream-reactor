@@ -1,10 +1,13 @@
 package com.datamountaineer.streamreactor.connect.influx2.converters
 
 import com.datamountaineer.streamreactor.connect.influx2.NanoClock
-import com.datamountaineer.streamreactor.connect.influx2.converters.SinkRecordParser.{ParsedKeyValueSinkRecord, ParsedSinkRecord}
+import com.datamountaineer.streamreactor.connect.influx2.converters.SinkRecordParser.ParsedKeyValueSinkRecord
+import com.datamountaineer.streamreactor.connect.influx2.converters.SinkRecordParser.ParsedSinkRecord
 import com.datamountaineer.streamreactor.connect.influx2.helpers.Util
 import com.datamountaineer.streamreactor.connect.influx2.writers.KcqlDetails
-import com.datamountaineer.streamreactor.connect.influx2.writers.KcqlDetails.{ConstantTag, DynamicTag, Path}
+import com.datamountaineer.streamreactor.connect.influx2.writers.KcqlDetails.ConstantTag
+import com.datamountaineer.streamreactor.connect.influx2.writers.KcqlDetails.DynamicTag
+import com.datamountaineer.streamreactor.connect.influx2.writers.KcqlDetails.Path
 import com.influxdb.client.write.Point
 
 import java.time.Instant
@@ -12,23 +15,23 @@ import java.util.concurrent.TimeUnit
 import java.util.Date
 import com.influxdb.client.domain.WritePrecision
 import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 object InfluxPoint {
 
-    val T_to_I = Map(
-        TimeUnit.DAYS -> WritePrecision.S,
-        TimeUnit.HOURS -> WritePrecision.S,
-        TimeUnit.MINUTES -> WritePrecision.S,
-        TimeUnit.SECONDS -> WritePrecision.S,
-        TimeUnit.MILLISECONDS -> WritePrecision.MS,
-        TimeUnit.MICROSECONDS -> WritePrecision.US,
-        TimeUnit.NANOSECONDS -> WritePrecision.NS
-    )
+  val T_to_I = Map(
+    TimeUnit.DAYS         -> WritePrecision.S,
+    TimeUnit.HOURS        -> WritePrecision.S,
+    TimeUnit.MINUTES      -> WritePrecision.S,
+    TimeUnit.SECONDS      -> WritePrecision.S,
+    TimeUnit.MILLISECONDS -> WritePrecision.MS,
+    TimeUnit.MICROSECONDS -> WritePrecision.US,
+    TimeUnit.NANOSECONDS  -> WritePrecision.NS,
+  )
 
-
-  def build(nanoClock: NanoClock)(record: ParsedKeyValueSinkRecord,
-                                  details: KcqlDetails): Try[Point] =
+  def build(nanoClock: NanoClock)(record: ParsedKeyValueSinkRecord, details: KcqlDetails): Try[Point] =
     for {
       (timeUnit, timestamp) <- extractTimeMeasures(nanoClock, record, details)
       measurement = details.dynamicTarget
@@ -36,13 +39,15 @@ object InfluxPoint {
         .map(_.toString)
         .getOrElse(details.target)
       infl_timeunit = T_to_I(timeUnit)
-      pointBuilder = Point.measurement(measurement).time(timestamp, infl_timeunit)
-      point <- addValuesAndTags(pointBuilder, record, details)
+      pointBuilder  = Point.measurement(measurement).time(timestamp, infl_timeunit)
+      point        <- addValuesAndTags(pointBuilder, record, details)
     } yield point
 
-  private def addValuesAndTags(pointBuilder: Point,
-                               record: ParsedKeyValueSinkRecord,
-                               details: KcqlDetails): Try[Point] =
+  private def addValuesAndTags(
+    pointBuilder: Point,
+    record:       ParsedKeyValueSinkRecord,
+    details:      KcqlDetails,
+  ): Try[Point] =
     details.NonIgnoredFields
       .flatMap {
         case (_, path, _) if path.equals(Path(Util.KEY_All_ELEMENTS)) =>
@@ -62,8 +67,12 @@ object InfluxPoint {
             case (key, _) =>
               Failure(
                 new IllegalArgumentException(
-                  s"Property $key is referenced but no value could be found ."))
-        }))
+                  s"Property $key is referenced but no value could be found .",
+                ),
+              )
+          },
+        ),
+      )
       .flatMap(builder =>
         details.tags
           .map {
@@ -71,16 +80,19 @@ object InfluxPoint {
             case DynamicTag(name, path) =>
               (name.value, record.field(path).map(_.toString))
           }
-          .foldLeft(Try(builder))((builder, tag) => {
+          .foldLeft(Try(builder)) { (builder, tag) =>
             tag match {
               case (key, Some(value)) => builder.map(_.addTag(key, value))
               case (_, None)          => builder
             }
-          }))
+          },
+      )
 
-  private def extractTimeMeasures(nanoClock: NanoClock,
-                                  record: ParsedSinkRecord,
-                                  details: KcqlDetails): Try[(TimeUnit, Long)] =
+  private def extractTimeMeasures(
+    nanoClock: NanoClock,
+    record:    ParsedSinkRecord,
+    details:   KcqlDetails,
+  ): Try[(TimeUnit, Long)] =
     details.timestampField
       .flatMap { path =>
         record
@@ -90,13 +102,14 @@ object InfluxPoint {
       .getOrElse(Try(TimeUnit.NANOSECONDS -> nanoClock.getEpochNanos))
 
   def coerceTimeStamp(
-      value: Any,
-      fieldPath: Iterable[String]): Try[Long] = {
+    value:     Any,
+    fieldPath: Iterable[String],
+  ): Try[Long] =
     value match {
       case b: Byte  => Try(b.toLong)
       case s: Short => Try(s.toLong)
       case i: Int   => Try(i.toLong)
-      case l: Long  => Try(l)
+      case l: Long => Try(l)
       case s: String =>
         Try(Instant.parse(s).toEpochMilli).transform(
           Try(_),
@@ -104,18 +117,22 @@ object InfluxPoint {
             Failure(
               new IllegalArgumentException(
                 s"$s is not a valid format for timestamp, expected 'yyyy-MM-DDTHH:mm:ss.SSSZ'",
-                e)))
+                e,
+              ),
+            ),
+        )
       case d: Date => Try(d.toInstant.toEpochMilli)
       /* Assume Unix timestamps in seconds with double precision, coerce to Long with microseconds precision */
-      case d: Double => Try((d * 1E6).toLong)
+      case d: Double => Try((d * 1e6).toLong)
       case other =>
-        Failure(new IllegalArgumentException(
-          s"Invalid value for field:${fieldPath.mkString(".")}.Value '$other' is not a valid field for the timestamp"))
+        Failure(
+          new IllegalArgumentException(
+            s"Invalid value for field:${fieldPath.mkString(".")}.Value '$other' is not a valid field for the timestamp",
+          ),
+        )
     }
-  }
 
-  private def writeField(builder: Point)(field: String,
-                                         v: Any): Try[Point] = v match {
+  private def writeField(builder: Point)(field: String, v: Any): Try[Point] = v match {
     case value: Long                 => Try(builder.addField(field, value))
     case value: Int                  => Try(builder.addField(field, value.toLong))
     case value: BigInt               => Try(builder.addField(field, value))
@@ -130,15 +147,19 @@ object InfluxPoint {
     case value: java.util.Date       => Try(builder.addField(field, value.getTime))
     case value: java.util.List[_]    => flattenArray(builder)(field, value)
     case value =>
-      Failure(new RuntimeException(
-        s"Can't select field:'$field' because it leads to value:'$value' (${Option(
-          value).map(_.getClass.getName).getOrElse("")})is not a valid type for InfluxDb."))
+      Failure(
+        new RuntimeException(
+          s"Can't select field:'$field' because it leads to value:'$value' (${Option(
+            value,
+          ).map(_.getClass.getName).getOrElse("")})is not a valid type for InfluxDb.",
+        ),
+      )
   }
 
   /**
-   * Flatten an array writing each element as a new field with the following convention:
-   * "name": ["a", "b", "c"] => name0 = "a", name1 = "b", name3 = "c"
-   */
+    * Flatten an array writing each element as a new field with the following convention:
+    * "name": ["a", "b", "c"] => name0 = "a", name1 = "b", name3 = "c"
+    */
   private def flattenArray(builder: Point)(field: String, value: java.util.List[_]) = {
     val res = value.asScala.zipWithIndex.map {
       case (el, i) => writeField(builder)(field + i, el)

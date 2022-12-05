@@ -1,6 +1,7 @@
 package com.datamountaineer.streamreactor.connect.influx2
 
-import java.time.{Clock, Instant}
+import java.time.Clock
+import java.time.Instant
 import java.time.temporal.ChronoField
 
 /**
