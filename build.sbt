@@ -247,7 +247,6 @@ lazy val influxdb2 = (projectMatrix in file("kafka-connect-influxdb2"))
   .configureAssembly()
   .configureTests(baseTestDeps)
 
-
 lazy val jms = (projectMatrix in file("kafka-connect-jms"))
   .dependsOn(common)
   .settings(
