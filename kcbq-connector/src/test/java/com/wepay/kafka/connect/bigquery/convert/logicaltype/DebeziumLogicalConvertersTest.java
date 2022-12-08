@@ -62,6 +62,13 @@ public class DebeziumLogicalConvertersTest {
 
   @Test
   public void testMicroTimeConversion() {
+    testMicroTimeConversionHelper(MICRO_TIMESTAMP, "22:20:38.808123");
+    // Test case where microseconds have a leading 0.
+    long microTimestamp = 1592511382050720L;
+    testMicroTimeConversionHelper(microTimestamp, "20:16:22.050720");
+  }
+
+  private void testMicroTimeConversionHelper(long microTimestamp, String s) {
     MicroTimeConverter converter = new MicroTimeConverter();
 
     assertEquals(LegacySQLTypeName.TIME, converter.getBQSchemaType());
@@ -72,12 +79,20 @@ public class DebeziumLogicalConvertersTest {
       fail("Expected encoding type check to succeed.");
     }
 
-    String formattedMicroTime = converter.convert(MICRO_TIMESTAMP);
-    assertEquals("22:20:38.808123", formattedMicroTime);
+    String formattedMicroTime = converter.convert(microTimestamp);
+    assertEquals(s, formattedMicroTime);
   }
+
 
   @Test
   public void testMicroTimestampConversion() {
+    testMicroTimestampConversionHelper(MICRO_TIMESTAMP, "2017-03-01 22:20:38.808123");
+    // Test timestamp where microseconds have a leading 0
+    Long timestamp = 1592511382050720L;
+    testMicroTimestampConversionHelper(timestamp, "2020-06-18 20:16:22.050720");
+  }
+
+  private void testMicroTimestampConversionHelper(Long timestamp, String s) {
     MicroTimestampConverter converter = new MicroTimestampConverter();
 
     assertEquals(LegacySQLTypeName.TIMESTAMP, converter.getBQSchemaType());
@@ -88,8 +103,8 @@ public class DebeziumLogicalConvertersTest {
       fail("Expected encoding type check to succeed.");
     }
 
-    String formattedMicroTimestamp = converter.convert(MICRO_TIMESTAMP);
-    assertEquals("2017-03-01 22:20:38.808123", formattedMicroTimestamp);
+    String formattedMicroTimestamp = converter.convert(timestamp);
+    assertEquals(s, formattedMicroTimestamp);
   }
 
   @Test
