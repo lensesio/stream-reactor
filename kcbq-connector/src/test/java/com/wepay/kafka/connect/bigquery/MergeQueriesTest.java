@@ -116,14 +116,14 @@ public class MergeQueriesTest {
   @Test
   public void testUpsertQueryWithPartitionTime() {
     String expectedQuery =
-        "MERGE " + table(DESTINATION_TABLE) + " "
+        "MERGE " + table(DESTINATION_TABLE) + " dstTableAlias "
           + "USING (SELECT * FROM (SELECT ARRAY_AGG(x ORDER BY i DESC LIMIT 1)[OFFSET(0)] src "
             + "FROM " + table(INTERMEDIATE_TABLE) + " x "
             + "WHERE batchNumber=" + BATCH_NUMBER + " "
             + "GROUP BY key.k1, key.k2.nested_k1.doubly_nested_k, key.k2.nested_k2)) "
-          + "ON `" + DESTINATION_TABLE.getTable() + "`." + KEY + "=src.key "
+          + "ON dstTableAlias." + KEY + "=src.key "
           + "WHEN MATCHED "
-            + "THEN UPDATE SET `f1`=src.value.f1, `f2`=src.value.f2, `f3`=src.value.f3, `f4`=src.value.f4 "
+            + "THEN UPDATE SET dstTableAlias.`f1`=src.value.f1, dstTableAlias.`f2`=src.value.f2, dstTableAlias.`f3`=src.value.f3, dstTableAlias.`f4`=src.value.f4 "
           + "WHEN NOT MATCHED "
             + "THEN INSERT (`"
               + KEY + "`, "
@@ -142,14 +142,14 @@ public class MergeQueriesTest {
   @Test
   public void testUpsertQueryWithoutPartitionTime() {
     String expectedQuery =
-        "MERGE " + table(DESTINATION_TABLE) + " "
+        "MERGE " + table(DESTINATION_TABLE) + " dstTableAlias "
           + "USING (SELECT * FROM (SELECT ARRAY_AGG(x ORDER BY i DESC LIMIT 1)[OFFSET(0)] src "
             + "FROM " + table(INTERMEDIATE_TABLE) + " x "
             + "WHERE batchNumber=" + BATCH_NUMBER + " "
             + "GROUP BY key.k1, key.k2.nested_k1.doubly_nested_k, key.k2.nested_k2)) "
-          + "ON `" + DESTINATION_TABLE.getTable() + "`." + KEY + "=src.key "
+          + "ON dstTableAlias." + KEY + "=src.key "
           + "WHEN MATCHED "
-            + "THEN UPDATE SET `f1`=src.value.f1, `f2`=src.value.f2, `f3`=src.value.f3, `f4`=src.value.f4 "
+            + "THEN UPDATE SET dstTableAlias.`f1`=src.value.f1, dstTableAlias.`f2`=src.value.f2, dstTableAlias.`f3`=src.value.f3, dstTableAlias.`f4`=src.value.f4 "
           + "WHEN NOT MATCHED "
             + "THEN INSERT (`"
               + KEY + "`, "
@@ -248,14 +248,14 @@ public class MergeQueriesTest {
   @Test
   public void testUpsertDeleteQueryWithPartitionTime() {
     String expectedQuery =
-        "MERGE " + table(DESTINATION_TABLE) + " "
+        "MERGE " + table(DESTINATION_TABLE) + " dstTableAlias "
           + "USING (SELECT * FROM (SELECT ARRAY_AGG(x ORDER BY i DESC LIMIT 1)[OFFSET(0)] src "
             + "FROM " + table(INTERMEDIATE_TABLE) + " x "
             + "WHERE batchNumber=" + BATCH_NUMBER + " "
             + "GROUP BY key.k1, key.k2.nested_k1.doubly_nested_k, key.k2.nested_k2)) "
-          + "ON `" + DESTINATION_TABLE.getTable() + "`." + KEY + "=src.key "
+          + "ON dstTableAlias." + KEY + "=src.key "
           + "WHEN MATCHED AND src.value IS NOT NULL "
-            + "THEN UPDATE SET `f1`=src.value.f1, `f2`=src.value.f2, `f3`=src.value.f3, `f4`=src.value.f4 "
+            + "THEN UPDATE SET dstTableAlias.`f1`=src.value.f1, dstTableAlias.`f2`=src.value.f2, dstTableAlias.`f3`=src.value.f3, dstTableAlias.`f4`=src.value.f4 "
           + "WHEN MATCHED AND src.value IS NULL "
             + "THEN DELETE "
           + "WHEN NOT MATCHED AND src.value IS NOT NULL "
@@ -276,14 +276,14 @@ public class MergeQueriesTest {
   @Test
   public void testUpsertDeleteQueryWithoutPartitionTime() {
     String expectedQuery =
-        "MERGE " + table(DESTINATION_TABLE) + " "
+        "MERGE " + table(DESTINATION_TABLE) + " dstTableAlias "
           + "USING (SELECT * FROM (SELECT ARRAY_AGG(x ORDER BY i DESC LIMIT 1)[OFFSET(0)] src "
             + "FROM " + table(INTERMEDIATE_TABLE) + " x "
             + "WHERE batchNumber=" + BATCH_NUMBER + " "
             + "GROUP BY key.k1, key.k2.nested_k1.doubly_nested_k, key.k2.nested_k2)) "
-          + "ON `" + DESTINATION_TABLE.getTable() + "`." + KEY + "=src.key "
+          + "ON dstTableAlias." + KEY + "=src.key "
           + "WHEN MATCHED AND src.value IS NOT NULL "
-            + "THEN UPDATE SET `f1`=src.value.f1, `f2`=src.value.f2, `f3`=src.value.f3, `f4`=src.value.f4 "
+            + "THEN UPDATE SET dstTableAlias.`f1`=src.value.f1, dstTableAlias.`f2`=src.value.f2, dstTableAlias.`f3`=src.value.f3, dstTableAlias.`f4`=src.value.f4 "
           + "WHEN MATCHED AND src.value IS NULL "
             + "THEN DELETE "
           + "WHEN NOT MATCHED AND src.value IS NOT NULL "
