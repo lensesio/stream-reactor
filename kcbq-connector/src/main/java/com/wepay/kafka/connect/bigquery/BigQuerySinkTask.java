@@ -261,7 +261,8 @@ public class BigQuerySinkTask extends SinkTask {
           TableWriterBuilder tableWriterBuilder;
           if (config.getList(BigQuerySinkConfig.ENABLE_BATCH_CONFIG).contains(record.topic())) {
             String topic = record.topic();
-            String gcsBlobName = topic + "_" + uuid + "_" + Instant.now().toEpochMilli();
+            long offset = record.kafkaOffset();
+            String gcsBlobName = topic + "_" + uuid + "_" + Instant.now().toEpochMilli() + "_" + offset;
             String gcsFolderName = config.getString(BigQuerySinkConfig.GCS_FOLDER_NAME_CONFIG);
             if (gcsFolderName != null && !"".equals(gcsFolderName)) {
               gcsBlobName = gcsFolderName + "/" + gcsBlobName;
