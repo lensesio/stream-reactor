@@ -44,6 +44,7 @@ import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
@@ -77,6 +78,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class BigQuerySinkTaskTest {
   private static SinkTaskPropertiesFactory propertiesFactory;
@@ -132,6 +135,44 @@ public class BigQuerySinkTaskTest {
     verify(bigQuery, times(1)).insertAll(any(InsertAllRequest.class));
   }
 
+  @Test
+  public void testPutForGCSToBQ() {
+    final String topic = "test-topic";
+    final int repeats = 20;
+    Map<String, String> properties = propertiesFactory.getProperties();
+    properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
+    properties.put(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG, "scratch");
+    properties.put(BigQuerySinkConfig.ENABLE_BATCH_CONFIG, "test-topic");
+
+    BigQuery bigQuery = mock(BigQuery.class);
+    Table mockTable = mock(Table.class);
+    when(bigQuery.getTable(any())).thenReturn(mockTable);
+
+    Storage storage = mock(Storage.class);
+
+    SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
+    InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
+
+    when(bigQuery.insertAll(anyObject())).thenReturn(insertAllResponse);
+    when(insertAllResponse.hasErrors()).thenReturn(false);
+
+    SchemaRetriever schemaRetriever = mock(SchemaRetriever.class);
+    SchemaManager schemaManager = mock(SchemaManager.class);
+    Map<TableId, Table> cache = new HashMap<>();
+
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);
+    testTask.initialize(sinkTaskContext);
+    testTask.start(properties);
+
+    IntStream.range(0,repeats).forEach(i -> testTask.put(Collections.singletonList(spoofSinkRecord(topic))));
+
+    ArgumentCaptor<BlobInfo> blobInfo = ArgumentCaptor.forClass(BlobInfo.class);
+    testTask.flush(Collections.emptyMap());
+
+    verify(storage, times(repeats)).create(blobInfo.capture(), (byte[])anyObject());
+    assertEquals(repeats, blobInfo.getAllValues().stream().map(info -> info.getBlobId().getName()).collect(Collectors.toSet()).size());
+
+  }
   @Test
   public void testSimplePutWhenSchemaRetrieverIsNotNull() {
     final String topic = "test-topic";
