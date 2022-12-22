@@ -203,6 +203,11 @@ object CassandraConfigConstants {
   val INITIAL_OFFSET_DOC =
     "The initial timestamp to start querying in Cassandra from (yyyy-MM-dd HH:mm:ss.SSS'Z'). Default 1900-01-01 00:00:00.0000000Z"
 
+  val DATE_FORMAT_STRING      = s"$CONNECTOR_PREFIX.date.format.string"
+  val DATE_FORMAT_STRING_DEFAULT = "yyyy-MM-dd HH:mm:ss.SSS'Z'"
+  val DATE_FORMAT_STRING_DOC =
+    "The format string to use for formatting the initial offset and other "
+
   val MAPPING_COLLECTION_TO_JSON         = s"$CONNECTOR_PREFIX.mapping.collection.to.json"
   val MAPPING_COLLECTION_TO_JSON_DOC     = "Mapping columns with type Map, List and Set like json"
   val MAPPING_COLLECTION_TO_JSON_DEFAULT = true

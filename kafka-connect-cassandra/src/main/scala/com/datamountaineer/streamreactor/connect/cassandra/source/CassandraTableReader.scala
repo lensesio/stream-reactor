@@ -64,15 +64,14 @@ class CassandraTableReader(
   private val cqlGenerator = new CqlGenerator(setting)
 
   class CassandraDateFormatter {
-    private val dateFormatPattern = "yyyy-MM-dd HH:mm:ss.SSS'Z'"
 
     def parse(date: String): Date = {
-      val dateFormatter = new SimpleDateFormat(dateFormatPattern)
+      val dateFormatter = new SimpleDateFormat(dateFormatString)
       dateFormatter.parse(date)
     }
 
     def format(date: Date): String = {
-      val dateFormatter = new SimpleDateFormat(dateFormatPattern)
+      val dateFormatter = new SimpleDateFormat(dateFormatString)
       dateFormatter.format(date)
     }
 
@@ -82,6 +81,7 @@ class CassandraTableReader(
     }
   }
 
+  private val dateFormatString          = setting.dateFormatString
   private val dateFormatter             = new CassandraDateFormatter()
   private val primaryKeyCol             = setting.primaryKeyColumn.getOrElse("")
   private val querying                  = new AtomicBoolean(false)
