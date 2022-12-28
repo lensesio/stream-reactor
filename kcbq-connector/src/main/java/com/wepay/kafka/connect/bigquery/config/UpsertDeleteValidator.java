@@ -67,7 +67,8 @@ public abstract class UpsertDeleteValidator extends MultiPropertyValidator<BigQu
 
     if (mergeInterval != -1 && mergeInterval < 10_000L) {
       logger.warn(String.format(
-              "%s should be at least 10 seconds",
+              "%s should not be set to less than 10 seconds. A validation would be introduced in a future release to " +
+                      "this effect.",
               MERGE_INTERVAL_MS_CONFIG
       ));
     }

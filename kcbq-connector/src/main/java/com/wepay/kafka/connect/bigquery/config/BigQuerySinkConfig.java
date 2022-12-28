@@ -303,9 +303,9 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final ConfigDef.Importance MERGE_INTERVAL_MS_IMPORTANCE = ConfigDef.Importance.LOW;
   private static final String MERGE_INTERVAL_MS_DOC =
       "How often (in milliseconds) to perform a merge flush, if upsert/delete is enabled. Can be set to -1" +
-              " to disable periodic flushing. If enabled should be set to at least 10 seconds(A validation" +
-              " would be introduced in future release to this effect). Either " +MERGE_INTERVAL_MS_CONFIG + " or "
-              + MERGE_RECORDS_THRESHOLD_CONFIG + " must be enabled.";
+              " to disable periodic flushing. Either " +MERGE_INTERVAL_MS_CONFIG + " or "
+              + MERGE_RECORDS_THRESHOLD_CONFIG + ", or both must be enabled.\nThis should not be set to less" +
+              " than 10 seconds. A validation would be introduced in a future release to this effect.";
 
   private static final ConfigDef.Type MERGE_RECORDS_THRESHOLD_TYPE =             ConfigDef.Type.LONG;
   public static final long MERGE_RECORDS_THRESHOLD_DEFAULT =                     -1;
@@ -328,7 +328,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final String MERGE_RECORDS_THRESHOLD_DOC =
       "How many records to write to an intermediate table before performing a merge flush, if " 
       + "upsert/delete is enabled. Can be set to -1 to disable record count-based flushing. Either "
-              + MERGE_INTERVAL_MS_CONFIG + " or " + MERGE_RECORDS_THRESHOLD_CONFIG + " must be enabled.";
+              + MERGE_INTERVAL_MS_CONFIG + " or " + MERGE_RECORDS_THRESHOLD_CONFIG + ", or both must be enabled.";
 
   public static final String THREAD_POOL_SIZE_CONFIG =                  "threadPoolSize";
   private static final ConfigDef.Type THREAD_POOL_SIZE_TYPE =           ConfigDef.Type.INT;
