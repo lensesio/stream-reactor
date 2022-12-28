@@ -19,6 +19,9 @@
 
 package com.wepay.kafka.connect.bigquery.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,6 +42,7 @@ public abstract class UpsertDeleteValidator extends MultiPropertyValidator<BigQu
       MERGE_INTERVAL_MS_CONFIG, MERGE_RECORDS_THRESHOLD_CONFIG, KAFKA_KEY_FIELD_NAME_CONFIG
   ));
 
+  private static final Logger logger = LoggerFactory.getLogger(UpsertDeleteValidator.class);
   @Override
   protected Collection<String> dependents() {
     return DEPENDENTS;
@@ -58,6 +62,13 @@ public abstract class UpsertDeleteValidator extends MultiPropertyValidator<BigQu
           "%s and %s cannot both be -1",
           MERGE_INTERVAL_MS_CONFIG,
           MERGE_RECORDS_THRESHOLD_CONFIG
+      ));
+    }
+
+    if (mergeInterval != -1 && mergeInterval < 10_000L) {
+      logger.warn(String.format(
+              "%s should be at least 10 seconds",
+              MERGE_INTERVAL_MS_CONFIG
       ));
     }
 

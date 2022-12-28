@@ -282,6 +282,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
       + "suffix.";
 
   public static final String MERGE_INTERVAL_MS_CONFIG =                    "mergeIntervalMs";
+  public static final String MERGE_RECORDS_THRESHOLD_CONFIG =                    "mergeRecordsThreshold";
   private static final ConfigDef.Type MERGE_INTERVAL_MS_TYPE =              ConfigDef.Type.LONG;
   public static final long MERGE_INTERVAL_MS_DEFAULT =                     60_000L;
   private static final ConfigDef.Validator MERGE_INTERVAL_MS_VALIDATOR =   ConfigDef.LambdaValidator.with(
@@ -301,10 +302,11 @@ public class BigQuerySinkConfig extends AbstractConfig {
   );
   private static final ConfigDef.Importance MERGE_INTERVAL_MS_IMPORTANCE = ConfigDef.Importance.LOW;
   private static final String MERGE_INTERVAL_MS_DOC =
-      "How often (in milliseconds) to perform a merge flush, if upsert/delete is enabled. Can be "
-      + "set to -1 to disable periodic flushing.";
+      "How often (in milliseconds) to perform a merge flush, if upsert/delete is enabled. Can be set to -1" +
+              " to disable periodic flushing. If enabled should be set to at least 10 seconds(A validation" +
+              " would be introduced in future release to this effect). Either " +MERGE_INTERVAL_MS_CONFIG + " or "
+              + MERGE_RECORDS_THRESHOLD_CONFIG + " must be enabled.";
 
-  public static final String MERGE_RECORDS_THRESHOLD_CONFIG =                    "mergeRecordsThreshold";
   private static final ConfigDef.Type MERGE_RECORDS_THRESHOLD_TYPE =             ConfigDef.Type.LONG;
   public static final long MERGE_RECORDS_THRESHOLD_DEFAULT =                     -1;
   private static final ConfigDef.Validator MERGE_RECORDS_THRESHOLD_VALIDATOR =   ConfigDef.LambdaValidator.with(
@@ -325,7 +327,8 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final ConfigDef.Importance MERGE_RECORDS_THRESHOLD_IMPORTANCE = ConfigDef.Importance.LOW;
   private static final String MERGE_RECORDS_THRESHOLD_DOC =
       "How many records to write to an intermediate table before performing a merge flush, if " 
-      + "upsert/delete is enabled. Can be set to -1 to disable record count-based flushing.";
+      + "upsert/delete is enabled. Can be set to -1 to disable record count-based flushing. Either "
+              + MERGE_INTERVAL_MS_CONFIG + " or " + MERGE_RECORDS_THRESHOLD_CONFIG + " must be enabled.";
 
   public static final String THREAD_POOL_SIZE_CONFIG =                  "threadPoolSize";
   private static final ConfigDef.Type THREAD_POOL_SIZE_TYPE =           ConfigDef.Type.INT;
