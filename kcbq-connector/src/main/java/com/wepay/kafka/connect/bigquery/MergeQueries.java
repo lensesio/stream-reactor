@@ -110,6 +110,10 @@ public class MergeQueries {
   }
 
   public void mergeFlush(TableId intermediateTable) {
+    if(mergeBatches.isCurrentBatchEmpty(intermediateTable)){
+      logger.debug("Merge flush is not performed as the current batch is empty.");
+      return;
+    }
     final TableId destinationTable = mergeBatches.destinationTableFor(intermediateTable);
     final int batchNumber = mergeBatches.incrementBatch(intermediateTable);
     logger.trace("Triggering merge flush from {} to {} for batch {}",
