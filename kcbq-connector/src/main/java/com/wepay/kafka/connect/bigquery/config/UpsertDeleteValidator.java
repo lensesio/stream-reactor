@@ -43,6 +43,7 @@ public abstract class UpsertDeleteValidator extends MultiPropertyValidator<BigQu
   ));
 
   private static final Logger logger = LoggerFactory.getLogger(UpsertDeleteValidator.class);
+
   @Override
   protected Collection<String> dependents() {
     return DEPENDENTS;
