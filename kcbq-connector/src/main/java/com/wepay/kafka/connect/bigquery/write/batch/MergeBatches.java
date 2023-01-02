@@ -191,6 +191,20 @@ public class MergeBatches {
   }
 
   /**
+   * Checks if current batch of intermediate table has no records so far
+   * @param intermediateTable the table whose current batch needs to be checked
+   * @return true if no records, else false
+   */
+  public boolean isCurrentBatchEmpty(TableId intermediateTable) {
+    Batch currentBatch;
+    AtomicInteger batchCount = batchNumbers.get(intermediateTable);
+    synchronized (batchCount) {
+      currentBatch = batch(intermediateTable, batchCount.get());
+    }
+    return currentBatch == null || currentBatch.total.get() == 0L;
+  }
+  
+  /**
    * Increment the batch number for the given table, and return the old batch number.
    * @param intermediateTable the table whose batch number should be incremented
    * @return the batch number for the table, pre-increment
