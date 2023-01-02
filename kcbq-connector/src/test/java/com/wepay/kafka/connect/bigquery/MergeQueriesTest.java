@@ -26,6 +26,7 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import com.wepay.kafka.connect.bigquery.write.batch.KCBQThreadPoolExecutor;
 import com.wepay.kafka.connect.bigquery.write.batch.MergeBatches;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,6 +36,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -50,6 +52,7 @@ public class MergeQueriesTest {
   private static final TableId INTERMEDIATE_TABLE = TableId.of("ds1", "t_tmp_6_uuid_epoch");
   private static final Schema INTERMEDIATE_TABLE_SCHEMA = constructIntermediateTable();
 
+  private static final SinkRecord TEST_SINK_RECORD = new SinkRecord("test", 0, null, null, null, null, 0);
   @Mock private MergeBatches mergeBatches;
   @Mock private KCBQThreadPoolExecutor executor;
   @Mock private BigQuery bigQuery;
@@ -65,6 +68,11 @@ public class MergeQueriesTest {
     return new MergeQueries(
         KEY, insertPartitionTime, upsert, delete, mergeBatches, executor, bigQuery, schemaManager, context
     );
+  }
+
+  private void initialiseMergeBatches() {
+    mergeBatches = new MergeBatches("_tmp_6_uuid_epoch");
+    mergeBatches.intermediateTableFor(DESTINATION_TABLE);
   }
 
   private static Schema constructIntermediateTable() {
@@ -307,6 +315,25 @@ public class MergeQueriesTest {
     // No difference in batch clearing between upsert, delete, and both, or with or without partition time
     String actualQuery = MergeQueries.batchClearQuery(INTERMEDIATE_TABLE, BATCH_NUMBER);
     assertEquals(expectedQuery, actualQuery);
+  }
+
+  @Test
+  public void testNoEmptyBatchCreation() {
+    initialiseMergeBatches();
+
+    mergeQueries(false, true, true).mergeFlush(INTERMEDIATE_TABLE);
+
+    assertEquals(0, mergeBatches.incrementBatch(INTERMEDIATE_TABLE));
+  }
+
+  @Test
+  public void testBatchCreation() {
+    initialiseMergeBatches();
+
+    mergeBatches.addToBatch(TEST_SINK_RECORD,INTERMEDIATE_TABLE, new HashMap<>());
+    mergeQueries(false, true, true).mergeFlush(INTERMEDIATE_TABLE);
+
+    assertEquals(1, mergeBatches.incrementBatch(INTERMEDIATE_TABLE));
   }
 
   private String table(TableId table) {
