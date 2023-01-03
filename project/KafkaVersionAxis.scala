@@ -67,10 +67,10 @@ object KafkaVersionAxis {
       kafkaRow(KafkaVersionAxis("3.1.0"), scalaVersions = Seq("2.13.8"), ideSkipModule = false, settings: _*)
 
     def kafkaRow(
-                  kafkaVersionAxis: KafkaVersionAxis,
-                  scalaVersions:    Seq[String],
-                  ideSkipModule:   Boolean,
-                  settings:         Def.SettingsDefinition*,
+      kafkaVersionAxis: KafkaVersionAxis,
+      scalaVersions:    Seq[String],
+      ideSkipModule:    Boolean,
+      settings:         Def.SettingsDefinition*,
     ): ProjectMatrix =
       p.customRow(
         scalaVersions = scalaVersions,
