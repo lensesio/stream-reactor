@@ -5,10 +5,6 @@ import org.scalatest.matchers.should.Matchers
 
 class PartitionExtractorTest extends AnyFlatSpec with Matchers {
 
-  //"RegexPartitionExtractor" should "extract path" in {
-  //val partitionExtractor = new RegexPartitionExtractor("")
-  //}
-
   "HierarchicalPartitionExtractor" should "extract path" in {
     val hierarchicalPath   = "streamReactorBackups/myTopic/1/2.json"
     val partitionExtractor = new HierarchicalPartitionExtractor()

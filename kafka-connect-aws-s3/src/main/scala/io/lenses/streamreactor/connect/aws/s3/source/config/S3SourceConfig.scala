@@ -18,7 +18,8 @@ package io.lenses.streamreactor.connect.aws.s3.source.config
 import com.datamountaineer.kcql.Kcql
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config.getString
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.AWS_REGION
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_REGEX
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_TYPE
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
@@ -34,8 +35,8 @@ object S3SourceConfig {
       SourceBucketOptions(
         s3ConfigDefBuilder,
         PartitionExtractor(
-          getString(parsedValues, AWS_REGION).getOrElse("none"),
-          getString(parsedValues, AWS_REGION),
+          getString(parsedValues, SOURCE_PARTITION_EXTRACTOR_TYPE).getOrElse("none"),
+          getString(parsedValues, SOURCE_PARTITION_EXTRACTOR_REGEX),
         ),
       ),
     )
