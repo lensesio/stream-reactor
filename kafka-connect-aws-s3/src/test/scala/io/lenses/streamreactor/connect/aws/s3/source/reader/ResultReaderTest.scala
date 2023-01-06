@@ -31,7 +31,7 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
   private val targetTopic         = "MyTargetTopic"
   private val limit               = 10
   private val reader              = mock[S3FormatStreamReader[_ <: SourceData]]
-  private implicit val partitionFn : String => Option[Int] = _ => Option.empty
+  private implicit val partitionFn: String => Option[Int] = _ => Option.empty
 
   private val result1 = StringSourceData("myJsonStuff0", 0)
   private val result2 = StringSourceData("myJsonStuff1", 1)

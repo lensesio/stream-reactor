@@ -30,10 +30,10 @@ import org.scalatest.matchers.should.Matchers
 
 class S3ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with LazyLogging with BeforeAndAfter {
 
-  private implicit val storageInterface: StorageInterface = mock[StorageInterface]
-  private implicit val sourceLister:     S3SourceLister   = mock[S3SourceLister]
-  private implicit val partitionFn : String => Option[Int] = _ => Option.empty
-  private val fileQueueProcessor:        SourceFileQueue  = mock[SourceFileQueue]
+  private implicit val storageInterface: StorageInterface      = mock[StorageInterface]
+  private implicit val sourceLister:     S3SourceLister        = mock[S3SourceLister]
+  private implicit val partitionFn:      String => Option[Int] = _ => Option.empty
+  private val fileQueueProcessor:        SourceFileQueue       = mock[SourceFileQueue]
   private val readerCreator = mock[ReaderCreator]
 
   private val sourceName                    = "mySource"
@@ -89,7 +89,7 @@ class S3ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers wi
     val pollResults = PollResults(
       resultList    = Vector(StringSourceData("abc", 0)),
       bucketAndPath = firstFileBucketAndPath,
-      targetTopic = "target",
+      targetTopic   = "target",
     )
 
     val resultReader = mock[ResultReader]
