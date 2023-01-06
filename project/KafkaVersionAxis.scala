@@ -4,6 +4,7 @@ import sbt.Keys._
 import sbt.VirtualAxis._
 import sbt._
 import sbt.internal.ProjectMatrix
+import sbtide.Keys._
 
 //2.8.1, 3.1.0
 
@@ -60,14 +61,15 @@ object KafkaVersionAxis {
       axes.collectFirst { case ScalaVersionAxis(_, scalaVersionCompat) => scalaVersionCompat }.forall(_ == "2.13")
 
     def kafka2Row(settings: Def.SettingsDefinition*): ProjectMatrix =
-      kafkaRow(KafkaVersionAxis("2.8.1"), scalaVersions = Seq("2.13.8"), settings: _*)
+      kafkaRow(KafkaVersionAxis("2.8.1"), scalaVersions = Seq("2.13.8"), ideSkipModule = true, settings: _*)
 
     def kafka3Row(settings: Def.SettingsDefinition*): ProjectMatrix =
-      kafkaRow(KafkaVersionAxis("3.1.0"), scalaVersions = Seq("2.13.8"), settings: _*)
+      kafkaRow(KafkaVersionAxis("3.1.0"), scalaVersions = Seq("2.13.8"), ideSkipModule = false, settings: _*)
 
     def kafkaRow(
       kafkaVersionAxis: KafkaVersionAxis,
       scalaVersions:    Seq[String],
+      ideSkipModule:    Boolean,
       settings:         Def.SettingsDefinition*,
     ): ProjectMatrix =
       p.customRow(
@@ -81,6 +83,7 @@ object KafkaVersionAxis {
             ),
             name := name.value + kafkaVersionAxis.directorySuffix,
             moduleName := moduleName.value + kafkaVersionAxis.directorySuffix,
+            ideSkipProject := ideSkipModule,
             libraryDependencies ++= kafkaVersionAxis.deps(),
             libraryDependencies ++= kafkaVersionAxis.testDeps(),
             dependencyOverrides ++= kafkaVersionAxis.fixedDeps(),

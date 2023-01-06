@@ -42,7 +42,7 @@ object Dependencies {
     val scalaCheckVersion              = "1.16.0"
     val randomDataGeneratorVersion     = "2.8"
 
-    val enumeratumVersion = "1.7.0"
+    val enumeratumVersion = "1.7.2"
 
     val confluentVersion = "6.2.0"
 
@@ -56,7 +56,7 @@ object Dependencies {
     val `cats-effect-testing` = "1.4.0"
 
     val urlValidatorVersion       = "1.7"
-    val circeVersion              = "0.14.1"
+    val circeVersion              = "0.14.3"
     val circeGenericExtrasVersion = "0.14.1"
     val circeJsonSchemaVersion    = "0.2.0"
 
@@ -641,7 +641,7 @@ trait Dependencies {
       moduleId: ModuleID => moduleId.extra("scope" -> "test")
     }
 
-  val testCommonDeps: Seq[ModuleID] = Seq(
+  val testCommonDeps: Seq[ModuleID] = baseDeps ++ Seq(
     scalatest,
     json4sJackson,
     json4sNative,

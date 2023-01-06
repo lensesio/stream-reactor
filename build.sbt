@@ -163,6 +163,7 @@ lazy val elastic6 = (projectMatrix in file("kafka-connect-elastic6"))
 
 lazy val elastic7 = (projectMatrix in file("kafka-connect-elastic7"))
   .dependsOn(common)
+  .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
       Seq(
@@ -182,6 +183,7 @@ lazy val elastic7 = (projectMatrix in file("kafka-connect-elastic7"))
   .configureAssembly()
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectElastic7TestDeps)
+  .configureFunctionalTests()
   .enablePlugins(PackPlugin)
 
 lazy val hazelcast = (projectMatrix in file("kafka-connect-hazelcast"))
@@ -442,12 +444,11 @@ lazy val redis = (projectMatrix in file("kafka-connect-redis"))
   .enablePlugins(PackPlugin)
 
 lazy val `test-common` = (projectMatrix in file("test-common"))
-  .dependsOn(`aws-s3`)
   .settings(
     settings ++
       Seq(
         name := "test-common",
-        libraryDependencies ++= testCommonDeps,
+        libraryDependencies ++= baseTestDeps ++ testCommonDeps,
       ),
   )
   .kafka2Row()
