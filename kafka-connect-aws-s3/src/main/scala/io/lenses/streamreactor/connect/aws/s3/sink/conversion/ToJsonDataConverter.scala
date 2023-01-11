@@ -30,6 +30,7 @@ object ToJsonDataConverter {
     case MapSinkData(map, _)          => convertMap(map)
     case ArraySinkData(iArray, _)     => convertArray(iArray)
     case ByteArraySinkData(bArray, _) => ByteBuffer.wrap(bArray)
+    case NullSinkData(_)              => null
     case _                            => throw new IllegalArgumentException("Complex array writing not currently supported")
   }.asJava
 
