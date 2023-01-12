@@ -16,6 +16,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import io.lenses.streamreactor.connect.aws.s3.config.Format.Parquet
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.{LZ4, LZO, UNCOMPRESSED}
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
@@ -33,6 +35,9 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
   val parquetFormatReader = new ParquetFormatReader()
 
   "convert" should "write byte output stream with json for a single record" in {
+
+    implicit val compressionCodec = UNCOMPRESSED.toCodec()
+
     val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
     parquetFormatWriter.write(None, StructSinkData(users.head), topic)
@@ -52,10 +57,9 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
   }
 
   "convert" should "write byte output stream with json for multiple records" in {
-    val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
-    val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
-    firstUsers.foreach(e => parquetFormatWriter.write(None, StructSinkData(e), topic))
-    parquetFormatWriter.complete() should be(Right(()))
+    implicit val compressionCodec = UNCOMPRESSED.toCodec()
+
+    writeToParquetFile
 
     val bytes          = localFileAsBytes(localFile)
     val genericRecords = parquetFormatReader.read(bytes)
@@ -64,6 +68,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
   }
 
   "convert" should "throw an error when writing array without schema" in {
+    implicit val compressionCodec = UNCOMPRESSED.toCodec()
 
     val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
@@ -81,6 +86,8 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
   }
 
   "convert" should "throw an exception when trying to write map values" in {
+    implicit val compressionCodec = UNCOMPRESSED.toCodec()
+
     val mapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA)
 
     val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
@@ -97,6 +104,42 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
       ),
       topic,
     ).left.value.getMessage should be("Avro schema must be a record.")
+    parquetFormatWriter.complete() should be(Right(()))
+  }
+
+  // LZ4 and LZO need some extra native libs available on the environment and is out of scope
+  // for getting this working.
+  Parquet.availableCompressionCodecs.removedAll(Set(UNCOMPRESSED, LZ4, LZO)).keys.foreach {
+    codec =>
+      "convert" should s"compress output stream with $codec" in {
+        val uncompressedBytes = {
+          writeToParquetFile(UNCOMPRESSED.toCodec())
+          localFileAsBytes(localFile)
+        }
+        val compressedBytes = {
+          writeToParquetFile(codec.toCodec())
+          localFileAsBytes(localFile)
+        }
+        val genericRecords = parquetFormatReader.read(compressedBytes)
+        genericRecords.size should be(3)
+
+        logger.info(
+          "Uncompressed: {}, Compressed: {}, Smaller: {}",
+          uncompressedBytes.length,
+          compressedBytes.length,
+          compressedBytes.length < uncompressedBytes.length,
+        )
+
+        // compression isn't always smaller, especially small samples
+        compressedBytes.length shouldNot be(uncompressedBytes.length)
+      }
+  }
+
+  private def writeToParquetFile(implicit compressionCodec: CompressionCodec) = {
+    val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
+
+    val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
+    firstUsers.foreach(u => parquetFormatWriter.write(None, StructSinkData(u), topic) should be (Right(())))
     parquetFormatWriter.complete() should be(Right(()))
   }
 }

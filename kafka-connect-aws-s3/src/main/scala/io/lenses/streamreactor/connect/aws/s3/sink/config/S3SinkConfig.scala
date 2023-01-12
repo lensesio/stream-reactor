@@ -29,6 +29,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.LocalStagingArea
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink._
@@ -42,7 +43,12 @@ object S3SinkConfig {
         s3ConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
         s3ConfigDefBuilder.getBoolean(SEEK_MIGRATION),
       )
-    } yield S3SinkConfig(S3Config(s3ConfigDefBuilder.getParsedValues), sinkBucketOptions, offsetSeekerOptions)
+    } yield S3SinkConfig(
+      S3Config(s3ConfigDefBuilder.getParsedValues),
+      sinkBucketOptions,
+      offsetSeekerOptions,
+      s3ConfigDefBuilder.getCompressionCodec(),
+    )
 
 }
 
@@ -50,6 +56,7 @@ case class S3SinkConfig(
   s3Config:            S3Config,
   bucketOptions:       Set[SinkBucketOptions] = Set.empty,
   offsetSeekerOptions: OffsetSeekerOptions,
+  compressionCodec:    CompressionCodec,
 )
 
 object SinkBucketOptions extends LazyLogging {
@@ -57,7 +64,7 @@ object SinkBucketOptions extends LazyLogging {
   def apply(config: S3ConfigDefBuilder): Either[Throwable, Set[SinkBucketOptions]] =
     config.getKCQL.map { kcql: Kcql =>
       val formatSelection: FormatSelection = Option(kcql.getStoredAs) match {
-        case Some(format: String) => FormatSelection(format)
+        case Some(format: String) => FormatSelection.fromString(format)
         case None => FormatSelection(Json, Set.empty)
       }
 

@@ -32,6 +32,7 @@ object Dependencies {
     "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
     "conjars" at "https://conjars.org/repo",
     "jitpack" at "https://jitpack.io",
+    "twitter" at "https://maven.twttr.com/",
   )
 
   object Versions {
@@ -88,6 +89,11 @@ object Dependencies {
     val mockitoScalaVersion = "1.16.55"
     val snakeYamlVersion    = "1.30"
     val openCsvVersion      = "5.6"
+
+    val xzVersion     = "1.9"
+    val lz4Version    = "1.8.0"
+    val lzoVersion    = "0.4.19"
+    val brotliVersion = "0.1.1"
 
     val californiumVersion  = "3.5.0"
     val bouncyCastleVersion = "1.70"
@@ -420,6 +426,11 @@ object Dependencies {
   lazy val jedis = "redis.clients"        % "jedis" % jedisVersion
   lazy val gson  = "com.google.code.gson" % "gson"  % gsonVersion
 
+  lazy val xz     = "org.tukaani"               % "xz"           % xzVersion
+  lazy val lz4    = "org.lz4"                   % "lz4-java"     % lz4Version
+  lazy val lzo    = "com.hadoop.gplcompression" % "hadoop-lzo"   % lzoVersion
+  lazy val brotli = "com.github.rdblue"         % "brotli-codec" % brotliVersion
+
   def hiveExcludes(moduleID: ModuleID): ModuleID =
     moduleID
       .excludeAll(ExclusionRule(organization = "org.mortbay.jetty"))
@@ -524,7 +535,11 @@ trait Dependencies {
     guiceAssistedInject,
   )
 
-  val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainersScala)
+  val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(
+    testContainersScala,
+    xz,
+    brotli,
+  )
 
   val kafkaConnectCassandraDeps: Seq[ModuleID] = Seq(
     cassandraDriver,

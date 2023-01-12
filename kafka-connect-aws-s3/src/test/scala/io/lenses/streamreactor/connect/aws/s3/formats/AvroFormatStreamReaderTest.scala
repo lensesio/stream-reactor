@@ -16,6 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.checkRecord
@@ -28,6 +29,8 @@ import org.scalatest.matchers.should.Matchers
 import java.io.ByteArrayInputStream
 
 class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
+
+  private implicit val compressionCodec = UNCOMPRESSED.toCodec()
 
   "read" should "read through all records" in {
 

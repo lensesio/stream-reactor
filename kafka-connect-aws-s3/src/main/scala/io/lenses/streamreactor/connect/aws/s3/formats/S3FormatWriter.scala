@@ -44,6 +44,9 @@ object S3FormatWriter {
     formatSelection: FormatSelection,
     path:            File,
     topicPartition:  TopicPartition,
+  )(
+    implicit
+    compressionCodec: CompressionCodec,
   ): Either[SinkError, S3FormatWriter] = {
     for {
       outputStream <- Try(() => new BuildLocalOutputStream(toBufferedOutputStream(path), topicPartition))
@@ -54,6 +57,9 @@ object S3FormatWriter {
   def apply(
     formatInfo:     FormatSelection,
     outputStreamFn: () => S3OutputStream,
+  )(
+    implicit
+    compressionCodec: CompressionCodec,
   ): S3FormatWriter =
     formatInfo.format match {
       case Parquet => new ParquetFormatWriter(outputStreamFn)

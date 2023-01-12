@@ -16,7 +16,10 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
-import io.lenses.streamreactor.connect.aws.s3.model.{ArraySinkData, MapSinkData, NullSinkData, StringSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.ArraySinkData
+import io.lenses.streamreactor.connect.aws.s3.model.MapSinkData
+import io.lenses.streamreactor.connect.aws.s3.model.NullSinkData
+import io.lenses.streamreactor.connect.aws.s3.model.StringSinkData
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -62,7 +65,7 @@ class ToJsonDataConverterTest extends AnyFlatSpec with Matchers {
         MapSinkData(
           Map(StringSinkData("abc") -> StringSinkData("def")),
         ),
-        NullSinkData(None)
+        NullSinkData(None),
       ),
     ) should be(List(Map("abc" -> "def").asJava, null).asJava)
 

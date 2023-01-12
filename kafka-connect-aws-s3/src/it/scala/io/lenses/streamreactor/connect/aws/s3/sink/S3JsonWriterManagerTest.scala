@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.AwsClient
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
@@ -35,6 +36,8 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
   import helper._
   import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
+
+  private val compressionCodec = UNCOMPRESSED.toCodec()
 
   private val TopicName  = "myTopic"
   private val PathPrefix = "streamReactorBackups"
@@ -61,6 +64,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         ), // JsonS3Format
       ),
       offsetSeekerOptions = OffsetSeekerOptions(5, true),
+      compressionCodec,
     )
 
     val sink = S3WriterManager.from(config, "sinkName")
@@ -99,6 +103,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         ),
       ),
       offsetSeekerOptions = OffsetSeekerOptions(5, true),
+      compressionCodec,
     )
 
     val sink = S3WriterManager.from(config, "sinkName")

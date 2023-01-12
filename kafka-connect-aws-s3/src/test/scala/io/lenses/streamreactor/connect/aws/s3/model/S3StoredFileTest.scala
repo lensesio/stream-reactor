@@ -30,7 +30,7 @@ class S3StoredFileTest extends AnyFlatSpec with Matchers {
   "apply" should "parse hierarchical scheme" in {
 
     implicit val hierarchical: HierarchicalS3FileNamingStrategy =
-      new HierarchicalS3FileNamingStrategy(FormatSelection("`JSON`"))
+      new HierarchicalS3FileNamingStrategy(FormatSelection.fromString("`JSON`"))
 
     S3StoredFile("dragon-test/myTopicName/1/1.json") should be(Some(S3StoredFile(
       "dragon-test/myTopicName/1/1.json",
@@ -41,7 +41,7 @@ class S3StoredFileTest extends AnyFlatSpec with Matchers {
   "apply" should "parse partitioned scheme" in {
 
     implicit val partitioned: PartitionedS3FileNamingStrategy = new PartitionedS3FileNamingStrategy(
-      FormatSelection("`JSON`"),
+      FormatSelection.fromString("`JSON`"),
       PartitionSelection(Seq.empty[PartitionField]),
     )
 

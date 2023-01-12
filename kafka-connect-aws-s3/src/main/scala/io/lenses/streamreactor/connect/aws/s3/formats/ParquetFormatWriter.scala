@@ -15,9 +15,10 @@
  */
 
 package io.lenses.streamreactor.connect.aws.s3.formats
-
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.parquet.ParquetOutputFile
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.SinkData
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
@@ -29,10 +30,26 @@ import org.apache.parquet.avro.AvroParquetWriter
 import org.apache.parquet.hadoop.ParquetWriter
 import org.apache.parquet.hadoop.ParquetWriter.DEFAULT_BLOCK_SIZE
 import org.apache.parquet.hadoop.ParquetWriter.DEFAULT_PAGE_SIZE
+import org.apache.parquet.hadoop.metadata.{ CompressionCodecName => ParquetCompressionCodecName }
 
 import scala.util.Try
 
-class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter with LazyLogging {
+class ParquetFormatWriter(outputStreamFn: () => S3OutputStream)(implicit compressionCodec: CompressionCodec)
+    extends S3FormatWriter
+    with LazyLogging {
+
+  private val parquetCompressionCodec: ParquetCompressionCodecName = {
+    compressionCodec.compressionCodec match {
+      case UNCOMPRESSED => ParquetCompressionCodecName.UNCOMPRESSED
+      case SNAPPY       => ParquetCompressionCodecName.SNAPPY
+      case GZIP         => ParquetCompressionCodecName.GZIP
+      case LZO          => ParquetCompressionCodecName.LZO
+      case BROTLI       => ParquetCompressionCodecName.BROTLI
+      case LZ4          => ParquetCompressionCodecName.LZ4
+      case ZSTD         => ParquetCompressionCodecName.ZSTD
+      case _            => throw new IllegalArgumentException("No or invalid compressionCodec specified")
+    }
+  }
 
   private var outputStream: S3OutputStream = _
 
@@ -41,7 +58,7 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
   override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] =
     Try {
 
-      logger.debug("AvroFormatWriter - write")
+      logger.debug("ParquetFormatWriter - write")
 
       val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(valueSinkData)
       if (writer == null) {
@@ -63,6 +80,7 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
       .withRowGroupSize(DEFAULT_BLOCK_SIZE.toLong)
       .withPageSize(DEFAULT_PAGE_SIZE)
       .withSchema(schema)
+      .withCompressionCodec(parquetCompressionCodec)
       .build()
 
   }

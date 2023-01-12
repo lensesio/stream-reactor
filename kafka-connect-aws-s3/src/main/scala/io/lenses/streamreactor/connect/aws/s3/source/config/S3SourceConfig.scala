@@ -18,11 +18,12 @@ package io.lenses.streamreactor.connect.aws.s3.source.config
 import com.datamountaineer.kcql.Kcql
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config.getString
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_REGEX
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_TYPE
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_REGEX
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_TYPE
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionExtractor
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 
@@ -39,14 +40,16 @@ object S3SourceConfig {
           getString(parsedValues, SOURCE_PARTITION_EXTRACTOR_REGEX),
         ),
       ),
+      s3ConfigDefBuilder.getCompressionCodec(),
     )
 
   }
 }
 
 case class S3SourceConfig(
-  s3Config:      S3Config,
-  bucketOptions: Seq[SourceBucketOptions] = Seq.empty,
+  s3Config:         S3Config,
+  bucketOptions:    Seq[SourceBucketOptions] = Seq.empty,
+  compressionCodec: CompressionCodec,
 )
 
 case class SourceBucketOptions(
@@ -73,7 +76,7 @@ object SourceBucketOptions {
 
       kcql: Kcql =>
         val formatSelection: FormatSelection = Option(kcql.getStoredAs) match {
-          case Some(format: String) => FormatSelection(format)
+          case Some(format: String) => FormatSelection.fromString(format)
           case None => FormatSelection(Json, Set.empty)
         }
         SourceBucketOptions(

@@ -1,3 +1,5 @@
+package io.lenses.streamreactor.connect.aws.s3.formats
+
 /*
  * Copyright 2020 Lenses.io
  *
@@ -13,8 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package io.lenses.streamreactor.connect.aws.s3.formats
 
 import org.apache.avro.file.DataFileReader
 import org.apache.avro.file.SeekableByteArrayInput
