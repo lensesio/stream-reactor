@@ -38,10 +38,11 @@
 
         <avro.version>1.8.1</avro.version>
         <confluent.version>5.1.1</confluent.version>
-        <debezium.version>0.6.1</debezium.version>
+        <debezium.version>0.6.2</debezium.version>
         <errorprone.version>2.3.2</errorprone.version>
         <google.auth.version>0.16.1</google.auth.version>
         <google.cloud.version>1.79.0</google.cloud.version>
+        <google.protobuf.version>3.19.6</google.protobuf.version>
         <gson.version>2.8.5</gson.version>
         <jackson.version>2.9.9</jackson.version>
         <kafka.version>1.1.1</kafka.version>
@@ -216,6 +217,11 @@
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-core</artifactId>
                 <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${google.protobuf.version}</version>
             </dependency>
 
             <dependency>
