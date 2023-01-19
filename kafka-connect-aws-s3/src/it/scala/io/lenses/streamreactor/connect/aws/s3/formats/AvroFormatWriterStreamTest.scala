@@ -93,7 +93,7 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyC
     val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
 
     val avroFormatWriter = new AvroFormatWriter(() => blobStream)
-    firstUsers.foreach(u => avroFormatWriter.write(None, StructSinkData(u), topic) should be (Right(())))
+    firstUsers.foreach(u => avroFormatWriter.write(None, StructSinkData(u), topic) should be(Right(())))
     avroFormatWriter.complete() should be(Right(()))
   }
 

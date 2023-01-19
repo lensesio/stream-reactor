@@ -17,7 +17,9 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Parquet
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.{LZ4, LZO, UNCOMPRESSED}
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.LZ4
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.LZO
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
@@ -139,7 +141,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
     val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
 
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
-    firstUsers.foreach(u => parquetFormatWriter.write(None, StructSinkData(u), topic) should be (Right(())))
+    firstUsers.foreach(u => parquetFormatWriter.write(None, StructSinkData(u), topic) should be(Right(())))
     parquetFormatWriter.complete() should be(Right(()))
   }
 }

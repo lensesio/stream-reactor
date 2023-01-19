@@ -21,7 +21,7 @@ class MongoDBContainer(
   lazy val hostNetwork = new HostNetwork()
 
   class HostNetwork {
-    val mongoClient = new MongoClient(container.getContainerIpAddress, container.getMappedPort(port))
+    val mongoClient = new MongoClient(container.getHost, container.getMappedPort(port))
   }
 }
 

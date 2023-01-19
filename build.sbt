@@ -1,5 +1,6 @@
 import Dependencies.globalExcludeDeps
 import Dependencies.gson
+import Dependencies.s3Sdk
 import KafkaVersionAxis.ProjectExtension
 import Settings._
 import sbt.Keys.libraryDependencies
@@ -66,6 +67,7 @@ lazy val common = (projectMatrix in file("kafka-connect-common"))
 
 lazy val `aws-s3` = (projectMatrix in file("kafka-connect-aws-s3"))
   .dependsOn(common)
+  .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
       Seq(
@@ -85,6 +87,7 @@ lazy val `aws-s3` = (projectMatrix in file("kafka-connect-aws-s3"))
   .configureAssembly()
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectS3TestDeps)
+  .configureFunctionalTests(kafkaConnectS3FuncTestDeps)
   .enablePlugins(PackPlugin)
 
 lazy val `azure-documentdb` = (projectMatrix in file("kafka-connect-azure-documentdb"))

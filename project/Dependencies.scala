@@ -57,9 +57,10 @@ object Dependencies {
     val `cats-effect-testing` = "1.4.0"
 
     val urlValidatorVersion       = "1.7"
-    val circeVersion              = "0.14.3"
+    val circeVersion              = "0.15.0-M1"
     val circeGenericExtrasVersion = "0.14.1"
     val circeJsonSchemaVersion    = "0.2.0"
+    val shapelessVersion          = "2.3.10"
 
     // build plugins versions
     val silencerVersion         = "1.7.1"
@@ -78,7 +79,7 @@ object Dependencies {
     val jerseyCommonVersion = "3.0.4"
 
     val calciteVersion    = "1.30.0"
-    val awsSdkVersion     = "2.17.174"
+    val awsSdkVersion     = "2.19.17"
     val jCloudsSdkVersion = "2.5.0"
     val guavaVersion      = "31.0.1-jre"
     val guiceVersion      = "5.1.0"
@@ -90,10 +91,9 @@ object Dependencies {
     val snakeYamlVersion    = "1.30"
     val openCsvVersion      = "5.6"
 
-    val xzVersion     = "1.9"
-    val lz4Version    = "1.8.0"
-    val lzoVersion    = "0.4.19"
-    val brotliVersion = "0.1.1"
+    val xzVersion  = "1.9"
+    val lz4Version = "1.8.0"
+    val lzoVersion = "0.4.19"
 
     val californiumVersion  = "3.5.0"
     val bouncyCastleVersion = "1.70"
@@ -101,7 +101,7 @@ object Dependencies {
     val nettyVersion = "4.1.71.Final"
 
     val dropWizardMetricsVersion = "4.2.9"
-    val cassandraDriverVersion   = "3.7.1"
+    val cassandraDriverVersion   = "3.10.0"
     val jsonPathVersion          = "2.7.0"
 
     val cassandraUnitVersion = "4.3.1.0"
@@ -109,7 +109,7 @@ object Dependencies {
     val azureDocumentDbVersion          = "2.6.4"
     val scalaParallelCollectionsVersion = "1.0.4"
     val testcontainersScalaVersion      = "0.40.5"
-    val testcontainersVersion           = "1.16.2"
+    val testcontainersVersion           = "1.17.6"
 
     val hazelCastVersion          = "4.2.5"
     val hazelCastAzureVersion     = "2.1.2"
@@ -238,6 +238,9 @@ object Dependencies {
 
   def confluentAvroConverter(confluentVersion: String): ModuleID =
     confluentExcludes("io.confluent" % "kafka-connect-avro-converter" % confluentVersion)
+
+  def confluentAvroData(confluentVersion: String): ModuleID =
+    confluentExcludes("io.confluent" % "kafka-connect-avro-data" % confluentVersion)
 
   def confluentProtobufConverter(confluentVersion: String): ModuleID =
     confluentExcludes("io.confluent" % "kafka-connect-protobuf-converter" % confluentVersion)
@@ -426,10 +429,9 @@ object Dependencies {
   lazy val jedis = "redis.clients"        % "jedis" % jedisVersion
   lazy val gson  = "com.google.code.gson" % "gson"  % gsonVersion
 
-  lazy val xz     = "org.tukaani"               % "xz"           % xzVersion
-  lazy val lz4    = "org.lz4"                   % "lz4-java"     % lz4Version
-  lazy val lzo    = "com.hadoop.gplcompression" % "hadoop-lzo"   % lzoVersion
-  lazy val brotli = "com.github.rdblue"         % "brotli-codec" % brotliVersion
+  lazy val xz  = "org.tukaani"               % "xz"         % xzVersion
+  lazy val lz4 = "org.lz4"                   % "lz4-java"   % lz4Version
+  lazy val lzo = "com.hadoop.gplcompression" % "hadoop-lzo" % lzoVersion
 
   def hiveExcludes(moduleID: ModuleID): ModuleID =
     moduleID
@@ -535,11 +537,11 @@ trait Dependencies {
     guiceAssistedInject,
   )
 
-  val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(
-    testContainersScala,
-    xz,
-    brotli,
-  )
+  val compressionCodecDeps: Seq[ModuleID] = Seq(xz, lzo, lz4)
+
+  val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ testContainersScala
+
+  val kafkaConnectS3FuncTestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ s3Sdk
 
   val kafkaConnectCassandraDeps: Seq[ModuleID] = Seq(
     cassandraDriver,

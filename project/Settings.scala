@@ -1,3 +1,4 @@
+import com.eed3si9n.jarjarabrams.ShadeRule
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import sbt.Keys._
 import sbt.Compile
@@ -189,9 +190,7 @@ object Settings extends Dependencies {
     val excludePatterns = Set(
       "kafka-client",
       "hadoop-yarn",
-      "avro",
-      "kafka",
-      "confluent",
+      "org.apache.kafka",
       "zookeeper",
       "log4j",
       "junit",
@@ -213,6 +212,12 @@ object Settings extends Dependencies {
             case PathList(ps @ _*) if ps.last == "module-info.class" => MergeStrategy.discard
             case _                                                   => MergeStrategy.first
           },
+          assembly / assemblyShadeRules ++= Seq(
+            ShadeRule.rename("org.apache.avro.**" -> "lshaded.apache.avro.@1").inAll,
+            ShadeRule.rename("io.confluent.**" -> "lshaded.confluent.@1").inAll,
+            ShadeRule.rename("com.fasterxml.**" -> "lshaded.fasterxml.@1").inAll,
+            ShadeRule.rename("org.apache.hadoop" -> "lshaded.apache.hadoop").inAll,
+          ),
         ),
       )
   }
@@ -247,6 +252,7 @@ object Settings extends Dependencies {
               fork := requiresFork,
               testFrameworks := Seq(sbt.TestFrameworks.ScalaTest),
               classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
+              dependencyOverrides ++= testDeps.map(d => d % config),
             ),
           ),
         )
@@ -268,8 +274,8 @@ object Settings extends Dependencies {
   implicit final class FunctionalTestConfigurator(project: ProjectMatrix)
       extends TestConfigurator(project, FunctionalTest) {
 
-    def configureFunctionalTests(): ProjectMatrix =
-      configure(requiresFork = true, testCommonDeps)
+    def configureFunctionalTests(extraDeps: Seq[ModuleID] = Seq.empty): ProjectMatrix =
+      configure(requiresFork = true, testCommonDeps ++ extraDeps)
   }
 
 }

@@ -17,20 +17,41 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.ByteArraySinkData
 import io.lenses.streamreactor.connect.aws.s3.model.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
+import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import org.apache.commons.io.IOUtils
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.io.ByteArrayInputStream
+
 class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
   val bytes:            Array[Byte]       = getPixelBytes
   val byteArrayValue:   ByteArraySinkData = ByteArraySinkData(bytes, None)
   val pixelLengthBytes: Array[Byte]       = ByteArrayUtils.longToByteArray(bytes.length.longValue())
+
+  "round trip" should "round trip" in {
+    val testBytes    = "Sausages".getBytes()
+    val outputStream = new S3ByteArrayOutputStream()
+    val writer       = new BytesFormatWriter(() => outputStream, BytesWriteMode.ValueWithSize)
+    writer.write(Option.empty, ByteArraySinkData(testBytes), Topic("myTopic"))
+    val result = outputStream.toByteArray
+
+    val reader = new BytesFormatWithSizesStreamReader(
+      () => new ByteArrayInputStream(result),
+      () => result.length.toLong,
+      RemoteS3PathLocation.apply("bucket", "path"),
+      BytesWriteMode.ValueWithSize,
+    )
+    val byteArraySourceData = reader.next()
+    byteArraySourceData.representationValue should be(testBytes)
+  }
 
   "convert" should "write a string to byte stream" in {
 

@@ -211,7 +211,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
             throw e;
           case e: InvalidQueryException =>
             logger.error(s"Invalid query inserting <$json> into table <$table>", e)
-            throw new InvalidQueryException(e.getAddress, s"${e.getMessage} (table: $table)", e)
+            throw new InvalidQueryException(e.getEndPoint, s"${e.getMessage} (table: $table)", e)
         }
     }
   }
