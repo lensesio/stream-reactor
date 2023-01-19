@@ -12,17 +12,9 @@ case class KafkaVersionAxis(kafkaVersion: String) extends WeakAxis {
 
   val confluentPlatformVersion: String = kafkaVersion match {
     case "2.8.1" => "6.2.2"
-    case "3.1.0" => "7.0.1"
+    case "3.3.0" => "7.3.1"
     case _       => throw new IllegalStateException("unexpected kafka version")
   }
-
-  private val jacksonVersion: String = kafkaVersion match {
-    case "2.8.1" => "2.10.5"
-    case "3.1.0" => "2.12.6"
-    case _       => throw new IllegalStateException("unexpected kafka version")
-  }
-
-  private val jacksonDatabindVersion: String = if (jacksonVersion == "2.12.6") "2.12.6.1" else "2.10.5.1"
 
   private val kafkaVersionCompat: String = kafkaVersion.split("\\.", 3).take(2).mkString("-")
 
@@ -39,19 +31,19 @@ case class KafkaVersionAxis(kafkaVersion: String) extends WeakAxis {
     confluentAvroConverter(confluentPlatformVersion),
     confluentAvroData(confluentPlatformVersion),
     confluentJsonSchemaSerializer(confluentPlatformVersion),
-    jacksonDatabind(jacksonDatabindVersion),
-    jacksonModuleScala(jacksonVersion),
+    jacksonDatabind,
+    jacksonModuleScala,
   )
 
   def fixedDeps(): Seq[ModuleID] = Seq(
-    jacksonCore(jacksonVersion),
-    jacksonDatabind(jacksonDatabindVersion),
-    jacksonDataformatCbor(jacksonVersion),
-    jacksonModuleScala(jacksonVersion),
+    jacksonCore,
+    jacksonDatabind,
+    jacksonDataformatCbor,
+    jacksonModuleScala,
     confluentProtobufConverter(confluentPlatformVersion),
   )
 
-  def ideEnable(): Boolean = kafkaVersion == "3.1.0"
+  def ideEnable(): Boolean = kafkaVersion == "3.3.0"
 }
 
 object KafkaVersionAxis {
@@ -62,10 +54,10 @@ object KafkaVersionAxis {
       axes.collectFirst { case ScalaVersionAxis(_, scalaVersionCompat) => scalaVersionCompat }.forall(_ == "2.13")
 
     def kafka2Row(settings: Def.SettingsDefinition*): ProjectMatrix =
-      kafkaRow(KafkaVersionAxis("2.8.1"), scalaVersions = Seq("2.13.8"), ideSkipModule = true, settings: _*)
+      kafkaRow(KafkaVersionAxis("2.8.1"), scalaVersions = Seq("2.13.10"), ideSkipModule = true, settings: _*)
 
     def kafka3Row(settings: Def.SettingsDefinition*): ProjectMatrix =
-      kafkaRow(KafkaVersionAxis("3.1.0"), scalaVersions = Seq("2.13.8"), ideSkipModule = false, settings: _*)
+      kafkaRow(KafkaVersionAxis("3.3.0"), scalaVersions = Seq("2.13.10"), ideSkipModule = false, settings: _*)
 
     def kafkaRow(
       kafkaVersionAxis: KafkaVersionAxis,

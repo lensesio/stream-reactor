@@ -11,7 +11,7 @@ import sbt.internal.ProjectMatrixReference
 
 import java.io.File
 
-ThisBuild / scalaVersion := "2.13.8"
+ThisBuild / scalaVersion := "2.13.10"
 
 javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")
 

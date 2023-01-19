@@ -79,17 +79,18 @@ object Dependencies {
     val jerseyCommonVersion = "3.0.4"
 
     val calciteVersion    = "1.30.0"
-    val awsSdkVersion     = "2.19.17"
+    val awsSdkVersion     = "2.19.19"
     val jCloudsSdkVersion = "2.5.0"
     val guavaVersion      = "31.0.1-jre"
     val guiceVersion      = "5.1.0"
     val javaxBindVersion  = "2.3.1"
 
     val kcqlVersion         = "2.9.1"
+    val jacksonVersion      = "2.14.1"
     val json4sVersion       = "4.0.5"
     val mockitoScalaVersion = "1.16.55"
-    val snakeYamlVersion    = "1.30"
-    val openCsvVersion      = "5.6"
+    val snakeYamlVersion    = "1.33"
+    val openCsvVersion      = "5.7.1"
 
     val xzVersion  = "1.9"
     val lz4Version = "1.8.0"
@@ -106,9 +107,9 @@ object Dependencies {
 
     val cassandraUnitVersion = "4.3.1.0"
 
-    val azureDocumentDbVersion          = "2.6.4"
+    val azureDocumentDbVersion          = "2.6.5"
     val scalaParallelCollectionsVersion = "1.0.4"
-    val testcontainersScalaVersion      = "0.40.5"
+    val testcontainersScalaVersion      = "0.40.12"
     val testcontainersVersion           = "1.17.6"
 
     val hazelCastVersion          = "4.2.5"
@@ -147,7 +148,7 @@ object Dependencies {
 
     val zookeeperServerVersion = "3.8.0"
 
-    val mongoDbVersion         = "3.12.10"
+    val mongoDbVersion         = "3.12.11"
     val mongoDbEmbeddedVersion = "3.4.5"
 
     val jedisVersion = "3.6.3"
@@ -334,12 +335,12 @@ object Dependencies {
 
   lazy val json4sNative  = "org.json4s" %% "json4s-native"  % json4sVersion
   lazy val json4sJackson = "org.json4s" %% "json4s-jackson" % json4sVersion
-  def jacksonCore(jacksonVersion:     String): ModuleID = "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion
-  def jacksonDatabind(jacksonVersion: String): ModuleID =
+  val jacksonCore: ModuleID = "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion
+  val jacksonDatabind: ModuleID =
     "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion
-  def jacksonDataformatCbor(jacksonVersion: String): ModuleID =
+  val jacksonDataformatCbor: ModuleID =
     "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion
-  def jacksonModuleScala(jacksonVersion: String): ModuleID =
+  val jacksonModuleScala: ModuleID =
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion
 
   lazy val snakeYaml = "org.yaml"    % "snakeyaml" % snakeYamlVersion
@@ -568,7 +569,7 @@ trait Dependencies {
   // Find a more elegant solution to pick the right dependencies.  May require some refactoring.
   val kafkaConnectJmsDeps: Seq[ModuleID] = Seq(
     jmsApi,
-    confluentProtobufConverter(KafkaVersionAxis("3.1.0").confluentPlatformVersion),
+    confluentProtobufConverter(KafkaVersionAxis("3.3.0").confluentPlatformVersion),
     protoc,
     googleProtobuf,
   )
