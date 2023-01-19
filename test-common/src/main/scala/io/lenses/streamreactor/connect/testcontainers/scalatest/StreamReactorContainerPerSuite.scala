@@ -94,7 +94,7 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
 
     val dir: String = detectUserOrGithubDir
 
-    val directorySuffix = sys.env.getOrElse("KAFKA_VERSION_DIRECTORY_SUFFIX", "-kafka-3.1")
+    val directorySuffix = sys.env.getOrElse("KAFKA_VERSION_DIRECTORY_SUFFIX", "-kafka-3.3")
     val regex           = s".*$connectorModule$directorySuffix.*.jar"
     val files: util.List[Path] = Files.find(
       Paths.get(String.join(File.separator, dir, "kafka-connect-" + connectorModule, "target")),
