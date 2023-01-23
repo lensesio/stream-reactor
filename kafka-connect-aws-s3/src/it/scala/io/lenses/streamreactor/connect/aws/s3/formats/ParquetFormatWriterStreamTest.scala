@@ -17,9 +17,7 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Parquet
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.LZ4
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.LZO
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.{BROTLI, LZ4, LZO, UNCOMPRESSED}
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
@@ -111,7 +109,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
 
   // LZ4 and LZO need some extra native libs available on the environment and is out of scope
   // for getting this working.
-  Parquet.availableCompressionCodecs.removedAll(Set(UNCOMPRESSED, LZ4, LZO)).keys.foreach {
+  Parquet.availableCompressionCodecs.removedAll(Set(UNCOMPRESSED, LZ4, LZO, BROTLI)).keys.foreach {
     codec =>
       "convert" should s"compress output stream with $codec" in {
         val uncompressedBytes = {
