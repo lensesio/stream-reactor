@@ -102,7 +102,7 @@ object Dependencies {
     val nettyVersion = "4.1.71.Final"
 
     val dropWizardMetricsVersion = "4.2.9"
-    val cassandraDriverVersion   = "3.10.0"
+    val cassandraDriverVersion   = "3.11.3"
     val jsonPathVersion          = "2.7.0"
 
     val cassandraUnitVersion = "4.3.1.0"
