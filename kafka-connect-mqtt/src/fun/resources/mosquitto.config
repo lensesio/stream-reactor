@@ -1,0 +1,5 @@
+allow_anonymous true
+listener 1883
+persistence true
+persistence_location /mosquitto/data/
+log_dest file /mosquitto/log/mosquitto.log
