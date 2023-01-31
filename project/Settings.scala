@@ -204,7 +204,7 @@ object Settings extends Dependencies {
           assembly / assemblyExcludedJars := {
             val cp: Classpath = (assembly / fullClasspath).value
             cp filter { f =>
-              excludePatterns.exists(f.data.getName.contains)
+              excludePatterns.exists(f.data.getName.contains) && !f.data.getName.contains("avro4s")
             }
           },
           assembly / assemblyMergeStrategy := {
