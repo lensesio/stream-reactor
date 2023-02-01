@@ -284,8 +284,15 @@ class S3WriterManager(
 
 object S3WriterManager extends LazyLogging {
 
-  def from(config: S3SinkConfig, sinkName: String)(implicit storageInterface: StorageInterface): S3WriterManager = {
+  def from(
+    config:   S3SinkConfig,
+    sinkName: String,
+  )(
+    implicit
+    storageInterface: StorageInterface,
+  ): S3WriterManager = {
 
+    implicit val compressionCodec = config.compressionCodec
     val bucketAndPrefixFn: TopicPartition => Either[SinkError, RemoteS3RootLocation] = topicPartition => {
       bucketOptsForTopic(config, topicPartition.topic) match {
         case Some(sBO) => sBO.bucketAndPrefix.asRight

@@ -37,6 +37,7 @@ case class KafkaVersionAxis(kafkaVersion: String) extends WeakAxis {
   def deps(): Seq[ModuleID] = Seq(
     kafkaConnectJson(kafkaVersion),
     confluentAvroConverter(confluentPlatformVersion),
+    confluentAvroData(confluentPlatformVersion),
     confluentJsonSchemaSerializer(confluentPlatformVersion),
     jacksonDatabind(jacksonDatabindVersion),
     jacksonModuleScala(jacksonVersion),

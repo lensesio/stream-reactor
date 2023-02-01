@@ -18,11 +18,18 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.BZIP2
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.DEFLATE
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.SNAPPY
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.XZ
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.ZSTD
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.avro.Schema
+import org.apache.avro.file.CodecFactory
 import org.apache.avro.file.DataFileWriter
 import org.apache.avro.generic.GenericDatumWriter
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
@@ -31,7 +38,22 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter with LazyLogging {
+class AvroFormatWriter(outputStreamFn: () => S3OutputStream)(implicit compressionCodec: CompressionCodec)
+    extends S3FormatWriter
+    with LazyLogging {
+
+  private val avroCompressionCodec: CodecFactory = {
+    compressionCodec match {
+      case CompressionCodec(UNCOMPRESSED, _)      => CodecFactory.nullCodec()
+      case CompressionCodec(SNAPPY, _)            => CodecFactory.snappyCodec()
+      case CompressionCodec(BZIP2, _)             => CodecFactory.bzip2Codec()
+      case CompressionCodec(ZSTD, Some(level))    => CodecFactory.zstandardCodec(level)
+      case CompressionCodec(DEFLATE, Some(level)) => CodecFactory.deflateCodec(level)
+      case CompressionCodec(XZ, Some(level))      => CodecFactory.xzCodec(level)
+      case _ =>
+        throw new IllegalArgumentException("No or invalid compressionCodec specified - does codec require a level?")
+    }
+  }
 
   private var avroWriterState: Option[AvroWriterState] = None
 
@@ -73,9 +95,10 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
   override def getPointer: Long = avroWriterState.fold(0L)(_.pointer)
 
   class AvroWriterState(outputStream: S3OutputStream, connectSchema: Option[ConnectSchema]) {
-    private val schema:     Schema                     = ToAvroDataConverter.convertSchema(connectSchema)
-    private val writer:     GenericDatumWriter[AnyRef] = new GenericDatumWriter[AnyRef](schema)
-    private val fileWriter: DataFileWriter[AnyRef]     = new DataFileWriter[AnyRef](writer).create(schema, outputStream)
+    private val schema: Schema                     = ToAvroDataConverter.convertSchema(connectSchema)
+    private val writer: GenericDatumWriter[AnyRef] = new GenericDatumWriter[AnyRef](schema)
+    private val fileWriter: DataFileWriter[AnyRef] =
+      new DataFileWriter[AnyRef](writer).setCodec(avroCompressionCodec).create(schema, outputStream)
 
     def write(valueStruct: SinkData): Unit = {
 
@@ -96,5 +119,4 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
     def pointer: Long = outputStream.getPointer
 
   }
-
 }

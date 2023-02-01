@@ -16,6 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
@@ -30,6 +31,7 @@ import org.scalatest.matchers.should.Matchers
 import java.nio.ByteBuffer
 
 class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
+  private implicit val compressionCodec = UNCOMPRESSED.toCodec()
 
   private val arraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA)
 

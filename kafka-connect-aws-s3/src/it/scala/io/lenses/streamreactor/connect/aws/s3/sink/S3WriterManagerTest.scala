@@ -26,7 +26,7 @@ class S3WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContaine
       "myLovelySink",
       _ => DefaultCommitPolicy(Some(5L), Some(FiniteDuration(5, SECONDS)), Some(5L)).asRight,
       _ => RemoteS3RootLocation("bucketAndPath:location").asRight,
-      _ => new HierarchicalS3FileNamingStrategy(FormatSelection("csv")).asRight,
+      _ => new HierarchicalS3FileNamingStrategy(FormatSelection.fromString("csv")).asRight,
       (_, _) => new File("blah.csv").asRight,
       (_, _, _) => RemoteS3PathLocation("bucket", "path").asRight,
       (_, _) => mock[S3FormatWriter].asRight,

@@ -20,7 +20,7 @@ class RedisContainer(
   lazy val hostNetwork = new HostNetwork()
 
   class HostNetwork {
-    val jedisClient = new Jedis(getContainerIpAddress, getMappedPort(port))
+    val jedisClient = new Jedis(getHost, getMappedPort(port))
   }
 }
 

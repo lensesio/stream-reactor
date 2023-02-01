@@ -35,7 +35,7 @@ class SchemaRegistryContainer(
 
 object SchemaRegistryContainer {
   private val dockerImage                     = DockerImageName.parse("confluentinc/cp-schema-registry")
-  private val defaultConfluentPlatformVersion = sys.env.getOrElse("CONFLUENT_VERSION", "6.1.0")
+  private val defaultConfluentPlatformVersion = sys.env.getOrElse("CONFLUENT_VERSION", "7.0.1")
   private val defaultNetworkAlias             = "schema-registry"
   private val defaultPort                     = 8081
 

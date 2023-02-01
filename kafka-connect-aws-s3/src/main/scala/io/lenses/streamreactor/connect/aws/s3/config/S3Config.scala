@@ -25,6 +25,8 @@ import enumeratum.Enum
 import enumeratum.EnumEntry
 import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.storage.JCloudsStorageInterface
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
@@ -101,7 +103,9 @@ object FormatOptions extends Enum[FormatOptions] {
 
 case object FormatSelection {
 
-  def apply(formatAsString: String): FormatSelection = {
+  def fromString(
+    formatAsString: String,
+  ): FormatSelection = {
     val withoutTicks = formatAsString.replace("`", "")
     val split        = withoutTicks.split("_")
 
@@ -126,7 +130,9 @@ case class FormatSelection(
   formatOptions: Set[FormatOptions] = Set.empty,
 )
 
-sealed trait Format extends EnumEntry
+sealed trait Format extends EnumEntry {
+  def availableCompressionCodecs: Map[CompressionCodecName, Boolean] = Map(UNCOMPRESSED -> false)
+}
 
 object Format extends Enum[Format] {
 
@@ -134,9 +140,31 @@ object Format extends Enum[Format] {
 
   case object Json extends Format
 
-  case object Avro extends Format
+  case object Avro extends Format {
 
-  case object Parquet extends Format
+    override def availableCompressionCodecs: Map[CompressionCodecName, Boolean] = Map(
+      UNCOMPRESSED -> false,
+      DEFLATE      -> true,
+      BZIP2        -> false,
+      SNAPPY       -> false,
+      XZ           -> true,
+      ZSTD         -> true,
+    )
+  }
+
+  case object Parquet extends Format {
+
+    override def availableCompressionCodecs: Map[CompressionCodecName, Boolean] = Set(
+      UNCOMPRESSED,
+      SNAPPY,
+      GZIP,
+      LZO,
+      BROTLI,
+      LZ4,
+      ZSTD,
+    ).map(_ -> false).toMap
+
+  }
 
   case object Text extends Format
 

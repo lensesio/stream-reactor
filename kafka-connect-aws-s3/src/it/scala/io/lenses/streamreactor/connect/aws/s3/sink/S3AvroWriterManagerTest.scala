@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.AwsClient
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
@@ -39,6 +40,7 @@ import org.scalatest.matchers.should.Matchers
 class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
   import helper._
+  private val compressionCodec = UNCOMPRESSED.toCodec()
 
   private val TopicName        = "myTopic"
   private val PathPrefix       = "streamReactorBackups"
@@ -64,6 +66,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
     ),
     offsetSeekerOptions = OffsetSeekerOptions(5, true),
+    compressionCodec    = compressionCodec,
   )
 
   "avro sink" should "write 2 records to avro format in s3" in {

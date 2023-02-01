@@ -6,6 +6,8 @@ import io.lenses.streamreactor.connect.testcontainers.CassandraContainer.default
 import org.testcontainers.containers.{ CassandraContainer => JavaCassandraContainer }
 import org.testcontainers.utility.DockerImageName
 
+import scala.annotation.nowarn
+
 class CassandraContainer(
   dockerImage:           DockerImageName,
   dockerTag:             String         = defaultTag,
@@ -22,6 +24,7 @@ class CassandraContainer(
   if (initScript.isDefined) container.withInitScript(initScript.get)
   if (enableJmxReporting) container.withJmxReporting(enableJmxReporting)
 
+  @nowarn
   def cluster: Cluster = container.getCluster
 
   def username: String = container.getUsername

@@ -4,6 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats._
 import io.lenses.streamreactor.connect.aws.s3.model.BytesWriteMode.KeyAndValueWithSizes
 import io.lenses.streamreactor.connect.aws.s3.model.ByteArraySinkData
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.schema
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.topic
@@ -20,6 +21,7 @@ import java.io.File
 import java.util.UUID
 
 class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
+  private implicit val compressionCodec = UNCOMPRESSED.toCodec()
 
   private val temporaryDirName: String = UUID.randomUUID().toString
 

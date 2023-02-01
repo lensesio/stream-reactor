@@ -3,9 +3,9 @@ package io.lenses.streamreactor.connect.testcontainers
 import com.github.dockerjava.api.model.Ulimit
 import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer.defaultNetworkAlias
 import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer.defaultRestPort
+import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.KafkaContainer
-import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
 
 import java.time.Duration
@@ -17,7 +17,9 @@ class KafkaConnectContainer(
   connectPluginPath:       Option[String] = None,
   kafkaContainer:          KafkaContainer,
   schemaRegistryContainer: Option[SchemaRegistryContainer],
-) extends GenericContainer[KafkaConnectContainer](DockerImageName.parse(dockerImage)) {
+  providedJars:            Seq[String],
+) extends GenericContainer[KafkaConnectContainer](DockerImageName.parse(dockerImage))
+    with RootContainerExec {
   require(kafkaContainer != null, "You must define the kafka container")
   require(schemaRegistryContainer != null, "You must define the schema registry container")
 
@@ -30,6 +32,13 @@ class KafkaConnectContainer(
     .withStartupTimeout(Duration.ofSeconds(120))
   withCreateContainerCmdModifier { cmd =>
     val _ = cmd.getHostConfig.withUlimits(Array(new Ulimit("nofile", 65536L, 65536L)))
+  }
+  providedJars.foreach {
+    jarLocation =>
+      withFileSystemBind(
+        jarLocation,
+        s"/usr/share/java/kafka/${jarLocation.substring(jarLocation.lastIndexOf("/"))}",
+      )
   }
 
   connectPluginPath.foreach(f => withFileSystemBind(f, "/usr/share/plugins"))
@@ -63,8 +72,10 @@ class KafkaConnectContainer(
   class HostNetwork {
     def restEndpointUrl: String = s"http://$getHost:${getMappedPort(restPort)}"
   }
-}
 
+  def installPackage(pkg: String): ExecResult =
+    rootExecInContainer(container = this, commands = Seq(s"microdnf install $pkg"))
+}
 object KafkaConnectContainer {
   private val dockerImage = DockerImageName.parse("confluentinc/cp-kafka-connect")
   private val defaultConfluentPlatformVersion: String = sys.env.getOrElse("CONFLUENT_VERSION", "6.1.0")
@@ -78,6 +89,7 @@ object KafkaConnectContainer {
     connectPluginPath:        Option[String]                  = None,
     kafkaContainer:           KafkaContainer,
     schemaRegistryContainer:  Option[SchemaRegistryContainer] = None,
+    providedJars:             Seq[String]                     = Seq.empty,
   ): KafkaConnectContainer =
     new KafkaConnectContainer(dockerImage.withTag(confluentPlatformVersion).toString,
                               networkAlias,
@@ -85,5 +97,6 @@ object KafkaConnectContainer {
                               connectPluginPath,
                               kafkaContainer,
                               schemaRegistryContainer,
+                              providedJars,
     )
 }
