@@ -96,6 +96,10 @@ object Dependencies {
     val lz4Version = "1.8.0"
     val lzoVersion = "0.4.19"
 
+    val xzVersion  = "1.9"
+    val lz4Version = "1.8.0"
+    val lzoVersion = "0.4.19"
+
     val californiumVersion  = "3.5.0"
     val bouncyCastleVersion = "1.70"
     //val nettyVersion = "4.0.47.Final"
