@@ -283,6 +283,7 @@ lazy val kudu = (projectMatrix in file("kafka-connect-kudu"))
 
 lazy val mqtt = (projectMatrix in file("kafka-connect-mqtt"))
   .dependsOn(common)
+  .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
       Seq(
@@ -301,6 +302,7 @@ lazy val mqtt = (projectMatrix in file("kafka-connect-mqtt"))
   .kafka3Row()
   .configureAssembly()
   .configureTests(baseTestDeps)
+  .configureFunctionalTests()
   .configureIntegrationTests(kafkaConnectMqttTestDeps)
   .disableParallel()
   .enablePlugins(PackPlugin)
