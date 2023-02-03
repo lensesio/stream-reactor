@@ -35,7 +35,7 @@ class Elastic7Test extends AnyFlatSpec with StreamReactorContainerPerSuite with 
 
   behavior of "Elastic7 connector"
 
-  it should "sink records" ignore {
+  it should "sink records" in {
     Using.resource(createProducer[String, Order](classOf[StringSerializer], classOf[KafkaJsonSerializer[Order]])) {
       producer =>
         withConnector("elastic-sink", sinkConfig(), 30L) {

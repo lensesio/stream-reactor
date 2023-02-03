@@ -19,7 +19,6 @@
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
 import com.datamountaineer.streamreactor.connect.jms.ItTestBase
-import com.datamountaineer.streamreactor.connect.jms.Using
 import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
 import com.datamountaineer.streamreactor.connect.jms.sink.AvroDeserializer
@@ -43,8 +42,10 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.reflect.io.Path
+import scala.util.Try
+import scala.util.Using.{ resource => using }
 
-class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItTestBase with BeforeAndAfterAll {
+class MessageConverterTest extends AnyWordSpec with Matchers with ItTestBase with BeforeAndAfterAll {
   val converter = new AvroMessageConverter()
 
   override def afterAll(): Unit = {
@@ -137,7 +138,14 @@ class MessageConverterTest extends AnyWordSpec with Matchers with Using with ItT
           val map2 = msg.getObject("mapNonStringKeys").asInstanceOf[java.util.Map[Int, Int]].asScala.toMap
           map2 shouldBe Map(1 -> 1)
 
+          ()
+        } { e =>
+          Try(e.close())
+          ()
         }
+      } { e =>
+        Try(e.close())
+        ()
       }
     }
   }

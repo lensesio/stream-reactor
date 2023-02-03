@@ -31,8 +31,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.Jedis
 
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
-import scala.jdk.CollectionConverters.SetHasAsScala
 
 class RedisInsertSortedSetTest extends AnyWordSpec with Matchers with MockitoSugar with ForAllTestContainer {
 

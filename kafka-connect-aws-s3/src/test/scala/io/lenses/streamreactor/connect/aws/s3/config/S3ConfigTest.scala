@@ -38,7 +38,7 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
   }
 
   "S3Config" should "get password value" in {
-    val map = Map(
+    val map = Map[String, Any](
       "definedPass"   -> new Password("hello"),
       "emptyPass"     -> new Password(""),
       "definedString" -> "defined",
@@ -53,7 +53,7 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
   }
 
   "S3Config" should "get boolean value" in {
-    val map = Map(
+    val map = Map[String, Any](
       "trueBoolProp"    -> true,
       "falseBoolProp"   -> false,
       "trueStringProp"  -> "true",
@@ -88,7 +88,7 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
     }
   }
 
-  val retryValuesMap = Table(
+  val retryValuesMap = Table[String, Any, Any, RetryConfig](
     ("testName", "retries", "interval", "result"),
     ("noret-noint", 0, 0, RetryConfig(0, 0)),
     ("ret-and-int", 1, 2, RetryConfig(1, 2)),

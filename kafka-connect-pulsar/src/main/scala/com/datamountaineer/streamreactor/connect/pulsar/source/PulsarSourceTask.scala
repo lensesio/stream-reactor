@@ -23,11 +23,11 @@ import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarConfigConst
 import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSourceConfig
 import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSourceSettings
 import com.typesafe.scalalogging.StrictLogging
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask
 import org.apache.pulsar.client.api.PulsarClient
 import org.apache.pulsar.client.impl.auth.AuthenticationTls
-import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
 import java.util
 import java.util.UUID

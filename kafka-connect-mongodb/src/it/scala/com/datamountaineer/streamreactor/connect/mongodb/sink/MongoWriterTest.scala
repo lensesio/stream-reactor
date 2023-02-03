@@ -25,17 +25,12 @@ import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfigConst
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import com.datamountaineer.streamreactor.connect.mongodb.Json
 import com.datamountaineer.streamreactor.connect.mongodb.Transaction
+import com.dimafeng.testcontainers.MongoDBContainer
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.InsertOneModel
 import com.mongodb.AuthenticationMechanism
 import com.mongodb.MongoClient
-import de.flapdoodle.embed.mongo.config.MongodConfig
-import de.flapdoodle.embed.mongo.config.Net
-import de.flapdoodle.embed.mongo.distribution.Version
-import de.flapdoodle.embed.mongo.MongodExecutable
-import de.flapdoodle.embed.mongo.MongodProcess
-import de.flapdoodle.embed.mongo.MongodStarter
-import de.flapdoodle.embed.process.runtime.Network
+import com.mongodb.MongoClientOptions
 import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.data.Schema
@@ -47,7 +42,7 @@ import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
 import scala.collection.immutable.ListMap
@@ -55,29 +50,19 @@ import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
+class MongoWriterTest extends MongoDBContainer with AnyWordSpecLike with Matchers with BeforeAndAfterAll {
 
-  val starter = MongodStarter.getDefaultInstance
-  val port    = 12345
-  val mongodConfig = MongodConfig.builder()
-    .version(Version.Main.PRODUCTION)
-    .net(new Net(port, Network.localhostIsIPv6()))
-    .build()
-
-  var mongodExecutable: Option[MongodExecutable] = None
-  var mongod:           Option[MongodProcess]    = None
-  var mongoClient:      Option[MongoClient]      = None
+  var mongoClient: Option[MongoClient] = None
 
   override def beforeAll(): Unit = {
-    mongodExecutable = Some(starter.prepare(mongodConfig))
-    mongod           = mongodExecutable.map(_.start())
-    mongoClient      = Some(new MongoClient("localhost", port))
+    container.start()
+    mongoClient = Some(new MongoClient(s"localhost:${container.getFirstMappedPort}",
+                                       MongoClientOptions.builder().retryWrites(false).build(),
+    ))
   }
 
-  override def afterAll(): Unit = {
-    mongod.foreach(_.stop())
-    mongodExecutable.foreach(_.stop())
-  }
+  override def afterAll(): Unit =
+    container.stop()
 
   // create SinkRecord from JSON strings, no schema
   def createSRStringJson(json: String, recordNum: Int): SinkRecord =
@@ -96,6 +81,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
         Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy(),
+        taskRetries = 0,
       )
 
       val records = for (i <- 1L to 4L) yield {

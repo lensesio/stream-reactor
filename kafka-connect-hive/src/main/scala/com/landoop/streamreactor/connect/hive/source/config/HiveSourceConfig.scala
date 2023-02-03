@@ -64,10 +64,9 @@ object HiveSourceConfig {
       hadoopConfiguration =
         HadoopConfiguration.from(config, HiveSourceConfigConstants),
       pollSize = props
-        .getOrElse(HiveSourceConfigConstants.PollSizeKey, 1024)
-        .toString
+        .getOrElse(HiveSourceConfigConstants.PollSizeKey, "1024")
         .toInt,
-      refreshFrequency = props.getOrElse(HiveSourceConfigConstants.RefreshFrequencyKey, 0).toString.toInt,
+      refreshFrequency = props.getOrElse(HiveSourceConfigConstants.RefreshFrequencyKey, "0").toInt,
     )
   }
 }

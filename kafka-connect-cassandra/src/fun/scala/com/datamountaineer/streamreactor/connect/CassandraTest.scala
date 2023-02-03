@@ -20,7 +20,7 @@ import scala.util.Using
 
 class CassandraTest extends AnyFlatSpec with StreamReactorContainerPerSuite with Matchers {
 
-  lazy val container: CassandraContainer = new CassandraContainer(DockerImageName.parse("cassandra:3.11.2"))
+  lazy val container: CassandraContainer = new CassandraContainer(DockerImageName.parse("cassandra:4.1"))
     .withNetwork(network)
 
   override def schemaRegistryContainer(): Option[SchemaRegistryContainer] = None

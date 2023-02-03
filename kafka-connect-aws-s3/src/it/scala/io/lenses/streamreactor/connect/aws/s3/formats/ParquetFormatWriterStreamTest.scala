@@ -17,7 +17,10 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Parquet
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.{BROTLI, LZ4, LZO, UNCOMPRESSED}
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.BROTLI
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.LZ4
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.LZO
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest

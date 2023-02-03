@@ -27,7 +27,7 @@ class RegexPartitionExtractor(
   pathRegex: String,
 ) extends PartitionExtractor
     with LazyLogging {
-  private val rc = pathRegex.r()
+  private val rc = pathRegex.r
   logger.debug("Initialised RegexPartitionExtractor with regex {}", pathRegex)
   override def extract(remoteS3Path: String): Option[Int] =
     Option(rc.findAllIn(remoteS3Path).group(1)).flatMap(_.toIntOption)

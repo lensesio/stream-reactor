@@ -19,7 +19,6 @@
 package com.datamountaineer.streamreactor.connect.jms.sink
 
 import com.datamountaineer.streamreactor.connect.jms.ItTestBase
-import com.datamountaineer.streamreactor.connect.jms.Using
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.IntNode
 import org.apache.activemq.ActiveMQConnectionFactory
@@ -40,8 +39,9 @@ import javax.jms.Session
 import javax.jms.TextMessage
 import scala.language.reflectiveCalls
 import scala.reflect.io.Path
+import scala.util.Using.{ resource => using }
 
-class JMSSinkTaskTest extends ItTestBase with Using with BeforeAndAfterAll with MockitoSugar {
+class JMSSinkTaskTest extends ItTestBase with BeforeAndAfterAll with MockitoSugar {
   val broker = new BrokerService()
   broker.setPersistent(false)
   broker.setUseJmx(false)

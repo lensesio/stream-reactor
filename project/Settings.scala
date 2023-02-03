@@ -1,21 +1,20 @@
+import Dependencies.globalExcludeDeps
 import com.eed3si9n.jarjarabrams.ShadeRule
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import sbt.Keys._
 import sbt.Compile
+import sbt.Def
 import sbt._
-import sbt.internal.ProjectMatrix
 import sbtassembly.AssemblyKeys._
 import sbtassembly.MergeStrategy
 import sbtassembly.PathList
-import sbtprotoc.ProtocPlugin
-import sbtprotoc.ProtocPlugin.autoImport._
-import scalafix.sbt.ScalafixPlugin.autoImport.scalafixSemanticdb
 
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.Calendar
 
 object Settings extends Dependencies {
+
   // keep the SNAPSHOT version numerically higher than the latest release.
   val majorVersion        = "1.0"
   val nextSnapshotVersion = "1.1"
@@ -51,7 +50,7 @@ object Settings extends Dependencies {
 
     val commonOptions = Seq(
       // standard settings
-      "-target:jvm-1.8",
+      "-release:11",
       "-encoding",
       "UTF-8",
       "-unchecked",
@@ -66,8 +65,7 @@ object Settings extends Dependencies {
       // private options
       "-Ybackend-parallelism",
       availableProcessors,
-      "-Yrangepos",                 // required by SemanticDB compiler plugin
-      "-P:semanticdb:synthetics:on",// required by scala-collection-migrations
+      "-Yrangepos", // required by SemanticDB compiler plugin
     )
 
     val lintings = List(
@@ -115,72 +113,35 @@ object Settings extends Dependencies {
   private val commonSettings: Seq[Setting[_]] = Seq(
     organization := "com.celonis.kafka.connect",
     version := artifactVersion,
-    scalaOrganization := scalaOrganizationUsed,
-    scalaVersion := scalaVersionUsed,
+    scalaOrganization := Dependencies.scalaOrganization,
+    scalaVersion := Dependencies.scalaVersion,
     headerLicense := None,
     headerEmptyLine := false,
     isSnapshot := artifactVersion.contains("SNAPSHOT"),
-    semanticdbEnabled := true,
-    semanticdbVersion := scalafixSemanticdb.revision,
+    javacOptions ++= Seq("--release", "11"),
   )
 
   val settings: Seq[Setting[_]] = commonSettings ++ Seq(
-    scalacOptions ++= {
-      CrossVersion.partialVersion(scalaVersion.value) match {
-        //case Some((2, n)) if n <= 12 =>
-        //  ScalacFlags.Scala212.options
-        case _ =>
-          ScalacFlags.Scala213.options
-      }
-    },
+    scalacOptions ++= ScalacFlags.Scala213.options,
     Compile / console / scalacOptions := ScalacFlags.commonOptions,
     Global / cancelable := true,
     Compile / fork := true,
     Compile / connectInput := true,
     Compile / outputStrategy := Some(StdoutOutput),
     resolvers ++= projectResolvers,
-    crossScalaVersions := supportedScalaVersionsUsed,
+    crossScalaVersions := Dependencies.supportedScalaVersions,
+    excludeDependencies ++= globalExcludeDeps,
   )
 
-  implicit final class ParallelDestroyer(project: ProjectMatrix) {
-    def disableParallel(): ProjectMatrix =
+  implicit final class ParallelDestroyer(project: Project) {
+    def disableParallel(): Project =
       project.settings(settings ++ Seq(
         Test / parallelExecution := false,
         IntegrationTest / parallelExecution := false,
       ))
   }
 
-  implicit final class ProtobufSourceConfigurator(project: ProjectMatrix) {
-
-    def writePlaceholderClassForScope(configuration: Configuration) =
-      configuration / sourceGenerators += Def.task {
-        val protoPackage = "com.datamountaineer.streamreactor.example"
-        val scalaFile =
-          (configuration / sourceManaged).value / "com" / "datamountaineer" / "streamreactor" / "example" / "_ONLY_FOR_INTELLIJ.scala"
-        IO.write(
-          scalaFile,
-          s"""package $protoPackage
-             |
-             |private class _ONLY_FOR_INTELLIJ
-             |""".stripMargin,
-        )
-        Seq(scalaFile)
-      }.taskValue
-
-    def configureProtobufSources(): ProjectMatrix =
-      project.enablePlugins(ProtocPlugin).settings(
-        settings ++
-          Seq(
-            Compile / PB.protoSources := Seq(project.base / "src" / "test" / "resources" / "example"),
-            Compile / PB.targets := Seq(
-              PB.gens.java -> (Test / sourceManaged).value,
-            ),
-            writePlaceholderClassForScope(Test),
-          ),
-      )
-  }
-
-  implicit final class AssemblyConfigurator(project: ProjectMatrix) {
+  implicit final class AssemblyConfigurator(project: Project) {
 
     val excludeFilePatterns = Set(".MF", ".RSA", ".DSA", ".SF")
 
@@ -189,6 +150,7 @@ object Settings extends Dependencies {
 
     val excludePatterns = Set(
       "kafka-client",
+      "kafka-connect-json",
       "hadoop-yarn",
       "org.apache.kafka",
       "zookeeper",
@@ -196,14 +158,14 @@ object Settings extends Dependencies {
       "junit",
     )
 
-    def configureAssembly(): ProjectMatrix =
+    def configureAssembly(): Project =
       project.settings(
         settings ++ Seq(
           assembly / assemblyOutputPath := file(target.value + "/libs/" + (assembly / assemblyJarName).value),
           assembly / assemblyExcludedJars := {
             val cp: Classpath = (assembly / fullClasspath).value
             cp filter { f =>
-              excludePatterns.exists(f.data.getName.contains)
+              excludePatterns.exists(f.data.getName.contains) && (!f.data.getName.contains("slf4j"))
             }
           },
           assembly / assemblyMergeStrategy := {
@@ -222,7 +184,7 @@ object Settings extends Dependencies {
       )
   }
 
-  implicit final class ProjectFilterOps(project: ProjectMatrix) {
+  implicit final class ProjectFilterOps(project: Project) {
 
     def containsDir(dir: String): Boolean = {
       val files = Files.find(
@@ -234,48 +196,70 @@ object Settings extends Dependencies {
     }
   }
 
-  val FunctionalTest: Configuration = config("fun").extend(Test).describedAs("Runs system and acceptance tests")
+  val IntegrationTest: Configuration = config("it").extend(Test).describedAs("Runs integration tests")
+  val FunctionalTest:  Configuration = config("fun").extend(Test).describedAs("Runs system and acceptance tests")
 
   sealed abstract class TestConfigurator(
-    project:         ProjectMatrix,
+    project:         Project,
     config:          Configuration,
     defaultSettings: Seq[Def.Setting[_]] = Defaults.testSettings,
   ) {
 
-    protected def configure(requiresFork: Boolean, testDeps: Seq[ModuleID]): ProjectMatrix =
+    protected def configure(
+      requiresFork: Boolean,
+      testDeps:     Seq[ModuleID],
+    ): Project =
       project
         .configs(config)
         .settings(
           libraryDependencies ++= testDeps.map(d => d % config),
-          inConfig(config)(
+          inConfig(config) {
+            Defaults.testSettings ++
+              Seq(
+                config / unmanagedSourceDirectories ++= Seq(project.base / "src" / config.name / "scala"),
+                config / unmanagedSourceDirectories ++= (Test / sourceDirectories).value,
+                config / unmanagedResourceDirectories ++= (Test / resourceDirectories).value,
+              )
+
             defaultSettings ++ Seq(
               fork := requiresFork,
               testFrameworks := Seq(sbt.TestFrameworks.ScalaTest),
               classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
-              dependencyOverrides ++= testDeps.map(d => d % config),
-            ),
-          ),
+            )
+          },
         )
+
   }
 
-  implicit final class UnitTestConfigurator(project: ProjectMatrix) extends TestConfigurator(project, Test) {
+  implicit final class UnitTestConfigurator(project: Project) extends TestConfigurator(project, Test) {
 
-    def configureTests(testDeps: Seq[ModuleID]): ProjectMatrix =
+    def configureTests(
+      testDeps: Seq[ModuleID],
+    ): Project =
       configure(requiresFork = false, testDeps)
   }
 
-  implicit final class IntegrationTestConfigurator(project: ProjectMatrix)
+  implicit final class IntegrationTestConfigurator(project: Project)
       extends TestConfigurator(project, IntegrationTest) {
 
-    def configureIntegrationTests(testDeps: Seq[ModuleID]): ProjectMatrix =
+    def configureIntegrationTests(testDeps: Seq[ModuleID]): Project =
       configure(requiresFork = false, testDeps)
   }
 
-  implicit final class FunctionalTestConfigurator(project: ProjectMatrix)
-      extends TestConfigurator(project, FunctionalTest) {
+  implicit final class FunctionalTestConfigurator(project: Project) extends TestConfigurator(project, FunctionalTest) {
 
-    def configureFunctionalTests(extraDeps: Seq[ModuleID] = Seq.empty): ProjectMatrix =
-      configure(requiresFork = true, testCommonDeps ++ extraDeps)
+    def configureFunctionalTests(extraDeps: Seq[ModuleID] = Seq.empty): Project = {
+      val proj = configure(requiresFork = true, testCommonDeps ++ extraDeps)
+      sys.env.get("CONNECT_IMAGE_VERSION").fold(proj)(vers =>
+        proj.settings(
+          FunctionalTest / envVars := Map(
+            "CONFLUENT_VERSION" -> vers,
+          ),
+        ),
+      )
+
+    }
+
   }
 
 }

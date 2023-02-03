@@ -53,13 +53,15 @@ class KeysExtractorTest extends AnyWordSpec with Matchers {
 
     "extract keys from a Map" in {
       val actual =
-        KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> "tripple").asJava, Set("key1", "key3"))
+        KeysExtractor.fromMap(Map[String, Any]("key1" -> 12, "key2" -> 10L, "key3" -> "tripple").asJava,
+                              Set("key1", "key3"),
+        )
       actual shouldBe Set("key1" -> 12, "key3" -> "tripple")
     }
 
     "extract keys from a Map should throw an exception if the key is another map" in {
       intercept[ConfigException] {
-        KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> Map.empty[String, String]).asJava,
+        KeysExtractor.fromMap(Map[String, Any]("key1" -> 12, "key2" -> 10L, "key3" -> Map.empty[String, String]).asJava,
                               Set("key1", "key3"),
         )
       }
@@ -67,8 +69,9 @@ class KeysExtractorTest extends AnyWordSpec with Matchers {
 
     "extract keys from a Map should throw an exception if the key is an array" in {
       intercept[ConfigException] {
-        KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> new util.ArrayList[String]).asJava,
-                              Set("key1", "key3"),
+        KeysExtractor.fromMap(
+          Map[String, Any]("key1" -> 12, "key2" -> 10L, "key3" -> new util.ArrayList[String]).asJava,
+          Set("key1", "key3"),
         )
       }
     }
