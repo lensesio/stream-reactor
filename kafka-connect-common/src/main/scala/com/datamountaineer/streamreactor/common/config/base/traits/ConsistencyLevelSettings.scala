@@ -31,7 +31,7 @@ trait ConsistencyLevelSettings[T <: Enum[T]] extends BaseSettings {
 
   def getConsistencyLevel(implicit ct: ClassTag[T]): Option[T] = {
 
-    val enum: Class[T] = ct.runtimeClass.asInstanceOf[Class[T]]
+    val `enum`: Class[T] = ct.runtimeClass.asInstanceOf[Class[T]]
 
     val consistencyLevel = getString(consistencyLevelConstant) match {
       case "" => None
@@ -39,7 +39,7 @@ trait ConsistencyLevelSettings[T <: Enum[T]] extends BaseSettings {
         Try(Enum.valueOf[T](enum, other)) match {
           case Failure(_) =>
             throw new ConfigException(s"'$other' is not a valid $consistencyLevelConstant. " +
-              s"Available values are:${enum.getEnumConstants.map(_.toString).mkString(",")}")
+              s"Available values are:${`enum`.getEnumConstants.map(_.toString).mkString(",")}")
           case Success(cl) => Some(cl)
         }
     }

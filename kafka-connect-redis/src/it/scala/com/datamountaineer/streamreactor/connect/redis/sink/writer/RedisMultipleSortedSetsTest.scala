@@ -35,7 +35,7 @@ import redis.clients.jedis.Jedis
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
-import scala.jdk.CollectionConverters.SetHasAsScala
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with MockitoSugar with ForAllTestContainer {
 

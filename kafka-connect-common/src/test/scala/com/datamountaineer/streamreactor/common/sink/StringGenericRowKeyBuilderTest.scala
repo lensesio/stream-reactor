@@ -32,7 +32,7 @@ class StringGenericRowKeyBuilderTest extends AnyWordSpec with Matchers {
       val sinkRecord = new SinkRecord(topic, partition, Schema.INT32_SCHEMA, 345, Schema.STRING_SCHEMA, "", offset)
 
       val keyBuilder = new StringGenericRowKeyBuilder()
-      val expected   = Seq(topic, partition, offset).mkString("|")
+      val expected   = Seq(topic, partition.toString, offset.toString).mkString("|")
       keyBuilder.build(sinkRecord) shouldBe expected
     }
   }

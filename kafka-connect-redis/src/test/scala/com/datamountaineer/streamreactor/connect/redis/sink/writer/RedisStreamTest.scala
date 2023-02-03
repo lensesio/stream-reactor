@@ -23,17 +23,24 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
+import org.mockito.ArgumentMatchersSugar
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.StreamEntryID
+import redis.clients.jedis.params.XAddParams
 
 import java.util
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-class RedisStreamTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
+class RedisStreamTest
+    extends AnyWordSpec
+    with Matchers
+    with BeforeAndAfterAll
+    with MockitoSugar
+    with ArgumentMatchersSugar {
 //
 //  val redisServer = new RedisServer(6379)
 //
@@ -80,7 +87,7 @@ class RedisStreamTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
       map.put("ts", 1482180657010L.toString)
 
       when(jedis.auth("")).isLenient()
-      when(jedis.xadd("stream1", null, map)).thenReturn(mock[StreamEntryID])
+      when(jedis.xadd(same("stream1"), any[XAddParams], same(map))).thenReturn(mock[StreamEntryID])
       writer.initialize(1, settings.errorPolicy)
       writer.write(Seq(sinkRecord1))
     }

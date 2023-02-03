@@ -25,6 +25,7 @@ import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSett
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
+import redis.clients.jedis.params.XAddParams
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
@@ -96,7 +97,7 @@ class RedisStreams(sinkSettings: RedisSinkSettings) extends RedisWriter with Pub
                           case Failure(exception) =>
                             throw new ConnectException(s"Failed to convert payload to key value pairs", exception)
                         }
-                      jedis.xadd(KCQL.kcqlConfig.getTarget, null, payload.asJava)
+                      jedis.xadd(KCQL.kcqlConfig.getTarget, new XAddParams, payload.asJava)
                   }
               }
             }

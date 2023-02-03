@@ -13,8 +13,8 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import redis.clients.jedis.GeoUnit
 import redis.clients.jedis.Jedis
+import redis.clients.jedis.args.GeoUnit
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava

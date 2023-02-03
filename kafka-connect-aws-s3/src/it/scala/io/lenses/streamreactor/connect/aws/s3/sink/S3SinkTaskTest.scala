@@ -914,9 +914,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
   "S3SinkTask" should "support numeric header data types" in {
 
     val textRecords = List(
-      createSinkRecord(1, users(0), 0, createHeaders(("intheader", 1), ("longheader", 2L))),
-      createSinkRecord(1, users(1), 1, createHeaders(("longheader", 2L), ("intheader", 2))),
-      createSinkRecord(2, users(2), 2, createHeaders(("intheader", 1), ("longheader", 1L))),
+      createSinkRecord(1, users(0), 0, createHeaders[AnyVal](("intheader", 1), ("longheader", 2L))),
+      createSinkRecord(1, users(1), 1, createHeaders[AnyVal](("longheader", 2L), ("intheader", 2))),
+      createSinkRecord(2, users(2), 2, createHeaders[AnyVal](("intheader", 1), ("longheader", 1L))),
     )
     val task = new S3SinkTask()
 

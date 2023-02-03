@@ -14,7 +14,6 @@
 
     <logger name="com.datastax.driver.core" level="ERROR"/>
     <logger name="io.netty" level="ERROR"/>
-    <logger name="org.cassandraunit" level="ERROR"/>
     <logger name="org.apache.cassandra" level="ERROR"/>
     <logger name="com.jcabi.manifests" level="ERROR"/>
 </configuration>

@@ -41,7 +41,7 @@ class OrcTest extends AnyFlatSpec with Matchers {
     val actual = source.iterator.toList
     actual.head.schema shouldBe schema
     actual.map(StructUtils.extractValues) shouldBe
-      List(Vector("sammy", 38, 54.67), Vector("laura", 37, 91.84))
+      List[Vector[Any]](Vector("sammy", 38, 54.67), Vector("laura", 37, 91.84))
 
     fs.delete(path, false)
   }

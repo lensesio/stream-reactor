@@ -1,16 +1,14 @@
 import sbt.File
-import sbt.internal.ProjectMatrix
+import sbt.Project
 import sbt.io.IO
 
-class FileWriter(projects: Seq[ProjectMatrix]) {
+class FileWriter(projects: Seq[Project]) {
   def generate(file: File): Seq[File] = {
     val contents = projects
-      .flatMap(_.allProjects())
-      .map(_._1.id)
-      .map(s => s""""$s"""")
+      .map(s => s""""${s.id}"""")
       .mkString(",")
 
-    IO.write(file, "[" + contents + "]")
+    IO.write(file, s"[$contents]")
     Seq(file)
   }
 }

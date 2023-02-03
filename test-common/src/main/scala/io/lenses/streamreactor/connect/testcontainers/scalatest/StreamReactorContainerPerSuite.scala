@@ -42,7 +42,14 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
 
   private val log: Logger = LoggerFactory.getLogger(getClass)
 
-  private val confluentPlatformVersion: String = sys.env.getOrElse("CONFLUENT_VERSION", "7.0.1")
+  private val confluentPlatformVersion: String = {
+    val (vers, from) = sys.env.get("CONFLUENT_VERSION") match {
+      case Some(value) => (value, "env")
+      case None => ("7.3.1", "default")
+    }
+     log.info("Selected confluent version {} from {}", vers,from )
+    vers
+  }
 
   val network: Network = Network.SHARED
 
@@ -94,15 +101,14 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
 
     val dir: String = detectUserOrGithubDir
 
-    val directorySuffix = sys.env.getOrElse("KAFKA_VERSION_DIRECTORY_SUFFIX", "-kafka-3.1")
-    val regex           = s".*$connectorModule$directorySuffix.*.jar"
+    val regex           = s".*$connectorModule.*.jar"
     val files: util.List[Path] = Files.find(
       Paths.get(String.join(File.separator, dir, "kafka-connect-" + connectorModule, "target")),
       3,
       (p, _) => p.toFile.getName.matches(regex),
     ).collect(Collectors.toList())
     if (files.isEmpty)
-      throw new RuntimeException(s"""Please run `sbt "project $connectorModule$directorySuffix" assembly""")
+      throw new RuntimeException(s"""Please run `sbt "project $connectorModule" assembly""")
     files.get(0).getParent.toString
   }
 

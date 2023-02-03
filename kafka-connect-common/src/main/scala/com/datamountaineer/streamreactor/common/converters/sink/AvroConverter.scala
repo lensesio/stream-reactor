@@ -26,8 +26,8 @@ import org.apache.avro.{ Schema => AvroSchema }
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.io.EncoderFactory
 import org.apache.avro.reflect.ReflectDatumWriter
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkRecord
-import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
 class AvroConverter extends Converter {
   private val avroData = new AvroData(8)

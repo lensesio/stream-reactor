@@ -20,7 +20,6 @@ package com.datamountaineer.streamreactor.connect.jms.sink.writers
 
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.jms.ItTestBase
-import com.datamountaineer.streamreactor.connect.jms.Using
 import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
 import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
@@ -36,6 +35,7 @@ import org.apache.kafka.connect.json.JsonDeserializer
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.BeforeAndAfter
 import org.scalatest.BeforeAndAfterAll
+import scala.util.Using.{ resource => using }
 
 import java.io.File
 import java.util.UUID
@@ -48,7 +48,7 @@ import scala.language.reflectiveCalls
 import scala.reflect.io.Path
 
 @nowarn("cat=deprecation")
-class JMSWriterTest extends ItTestBase with Using with BeforeAndAfter with ConverterUtil with BeforeAndAfterAll {
+class JMSWriterTest extends ItTestBase with BeforeAndAfter with ConverterUtil with BeforeAndAfterAll {
   val broker = new BrokerService()
   broker.setPersistent(false)
   broker.setUseJmx(false)

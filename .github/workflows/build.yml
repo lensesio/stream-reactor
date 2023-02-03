@@ -22,10 +22,10 @@ jobs:
       fun_matrix: ${{ steps.read-mods.outputs.fun-matrix }}
     steps:
       - uses: actions/checkout@v3
-      - name: Set up JDK 8
+      - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
-          java-version: '8'
+          java-version: '17'
           distribution: 'adopt'
       - name: Cache SBT
         uses: actions/cache@v3
@@ -57,10 +57,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set up JDK 8
+      - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
-          java-version: '8'
+          java-version: '17'
           distribution: 'adopt'
       - name: Check the project
         run: sbt scalafmtCheck
@@ -80,10 +80,10 @@ jobs:
         module: ${{fromJSON(needs.initiate.outputs.matrix)}}
     steps:
       - uses: actions/checkout@v3
-      - name: Set up JDK 8
+      - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
-          java-version: '8'
+          java-version: '17'
           distribution: 'adopt'
       - name: Cache SBT
         uses: actions/cache@v3
@@ -114,10 +114,10 @@ jobs:
         module: ${{fromJSON(needs.initiate.outputs.it_matrix)}}
     steps:
       - uses: actions/checkout@v3
-      - name: Set up JDK 8
+      - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
-          java-version: '8'
+          java-version: '17'
           distribution: 'adopt'
       - name: Cache SBT
         uses: actions/cache@v3
@@ -154,10 +154,10 @@ jobs:
         name: Checkout repository
         with:
           fetch-depth: 0
-      - name: Set up JDK 8
+      - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
-          java-version: '8'
+          java-version: '17'
           distribution: 'adopt'
       - name: Cache SBT
         uses: actions/cache@v3
@@ -199,12 +199,13 @@ jobs:
     strategy:
       matrix:
         module: ${{fromJSON(needs.initiate.outputs.fun_matrix)}}
+        connectImageVersion: [7.3.1, 6.2.2]
     steps:
       - uses: actions/checkout@v3
-      - name: Set up JDK 8
+      - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
-          java-version: '8'
+          java-version: '17'
           distribution: 'adopt'
       - name: Cache SBT
         uses: actions/cache@v3
@@ -223,12 +224,13 @@ jobs:
         run: sbt "project ${{ matrix.module }}" fun:test
         env:
           JVM_OPTS: -Xmx3200m
+          CONNECT_IMAGE_VERSION: ${{matrix.connectImageVersion}}
       - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
         with:
           files: "**/target/**/test-reports/*.xml"
-          check_name: ${{ matrix.module }}-fun-results
+          check_name: ${{ matrix.module }}-${{ matrix.connectImageVersion }}-fun-results
           comment_mode: off
 
   upload-assembly:
@@ -242,10 +244,10 @@ jobs:
       matrix:
         module: ${{fromJSON(needs.initiate.outputs.matrix)}}
     steps:
-      - name: Set up JDK 8
+      - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
-          java-version: '8'
+          java-version: '17'
           distribution: 'adopt'
       - name: Cache SBT
         uses: actions/cache@v3

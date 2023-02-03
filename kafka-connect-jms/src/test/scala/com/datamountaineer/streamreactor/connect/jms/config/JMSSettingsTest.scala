@@ -18,6 +18,7 @@
 
 package com.datamountaineer.streamreactor.connect.jms.config
 
+import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
 import com.datamountaineer.streamreactor.connect.jms
 import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
 import com.datamountaineer.streamreactor.connect.jms.TestBase
@@ -31,9 +32,9 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.EitherValues
 
 import java.util.UUID
+import javax.naming.NameNotFoundException
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.reflect.io.Path
-import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
 
 class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues {
 
@@ -356,7 +357,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
       ).asJava
     val config   = jms.config.JMSConfig(props)
     val settings = JMSSettings(config, true)
-    intercept[javax.naming.NameNotFoundException] {
+    intercept[NameNotFoundException] {
       JMSSessionProvider(settings, true)
     }
   }

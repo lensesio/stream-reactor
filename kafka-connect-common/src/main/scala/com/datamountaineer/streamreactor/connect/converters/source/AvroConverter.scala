@@ -26,10 +26,10 @@ import org.apache.avro.generic.GenericDatumReader
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.io.DecoderFactory
 import org.apache.avro.{ Schema => AvroSchema }
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceRecord
-import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
 class AvroConverter extends Converter {
   private val avroData = new AvroData(8)

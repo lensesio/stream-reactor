@@ -22,7 +22,6 @@ import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
 import com.sksamuel.avro4s.AvroOutputStream
 import com.sksamuel.avro4s.AvroSchema
 import com.sksamuel.avro4s.Encoder
-import org.apache.activemq.jndi.ActiveMQInitialContextFactory
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
@@ -55,7 +54,7 @@ trait TestBase extends AnyWordSpec with Matchers with MockitoSugar {
   val JMS_USER           = ""
   val JMS_PASSWORD       = ""
   val CONNECTION_FACTORY = "ConnectionFactory"
-  val INITIAL_CONTEXT_FACTORY: String = classOf[ActiveMQInitialContextFactory].getCanonicalName
+  val INITIAL_CONTEXT_FACTORY: String = "org.apache.activemq.jndi.ActiveMQInitialContextFactory"
   val JMS_URL             = "tcp://localhost:61620"
   val QUEUE_CONVERTER     = s"`com.datamountaineer.streamreactor.connect.converters.source.AvroConverter`"
   val QUEUE_CONVERTER_JMS = s"`com.datamountaineer.streamreactor.connect.jms.sink.converters.ProtoMessageConverter`"

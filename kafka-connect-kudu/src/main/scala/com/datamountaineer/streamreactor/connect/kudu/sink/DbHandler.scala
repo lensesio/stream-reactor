@@ -171,7 +171,7 @@ object DbHandler extends StrictLogging with KuduConverter {
     }
 
     val mappingFields = kcql.getFields.asScala.map(f => (f.getName, f.getAlias)).toMap
-    val ignored       = kcql.getIgnoredFields.asScala
+    val ignored       = kcql.getIgnoredFields.asScala.map(_.getName)
     val fields        = avroFields.getFields.asScala.filterNot(f => ignored.contains(f.name()))
 
     //only allow auto creation if distribute by and bucketing are specified
