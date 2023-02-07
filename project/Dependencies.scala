@@ -1,12 +1,13 @@
 import Dependencies._
-import KafkaVersionAxis.kafkaVersion
 import KafkaVersionAxis.kafkaVersionAxis
 import sbt._
 import sbt.librarymanagement.InclExclRule
 
 object Dependencies {
 
-  val kafkaVersion = kafkaVersionAxis
+  val kafkaVersion = kafkaVersionAxis.kafkaVersion
+
+  val confluentVersion = kafkaVersionAxis.confluentPlatformVersion
 
   val globalExcludeDeps: Seq[InclExclRule] = Seq(
     "org.jboss.logging"        % "commons-logging-jboss-logging",
@@ -51,14 +52,12 @@ object Dependencies {
 
     val enumeratumVersion = "1.7.2"
 
-    val confluentVersion = "6.2.0"
-
     val http4sVersion = "1.0.0-M32"
     val avroVersion   = "1.11.0"
     val avro4sVersion = "4.1.0"
 
     val catsVersion           = "2.9.0"
-    val catsEffectVersion     = "3.4.5"
+    val catsEffectVersion     = "3.4.6"
     val `cats-effect-testing` = "1.4.0"
 
     val urlValidatorVersion       = "1.7"
@@ -81,15 +80,15 @@ object Dependencies {
 
     val jerseyCommonVersion = "3.1.1"
 
-    val calciteVersion    = "1.32.0"
-    val awsSdkVersion     = "2.19.29"
+    val calciteVersion    = "1.33.0"
+    val awsSdkVersion     = "2.19.33"
     val jCloudsSdkVersion = "2.5.0"
     val guavaVersion      = "31.0.1-jre"
     val guiceVersion      = "5.1.0"
     val javaxBindVersion  = "2.3.1"
 
     val kcqlVersion         = "2.9.1"
-    val jacksonVersion      = "2.14.1"
+    val jacksonVersion      = "2.14.2"
     val json4sVersion       = "4.0.6"
     val mockitoScalaVersion = "1.17.12"
     val snakeYamlVersion    = "1.33"
@@ -113,7 +112,7 @@ object Dependencies {
     val testcontainersScalaVersion      = "0.40.12"
     val testcontainersVersion           = "1.17.6"
 
-    val hazelCastVersion          = "4.2.6"
+    val hazelCastVersion          = "4.2.7"
     val hazelCastAzureVersion     = "2.1.2"
     val hazelCastGcpVersion       = "2.1"
     val hazelCastHibernateVersion = "2.2.1"
@@ -137,26 +136,26 @@ object Dependencies {
 
     val httpClientVersion       = "4.5.14"
     val commonsBeanUtilsVersion = "1.9.4"
-    val commonsNetVersion       = "3.8.0"
+    val commonsNetVersion       = "3.9.0"
     val commonsCodecVersion     = "1.15"
     val commonsIOVersion        = "2.11.0"
     val jschVersion             = "0.1.55"
 
     val minaVersion           = "2.2.1"
-    val betterFilesVersion    = "3.9.1"
+    val betterFilesVersion    = "3.9.2"
     val ftpServerVersion      = "1.2.0"
     val fakeSftpServerVersion = "2.0.0"
 
-    val zookeeperServerVersion = "3.8.0"
+    val zookeeperServerVersion = "3.8.1"
 
-    val mongoDbVersion = "3.12.11"
+    val mongoDbVersion = "3.12.12"
 
     val jedisVersion = "4.3.1"
     val gsonVersion  = "2.10.1"
 
-    val hbaseClientVersion = "2.4.13"
+    val hbaseClientVersion = "2.5.3"
 
-    val nimbusJoseJwtVersion = "9.29"
+    val nimbusJoseJwtVersion = "9.30.1"
     val hiveVersion          = "3.1.3"
     val hadoopVersion        = "3.3.2"
 
@@ -222,10 +221,10 @@ object Dependencies {
 
   val classGraph = "io.github.classgraph" % "classgraph" % classGraphVersions
 
-  def kafkaConnectJson(kafkaVersion: String): ModuleID = "org.apache.kafka" % "connect-json"  % kafkaVersion
-  def kafkaClients(kafkaVersion:     String): ModuleID = "org.apache.kafka" % "kafka-clients" % kafkaVersion
+  val kafkaConnectJson: ModuleID = "org.apache.kafka" % "connect-json"  % kafkaVersion
+  val kafkaClients:     ModuleID = "org.apache.kafka" % "kafka-clients" % kafkaVersion
 
-  def confluentJsonSchemaSerializer(confluentVersion: String): ModuleID =
+  val confluentJsonSchemaSerializer: ModuleID =
     "io.confluent" % "kafka-json-schema-serializer" % confluentVersion
 
   def confluentExcludes(moduleID: ModuleID): ModuleID = moduleID
@@ -236,13 +235,13 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson"))
     .excludeAll(ExclusionRule(organization = "com.fasterxml.jackson.databind"))
 
-  def confluentAvroConverter(confluentVersion: String): ModuleID =
+  val confluentAvroConverter: ModuleID =
     confluentExcludes("io.confluent" % "kafka-connect-avro-converter" % confluentVersion)
 
-  def confluentAvroData(confluentVersion: String): ModuleID =
+  val confluentAvroData: ModuleID =
     confluentExcludes("io.confluent" % "kafka-connect-avro-data" % confluentVersion)
 
-  def confluentProtobufConverter(confluentVersion: String): ModuleID =
+  val confluentProtobufConverter: ModuleID =
     confluentExcludes("io.confluent" % "kafka-connect-protobuf-converter" % confluentVersion)
 
   val http4sDsl         = "org.http4s" %% "http4s-dsl"               % http4sVersion
@@ -341,6 +340,8 @@ object Dependencies {
     "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion
   val jacksonModuleScala: ModuleID =
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion
+  val woodstoxCore: ModuleID =
+    "com.fasterxml.woodstox" % "woodstox-core" % "6.5.0"
 
   lazy val snakeYaml = "org.yaml"    % "snakeyaml" % snakeYamlVersion
   lazy val openCsv   = "com.opencsv" % "opencsv"   % openCsvVersion
@@ -391,8 +392,9 @@ object Dependencies {
   lazy val activeMq       = "org.apache.activemq" % "activemq-client" % activeMqVersion
   lazy val activeMqBroker = "org.apache.activemq" % "activemq-broker" % activeMqVersion
 
-  lazy val protoc         = "com.github.os72"     % "protoc-jar"    % protocVersion
-  lazy val googleProtobuf = "com.google.protobuf" % "protobuf-java" % googleProtobufVersion % "protobuf"
+  lazy val protoc             = "com.github.os72"     % "protoc-jar"    % protocVersion
+  lazy val googleProtobufJava = "com.google.protobuf" % "protobuf-java" % googleProtobufVersion
+  lazy val googleProtobuf     = "com.google.protobuf" % "protobuf-java" % googleProtobufVersion % "protobuf"
 
   lazy val kuduClient = "org.apache.kudu" % "kudu-client" % kuduVersion
 
@@ -492,7 +494,7 @@ trait Dependencies {
     `wiremock-jre8`,
     jerseyCommon,
     avro4s,
-    kafkaClients(kafkaVersion),
+    kafkaClients,
     junit,
   ) ++ enumeratum ++ circe ++ http4s
 
@@ -518,10 +520,10 @@ trait Dependencies {
     kcql,
     calciteCore,
     calciteLinq4J,
-    kafkaConnectJson(kafkaVersionAxis.kafkaVersion),
-    confluentAvroConverter(kafkaVersionAxis.confluentPlatformVersion),
-    confluentAvroData(kafkaVersionAxis.confluentPlatformVersion),
-    confluentJsonSchemaSerializer(kafkaVersionAxis.confluentPlatformVersion),
+    kafkaConnectJson,
+    confluentAvroConverter,
+    confluentAvroData,
+    confluentJsonSchemaSerializer,
   ) ++ enumeratum ++ circe ++ http4s
 
   //Specific modules dependencies
@@ -572,7 +574,7 @@ trait Dependencies {
 
   val kafkaConnectJmsDeps: Seq[ModuleID] = Seq(
     jmsApi,
-    confluentProtobufConverter(kafkaVersionAxis.confluentPlatformVersion),
+    confluentProtobufConverter,
     protoc,
     googleProtobuf,
   )

@@ -338,7 +338,7 @@ class FtpMonitor(settings: FtpMonitorSettings, fileConverter: FileConverter) ext
     if (!ftp.isConnected) {
       ftp.setConnectTimeout(settings.timeoutMs)
       ftp.setDefaultTimeout(settings.timeoutMs)
-      ftp.setDataTimeout(settings.timeoutMs)
+      ftp.setDataTimeout(Duration.ofMillis(settings.timeoutMs.toLong))
       ftp.setRemoteVerificationEnabled(false)
       ftp.addProtocolCommandListener(
         new ProtocolCommandListener {
@@ -377,7 +377,7 @@ class FtpMonitor(settings: FtpMonitorSettings, fileConverter: FileConverter) ext
       }
       ftp.enterLocalPassiveMode()
       ftp.setFileType(FTP.BINARY_FILE_TYPE)
-      ftp.setControlKeepAliveTimeout(15) //send NOOP every [seconds]
+      ftp.setControlKeepAliveTimeout(Duration.ofSeconds(15)) //send NOOP every [seconds]
     }
     Success(ftp)
   }
