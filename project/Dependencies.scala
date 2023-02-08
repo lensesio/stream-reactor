@@ -493,6 +493,7 @@ trait Dependencies {
     jerseyCommon,
     avro4s,
     kafkaClients(kafkaVersion),
+    junit,
   ) ++ enumeratum ++ circe ++ http4s
 
   //Specific modules dependencies
