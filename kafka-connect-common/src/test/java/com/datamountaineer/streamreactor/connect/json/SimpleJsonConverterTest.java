@@ -31,8 +31,7 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class SimpleJsonConverterTest {
 
@@ -43,7 +42,7 @@ public class SimpleJsonConverterTest {
   @Test
   public void booleanToJson() {
     JsonNode converted = converter.fromConnectData(Schema.BOOLEAN_SCHEMA, true);
-    assertEquals(true, converted.booleanValue());
+    assertTrue(converted.booleanValue());
   }
 
   @Test
@@ -147,14 +146,14 @@ public class SimpleJsonConverterTest {
 
 
   @Test
-  public void decimalToJson() throws IOException {
+  public void decimalToJson() {
     BigDecimal expectedDecimal = new BigDecimal(new BigInteger("156"), 2);
     JsonNode converted = converter.fromConnectData(Decimal.schema(2), expectedDecimal);
     assertEquals(expectedDecimal, converted.decimalValue());
   }
 
   @Test
-  public void dateToJson() throws IOException {
+  public void dateToJson() {
     GregorianCalendar calendar = new GregorianCalendar(1970, Calendar.JANUARY, 1, 0, 0, 0);
     calendar.setTimeZone(TimeZone.getTimeZone("UTC"));
     calendar.add(Calendar.DATE, 10000);
@@ -166,7 +165,7 @@ public class SimpleJsonConverterTest {
   }
 
   @Test
-  public void timeToJson() throws IOException {
+  public void timeToJson() {
     GregorianCalendar calendar = new GregorianCalendar(1970, Calendar.JANUARY, 1, 0, 0, 0);
     calendar.setTimeZone(TimeZone.getTimeZone("UTC"));
     calendar.add(Calendar.MILLISECOND, 14400000);
@@ -178,7 +177,7 @@ public class SimpleJsonConverterTest {
   }
 
   @Test
-  public void timestampToJson() throws IOException {
+  public void timestampToJson() {
     GregorianCalendar calendar = new GregorianCalendar(1970, Calendar.JANUARY, 1, 0, 0, 0);
     calendar.setTimeZone(TimeZone.getTimeZone("UTC"));
     calendar.add(Calendar.MILLISECOND, 2000000000);
@@ -195,7 +194,7 @@ public class SimpleJsonConverterTest {
   public void nullSchemaAndPrimitiveToJson() {
     // This still needs to do conversion of data, null schema means "anything goes"
     JsonNode converted = converter.fromConnectData(null, true);
-    assertEquals(true, converted.booleanValue());
+    assertTrue(converted.booleanValue());
   }
 
   @Test
@@ -253,6 +252,21 @@ public class SimpleJsonConverterTest {
   public void noSchemaToJson() {
     JsonNode converted = converter.fromConnectData(null, true);
     assertTrue(converted.isBoolean());
-    assertEquals(true, converted.booleanValue());
+    assertTrue(converted.booleanValue());
+  }
+
+  @Test
+  public void identicalSchemasShouldNotMismatch() {
+    Schema schema1 = SchemaBuilder.struct().field("myString", Schema.STRING_SCHEMA).build();
+    Schema schema2 = SchemaBuilder.struct().field("myString", Schema.STRING_SCHEMA).build();
+
+    assertEquals(schema1, schema2);
+
+    Struct struct1 = new Struct(schema1);
+    struct1.put("myString", "testString");
+
+    JsonNode converted = converter.fromConnectData(schema2, struct1);
+
+    assertEquals("{\"myString\":\"testString\"}", converted.toString());
   }
 }
