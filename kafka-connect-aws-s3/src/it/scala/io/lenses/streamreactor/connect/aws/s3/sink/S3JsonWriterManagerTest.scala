@@ -59,7 +59,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           bucketAndPrefix,
           commitPolicy       = DefaultCommitPolicy(None, None, Some(1)),
           formatSelection    = FormatSelection(Json),
-          fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json)),
+          fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json), NoOpPaddingStrategy),
           localStagingArea   = LocalStagingArea(localRoot),
         ), // JsonS3Format
       ),
@@ -96,10 +96,11 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         SinkBucketOptions(
           TopicName,
           bucketAndPrefix,
-          commitPolicy       = DefaultCommitPolicy(None, None, Some(3)),
-          formatSelection    = FormatSelection(Json),
-          fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json)), // JsonS3Format
-          localStagingArea   = LocalStagingArea(localRoot),
+          commitPolicy    = DefaultCommitPolicy(None, None, Some(3)),
+          formatSelection = FormatSelection(Json),
+          fileNamingStrategy =
+            new HierarchicalS3FileNamingStrategy(FormatSelection(Json), NoOpPaddingStrategy), // JsonS3Format
+          localStagingArea = LocalStagingArea(localRoot),
         ),
       ),
       offsetSeekerOptions = OffsetSeekerOptions(5, true),

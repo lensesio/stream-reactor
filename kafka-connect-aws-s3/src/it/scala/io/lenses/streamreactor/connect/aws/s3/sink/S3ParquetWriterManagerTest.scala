@@ -61,7 +61,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         TopicName,
         bucketAndPrefix,
         commitPolicy       = DefaultCommitPolicy(None, None, Some(2)),
-        fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Parquet)),
+        fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Parquet), NoOpPaddingStrategy),
         formatSelection    = FormatSelection(Parquet),
         localStagingArea   = LocalStagingArea(localRoot),
       ),

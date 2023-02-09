@@ -120,4 +120,13 @@ object S3ConfigSettings {
   val COMPRESSION_LEVEL         = s"$CONNECTOR_PREFIX.compression.level"
   val COMPRESSION_LEVEL_DOC     = "Certain compression codecs require a level specified."
   val COMPRESSION_LEVEL_DEFAULT = -1
+
+  val PADDING_STRATEGY = s"$CONNECTOR_PREFIX.padding.strategy"
+  val PADDING_STRATEGY_DOC =
+    "Configure in order to pad the partition and offset on the sink output files. Options are `LeftPad`, `RightPad` or `NoOp`. Defaults to `NoOp` (does not add padding)."
+  val PADDING_STRATEGY_DEFAULT = "NoOp"
+
+  val PADDING_LENGTH         = s"$CONNECTOR_PREFIX.padding.length"
+  val PADDING_LENGTH_DOC     = s"Length to pad the string up to if $PADDING_STRATEGY is set."
+  val PADDING_LENGTH_DEFAULT = 8
 }

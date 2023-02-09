@@ -61,7 +61,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         bucketAndPrefix,
         commitPolicy       = DefaultCommitPolicy(None, None, Some(2)),
         formatSelection    = FormatSelection(Avro),
-        fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Avro)),
+        fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Avro), NoOpPaddingStrategy),
         localStagingArea   = LocalStagingArea(localRoot),
       ),
     ),

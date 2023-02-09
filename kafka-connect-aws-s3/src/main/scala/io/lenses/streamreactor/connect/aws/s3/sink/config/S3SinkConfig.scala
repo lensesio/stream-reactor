@@ -70,8 +70,8 @@ object SinkBucketOptions extends LazyLogging {
 
       val partitionSelection = PartitionSelection(kcql)
       val namingStrategy = partitionSelection match {
-        case Some(partSel) => new PartitionedS3FileNamingStrategy(formatSelection, partSel)
-        case None          => new HierarchicalS3FileNamingStrategy(formatSelection)
+        case Some(partSel) => new PartitionedS3FileNamingStrategy(formatSelection, config.getPaddingStrategy(), partSel)
+        case None          => new HierarchicalS3FileNamingStrategy(formatSelection, config.getPaddingStrategy())
       }
 
       val stagingArea = LocalStagingArea(config)
