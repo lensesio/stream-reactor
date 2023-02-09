@@ -46,9 +46,9 @@ object S3ConfigDef {
     .define(
       AWS_CLIENT,
       Type.STRING,
-      "JCLOUDS",
+      "AWS",
       Importance.LOW,
-      "Which client library to use to connect to AWS.  'JCLOUDS' or 'AWS'.",
+      "Which client library to use to connect to AWS.  'AWS' (default) or 'JCLOUDS'.",
     )
     .define(
       AWS_ACCESS_KEY,

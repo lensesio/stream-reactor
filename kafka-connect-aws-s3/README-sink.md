@@ -14,6 +14,7 @@ An example configuration is provided:
     connect.s3.aws.access.key=ACCESS_KEY
     connect.s3.aws.secret.key=SECRET_KEY
     connect.s3.aws.auth.mode=Credentials
+    connect.s3.aws.region=eu-west-1
 
 You should replace $BUCKET_NAME, $PREFIX_NAME and $TOPIC_NAME with the names of the bucket, desired prefix and topic.
 
@@ -31,13 +32,14 @@ ACCESS_KEY and SECRET_KEY are credentials generated within AWS IAM and must be s
     connect.s3.aws.auth.mode=Credentials
     connect.s3.aws.access.key=ACCESS_KEY
     connect.s3.aws.secret.key=SECRET_KEY
-
+    connect.s3.aws.region=eu-west-1
 
 #### Default
 
 In this auth mode no credentials need be supplied.  If no auth mode is specified, then this default will be used.
 
     connect.s3.aws.auth.mode=Default
+    connect.s3.aws.region=eu-west-1
     
 The credentials will be discovered through the default chain, in this order:
 
@@ -356,3 +358,12 @@ If you are upgrading a connector from a previous version of the sink, then you w
 This option is intended for one-time upgrade usage and will be deprecated in future releases of the connector.
 
 On the first run of any connector then the old slow offset seek will be performed, however the index files will be written so performance will recover after the first offset seek.
+
+
+## Client Selection
+
+Originally the sink used the jClouds java library to communicate with S3.
+From version 4.1 onwards we have switched to using the official AWS library.
+If you still want to use the jClouds client you can configure it like this:
+
+    connect.s3.aws.client=jclouds
