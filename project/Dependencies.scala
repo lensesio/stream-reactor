@@ -208,9 +208,9 @@ object Dependencies {
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
   val scalatestPlusScalaCheck =
     "org.scalatestplus" %% "scalatestplus-scalacheck" % scalatestPlusScalaCheckVersion
-  val scalaCheck      = "org.scalacheck" %% "scalacheck"    % scalaCheckVersion
-  val `mockito-scala` = "org.mockito"    %% "mockito-scala" % mockitoScalaVersion
-  val junit           = "junit"           % "junit"         % junitVersion
+  val scalaCheck      = "org.scalacheck" %% "scalacheck"      % scalaCheckVersion
+  val `mockito-scala` = "org.mockito"    %% "mockito-scala"   % mockitoScalaVersion
+  val junit           = "com.github.sbt"  % "junit-interface" % "0.13.3"
 
   lazy val pegDown = "org.pegdown" % "pegdown" % "1.6.0"
 

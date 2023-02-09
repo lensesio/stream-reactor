@@ -19,9 +19,7 @@ You can find more on [lenses.io](http://www.lenses.io)
 A collection of components to build a real time ingestion pipeline.
 
 ## Kafka Compatibility
-
-From version 4.0.0 separate artifacts are built targeting Kafka 3.1 and Kafka 2.8.
-
+* Kafka 2.8 -> 3.3 (Confluent 2.8 -> 7.3) - Upcoming Stream Reactor 4.1.0
 * Kafka 3.1 (Confluent 7.1) - Stream Reactor 4.0.0 (Kafka 3.1 Build)
 * Kafka 2.8 (Confluent 6.2) - Stream Reactor 4.0.0 (Kafka 2.8 Build)
 * Kafka 2.5 (Confluent 5.5) - Stream reactor 2.0.0+
@@ -94,28 +92,22 @@ To create assemblies:
 sbt assembly
 ```
 
-To build a particular project for kafka 2.8:
+To build a particular project:
 
 ```bash
-sbt "project cassandra-kafka-2-8" compile
-```
-
-To build a particular project for kafka 3.1:
-
-```bash
-sbt "project cassandra-kafka-3-1" compile
+sbt "project cassandra" compile
 ```
 
 To test a particular project:
 
 ```bash
-sbt "project cassandra-kafka-2-8" test
+sbt "project cassandra" test
 ```
 
 To create a jar of a particular project:
 
 ```bash
-sbt "project cassandra-kafka-2-8" assembly
+sbt "project cassandra" assembly
 ```
 
 ### Running E2E tests
@@ -123,15 +115,10 @@ sbt "project cassandra-kafka-2-8" assembly
 If not already built, you must first build the connector archives:
 
 ```bash
-sbt "project cassandra-kafka-2-8" assembly
-sbt "project elastic6-kafka-2-8" assembly 
-sbt "project mongodb-kafka-2-8" assembly
-sbt "project redis-kafka-2-8" assembly
-
-sbt "project cassandra-kafka-3-1" assembly 
-sbt "project elastic6-kafka-3-1" assembly 
-sbt "project mongodb-kafka-3-1" assembly 
-sbt "project redis-kafka-3-1" assembly
+sbt "project cassandra" assembly
+sbt "project elastic6" assembly 
+sbt "project mongodb" assembly
+sbt "project redis" assembly
 ```
 
 To run the tests:

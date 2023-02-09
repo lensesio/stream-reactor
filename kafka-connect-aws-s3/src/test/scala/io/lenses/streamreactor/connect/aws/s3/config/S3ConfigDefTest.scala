@@ -42,6 +42,7 @@ class S3ConfigDefTest extends AnyFlatSpec with Matchers {
     CUSTOM_ENDPOINT             -> "http://default",
     ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
     KCQL_CONFIG                 -> "SELECT * FROM DEFAULT",
+    AWS_REGION                  -> "eu-west-1",
   )
 
   "S3ConfigDef" should "parse original properties" in {
