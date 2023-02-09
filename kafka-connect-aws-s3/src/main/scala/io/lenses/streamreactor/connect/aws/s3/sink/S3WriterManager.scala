@@ -376,6 +376,6 @@ object S3WriterManager extends LazyLogging {
   }
 
   private def bucketOptsForTopic(config: S3SinkConfig, topic: Topic): Option[SinkBucketOptions] =
-    config.bucketOptions.find(_.sourceTopic == topic.value)
+    config.bucketOptions.find(bo => bo.sourceTopic.isEmpty || bo.sourceTopic.contains(topic.value))
 
 }

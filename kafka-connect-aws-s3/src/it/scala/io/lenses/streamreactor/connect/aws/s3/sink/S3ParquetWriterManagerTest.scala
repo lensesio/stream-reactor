@@ -16,6 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Parquet
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.AwsClient
@@ -58,7 +59,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
     ),
     bucketOptions = Set(
       SinkBucketOptions(
-        TopicName,
+        TopicName.some,
         bucketAndPrefix,
         commitPolicy       = DefaultCommitPolicy(None, None, Some(2)),
         fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Parquet)),

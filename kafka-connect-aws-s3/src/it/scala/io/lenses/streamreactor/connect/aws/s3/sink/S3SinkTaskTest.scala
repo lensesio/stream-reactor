@@ -117,8 +117,8 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       toSinkRecord(user, k)
   }
 
-  private def toSinkRecord(user: Struct, k: Int) =
-    new SinkRecord(TopicName, 1, null, null, schema, user, k.toLong)
+  private def toSinkRecord(user: Struct, k: Int, topicName: String = TopicName) =
+    new SinkRecord(topicName, 1, null, null, schema, user, k.toLong)
 
   private val keySchema = SchemaBuilder.struct()
     .field("phonePrefix", SchemaBuilder.string().required().build())
@@ -2078,6 +2078,47 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/2.json") should be(
       """{"name":"tom","title":null,"salary":395.44}""",
     )
+
+  }
+
+  "S3SinkTask" should "support multiple topics with wildcard syntax" in {
+
+    val topic2Name = "myTopic2"
+
+    val topic2Records = firstUsers.zipWithIndex.map {
+      case (user, k) =>
+        toSinkRecord(user, k, topic2Name)
+    }
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from `*` WITH_FLUSH_COUNT = 3",
+        ),
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.open(Seq(new TopicPartition(topic2Name, 1)).asJava)
+    task.put(records.asJava)
+    task.put(topic2Records.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.close(Seq(new TopicPartition(topic2Name, 1)).asJava)
+    task.stop()
+
+    Seq(TopicName, topic2Name).foreach {
+      tName =>
+        listBucketPath(BucketName, s"streamReactorBackups/$tName/1/").size should be(1)
+        remoteFileAsString(BucketName, s"streamReactorBackups/$tName/1/2.json") should be(
+          """
+            |{"name":"sam","title":"mr","salary":100.43}
+            |{"name":"laura","title":"ms","salary":429.06}
+            |{"name":"tom","title":null,"salary":395.44}
+            |""".stripMargin.filter(_ >= ' '),
+        )
+    }
 
   }
 
