@@ -75,6 +75,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     DEP_CUSTOM_ENDPOINT             -> uri(),
     DEP_ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
     "name"                          -> "s3SinkTaskBuildLocalTest",
+    AWS_CLIENT                      -> "jclouds",
   )
 
   private def DefaultProps = Map(
@@ -84,7 +85,6 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     CUSTOM_ENDPOINT             -> uri(),
     ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
     "name"                      -> "s3SinkTaskBuildLocalTest",
-    AWS_CLIENT                  -> "AWS",
     AWS_REGION                  -> "eu-west-1",
   )
 
@@ -1879,10 +1879,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "read from profile" in {
 
-    val profileDir = getResourcesDirectory() match {
-      case Left(ex)     => fail("cannot get resources dir", ex)
-      case Right(value) => value
-    }
+    val profileDir = getResourcesDirectory()
+      .getOrElse(fail("cannot get resources dir"))
+
     val task = new S3SinkTask()
 
     val props = Map(
@@ -2146,7 +2145,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     new CSVReader(file1Reader)
   }
 
-  private def getResourcesDirectory(): Either[Throwable, String] = {
+  private def getResourcesDirectory(): Try[String] = {
     val url = classOf[S3SinkTaskTest].getResource("/profiles/")
     Try {
       val uri = url.toURI
@@ -2154,6 +2153,6 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       val profilePath = new File(uri).getAbsolutePath
       logger.info("Profile path: {}", profilePath)
       profilePath
-    }.toEither
+    }
   }
 }
