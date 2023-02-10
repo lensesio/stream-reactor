@@ -2119,6 +2119,37 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     )
   }
 
+  "S3SinkTask" should "write files with topic partition padded when requested" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql"             -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 3",
+          "connect.s3.padding.strategy" -> "LeftPad",
+          "connect.s3.padding.length"   -> "10",
+        ),
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(records.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/0000000001/").size should be(1)
+
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/0000000001/0000000002.json") should be(
+      """
+        |{"name":"sam","title":"mr","salary":100.43}
+        |{"name":"laura","title":"ms","salary":429.06}
+        |{"name":"tom","title":null,"salary":395.44}
+        |""".stripMargin.filter(_ >= ' '),
+    )
+
+  }
+
   private def createSinkRecord(partition: Int, valueStruct: Struct, offset: Int, headers: lang.Iterable[Header]) =
     new SinkRecord(TopicName, partition, null, null, null, valueStruct, offset.toLong, null, null, headers)
 

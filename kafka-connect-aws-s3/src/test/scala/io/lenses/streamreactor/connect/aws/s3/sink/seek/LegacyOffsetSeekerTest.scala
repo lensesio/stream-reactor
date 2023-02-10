@@ -25,6 +25,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.aws.s3.sink.HierarchicalS3FileNamingStrategy
+import io.lenses.streamreactor.connect.aws.s3.sink.NoOpPaddingStrategy
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
@@ -41,7 +42,7 @@ class LegacyOffsetSeekerTest
     with EitherValues
     with OptionValues {
 
-  private val fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json))
+  private val fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json), NoOpPaddingStrategy)
 
   private implicit val storageInterface: StorageInterface = mock[StorageInterface]
 

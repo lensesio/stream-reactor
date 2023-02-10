@@ -47,20 +47,20 @@ class S3ConfigDefTest extends AnyFlatSpec with Matchers {
 
   "S3ConfigDef" should "parse original properties" in {
     val resultMap = S3ConfigDef.config.parse(DefaultProps.asJava).asScala
-    resultMap should have size 24
+    resultMap should have size 26
     DeprecatedProps.filterNot { case (k, _) => k == KCQL_CONFIG }.foreach {
       case (k, _) => resultMap.get(k) should be(None)
     }
-    DefaultProps.foreach { case (k, _) => resultMap.keySet.contains(k) should be(true) }
+    resultMap.keys should contain allElementsOf DefaultProps.keys
   }
 
   "S3ConfigDef" should "parse deprecated properties" in {
     val resultMap = S3ConfigDef.config.parse(DeprecatedProps.asJava).asScala
-    resultMap should have size 24
+    resultMap should have size 26
     DeprecatedProps.filterNot { case (k, _) => k == KCQL_CONFIG }.foreach {
       case (k, _) => resultMap.get(k) should be(None)
     }
-    DefaultProps.foreach { case (k, _) => resultMap.keySet.contains(k) should be(true) }
+    resultMap.keys should contain allElementsOf DefaultProps.keys
   }
 
   "S3ConfigDef" should "parse merged properties" in {
@@ -69,6 +69,6 @@ class S3ConfigDefTest extends AnyFlatSpec with Matchers {
     DeprecatedProps.filterNot { case (k, _) => k == KCQL_CONFIG }.foreach {
       case (k, _) => resultMap.get(k) should be(None)
     }
-    DefaultProps.foreach { case (k, _) => resultMap.keySet.contains(k) should be(true) }
+    resultMap.keys should contain allElementsOf DefaultProps.keys
   }
 }

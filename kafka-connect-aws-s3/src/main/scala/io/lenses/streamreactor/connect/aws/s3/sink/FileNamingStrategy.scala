@@ -68,7 +68,10 @@ trait S3FileNamingStrategy {
 
 }
 
-class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends S3FileNamingStrategy {
+class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection, paddingStrategy: PaddingStrategy)
+    extends S3FileNamingStrategy {
+
+  import paddingStrategy._
 
   val format: Format = formatSelection.format
 
@@ -83,8 +86,8 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
       val file = stagingDirectory
         .toPath
         .resolve(prefix(bucketAndPrefix))
-        .resolve(topicPartition.topic.value)
-        .resolve(s"${topicPartition.partition}.${format.entryName.toLowerCase}")
+        .resolve(padString(topicPartition.topic.value))
+        .resolve(s"${padString(topicPartition.partition.toString)}.${format.entryName.toLowerCase}")
         .resolve(uuid)
         .toFile
       createFileAndParents(file)
@@ -98,7 +101,9 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
   ): Either[FatalS3SinkError, RemoteS3PathLocation] =
     Try(
       bucketAndPrefix.withPath(
-        s"${prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/${topicPartitionOffset.offset.value}.${format.entryName.toLowerCase}",
+        s"${prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${padString(
+          topicPartitionOffset.partition.toString,
+        )}/${padString(topicPartitionOffset.offset.value.toString)}.${format.entryName.toLowerCase}",
       ),
     ).toEither.left.map(ex => FatalS3SinkError(ex.getMessage, topicPartitionOffset.toTopicPartition))
 
@@ -118,12 +123,19 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
     bucketAndPrefix: RemoteS3RootLocation,
     topicPartition:  TopicPartition,
   ): RemoteS3PathLocation =
-    bucketAndPrefix.withPath(s"${prefix(bucketAndPrefix)}/${topicPartition.topic.value}/${topicPartition.partition}/")
+    bucketAndPrefix.withPath(
+      s"${prefix(bucketAndPrefix)}/${topicPartition.topic.value}/${padString(topicPartition.partition.toString)}/",
+    )
 
 }
 
-class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitionSelection: PartitionSelection)
-    extends S3FileNamingStrategy {
+class PartitionedS3FileNamingStrategy(
+  formatSelection:    FormatSelection,
+  paddingStrategy:    PaddingStrategy,
+  partitionSelection: PartitionSelection,
+) extends S3FileNamingStrategy {
+
+  import paddingStrategy._
 
   val format: Format = formatSelection.format
 
@@ -142,7 +154,7 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
         .resolve(prefix(bucketAndPrefix))
         .resolve(buildPartitionPrefix(partitionValues))
         .resolve(topicPartition.topic.value)
-        .resolve(topicPartition.partition.toString)
+        .resolve(padString(topicPartition.partition.toString))
         .resolve(format.entryName.toLowerCase)
         .resolve(uuid)
         .toFile
@@ -167,7 +179,9 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
   ): Either[FatalS3SinkError, RemoteS3PathLocation] =
     Try(
       bucketAndPrefix.withPath(
-        s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}(${topicPartitionOffset.partition}_${topicPartitionOffset.offset.value}).${format.entryName.toLowerCase}",
+        s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}(${padString(
+          topicPartitionOffset.partition.toString,
+        )}_${padString(topicPartitionOffset.offset.value.toString)}).${format.entryName.toLowerCase}",
       ),
     ).toEither.left.map(ex => FatalS3SinkError(ex.getMessage, topicPartitionOffset.toTopicPartition))
 
@@ -196,7 +210,7 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
           case partition @ WholeKeyPartitionField() =>
             partition -> getPartitionByWholeKeyValue(messageDetail.keySinkData)
           case partition @ TopicPartitionField()     => partition -> topicPartition.topic.value
-          case partition @ PartitionPartitionField() => partition -> topicPartition.partition.toString
+          case partition @ PartitionPartitionField() => partition -> padString(topicPartition.partition.toString)
           case partition @ DatePartitionField(_) => partition ->
               messageDetail.time.fold(
                 throw new IllegalArgumentException(

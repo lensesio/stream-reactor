@@ -227,6 +227,20 @@ object S3ConfigDef {
       Importance.LOW,
       COMPRESSION_LEVEL_DOC,
     )
+    .define(
+      PADDING_STRATEGY,
+      Type.STRING,
+      PADDING_STRATEGY_DEFAULT,
+      Importance.LOW,
+      PADDING_STRATEGY_DOC,
+    )
+    .define(
+      PADDING_LENGTH,
+      Type.INT,
+      PADDING_LENGTH_DEFAULT,
+      Importance.LOW,
+      PADDING_LENGTH_DOC,
+    )
 }
 
 class S3ConfigDef() extends ConfigDef with LazyLogging {
@@ -283,7 +297,8 @@ case class S3ConfigDefBuilder(sinkName: Option[String], props: util.Map[String, 
     with UserSettings
     with ConnectionSettings
     with S3FlushSettings
-    with CompressionCodecSettings {
+    with CompressionCodecSettings
+    with PaddingStrategySettings {
 
   def getParsedValues: Map[String, _] = values().asScala.toMap
 

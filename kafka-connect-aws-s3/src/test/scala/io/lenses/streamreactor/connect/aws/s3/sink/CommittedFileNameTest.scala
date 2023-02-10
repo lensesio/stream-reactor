@@ -34,10 +34,11 @@ class CommittedFileNameTest extends AnyFlatSpecLike with Matchers {
                                                                  ValuePartitionField(PartitionNamePath("partition2")),
   ))
 
-  class HierarchicalJsonTestContext extends TestContext(new HierarchicalS3FileNamingStrategy(FormatSelection(Json)))
+  class HierarchicalJsonTestContext
+      extends TestContext(new HierarchicalS3FileNamingStrategy(FormatSelection(Json), NoOpPaddingStrategy))
 
   class PartitionedAvroTestContext
-      extends TestContext(new PartitionedS3FileNamingStrategy(FormatSelection(Avro), partitions))
+      extends TestContext(new PartitionedS3FileNamingStrategy(FormatSelection(Avro), NoOpPaddingStrategy, partitions))
 
   "unapply" should "recognise hierarchical filenames in prefix/topic/927/77.json format" in new HierarchicalJsonTestContext {
     CommittedFileName.unapply("prefix/topic/927/77.json") should be(Some((Topic("topic"), 927, Offset(77), Json)))
