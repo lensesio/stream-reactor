@@ -16,6 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.AwsClient
@@ -55,7 +56,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       bucketOptions = Set(
         SinkBucketOptions(
-          TopicName,
+          TopicName.some,
           bucketAndPrefix,
           commitPolicy       = DefaultCommitPolicy(None, None, Some(1)),
           formatSelection    = FormatSelection(Json),
@@ -94,7 +95,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       bucketOptions = Set(
         SinkBucketOptions(
-          TopicName,
+          TopicName.some,
           bucketAndPrefix,
           commitPolicy    = DefaultCommitPolicy(None, None, Some(3)),
           formatSelection = FormatSelection(Json),

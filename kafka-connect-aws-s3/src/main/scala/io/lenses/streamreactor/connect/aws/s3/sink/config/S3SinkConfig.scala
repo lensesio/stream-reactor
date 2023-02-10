@@ -77,7 +77,7 @@ object SinkBucketOptions extends LazyLogging {
       val stagingArea = LocalStagingArea(config)
       stagingArea match {
         case Right(value) => SinkBucketOptions(
-            kcql.getSource,
+            Option(kcql.getSource).filterNot(Set("*", "`*`").contains(_)),
             RemoteS3RootLocation(kcql.getTarget),
             formatSelection    = formatSelection,
             fileNamingStrategy = namingStrategy,
@@ -92,13 +92,13 @@ object SinkBucketOptions extends LazyLogging {
 }
 
 case class SinkBucketOptions(
-  sourceTopic:        String,
+  sourceTopic:        Option[String],
   bucketAndPrefix:    RemoteS3RootLocation,
   formatSelection:    FormatSelection,
   fileNamingStrategy: S3FileNamingStrategy,
   partitionSelection: Option[PartitionSelection] = None,
   commitPolicy: CommitPolicy = DefaultCommitPolicy(Some(defaultFlushSize.toLong), Some(defaultFlushInterval),
-    Some(defaultFlushCount.toLong)),
+    Some(defaultFlushCount)),
   localStagingArea: LocalStagingArea,
 )
 
