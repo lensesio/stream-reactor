@@ -1,4 +1,11 @@
 import Dependencies.globalExcludeDeps
+import Dependencies.googleProtobuf
+import Dependencies.googleProtobufJava
+import Dependencies.hadoopCommon
+import Dependencies.hadoopMapReduceClientCore
+import Dependencies.nettyCodecSocks
+import Dependencies.nettyHandlerProxy
+import Dependencies.woodstoxCore
 import com.eed3si9n.jarjarabrams.ShadeRule
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import sbt.Keys._
@@ -180,6 +187,15 @@ object Settings extends Dependencies {
             ShadeRule.rename("com.fasterxml.**" -> "lshaded.fasterxml.@1").inAll,
             ShadeRule.rename("org.apache.hadoop" -> "lshaded.apache.hadoop").inAll,
           ),
+          dependencyOverrides ++= Seq(
+            googleProtobuf,
+            googleProtobufJava,
+            nettyHandlerProxy,
+            nettyCodecSocks,
+            hadoopCommon,
+            hadoopMapReduceClientCore,
+            woodstoxCore,
+          ) ++ nettyOverrides ++ avroOverrides,
         ),
       )
   }
