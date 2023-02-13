@@ -128,4 +128,34 @@ object S3ConfigSettings {
   val PADDING_LENGTH         = s"$CONNECTOR_PREFIX.padding.length"
   val PADDING_LENGTH_DOC     = s"Length to pad the string up to if $PADDING_STRATEGY is set."
   val PADDING_LENGTH_DEFAULT = 8
+
+  // TASK_INDEX isn't exposed as a connector property.  It is provided to the task from the connector in order
+  // to distribute partitions between the different tasks.
+  val TASK_INDEX: String = s"$CONNECTOR_PREFIX.task.index"
+
+  val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS: String = s"$CONNECTOR_PREFIX.partition.search.recurse.levels"
+  val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DOC: String =
+    "When searching for new partitions on the S3 filesystem, how many levels deep to recurse."
+  val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DEFAULT: Int = 3
+
+  val SOURCE_PARTITION_SEARCH_BLOCK: String = s"$CONNECTOR_PREFIX.partition.search.block"
+  val SOURCE_PARTITION_SEARCH_BLOCK_DOC: String =
+    "'true' will block the thread, 'false' will search for new partitions in the background."
+  val SOURCE_PARTITION_SEARCH_BLOCK_DEFAULT: Boolean = true
+
+  val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS: String = s"$CONNECTOR_PREFIX.partition.search.interval"
+  val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DOC: String =
+    "The interval in milliseconds between searching for new partitions.  Defaults to 5 minutes."
+  val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DEFAULT: Long = 300000L
+
+  val SOURCE_PARTITION_SEARCH_PAUSE_AFTER_COUNT: String = s"$CONNECTOR_PREFIX.partition.search.pause.after.count"
+  val SOURCE_PARTITION_SEARCH_PAUSE_AFTER_COUNT_DOC: String =
+    "When searching for new partitions, how many partitions to find before pausing.  Defaults to -1 (completes the search - no pause)."
+  val SOURCE_PARTITION_SEARCH_PAUSE_AFTER_COUNT_DEFAULT: Int = -1
+
+  val SOURCE_PARTITION_SEARCH_PAUSE_AFTER_MILLIS: String = s"$CONNECTOR_PREFIX.partition.search.pause.after.time"
+  val SOURCE_PARTITION_SEARCH_PAUSE_AFTER_MILLIS_DOC: String =
+    "When searching for new partitions, how long to run the search for before pausing.  Defaults to -1 (completes the search - no pause)."
+  val SOURCE_PARTITION_SEARCH_PAUSE_AFTER_MILLIS_DEFAULT: Long = -1L
+
 }

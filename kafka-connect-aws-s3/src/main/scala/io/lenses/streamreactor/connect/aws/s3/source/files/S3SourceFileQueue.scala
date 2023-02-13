@@ -20,6 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 import scala.collection.mutable.ListBuffer
 
@@ -43,6 +44,9 @@ class S3SourceFileQueue(
   root:         RemoteS3RootLocation,
   numResults:   Int,
   sourceLister: S3SourceLister,
+)(
+  implicit
+  storageInterface: StorageInterface,
 ) extends SourceFileQueue
     with LazyLogging {
 

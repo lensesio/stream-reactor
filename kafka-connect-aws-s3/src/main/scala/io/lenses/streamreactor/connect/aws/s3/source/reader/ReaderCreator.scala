@@ -15,37 +15,39 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.reader
 
+import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatStreamReader
-import io.lenses.streamreactor.connect.aws.s3.model.SourceData
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.S3FormatStreamReader
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.SourceData
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
-import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither._
+import io.lenses.streamreactor.connect.aws.s3.utils.ThrowableEither._
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.apache.kafka.common.errors.OffsetOutOfRangeException
 
 import scala.util.Try
 
 class ReaderCreator(
-  sourceName:  String,
   format:      FormatSelection,
   targetTopic: String,
+  partitionFn: String => Option[Int],
 )(
   implicit
+  connectorTaskId:  ConnectorTaskId,
   storageInterface: StorageInterface,
-  partitionFn:      String => Option[Int],
 ) extends LazyLogging {
 
   def create(pathWithLine: RemoteS3PathLocationWithLine): Either[Throwable, ResultReader] =
     for {
       reader <- Try(createInner(pathWithLine)).toEither
-    } yield new ResultReader(reader, targetTopic)
+    } yield new ResultReader(reader, targetTopic, partitionFn)
 
   private def createInner(pathWithLine: RemoteS3PathLocationWithLine): S3FormatStreamReader[_ <: SourceData] = {
     val file          = pathWithLine.file
-    val inputStreamFn = () => storageInterface.getBlob(file).toThrowable(sourceName)
-    val fileSizeFn    = () => storageInterface.getBlobSize(file).toThrowable(sourceName)
-    logger.info(s"[$sourceName] Reading next file: ${pathWithLine.file} from line ${pathWithLine.line}")
+    val inputStreamFn = () => storageInterface.getBlob(file).toThrowable
+    val fileSizeFn    = () => storageInterface.getBlobSize(file).toThrowable
+    logger.info(s"[${connectorTaskId.show}] Reading next file: ${pathWithLine.file} from line ${pathWithLine.line}")
 
     val reader = S3FormatStreamReader(inputStreamFn, fileSizeFn, format, file)
 
@@ -56,7 +58,7 @@ class ReaderCreator(
     reader
   }
 
-  private def skipLinesToStartLine(reader: S3FormatStreamReader[_ <: SourceData], lineToStartOn: Int) =
+  private def skipLinesToStartLine(reader: S3FormatStreamReader[_ <: SourceData], lineToStartOn: Int): Unit =
     for (_ <- 0 to lineToStartOn) {
       if (reader.hasNext) {
         reader.next()

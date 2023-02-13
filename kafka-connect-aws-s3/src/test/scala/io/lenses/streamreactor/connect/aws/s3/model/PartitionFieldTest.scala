@@ -16,6 +16,11 @@
 package io.lenses.streamreactor.connect.aws.s3.model
 
 import com.datamountaineer.kcql.Kcql
+import io.lenses.streamreactor.connect.aws.s3.sink.config.KeyPartitionField
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionField
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
+import io.lenses.streamreactor.connect.aws.s3.sink.config.ValuePartitionField
+import io.lenses.streamreactor.connect.aws.s3.sink.config.WholeKeyPartitionField
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

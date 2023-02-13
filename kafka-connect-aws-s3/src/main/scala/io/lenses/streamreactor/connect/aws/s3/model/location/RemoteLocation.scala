@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.model.location
 
+import cats.implicits.catsSyntaxOptionId
 import software.amazon.awssdk.services.s3.internal.BucketUtils
 
 case object RemoteS3RootLocation {
@@ -40,6 +41,9 @@ case class RemoteS3RootLocation(
       .filter(_.contains("/"))
       .foreach(_ => throw new IllegalArgumentException("Nested prefix not currently supported"))
   }
+
+  def fromRoot(root: String): RemoteS3RootLocation =
+    RemoteS3RootLocation(bucket, root.some, allowSlash)
 
   override def withPath(path: String): RemoteS3PathLocation = RemoteS3PathLocation(bucket, prefix, path)
 

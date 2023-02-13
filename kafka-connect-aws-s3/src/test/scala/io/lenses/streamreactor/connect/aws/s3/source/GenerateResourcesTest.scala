@@ -16,15 +16,13 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.formats._
-import io.lenses.streamreactor.connect.aws.s3.model.BytesWriteMode.KeyAndValueWithSizes
-import io.lenses.streamreactor.connect.aws.s3.model.ByteArraySinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
-import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.schema
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.topic
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode.KeyAndValueWithSizes
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
+import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.schema
+import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.topic
 import org.apache.commons.io.FileUtils
 import org.apache.kafka.connect.data.Struct
 import org.scalacheck.Gen

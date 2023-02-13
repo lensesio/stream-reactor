@@ -16,20 +16,32 @@
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import com.datamountaineer.kcql.Kcql
-import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config.getString
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
+import io.lenses.streamreactor.connect.aws.s3.config.S3Config.getString
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_REGEX
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_TYPE
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
-import io.lenses.streamreactor.connect.aws.s3.model.PartitionExtractor
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+
+import java.time.Clock
+import java.util
+import scala.util.Try
 
 object S3SourceConfig {
 
-  def apply(s3ConfigDefBuilder: S3ConfigDefBuilder): S3SourceConfig = {
+  def fromProps(
+    props:        util.Map[String, String],
+    contextProps: util.Map[String, String],
+  )(
+    implicit
+    clock: Clock,
+  ): Either[Throwable, S3SourceConfig] =
+    Try(
+      S3SourceConfig(S3SourceConfigDefBuilder(props, contextProps)),
+    ).toEither
+
+  def apply(s3ConfigDefBuilder: S3SourceConfigDefBuilder)(implicit clock: Clock): S3SourceConfig = {
     val parsedValues = s3ConfigDefBuilder.getParsedValues
     S3SourceConfig(
       S3Config(parsedValues),
@@ -41,15 +53,17 @@ object S3SourceConfig {
         ),
       ),
       s3ConfigDefBuilder.getCompressionCodec(),
+      s3ConfigDefBuilder.getPartitionSearcherOptions(parsedValues),
     )
 
   }
 }
 
 case class S3SourceConfig(
-  s3Config:         S3Config,
-  bucketOptions:    Seq[SourceBucketOptions] = Seq.empty,
-  compressionCodec: CompressionCodec,
+  s3Config:          S3Config,
+  bucketOptions:     Seq[SourceBucketOptions] = Seq.empty,
+  compressionCodec:  CompressionCodec,
+  partitionSearcher: PartitionSearcherOptions,
 )
 
 case class SourceBucketOptions(
@@ -71,18 +85,17 @@ object SourceBucketOptions {
   private val DEFAULT_RECORDS_LIMIT = 1024
   private val DEFAULT_FILES_LIMIT   = 1000
 
-  def apply(config: S3ConfigDefBuilder, partitionExtractor: Option[PartitionExtractor]): Seq[SourceBucketOptions] =
+  def apply(
+    config:             S3SourceConfigDefBuilder,
+    partitionExtractor: Option[PartitionExtractor],
+  ): Seq[SourceBucketOptions] =
     config.getKCQL.map {
 
       kcql: Kcql =>
-        val formatSelection: FormatSelection = Option(kcql.getStoredAs) match {
-          case Some(format: String) => FormatSelection.fromString(format)
-          case None => FormatSelection(Json, Set.empty)
-        }
         SourceBucketOptions(
           RemoteS3RootLocation(kcql.getSource, allowSlash = true),
           kcql.getTarget,
-          format             = formatSelection,
+          format             = FormatSelection.fromKcql(kcql),
           recordsLimit       = if (kcql.getLimit < 1) DEFAULT_RECORDS_LIMIT else kcql.getLimit,
           filesLimit         = if (kcql.getBatchSize < 1) DEFAULT_FILES_LIMIT else kcql.getBatchSize,
           partitionExtractor = partitionExtractor,

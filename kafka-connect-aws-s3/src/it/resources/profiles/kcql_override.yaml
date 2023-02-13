@@ -1,5 +1,0 @@
----
-connect.s3.kcql.builder:
-  source: my-kafka-override-topic
-  target: myOverrideBucket:myOverridePartition
-  format: parquet

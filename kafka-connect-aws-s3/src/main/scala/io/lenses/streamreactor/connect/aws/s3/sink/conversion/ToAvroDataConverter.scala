@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
 import io.confluent.connect.avro.AvroData
-import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 

@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
-import org.slf4j.Logger
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -64,8 +64,9 @@ case class CommitContext(
   * @param interval in millis
   */
 case class DefaultCommitPolicy(fileSize: Option[Long], interval: Option[FiniteDuration], recordCount: Option[Long])
-    extends CommitPolicy {
-  val logger: Logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
+    extends CommitPolicy
+    with LazyLogging {
+
   require(fileSize.isDefined || interval.isDefined || recordCount.isDefined)
 
   override def shouldFlush(context: CommitContext): Boolean = {

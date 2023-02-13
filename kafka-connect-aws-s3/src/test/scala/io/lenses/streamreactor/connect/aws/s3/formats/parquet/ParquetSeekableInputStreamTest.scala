@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.parquet
 
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.parquet.ParquetSeekableInputStream
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

@@ -17,9 +17,9 @@ package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.ByteArraySinkData
-import io.lenses.streamreactor.connect.aws.s3.model.PrimitiveSinkData
-import io.lenses.streamreactor.connect.aws.s3.model.SinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.ByteArraySinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.PrimitiveSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
 
 object WrappedPrimitiveExtractor extends LazyLogging {
 

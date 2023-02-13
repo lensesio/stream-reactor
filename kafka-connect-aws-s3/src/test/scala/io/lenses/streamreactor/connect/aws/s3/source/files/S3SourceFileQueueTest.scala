@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.source.files
 import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.mockito.InOrder
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
@@ -25,8 +26,9 @@ import org.scalatest.matchers.should.Matchers
 
 class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar {
 
-  private val rootLocation = RemoteS3RootLocation("bucket:path")
-  private val files        = (0 to 3).map(file => rootLocation.withPath(file.toString + ".json")).toList
+  private val rootLocation              = RemoteS3RootLocation("bucket:path")
+  private val files                     = (0 to 3).map(file => rootLocation.withPath(file.toString + ".json")).toList
+  private implicit val storageInterface = mock[StorageInterface]
 
   "list" should "cache a batch of results from the beginning" in {
 

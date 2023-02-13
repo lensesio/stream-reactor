@@ -1,5 +1,0 @@
----
-connect.s3.aws.access.key: myAccessKey
-connect.s3.aws.secret.key: mySecretKey
-connect.s3.aws.auth.mode: myAuthMode
-connect.s3.kcql: insert into `target-bucket:target-path` select * from `source.bucket` PARTITIONBY name,title,salary STOREAS `text` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000

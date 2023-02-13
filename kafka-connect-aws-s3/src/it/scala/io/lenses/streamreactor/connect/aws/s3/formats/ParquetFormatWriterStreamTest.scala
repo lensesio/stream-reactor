@@ -17,6 +17,13 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Parquet
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetFormatReader
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.ArraySinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.IntSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.MapSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.ParquetFormatWriter
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.StringSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.BROTLI
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.LZ4
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.LZO

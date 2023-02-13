@@ -17,12 +17,14 @@ package io.lenses.streamreactor.connect.aws.s3.config
 
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.toBifunctorOps
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import enumeratum.Enum
 import enumeratum.EnumEntry
 import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
+import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
@@ -35,7 +37,12 @@ import scala.collection.immutable
 import scala.util.Try
 
 sealed trait AwsClient extends EnumEntry {
-  def createStorageInterface(connectorName: String, authResources: AuthResources): Either[String, StorageInterface]
+  def createStorageInterface(
+    authResources: AuthResources,
+  )(
+    implicit
+    connectorTaskId: ConnectorTaskId,
+  ): Either[String, StorageInterface]
 }
 
 object AwsClient extends Enum[AwsClient] {
@@ -44,23 +51,27 @@ object AwsClient extends Enum[AwsClient] {
 
   case object Aws extends AwsClient {
     override def createStorageInterface(
-      connectorName: String,
       authResources: AuthResources,
+    )(
+      implicit
+      connectorTaskId: ConnectorTaskId,
     ): Either[String, StorageInterface] =
       for {
         s3Client <- authResources.aws
-        si       <- { new AwsS3StorageInterface(connectorName, s3Client) }.asRight
+        si       <- { new AwsS3StorageInterface()(connectorTaskId, s3Client) }.asRight
       } yield si
   }
 
   case object JClouds extends AwsClient {
     override def createStorageInterface(
-      connectorName: String,
       authResources: AuthResources,
+    )(
+      implicit
+      connectorTaskId: ConnectorTaskId,
     ): Either[String, StorageInterface] =
       for {
         blobStore <- authResources.jClouds
-        si        <- Try(new JCloudsStorageInterface(connectorName, blobStore)).toEither.leftMap(_.getMessage)
+        si        <- Try(new JCloudsStorageInterface(blobStore)).toEither.leftMap(_.getMessage)
       } yield si
   }
 
@@ -102,6 +113,13 @@ object FormatOptions extends Enum[FormatOptions] {
 
 case object FormatSelection {
 
+  def fromKcql(
+    kcql: Kcql,
+  ): FormatSelection =
+    Option(kcql.getStoredAs) match {
+      case Some(format: String) => FormatSelection.fromString(format)
+      case None => FormatSelection(Json, Set.empty)
+    }
   def fromString(
     formatAsString: String,
   ): FormatSelection = {

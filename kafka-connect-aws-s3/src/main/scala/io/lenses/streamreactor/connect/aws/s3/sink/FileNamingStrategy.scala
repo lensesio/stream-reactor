@@ -18,11 +18,23 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.model.PartitionDisplay.KeysAndValues
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.createFileAndParents
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.sink.config.DatePartitionField
+import io.lenses.streamreactor.connect.aws.s3.sink.config.HeaderPartitionField
+import io.lenses.streamreactor.connect.aws.s3.sink.config.KeyPartitionField
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionField
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionPartitionField
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection
+import io.lenses.streamreactor.connect.aws.s3.sink.config.TopicPartitionField
+import io.lenses.streamreactor.connect.aws.s3.sink.config.ValuePartitionField
+import io.lenses.streamreactor.connect.aws.s3.sink.config.WholeKeyPartitionField
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
 
@@ -35,7 +47,7 @@ import scala.util.Try
 
 trait S3FileNamingStrategy {
 
-  protected val DefaultPrefix = "streamreactor"
+  private val DefaultPrefix = "streamreactor"
 
   def getFormat: Format
 

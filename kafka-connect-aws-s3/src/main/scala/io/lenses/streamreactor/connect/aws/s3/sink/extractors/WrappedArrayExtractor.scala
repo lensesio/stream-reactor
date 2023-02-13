@@ -16,8 +16,8 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
 import cats.implicits._
-import io.lenses.streamreactor.connect.aws.s3.model.PartitionNamePath
-import io.lenses.streamreactor.connect.aws.s3.model.SinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ArrayIndexUtil.getArrayIndex
 
 object WrappedArrayExtractor {

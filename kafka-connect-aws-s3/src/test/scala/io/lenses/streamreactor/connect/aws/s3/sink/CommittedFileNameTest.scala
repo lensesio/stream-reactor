@@ -20,6 +20,9 @@ import io.lenses.streamreactor.connect.aws.s3.config.Format.Csv
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection
+import io.lenses.streamreactor.connect.aws.s3.sink.config.ValuePartitionField
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 

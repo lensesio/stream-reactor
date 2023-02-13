@@ -10,4 +10,6 @@ addSbtPlugin("net.vonbuchholtz" % "sbt-dependency-check" % "4.0.0")
 
 addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.14")
 
+addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
+
 addSbtPlugin("com.typesafe.sbt" % "sbt-license-report" % "1.2.0")
