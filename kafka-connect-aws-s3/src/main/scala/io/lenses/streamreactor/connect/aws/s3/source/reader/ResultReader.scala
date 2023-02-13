@@ -16,17 +16,15 @@
 package io.lenses.streamreactor.connect.aws.s3.source.reader
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatStreamReader
-import io.lenses.streamreactor.connect.aws.s3.model.PollResults
-import io.lenses.streamreactor.connect.aws.s3.model.SourceData
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.S3FormatStreamReader
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.SourceData
+import io.lenses.streamreactor.connect.aws.s3.source.PollResults
 
 import scala.annotation.tailrec
 
 class ResultReader(
   reader:      S3FormatStreamReader[_ <: SourceData],
   targetTopic: String,
-)(
-  implicit
   partitionFn: String => Option[Int],
 ) extends LazyLogging
     with AutoCloseable {
@@ -47,7 +45,7 @@ class ResultReader(
           results,
           reader.getBucketAndPath,
           targetTopic,
-        ),
+        )(partitionFn),
       )
     }
 

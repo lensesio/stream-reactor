@@ -16,19 +16,18 @@
 package io.lenses.streamreactor.connect.aws.s3.source.files
 
 import cats.implicits.catsSyntaxEitherId
-import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
-import io.lenses.streamreactor.connect.aws.s3.storage.SourceStorageInterface
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
-  private implicit val storageInterface: SourceStorageInterface = mock[SourceStorageInterface]
+  private implicit val storageInterface: StorageInterface = mock[StorageInterface]
 
   private val bucketAndPrefix = RemoteS3RootLocation("my-bucket:path")
-  private val sourceLister    = new S3SourceLister(Format.Json)
+  private val sourceLister    = new S3SourceLister()
 
   "listBatch" should "return first result when no TopicPartitionOffset has been provided" in {
 

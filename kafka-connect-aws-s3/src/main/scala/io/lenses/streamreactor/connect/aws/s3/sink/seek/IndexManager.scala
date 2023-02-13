@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink.seek
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
@@ -30,11 +31,11 @@ import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 class IndexManager(
-  sinkName:       String,
   maxIndexes:     Int,
   fallbackSeeker: Option[LegacyOffsetSeeker],
 )(
   implicit
+  connectorTaskId:  ConnectorTaskId,
   storageInterface: StorageInterface,
 ) extends OffsetSeeker
     with LazyLogging {
@@ -47,14 +48,13 @@ class IndexManager(
     */
   def clean(mostRecentIndexFile: RemoteS3PathLocation, topicPartition: TopicPartition): Either[SinkError, Int] = {
     val remoteS3PathLocation =
-      mostRecentIndexFile.root().withPath(IndexFilenames.indexForTopicPartition(sinkName,
-                                                                                topicPartition.topic.value,
+      mostRecentIndexFile.root().withPath(IndexFilenames.indexForTopicPartition(topicPartition.topic.value,
                                                                                 topicPartition.partition,
       ))
     storageInterface.list(remoteS3PathLocation)
       .leftMap { e =>
         val logLine = s"Couldn't retrieve listing for (${mostRecentIndexFile.path}})"
-        logger.error("[{}] {}", sinkName, logLine, e.exception)
+        logger.error("[{}] {}", connectorTaskId.show, logLine, e.exception)
         new NonFatalS3SinkError(logLine, e.exception)
       }
       .flatMap {
@@ -64,22 +64,23 @@ class IndexManager(
             logAndReturnMaxExceededError(topicPartition, indexes)
           } else if (filtered.size == indexes.size) {
             val logLine = s"Latest file not found in index (${mostRecentIndexFile.path})"
-            logger.error("[{}] {}", sinkName, logLine)
+            logger.error("[{}] {}", connectorTaskId.show, logLine)
             NonFatalS3SinkError(logLine).asLeft
           } else {
             storageInterface
               .deleteFiles(mostRecentIndexFile.bucket, filtered)
               .map { _ =>
-                logger.debug("[{}] Retaining index file: {}, Deleting files: ({})",
-                             sinkName,
-                             mostRecentIndexFile.path,
-                             filtered.mkString(", "),
+                logger.debug(
+                  "[{}] Retaining index file: {}, Deleting files: ({})",
+                  connectorTaskId.show,
+                  mostRecentIndexFile.path,
+                  filtered.mkString(", "),
                 )
                 filtered.size
               }
               .leftMap {
                 err =>
-                  logger.error("[{}] Error on cleanup: {}", sinkName, err.message(), err.exception)
+                  logger.error("[{}] Error on cleanup: {}", connectorTaskId.show, err.message(), err.exception)
               }.getOrElse(0).asRight
           }
       }
@@ -87,7 +88,7 @@ class IndexManager(
 
   private def logAndReturnMaxExceededError(topicPartition: TopicPartition, indexes: List[String]) = {
     val logLine = s"Too many index files have accumulated (${indexes.size} out of max $maxIndexes)"
-    logger.error(s"[{}] {}", sinkName, logLine)
+    logger.error(s"[{}] {}", connectorTaskId.show, logLine)
     FatalS3SinkError(logLine, topicPartition).asLeft
   }
 
@@ -97,13 +98,12 @@ class IndexManager(
   ): Either[SinkError, RemoteS3PathLocation] = {
 
     val s3Path = IndexFilenames.indexFilename(
-      sinkName,
       topicPartitionOffset.topic.value,
       topicPartitionOffset.partition,
       topicPartitionOffset.offset.value,
     )
 
-    logger.debug("[{}] Writing index {} pointing to file {}", sinkName, s3Path, s3PathLocation.path)
+    logger.debug("[{}] Writing index {} pointing to file {}", connectorTaskId.show, s3Path, s3PathLocation.path)
 
     val idxPath = s3PathLocation.root().withPath(s3Path)
     storageInterface
@@ -111,7 +111,12 @@ class IndexManager(
       .map(_ => idxPath)
       .leftMap {
         ex =>
-          logger.error("[{}] Exception writing index {} pointing to file {}", sinkName, s3Path, s3PathLocation.path, ex)
+          logger.error("[{}] Exception writing index {} pointing to file {}",
+                       connectorTaskId.show,
+                       s3Path,
+                       s3PathLocation.path,
+                       ex,
+          )
           NonFatalS3SinkError(ex.message())
       }
   }
@@ -124,10 +129,11 @@ class IndexManager(
   ): Either[SinkError, Option[TopicPartitionOffset]] =
     seeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix) match {
       case Left(err) =>
-        logger.error(s"[{}] Error retrieving fallback offset seek topicPartition {} for {}",
-                     sinkName,
-                     topicPartition,
-                     bucketAndPrefix.bucket,
+        logger.error(
+          s"[{}] Error retrieving fallback offset seek topicPartition {} for {}",
+          connectorTaskId.show,
+          topicPartition,
+          bucketAndPrefix.bucket,
         )
         err.asLeft
       case Right(Some((tpo, path))) =>
@@ -151,7 +157,7 @@ class IndexManager(
   ): Either[SinkError, Option[TopicPartitionOffset]] =
     storageInterface.list(
       bucketAndPrefix.withPath(
-        IndexFilenames.indexForTopicPartition(sinkName, topicPartition.topic.value, topicPartition.partition),
+        IndexFilenames.indexForTopicPartition(topicPartition.topic.value, topicPartition.partition),
       ),
     )
       .leftMap { e =>
@@ -200,21 +206,21 @@ class IndexManager(
         _              <- storageInterface.deleteFiles(bucketAndPrefix.bucket, indexesToDelete)
         offset         <- indexToOffset(validIndex)
       } yield {
-        logger.info("[{}] Seeked offset {} for TP {}", sinkName, offset, topicPartition)
+        logger.info("[{}] Seeked offset {} for TP {}", connectorTaskId.show, offset, topicPartition)
         offset
       }
     }.leftMap {
       case err: FileLoadError =>
         val logLine = s"File load error while seeking: ${err.message()}"
-        logger.error(s"[{}] {}", sinkName, logLine, err.exception)
+        logger.error(s"[{}] {}", connectorTaskId.show, logLine, err.exception)
         new NonFatalS3SinkError(logLine, err.exception)
       case err: FileDeleteError =>
         val logLine = s"File delete error while seeking: ${err.message()}"
-        logger.error(s"[{}] {}", sinkName, logLine, err.exception)
+        logger.error(s"[{}] {}", connectorTaskId.show, logLine, err.exception)
         new NonFatalS3SinkError(logLine, err.exception)
       case err: Throwable =>
         val logLine = s"Error while seeking: ${err.getMessage}"
-        logger.error(s"[{}] {}", sinkName, logLine, err)
+        logger.error(s"[{}] {}", connectorTaskId.show, logLine, err)
         new NonFatalS3SinkError(logLine, err)
     }
   }

@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink.seek
 import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
+import io.lenses.streamreactor.connect.aws.s3.config.InitedConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
@@ -44,8 +45,9 @@ class LegacyOffsetSeekerTest
   private val fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json), NoOpPaddingStrategy)
 
   private implicit val storageInterface: StorageInterface = mock[StorageInterface]
+  private implicit val connectorTaskId = InitedConnectorTaskId("unit-tests", 1, 1)
 
-  private val offsetSeeker = new LegacyOffsetSeeker("mySinkName")
+  private val offsetSeeker = new LegacyOffsetSeeker
 
   private val topicPartition  = Topic("myTopic").withPartition(0)
   private val bucketAndPrefix = RemoteS3RootLocation("my-bucket:path")

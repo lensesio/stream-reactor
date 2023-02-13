@@ -16,21 +16,23 @@
 package io.lenses.streamreactor.connect.aws.s3.source.files
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
-import io.lenses.streamreactor.connect.aws.s3.storage.SourceStorageInterface
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 /**
   * The [[S3SourceLister]] is responsible for querying the [[StorageInterface]] to
   * retrieve a list of S3 topics and partitions for reading
   */
-class S3SourceLister(format: Format)(implicit sourceStorageInterface: SourceStorageInterface) extends LazyLogging {
+class S3SourceLister extends LazyLogging {
 
   def listBatch(
     bucketAndPrefix: RemoteS3RootLocation,
     lastFile:        Option[RemoteS3PathLocation],
     numResults:      Int,
+  )(
+    implicit
+    storageInterface: StorageInterface,
   ): Either[Throwable, List[RemoteS3PathLocation]] =
-    sourceStorageInterface.list(bucketAndPrefix, lastFile, numResults).map(_.map(bucketAndPrefix.withPath))
+    storageInterface.list(bucketAndPrefix, lastFile, numResults).map(_.map(bucketAndPrefix.withPath))
 }

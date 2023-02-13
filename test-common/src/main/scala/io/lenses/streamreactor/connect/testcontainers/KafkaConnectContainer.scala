@@ -74,7 +74,7 @@ class KafkaConnectContainer(
   }
 
   def installPackage(pkg: String): ExecResult =
-    rootExecInContainer(container = this, commands = Seq(s"microdnf install $pkg"))
+    rootExecInContainer(container = this, commands = Seq(s"microdnf","install",pkg))
 }
 object KafkaConnectContainer {
   private val dockerImage = DockerImageName.parse("confluentinc/cp-kafka-connect")

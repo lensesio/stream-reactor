@@ -5,11 +5,12 @@ import com.dimafeng.testcontainers.GenericContainer
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.aws.s3.config.InitedConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.AwsClient
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither._
-import io.lenses.streamreactor.connect.aws.s3.storage.JCloudsStorageInterface
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import ThrowableEither._
+import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.testcontainers.containers.wait.strategy.Wait
@@ -24,21 +25,22 @@ import java.nio.file.Files
 import scala.util.Try
 
 trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with LazyLogging with BeforeAndAfter {
+  private implicit val connectorTaskId: ConnectorTaskId = InitedConnectorTaskId("unit-tests", 1, 1)
+  val Port:                             Int             = 8080
+  val Identity:                         String          = "identity"
+  val Credential:                       String          = "credential"
+  val BucketName:                       String          = "employees"
 
-  val Port:       Int    = 8080
-  val Identity:   String = "identity"
-  val Credential: String = "credential"
-  val BucketName: String = "employees"
-
-  var storageInterfaceOpt: Option[StorageInterface] = None
-  var s3ClientOpt:         Option[S3Client]         = None
-  var helperOpt:           Option[RemoteFileHelper] = None
+  var storageInterfaceOpt: Option[AwsS3StorageInterface] = None
+  var s3ClientOpt:         Option[S3Client]              = None
+  var helperOpt:           Option[RemoteFileHelper]      = None
 
   var localRoot: File = _
   var localFile: File = _
 
-  implicit lazy val storageInterface: StorageInterface =
+  implicit lazy val storageInterface: AwsS3StorageInterface =
     storageInterfaceOpt.getOrElse(throw new IllegalStateException("Test not initialised"))
+
   lazy val s3Client: S3Client         = s3ClientOpt.getOrElse(throw new IllegalStateException("Test not initialised"))
   lazy val helper:   RemoteFileHelper = helperOpt.getOrElse(throw new IllegalStateException("Test not initialised"))
 
@@ -72,21 +74,20 @@ trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with Laz
 
     {
       for {
-        authResource        <- Try(new AuthResources(s3Config)).toEither
-        awsAuthResource     <- authResource.aws
-        jCloudsAuthResource <- authResource.jClouds
-        storageInterface    <- Try(new JCloudsStorageInterface("test", jCloudsAuthResource)).toEither
+        authResource     <- Try(new AuthResources(s3Config)).toEither
+        awsAuthResource  <- authResource.aws
+        storageInterface <- Try(new AwsS3StorageInterface()(connectorTaskId, awsAuthResource)).toEither
       } yield (storageInterface, awsAuthResource)
     }
-      .toThrowable("tests") match {
+      .toThrowable match {
       case (sI, sC) =>
         storageInterfaceOpt = Some(sI)
         s3ClientOpt         = Some(sC)
-        helperOpt           = Some(new RemoteFileHelper()(sI))
+        helperOpt           = Some(new RemoteFileHelper()(connectorTaskId, sI))
     }
 
     logger.debug("Creating test bucket")
-    createTestBucket().toThrowable("tests")
+    createTestBucket().toThrowable
     setUpTestData()
 
     localRoot = Files.createTempDirectory("blah").toFile

@@ -16,6 +16,8 @@
 package io.lenses.streamreactor.connect.aws.s3.model
 
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._

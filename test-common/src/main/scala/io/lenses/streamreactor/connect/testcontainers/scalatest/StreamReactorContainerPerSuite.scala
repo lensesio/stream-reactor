@@ -3,38 +3,25 @@ package io.lenses.streamreactor.connect.testcontainers.scalatest
 import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
-import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer
-import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer
 import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient
-import org.apache.kafka.clients.consumer.ConsumerConfig
-import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.clients.producer.KafkaProducer
-import org.apache.kafka.clients.producer.ProducerConfig
+import io.lenses.streamreactor.connect.testcontainers.{KafkaConnectContainer, SchemaRegistryContainer}
+import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig}
 import org.apache.kafka.common.serialization.StringDeserializer
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.TestSuite
 import org.scalatest.concurrent.Eventually
-import org.scalatest.time.Minute
-import org.scalatest.time.Span
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-import org.testcontainers.containers.KafkaContainer
-import org.testcontainers.containers.Network
+import org.scalatest.time.{Minute, Span}
+import org.scalatest.{BeforeAndAfterAll, TestSuite}
+import org.slf4j.{Logger, LoggerFactory}
 import org.testcontainers.containers.output.Slf4jLogConsumer
+import org.testcontainers.containers.{KafkaContainer, Network}
 import org.testcontainers.utility.DockerImageName
 
-import java.io.File
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.nio.file.{Files, Paths}
 import java.time.Duration
-import java.util
-import java.util.Properties
-import java.util.UUID
-import java.util.stream.Collectors
+import java.util.{Properties, UUID}
 import scala.collection.mutable.ListBuffer
-import scala.util.Try
+import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.util.{Failure, Success, Try}
 
 trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually with LazyLogging { this: TestSuite =>
 
@@ -97,29 +84,25 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
       kafkaContainer.stop()
     }
 
-  def connectPluginPath(): String = {
-
-    val dir: String = detectUserOrGithubDir
-
+  private def connectPluginPath(): String = {
     val regex           = s".*$connectorModule.*.jar"
-    val files: util.List[Path] = Files.find(
-      Paths.get(String.join(File.separator, dir, "kafka-connect-" + connectorModule, "target")),
-      3,
+    val files = Files.find(
+      artifactDir,
+      5,
       (p, _) => p.toFile.getName.matches(regex),
-    ).collect(Collectors.toList())
-    if (files.isEmpty)
-      throw new RuntimeException(s"""Please run `sbt "project $connectorModule" assembly""")
-    files.get(0).getParent.toString
+    ).iterator().asScala
+    Try(files.next()) match {
+      case Failure(exception) => fail(s"""Please run `sbt "project $connectorModule" assembly""", exception)
+      case Success(nextFile) => nextFile.getParent.toString
+    }
   }
 
-  private def detectUserOrGithubDir = {
-    val userDir  = sys.props("user.dir")
-    val githubWs = Try(Option(sys.env("GITHUB_WORKSPACE"))).toOption.flatten
+  private def artifactDir = {
+    val artDir = Option(sys.props("artifact.dir"))
+    val userDir = sys.props("user.dir")
+    logger.info("artDir: {} userDir: {}", artDir, userDir)
 
-    logger.info("userdir: {} githubWs: {}", userDir, githubWs)
-
-    val dir = githubWs.getOrElse(userDir)
-    dir
+    Paths.get(artDir.getOrElse(userDir))
   }
 
   def createProducer[K, V](keySer: Class[_], valueSer: Class[_]): KafkaProducer[K, V] = {

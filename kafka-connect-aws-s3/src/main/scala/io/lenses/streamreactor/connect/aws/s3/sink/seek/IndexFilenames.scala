@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.seek
 
+import cats.implicits.toShow
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
 
 import scala.util.Try
@@ -24,14 +26,14 @@ object IndexFilenames {
   /**
     * Generate the filename for the index file.
     */
-  def indexFilename(sinkName: String, topic: String, partition: Int, offset: Long): String =
-    f"${indexForTopicPartition(sinkName, topic, partition)}$offset%020d"
+  def indexFilename(topic: String, partition: Int, offset: Long)(implicit connectorTaskId: ConnectorTaskId): String =
+    f"${indexForTopicPartition(topic, partition)}$offset%020d"
 
   /**
     * Generate the directory of the index for a given topic and partition
     */
-  def indexForTopicPartition(sinkName: String, topic: String, partition: Int): String =
-    f".indexes/$sinkName/$topic/$partition%05d/"
+  def indexForTopicPartition(topic: String, partition: Int)(implicit connectorTaskId: ConnectorTaskId): String =
+    f".indexes/${connectorTaskId.show}/$topic/$partition%05d/"
 
   /**
     * Parses an index filename and returns an offset
