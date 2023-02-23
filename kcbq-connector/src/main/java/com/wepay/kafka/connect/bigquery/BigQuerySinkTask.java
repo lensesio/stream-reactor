@@ -115,6 +115,8 @@ public class BigQuerySinkTask extends SinkTask {
   private ScheduledExecutorService loadExecutor;
 
   private Map<TableId, Table> cache;
+  private int remainingRetries;
+  private boolean enableRetries;
 
   /**
    * Create a new BigquerySinkTask.
@@ -246,7 +248,25 @@ public class BigQuerySinkTask extends SinkTask {
 
     for (SinkRecord record : records) {
       if (record.value() != null || config.getBoolean(BigQuerySinkConfig.DELETE_ENABLED_CONFIG)) {
-        PartitionedTableId table = getRecordTable(record);
+        PartitionedTableId table;
+        if(enableRetries) {
+          try {
+            table = getRecordTable(record);
+          } catch (RetriableException e) {
+            if(remainingRetries == 0) {
+              throw new ConnectException(e);
+            } else {
+              logger.warn("Write of records failed, remainingRetries={}", remainingRetries);
+              remainingRetries--;
+              throw e;
+            }
+          } catch (Exception e) {
+            throw e;
+          }
+          remainingRetries = config.getInt(BigQuerySinkConfig.MAX_RETRIES_CONFIG);
+        } else {
+          table = getRecordTable(record);
+        }
         if (!tableWriterBuilders.containsKey(table)) {
           TableWriterBuilder tableWriterBuilder;
           if (config.getList(BigQuerySinkConfig.ENABLE_BATCH_CONFIG).contains(record.topic())) {
@@ -347,7 +367,15 @@ public class BigQuerySinkTask extends SinkTask {
     try {
       return getBigQuery().getTable(tableId);
     } catch (BigQueryException e) {
-      if (BigQueryErrorResponses.isIOError(e)) {
+      /* 1. Authentication error thrown by bigquery is a type of IOException
+       and the error code is 0. That's why we create a separate
+       check function for Authentication error otherwise this falls under IOError check */
+
+      /* 2. For Authentication, we don't need Retry logic. Instead, we throw Bigquery exception directly. */
+
+      if (BigQueryErrorResponses.isAuthenticationError(e)) {
+        throw new BigQueryException(e.getCode(), "Failed to authenticate client for table " + tableId + " with error " + e);
+      } else if (BigQueryErrorResponses.isIOError(e)) {
         throw new RetriableException("Failed to retrieve information for table " + tableId, e);
       } else {
         throw e;
@@ -492,6 +520,8 @@ public class BigQuerySinkTask extends SinkTask {
     }
 
     recordConverter = getConverter(config);
+    remainingRetries = config.getInt(BigQuerySinkConfig.MAX_RETRIES_CONFIG);
+    enableRetries = config.getBoolean(BigQuerySinkConfig.ENABLE_RETRIES_CONFIG);
   }
 
   private void startGCSToBQLoadTask() {

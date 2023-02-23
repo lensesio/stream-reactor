@@ -438,6 +438,18 @@ public class BigQuerySinkConfig extends AbstractConfig {
       "The time partitioning type to use when creating tables. "
           + "Existing tables will not be altered to use this partitioning type.";
 
+  public static final String MAX_RETRIES_CONFIG = "max.retries";
+  private static final ConfigDef.Type MAX_RETRIES_TYPE = ConfigDef.Type.INT;
+  private static final int MAX_RETRIES_DEFAULT = 10;
+  private static final ConfigDef.Validator MAX_RETRIES_VALIDATOR = ConfigDef.Range.atLeast(1);
+  private static final ConfigDef.Importance MAX_RETRIES_IMPORTANCE = ConfigDef.Importance.MEDIUM;
+  private static final String MAX_RETRIES_DOC = "The maximum number of times to retry on errors before failing the task.";
+
+  public static final String ENABLE_RETRIES_CONFIG = "enableRetries";
+  private static final ConfigDef.Type ENABLE_RETRIES_TYPE = ConfigDef.Type.BOOLEAN;
+  public static final Boolean ENABLE_RETRIES_DEFAULT = false;
+  private static final ConfigDef.Importance ENABLE_RETRIES_IMPORTANCE = ConfigDef.Importance.MEDIUM;
+
   /**
    * Return the ConfigDef object used to define this config's fields.
    *
@@ -711,6 +723,18 @@ public class BigQuerySinkConfig extends AbstractConfig {
                 return true;
               }
             }
+        ).define(
+            MAX_RETRIES_CONFIG,
+            MAX_RETRIES_TYPE,
+            MAX_RETRIES_DEFAULT,
+            MAX_RETRIES_VALIDATOR,
+            MAX_RETRIES_IMPORTANCE,
+            MAX_RETRIES_DOC
+        ).defineInternal(
+            ENABLE_RETRIES_CONFIG,
+            ENABLE_RETRIES_TYPE,
+            ENABLE_RETRIES_DEFAULT,
+            ENABLE_RETRIES_IMPORTANCE
         );
   }
 
