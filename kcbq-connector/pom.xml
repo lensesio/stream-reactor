@@ -200,10 +200,10 @@
                             </tags>
 
                             <requirements>
-                                <requirement>Apache Kafka 0.11 or higher / Confluent Platform 3.3 or higher</requirement>
+                                <requirement>Apache Kafka 2.6 or higher / Confluent Platform 6.0 or higher</requirement>
                                 <requirement>Java 1.8 or higher</requirement>
                                 <requirement>Active Google Cloud Platform (GCP) account with authorization to create resources</requirement>
-                                <requirement>Kafka Connect 0.11 or higher / Confluent Platform 3.3 or higher</requirement>
+                                <requirement>Kafka Connect 2.6 or higher / Confluent Platform 6.0 or higher</requirement>
                             </requirements>
                         </configuration>
                     </execution>

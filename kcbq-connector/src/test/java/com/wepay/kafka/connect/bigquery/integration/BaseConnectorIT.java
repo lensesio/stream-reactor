@@ -19,23 +19,6 @@
 
 package com.wepay.kafka.connect.bigquery.integration;
 
-import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
@@ -56,10 +39,26 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.util.clusters.EmbeddedConnectCluster;
 import org.apache.kafka.test.IntegrationTest;
 import org.apache.kafka.test.NoRetryException;
-import org.apache.kafka.test.TestUtils;
 import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static com.google.cloud.bigquery.LegacySQLTypeName.BOOLEAN;
 import static com.google.cloud.bigquery.LegacySQLTypeName.BYTES;
@@ -130,7 +129,7 @@ public abstract class BaseConnectorIT {
   protected Map<String, String> baseConnectorProps(int tasksMax) {
     Map<String, String> result = new HashMap<>();
 
-    result.put(CONNECTOR_CLASS_CONFIG, "BigQuerySinkConnector");
+    result.put(CONNECTOR_CLASS_CONFIG, "com.wepay.kafka.connect.bigquery.BigQuerySinkConnector");
     result.put(TASKS_MAX_CONFIG, Integer.toString(tasksMax));
 
     result.put(BigQuerySinkConfig.PROJECT_CONFIG, project());
