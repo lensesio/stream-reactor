@@ -35,6 +35,7 @@ import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
+import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.utils.SinkRecordConverter;
@@ -235,9 +236,7 @@ public class BigQuerySinkTask extends SinkTask {
 
     return builder.build();
   }
-
-  @Override
-  public void put(Collection<SinkRecord> records) {
+  public void writeSinkRecords(Collection<SinkRecord> records) {
     // Periodically poll for errors here instead of doing a stop-the-world check in flush()
     executor.maybeThrowEncounteredError();
 
@@ -248,25 +247,7 @@ public class BigQuerySinkTask extends SinkTask {
 
     for (SinkRecord record : records) {
       if (record.value() != null || config.getBoolean(BigQuerySinkConfig.DELETE_ENABLED_CONFIG)) {
-        PartitionedTableId table;
-        if(enableRetries) {
-          try {
-            table = getRecordTable(record);
-          } catch (RetriableException e) {
-            if(remainingRetries == 0) {
-              throw new ConnectException(e);
-            } else {
-              logger.warn("Write of records failed, remainingRetries={}", remainingRetries);
-              remainingRetries--;
-              throw e;
-            }
-          } catch (Exception e) {
-            throw e;
-          }
-          remainingRetries = config.getInt(BigQuerySinkConfig.MAX_RETRIES_CONFIG);
-        } else {
-          table = getRecordTable(record);
-        }
+        PartitionedTableId table = getRecordTable(record);
         if (!tableWriterBuilders.containsKey(table)) {
           TableWriterBuilder tableWriterBuilder;
           if (config.getList(BigQuerySinkConfig.ENABLE_BATCH_CONFIG).contains(record.topic())) {
@@ -307,6 +288,25 @@ public class BigQuerySinkTask extends SinkTask {
     checkQueueSize();
   }
 
+  @Override
+  public void put(Collection<SinkRecord> records) {
+      try {
+        writeSinkRecords(records);
+        remainingRetries = config.getInt(BigQuerySinkConfig.MAX_RETRIES_CONFIG);
+      } catch (RetriableException e) {
+        if(enableRetries) {
+          if(remainingRetries <= 0) {
+            throw new ConnectException(e);
+          } else {
+            logger.warn("Write of records failed, remainingRetries={}", remainingRetries);
+            remainingRetries--;
+            throw e;
+          }
+        } else {
+          throw e;
+        }
+      }
+  }
   // Important: this method is only safe to call during put(), flush(), or preCommit(); otherwise,
   // a ConcurrentModificationException may be triggered if the Connect framework is in the middle of
   // a method invocation on the consumer for this task. This becomes especially likely if all topics
@@ -372,9 +372,8 @@ public class BigQuerySinkTask extends SinkTask {
        check function for Authentication error otherwise this falls under IOError check */
 
       /* 2. For Authentication, we don't need Retry logic. Instead, we throw Bigquery exception directly. */
-
       if (BigQueryErrorResponses.isAuthenticationError(e)) {
-        throw new BigQueryException(e.getCode(), "Failed to authenticate client for table " + tableId + " with error " + e);
+        throw new BigQueryConnectException("Failed to authenticate client for table " + tableId + " with error " + e, e);
       } else if (BigQueryErrorResponses.isIOError(e)) {
         throw new RetriableException("Failed to retrieve information for table " + tableId, e);
       } else {

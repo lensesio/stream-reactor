@@ -443,13 +443,12 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final int MAX_RETRIES_DEFAULT = 10;
   private static final ConfigDef.Validator MAX_RETRIES_VALIDATOR = ConfigDef.Range.atLeast(1);
   private static final ConfigDef.Importance MAX_RETRIES_IMPORTANCE = ConfigDef.Importance.MEDIUM;
-  private static final String MAX_RETRIES_DOC = "The maximum number of times to retry on errors before failing the task.";
-
+  private static final String MAX_RETRIES_DOC = "The maximum number of times to retry on retriable errors before failing the task.";
+  
   public static final String ENABLE_RETRIES_CONFIG = "enableRetries";
   private static final ConfigDef.Type ENABLE_RETRIES_TYPE = ConfigDef.Type.BOOLEAN;
-  public static final Boolean ENABLE_RETRIES_DEFAULT = false;
+  public static final Boolean ENABLE_RETRIES_DEFAULT = true;
   private static final ConfigDef.Importance ENABLE_RETRIES_IMPORTANCE = ConfigDef.Importance.MEDIUM;
-
   /**
    * Return the ConfigDef object used to define this config's fields.
    *

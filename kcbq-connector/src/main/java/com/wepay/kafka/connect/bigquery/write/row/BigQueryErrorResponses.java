@@ -113,15 +113,17 @@ public class BigQueryErrorResponses {
     return BigQueryException.UNKNOWN_CODE == error.getCode()
         && error.getCause() instanceof IOException;
   }
+  /**
+   * Returns whether the error code and the description string match to authentication errors.
+   * See also <a href="https://cloud.google.com/bigquery/docs/error-messages#autherrors">here</a>.
+   */
   public static boolean isAuthenticationError(BigQueryException error) {
     String err = error.toString();
-    return (err.contains(String.valueOf(BAD_REQUEST_CODE)) || err.contains(String.valueOf(AUTHENTICATION_ERROR_CODE)))
-            &&
-            (err.contains("invalid_request") ||
-                    err.contains("invalid_client") ||
-                    err.contains("invalid_grant") ||
-                    err.contains("unauthorized_client") ||
-                    err.contains("unsupported_grant_type"));
+    return ((err.contains(String.valueOf(BAD_REQUEST_CODE))) &&
+            (err.contains("invalid_request") || err.contains("invalid_client") || err.contains("invalid_grant") ||
+             err.contains("unauthorized_client") || err.contains("unsupported_grant_type")))
+            ||
+            err.contains(String.valueOf(AUTHENTICATION_ERROR_CODE));
   }
   public static boolean isUnrecognizedFieldError(BigQueryError error) {
     return INVALID_REASON.equals(reason(error))
