@@ -220,16 +220,16 @@ public abstract class BigQueryWriter {
    * @param table The BigQuery table to write the rows to
    * @return Filtered Map from failed row id to the BigQueryError which cannot be sent to DLQ
    */
-  private Map<Long, List<BigQueryError>>  filterAndSendRecordsToDLQ(
-      SortedMap<SinkRecord,
-      InsertAllRequest.RowToInsert> rows, Map<Long,
-      List<BigQueryError>> failedRowsMap,
-      PartitionedTableId table) {
+  private Map<Long, List<BigQueryError>> filterAndSendRecordsToDLQ(
+      SortedMap<SinkRecord, InsertAllRequest.RowToInsert> rows,
+      Map<Long, List<BigQueryError>> failedRowsMap,
+      PartitionedTableId table
+  ) {
     long index = 0;
     Set<SinkRecord> recordsToDLQ = new TreeSet<>(rows.comparator());
     Map<Long, List<BigQueryError>> recordsToDLQFailureMap = new TreeMap<>();
     Map<Long, List<BigQueryError>> updatedFailedRowMap = new TreeMap<>();
-    for (Map.Entry<SinkRecord, InsertAllRequest.RowToInsert> row: rows.entrySet()) {
+    for (Map.Entry<SinkRecord, InsertAllRequest.RowToInsert> row : rows.entrySet()) {
       if (failedRowsMap.containsKey(index)) {
         if (errantRecordHandler.isErrorReasonAllowed(failedRowsMap.get(index).get(0).getReason())) {
           recordsToDLQ.add(row.getKey());
@@ -242,10 +242,10 @@ public abstract class BigQueryWriter {
     }
 
     if (errantRecordHandler.getErrantRecordReporter() != null) {
-        errantRecordHandler.sendRecordsToDLQ(
-            recordsToDLQ,
-            new BigQueryConnectException(table.toString(), recordsToDLQFailureMap)
-        );
+      errantRecordHandler.sendRecordsToDLQ(
+          recordsToDLQ,
+          new BigQueryConnectException(table.toString(), recordsToDLQFailureMap)
+      );
     }
 
     return updatedFailedRowMap;
@@ -254,7 +254,7 @@ public abstract class BigQueryWriter {
   /**
    *
    * @param failedRowsMap: A map from failed row index to the BigQueryError
-   * @return true if any row has Stopped BigQuery error else false.
+   * @return true if all rows has Stopped BigQuery error reason else false.
    */
   private boolean hasStoppedErrorRecords(Map<Long, List<BigQueryError>> failedRowsMap) {
     for (List<BigQueryError> errors : failedRowsMap.values()) {

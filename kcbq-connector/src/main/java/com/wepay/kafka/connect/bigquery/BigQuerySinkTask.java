@@ -498,6 +498,8 @@ public class BigQuerySinkTask extends SinkTask {
       errantRecordReporter = context.errantRecordReporter(); // may be null if DLQ not enabled
     } catch (NoClassDefFoundError | NullPointerException e) {
       // Will occur in Connect runtimes earlier than 2.6
+      logger.warn("Connect versions prior to Apache Kafka 2.6 do not support the errant record "
+          + "reporter");
     }
     errantRecordHandler = new ErrantRecordHandler(errantRecordReporter);
 
