@@ -21,6 +21,7 @@ public class ErrantRecordHandler {
 
     public void sendRecordsToDLQ(Set<SinkRecord> rows, Exception e) {
         if(errantRecordReporter != null) {
+            logger.debug("Sending {} records to DLQ", rows.size());
             for (SinkRecord r : rows) {
                 // Reporting records in async mode
                 errantRecordReporter.report(r, e);
