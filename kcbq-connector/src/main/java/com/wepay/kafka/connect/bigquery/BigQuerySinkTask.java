@@ -35,6 +35,7 @@ import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
+import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.utils.SinkRecordConverter;
@@ -115,6 +116,8 @@ public class BigQuerySinkTask extends SinkTask {
   private ScheduledExecutorService loadExecutor;
 
   private Map<TableId, Table> cache;
+  private int remainingRetries;
+  private boolean enableRetries;
 
   /**
    * Create a new BigquerySinkTask.
@@ -233,9 +236,7 @@ public class BigQuerySinkTask extends SinkTask {
 
     return builder.build();
   }
-
-  @Override
-  public void put(Collection<SinkRecord> records) {
+  public void writeSinkRecords(Collection<SinkRecord> records) {
     // Periodically poll for errors here instead of doing a stop-the-world check in flush()
     executor.maybeThrowEncounteredError();
 
@@ -287,6 +288,25 @@ public class BigQuerySinkTask extends SinkTask {
     checkQueueSize();
   }
 
+  @Override
+  public void put(Collection<SinkRecord> records) {
+      try {
+        writeSinkRecords(records);
+        remainingRetries = config.getInt(BigQuerySinkConfig.MAX_RETRIES_CONFIG);
+      } catch (RetriableException e) {
+        if(enableRetries) {
+          if(remainingRetries <= 0) {
+            throw new ConnectException(e);
+          } else {
+            logger.warn("Write of records failed, remainingRetries={}", remainingRetries);
+            remainingRetries--;
+            throw e;
+          }
+        } else {
+          throw e;
+        }
+      }
+  }
   // Important: this method is only safe to call during put(), flush(), or preCommit(); otherwise,
   // a ConcurrentModificationException may be triggered if the Connect framework is in the middle of
   // a method invocation on the consumer for this task. This becomes especially likely if all topics
@@ -347,7 +367,14 @@ public class BigQuerySinkTask extends SinkTask {
     try {
       return getBigQuery().getTable(tableId);
     } catch (BigQueryException e) {
-      if (BigQueryErrorResponses.isIOError(e)) {
+      /* 1. Authentication error thrown by bigquery is a type of IOException
+       and the error code is 0. That's why we create a separate
+       check function for Authentication error otherwise this falls under IOError check */
+
+      /* 2. For Authentication, we don't need Retry logic. Instead, we throw Bigquery exception directly. */
+      if (BigQueryErrorResponses.isAuthenticationError(e)) {
+        throw new BigQueryConnectException("Failed to authenticate client for table " + tableId + " with error " + e, e);
+      } else if (BigQueryErrorResponses.isIOError(e)) {
         throw new RetriableException("Failed to retrieve information for table " + tableId, e);
       } else {
         throw e;
@@ -492,6 +519,8 @@ public class BigQuerySinkTask extends SinkTask {
     }
 
     recordConverter = getConverter(config);
+    remainingRetries = config.getInt(BigQuerySinkConfig.MAX_RETRIES_CONFIG);
+    enableRetries = config.getBoolean(BigQuerySinkConfig.ENABLE_RETRIES_CONFIG);
   }
 
   private void startGCSToBQLoadTask() {
