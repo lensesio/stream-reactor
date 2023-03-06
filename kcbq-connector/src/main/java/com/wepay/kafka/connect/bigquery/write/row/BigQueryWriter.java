@@ -231,7 +231,7 @@ public abstract class BigQueryWriter {
     Map<Long, List<BigQueryError>> updatedFailedRowMap = new TreeMap<>();
     for (Map.Entry<SinkRecord, InsertAllRequest.RowToInsert> row : rows.entrySet()) {
       if (failedRowsMap.containsKey(index)) {
-        if (errantRecordHandler.isErrorReasonAllowed(failedRowsMap.get(index).get(0).getReason())) {
+        if (errantRecordHandler.isErrorReasonAllowed(failedRowsMap.get(index))) {
           recordsToDLQ.add(row.getKey());
           recordsToDLQFailureMap.put(index, failedRowsMap.get(index));
         } else {

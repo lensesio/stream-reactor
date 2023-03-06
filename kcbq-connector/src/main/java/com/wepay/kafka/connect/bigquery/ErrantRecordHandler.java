@@ -1,5 +1,7 @@
 package com.wepay.kafka.connect.bigquery;
 
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryError;
 import org.apache.kafka.connect.sink.ErrantRecordReporter;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
@@ -39,11 +41,18 @@ public class ErrantRecordHandler {
         return allowedBigQueryErrorReason;
     }
 
-    public boolean isErrorReasonAllowed(String errorReason) {
-        for (String allowedErrorReason: allowedBigQueryErrorReason) {
-            if (errorReason.equalsIgnoreCase(allowedErrorReason))
-                return true;
+    public boolean isErrorReasonAllowed(List<BigQueryError> bqErrorList) {
+        boolean result = true;
+        for (BigQueryError bqError: bqErrorList) {
+            boolean errorMatch = false;
+            for (String allowedBqErrorReason: allowedBigQueryErrorReason) {
+                if (bqError.getReason().equalsIgnoreCase(allowedBqErrorReason)) {
+                    errorMatch = true;
+                    break;
+                }
+            }
+            result = result & errorMatch;
         }
-        return false;
+        return result;
     }
 }
