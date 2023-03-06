@@ -42,17 +42,18 @@ public class ErrantRecordHandler {
     }
 
     public boolean isErrorReasonAllowed(List<BigQueryError> bqErrorList) {
-        boolean result = true;
         for (BigQueryError bqError: bqErrorList) {
             boolean errorMatch = false;
+            String bqErrorReason = bqError.getReason();
             for (String allowedBqErrorReason: allowedBigQueryErrorReason) {
-                if (bqError.getReason().equalsIgnoreCase(allowedBqErrorReason)) {
+                if (bqErrorReason.equalsIgnoreCase(allowedBqErrorReason)) {
                     errorMatch = true;
                     break;
                 }
             }
-            result = result & errorMatch;
+            if(!errorMatch)
+                return false;
         }
-        return result;
+        return true;
     }
 }
