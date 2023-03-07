@@ -232,4 +232,16 @@ public class BigQuerySinkConfigTest {
     BigQuerySinkConfig config = new BigQuerySinkConfig(configProperties);
     assertEquals(testKafkaProvider, config.getString(CONNECTOR_RUNTIME_PROVIDER_CONFIG));
   }
+
+  @Test(expected = ConfigException.class)
+  public void testInvalidMaxRetries() {
+    Map<String, String> badConfigProperties = propertiesFactory.getProperties();
+
+    badConfigProperties.put(
+            BigQuerySinkConfig.MAX_RETRIES_CONFIG,
+            "-1"
+    );
+
+    new BigQuerySinkConfig(badConfigProperties);
+  }
 }
