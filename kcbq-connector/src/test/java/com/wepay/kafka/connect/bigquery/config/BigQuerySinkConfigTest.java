@@ -284,4 +284,15 @@ public class BigQuerySinkConfigTest {
     assertFalse(config.getTopic2TableMap().isPresent());
   }
 
+  @Test(expected = ConfigException.class)
+  public void testInvalidMaxRetries() {
+    Map<String, String> badConfigProperties = propertiesFactory.getProperties();
+
+    badConfigProperties.put(
+            BigQuerySinkConfig.MAX_RETRIES_CONFIG,
+            "-1"
+    );
+
+    new BigQuerySinkConfig(badConfigProperties);
+  }
 }
