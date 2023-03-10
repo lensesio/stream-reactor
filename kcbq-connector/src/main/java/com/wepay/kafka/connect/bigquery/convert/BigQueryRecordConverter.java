@@ -54,6 +54,7 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
                   Integer.class, Long.class, Float.class, Double.class, String.class)
           );
   private boolean shouldConvertSpecialDouble;
+  private boolean shouldConvertDebeziumTimestampToInteger;
 
   static {
     // force registration
@@ -61,8 +62,9 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
     new KafkaLogicalConverters();
   }
 
-  public BigQueryRecordConverter(boolean shouldConvertDoubleSpecial) {
+  public BigQueryRecordConverter(boolean shouldConvertDoubleSpecial, boolean shouldConvertDebeziumTimestampToInteger) {
     this.shouldConvertSpecialDouble = shouldConvertDoubleSpecial;
+    this.shouldConvertDebeziumTimestampToInteger = shouldConvertDebeziumTimestampToInteger;
   }
 
   /**
@@ -236,6 +238,10 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
                                 Schema kafkaConnectSchema) {
     LogicalTypeConverter converter =
         LogicalConverterRegistry.getConverter(kafkaConnectSchema.name());
+
+    if(shouldConvertDebeziumTimestampToInteger && converter instanceof DebeziumLogicalConverters.TimestampConverter) {
+      return (Long) kafkaConnectObject;
+    }
     return converter.convert(kafkaConnectObject);
   }
 
