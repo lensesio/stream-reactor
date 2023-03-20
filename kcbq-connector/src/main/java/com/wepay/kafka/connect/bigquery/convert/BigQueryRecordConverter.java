@@ -52,8 +52,7 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
           Arrays.asList(
             Boolean.class, Character.class, Byte.class, Short.class,
                   Integer.class, Long.class, Float.class, Double.class, String.class)
-          );
-          
+          );  
   private final boolean shouldConvertSpecialDouble;
   private boolean shouldConvertDebeziumTimestampToInteger;
 
