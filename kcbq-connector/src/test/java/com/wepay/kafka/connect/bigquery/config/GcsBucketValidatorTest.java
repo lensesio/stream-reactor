@@ -19,7 +19,12 @@
 
 package com.wepay.kafka.connect.bigquery.config;
 
+import com.google.cloud.storage.Bucket;
+import com.google.cloud.storage.Storage;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Collections;
 import java.util.Optional;
@@ -28,10 +33,15 @@ import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.ENABLE_
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.GCS_BUCKET_NAME_CONFIG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class GcsBucketValidatorTest {
+
+  @Mock
+  private Storage gcs;
 
   @Test
   public void testNullBatchLoadingSkipsValidation() {
@@ -40,7 +50,7 @@ public class GcsBucketValidatorTest {
 
     assertEquals(
         Optional.empty(),
-        new GcsBucketValidator().doValidate(config)
+        new GcsBucketValidator().doValidate(gcs, config)
     );
   }
 
@@ -51,7 +61,7 @@ public class GcsBucketValidatorTest {
 
     assertEquals(
         Optional.empty(),
-        new GcsBucketValidator().doValidate(config)
+        new GcsBucketValidator().doValidate(gcs, config)
     );
   }
 
@@ -63,7 +73,7 @@ public class GcsBucketValidatorTest {
 
     assertNotEquals(
         Optional.empty(),
-        new GcsBucketValidator().doValidate(config)
+        new GcsBucketValidator().doValidate(gcs, config)
     );
   }
 
@@ -75,19 +85,38 @@ public class GcsBucketValidatorTest {
 
     assertNotEquals(
         Optional.empty(),
-        new GcsBucketValidator().doValidate(config)
+        new GcsBucketValidator().doValidate(gcs, config)
     );
   }
 
   @Test
   public void testValidBucketWithBatchLoading() {
     BigQuerySinkConfig config = mock(BigQuerySinkConfig.class);
+    final String bucketName = "gee_cs";
     when(config.getList(ENABLE_BATCH_CONFIG)).thenReturn(Collections.singletonList("t1"));
-    when(config.getString(GCS_BUCKET_NAME_CONFIG)).thenReturn("gee_cs");
+    when(config.getString(GCS_BUCKET_NAME_CONFIG)).thenReturn(bucketName);
+
+    Bucket bucket = mock(Bucket.class);
+    when(gcs.get(eq(bucketName))).thenReturn(bucket);
 
     assertEquals(
         Optional.empty(),
-        new GcsBucketValidator().doValidate(config)
+        new GcsBucketValidator().doValidate(gcs, config)
+    );
+  }
+
+  @Test
+  public void testMissingBucketAndBucketCreationDisabledWithBatchLoading() {
+    BigQuerySinkConfig config = mock(BigQuerySinkConfig.class);
+    final String bucketName = "gee_cs";
+    when(config.getList(ENABLE_BATCH_CONFIG)).thenReturn(Collections.singletonList("t1"));
+    when(config.getString(GCS_BUCKET_NAME_CONFIG)).thenReturn(bucketName);
+
+    when(gcs.get(eq(bucketName))).thenReturn(null);
+
+    assertNotEquals(
+        Optional.empty(),
+        new GcsBucketValidator().doValidate(gcs, config)
     );
   }
 }

@@ -33,9 +33,28 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
   private static final boolean GCS_BQ_TASK_DEFAULT = false;
   private static final ConfigDef.Importance GCS_BQ_TASK_IMPORTANCE = ConfigDef.Importance.LOW;
 
-  private static ConfigDef config() {
+  public static final String TASK_ID_CONFIG =                   "taskId";
+  private static final ConfigDef.Type TASK_ID_TYPE =            ConfigDef.Type.INT;
+  public static final ConfigDef.Importance TASK_ID_IMPORTANCE = ConfigDef.Importance.LOW;
+
+  /**
+   * Return a ConfigDef object used to define this config's fields.
+   *
+   * @return A ConfigDef object used to define this config's fields.
+   */
+  public static ConfigDef config() {
     return BigQuerySinkConfig.getConfig()
-        .defineInternal(GCS_BQ_TASK_CONFIG, GCS_BQ_TASK_TYPE, GCS_BQ_TASK_DEFAULT, GCS_BQ_TASK_IMPORTANCE);
+        .defineInternal(
+            GCS_BQ_TASK_CONFIG,
+            GCS_BQ_TASK_TYPE,
+            GCS_BQ_TASK_DEFAULT,
+            GCS_BQ_TASK_IMPORTANCE
+        ).defineInternal(
+            TASK_ID_CONFIG,
+            TASK_ID_TYPE,
+            ConfigDef.NO_DEFAULT_VALUE,
+            TASK_ID_IMPORTANCE
+        );
   }
 
   /**

@@ -1,4 +1,3 @@
-#!/usr/bin/env groovy
 /*
  * Copyright 2020 Confluent, Inc.
  *
@@ -17,13 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-common {
-  slackChannel = '#connect-warn'
-  nodeLabel = 'docker-oraclejdk8'
-  publish = false
-  downStreamValidate = false
-  secret_file_list = [
-          ['gcp/kcbq', 'creds',   '/tmp/creds.json', 'KCBQ_TEST_KEYFILE']
-  ]
-  timeoutHours = 2
+
+package com.wepay.kafka.connect.bigquery.utils;
+
+import com.google.cloud.bigquery.TableId;
+
+public class TableNameUtils {
+
+  public static String table(TableId table) {
+    return String.format("table `%s`.`%s`", table.getDataset(), table.getTable());
+  }
+
+  public static String intTable(TableId table) {
+    return "intermediate " + table(table);
+  }
+
+  public static String destTable(TableId table) {
+    return "destination " + table(table);
+  }
 }

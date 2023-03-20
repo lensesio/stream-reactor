@@ -1,4 +1,3 @@
-#!/usr/bin/env groovy
 /*
  * Copyright 2020 Confluent, Inc.
  *
@@ -17,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-common {
-  slackChannel = '#connect-warn'
-  nodeLabel = 'docker-oraclejdk8'
-  publish = false
-  downStreamValidate = false
-  secret_file_list = [
-          ['gcp/kcbq', 'creds',   '/tmp/creds.json', 'KCBQ_TEST_KEYFILE']
-  ]
-  timeoutHours = 2
+
+package com.wepay.kafka.connect.bigquery.exception;
+
+import org.apache.kafka.connect.errors.ConnectException;
+
+public class ExpectedInterruptException extends ConnectException {
+
+  public ExpectedInterruptException(String message) {
+    super(message);
+  }
 }

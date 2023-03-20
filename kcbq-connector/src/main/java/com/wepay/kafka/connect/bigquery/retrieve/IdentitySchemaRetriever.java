@@ -1,4 +1,3 @@
-#!/usr/bin/env groovy
 /*
  * Copyright 2020 Confluent, Inc.
  *
@@ -17,13 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-common {
-  slackChannel = '#connect-warn'
-  nodeLabel = 'docker-oraclejdk8'
-  publish = false
-  downStreamValidate = false
-  secret_file_list = [
-          ['gcp/kcbq', 'creds',   '/tmp/creds.json', 'KCBQ_TEST_KEYFILE']
-  ]
-  timeoutHours = 2
+
+package com.wepay.kafka.connect.bigquery.retrieve;
+
+import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.sink.SinkRecord;
+
+import java.util.Map;
+
+/**
+ * Fetches the key Schema and value Schema from a Sink Record
+ */
+public class IdentitySchemaRetriever implements SchemaRetriever {
+
+    @Override
+    public void configure(Map<String, String> properties) {
+    }
+
+    @Override
+    public Schema retrieveKeySchema(SinkRecord record) {
+        return record.keySchema();
+    }
+
+    @Override
+    public Schema retrieveValueSchema(SinkRecord record) {
+        return record.valueSchema();
+    }
 }
