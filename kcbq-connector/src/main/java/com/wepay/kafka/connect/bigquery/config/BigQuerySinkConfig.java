@@ -427,6 +427,12 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final String BIGQUERY_CLUSTERING_FIELD_NAMES_DOC =
       "List of fields on which data should be clustered by in BigQuery, separated by commas";
 
+  public static final String CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_CONFIG = "convertDebeziumTimestampToInteger";
+  private static final ConfigDef.Type CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_TYPE = ConfigDef.Type.BOOLEAN;
+  private static final Boolean CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_DEFAULT = false;
+  private static final ConfigDef.Importance CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_IMPORTANCE =
+          ConfigDef.Importance.MEDIUM;
+
   public static final String TIME_PARTITIONING_TYPE_CONFIG = "timePartitioningType";
   private static final ConfigDef.Type TIME_PARTITIONING_TYPE_TYPE = ConfigDef.Type.STRING;
   public static final String TIME_PARTITIONING_TYPE_DEFAULT = TimePartitioning.Type.DAY.name().toUpperCase();
@@ -692,6 +698,11 @@ public class BigQuerySinkConfig extends AbstractConfig {
             BIGQUERY_CLUSTERING_FIELD_NAMES_VALIDATOR,
             BIGQUERY_CLUSTERING_FIELD_NAMES_IMPORTANCE,
             BIGQUERY_CLUSTERING_FIELD_NAMES_DOC
+        ).defineInternal(
+            CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_CONFIG,
+            CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_TYPE,
+            CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_DEFAULT,
+            CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_IMPORTANCE
         ).define(
             TIME_PARTITIONING_TYPE_CONFIG,
             TIME_PARTITIONING_TYPE_TYPE,
@@ -833,7 +844,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
    * @return a {@link RecordConverter} for BigQuery.
    */
   public RecordConverter<Map<String, Object>> getRecordConverter() {
-    return new BigQueryRecordConverter(getBoolean(CONVERT_DOUBLE_SPECIAL_VALUES_CONFIG));
+    return new BigQueryRecordConverter(getBoolean(CONVERT_DOUBLE_SPECIAL_VALUES_CONFIG), getBoolean(CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_CONFIG));
   }
 
   /**
