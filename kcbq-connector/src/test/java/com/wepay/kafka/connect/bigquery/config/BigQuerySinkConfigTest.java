@@ -19,6 +19,7 @@
 
 package com.wepay.kafka.connect.bigquery.config;
 
+import com.google.cloud.bigquery.TimePartitioning;
 import com.wepay.kafka.connect.bigquery.SinkPropertiesFactory;
 import com.wepay.kafka.connect.bigquery.convert.BigQueryRecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.BigQuerySchemaConverter;
@@ -34,6 +35,7 @@ import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class BigQuerySinkConfigTest {
@@ -156,5 +158,34 @@ public class BigQuerySinkConfigTest {
     Optional<List<String>> testClusteringPartitionFieldName = testConfig.getClusteringPartitionFieldNames();
     assertTrue(testClusteringPartitionFieldName.isPresent());
     assertEquals(expectedClusteringPartitionFieldName, testClusteringPartitionFieldName.get());
+  }
+
+  @Test
+  public void testValidTimePartitioningTypes() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+
+    for (TimePartitioning.Type type : TimePartitioning.Type.values()) {
+      configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, type.name());
+      assertEquals(type, new BigQuerySinkConfig(configProperties).getTimePartitioningType());
+    }
+  }
+
+  @Test(expected = ConfigException.class)
+  public void testInvalidTimePartitioningType() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+
+    configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, "fortnight");
+    new BigQuerySinkConfig(configProperties);
+  }
+  @Test(expected = ConfigException.class)
+  public void testInvalidMaxRetries() {
+    Map<String, String> badConfigProperties = propertiesFactory.getProperties();
+
+    badConfigProperties.put(
+            BigQuerySinkConfig.MAX_RETRIES_CONFIG,
+            "-1"
+    );
+
+    new BigQuerySinkConfig(badConfigProperties);
   }
 }

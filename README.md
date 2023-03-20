@@ -6,6 +6,14 @@
 This is an implementation of a sink connector from [Apache Kafka] to [Google BigQuery], built on top 
 of [Apache Kafka Connect]. For a comprehensive list of configuration options, see the [Connector Configuration Wiki].
 
+## History
+
+This connector was [originally developed by WePay](https://github.com/wepay/kafka-connect-bigquery).
+In late 2020 the project moved to [Confluent](https://github.com/confluentinc/kafka-connect-bigquery),
+with both companies taking on maintenance duties. All new activity such as filing issues and opening
+pull requests should now target the [Confluent](https://github.com/confluentinc/kafka-connect-bigquery)
+fork of the project.
+
 ## Download
 
 The latest releases are available in the GitHub release tab, or via [tarballs in Maven central](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22kcbq-connector%22).
@@ -40,7 +48,18 @@ save the properties file.
 
 Once you get more familiar with the connector, you might want to revisit the `connector.properties`
 file and experiment with tweaking its settings.
-   
+
+#### Migrating to 2.x.x
+In accordance with the introduction of schema unionization in version 2.0.0, the following changes
+to configs have been introduced and should be made when migrating:
+1. `autoUpdateSchemas` has been removed
+2. `allowNewBigQueryFields` and `allowBigQueryRequiredFieldRelaxation` have been introduced
+3. `allowSchemaUnionization` has been introduced
+
+Setting `allowNewBigQueryFields` and `allowBigQueryRequiredFieldRelaxation` to `true` while
+setting `allowSchemaUnionization` to false results in the same behavior that setting `autoUpdateSchemas`
+to `true` used to.
+
 ### Building and Extracting a Confluent Hub archive
 
 If you haven't already, move into the repository's top-level directory:

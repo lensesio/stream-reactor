@@ -22,11 +22,17 @@ package com.wepay.kafka.connect.bigquery.utils;
 import com.google.cloud.bigquery.TableId;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 /**
  * A TableId with separate base table name and partition information.
+ * Note that this class only supports partitioning by day; even though BigQuery supports other time partitioning types
+ * for tables partitioned by ingestion time, it doesn't support decorator syntax (i.e., appending "$YYYYMMDD" to the
+ * name of a table being streamed to) for these other time partitioning types.
  */
 public class PartitionedTableId {
 

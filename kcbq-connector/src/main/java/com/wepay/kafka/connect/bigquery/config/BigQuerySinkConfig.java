@@ -20,6 +20,7 @@
 package com.wepay.kafka.connect.bigquery.config;
 
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.TimePartitioning;
 import com.wepay.kafka.connect.bigquery.GcpClientBuilder;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.convert.BigQueryRecordConverter;
@@ -281,6 +282,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
       + "suffix.";
 
   public static final String MERGE_INTERVAL_MS_CONFIG =                    "mergeIntervalMs";
+  public static final String MERGE_RECORDS_THRESHOLD_CONFIG =                    "mergeRecordsThreshold";
   private static final ConfigDef.Type MERGE_INTERVAL_MS_TYPE =              ConfigDef.Type.LONG;
   public static final long MERGE_INTERVAL_MS_DEFAULT =                     60_000L;
   private static final ConfigDef.Validator MERGE_INTERVAL_MS_VALIDATOR =   ConfigDef.LambdaValidator.with(
@@ -300,10 +302,11 @@ public class BigQuerySinkConfig extends AbstractConfig {
   );
   private static final ConfigDef.Importance MERGE_INTERVAL_MS_IMPORTANCE = ConfigDef.Importance.LOW;
   private static final String MERGE_INTERVAL_MS_DOC =
-      "How often (in milliseconds) to perform a merge flush, if upsert/delete is enabled. Can be "
-      + "set to -1 to disable periodic flushing.";
+      "How often (in milliseconds) to perform a merge flush, if upsert/delete is enabled. Can be set to -1" +
+              " to disable periodic flushing. Either " +MERGE_INTERVAL_MS_CONFIG + " or "
+              + MERGE_RECORDS_THRESHOLD_CONFIG + ", or both must be enabled.\nThis should not be set to less" +
+              " than 10 seconds. A validation would be introduced in a future release to this effect.";
 
-  public static final String MERGE_RECORDS_THRESHOLD_CONFIG =                    "mergeRecordsThreshold";
   private static final ConfigDef.Type MERGE_RECORDS_THRESHOLD_TYPE =             ConfigDef.Type.LONG;
   public static final long MERGE_RECORDS_THRESHOLD_DEFAULT =                     -1;
   private static final ConfigDef.Validator MERGE_RECORDS_THRESHOLD_VALIDATOR =   ConfigDef.LambdaValidator.with(
@@ -324,7 +327,8 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final ConfigDef.Importance MERGE_RECORDS_THRESHOLD_IMPORTANCE = ConfigDef.Importance.LOW;
   private static final String MERGE_RECORDS_THRESHOLD_DOC =
       "How many records to write to an intermediate table before performing a merge flush, if " 
-      + "upsert/delete is enabled. Can be set to -1 to disable record count-based flushing.";
+      + "upsert/delete is enabled. Can be set to -1 to disable record count-based flushing. Either "
+              + MERGE_INTERVAL_MS_CONFIG + " or " + MERGE_RECORDS_THRESHOLD_CONFIG + ", or both must be enabled.";
 
   public static final String THREAD_POOL_SIZE_CONFIG =                  "threadPoolSize";
   private static final ConfigDef.Type THREAD_POOL_SIZE_TYPE =           ConfigDef.Type.INT;
@@ -429,6 +433,28 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final ConfigDef.Importance CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_IMPORTANCE =
           ConfigDef.Importance.MEDIUM;
 
+  public static final String TIME_PARTITIONING_TYPE_CONFIG = "timePartitioningType";
+  private static final ConfigDef.Type TIME_PARTITIONING_TYPE_TYPE = ConfigDef.Type.STRING;
+  public static final String TIME_PARTITIONING_TYPE_DEFAULT = TimePartitioning.Type.DAY.name().toUpperCase();
+  private static final ConfigDef.Importance TIME_PARTITIONING_TYPE_IMPORTANCE = ConfigDef.Importance.LOW;
+  private static final List<String> TIME_PARTITIONING_TYPES = Stream.of(TimePartitioning.Type.values())
+      .map(TimePartitioning.Type::name)
+      .collect(Collectors.toList());
+  private static final String TIME_PARTITIONING_TYPE_DOC =
+      "The time partitioning type to use when creating tables. "
+          + "Existing tables will not be altered to use this partitioning type.";
+
+  public static final String MAX_RETRIES_CONFIG = "max.retries";
+  private static final ConfigDef.Type MAX_RETRIES_TYPE = ConfigDef.Type.INT;
+  private static final int MAX_RETRIES_DEFAULT = 10;
+  private static final ConfigDef.Validator MAX_RETRIES_VALIDATOR = ConfigDef.Range.atLeast(1);
+  private static final ConfigDef.Importance MAX_RETRIES_IMPORTANCE = ConfigDef.Importance.MEDIUM;
+  private static final String MAX_RETRIES_DOC = "The maximum number of times to retry on retriable errors before failing the task.";
+  
+  public static final String ENABLE_RETRIES_CONFIG = "enableRetries";
+  private static final ConfigDef.Type ENABLE_RETRIES_TYPE = ConfigDef.Type.BOOLEAN;
+  public static final Boolean ENABLE_RETRIES_DEFAULT = true;
+  private static final ConfigDef.Importance ENABLE_RETRIES_IMPORTANCE = ConfigDef.Importance.MEDIUM;
   /**
    * Return the ConfigDef object used to define this config's fields.
    *
@@ -677,6 +703,48 @@ public class BigQuerySinkConfig extends AbstractConfig {
             CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_TYPE,
             CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_DEFAULT,
             CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_IMPORTANCE
+        ).define(
+            TIME_PARTITIONING_TYPE_CONFIG,
+            TIME_PARTITIONING_TYPE_TYPE,
+            TIME_PARTITIONING_TYPE_DEFAULT,
+            (name, value) -> {
+              if (value == null) {
+                return;
+              }
+              String[] validStrings = TIME_PARTITIONING_TYPES.stream().map(String::toLowerCase).toArray(String[]::new);
+              String lowercaseValue = ((String) value).toLowerCase();
+              ConfigDef.ValidString.in(validStrings).ensureValid(name, lowercaseValue);
+            },
+            TIME_PARTITIONING_TYPE_IMPORTANCE,
+            TIME_PARTITIONING_TYPE_DOC,
+            "",
+            -1,
+            ConfigDef.Width.NONE,
+            TIME_PARTITIONING_TYPE_CONFIG,
+            new ConfigDef.Recommender() {
+              @Override
+              public List<Object> validValues(String s, Map<String, Object> map) {
+                // Construct a new list to transform from List<String> to List<Object>
+                return new ArrayList<>(TIME_PARTITIONING_TYPES);
+              }
+
+              @Override
+              public boolean visible(String s, Map<String, Object> map) {
+                return true;
+              }
+            }
+        ).define(
+            MAX_RETRIES_CONFIG,
+            MAX_RETRIES_TYPE,
+            MAX_RETRIES_DEFAULT,
+            MAX_RETRIES_VALIDATOR,
+            MAX_RETRIES_IMPORTANCE,
+            MAX_RETRIES_DOC
+        ).defineInternal(
+            ENABLE_RETRIES_CONFIG,
+            ENABLE_RETRIES_TYPE,
+            ENABLE_RETRIES_DEFAULT,
+            ENABLE_RETRIES_IMPORTANCE
         );
   }
 
@@ -692,6 +760,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
     MULTI_PROPERTY_VALIDATIONS.add(new CredentialsValidator.GcsCredentialsValidator());
     MULTI_PROPERTY_VALIDATIONS.add(new GcsBucketValidator());
     MULTI_PROPERTY_VALIDATIONS.add(new PartitioningModeValidator());
+    MULTI_PROPERTY_VALIDATIONS.add(new PartitioningTypeValidator());
     MULTI_PROPERTY_VALIDATIONS.add(new UpsertDeleteValidator.UpsertValidator());
     MULTI_PROPERTY_VALIDATIONS.add(new UpsertDeleteValidator.DeleteValidator());
   }
@@ -858,6 +927,27 @@ public class BigQuerySinkConfig extends AbstractConfig {
 
   public boolean isUpsertDeleteEnabled() {
     return getBoolean(UPSERT_ENABLED_CONFIG) || getBoolean(DELETE_ENABLED_CONFIG);
+  }
+
+  public TimePartitioning.Type getTimePartitioningType() {
+    return parseTimePartitioningType(getString(TIME_PARTITIONING_TYPE_CONFIG));
+  }
+
+  private TimePartitioning.Type parseTimePartitioningType(String rawPartitioningType) {
+    if (rawPartitioningType == null) {
+      throw new ConfigException(TIME_PARTITIONING_TYPE_CONFIG,
+          rawPartitioningType,
+          "Must be one of " + String.join(", ", TIME_PARTITIONING_TYPES));
+    }
+
+    try {
+      return TimePartitioning.Type.valueOf(rawPartitioningType);
+    } catch (IllegalArgumentException e) {
+      throw new ConfigException(
+          TIME_PARTITIONING_TYPE_CONFIG,
+          rawPartitioningType,
+          "Must be one of " + String.join(", ", TIME_PARTITIONING_TYPES));
+    }
   }
 
   /**

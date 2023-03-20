@@ -72,6 +72,7 @@ public class SchemaManager {
   private final Optional<String> kafkaDataFieldName;
   private final Optional<String> timestampPartitionFieldName;
   private final Optional<List<String>> clusteringFieldName;
+  private final TimePartitioning.Type timePartitioningType;
   private final boolean intermediateTables;
   private final ConcurrentMap<TableId, Object> tableCreateLocks;
   private final ConcurrentMap<TableId, Object> tableUpdateLocks;
@@ -95,6 +96,7 @@ public class SchemaManager {
    *                                    If set to null, ingestion time-based partitioning will be
    *                                    used instead.
    * @param clusteringFieldName
+   * @param timePartitioningType The time partitioning type (HOUR, DAY, etc.) to use for created tables.
    */
   public SchemaManager(
       SchemaRetriever schemaRetriever,
@@ -107,7 +109,8 @@ public class SchemaManager {
       Optional<String> kafkaKeyFieldName,
       Optional<String> kafkaDataFieldName,
       Optional<String> timestampPartitionFieldName,
-      Optional<List<String>> clusteringFieldName) {
+      Optional<List<String>> clusteringFieldName,
+      TimePartitioning.Type timePartitioningType) {
     this(
         schemaRetriever,
         schemaConverter,
@@ -120,6 +123,7 @@ public class SchemaManager {
         kafkaDataFieldName,
         timestampPartitionFieldName,
         clusteringFieldName,
+        timePartitioningType,
         false,
         new ConcurrentHashMap<>(),
         new ConcurrentHashMap<>(),
@@ -138,6 +142,7 @@ public class SchemaManager {
       Optional<String> kafkaDataFieldName,
       Optional<String> timestampPartitionFieldName,
       Optional<List<String>> clusteringFieldName,
+      TimePartitioning.Type timePartitioningType,
       boolean intermediateTables,
       ConcurrentMap<TableId, Object> tableCreateLocks,
       ConcurrentMap<TableId, Object> tableUpdateLocks,
@@ -153,6 +158,7 @@ public class SchemaManager {
     this.kafkaDataFieldName = kafkaDataFieldName;
     this.timestampPartitionFieldName = timestampPartitionFieldName;
     this.clusteringFieldName = clusteringFieldName;
+    this.timePartitioningType = timePartitioningType;
     this.intermediateTables = intermediateTables;
     this.tableCreateLocks = tableCreateLocks;
     this.tableUpdateLocks = tableUpdateLocks;
@@ -172,6 +178,7 @@ public class SchemaManager {
         kafkaDataFieldName,
         timestampPartitionFieldName,
         clusteringFieldName,
+        timePartitioningType,
         true,
         tableCreateLocks,
         tableUpdateLocks,
@@ -224,7 +231,7 @@ public class SchemaManager {
         logger.debug("Skipping create of {} as it should already exist or appear very soon", table(table));
         return false;
       }
-      TableInfo tableInfo = getTableInfo(table, records);
+      TableInfo tableInfo = getTableInfo(table, records, true);
       logger.info("Attempting to create {} with schema {}",
           table(table), tableInfo.getDefinition().getSchema());
       try {
@@ -250,7 +257,7 @@ public class SchemaManager {
    */
   public void updateSchema(TableId table, List<SinkRecord> records) {
     synchronized (lock(tableUpdateLocks, table)) {
-      TableInfo tableInfo = getTableInfo(table, records);
+      TableInfo tableInfo = getTableInfo(table, records, false);
       if (!schemaCache.containsKey(table)) {
         schemaCache.put(table, readTableSchema(table));
       }
@@ -271,9 +278,10 @@ public class SchemaManager {
    * Returns the {@link TableInfo} instance of a bigQuery Table
    * @param table The BigQuery table to return the table info
    * @param records The sink records used to determine the schema for constructing the table info
+   * @param createSchema Flag to determine if we are creating a new table schema or updating an existing table schema
    * @return The resulting BigQuery table information
    */
-  private TableInfo getTableInfo(TableId table, List<SinkRecord> records) {
+  private TableInfo getTableInfo(TableId table, List<SinkRecord> records, Boolean createSchema) {
     com.google.cloud.bigquery.Schema proposedSchema;
     String tableDescription;
     try {
@@ -282,7 +290,7 @@ public class SchemaManager {
     } catch (BigQueryConnectException exception) {
       throw new BigQueryConnectException("Failed to unionize schemas of records for the table " + table, exception);
     }
-    return constructTableInfo(table, proposedSchema, tableDescription);
+    return constructTableInfo(table, proposedSchema, tableDescription, createSchema);
   }
 
   @VisibleForTesting
@@ -557,7 +565,8 @@ public class SchemaManager {
   }
 
   // package private for testing.
-  TableInfo constructTableInfo(TableId table, com.google.cloud.bigquery.Schema bigQuerySchema, String tableDescription) {
+  TableInfo constructTableInfo(TableId table, com.google.cloud.bigquery.Schema bigQuerySchema, String tableDescription,
+                               Boolean createSchema) {
     StandardTableDefinition.Builder builder = StandardTableDefinition.newBuilder()
         .setSchema(bigQuerySchema);
 
@@ -565,12 +574,12 @@ public class SchemaManager {
       // Shameful hack: make the table ingestion time-partitioned here so that the _PARTITIONTIME
       // pseudocolumn can be queried to filter out rows that are still in the streaming buffer
       builder.setTimePartitioning(TimePartitioning.of(Type.DAY));
-    } else {
-      TimePartitioning timePartitioning = TimePartitioning.of(Type.DAY);
+    } else if (createSchema) {
+      TimePartitioning timePartitioning = TimePartitioning.of(timePartitioningType);
       if (timestampPartitionFieldName.isPresent()) {
         timePartitioning = timePartitioning.toBuilder().setField(timestampPartitionFieldName.get()).build();
       }
-  
+
       builder.setTimePartitioning(timePartitioning);
 
       if (timestampPartitionFieldName.isPresent() && clusteringFieldName.isPresent()) {

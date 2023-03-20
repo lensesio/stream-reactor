@@ -35,8 +35,9 @@ import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
-
+import com.google.cloud.bigquery.TimePartitioning;
 import com.google.common.collect.ImmutableList;
+
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.convert.BigQuerySchemaConverter;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
@@ -93,13 +94,14 @@ public class SchemaManagerTest {
     Optional<String> kafkaKeyFieldName = Optional.of("kafkaKey");
     Optional<String> kafkaDataFieldName = Optional.of("kafkaData");
     SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, kafkaKeyFieldName, kafkaDataFieldName, Optional.empty(), Optional.empty());
+        mockBigQuery, false, false, false, false, kafkaKeyFieldName, kafkaDataFieldName, Optional.empty(), Optional.empty(),
+        TimePartitioning.Type.DAY);
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
 
     TableInfo tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc);
+        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
 
     assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
@@ -111,19 +113,94 @@ public class SchemaManagerTest {
   public void testTimestampPartitionSet() {
     Optional<String> testField = Optional.of("testField");
     SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), testField, Optional.empty());
+        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), testField, Optional.empty(),
+        TimePartitioning.Type.DAY);
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
 
     TableInfo tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc);
+        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
 
     assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
-    assertEquals("The field name does not match the field name of time partition",
+    StandardTableDefinition definition = tableInfo.getDefinition();
+    Assert.assertNotNull(definition.getTimePartitioning());
+    Assert.assertEquals(TimePartitioning.Type.DAY, definition.getTimePartitioning().getType());
+    Assert.assertEquals("The field name does not match the field name of time partition",
         testField.get(),
-        ((StandardTableDefinition) tableInfo.getDefinition()).getTimePartitioning().getField());
+        definition.getTimePartitioning().getField());
+  }
+
+  @Test
+  public void testAlternativeTimestampPartitionType() {
+    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+        TimePartitioning.Type.HOUR);
+
+    when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
+    when(mockKafkaSchema.doc()).thenReturn(testDoc);
+
+    TableInfo tableInfo = schemaManager
+        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
+
+    Assert.assertEquals("Kafka doc does not match BigQuery table description",
+        testDoc, tableInfo.getDescription());
+    StandardTableDefinition definition = tableInfo.getDefinition();
+    Assert.assertNotNull(definition.getTimePartitioning());
+    Assert.assertEquals(TimePartitioning.Type.HOUR, definition.getTimePartitioning().getType());
+  }
+
+  @Test
+  public void testUpdateTimestampPartitionNull() {
+    Optional<String> testField = Optional.of("testField");
+    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), testField, Optional.empty(),
+        TimePartitioning.Type.DAY);
+
+    when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
+    when(mockKafkaSchema.doc()).thenReturn(testDoc);
+
+    TableInfo tableInfo = schemaManager
+        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, false);
+
+    Assert.assertEquals("Kafka doc does not match BigQuery table description",
+        testDoc, tableInfo.getDescription());
+    Assert.assertNull("The time partitioning object should be null",
+        ((StandardTableDefinition) tableInfo.getDefinition()).getTimePartitioning());
+  }
+
+  @Test
+  public void testUpdateTimestampPartitionNotSet() {
+    Optional<String> testField = Optional.of("testField");
+    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), testField, Optional.empty(),
+        TimePartitioning.Type.DAY);
+
+    when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
+    when(mockKafkaSchema.doc()).thenReturn(testDoc);
+
+    TableInfo tableInfo = schemaManager
+        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
+
+    Assert.assertEquals("Kafka doc does not match BigQuery table description",
+        testDoc, tableInfo.getDescription());
+    StandardTableDefinition definition = tableInfo.getDefinition();
+    Assert.assertNotNull(definition.getTimePartitioning());
+    Assert.assertEquals("The field name does not match the field name of time partition",
+        testField.get(),
+        definition.getTimePartitioning().getField());
+
+    Optional<String> updateField = Optional.of("testUpdateField");
+    schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), updateField, Optional.empty(),
+        TimePartitioning.Type.DAY);
+
+    tableInfo = schemaManager
+        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, false);
+    definition = tableInfo.getDefinition();
+    Assert.assertNull("The time partitioning object should be null",
+        ((StandardTableDefinition) tableInfo.getDefinition()).getTimePartitioning());
   }
 
   @Test
@@ -131,13 +208,14 @@ public class SchemaManagerTest {
     Optional<String> timestampPartitionFieldName = Optional.of("testField");
     Optional<List<String>> testField = Optional.of(Arrays.asList("column1", "column2"));
     SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), timestampPartitionFieldName, testField);
+        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), timestampPartitionFieldName, testField,
+        TimePartitioning.Type.DAY);
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
 
     TableInfo tableInfo = schemaManager
-        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc);
+        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
 
     assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
@@ -146,6 +224,59 @@ public class SchemaManagerTest {
     assertEquals("The field name does not match the field name of time partition",
         testField.get(),
         definition.getClustering().getFields());
+  }
+
+  @Test
+  public void testUpdateClusteringPartitionNull() {
+    Optional<String> timestampPartitionFieldName = Optional.of("testField");
+    Optional<List<String>> testField = Optional.of(Arrays.asList("column1", "column2"));
+    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), timestampPartitionFieldName, testField,
+        TimePartitioning.Type.DAY);
+
+    when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
+    when(mockKafkaSchema.doc()).thenReturn(testDoc);
+
+    TableInfo tableInfo = schemaManager
+        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, false);
+
+    Assert.assertEquals("Kafka doc does not match BigQuery table description",
+        testDoc, tableInfo.getDescription());
+    StandardTableDefinition definition = tableInfo.getDefinition();
+    Assert.assertNull("The clustering object should be null", definition.getClustering());
+  }
+
+  @Test
+  public void testUpdateClusteringPartitionNotSet() {
+    Optional<String> timestampPartitionFieldName = Optional.of("testField");
+    Optional<List<String>> testField = Optional.of(Arrays.asList("column1", "column2"));
+    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), timestampPartitionFieldName, testField,
+        TimePartitioning.Type.DAY);
+
+    when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
+    when(mockKafkaSchema.doc()).thenReturn(testDoc);
+
+    TableInfo tableInfo = schemaManager
+        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, true);
+
+    Assert.assertEquals("Kafka doc does not match BigQuery table description",
+        testDoc, tableInfo.getDescription());
+    StandardTableDefinition definition = tableInfo.getDefinition();
+    Assert.assertNotNull(definition.getClustering());
+    Assert.assertEquals("The field name should not match the field name of time partition",
+        testField.get(),
+        definition.getClustering().getFields());
+
+    Optional<List<String>> updateTestField = Optional.of(Arrays.asList("column3", "column4"));
+    schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+        mockBigQuery, false, false, false, false, Optional.empty(), Optional.empty(), timestampPartitionFieldName, updateTestField,
+        TimePartitioning.Type.DAY);
+
+    tableInfo = schemaManager
+        .constructTableInfo(tableId, fakeBigQuerySchema, testDoc, false);
+    definition = tableInfo.getDefinition();
+    Assert.assertNull("The clustering object should be null", definition.getClustering());
   }
 
   @Test
@@ -540,16 +671,19 @@ public class SchemaManagerTest {
   }
 
   private SchemaManager createSchemaManager(
-      boolean allowNewFields, boolean allowFieldRelaxation, boolean allowUnionization) {
-    return createSchemaManager(
-        allowNewFields, allowFieldRelaxation, allowUnionization, false, mockSchemaConverter);
+      boolean allowNewFields, boolean allowFieldRelaxation, boolean allowUnionization, boolean sanitizeFieldNames, SchemaConverter<com.google.cloud.bigquery.Schema> converter) {
+    return new SchemaManager(new IdentitySchemaRetriever(), converter, mockBigQuery,
+        allowNewFields, allowFieldRelaxation, allowUnionization, sanitizeFieldNames,
+        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+        TimePartitioning.Type.DAY);
   }
 
   private SchemaManager createSchemaManager(
-      boolean allowNewFields, boolean allowFieldRelaxation, boolean allowUnionization, boolean sanitizeFieldNames, SchemaConverter<com.google.cloud.bigquery.Schema> schemaConverter) {
-    return new SchemaManager(new IdentitySchemaRetriever(), schemaConverter, mockBigQuery,
-        allowNewFields, allowFieldRelaxation, allowUnionization, sanitizeFieldNames,
-        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
+      boolean allowNewFields, boolean allowFieldRelaxation, boolean allowUnionization) {
+    return new SchemaManager(new IdentitySchemaRetriever(), mockSchemaConverter, mockBigQuery,
+        allowNewFields, allowFieldRelaxation, allowUnionization, false,
+        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+        TimePartitioning.Type.DAY);
   }
 
   private void testGetAndValidateProposedSchema(
