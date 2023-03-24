@@ -9,6 +9,7 @@ import Dependencies.woodstoxCore
 import com.eed3si9n.jarjarabrams.ShadeRule
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import sbt.Keys._
+import sbt.Package.ManifestAttributes
 import sbt.Compile
 import sbt.Def
 import sbt._
@@ -19,6 +20,7 @@ import sbtassembly.PathList
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.Calendar
+import scala.sys.process._
 
 object Settings extends Dependencies {
 
@@ -35,16 +37,6 @@ object Settings extends Dependencies {
       case (Some(v), _)            => v
       case _                       => s"$nextSnapshotVersion-${snapshotTag.fold("SNAPSHOT")(t => s"$t-SNAPSHOT")}"
     }
-  }
-
-  val manifestSection: Package.JarManifest = {
-    import java.util.jar.Attributes
-    import java.util.jar.Manifest
-    val manifest      = new Manifest
-    val newAttributes = new Attributes()
-    newAttributes.put(new Attributes.Name("version"), majorVersion)
-    manifest.getEntries.put("celonis", newAttributes)
-    Package.JarManifest(manifest)
   }
 
   val licenseHeader: String = {
@@ -118,7 +110,7 @@ object Settings extends Dependencies {
   }
 
   private val commonSettings: Seq[Setting[_]] = Seq(
-    organization := "com.celonis.kafka.connect",
+    organization := "io.lenses",
     version := artifactVersion,
     scalaOrganization := Dependencies.scalaOrganization,
     scalaVersion := Dependencies.scalaVersion,
@@ -126,6 +118,16 @@ object Settings extends Dependencies {
     headerEmptyLine := false,
     isSnapshot := artifactVersion.contains("SNAPSHOT"),
     javacOptions ++= Seq("--release", "11"),
+    packageOptions := Seq(
+      ManifestAttributes(
+        ("Git-Commit-Hash", "git rev-parse HEAD".!!.trim),
+        ("Git-Repo", "git config --get remote.origin.url".!!.trim),
+        ("Git-Tag", sys.env.getOrElse("SNAPSHOT_TAG", "n/a")),
+        ("Kafka-Version", KafkaVersionAxis.kafkaVersion),
+        ("StreamReactor-Version", artifactVersion),
+        ("StreamReactor-Docs", "https://docs.lenses.io/5.0/integrations/connectors/stream-reactor/"),
+      ),
+    ),
   )
 
   val settings: Seq[Setting[_]] = commonSettings ++ Seq(
