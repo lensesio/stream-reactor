@@ -170,7 +170,10 @@ object Settings extends Dependencies {
     def configureAssembly(): Project =
       project.settings(
         settings ++ Seq(
-          assembly / assemblyOutputPath := file(target.value + "/libs/" + (assembly / assemblyJarName).value),
+          assembly / assemblyOutputPath := {
+            file(target.value + "/libs/").mkdirs()
+            file(target.value + "/libs/" + (assembly / assemblyJarName).value)
+          },
           assembly / assemblyExcludedJars := {
             val cp: Classpath = (assembly / fullClasspath).value
             cp filter { f =>
