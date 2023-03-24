@@ -21,6 +21,7 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.ConnectException
 
+import java.nio.ByteBuffer
 import java.util
 import scala.jdk.CollectionConverters.MapHasAsScala
 
@@ -39,6 +40,7 @@ object ValueToSinkDataConverter {
     case mapVal:    Map[_, _]      => MapSinkDataConverter(mapVal, schema)
     case mapVal:    util.Map[_, _] => MapSinkDataConverter(mapVal.asScala.toMap, schema)
     case bytesVal:  Array[Byte]    => ByteArraySinkData(bytesVal, schema)
+    case bytesVal:  ByteBuffer     => ByteArraySinkData(bytesVal.array(), schema)
     case arrayVal:  Array[_]       => ArraySinkDataConverter(arrayVal, schema)
     case listVal:   util.List[_]   => ArraySinkDataConverter(listVal.toArray, schema)
     case null     => NullSinkData(schema)

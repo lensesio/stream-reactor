@@ -72,9 +72,9 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
   def convertToBytes(sinkData: SinkData): Either[Throwable, Array[Byte]] =
     sinkData match {
       case ByteArraySinkData(array, _) => array.asRight
-      case _ =>
+      case v =>
         new IllegalStateException(
-          "Non-binary content received.  Please check your configuration.  It may be advisable to ensure you are using org.apache.kafka.connect.converters.ByteArrayConverter\", exception)\n      case Success(value) => value",
+          s"Non-binary content received: ${v.getClass.getName} .  Please check your configuration.  It may be advisable to ensure you are using org.apache.kafka.connect.converters.ByteArrayConverter.",
         ).asLeft
     }
 
