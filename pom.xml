@@ -132,6 +132,13 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>libraries-bom</artifactId>
+                <version>26.11.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <!-- Child projects -->
             <dependency>
                 <groupId>com.wepay.kcbq</groupId>
@@ -276,6 +283,12 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-bigquerystorage</artifactId>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>
