@@ -82,7 +82,7 @@
         <connection>scm:git:git://github.com/confluentinc/kafka-connect-bigquery.git</connection>
         <developerConnection>scm:git:git@github.com:confluentinc/kafka-connect-bigquery.git</developerConnection>
         <url>https://github.com/confluentinc/kafka-connect-bigquery</url>
-        <tag>HEAD</tag>
+        <tag>2.6.x</tag>
     </scm>
 
     <developers>
