@@ -37,10 +37,6 @@
 
         <confluent.version>6.0.10</confluent.version>
         <debezium.version>0.6.2</debezium.version>
-        <google.auth.version>0.21.1</google.auth.version>
-        <google.cloud.version>2.10.9</google.cloud.version>
-        <google.cloud.storage.version>1.113.4</google.cloud.storage.version>
-        <google.protobuf.version>3.19.6</google.protobuf.version>
         <jackson.version>2.10.2</jackson.version>
         <kafka.version>2.6.0</kafka.version>
         <kafka.scala.version>2.12</kafka.scala.version>
@@ -159,22 +155,6 @@
                 <version>${kafka.version}</version>
                 <scope>provided</scope>
             </dependency>
-
-            <dependency>
-                <groupId>com.google.cloud</groupId>
-                <artifactId>google-cloud-bigquery</artifactId>
-                <version>${google.cloud.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.cloud</groupId>
-                <artifactId>google-cloud-storage</artifactId>
-                <version>${google.cloud.storage.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.auth</groupId>
-                <artifactId>google-auth-library-oauth2-http</artifactId>
-                <version>${google.auth.version}</version>
-            </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
@@ -195,11 +175,6 @@
                 <artifactId>jackson-core</artifactId>
                 <version>${jackson.version}</version>
                 <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java</artifactId>
-                <version>${google.protobuf.version}</version>
             </dependency>
             <dependency>
                 <groupId>junit</groupId>
@@ -287,6 +262,14 @@
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-bigquerystorage</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-bigquery</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-storage</artifactId>
         </dependency>
     </dependencies>
 
