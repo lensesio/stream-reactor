@@ -21,22 +21,18 @@ package com.wepay.kafka.connect.bigquery.integration;
 
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.integration.utils.BucketClearer;
+import com.wepay.kafka.connect.bigquery.integration.utils.SchemaRegistryTestUtils;
 import com.wepay.kafka.connect.bigquery.integration.utils.TableClearer;
 import com.wepay.kafka.connect.bigquery.retrieve.IdentitySchemaRetriever;
 import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.formatter.AvroMessageReader;
-import io.confluent.kafka.schemaregistry.ClusterTestHarness;
-import io.confluent.kafka.schemaregistry.CompatibilityLevel;
-import io.confluent.kafka.schemaregistry.RestApp;
-import io.confluent.kafka.schemaregistry.rest.SchemaRegistryConfig;
 import kafka.common.MessageReader;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.SinkConnectorConfig;
 import org.apache.kafka.test.IntegrationTest;
@@ -162,7 +158,7 @@ public class BigQuerySinkConnectorIT {
 
   // Share a single embedded Connect and Schema Registry cluster for all test cases to keep the runtime down
   private static BaseConnectorIT testBase;
-  private static RestApp schemaRegistry;
+  private static SchemaRegistryTestUtils schemaRegistry;
   private static String schemaRegistryUrl;
 
   private final String testCase;
@@ -188,18 +184,11 @@ public class BigQuerySinkConnectorIT {
     testBase = new BaseConnectorIT() {};
     testBase.startConnect();
 
-    schemaRegistry = new RestApp(
-        ClusterTestHarness.choosePort(),
-        null,
-        testBase.connect.kafka().bootstrapServers(),
-        SchemaRegistryConfig.DEFAULT_KAFKASTORE_TOPIC,
-        CompatibilityLevel.BACKWARD.name,
-        true,
-        null);
+    schemaRegistry = new SchemaRegistryTestUtils(testBase.connect.kafka().bootstrapServers());
 
     schemaRegistry.start();
 
-    schemaRegistryUrl = schemaRegistry.restClient.getBaseUrls().current();
+    schemaRegistryUrl = schemaRegistry.schemaRegistryUrl();
 
     BucketClearer.clearBucket(
       testBase.keyFile(),
@@ -228,9 +217,9 @@ public class BigQuerySinkConnectorIT {
   }
 
   @AfterClass
-  public static void globalCleanup() {
+  public static void globalCleanup() throws Exception {
     if (schemaRegistry != null) {
-      Utils.closeQuietly(schemaRegistry::stop, "embedded Schema Registry instance");
+     schemaRegistry.stop();
     }
     testBase.stopConnect();
   }
