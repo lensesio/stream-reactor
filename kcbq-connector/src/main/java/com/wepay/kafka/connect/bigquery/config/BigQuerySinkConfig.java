@@ -915,6 +915,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
     // checking for those tables that the credentials are already valid.
     MULTI_PROPERTY_VALIDATIONS.add(new CredentialsValidator.BigQueryCredentialsValidator());
     MULTI_PROPERTY_VALIDATIONS.add(new CredentialsValidator.GcsCredentialsValidator());
+    MULTI_PROPERTY_VALIDATIONS.add(new CredentialsValidator.BigQueryStorageWriteApiCredentialsValidator());
     MULTI_PROPERTY_VALIDATIONS.add(new GcsBucketValidator());
     MULTI_PROPERTY_VALIDATIONS.add(new PartitioningModeValidator());
     MULTI_PROPERTY_VALIDATIONS.add(new PartitioningTypeValidator());

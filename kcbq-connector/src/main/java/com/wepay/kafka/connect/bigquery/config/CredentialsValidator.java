@@ -20,8 +20,10 @@
 package com.wepay.kafka.connect.bigquery.config;
 
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import com.google.cloud.storage.Storage;
 import com.wepay.kafka.connect.bigquery.GcpClientBuilder;
+import com.wepay.kafka.connect.bigquery.write.storageApi.BigQueryWriteSettingsBuilder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -88,12 +90,24 @@ public abstract class CredentialsValidator<ClientBuilder extends GcpClientBuilde
   public static class BigQueryCredentialsValidator extends CredentialsValidator<GcpClientBuilder<BigQuery>> {
     @Override
     public String gcpService() {
-      return "BigQuery";
+      return "BigQueryLegacyApi";
     }
 
     @Override
     protected GcpClientBuilder<BigQuery> clientBuilder() {
       return new GcpClientBuilder.BigQueryBuilder();
+    }
+  }
+
+  public static class BigQueryStorageWriteApiCredentialsValidator extends CredentialsValidator<GcpClientBuilder<BigQueryWriteSettings>> {
+    @Override
+    public String gcpService() {
+      return "BigQueryStorageWriteApi";
+    }
+
+    @Override
+    protected GcpClientBuilder<BigQueryWriteSettings> clientBuilder() {
+      return new BigQueryWriteSettingsBuilder();
     }
   }
 
