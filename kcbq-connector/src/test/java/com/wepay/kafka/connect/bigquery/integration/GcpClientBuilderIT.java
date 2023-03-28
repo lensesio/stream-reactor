@@ -1,10 +1,13 @@
 package com.wepay.kafka.connect.bigquery.integration;
 
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.DatasetId;
+import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
+import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
+import com.google.cloud.bigquery.storage.v1.WriteStream;
 import com.google.cloud.storage.Storage;
 import com.wepay.kafka.connect.bigquery.GcpClientBuilder;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
+import com.wepay.kafka.connect.bigquery.write.storageApi.BigQueryWriteSettingsBuilder;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -45,8 +48,16 @@ public class GcpClientBuilderIT extends BaseConnectorIT {
         BigQuery bigQuery = new GcpClientBuilder.BigQueryBuilder().withConfig(config).build();
         Storage storage = new GcpClientBuilder.GcsBuilder().withConfig(config).build();
 
+        BigQueryWriteSettings settings = new BigQueryWriteSettingsBuilder().withConfig(config).build();
+        BigQueryWriteClient client = BigQueryWriteClient.create(settings);
+        TableId tableId = TableId.of(project(),dataset(),suffixedTableOrTopic("suthenticate-storage-api"));
+
         bigQuery.listTables(DatasetId.of(dataset()));
         storage.get(gcsBucket());
+
+        bigQuery.create(TableInfo.of(tableId, StandardTableDefinition.newBuilder().build()));
+        client.createWriteStream(tableId.toString(), WriteStream.newBuilder().build());
+        bigQuery.delete(tableId);
     }
 
     @Test
