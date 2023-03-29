@@ -5,6 +5,8 @@ import com.google.api.gax.rpc.HeaderProvider;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import com.wepay.kafka.connect.bigquery.GcpClientBuilder;
+import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
+import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiConnectException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +23,6 @@ public class BigQueryWriteSettingsBuilder extends GcpClientBuilder<BigQueryWrite
                 .setQuotaProjectId(project)
                 .setHeaderProvider(userAgent);
 
-
         if (credentials != null) {
             builder.setCredentialsProvider(FixedCredentialsProvider.create(credentials));
         } else {
@@ -30,7 +31,8 @@ public class BigQueryWriteSettingsBuilder extends GcpClientBuilder<BigQueryWrite
         try {
             return builder.build();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            logger.error("Failed to create Storage API write settings due to {}", e.getMessage());
+            throw new BigQueryStorageWriteApiConnectException("Failed to create Storage API write settings", e);
         }
     }
 }

@@ -1,9 +1,11 @@
 package com.wepay.kafka.connect.bigquery.write.storageApi;
 
 import com.google.api.core.ApiFuture;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.storage.v1.*;
 import com.google.protobuf.Descriptors;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
+import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiConnectException;
 import io.grpc.Status;
 import org.json.JSONArray;
 import org.slf4j.Logger;
@@ -29,8 +31,9 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
             try {
                 return JsonStreamWriter.newBuilder(t, getWriteClient()).build();
             } catch (Exception e) {
+                // filter exception to verify if table creation is needed and configured else fail
                 logger.error("Failed to create Default stream writer on table {}", tableName);
-                throw new BigQueryConnectException(e);
+                throw new BigQueryConnectException("Failed to create Default stream writer on table "+ tableName, e);
             }
         });
     }
@@ -45,6 +48,7 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
     public void appendRows(TableName tableName, List<Object[]> rows, String streamName) {
         JSONArray jsonArr = new JSONArray();
         JsonStreamWriter writer = getDefaultStream(tableName.toString());
+
         // put JSONObject into JsonArray
         rows.forEach(item -> jsonArr.put(item[1]));
 
@@ -57,7 +61,8 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
                 logger.warn("Sent records schema does not match with table schema, will attempt to update schema");
                 //TODO: Update schema attempt Once
             } else if (writeResult.hasError()) {
-                logger.error("Storage Write Api ingestion failed with : {}", writeResult.getError());
+                // is malformed error -> check if DLQ configured, send to DLQ and retry remaining batch. If not, retry whole
+                // is Aborted or Internal - retry
                 if (writeResult.getRowErrorsCount() > 0) {
                     for (RowError error : writeResult.getRowErrorsList()) {
                         logger.error("Row " + error.getIndex() + " has error : " + error.getMessage());
@@ -67,31 +72,49 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
             } else {
                 logger.debug("Call to write Api default stream completed without errors!");
             }
-        } catch (Descriptors.DescriptorValidationException | InterruptedException | IOException e) {
-            //TODO: Exception handling here
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            //TODO: Exception handling here
-            logger.error(e.getCause().getMessage());
-            if (e.getCause() instanceof Exceptions.AppendSerializtionError) {
-                Exceptions.AppendSerializtionError exception = (Exceptions.AppendSerializtionError) e.getCause();
-                if (exception.getStatus().getCode().equals(Status.Code.INVALID_ARGUMENT)) {
-                    // User actionable error
-                    for (Map.Entry rowIndexToError : exception.getRowIndexToErrorMessage().entrySet()) {
-                        logger.error("User actionable error on : " + jsonArr.put(rowIndexToError.getKey()) + "  as the data hit an issue : " + rowIndexToError.getValue());
-                    }
+        } catch(Exception e) {
+            // If non-retriable exception : Interrupt, Descriptor
+            String message = "Failed to write rows to table "+ tableName.getTable() + " due to " + e.getMessage();
+            logger.error(message);
+            throw new BigQueryStorageWriteApiConnectException(message, e);
 
-                } else {
-                    logger.trace("Exception is not due to invalid argument");
-                    logger.error(exception.getStatus().getDescription());
-                    throw new RuntimeException(e);
-                }
-            } else {
-                logger.info("Exception is not of type Exceptions.AppendSerializtionError");
-                logger.error(e.getCause().getMessage());
-                throw new RuntimeException(e);
-            }
+            // if retriable IO Exception
+            // if execution exception
+//            if (e instanceof  ExecutionException) {
+//                //TODO: Exception handling here
+//                logger.error(e.getCause().getMessage());
+//                if (e.getCause() instanceof Exceptions.AppendSerializtionError) {
+//                    Exceptions.AppendSerializtionError exception = (Exceptions.AppendSerializtionError) e.getCause();
+//                    if (exception.getStatus().getCode().equals(Status.Code.INVALID_ARGUMENT)) {
+//                        // User actionable error
+//                        for (Map.Entry rowIndexToError : exception.getRowIndexToErrorMessage().entrySet()) {
+//                            logger.error("User actionable error on : " + jsonArr.put(rowIndexToError.getKey())
+//                                    + "  as the data hit an issue : " + rowIndexToError.getValue());
+//                        }
+//
+//                    } else {
+//                        logger.trace("Exception is not due to invalid argument");
+//                        logger.error(exception.getStatus().getDescription());
+//                        throw new RuntimeException(e);
+//                    }
+//                } else {
+//                    logger.info("Exception is not of type Exceptions.AppendSerializtionError");
+//                    logger.error(e.getCause().getMessage());
+//                    throw new RuntimeException(e);
+//                }
+//            }
+
         }
+
+//        catch (Descriptors.DescriptorValidationException | InterruptedException e) {
+//            //TODO: Exception handling here
+//            String message = "Failed to write rows to table "+ tableName.getTable() + " due to " + e.getMessage();
+//            logger.error(message);
+//            throw new BigQueryStorageWriteApiConnectException(message, e);
+//        } catch (IOException ) {
+
+
+       // }
     }
 
 }

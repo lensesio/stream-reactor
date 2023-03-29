@@ -1,6 +1,8 @@
 package com.wepay.kafka.connect.bigquery.write.storageApi;
 
 import com.google.cloud.bigquery.storage.v1.*;
+import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
+import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiConnectException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,8 +34,8 @@ public abstract class StorageWriteApiBase {
         try {
             this.writeClient = BigQueryWriteClient.create(writeSettings);
         } catch (IOException e) {
-            logger.error("Failed to create Big Query Storage Write API client writer due to {}", e.getMessage());
-            throw e;
+            logger.error("Failed to create Big Query Storage Write API write client due to {}", e.getMessage());
+            throw new BigQueryStorageWriteApiConnectException("Failed to create Big Query Storage Write API write client", e);
         }
 
     }
