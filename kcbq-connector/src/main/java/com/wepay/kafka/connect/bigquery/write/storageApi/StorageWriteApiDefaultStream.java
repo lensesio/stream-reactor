@@ -1,12 +1,10 @@
 package com.wepay.kafka.connect.bigquery.write.storageApi;
 
 import com.google.api.core.ApiFuture;
-import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.storage.v1.*;
-import com.google.protobuf.Descriptors;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiConnectException;
-import io.grpc.Status;
+import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiErrorResponses;
 import org.json.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,26 +20,40 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
     private static final Logger logger = LoggerFactory.getLogger(StorageWriteApiDefaultStream.class);
     ConcurrentMap<String, JsonStreamWriter> tableToStream = new ConcurrentHashMap<>();
 
-    public StorageWriteApiDefaultStream(int retry, long retryWait, BigQueryWriteSettings writeSettings) throws IOException {
-        super(retry, retryWait, writeSettings);
+    public StorageWriteApiDefaultStream(int retry, long retryWait, BigQueryWriteSettings writeSettings, boolean autoCreateTables) throws IOException {
+        super(retry, retryWait, writeSettings, autoCreateTables);
     }
 
     private JsonStreamWriter getDefaultStream(String tableName) {
         return tableToStream.computeIfAbsent(tableName, t -> {
+            boolean tableCreationAttempted = false;
+            JsonStreamWriter jsonStreamWriter = null;
             try {
-                return JsonStreamWriter.newBuilder(t, getWriteClient()).build();
+                jsonStreamWriter = JsonStreamWriter.newBuilder(t, getWriteClient()).build();
             } catch (Exception e) {
-                // filter exception to verify if table creation is needed and configured else fail
-                logger.error("Failed to create Default stream writer on table {}", tableName);
-                throw new BigQueryConnectException("Failed to create Default stream writer on table "+ tableName, e);
+                if (BigQueryStorageWriteApiErrorResponses.isTableMissing(e.getMessage())
+                        && !tableCreationAttempted
+                        && autoCreateTables) {
+                    tableCreationAttempted = true;
+                    //TODO: Attempt to create table
+                } else if(BigQueryStorageWriteApiErrorResponses.isNonRetriableError(e)) {
+                    logger.error("Failed to create Default stream writer on table {}", tableName);
+                    throw new BigQueryStorageWriteApiConnectException("Failed to create Default stream writer on table " + tableName, e);
+                }
+                //TODO: Add retry logic
+                throw new BigQueryStorageWriteApiConnectException("");
+
+            } finally {
+                return jsonStreamWriter;
             }
         });
     }
 
     /**
      * Calls AppendRows and handles exception if the ingestion fails
-     * @param tableName The table to write data to
-     * @param rows The records to write
+     *
+     * @param tableName  The table to write data to
+     * @param rows       The records to write
      * @param streamName The stream to use to write table to table. This will be DEFAULT always.
      */
     @Override
@@ -68,19 +80,22 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
                         logger.error("Row " + error.getIndex() + " has error : " + error.getMessage());
                     }
                 }
+
                 //TODO: DLQ handling here
             } else {
                 logger.debug("Call to write Api default stream completed without errors!");
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             // If non-retriable exception : Interrupt, Descriptor
-            String message = "Failed to write rows to table "+ tableName.getTable() + " due to " + e.getMessage();
+            String message = "Failed to write rows to table " + tableName.getTable() + " due to " + e.getMessage();
             logger.error(message);
             throw new BigQueryStorageWriteApiConnectException(message, e);
+
 
             // if retriable IO Exception
             // if execution exception
 //            if (e instanceof  ExecutionException) {
+            // check the sameAS LINE 64
 //                //TODO: Exception handling here
 //                logger.error(e.getCause().getMessage());
 //                if (e.getCause() instanceof Exceptions.AppendSerializtionError) {
@@ -114,7 +129,7 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
 //        } catch (IOException ) {
 
 
-       // }
+        // }
     }
 
 }

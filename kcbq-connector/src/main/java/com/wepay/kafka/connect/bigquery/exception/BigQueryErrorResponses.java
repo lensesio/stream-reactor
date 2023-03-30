@@ -40,11 +40,6 @@ public class BigQueryErrorResponses {
   private static final int INTERNAL_SERVICE_ERROR_CODE = 500;
   private static final int BAD_GATEWAY_CODE = 502;
   private static final int SERVICE_UNAVAILABLE_CODE = 503;
-
-  /**
-   * Taken fromm gRPC code : https://cloud.google.com/bigquery/docs/reference/storage/rpc/google.rpc#google.rpc.Code
-   */
-  private static final int CONFLICT_CODE = 409;
   private static final String BAD_REQUEST_REASON = "badRequest";
   private static final String INVALID_REASON = "invalid";
   private static final String INVALID_QUERY_REASON = "invalidQuery";
@@ -52,8 +47,6 @@ public class BigQueryErrorResponses {
   private static final String QUOTA_EXCEEDED_REASON = "quotaExceeded";
   private static final String RATE_LIMIT_EXCEEDED_REASON = "rateLimitExceeded";
   private static final String STOPPED_REASON = "stopped";
-
-  private static final String ABORTED = "ABORTED";
 
 
   public static boolean isNonExistentTableError(BigQueryException exception) {
