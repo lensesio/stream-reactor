@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Base class which handles data ingestion to bigquery tables using different kind of streams
@@ -15,21 +16,25 @@ public abstract class StorageWriteApiBase {
     Logger logger = LoggerFactory.getLogger(StorageWriteApiBase.class);
     private final BigQueryWriteClient writeClient;
 
-    private final int retry;
+    protected final int retry;
 
-    private final long retryWait;
+    protected final long retryWait;
 
     protected final boolean autoCreateTables;
 
+    private final Random random;
+
+
     /**
-     * @param retry             How many retries to make in the event of a 500/503 error.
-     * @param retryWait         How long to wait in between retries.
-     * @param writeSettings     Write Settings for stream which carry authentication and other header information
+     * @param retry         How many retries to make in the event of a 500/503 error.
+     * @param retryWait     How long to wait in between retries.
+     * @param writeSettings Write Settings for stream which carry authentication and other header information
      */
     public StorageWriteApiBase(int retry, long retryWait, BigQueryWriteSettings writeSettings, boolean autoCreateTables) {
         this.retry = retry;
         this.retryWait = retryWait;
         this.autoCreateTables = autoCreateTables;
+        this.random = new Random();
         try {
             this.writeClient = BigQueryWriteClient.create(writeSettings);
         } catch (IOException e) {
@@ -60,5 +65,23 @@ public abstract class StorageWriteApiBase {
 
     public BigQueryWriteClient getWriteClient() {
         return this.writeClient;
+    }
+
+    protected Map<Integer, String> getRowErrorMapping(Exception exception) {
+        if (exception instanceof Exceptions.AppendSerializtionError) {
+            return ((Exceptions.AppendSerializtionError) exception).getRowIndexToErrorMessage();
+        } else {
+            throw new BigQueryStorageWriteApiConnectException("Exception is not an instance of Exceptions.AppendSerializtionError");
+        }
+    }
+
+    /**
+     * Wait at least {@link #retryWait}, with up to an additional 1 second of random jitter.
+     *
+     * @throws InterruptedException if interrupted.
+     */
+    protected void waitRandomTime() throws InterruptedException {
+        // wait
+        Thread.sleep(retryWait + random.nextInt(1000));
     }
 }
