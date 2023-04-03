@@ -1,17 +1,20 @@
 package com.wepay.kafka.connect.bigquery.write.storageApi;
 
 import com.google.cloud.bigquery.storage.v1.*;
+import com.wepay.kafka.connect.bigquery.ErrantRecordHandler;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiConnectException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Base class which handles data ingestion to bigquery tables using different kind of streams
  */
 public abstract class StorageWriteApiBase {
+    private final ErrantRecordHandler errantRecordHandler;
     Logger logger = LoggerFactory.getLogger(StorageWriteApiBase.class);
     private BigQueryWriteClient writeClient;
 
@@ -24,17 +27,21 @@ public abstract class StorageWriteApiBase {
     private final Random random;
 
     private final BigQueryWriteSettings writeSettings;
+
     /**
-     * @param retry         How many retries to make in the event of a 500/503 error.
-     * @param retryWait     How long to wait in between retries.
-     * @param writeSettings Write Settings for stream which carry authentication and other header information
+     * @param retry               How many retries to make in the event of a 500/503 error.
+     * @param retryWait           How long to wait in between retries.
+     * @param writeSettings       Write Settings for stream which carry authentication and other header information
+     * @param autoCreateTables    boolean flag set if table should be created automatically
+     * @param errantRecordHandler Used to handle errant records
      */
-    public StorageWriteApiBase(int retry, long retryWait, BigQueryWriteSettings writeSettings, boolean autoCreateTables) {
+    public StorageWriteApiBase(int retry, long retryWait, BigQueryWriteSettings writeSettings, boolean autoCreateTables, ErrantRecordHandler errantRecordHandler) {
         this.retry = retry;
         this.retryWait = retryWait;
         this.autoCreateTables = autoCreateTables;
         this.random = new Random();
         this.writeSettings = writeSettings;
+        this.errantRecordHandler = errantRecordHandler;
         try {
             this.writeClient = getWriteClient();
         } catch (IOException e) {
@@ -69,7 +76,7 @@ public abstract class StorageWriteApiBase {
      * @throws IOException
      */
     public BigQueryWriteClient getWriteClient() throws IOException {
-        if(this.writeClient == null) {
+        if (this.writeClient == null) {
             this.writeClient = BigQueryWriteClient.create(writeSettings);
         }
         return this.writeClient;
@@ -81,6 +88,9 @@ public abstract class StorageWriteApiBase {
      * @return Map of row index to error message detail
      */
     protected Map<Integer, String> getRowErrorMapping(Exception exception) {
+        if(exception instanceof ExecutionException) {
+            exception = (Exceptions.AppendSerializtionError) exception.getCause();
+        }
         if (exception instanceof Exceptions.AppendSerializtionError) {
             return ((Exceptions.AppendSerializtionError) exception).getRowIndexToErrorMessage();
         } else {
@@ -100,5 +110,10 @@ public abstract class StorageWriteApiBase {
 
     protected boolean getAutoCreateTables() {
         return this.autoCreateTables;
+    }
+
+    protected ErrantRecordHandler getErrantRecordHandler() {
+        return this.errantRecordHandler;
+
     }
 }
