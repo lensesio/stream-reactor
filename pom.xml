@@ -50,6 +50,7 @@
         <checkstyle.plugin.version>2.15</checkstyle.plugin.version>
         <checkstyle.version>6.18</checkstyle.version>
         <compiler.plugin.version>3.8.1</compiler.plugin.version>
+        <google.cloud.bom.version>26.11.0</google.cloud.bom.version>
         <jacoco.plugin.version>0.8.5</jacoco.plugin.version>
         <kafka.connect.plugin.version>0.11.1</kafka.connect.plugin.version>
         <release.plugin.version>2.5.3</release.plugin.version>
@@ -131,7 +132,7 @@
             <dependency>
                 <groupId>com.google.cloud</groupId>
                 <artifactId>libraries-bom</artifactId>
-                <version>26.11.0</version>
+                <version>${google.cloud.bom.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
