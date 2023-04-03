@@ -1,4 +1,4 @@
-package com.wepay.kafka.connect.bigquery.write.row;
+package com.wepay.kafka.connect.bigquery.exception;
 
 import com.google.cloud.bigquery.BigQueryException;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryErrorResponses;

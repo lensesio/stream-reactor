@@ -2,6 +2,7 @@ package com.wepay.kafka.connect.bigquery.write.storageApi;
 
 import com.google.api.core.ApiFuture;
 import com.google.cloud.bigquery.storage.v1.*;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.rpc.Status;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiConnectException;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiErrorResponses;
@@ -30,7 +31,8 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
      * @param tableName The tablename on which stream has to be opened
      * @return JSONStreamWriter which would be used to write data to bigquery table
      */
-    private JsonStreamWriter getDefaultStream(String tableName) {
+    @VisibleForTesting
+    JsonStreamWriter getDefaultStream(String tableName) {
         return tableToStream.computeIfAbsent(tableName, t -> {
             boolean tableCreationAttempted = false;
             int additionalRetriesForTableCreation = 0;
@@ -45,7 +47,7 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
                 } catch (Exception e) {
                     if (BigQueryStorageWriteApiErrorResponses.isTableMissing(e.getMessage())
                             && !tableCreationAttempted
-                            && autoCreateTables) {
+                            && getAutoCreateTables()) {
                         logger.info("Attempting to create table {} ...", tableName);
                         tableCreationAttempted = true;
                         // Table takes time to be available for after creation
@@ -94,38 +96,43 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
                 if (attempt > 0) {
                     waitRandomTime();
                 }
+                logger.trace("Sending records to Storage API writer...");
                 ApiFuture<AppendRowsResponse> response = writer.append(jsonArr);
                 AppendRowsResponse writeResult = response.get();
 
+                logger.trace("Received response from Storage API writer...");
                 if (writeResult.hasUpdatedSchema()) {
                     logger.warn("Sent records schema does not match with table schema, will attempt to update schema");
                     //TODO: Update schema attempt Once
                 } else if (writeResult.hasError()) {
                     Status errorStatus = writeResult.getError();
-                    if (!BigQueryStorageWriteApiErrorResponses.isRetriableError(errorStatus.getMessage())) {
-                        // Fail on non-retriable error
-                        String message = String.format("Failed to write rows on table %s due to %s", tableName, errorStatus.getMessage());
-                        logger.error(message);
-                        throw new BigQueryStorageWriteApiConnectException(message);
-                    } else if (BigQueryStorageWriteApiErrorResponses.isMalformedRequest(errorStatus.getCode())) {
+                    String errorMessage = String.format("Failed to write rows on table %s due to %s", tableName, errorStatus.getMessage());
+                    if (BigQueryStorageWriteApiErrorResponses.isMalformedRequest(errorStatus.getCode())) {
                         // Fail on data error
                         throw new BigQueryStorageWriteApiConnectException(tableName.getTable(), writeResult.getRowErrorsList());
                         //TODO: DLQ handling
+                    } else if (!BigQueryStorageWriteApiErrorResponses.isRetriableError(errorStatus.getMessage())) {
+                        // Fail on non-retriable error
+                        logger.error(errorMessage);
+                        throw new BigQueryStorageWriteApiConnectException(errorMessage);
                     }
-                    logger.warn("Failed to write rows on table {} due to {}. Retrying...", tableName, errorStatus.getMessage());
-                    mostRecentException = new BigQueryStorageWriteApiConnectException(errorStatus.getMessage());
+                    logger.warn(errorMessage + "Retrying...");
+                    mostRecentException = new BigQueryStorageWriteApiConnectException(errorMessage);
                     attempt++;
                 } else {
                     logger.debug("Call to write Api default stream completed after {} retries!", attempt);
                     return;
                 }
+            } catch (BigQueryStorageWriteApiConnectException exception) {
+                throw exception;
             } catch (Exception e) {
                 String message = e.getMessage();
+                String errorMessage = String.format("Failed to write rows on table %s due to %s", tableName, message);
                 if (BigQueryStorageWriteApiErrorResponses.isMalformedRequest(e)) {
                     // Fail on data error
                     throw new BigQueryStorageWriteApiConnectException(tableName.getTable(), getRowErrorMapping(e));
                     //TODO: DLQ handling
-                } else if (BigQueryStorageWriteApiErrorResponses.isTableMissing(message) && !tableCreationAttempted && autoCreateTables) {
+                } else if (BigQueryStorageWriteApiErrorResponses.isTableMissing(message) && !tableCreationAttempted && getAutoCreateTables()) {
                     logger.info("Attempting to create table {} ...", tableName);
                     tableCreationAttempted = true;
                     // Table takes time to be available for after creation
@@ -134,20 +141,16 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
                     logger.info("Table created {} ...", tableName);
                 } else if (!BigQueryStorageWriteApiErrorResponses.isRetriableError(message) && !tableCreationAttempted) {
                     // Fail on non-retriable error
-                    String msg = String.format("Failed to write rows on table %s due to %s", tableName, message);
-                    if(message.contains("INTERNAL")) {
-                        logger.info("finally");
-                    }
-                    logger.error(msg);
-                    throw new BigQueryStorageWriteApiConnectException(msg, e);
+                    logger.error(errorMessage);
+                    throw new BigQueryStorageWriteApiConnectException(errorMessage, e);
                 }
-                logger.warn("Failed to write rows on table {} due to {}. Retrying...", tableName, message);
+                logger.warn(errorMessage + " Retrying...");
                 mostRecentException = e;
                 attempt++;
             }
         } while (attempt < (retry + additionalRetriesForTableCreation));
         throw new BigQueryStorageWriteApiConnectException(
-                String.format("Exceeded configured %s attempts to write to table %s ", (retry + additionalRetriesForTableCreation), tableName),
+                String.format("Exceeded %s attempts to write to table %s ", (retry + additionalRetriesForTableCreation), tableName),
                 mostRecentException);
     }
 

@@ -40,6 +40,7 @@ public class BigQueryErrorResponses {
   private static final int INTERNAL_SERVICE_ERROR_CODE = 500;
   private static final int BAD_GATEWAY_CODE = 502;
   private static final int SERVICE_UNAVAILABLE_CODE = 503;
+
   private static final String BAD_REQUEST_REASON = "badRequest";
   private static final String INVALID_REASON = "invalid";
   private static final String INVALID_QUERY_REASON = "invalidQuery";

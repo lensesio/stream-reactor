@@ -1,4 +1,4 @@
-package com.wepay.kafka.connect.bigquery.write.storageapi;
+package com.wepay.kafka.connect.bigquery.write.storageApi;
 
 import static org.junit.Assert.assertEquals;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
@@ -6,8 +6,6 @@ import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.convert.BigQueryRecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.write.batch.TableWriterBuilder;
-import com.wepay.kafka.connect.bigquery.write.storageApi.StorageWriteApiBase;
-import com.wepay.kafka.connect.bigquery.write.storageApi.StorageWriteApiWriter;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;

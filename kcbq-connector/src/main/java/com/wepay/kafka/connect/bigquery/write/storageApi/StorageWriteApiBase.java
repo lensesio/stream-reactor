@@ -7,24 +7,23 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Base class which handles data ingestion to bigquery tables using different kind of streams
  */
 public abstract class StorageWriteApiBase {
     Logger logger = LoggerFactory.getLogger(StorageWriteApiBase.class);
-    private final BigQueryWriteClient writeClient;
+    private BigQueryWriteClient writeClient;
 
     protected final int retry;
 
     protected final long retryWait;
 
-    protected final boolean autoCreateTables;
+    private final boolean autoCreateTables;
 
     private final Random random;
 
-
+    private final BigQueryWriteSettings writeSettings;
     /**
      * @param retry         How many retries to make in the event of a 500/503 error.
      * @param retryWait     How long to wait in between retries.
@@ -35,8 +34,9 @@ public abstract class StorageWriteApiBase {
         this.retryWait = retryWait;
         this.autoCreateTables = autoCreateTables;
         this.random = new Random();
+        this.writeSettings = writeSettings;
         try {
-            this.writeClient = BigQueryWriteClient.create(writeSettings);
+            this.writeClient = getWriteClient();
         } catch (IOException e) {
             logger.error("Failed to create Big Query Storage Write API write client due to {}", e.getMessage());
             throw new BigQueryStorageWriteApiConnectException("Failed to create Big Query Storage Write API write client", e);
@@ -63,10 +63,23 @@ public abstract class StorageWriteApiBase {
      */
     abstract public void appendRows(TableName tableName, List<Object[]> rows, String streamName);
 
-    public BigQueryWriteClient getWriteClient() {
+    /**
+     * Creates Storage Api write client which carries all write settings information
+     * @return Returns BigQueryWriteClient object
+     * @throws IOException
+     */
+    public BigQueryWriteClient getWriteClient() throws IOException {
+        if(this.writeClient == null) {
+            this.writeClient = BigQueryWriteClient.create(writeSettings);
+        }
         return this.writeClient;
     }
 
+    /**
+     * Verifies the exception object and returns row-wise error map
+     * @param exception if the exception is not of expected type
+     * @return Map of row index to error message detail
+     */
     protected Map<Integer, String> getRowErrorMapping(Exception exception) {
         if (exception instanceof Exceptions.AppendSerializtionError) {
             return ((Exceptions.AppendSerializtionError) exception).getRowIndexToErrorMessage();
@@ -83,5 +96,9 @@ public abstract class StorageWriteApiBase {
     protected void waitRandomTime() throws InterruptedException {
         // wait
         Thread.sleep(retryWait + random.nextInt(1000));
+    }
+
+    protected boolean getAutoCreateTables() {
+        return this.autoCreateTables;
     }
 }
