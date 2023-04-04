@@ -79,6 +79,11 @@ public abstract class StorageWriteApiBase {
     }
 
     /**
+     * Gets called on task.stop() and should have resource cleanup logic.
+     */
+    abstract public void shutdown();
+
+    /**
      * @param tableName  The table to write data to
      * @param rows       The records to write
      * @param streamName The stream to use to write table to table.
