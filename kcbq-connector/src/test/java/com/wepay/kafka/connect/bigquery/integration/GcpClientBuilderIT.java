@@ -1,6 +1,10 @@
 package com.wepay.kafka.connect.bigquery.integration;
 
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.StandardTableDefinition;
+import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import com.google.cloud.bigquery.storage.v1.JsonStreamWriter;
@@ -10,7 +14,6 @@ import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.utils.TableNameUtils;
 import com.wepay.kafka.connect.bigquery.write.storageApi.BigQueryWriteSettingsBuilder;
 import org.apache.kafka.test.IntegrationTest;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -42,7 +45,7 @@ public class GcpClientBuilderIT extends BaseConnectorIT {
         }
     }
 
-    private BigQuerySinkConfig connectorProps(GcpClientBuilder.KeySource keySource) throws IOException {
+    private Map<String, String> connectorProps(GcpClientBuilder.KeySource keySource) throws IOException {
         Map<String, String> properties = baseConnectorProps(1);
         properties.put(BigQuerySinkConfig.KEY_SOURCE_CONFIG, keySource.name());
 
@@ -55,7 +58,7 @@ public class GcpClientBuilderIT extends BaseConnectorIT {
             properties.put(BigQuerySinkConfig.KEYFILE_CONFIG, credentialsJsonString);
         }
 
-        return new BigQuerySinkConfig(properties);
+        return properties;
     }
 
     /**
@@ -64,7 +67,25 @@ public class GcpClientBuilderIT extends BaseConnectorIT {
      * @throws IOException
      */
     private void testClients(GcpClientBuilder.KeySource keySource) throws IOException {
-        BigQuerySinkConfig config = connectorProps(keySource);
+        Map<String, String> properties = connectorProps(keySource);
+        properties.put(BigQuerySinkConfig.USE_STORAGE_WRITE_API_CONFIG, "false");
+        BigQuerySinkConfig config = new BigQuerySinkConfig(properties);
+
+        BigQuery bigQuery = new GcpClientBuilder.BigQueryBuilder().withConfig(config).build();
+        Storage storage = new GcpClientBuilder.GcsBuilder().withConfig(config).build();
+
+        BigQueryWriteSettings settings = new BigQueryWriteSettingsBuilder().withConfig(config).build();
+        BigQueryWriteClient client = BigQueryWriteClient.create(settings);
+
+        bigQuery.listTables(DatasetId.of(dataset()));
+        storage.get(gcsBucket());
+        JsonStreamWriter.newBuilder(TableNameUtils.tableName(tableId).toString(), client);
+    }
+
+    private void testClientsWithScopes(GcpClientBuilder.KeySource keySource) throws IOException {
+        Map<String, String> properties = connectorProps(keySource);
+        properties.put(BigQuerySinkConfig.USE_STORAGE_WRITE_API_CONFIG, "true");
+        BigQuerySinkConfig config = new BigQuerySinkConfig(properties);
 
         BigQuery bigQuery = new GcpClientBuilder.BigQueryBuilder().withConfig(config).build();
         Storage storage = new GcpClientBuilder.GcsBuilder().withConfig(config).build();
@@ -80,16 +101,20 @@ public class GcpClientBuilderIT extends BaseConnectorIT {
     @Test
     public void testApplicationDefaultCredentials() throws IOException {
         testClients(GcpClientBuilder.KeySource.APPLICATION_DEFAULT);
+        testClientsWithScopes(GcpClientBuilder.KeySource.APPLICATION_DEFAULT);
     }
 
     @Test
     public void testFile() throws IOException {
         testClients(GcpClientBuilder.KeySource.FILE);
+        testClientsWithScopes(GcpClientBuilder.KeySource.FILE);
     }
 
     @Test
-    public void testJson() throws IOException {
+    public void
+    testJson() throws IOException {
         testClients(GcpClientBuilder.KeySource.JSON);
+        testClientsWithScopes(GcpClientBuilder.KeySource.JSON);
     }
 
 }

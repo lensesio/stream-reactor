@@ -47,6 +47,7 @@ import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.CONNECT
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.CONNECTOR_RUNTIME_PROVIDER_DEFAULT;
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.CONNECTOR_RUNTIME_PROVIDER_TYPES;
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.PROJECT_CONFIG;
+import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.USE_STORAGE_WRITE_API_CONFIG;
 
 public abstract class GcpClientBuilder<Client> {
 
@@ -62,8 +63,10 @@ public abstract class GcpClientBuilder<Client> {
   private KeySource keySource = null;
   private String key = null;
 
+  private boolean useStorageWriteApi = false;
+
   // Scope list taken from : https://developers.google.com/identity/protocols/oauth2/scopes#bigquery
-  private Collection<String> scopes = Lists.newArrayList(
+  private static final Collection<String> scopes = Lists.newArrayList(
           "https://www.googleapis.com/auth/bigquery",
           "https://www.googleapis.com/auth/bigquery.insertdata",
           "https://www.googleapis.com/auth/cloud-platform",
@@ -77,12 +80,18 @@ public abstract class GcpClientBuilder<Client> {
     return withProject(config.getString(PROJECT_CONFIG))
         .withKeySource(config.getKeySource())
         .withKey(config.getKey())
-        .withUserAgent(config.getString(CONNECTOR_RUNTIME_PROVIDER_CONFIG));
+        .withUserAgent(config.getString(CONNECTOR_RUNTIME_PROVIDER_CONFIG))
+        .withWriterApi(config.getBoolean(USE_STORAGE_WRITE_API_CONFIG));
   }
 
   public GcpClientBuilder<Client> withProject(String project) {
     Objects.requireNonNull(project, "Project cannot be null");
     this.project = project;
+    return this;
+  }
+
+  public GcpClientBuilder<Client> withWriterApi(Boolean useStorageWriteApi) {
+    this.useStorageWriteApi = useStorageWriteApi;
     return this;
   }
 
@@ -145,7 +154,9 @@ public abstract class GcpClientBuilder<Client> {
     }
 
     try {
-      return GoogleCredentials.fromStream(credentialsStream).createScoped(scopes);
+      return useStorageWriteApi ?
+              GoogleCredentials.fromStream(credentialsStream).createScoped(scopes)
+              : GoogleCredentials.fromStream(credentialsStream);
     } catch (IOException e) {
       throw new BigQueryConnectException("Failed to create credentials from input stream", e);
     }
