@@ -1,9 +1,10 @@
 package com.wepay.kafka.connect.bigquery.exception;
 
-
-import com.google.cloud.bigquery.storage.v1.Exceptions;
 import com.google.rpc.Code;
+
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Util for storage Write API error responses. This new API uses gRPC protocol.
@@ -21,19 +22,28 @@ public class BigQueryStorageWriteApiErrorResponses {
 
     private static final String[] retriableCodes = {Code.INTERNAL.name(), Code.ABORTED.name(), Code.CANCELLED.name()};
 
+    private static final String UNKNOWN_FIELD = "JSONObject has fields unknown to BigQuery";
+
+    private static final String MISSING_REQUIRED_FIELD = "JSONObject does not have the required field";
+
+    private static final String STREAM_CLOSED = "StreamWriterClosedException";
+
     /**
      * Expected BigQuery Table does not exist
+     *
      * @param errorMessage Message from the received exception
      * @return Returns true if message contains table missing substrings
      */
     public static boolean isTableMissing(String errorMessage) {
         return (errorMessage.contains(PERMISSION_DENIED) && errorMessage.contains(NOT_EXIST))
                 || errorMessage.contains(NOT_FOUND)
+                || errorMessage.contains(Code.NOT_FOUND.name())
                 || errorMessage.contains(TABLE_IS_DELETED);
     }
 
     /**
      * The list of retriable code is taken write api sample codes and gRpc code page
+     *
      * @param errorMessage Message from the received exception
      * @return Retruns true if the exception is retriable
      */
@@ -47,10 +57,21 @@ public class BigQueryStorageWriteApiErrorResponses {
 
     /**
      * Indicates user input is incorrect
+     *
      * @param errorMessage Exception message received on append call
      * @return Returns if the exception is due to bad input
      */
     public static boolean isMalformedRequest(String errorMessage) {
         return errorMessage.contains(Code.INVALID_ARGUMENT.name());
+    }
+
+
+    public static boolean hasInvalidSchema(Collection<String> messages) {
+        return messages.stream().anyMatch(message ->
+                message.contains(UNKNOWN_FIELD) || message.contains(MISSING_REQUIRED_FIELD));
+    }
+
+    public static boolean isStreamClosed(String errorMessage) {
+        return errorMessage.contains(STREAM_CLOSED);
     }
 }

@@ -37,7 +37,7 @@ public class StorageWriteApiDefaultStreamTest {
 
         StorageWriteApiDefaultStream defaultStream = mock(StorageWriteApiDefaultStream.class, CALLS_REAL_METHODS);
 
-        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any());
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
 
         when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
         when(mockedResponse.get()).thenReturn(successResponse);
@@ -65,7 +65,7 @@ public class StorageWriteApiDefaultStreamTest {
 
         StorageWriteApiDefaultStream defaultStream = mock(StorageWriteApiDefaultStream.class, CALLS_REAL_METHODS);
 
-        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any());
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
         when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
         when(mockedResponse.get()).thenReturn(nonRetriableError);
         testRows.add(new Object[]{mockedSinkRecord, new JSONObject()});
@@ -95,7 +95,7 @@ public class StorageWriteApiDefaultStreamTest {
 
         StorageWriteApiDefaultStream defaultStream = mock(StorageWriteApiDefaultStream.class, CALLS_REAL_METHODS);
 
-        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any());
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
         when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
         when(mockedResponse.get()).thenReturn(retriableError);
         testRows.add(new Object[]{mockedSinkRecord, new JSONObject()});
@@ -132,7 +132,7 @@ public class StorageWriteApiDefaultStreamTest {
         StorageWriteApiDefaultStream defaultStream = mock(StorageWriteApiDefaultStream.class, CALLS_REAL_METHODS);
         ErrantRecordHandler mockedErrantRecordHandler = mock(ErrantRecordHandler.class);
 
-        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any());
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
         when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
         when(mockedResponse.get()).thenReturn(malformedError);
         when(defaultStream.getErrantRecordHandler()).thenReturn(mockedErrantRecordHandler);
@@ -179,7 +179,7 @@ public class StorageWriteApiDefaultStreamTest {
         ErrantRecordHandler mockedErrantRecordHandler = mock(ErrantRecordHandler.class);
         ErrantRecordReporter mockedErrantReporter = mock(ErrantRecordReporter.class);
 
-        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any());
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
         when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
         when(mockedResponse.get()).thenReturn(malformedError);
         when(defaultStream.getErrantRecordHandler()).thenReturn(mockedErrantRecordHandler);
@@ -230,7 +230,7 @@ public class StorageWriteApiDefaultStreamTest {
         ErrantRecordHandler mockedErrantRecordHandler = mock(ErrantRecordHandler.class);
         ErrantRecordReporter mockedErrantReporter = mock(ErrantRecordReporter.class);
 
-        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any());
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
         when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
         when(mockedResponse.get()).thenReturn(malformedError).thenReturn(successResponse);
         when(defaultStream.getErrantRecordHandler()).thenReturn(mockedErrantRecordHandler);
@@ -245,7 +245,7 @@ public class StorageWriteApiDefaultStreamTest {
         verify(mockedErrantRecordHandler, times(1))
                 .sendRecordsToDLQ(captorRecord.capture(), any());
 
-        Assert.assertEquals(1,captorRecord.getValue().size());
+        Assert.assertEquals(1, captorRecord.getValue().size());
     }
 
     // Exception block
@@ -263,7 +263,7 @@ public class StorageWriteApiDefaultStreamTest {
 
         StorageWriteApiDefaultStream defaultStream = mock(StorageWriteApiDefaultStream.class, CALLS_REAL_METHODS);
 
-        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any());
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
         when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
         when(mockedResponse.get()).thenThrow(exception);
         testRows.add(new Object[]{mockedSinkRecord, new JSONObject()});
@@ -290,7 +290,7 @@ public class StorageWriteApiDefaultStreamTest {
 
         StorageWriteApiDefaultStream defaultStream = mock(StorageWriteApiDefaultStream.class, CALLS_REAL_METHODS);
 
-        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any());
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
         when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
         when(mockedResponse.get()).thenThrow(exception);
         testRows.add(new Object[]{mockedSinkRecord, new JSONObject()});
@@ -322,7 +322,7 @@ public class StorageWriteApiDefaultStreamTest {
         StorageWriteApiDefaultStream defaultStream = mock(StorageWriteApiDefaultStream.class, CALLS_REAL_METHODS);
         ErrantRecordHandler mockedErrantRecordHandler = mock(ErrantRecordHandler.class);
 
-        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any());
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
         when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
         when(mockedResponse.get()).thenThrow(exception);
         when(defaultStream.getErrantRecordHandler()).thenReturn(mockedErrantRecordHandler);
@@ -365,7 +365,7 @@ public class StorageWriteApiDefaultStreamTest {
         ErrantRecordHandler mockedErrantRecordHandler = mock(ErrantRecordHandler.class);
         ErrantRecordReporter mockedErrantReporter = mock(ErrantRecordReporter.class);
 
-        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any());
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
         when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
         when(mockedResponse.get()).thenThrow(exception);
         when(defaultStream.getErrantRecordHandler()).thenReturn(mockedErrantRecordHandler);
@@ -411,7 +411,7 @@ public class StorageWriteApiDefaultStreamTest {
         ErrantRecordHandler mockedErrantRecordHandler = mock(ErrantRecordHandler.class);
         ErrantRecordReporter mockedErrantReporter = mock(ErrantRecordReporter.class);
 
-        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any());
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
         when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
         when(mockedResponse.get()).thenThrow(exception).thenReturn(successResponse);
         when(defaultStream.getErrantRecordHandler()).thenReturn(mockedErrantRecordHandler);
@@ -426,7 +426,7 @@ public class StorageWriteApiDefaultStreamTest {
         verify(mockedErrantRecordHandler, times(1))
                 .sendRecordsToDLQ(captorRecord.capture(), any());
 
-        Assert.assertEquals(1,captorRecord.getValue().size());
+        Assert.assertEquals(1, captorRecord.getValue().size());
     }
 
     @Test(expected = BigQueryStorageWriteApiConnectException.class)
@@ -446,11 +446,11 @@ public class StorageWriteApiDefaultStreamTest {
 
         testRows.add(new Object[]{mockedSinkRecord, new JSONObject()});
 
-        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any());
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
         when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
         when(mockedResponse.get()).thenThrow(exception);
         when(defaultStream.getAutoCreateTables()).thenReturn(true);
-        doNothing().when(defaultStream).waitRandomTime();
+        doNothing().when(defaultStream).waitRandomTime(0);
 
         try {
             defaultStream.appendRows(mockedTableName, testRows, null);

@@ -1,13 +1,22 @@
 package com.wepay.kafka.connect.bigquery.write.storageApi;
 
-import com.google.cloud.bigquery.storage.v1.*;
+import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
+import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
+import com.google.cloud.bigquery.storage.v1.TableName;
+import com.google.cloud.bigquery.storage.v1.Exceptions;
 import com.wepay.kafka.connect.bigquery.ErrantRecordHandler;
+import com.wepay.kafka.connect.bigquery.SchemaManager;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiConnectException;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Random;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -15,6 +24,7 @@ import java.util.concurrent.ExecutionException;
  */
 public abstract class StorageWriteApiBase {
     private final ErrantRecordHandler errantRecordHandler;
+    private final SchemaManager schemaManager;
     Logger logger = LoggerFactory.getLogger(StorageWriteApiBase.class);
     private BigQueryWriteClient writeClient;
 
@@ -35,13 +45,19 @@ public abstract class StorageWriteApiBase {
      * @param autoCreateTables    boolean flag set if table should be created automatically
      * @param errantRecordHandler Used to handle errant records
      */
-    public StorageWriteApiBase(int retry, long retryWait, BigQueryWriteSettings writeSettings, boolean autoCreateTables, ErrantRecordHandler errantRecordHandler) {
+    public StorageWriteApiBase(int retry,
+                               long retryWait,
+                               BigQueryWriteSettings writeSettings,
+                               boolean autoCreateTables,
+                               ErrantRecordHandler errantRecordHandler,
+                               SchemaManager schemaManager) {
         this.retry = retry;
         this.retryWait = retryWait;
         this.autoCreateTables = autoCreateTables;
         this.random = new Random();
         this.writeSettings = writeSettings;
         this.errantRecordHandler = errantRecordHandler;
+        this.schemaManager = schemaManager;
         try {
             this.writeClient = getWriteClient();
         } catch (IOException e) {
@@ -72,6 +88,7 @@ public abstract class StorageWriteApiBase {
 
     /**
      * Creates Storage Api write client which carries all write settings information
+     *
      * @return Returns BigQueryWriteClient object
      * @throws IOException
      */
@@ -84,11 +101,12 @@ public abstract class StorageWriteApiBase {
 
     /**
      * Verifies the exception object and returns row-wise error map
+     *
      * @param exception if the exception is not of expected type
      * @return Map of row index to error message detail
      */
     protected Map<Integer, String> getRowErrorMapping(Exception exception) {
-        if(exception instanceof ExecutionException) {
+        if (exception instanceof ExecutionException) {
             exception = (Exceptions.AppendSerializtionError) exception.getCause();
         }
         if (exception instanceof Exceptions.AppendSerializtionError) {
@@ -103,9 +121,9 @@ public abstract class StorageWriteApiBase {
      *
      * @throws InterruptedException if interrupted.
      */
-    protected void waitRandomTime() throws InterruptedException {
+    protected void waitRandomTime(int additionalWait) throws InterruptedException {
         // wait
-        Thread.sleep(retryWait + random.nextInt(1000));
+        Thread.sleep(retryWait + additionalWait + random.nextInt(1000));
     }
 
     protected boolean getAutoCreateTables() {
@@ -115,5 +133,33 @@ public abstract class StorageWriteApiBase {
     protected ErrantRecordHandler getErrantRecordHandler() {
         return this.errantRecordHandler;
 
+    }
+
+    /**
+     * Attempts to create table
+     * @param tableId TableId of the table to be created
+     * @param records List of records to get schema from
+     */
+    protected void attemptTableCreation(TableId tableId, List<SinkRecord> records) {
+        try {
+            schemaManager.createTable(tableId, records);
+        } catch (BigQueryException exception) {
+            throw new BigQueryStorageWriteApiConnectException(
+                    "Failed to create table " + tableId, exception);
+        }
+    }
+
+    /**
+     * Attempts to update table schema
+     * @param tableId TableId of the table where schema is to be updated
+     * @param records List of records to get input schema from
+     */
+    protected void attemptSchemaUpdate(TableId tableId, List<SinkRecord> records) {
+        try {
+            schemaManager.updateSchema(tableId, records);
+        } catch (BigQueryException exception) {
+            throw new BigQueryStorageWriteApiConnectException(
+                    "Failed to update table schema for: " + tableId, exception);
+        }
     }
 }
