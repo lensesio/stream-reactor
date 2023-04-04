@@ -4,7 +4,6 @@ import com.google.rpc.Code;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
 /**
  * Util for storage Write API error responses. This new API uses gRPC protocol.
@@ -30,7 +29,6 @@ public class BigQueryStorageWriteApiErrorResponses {
 
     /**
      * Expected BigQuery Table does not exist
-     *
      * @param errorMessage Message from the received exception
      * @return Returns true if message contains table missing substrings
      */
@@ -43,7 +41,6 @@ public class BigQueryStorageWriteApiErrorResponses {
 
     /**
      * The list of retriable code is taken write api sample codes and gRpc code page
-     *
      * @param errorMessage Message from the received exception
      * @return Retruns true if the exception is retriable
      */
@@ -57,7 +54,6 @@ public class BigQueryStorageWriteApiErrorResponses {
 
     /**
      * Indicates user input is incorrect
-     *
      * @param errorMessage Exception message received on append call
      * @return Returns if the exception is due to bad input
      */
@@ -65,12 +61,21 @@ public class BigQueryStorageWriteApiErrorResponses {
         return errorMessage.contains(Code.INVALID_ARGUMENT.name());
     }
 
-
+    /**
+     * Tells if the exception is caused by an invalid schema in request
+     * @param messages List of Row error messages
+     * @return Returns true if any of the messages matches invalid schema substrings
+     */
     public static boolean hasInvalidSchema(Collection<String> messages) {
         return messages.stream().anyMatch(message ->
                 message.contains(UNKNOWN_FIELD) || message.contains(MISSING_REQUIRED_FIELD));
     }
 
+    /**
+     * Tells if the exception is caused by auto-close of JSON stream
+     * @param errorMessage Exception message received on append call
+     * @return Returns true is message contains StreamClosed exception
+     */
     public static boolean isStreamClosed(String errorMessage) {
         return errorMessage.contains(STREAM_CLOSED);
     }

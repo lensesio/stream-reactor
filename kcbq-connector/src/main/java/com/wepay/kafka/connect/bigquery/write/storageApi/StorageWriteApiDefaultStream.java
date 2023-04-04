@@ -1,7 +1,11 @@
 package com.wepay.kafka.connect.bigquery.write.storageApi;
 
 import com.google.api.core.ApiFuture;
-import com.google.cloud.bigquery.storage.v1.*;
+import com.google.cloud.bigquery.storage.v1.JsonStreamWriter;
+import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
+import com.google.cloud.bigquery.storage.v1.TableName;
+import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
+import com.google.cloud.bigquery.storage.v1.RowError;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.rpc.Status;
@@ -32,7 +36,7 @@ import java.util.stream.Collectors;
  */
 public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
     private static final Logger logger = LoggerFactory.getLogger(StorageWriteApiDefaultStream.class);
-    ConcurrentMap<String, JsonStreamWriter> tableToStream = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, JsonStreamWriter> tableToStream = new ConcurrentHashMap<>();
 
     public StorageWriteApiDefaultStream(int retry,
                                         long retryWait,
@@ -70,8 +74,7 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
 
     /**
      * Open a default stream on table if not already present
-     *
-     * @param table The tablename on which stream has to be opened
+     * @param table The table on which stream has to be opened
      * @param rows  The input rows (would be sent while table creation to identify schema)
      * @return JSONStreamWriter which would be used to write data to bigquery table
      */
@@ -238,7 +241,8 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
                         throw new BigQueryStorageWriteApiConnectException(tableName.getTable(), getRowErrorMapping(e));
                     }
                 } else if (BigQueryStorageWriteApiErrorResponses.isStreamClosed(errorMessage)) {
-                    //Streams can get autoclosed if there occurs any issues, we should delete the cached stream so that a new one gets created on retry.
+                    // Streams can get autoclosed if there occurs any issues, we should delete the cached stream
+                    // so that a new one gets created on retry.
                     deleteClosedStream(tableName.toString());
                 } else if (BigQueryStorageWriteApiErrorResponses.isTableMissing(message) && getAutoCreateTables()) {
                     if (!tableCreationOrUpdateAttempted) {
@@ -268,7 +272,6 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
 
     /**
      * Sends errant records to configured DLQ and returns remaining
-     *
      * @param input           List of <SinkRecord, JSONObject> input data
      * @param indexToErrorMap Map of record index to error received from api call
      * @param exception       locally built exception to be sent to DLQ topic
@@ -300,7 +303,6 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
 
     /**
      * Converts Row Error to Map
-     *
      * @param rowErrors List of row errors
      * @return Returns Map with key as Row index and value as the Row Error Message
      */

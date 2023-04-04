@@ -1,7 +1,13 @@
 package com.wepay.kafka.connect.bigquery.write.storageApi;
 
 import com.google.api.core.ApiFuture;
-import com.google.cloud.bigquery.storage.v1.*;
+import com.google.cloud.bigquery.storage.v1.TableName;
+import com.google.cloud.bigquery.storage.v1.JsonStreamWriter;
+import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
+import com.google.cloud.bigquery.storage.v1.Exceptions;
+import com.google.cloud.bigquery.storage.v1.RowError;
+import com.google.cloud.bigquery.storage.v1.TableSchema;
+
 import com.google.rpc.Status;
 import com.wepay.kafka.connect.bigquery.ErrantRecordHandler;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiConnectException;
@@ -15,9 +21,23 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.times;
 
-import java.util.*;
+import static org.mockito.Mockito.doReturn;
+
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
 import java.util.concurrent.ExecutionException;
 
 public class StorageWriteApiDefaultStreamTest {
@@ -248,6 +268,32 @@ public class StorageWriteApiDefaultStreamTest {
         Assert.assertEquals(1, captorRecord.getValue().size());
     }
 
+    @Test
+    public void testHasSchemaUpdates() throws Exception {
+        JsonStreamWriter mockedStreamWriter = mock(JsonStreamWriter.class);
+        ApiFuture<AppendRowsResponse> mockedResponse = mock(ApiFuture.class);
+        AppendRowsResponse schemaError = AppendRowsResponse.newBuilder()
+                .setUpdatedSchema(TableSchema.newBuilder().build())
+                .build();
+        AppendRowsResponse success = AppendRowsResponse.newBuilder()
+                .setAppendResult(AppendRowsResponse.AppendResult.newBuilder().getDefaultInstanceForType())
+                .build();
+        List<Object[]> testRows = new ArrayList<>();
+
+        StorageWriteApiDefaultStream defaultStream = mock(StorageWriteApiDefaultStream.class, CALLS_REAL_METHODS);
+
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
+        when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
+        when(mockedResponse.get()).thenReturn(schemaError).thenReturn(success);
+        doNothing().when(defaultStream).waitRandomTime(anyInt());
+        doNothing().when(defaultStream).attemptSchemaUpdate(any(), any());
+
+        defaultStream.appendRows(mockedTableName, testRows, null);
+
+        verify(defaultStream, times(1))
+                .attemptSchemaUpdate(any(), any());
+
+    }
     // Exception block
 
     @Test(expected = BigQueryStorageWriteApiConnectException.class)
@@ -430,7 +476,7 @@ public class StorageWriteApiDefaultStreamTest {
     }
 
     @Test(expected = BigQueryStorageWriteApiConnectException.class)
-    public void testDefaultStreamTableMissingException() throws Exception {
+    public void testDefaultStreamTableMissingExceptionEventualFail() throws Exception {
         JsonStreamWriter mockedStreamWriter = mock(JsonStreamWriter.class);
         SinkRecord mockedSinkRecord = mock(SinkRecord.class);
         ApiFuture<AppendRowsResponse> mockedResponse = mock(ApiFuture.class);
@@ -450,7 +496,8 @@ public class StorageWriteApiDefaultStreamTest {
         when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
         when(mockedResponse.get()).thenThrow(exception);
         when(defaultStream.getAutoCreateTables()).thenReturn(true);
-        doNothing().when(defaultStream).waitRandomTime(0);
+        doNothing().when(defaultStream).waitRandomTime(anyInt());
+        doNothing().when(defaultStream).attemptTableCreation(any(), any());
 
         try {
             defaultStream.appendRows(mockedTableName, testRows, null);
@@ -458,5 +505,89 @@ public class StorageWriteApiDefaultStreamTest {
             Assert.assertEquals(expectedException, e.getMessage());
             throw e;
         }
+    }
+
+    @Test
+    public void testHasSchemaUpdatesException() throws Exception {
+        JsonStreamWriter mockedStreamWriter = mock(JsonStreamWriter.class);
+        ApiFuture<AppendRowsResponse> mockedResponse = mock(ApiFuture.class);
+        Map<Integer, String> errorMapping = new HashMap<>();
+        errorMapping.put(0, "JSONObject does not have the required field f1");
+        Exceptions.AppendSerializtionError exception = new Exceptions.AppendSerializtionError(
+                3,
+                "INVALID_ARGUMENT",
+                "DEFAULT",
+                errorMapping);
+        AppendRowsResponse success = AppendRowsResponse.newBuilder()
+                .setAppendResult(AppendRowsResponse.AppendResult.newBuilder().getDefaultInstanceForType())
+                .build();
+        List<Object[]> testRows = new ArrayList<>();
+
+        StorageWriteApiDefaultStream defaultStream = mock(StorageWriteApiDefaultStream.class, CALLS_REAL_METHODS);
+
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
+        when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
+        when(mockedResponse.get()).thenThrow(exception).thenReturn(success);
+        doNothing().when(defaultStream).waitRandomTime(anyInt());
+        doNothing().when(defaultStream).attemptSchemaUpdate(any(), any());
+
+        defaultStream.appendRows(mockedTableName, testRows, null);
+
+        verify(defaultStream, times(1))
+                .attemptSchemaUpdate(any(), any());
+
+    }
+
+    @Test(expected = BigQueryStorageWriteApiConnectException.class)
+    public void testDefaultStreamClosedException() throws Exception {
+        JsonStreamWriter mockedStreamWriter = mock(JsonStreamWriter.class);
+        SinkRecord mockedSinkRecord = mock(SinkRecord.class);
+        ApiFuture<AppendRowsResponse> mockedResponse = mock(ApiFuture.class);
+        ExecutionException exception = new ExecutionException(
+                new Throwable("Exceptions$StreamWriterClosedException due to FAILED_PRECONDITION"));
+        List<Object[]> testRows = new ArrayList<>();
+
+        StorageWriteApiDefaultStream defaultStream = mock(StorageWriteApiDefaultStream.class, CALLS_REAL_METHODS);
+
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
+        when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
+        when(mockedResponse.get()).thenThrow(exception);
+        testRows.add(new Object[]{mockedSinkRecord, new JSONObject()});
+
+        defaultStream.appendRows(mockedTableName, testRows, null);
+
+        verify(mockedStreamWriter, times(1)).close();
+    }
+
+    @Test
+    public void testDefaultStreamTableMissingExceptionEventualSuccess() throws Exception {
+        JsonStreamWriter mockedStreamWriter = mock(JsonStreamWriter.class);
+        SinkRecord mockedSinkRecord = mock(SinkRecord.class);
+        ApiFuture<AppendRowsResponse> mockedResponse = mock(ApiFuture.class);
+        ExecutionException exception = new ExecutionException(new StatusRuntimeException(
+                io.grpc.Status
+                        .fromCode(io.grpc.Status.Code.NOT_FOUND)
+                        .withDescription("Not found: table. Table is deleted")
+        ));
+        List<Object[]> testRows = new ArrayList<>();
+        AppendRowsResponse success = AppendRowsResponse.newBuilder()
+                .setAppendResult(AppendRowsResponse.AppendResult.newBuilder().getDefaultInstanceForType())
+                .build();
+        StorageWriteApiDefaultStream defaultStream = mock(StorageWriteApiDefaultStream.class, CALLS_REAL_METHODS);
+
+        testRows.add(new Object[]{mockedSinkRecord, new JSONObject()});
+
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any(), ArgumentMatchers.any());
+        when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
+        when(mockedResponse.get()).thenThrow(exception).thenReturn(success);
+        when(defaultStream.getAutoCreateTables()).thenReturn(true);
+        doNothing().when(defaultStream).waitRandomTime(anyInt());
+        doNothing().when(defaultStream).attemptTableCreation(any(), any());
+
+        defaultStream.appendRows(mockedTableName, testRows, null);
+
+        verify(defaultStream, times(1))
+                .attemptTableCreation(any(), any());
+
     }
 }

@@ -69,7 +69,6 @@ public abstract class StorageWriteApiBase {
 
     /**
      * Handles required initialization steps and goes to append records to table
-     *
      * @param tableName  The table to write data to
      * @param rows       The records to write
      * @param streamName The stream to use to write table to table.
@@ -88,7 +87,6 @@ public abstract class StorageWriteApiBase {
 
     /**
      * Creates Storage Api write client which carries all write settings information
-     *
      * @return Returns BigQueryWriteClient object
      * @throws IOException
      */
@@ -101,7 +99,6 @@ public abstract class StorageWriteApiBase {
 
     /**
      * Verifies the exception object and returns row-wise error map
-     *
      * @param exception if the exception is not of expected type
      * @return Map of row index to error message detail
      */
@@ -118,11 +115,11 @@ public abstract class StorageWriteApiBase {
 
     /**
      * Wait at least {@link #retryWait}, with up to an additional 1 second of random jitter.
-     *
+     * @param additionalWait Any additional wait on top of user configured wait.
+     *                      This is used while making updates to bigquery table as changes don't reflect immediately.
      * @throws InterruptedException if interrupted.
      */
     protected void waitRandomTime(int additionalWait) throws InterruptedException {
-        // wait
         Thread.sleep(retryWait + additionalWait + random.nextInt(1000));
     }
 
