@@ -20,6 +20,7 @@
 package com.wepay.kafka.connect.bigquery.utils;
 
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.storage.v1.TableName;
 
 public class TableNameUtils {
 
@@ -27,6 +28,9 @@ public class TableNameUtils {
     return String.format("table `%s`.`%s`", table.getDataset(), table.getTable());
   }
 
+  public static TableName tableName(TableId id) {
+    return TableName.of(id.getProject(), id.getDataset(), id.getTable());
+  }
   public static String intTable(TableId table) {
     return "intermediate " + table(table);
   }

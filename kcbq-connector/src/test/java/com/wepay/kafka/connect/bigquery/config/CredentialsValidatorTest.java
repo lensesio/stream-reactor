@@ -46,6 +46,10 @@ public class CredentialsValidatorTest {
         Optional.empty(),
         new CredentialsValidator.GcsCredentialsValidator().doValidate(config)
     );
+    assertEquals(
+            Optional.empty(),
+            new CredentialsValidator.BigQueryStorageWriteApiCredentialsValidator().doValidate(config)
+    );
   }
 
   @Test
@@ -66,6 +70,10 @@ public class CredentialsValidatorTest {
         Optional.empty(),
         new CredentialsValidator.GcsCredentialsValidator().doValidate(config)
     );
+    assertNotEquals(
+            Optional.empty(),
+            new CredentialsValidator.BigQueryStorageWriteApiCredentialsValidator().doValidate(config)
+    );
   }
 
   @Test
@@ -76,6 +84,10 @@ public class CredentialsValidatorTest {
 
     assertTrue(
             new CredentialsValidator.BigQueryCredentialsValidator().doValidate(config)
+                    .get().contains("should not be provided")
+    );
+    assertTrue(
+            new CredentialsValidator.BigQueryStorageWriteApiCredentialsValidator().doValidate(config)
                     .get().contains("should not be provided")
     );
   }
