@@ -87,7 +87,7 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
      * @return JSONStreamWriter which would be used to write data to bigquery table
      */
     @VisibleForTesting
-    JsonStreamWriter getDefaultStream(TableName table, List<Object[]> rows) {
+    public JsonStreamWriter getDefaultStream(TableName table, List<Object[]> rows) {
         String tableName = table.toString();
         return tableToStream.computeIfAbsent(tableName, t -> {
             boolean tableCreationOrUpdateAttempted = false;
