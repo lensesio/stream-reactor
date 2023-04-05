@@ -23,7 +23,8 @@ import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails
 import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails.ConstantTag
 import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails.DynamicTag
 import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails.Path
-import org.influxdb.dto.Point
+import com.influxdb.client.domain.WritePrecision
+import com.influxdb.client.write.Point
 
 import java.time.Instant
 import java.util.Date
@@ -44,13 +45,13 @@ object InfluxPoint {
         .getOrElse(details.target)
       pointBuilder = Point.measurement(measurement).time(timestamp, timeUnit)
       point       <- addValuesAndTags(pointBuilder, record, details)
-    } yield point.build()
+    } yield point
 
   private def addValuesAndTags(
-    pointBuilder: Point.Builder,
+    pointBuilder: Point,
     record:       ParsedKeyValueSinkRecord,
     details:      KcqlDetails,
-  ): Try[Point.Builder] =
+  ): Try[Point] =
     details.NonIgnoredFields
       .flatMap {
         case (_, path, _) if path.equals(Path(Util.KEY_All_ELEMENTS)) =>
@@ -85,24 +86,32 @@ object InfluxPoint {
           }
           .foldLeft(Try(builder)) { (builder, tag) =>
             tag match {
-              case (key, Some(value)) => builder.map(_.tag(key, value))
+              case (key, Some(value)) => builder.map(_.addTag(key, value))
               case (_, None)          => builder
             }
           },
       )
 
+  def toWritePrecision(timestampUnit: TimeUnit): Option[WritePrecision] = Option(timestampUnit).collect {
+    case TimeUnit.NANOSECONDS  => WritePrecision.NS
+    case TimeUnit.MICROSECONDS => WritePrecision.US
+    case TimeUnit.MILLISECONDS => WritePrecision.MS
+    case TimeUnit.SECONDS      => WritePrecision.S
+  }
+
   private def extractTimeMeasures(
     nanoClock: NanoClock,
     record:    ParsedSinkRecord,
     details:   KcqlDetails,
-  ): Try[(TimeUnit, Long)] =
-    details.timestampField
-      .flatMap { path =>
-        record
-          .field(path)
-          .map(coerceTimeStamp(_, path.value).map(details.timestampUnit -> _))
-      }
-      .getOrElse(Try(TimeUnit.NANOSECONDS -> nanoClock.getEpochNanos))
+  ): Try[(WritePrecision, Long)] = {
+    {
+      for {
+        writePrecision <- toWritePrecision(details.timestampUnit)
+        field          <- details.timestampField
+        pathFromRecord <- record.field(field).map(coerceTimeStamp(_, field.value))
+      } yield pathFromRecord.map(p => writePrecision -> p)
+    }
+  }.getOrElse(Try(WritePrecision.NS -> nanoClock.getEpochNanos))
 
   private[influx] def coerceTimeStamp(
     value:     Any,
@@ -135,14 +144,14 @@ object InfluxPoint {
         )
     }
 
-  def writeField(builder: Point.Builder)(field: String, v: Any): Try[Point.Builder] = v match {
+  def writeField(builder: Point)(field: String, v: Any): Try[Point] = v match {
     case value: Long                 => Try(builder.addField(field, value))
-    case value: Int                  => Try(builder.addField(field, value))
+    case value: Int                  => Try(builder.addField(field, value.toLong))
     case value: BigInt               => Try(builder.addField(field, value))
-    case value: Byte                 => Try(builder.addField(field, value.toShort))
-    case value: Short                => Try(builder.addField(field, value))
+    case value: Byte                 => Try(builder.addField(field, value.toLong))
+    case value: Short                => Try(builder.addField(field, value.toLong))
     case value: Double               => Try(builder.addField(field, value))
-    case value: Float                => Try(builder.addField(field, value))
+    case value: Float                => Try(builder.addField(field, value.toDouble))
     case value: Boolean              => Try(builder.addField(field, value))
     case value: java.math.BigDecimal => Try(builder.addField(field, value))
     case value: BigDecimal           => Try(builder.addField(field, value.bigDecimal))
@@ -163,7 +172,7 @@ object InfluxPoint {
     * Flatten an array writing each element as a new field with the following convention:
     * "name": ["a", "b", "c"] => name0 = "a", name1 = "b", name3 = "c"
     */
-  private def flattenArray(builder: Point.Builder)(field: String, value: java.util.List[_]) = {
+  private def flattenArray(builder: Point)(field: String, value: java.util.List[_]) = {
     val res = value.asScala.zipWithIndex.map {
       case (el, i) => writeField(builder)(field + i, el)
     }
