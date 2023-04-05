@@ -43,7 +43,7 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
                                         BigQueryWriteSettings writeSettings,
                                         boolean autoCreateTables,
                                         ErrantRecordHandler errantRecordHandler,
-                                        SchemaManager schemaManager) throws IOException {
+                                        SchemaManager schemaManager) {
         super(retry, retryWait, writeSettings, autoCreateTables, errantRecordHandler, schemaManager);
     }
 

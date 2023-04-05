@@ -28,6 +28,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.TimePartitioning.Type;
 import com.google.cloud.storage.Bucket;
+import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
 import com.google.common.annotations.VisibleForTesting;
@@ -48,11 +49,15 @@ import com.wepay.kafka.connect.bigquery.write.batch.MergeBatches;
 import com.wepay.kafka.connect.bigquery.write.batch.TableWriter;
 import com.wepay.kafka.connect.bigquery.write.batch.TableWriterBuilder;
 import com.wepay.kafka.connect.bigquery.write.row.AdaptiveBigQueryWriter;
-import com.wepay.kafka.connect.bigquery.write.row.BigQueryErrorResponses;
+import com.wepay.kafka.connect.bigquery.exception.BigQueryErrorResponses;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 import com.wepay.kafka.connect.bigquery.write.row.GCSToBQWriter;
 import com.wepay.kafka.connect.bigquery.write.row.SimpleBigQueryWriter;
 import com.wepay.kafka.connect.bigquery.write.row.UpsertDeleteBigQueryWriter;
+import com.wepay.kafka.connect.bigquery.write.storageApi.StorageWriteApiWriter;
+import com.wepay.kafka.connect.bigquery.write.storageApi.StorageWriteApiBase;
+import com.wepay.kafka.connect.bigquery.write.storageApi.BigQueryWriteSettingsBuilder;
+import com.wepay.kafka.connect.bigquery.write.storageApi.StorageWriteApiDefaultStream;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.TimestampType;
@@ -87,8 +92,8 @@ import static com.wepay.kafka.connect.bigquery.utils.TableNameUtils.intTable;
  * {@link RowToInsert RowToInserts} and subsequently write them to BigQuery.
  */
 public class BigQuerySinkTask extends SinkTask {
-  private static final Logger logger = LoggerFactory.getLogger(BigQuerySinkTask.class);
 
+  private static final Logger logger = LoggerFactory.getLogger(BigQuerySinkTask.class);
   private AtomicReference<BigQuery> bigQuery;
   private AtomicReference<SchemaManager> schemaManager;
   private SchemaRetriever schemaRetriever;
@@ -96,7 +101,6 @@ public class BigQuerySinkTask extends SinkTask {
   private GCSToBQWriter gcsToBQWriter;
   private BigQuerySinkTaskConfig config;
   private SinkRecordConverter recordConverter;
-
   private boolean useMessageTimeDatePartitioning;
   private boolean usePartitionDecorator;
   private boolean sanitize;
@@ -104,26 +108,23 @@ public class BigQuerySinkTask extends SinkTask {
   private MergeBatches mergeBatches;
   private MergeQueries mergeQueries;
   private volatile boolean stopped;
-
   private TopicPartitionManager topicPartitionManager;
-
   private KCBQThreadPoolExecutor executor;
   private static final int EXECUTOR_SHUTDOWN_TIMEOUT_SEC = 30;
-  
   private final BigQuery testBigQuery;
   private final Storage testGcs;
   private final SchemaManager testSchemaManager;
-
   private final UUID uuid = UUID.randomUUID();
   private ScheduledExecutorService loadExecutor;
-
   private Map<TableId, Table> cache;
   private Map<String, String> topic2TableMap;
   private int remainingRetries;
   private boolean enableRetries;
-
   private ErrantRecordHandler errantRecordHandler;
-
+  private boolean useStorageApi;
+  private StorageWriteApiBase storageApiWriter;
+  private int retry;
+  private long retryWait;
   /**
    * Create a new BigquerySinkTask.
    */
@@ -191,6 +192,7 @@ public class BigQuerySinkTask extends SinkTask {
   private PartitionedTableId getRecordTable(SinkRecord record) {
     String tableName;
     String dataset = config.getString(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG);
+    String project = config.getString(BigQuerySinkConfig.PROJECT_CONFIG);
     if (topic2TableMap != null) {
       tableName = topic2TableMap.getOrDefault(record.topic(), record.topic());
     } else {
@@ -223,11 +225,16 @@ public class BigQuerySinkTask extends SinkTask {
     // we use table name from above to sanitize table name further.
 
 
-    TableId baseTableId = TableId.of(dataset, tableName);
+    TableId baseTableId = TableId.of(project, dataset, tableName);
     if (upsertDelete) {
       TableId intermediateTableId = mergeBatches.intermediateTableFor(baseTableId);
       // If upsert/delete is enabled, we want to stream into a non-partitioned intermediate table
       return new PartitionedTableId.Builder(intermediateTableId).build();
+    }
+
+    if(useStorageApi) {
+      logger.trace("Storage Write API does not support partition decorator. Not enabling decorator on {}", tableName);
+      return new PartitionedTableId.Builder(baseTableId).build();
     }
 
     PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
@@ -268,7 +275,15 @@ public class BigQuerySinkTask extends SinkTask {
         PartitionedTableId table = getRecordTable(record);
         if (!tableWriterBuilders.containsKey(table)) {
           TableWriterBuilder tableWriterBuilder;
-          if (config.getList(BigQuerySinkConfig.ENABLE_BATCH_CONFIG).contains(record.topic())) {
+          if (useStorageApi) {
+            logger.trace("Using storage Write API builder for table {}", table.getBaseTableName());
+            tableWriterBuilder = new StorageWriteApiWriter.Builder(
+                    storageApiWriter,
+                    TableNameUtils.tableName(table.getBaseTableId()),
+                    config.getRecordConverter(),
+                    config
+            );
+          } else if (config.getList(BigQuerySinkConfig.ENABLE_BATCH_CONFIG).contains(record.topic())) {
             String topic = record.topic();
             long offset = record.kafkaOffset();
             String gcsBlobName = topic + "_" + uuid + "_" + Instant.now().toEpochMilli() + "_" + offset;
@@ -447,8 +462,6 @@ public class BigQuerySinkTask extends SinkTask {
     boolean autoCreateTables = config.getBoolean(BigQuerySinkConfig.TABLE_CREATE_CONFIG);
     boolean allowNewBigQueryFields = config.getBoolean(BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG);
     boolean allowRequiredFieldRelaxation = config.getBoolean(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG);
-    int retry = config.getInt(BigQuerySinkConfig.BIGQUERY_RETRY_CONFIG);
-    long retryWait = config.getLong(BigQuerySinkConfig.BIGQUERY_RETRY_WAIT_CONFIG);
     BigQuery bigQuery = getBigQuery();
     if (upsertDelete) {
       return new UpsertDeleteBigQueryWriter(bigQuery,
@@ -481,8 +494,6 @@ public class BigQuerySinkTask extends SinkTask {
 
   private GCSToBQWriter getGcsWriter() {
     BigQuery bigQuery = getBigQuery();
-    int retry = config.getInt(BigQuerySinkConfig.BIGQUERY_RETRY_CONFIG);
-    long retryWait = config.getLong(BigQuerySinkConfig.BIGQUERY_RETRY_WAIT_CONFIG);
     boolean autoCreateTables = config.getBoolean(BigQuerySinkConfig.TABLE_CREATE_CONFIG);
     // schemaManager shall only be needed for creating table hence do not fetch instance if not
     // needed.
@@ -516,6 +527,9 @@ public class BigQuerySinkTask extends SinkTask {
     upsertDelete = config.getBoolean(BigQuerySinkConfig.UPSERT_ENABLED_CONFIG)
         || config.getBoolean(BigQuerySinkConfig.DELETE_ENABLED_CONFIG);
 
+    useStorageApi = config.getBoolean(BigQuerySinkConfig.USE_STORAGE_WRITE_API_CONFIG);
+    retry = config.getInt(BigQuerySinkConfig.BIGQUERY_RETRY_CONFIG);
+    retryWait = config.getLong(BigQuerySinkConfig.BIGQUERY_RETRY_WAIT_CONFIG);
     bigQuery = new AtomicReference<>();
     schemaManager = new AtomicReference<>();
 
@@ -557,6 +571,17 @@ public class BigQuerySinkTask extends SinkTask {
       mergeQueries =
           new MergeQueries(config, mergeBatches, executor, getBigQuery(), getSchemaManager(), context);
       maybeStartMergeFlushTask();
+    } else if(useStorageApi) {
+      logger.info("Starting task with Storage Write API Default Stream...");
+      BigQueryWriteSettings writeSettings = new BigQueryWriteSettingsBuilder().withConfig(config).build();
+      storageApiWriter = new StorageWriteApiDefaultStream(
+              retry,
+              retryWait,
+              writeSettings,
+              config.getBoolean(BigQuerySinkConfig.TABLE_CREATE_CONFIG),
+              errantRecordHandler,
+              getSchemaManager()
+      );
     }
 
     recordConverter = getConverter(config);
@@ -614,6 +639,8 @@ public class BigQuerySinkTask extends SinkTask {
           logger.debug("Deleting {}", intTable(table));
           getBigQuery().delete(table);
         });
+      } else if (useStorageApi) {
+        storageApiWriter.shutdown();
       }
     } finally {
       stopped = true;
