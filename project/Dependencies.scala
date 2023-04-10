@@ -37,7 +37,6 @@ object Dependencies {
     "confluent" at "https://packages.confluent.io/maven/",
     "typesafe" at "https://repo.typesafe.com/typesafe/releases/",
     "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
-    "conjars" at "https://conjars.org/repo",
     "jitpack" at "https://jitpack.io",
     "twitter" at "https://maven.twttr.com/",
   )
@@ -109,7 +108,7 @@ object Dependencies {
 
     val azureDocumentDbVersion          = "2.6.5"
     val scalaParallelCollectionsVersion = "1.0.4"
-    val testcontainersScalaVersion      = "0.40.12"
+    val testcontainersScalaVersion      = "0.40.14"
     val testcontainersVersion           = "1.17.6"
 
     val hazelCastVersion          = "4.2.7"
