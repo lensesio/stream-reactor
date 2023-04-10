@@ -25,8 +25,8 @@ import scala.sys.process._
 object Settings extends Dependencies {
 
   // keep the SNAPSHOT version numerically higher than the latest release.
-  val majorVersion        = "1.0"
-  val nextSnapshotVersion = "1.1"
+  val majorVersion        = "4.2"
+  val nextSnapshotVersion = "4.3"
 
   val artifactVersion: String = {
     val maybeGithubRunId = sys.env.get("github_run_id")
@@ -41,7 +41,7 @@ object Settings extends Dependencies {
 
   val licenseHeader: String = {
     val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-    s"Copyright 2017-$currentYear Celonis Ltd"
+    s"Copyright 2017-$currentYear Lenses.io Ltd"
   }
 
   object ScalacFlags {
