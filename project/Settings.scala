@@ -19,6 +19,7 @@ import sbtassembly.PathList
 
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.time.Year
 import java.util.Calendar
 import scala.sys.process._
 
@@ -39,10 +40,7 @@ object Settings extends Dependencies {
     }
   }
 
-  val licenseHeader: String = {
-    val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-    s"Copyright 2017-$currentYear Lenses.io Ltd"
-  }
+  val currentYear = Year.now().getValue()
 
   object ScalacFlags {
     val availableProcessors: String = java.lang.Runtime.getRuntime.availableProcessors.toString
@@ -114,7 +112,6 @@ object Settings extends Dependencies {
     version := artifactVersion,
     scalaOrganization := Dependencies.scalaOrganization,
     scalaVersion := Dependencies.scalaVersion,
-    headerLicense := None,
     headerEmptyLine := false,
     isSnapshot := artifactVersion.contains("SNAPSHOT"),
     javacOptions ++= Seq("--release", "11"),
@@ -140,6 +137,7 @@ object Settings extends Dependencies {
     resolvers ++= projectResolvers,
     crossScalaVersions := Dependencies.supportedScalaVersions,
     excludeDependencies ++= globalExcludeDeps,
+    headerLicense := Some(HeaderLicense.ALv2(s"2017-$currentYear", "Lenses.io Ltd")),
   )
 
   implicit final class ParallelDestroyer(project: Project) {
