@@ -1,6 +1,12 @@
 package com.wepay.kafka.connect.bigquery.write.storageApi;
 
-import com.google.cloud.bigquery.storage.v1.*;
+import com.google.cloud.bigquery.storage.v1.WriteStream;
+import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
+import com.google.cloud.bigquery.storage.v1.JsonStreamWriter;
+import com.google.cloud.bigquery.storage.v1.FinalizeWriteStreamResponse;
+import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsRequest;
+import com.google.cloud.bigquery.storage.v1.BatchCommitWriteStreamsResponse;
+import com.google.cloud.bigquery.storage.v1.StorageError;
 import com.google.protobuf.Descriptors;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiConnectException;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -22,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ApplicationStream {
 
     private static final Logger logger = LoggerFactory.getLogger(ApplicationStream.class);
-    StreamState currentState = null;
+    private StreamState currentState = null;
     private final String tableName;
     private WriteStream stream = null;
     private JsonStreamWriter jsonWriter = null;
@@ -171,7 +177,7 @@ public class ApplicationStream {
                 //TODO:Exception Handling
                 throw new RuntimeException("Error committing the streams");
             }
-            logger.info(
+            logger.debug(
                     "Appended and committed records successfully for stream {} at {}",
                     getStreamName(),
                     commitResponse.getCommitTime());
@@ -214,4 +220,13 @@ public class ApplicationStream {
     public boolean isInactive() {
         return currentState == StreamState.INACTIVE;
     }
+
+    public StreamState getCurrentState() {
+        return this.currentState;
+    }
+
+//    @VisibleForTesting
+//    void setCurrentState(StreamState testState) {
+//        currentState =
+//    }
 }

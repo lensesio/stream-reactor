@@ -6,6 +6,7 @@ import com.google.api.core.ApiFutures;
 import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import com.google.cloud.bigquery.storage.v1.TableName;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.wepay.kafka.connect.bigquery.ErrantRecordHandler;
 import com.wepay.kafka.connect.bigquery.SchemaManager;
@@ -21,6 +22,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -47,6 +50,11 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
      */
     private final ConcurrentMap<String, String> currentStreams;
 
+    /**
+     * Lock on table names to prevent execution of critical section by multiple threads
+     */
+    private final ConcurrentMap<String, Object> tableLocks;
+
     public StorageWriteApiBatchApplicationStream(
             int retry,
             long retryWait,
@@ -57,6 +65,7 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
         super(retry, retryWait, writeSettings, autoCreateTables, errantRecordHandler, schemaManager);
         streams = new ConcurrentHashMap<>();
         currentStreams = new ConcurrentHashMap<>();
+        tableLocks = new ConcurrentHashMap<>();
     }
 
     /**
@@ -95,12 +104,90 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
     }
 
     /**
+     * Gets commitable offsets on all tables and all streams. Offsets returned should be sequential. As soon as we see a
+     * stream not committed we will drop iterating over next streams for that table. Cleans up committed streams
+     *
+     * @return Returns Map of TopicPartition to OffsetMetadata. Will be empty if there is nothing new to commit.
+     */
+    @Override
+    public Map<TopicPartition, OffsetAndMetadata> getCommitableOffsets() {
+        Map<TopicPartition, OffsetAndMetadata> offsetsReadyForCommits = new ConcurrentHashMap<>();
+        this.streams.forEach((tableName, streamDetails) -> {
+                    synchronized (lock(tableName)) {
+                        int i = 0;
+                        Set<String> deletableStreams = new HashSet<>();
+                        for (ApplicationStream applicationStream : streamDetails.values()) {
+                            if (applicationStream.isInactive()) {
+                                logger.trace("Ignoring inactive stream {} at index {}...", applicationStream.getStreamName(), i);
+                            } else if (applicationStream.isReadyForOffsetCommit()) {
+                                logger.trace("Pulling offsets from committed stream {} at index {} ...", applicationStream.getStreamName(), i);
+                                offsetsReadyForCommits.putAll(applicationStream.getOffsetInformation());
+                                applicationStream.markInactive();
+                            } else {
+                                logger.trace("Ignoring all streams as stream {} at index {} is not yet committed", applicationStream.getStreamName(), i);
+                                // We move sequentially for offset commit, until current offsets are ready, we cannot commit next.
+                                break;
+                            }
+                            deletableStreams.add(applicationStream.getStreamName());
+                            i++;
+                        }
+                        deletableStreams.forEach(streamDetails::remove);
+                    }
+                }
+        );
+
+        logger.trace("Commitable offsets are {} for all tables on all eligible stream  : ", offsetsReadyForCommits);
+
+        return offsetsReadyForCommits;
+    }
+
+
+    /**
+     * This attempts to create stream if there are no existing stream for table or the stream is not empty
+     * (it has been assigned some records)
+     *
+     * @param tableName Name of the table in project/dataset/table format
+     * @return
+     */
+    @Override
+    public boolean mayBeCreateStream(String tableName) {
+        String streamName = this.currentStreams.get(tableName);
+        boolean result = (streamName == null) ||
+                (this.streams.get(tableName).get(streamName) != null
+                        && this.streams.get(tableName).get(streamName).canBeMovedToNonActive());
+        if (result) {
+            logger.trace("Attempting to create new stream on table {}", tableName);
+            return this.createStream(tableName, streamName);
+        }
+        return false;
+    }
+
+    /**
+     * Assigns offsets to current stream on table
+     *
+     * @param tableName  The name of table
+     * @param offsetInfo Offsets which are to be written by current stream to bigquery table
+     * @return Stream name using which offsets would be written
+     */
+    @Override
+    public String updateOffsetsOnStream(String tableName, Map<TopicPartition, OffsetAndMetadata> offsetInfo) {
+        String streamName;
+        synchronized (lock(tableName)) {
+            streamName = this.getCurrentStreamForTable(tableName);
+            this.streams.get(tableName).get(streamName).updateOffsetInformation(offsetInfo);
+        }
+        logger.trace("Assigned offsets {} to stream {}", offsetInfo, streamName);
+        return streamName;
+    }
+
+    /**
      * Takes care of creating a new application stream
      *
      * @param tableName
      * @return
      */
-    private ApplicationStream createApplicationStream(String tableName) {
+    @VisibleForTesting
+    ApplicationStream createApplicationStream(String tableName) {
         try {
             return new ApplicationStream(tableName, getWriteClient());
         } catch (Exception e) {
@@ -119,7 +206,7 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
      * @return Returns false if the oldstream is not equal to active stream , creates stream otherwise and returns true
      */
     private boolean createStream(String tableName, String oldStream) {
-        synchronized (this) {
+        synchronized (lock(tableName)) {
             // This check verifies if the current active stream is same as seen by the calling method. If different, that
             // would mean a new stream got created by some other thread and this attempt can be dropped.
             if (!Objects.equals(oldStream, this.currentStreams.get(tableName))) {
@@ -165,93 +252,16 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
     }
 
     /**
-     * Gets commitable offsets on all tables and all streams. Offsets returned should be sequential. As soon as we see a stream not committed we
-     * will drop iterating over next streams for that table.
-     *
-     * @return Returns Map of TopicPartition to OffsetMetadata. Will be empty if there is nothing new to commit.
-     */
-    @Override
-    public Map<TopicPartition, OffsetAndMetadata> getCommitableOffsets() {
-        Map<TopicPartition, OffsetAndMetadata> offsetsReadyForCommits = new ConcurrentHashMap<>();
-        //TODO: Add Stream cleanup logic
-        streams.values()
-                .forEach(map -> {
-                            int i = 0;
-                            for (ApplicationStream applicationStream : map.values()) {
-                                i++;
-                                if (applicationStream.isInactive()) {
-                                    logger.trace("Ignoring inactive stream {} at index {}...", applicationStream.getStreamName(), i);
-                                    continue;
-                                }
-                                if (applicationStream.isReadyForOffsetCommit()) {
-                                    logger.trace("Pulling offsets from committed stream {} at index {} ...", applicationStream.getStreamName(), i);
-                                    offsetsReadyForCommits.putAll(applicationStream.getOffsetInformation());
-                                    applicationStream.markInactive();
-                                } else {
-                                    logger.trace("Ignoring all streams as stream {} at index {} is not yet committed", applicationStream.getStreamName(), i);
-                                    // We move sequentially for offset commit, until current offsets are ready, we cannot commit next.
-                                    break;
-                                }
-
-                            }
-                        }
-                );
-
-        logger.trace("Commitable offsets are {} for all tables on all eligible stream  : ", offsetsReadyForCommits);
-
-        return offsetsReadyForCommits;
-    }
-
-
-    /**
-     * This attempts to create stream if there are no existing stream for table or the stream is not empty
-     * (it has been assigned some records)
-     *
-     * @param tableName Name of the table in project/dataset/table format
-     * @return
-     */
-    @Override
-    public boolean mayBeCreateStream(String tableName) {
-        boolean result;
-        synchronized (this) {
-            String streamName = this.currentStreams.get(tableName);
-            result = (streamName == null) || this.streams.get(tableName).get(streamName).canBeMovedToNonActive();
-            if (result) {
-                return this.createStream(tableName, streamName);
-            }
-            return false;
-        }
-    }
-
-    /**
-     * Assigns offsets to current stream on table
-     *
-     * @param tableName  The name of table
-     * @param offsetInfo Offsets which are to be written by current stream to bigquery table
-     * @return Stream name using which offsets would be written
-     */
-    @Override
-    public String updateOffsetsOnStream(String tableName, Map<TopicPartition, OffsetAndMetadata> offsetInfo) {
-        String streamName;
-        synchronized (tableName) {
-            streamName = this.getCurrentStreamForTable(tableName);
-            this.streams.get(tableName).get(streamName).updateOffsetInformation(offsetInfo);
-        }
-        logger.trace("Assigned offsets {} to stream {}", offsetInfo, streamName);
-        return streamName;
-    }
-
-    /**
      * Commits the stream if it is not active and has written all the data assigned to it.
      *
      * @param tableName  The name of the table
      * @param streamName The name of the stream on table
      */
     private void commitStreamIfEligible(String tableName, String streamName) {
-        if (!currentStreams.getOrDefault(tableName, "").equals(streamName)) {
+        if (!Objects.equals(currentStreams.get(tableName), streamName)) {
             logger.trace("Stream {} is not active, can be committed", streamName);
             ApplicationStream stream = this.streams.get(tableName).get(streamName);
-            if (stream.areAllExpectedCallsCompleted()) {
+            if (stream != null && stream.areAllExpectedCallsCompleted()) {
                 // We are done with all expected calls for non-active streams, lets finalise and commit the stream.
                 logger.trace("Stream {} has written all assigned offsets.", streamName);
                 finaliseAndCommitStream(stream);
@@ -261,6 +271,10 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
             logger.trace("Stream {} has not written all assigned offsets.", streamName);
         }
         logger.trace("Stream {} on table {} is not eligible for commit yet", streamName, tableName);
+    }
+
+    private Object lock(String tableName) {
+        return tableLocks.computeIfAbsent(tableName, t -> new Object());
     }
 
     /**
