@@ -58,13 +58,7 @@ public abstract class StorageWriteApiBase {
         this.writeSettings = writeSettings;
         this.errantRecordHandler = errantRecordHandler;
         this.schemaManager = schemaManager;
-        try {
-            this.writeClient = getWriteClient();
-        } catch (IOException e) {
-            logger.error("Failed to create Big Query Storage Write API write client due to {}", e.getMessage());
-            throw new BigQueryStorageWriteApiConnectException("Failed to create Big Query Storage Write API write client", e);
-        }
-
+        this.writeClient = getWriteClient();
     }
 
     /**
@@ -95,9 +89,14 @@ public abstract class StorageWriteApiBase {
      * @return Returns BigQueryWriteClient object
      * @throws IOException
      */
-    public BigQueryWriteClient getWriteClient() throws IOException {
+    public BigQueryWriteClient getWriteClient() {
         if (this.writeClient == null) {
-            this.writeClient = BigQueryWriteClient.create(writeSettings);
+            try {
+                this.writeClient = BigQueryWriteClient.create(writeSettings);
+            } catch (IOException e) {
+                logger.error("Failed to create Big Query Storage Write API write client due to {}", e.getMessage());
+                throw new BigQueryStorageWriteApiConnectException("Failed to create Big Query Storage Write API write client", e);
+            }
         }
         return this.writeClient;
     }

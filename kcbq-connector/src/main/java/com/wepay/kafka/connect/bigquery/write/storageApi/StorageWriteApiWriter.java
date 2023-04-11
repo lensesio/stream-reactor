@@ -9,12 +9,15 @@ import com.wepay.kafka.connect.bigquery.convert.KafkaDataBuilder;
 import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import com.wepay.kafka.connect.bigquery.write.batch.TableWriterBuilder;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,11 +34,10 @@ public class StorageWriteApiWriter implements Runnable {
     private final String streamName;
 
     /**
-     *
-     * @param tableName The table to write the records to
+     * @param tableName    The table to write the records to
      * @param streamWriter The stream writer to use - Default, Batch etc
-     * @param records The records to write
-     * @param streamName The stream to use while writing data
+     * @param records      The records to write
+     * @param streamName   The stream to use while writing data
      */
     public StorageWriteApiWriter(TableName tableName, StorageWriteApiBase streamWriter, List<Object[]> records, String streamName) {
 
@@ -58,18 +60,23 @@ public class StorageWriteApiWriter implements Runnable {
         private final BigQuerySinkTaskConfig config;
         private final TableName tableName;
         private final StorageWriteApiBase streamWriter;
+        private final StorageApiBatchModeHandler batchModeHandler;
+
         public Builder(StorageWriteApiBase streamWriter,
-                                      TableName tableName,
-                                      RecordConverter<Map<String, Object>> storageApiRecordConverter,
-                                      BigQuerySinkTaskConfig config) {
+                       TableName tableName,
+                       RecordConverter<Map<String, Object>> storageApiRecordConverter,
+                       BigQuerySinkTaskConfig config,
+                       StorageApiBatchModeHandler batchModeHandler) {
             this.streamWriter = streamWriter;
             this.tableName = tableName;
             this.recordConverter = storageApiRecordConverter;
             this.config = config;
+            this.batchModeHandler = batchModeHandler;
         }
 
         /**
          * Captures actual record and corresponding JSONObject converted record
+         *
          * @param sinkRecord The actual records
          */
         @Override
@@ -79,6 +86,7 @@ public class StorageWriteApiWriter implements Runnable {
 
         /**
          * Converts SinkRecord to JSONObject to be sent to BQ Streams
+         *
          * @param record which is to be converted
          * @return converted record as JSONObject
          */
@@ -101,13 +109,27 @@ public class StorageWriteApiWriter implements Runnable {
             return new JSONObject(result);
         }
 
+        private String updateAndGetStream() {
+            Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+            records.forEach(record -> {
+                SinkRecord sr = (SinkRecord) record[0];
+                offsets.put(new TopicPartition(sr.topic(), sr.kafkaPartition()), new OffsetAndMetadata(sr.kafkaOffset() + 1));
+            });
+            String streamName = batchModeHandler.getCurrentStream(tableName.toString());
+            batchModeHandler.updateOffsetsForStream(tableName.toString(), streamName, offsets);
+            return streamName;
+        }
 
         /**
          * @return Builds Storage write API writer which would do actual data ingestion using streams
          */
         @Override
         public Runnable build() {
-            return new StorageWriteApiWriter(tableName, streamWriter, records, null);
+            String streamName = null;
+            if (streamWriter instanceof StorageWriteApiBatchApplicationStream) {
+                streamName = updateAndGetStream();
+            }
+            return new StorageWriteApiWriter(tableName, streamWriter, records, streamName);
         }
     }
 }

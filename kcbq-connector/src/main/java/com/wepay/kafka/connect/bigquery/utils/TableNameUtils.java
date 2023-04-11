@@ -21,6 +21,11 @@ package com.wepay.kafka.connect.bigquery.utils;
 
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.storage.v1.TableName;
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
+import org.apache.kafka.connect.errors.ConnectException;
+
+import java.util.Map;
 
 public class TableNameUtils {
 
@@ -41,5 +46,36 @@ public class TableNameUtils {
 
   public static TableId tableId(TableName name) {
     return TableId.of(name.getProject(), name.getDataset(), name.getTable());
+  }
+
+  public static String[] getDataSetAndTableName(BigQuerySinkTaskConfig config, String topic) {
+    String tableName;
+    Map<String, String> topic2TableMap = config.getTopic2TableMap().orElse(null);
+    String dataset = config.getString(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG);
+
+    if (topic2TableMap != null) {
+      tableName = topic2TableMap.getOrDefault(topic, topic);
+    } else {
+      String[] smtReplacement = topic.split(":");
+
+      if (smtReplacement.length == 2) {
+        dataset = smtReplacement[0];
+        tableName = smtReplacement[1];
+      } else if (smtReplacement.length == 1) {
+        tableName = smtReplacement[0];
+      } else {
+        throw new ConnectException(String.format(
+                "Incorrect regex replacement format in topic name '%s'. "
+                        + "SMT replacement should either produce the <dataset>:<tableName> format "
+                        + "or just the <tableName> format.",
+                topic
+        ));
+      }
+      if (config.getBoolean(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG)) {
+        tableName = FieldNameSanitizer.sanitizeName(tableName);
+      }
+    }
+
+    return new String[]{dataset, tableName};
   }
 }

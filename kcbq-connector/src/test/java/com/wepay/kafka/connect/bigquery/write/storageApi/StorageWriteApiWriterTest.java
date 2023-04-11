@@ -34,7 +34,8 @@ public class StorageWriteApiWriterTest {
         StorageWriteApiBase mockStreamWriter = Mockito.mock(StorageWriteApiBase.class);
         BigQuerySinkTaskConfig mockedConfig = Mockito.mock(BigQuerySinkTaskConfig.class);
         RecordConverter mockedRecordConverter = new BigQueryRecordConverter(false, false);
-        TableWriterBuilder builder = new StorageWriteApiWriter.Builder(mockStreamWriter, null, mockedRecordConverter, mockedConfig);
+        TableWriterBuilder builder = new StorageWriteApiWriter.Builder(
+                mockStreamWriter, null, mockedRecordConverter, mockedConfig, any());
         ArgumentCaptor<List<Object[]>> records = ArgumentCaptor.forClass(List.class);
         String expectedKafkaKey = "{\"key\":\"12345\"}";
         Set<String> expectedKeys = new HashSet<>();
