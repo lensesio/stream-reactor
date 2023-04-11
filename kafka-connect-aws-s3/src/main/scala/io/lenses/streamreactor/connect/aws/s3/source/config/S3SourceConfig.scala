@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Lenses.io
+ * Copyright 2017-2023 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
