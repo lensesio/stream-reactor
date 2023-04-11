@@ -13,11 +13,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Handles all operations related to Batch Storage Write API
+ */
 public class StorageApiBatchModeHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(StorageApiBatchModeHandler.class);
     private final StorageWriteApiApplicationStream streamApi;
-
     private List<String> tableNames;
 
     public StorageApiBatchModeHandler(StorageWriteApiApplicationStream streamApi, BigQuerySinkTaskConfig config) {
@@ -36,17 +38,18 @@ public class StorageApiBatchModeHandler {
                 .collect(Collectors.toList());
     }
 
-    public String getCurrentStream(String tableName) {
-        String streamName = this.streamApi.getCurrentStreamForTable(tableName);
-        logger.debug("Current stream for table " + tableName + " is " + streamName);
-        return streamName;
-    }
-
+    /**
+     * Used by the scheduler to create stream on all tables
+     */
     public void createNewStream() {
         logger.trace("Storage Write API create stream attempt by scheduler");
         tableNames.forEach(this::createNewStreamForTable);
     }
 
+    /**
+     * Creates a new stream for given table if required.
+     * @param tableName Name of tha table in project/dataset/tablename format
+     */
     private void createNewStreamForTable(String tableName) {
         if (streamApi.mayBeCreateStream(tableName)) {
             logger.debug("Created new stream for table " + tableName);
@@ -55,11 +58,27 @@ public class StorageApiBatchModeHandler {
         }
     }
 
-    public void updateOffsetsForStream(String tableName, String streamName, Map<TopicPartition, OffsetAndMetadata> offsetInfo) {
-        this.streamApi.updateOffsetsForStream(tableName, streamName, offsetInfo);
+    /**
+     * Saves the offsets assigned to a particular stream on a table. This is required to commit offsets sequentially
+     * even if the execution takes place in parallel at different times.
+     * @param tableName Name of tha table in project/dataset/tablename format
+     * @param offsetInfo The offsets info of the records which would be written to table {tableName} by
+     *                   stream {streamName}
+     * @return Returns the streamName on which offsets are updated
+     */
+    public String updateOffsetsOnStream(
+            String tableName,
+            Map<TopicPartition, OffsetAndMetadata> offsetInfo) {
+        logger.trace("Updating offset {} on current stream on table {}", offsetInfo, tableName);
+        return this.streamApi.updateOffsetsOnStream(tableName, offsetInfo);
     }
 
+    /**
+     * Gets offsets which are committed on BigQuery table.
+     * @return Returns Map of topic, partition, offset mapping
+     */
     public Map<TopicPartition, OffsetAndMetadata> getCommitableOffsets() {
+        logger.trace("Getting list of commitable offsets for batch mode...");
         return this.streamApi.getCommitableOffsets();
     }
 

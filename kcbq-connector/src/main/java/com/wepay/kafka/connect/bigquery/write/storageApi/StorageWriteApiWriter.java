@@ -115,9 +115,7 @@ public class StorageWriteApiWriter implements Runnable {
                 SinkRecord sr = (SinkRecord) record[0];
                 offsets.put(new TopicPartition(sr.topic(), sr.kafkaPartition()), new OffsetAndMetadata(sr.kafkaOffset() + 1));
             });
-            String streamName = batchModeHandler.getCurrentStream(tableName.toString());
-            batchModeHandler.updateOffsetsForStream(tableName.toString(), streamName, offsets);
-            return streamName;
+            return batchModeHandler.updateOffsetsOnStream(tableName.toString(), offsets);
         }
 
         /**

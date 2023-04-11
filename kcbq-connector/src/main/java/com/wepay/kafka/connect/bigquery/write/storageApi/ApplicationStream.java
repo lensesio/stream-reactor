@@ -13,30 +13,34 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Plain JAVA class with all utility methods on Application streams.
+ * Streams which are created by calling application are called as Application streams
+ * Uses stream writer methods from:
+ * https://cloud.google.com/java/docs/reference/google-cloud-bigquerystorage/latest/com.google.cloud.bigquery.storage.v1
+ */
 public class ApplicationStream {
-    /**
-     * State of the stream : New, Committed, finalised, in_progress
-     */
-    StreamState currentState = null;
+
     private static final Logger logger = LoggerFactory.getLogger(ApplicationStream.class);
+    StreamState currentState = null;
     private final String tableName;
     private WriteStream stream = null;
     private JsonStreamWriter jsonWriter = null;
-    private Map<TopicPartition, OffsetAndMetadata> offsetInformation;
+    private final Map<TopicPartition, OffsetAndMetadata> offsetInformation;
     private final BigQueryWriteClient client;
     /**
      * Number of times append is called
      */
-    private AtomicInteger appendCallsCount;
+    private final AtomicInteger appendCallsCount;
     /**
      * Number of append requests completed successfully. This can never be greater than appendCallsCount
      */
-    private AtomicInteger completedCallsCount;
+    private final AtomicInteger completedCallsCount;
 
     /**
      * This is called by builder to guarantee sequence.
      */
-    private AtomicInteger maxCallsCount;
+    private final AtomicInteger maxCallsCount;
 
     public ApplicationStream(String tableName, BigQueryWriteClient client) throws Exception {
         this.client = client;
@@ -53,14 +57,17 @@ public class ApplicationStream {
     }
 
     private void generateStream() throws Descriptors.DescriptorValidationException, IOException, InterruptedException {
-        this.stream = client.createWriteStream(tableName, WriteStream.newBuilder().setType(WriteStream.Type.PENDING).build());
+        this.stream = client.createWriteStream(
+                tableName, WriteStream.newBuilder().setType(WriteStream.Type.PENDING).build());
         this.jsonWriter = JsonStreamWriter.newBuilder(stream.getName(), client).build();
         currentState = StreamState.CREATED;
     }
 
     public void closeStream() {
-        this.jsonWriter.close();
-        logger.info("JSON Writer for stream {} closed", getStreamName());
+        if (!this.jsonWriter.isClosed()) {
+            this.jsonWriter.close();
+            logger.info("JSON Writer for stream {} closed", getStreamName());
+        }
     }
 
     public String getStreamName() {
@@ -75,7 +82,7 @@ public class ApplicationStream {
     }
 
     /**
-     * Increases the Max call count by 1. The tells the total expected calls which would be made to append method.
+     * Increases the Max call count by 1. This tells the total expected calls which would be made to append method.
      * Returns the updated value
      */
     public int increaseMaxCallsCount() {
@@ -101,12 +108,13 @@ public class ApplicationStream {
      *
      * @return
      */
-    public boolean canBeMovedToInactive() {
+    public boolean canBeMovedToNonActive() {
         return currentState != StreamState.CREATED;
     }
 
     /**
-     * Updates offset handled by this particular stream
+     * Updates offset handled by this particular stream. Each update offset call mean one batch of records that would
+     * be sent to append
      *
      * @param newOffsets - New offsets to be added on top of existing
      */
@@ -128,11 +136,14 @@ public class ApplicationStream {
                 && (this.appendCallsCount.intValue() == this.completedCallsCount.intValue());
     }
 
+    /**
+     * Finalises the stream
+     */
     public void finalise() {
         if (currentState == StreamState.APPEND) {
             FinalizeWriteStreamResponse finalizeResponse =
                     client.finalizeWriteStream(this.getStreamName());
-            logger.info("Rows written: " + finalizeResponse.getRowCount());
+            logger.debug("Rows written: " + finalizeResponse.getRowCount());
             currentState = StreamState.FINALISED;
         } else {
             throw new BigQueryStorageWriteApiConnectException(
@@ -140,6 +151,9 @@ public class ApplicationStream {
         }
     }
 
+    /**
+     * Commits the finalised stream
+     */
     public void commit() {
         if (currentState == StreamState.FINALISED) {
             BatchCommitWriteStreamsRequest commitRequest =
@@ -150,13 +164,17 @@ public class ApplicationStream {
             BatchCommitWriteStreamsResponse commitResponse = client.batchCommitWriteStreams(commitRequest);
             // If the response does not have a commit time, it means the commit operation failed.
             if (!commitResponse.hasCommitTime()) {
+                // TODO:: prepare a formatted error message for below list as part of exception handling
                 for (StorageError err : commitResponse.getStreamErrorsList()) {
                     logger.error(err.getErrorMessage());
                 }
                 //TODO:Exception Handling
                 throw new RuntimeException("Error committing the streams");
             }
-            logger.info("Appended and committed records successfully for stream {}", getStreamName());
+            logger.info(
+                    "Appended and committed records successfully for stream {} at {}",
+                    getStreamName(),
+                    commitResponse.getCommitTime());
             currentState = StreamState.COMMITTED;
         } else {
             throw new BigQueryStorageWriteApiConnectException(
@@ -164,10 +182,18 @@ public class ApplicationStream {
         }
     }
 
+    /**
+     * Only records, belonging to committed streams, are marked ready for commit
+     *
+     * @return true if this stream is committed else false;
+     */
     public boolean isReadyForOffsetCommit() {
         return currentState == StreamState.COMMITTED;
     }
 
+    /**
+     * Streams which are committed on bigquery table side as well as the connector side are marked inactive
+     */
     public void markInactive() {
         currentState = StreamState.INACTIVE;
         this.jsonWriter.close();
