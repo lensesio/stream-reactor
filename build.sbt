@@ -38,12 +38,11 @@ lazy val root = (project in file("."))
     publish := {},
     publishArtifact := false,
     name := "stream-reactor",
-    headerLicense := None,
   )
   .aggregate(
     subProjectsRefs: _*,
   )
-  .disablePlugins(AssemblyPlugin)
+  .disablePlugins(AssemblyPlugin, HeaderPlugin)
 
 lazy val common = (project in file("kafka-connect-common"))
   .settings(
@@ -410,11 +409,11 @@ lazy val `test-common` = (project in file("test-common"))
 
 addCommandAlias(
   "validateAll",
-  ";scalafmtCheck;test:scalafmtCheck;it:scalafmtCheck;fun:scalafmtCheck;e2e:scalafmtCheck",
+  ";headerCheck;test:headerCheck;it:headerCheck;fun:headerCheck;scalafmtCheck;test:scalafmtCheck;it:scalafmtCheck;fun:scalafmtCheck;",
 )
 addCommandAlias(
   "formatAll",
-  ";scalafmt;test:scalafmt;it:scalafmt;fun:scalafmt;scalafmtSbt",
+  ";headerCreate;test:headerCreate;it:headerCreate;fun:headerCreate;scalafmt;test:scalafmt;it:scalafmt;fun:scalafmt;scalafmtSbt;",
 )
 addCommandAlias("fullTest", ";test;it:test;fun:test")
 addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")
