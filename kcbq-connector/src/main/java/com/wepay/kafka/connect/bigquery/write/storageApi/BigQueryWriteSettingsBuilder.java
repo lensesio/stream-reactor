@@ -26,7 +26,6 @@ public class BigQueryWriteSettingsBuilder extends GcpClientBuilder<BigQueryWrite
                 .setQuotaProjectId(project)
                 .setHeaderProvider(userAgent);
 
-
         if (credentials != null) {
             builder.setCredentialsProvider(FixedCredentialsProvider.create(credentials));
         } else {

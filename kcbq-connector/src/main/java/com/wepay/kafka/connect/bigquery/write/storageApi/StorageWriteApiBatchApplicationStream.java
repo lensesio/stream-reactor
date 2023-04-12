@@ -1,13 +1,10 @@
 package com.wepay.kafka.connect.bigquery.write.storageApi;
 
 import com.google.api.core.ApiFuture;
-import com.google.api.core.ApiFutureCallback;
-import com.google.api.core.ApiFutures;
 import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import com.google.cloud.bigquery.storage.v1.TableName;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.wepay.kafka.connect.bigquery.ErrantRecordHandler;
 import com.wepay.kafka.connect.bigquery.SchemaManager;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
@@ -73,10 +70,12 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
      */
     @Override
     public void shutdown() {
+        logger.debug("Shutting down all streams on all tables as due to task shutdown!!!");
         this.streams.values()
                 .stream().flatMap(item -> item.values().stream())
                 .collect(Collectors.toList())
                 .forEach(ApplicationStream::closeStream);
+        logger.debug("Shutting completed for all streams on all tables!");
     }
 
     /**
@@ -94,9 +93,17 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
         try {
             ApiFuture<AppendRowsResponse> response = applicationStream.writer().append(jsonArray);
             applicationStream.increaseAppendCallCount();
-            ApiFutures.addCallback(response,
-                    new StorageApiBatchCallbackHandler(
-                            applicationStream, tableName.toString()), MoreExecutors.directExecutor());
+            AppendRowsResponse writeResult = response.get();
+
+            if (writeResult.hasAppendResult()) {
+                logger.trace("Append call completed successfully on stream {}", applicationStream.getStreamName());
+                applicationStream.increaseCompletedCallsCount();
+                commitStreamIfEligible(tableName.toString(), applicationStream.getStreamName());
+            } else if (writeResult.hasUpdatedSchema()) {
+                //TODO: Schema Update attempt once
+            } else if (writeResult.hasError()) {
+                //TODO: exception handling
+            }
         } catch (Exception e) {
             //TODO: Exception handling, Table creation, Schema updates, DLQ routing, Request size reduction
             throw new BigQueryConnectException(e);
@@ -150,14 +157,14 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
      * @return
      */
     @Override
-    public boolean mayBeCreateStream(String tableName) {
+    public boolean mayBeCreateStream(String tableName, List<Object[]> rows) {
         String streamName = this.currentStreams.get(tableName);
         boolean result = (streamName == null) ||
                 (this.streams.get(tableName).get(streamName) != null
                         && this.streams.get(tableName).get(streamName).canBeMovedToNonActive());
         if (result) {
             logger.trace("Attempting to create new stream on table {}", tableName);
-            return this.createStream(tableName, streamName);
+            return this.createStream(tableName, streamName, rows);
         }
         return false;
     }
@@ -165,15 +172,19 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
     /**
      * Assigns offsets to current stream on table
      *
-     * @param tableName  The name of table
-     * @param offsetInfo Offsets which are to be written by current stream to bigquery table
+     * @param tableName The name of table
+     * @param rows      Offsets which are to be written by current stream to bigquery table
      * @return Stream name using which offsets would be written
      */
     @Override
-    public String updateOffsetsOnStream(String tableName, Map<TopicPartition, OffsetAndMetadata> offsetInfo) {
+    public String updateOffsetsOnStream(
+            String tableName,
+            List<Object[]> rows
+    ) {
         String streamName;
+        Map<TopicPartition, OffsetAndMetadata> offsetInfo = getOffsetFromRecords(rows);
         synchronized (lock(tableName)) {
-            streamName = this.getCurrentStreamForTable(tableName);
+            streamName = this.getCurrentStreamForTable(tableName, rows);
             this.streams.get(tableName).get(streamName).updateOffsetInformation(offsetInfo);
         }
         logger.trace("Assigned offsets {} to stream {}", offsetInfo, streamName);
@@ -187,7 +198,7 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
      * @return
      */
     @VisibleForTesting
-    ApplicationStream createApplicationStream(String tableName) {
+    ApplicationStream createApplicationStream(String tableName, List<Object[]> rows) {
         try {
             return new ApplicationStream(tableName, getWriteClient());
         } catch (Exception e) {
@@ -205,7 +216,7 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
      * @param oldStream Last active stream on the table when this method was invoked.
      * @return Returns false if the oldstream is not equal to active stream , creates stream otherwise and returns true
      */
-    private boolean createStream(String tableName, String oldStream) {
+    private boolean createStream(String tableName, String oldStream, List<Object[]> rows) {
         synchronized (lock(tableName)) {
             // This check verifies if the current active stream is same as seen by the calling method. If different, that
             // would mean a new stream got created by some other thread and this attempt can be dropped.
@@ -213,7 +224,17 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
                 return false;
             }
             // Current state is same as calling state. Create new Stream
-            ApplicationStream stream = createApplicationStream(tableName);
+            ApplicationStream stream = createApplicationStream(tableName, rows);
+            if (stream == null) {
+                if (rows == null) {
+                    return false;
+                } else {
+                    // We should never reach here
+                    throw new BigQueryStorageWriteApiConnectException(
+                            "Application Stream creation could not be completed successfully.");
+                }
+
+            }
             String streamName = stream.getStreamName();
 
             this.streams.computeIfAbsent(tableName, t -> new LinkedHashMap<>());
@@ -243,9 +264,9 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
      * @param tableName The table name
      * @return Current active stream on table
      */
-    private String getCurrentStreamForTable(String tableName) {
+    private String getCurrentStreamForTable(String tableName, List<Object[]> rows) {
         if (!currentStreams.containsKey(tableName)) {
-            this.createStream(tableName, null);
+            this.createStream(tableName, null, rows);
         }
 
         return Objects.requireNonNull(this.currentStreams.get(tableName));
@@ -275,33 +296,5 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
 
     private Object lock(String tableName) {
         return tableLocks.computeIfAbsent(tableName, t -> new Object());
-    }
-
-    /**
-     * CallbackHandler for AppendRowsResponse on Pending streams
-     */
-    public class StorageApiBatchCallbackHandler implements ApiFutureCallback<AppendRowsResponse> {
-
-        private final ApplicationStream stream;
-        private final String tableName;
-
-        StorageApiBatchCallbackHandler(ApplicationStream stream, String tableName) {
-            this.stream = stream;
-            this.tableName = tableName;
-        }
-
-        @Override
-        public void onFailure(Throwable t) {
-            //TODO: Storage Exception handling
-            logger.info(t.getMessage());
-            throw new BigQueryStorageWriteApiConnectException(t.getMessage());
-        }
-
-        @Override
-        public void onSuccess(AppendRowsResponse result) {
-            logger.trace("Append call completed successfully on stream {}", stream.getStreamName());
-            stream.increaseCompletedCallsCount();
-            commitStreamIfEligible(tableName, stream.getStreamName());
-        }
     }
 }

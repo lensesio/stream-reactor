@@ -5,9 +5,12 @@ import com.wepay.kafka.connect.bigquery.ErrantRecordHandler;
 import com.wepay.kafka.connect.bigquery.SchemaManager;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,8 +31,17 @@ public abstract class StorageWriteApiApplicationStream extends StorageWriteApiBa
 
     public abstract Map<TopicPartition, OffsetAndMetadata> getCommitableOffsets();
 
-    public abstract String updateOffsetsOnStream(String tableName, Map<TopicPartition, OffsetAndMetadata> offsetInfo);
+    public abstract String updateOffsetsOnStream(String tableName, List<Object[]> rows);
 
-    public abstract boolean mayBeCreateStream(String tableName);
+    public abstract boolean mayBeCreateStream(String tableName, List<Object[]> rows);
 
+    protected Map<TopicPartition, OffsetAndMetadata> getOffsetFromRecords(List<Object[]> records) {
+        Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+        records.forEach(record -> {
+            SinkRecord sr = (SinkRecord) record[0];
+            offsets.put(new TopicPartition(sr.topic(), sr.kafkaPartition()), new OffsetAndMetadata(sr.kafkaOffset() + 1));
+        });
+
+        return offsets;
+    }
 }

@@ -8,7 +8,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.mockito.Mockito.mock;
@@ -16,6 +18,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.any;
+
 public class StorageApiBatchModeHandlerTest {
 
     @Test
@@ -29,7 +32,7 @@ public class StorageApiBatchModeHandlerTest {
         when(mockedConfig.getList(BigQuerySinkTaskConfig.TOPICS_CONFIG)).thenReturn(
                 Arrays.asList("topic1", "topic2")
         );
-        when(mockedStreamApi.mayBeCreateStream(any())).thenReturn(true);
+        when(mockedStreamApi.mayBeCreateStream(any(), any())).thenReturn(true);
 
         StorageApiBatchModeHandler batchModeHandler = new StorageApiBatchModeHandler(
                 mockedStreamApi,
@@ -39,16 +42,16 @@ public class StorageApiBatchModeHandlerTest {
         batchModeHandler.createNewStream();
 
         verify(mockedStreamApi, times(1))
-                .mayBeCreateStream("projects/p/datasets/d1/tables/topic1");
+                .mayBeCreateStream("projects/p/datasets/d1/tables/topic1", null);
         verify(mockedStreamApi, times(1))
-                .mayBeCreateStream("projects/p/datasets/d1/tables/topic2");
+                .mayBeCreateStream("projects/p/datasets/d1/tables/topic2", null);
     }
 
     @Test
     public void testUpdateOffsetsOnStream() {
         StorageWriteApiApplicationStream mockedStreamApi = mock(StorageWriteApiApplicationStream.class);
         BigQuerySinkTaskConfig mockedConfig = mock(BigQuerySinkTaskConfig.class);
-        Map<TopicPartition, OffsetAndMetadata> offsetInfo = new HashMap<>();
+        List<Object[]> rows = new ArrayList<>();
 
         when(mockedConfig.getString(BigQuerySinkTaskConfig.PROJECT_CONFIG)).thenReturn("p");
         when(mockedConfig.getString(BigQuerySinkTaskConfig.DEFAULT_DATASET_CONFIG)).thenReturn("d1");
@@ -63,11 +66,11 @@ public class StorageApiBatchModeHandlerTest {
                 mockedConfig
         );
         String actualStreamName = batchModeHandler.updateOffsetsOnStream(
-                TableName.of("p", "d1", "topic1").toString(), offsetInfo);
+                TableName.of("p", "d1", "topic1").toString(), rows);
 
         Assert.assertEquals("s1_app_stream", actualStreamName);
         verify(mockedStreamApi, times(1))
-                .updateOffsetsOnStream("projects/p/datasets/d1/tables/topic1", offsetInfo);
+                .updateOffsetsOnStream("projects/p/datasets/d1/tables/topic1", rows);
     }
 
     @Test

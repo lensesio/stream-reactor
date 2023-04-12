@@ -14,22 +14,15 @@ import com.wepay.kafka.connect.bigquery.SchemaManager;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiConnectException;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiErrorResponses;
 import com.wepay.kafka.connect.bigquery.utils.TableNameUtils;
-import org.apache.kafka.connect.sink.SinkRecord;
 import org.json.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.TreeSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Map;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
 
 /**
  * An extension of {@link StorageWriteApiBase} which uses default streams to write data following at least once semantic
@@ -57,11 +50,12 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
     /**
      * Either gets called when shutting down the task or when we receive exception that the stream
      * is actually closed on Google side. This will close and remove the stream from our cache.
+     *
      * @param tableName The table name for which stream has to be removed.
      */
     private void closeAndDelete(String tableName) {
         logger.debug("Closing stream on table {}", tableName);
-        if(tableToStream.containsKey(tableName)) {
+        if (tableToStream.containsKey(tableName)) {
             synchronized (tableToStream) {
                 tableToStream.get(tableName).close();
                 tableToStream.remove(tableName);
@@ -71,17 +65,8 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
     }
 
     /**
-     * @param rows Rows of <SinkRecord, JSONObject > format
-     * @return Returns list of all SinkRecords
-     */
-    private List<SinkRecord> getSinkRecords(List<Object[]> rows) {
-        return rows.stream()
-                .map(row -> (SinkRecord) row[0])
-                .collect(Collectors.toList());
-    }
-
-    /**
      * Open a default stream on table if not already present
+     *
      * @param table The table on which stream has to be opened
      * @param rows  The input rows (would be sent while table creation to identify schema)
      * @return JSONStreamWriter which would be used to write data to bigquery table
@@ -277,40 +262,9 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
                 mostRecentException);
     }
 
-
-    /**
-     * Sends errant records to configured DLQ and returns remaining
-     * @param input           List of <SinkRecord, JSONObject> input data
-     * @param indexToErrorMap Map of record index to error received from api call
-     * @param exception       locally built exception to be sent to DLQ topic
-     * @return Returns list of good <Sink, JSONObject> filtered from input which needs to be retried. Append row does
-     * not write partially even if there is a single failure, good data has to be retried
-     */
-    private List<Object[]> sendBadRecordsToDlqAndFilterGood(
-            List<Object[]> input,
-            Map<Integer, String> indexToErrorMap,
-            Exception exception) {
-        List<Object[]> filteredRecords = new ArrayList<>();
-        Set<SinkRecord> recordsToDLQ = new TreeSet<>(Comparator.comparing(SinkRecord::kafkaPartition)
-                .thenComparing(SinkRecord::kafkaOffset));
-
-        for (int i = 0; i < input.size(); i++) {
-            if (indexToErrorMap.containsKey(i)) {
-                recordsToDLQ.add((SinkRecord) input.get(i)[0]);
-            } else {
-                filteredRecords.add(input.get(i));
-            }
-        }
-
-        if (getErrantRecordHandler().getErrantRecordReporter() != null) {
-            getErrantRecordHandler().sendRecordsToDLQ(recordsToDLQ, exception);
-        }
-
-        return filteredRecords;
-    }
-
     /**
      * Converts Row Error to Map
+     *
      * @param rowErrors List of row errors
      * @return Returns Map with key as Row index and value as the Row Error Message
      */

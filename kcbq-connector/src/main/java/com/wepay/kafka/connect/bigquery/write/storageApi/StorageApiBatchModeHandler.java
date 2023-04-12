@@ -48,10 +48,11 @@ public class StorageApiBatchModeHandler {
 
     /**
      * Creates a new stream for given table if required.
+     *
      * @param tableName Name of tha table in project/dataset/tablename format
      */
     private void createNewStreamForTable(String tableName) {
-        if (streamApi.mayBeCreateStream(tableName)) {
+        if (streamApi.mayBeCreateStream(tableName, null)) {
             logger.debug("Created new stream for table " + tableName);
         } else {
             logger.debug("Not creating new stream for table " + tableName);
@@ -61,20 +62,22 @@ public class StorageApiBatchModeHandler {
     /**
      * Saves the offsets assigned to a particular stream on a table. This is required to commit offsets sequentially
      * even if the execution takes place in parallel at different times.
+     *
      * @param tableName Name of tha table in project/dataset/tablename format
-     * @param offsetInfo The offsets info of the records which would be written to table {tableName} by
-     *                   stream {streamName}
+     * @param rows      Records which would be written to table {tableName} sent to define schema if table creation is
+     *                  attempted
      * @return Returns the streamName on which offsets are updated
      */
     public String updateOffsetsOnStream(
             String tableName,
-            Map<TopicPartition, OffsetAndMetadata> offsetInfo) {
-        logger.trace("Updating offset {} on current stream on table {}", offsetInfo, tableName);
-        return this.streamApi.updateOffsetsOnStream(tableName, offsetInfo);
+            List<Object[]> rows) {
+        logger.trace("Updating offsets on current stream of table {}", tableName);
+        return this.streamApi.updateOffsetsOnStream(tableName, rows);
     }
 
     /**
      * Gets offsets which are committed on BigQuery table.
+     *
      * @return Returns Map of topic, partition, offset mapping
      */
     public Map<TopicPartition, OffsetAndMetadata> getCommitableOffsets() {

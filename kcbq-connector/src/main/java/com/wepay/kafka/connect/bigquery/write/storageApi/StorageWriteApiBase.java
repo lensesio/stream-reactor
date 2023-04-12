@@ -15,9 +15,14 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Random;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 /**
  * Base class which handles data ingestion to bigquery tables using different kind of streams
@@ -63,6 +68,7 @@ public abstract class StorageWriteApiBase {
 
     /**
      * Handles required initialization steps and goes to append records to table
+     *
      * @param tableName  The table to write data to
      * @param rows       The records to write
      * @param streamName The stream to use to write table to table.
@@ -86,6 +92,7 @@ public abstract class StorageWriteApiBase {
 
     /**
      * Creates Storage Api write client which carries all write settings information
+     *
      * @return Returns BigQueryWriteClient object
      * @throws IOException
      */
@@ -103,6 +110,7 @@ public abstract class StorageWriteApiBase {
 
     /**
      * Verifies the exception object and returns row-wise error map
+     *
      * @param exception if the exception is not of expected type
      * @return Map of row index to error message detail
      */
@@ -119,8 +127,9 @@ public abstract class StorageWriteApiBase {
 
     /**
      * Wait at least {@link #retryWait}, with up to an additional 1 second of random jitter.
+     *
      * @param additionalWait Any additional wait on top of user configured wait.
-     *                      This is used while making updates to bigquery table as changes don't reflect immediately.
+     *                       This is used while making updates to bigquery table as changes don't reflect immediately.
      * @throws InterruptedException if interrupted.
      */
     protected void waitRandomTime(int additionalWait) throws InterruptedException {
@@ -138,6 +147,7 @@ public abstract class StorageWriteApiBase {
 
     /**
      * Attempts to create table
+     *
      * @param tableId TableId of the table to be created
      * @param records List of records to get schema from
      */
@@ -152,6 +162,7 @@ public abstract class StorageWriteApiBase {
 
     /**
      * Attempts to update table schema
+     *
      * @param tableId TableId of the table where schema is to be updated
      * @param records List of records to get input schema from
      */
@@ -162,5 +173,47 @@ public abstract class StorageWriteApiBase {
             throw new BigQueryStorageWriteApiConnectException(
                     "Failed to update table schema for: " + tableId, exception);
         }
+    }
+
+    /**
+     * @param rows Rows of <SinkRecord, JSONObject > format
+     * @return Returns list of all SinkRecords
+     */
+    protected List<SinkRecord> getSinkRecords(List<Object[]> rows) {
+        return rows.stream()
+                .map(row -> (SinkRecord) row[0])
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Sends errant records to configured DLQ and returns remaining
+     *
+     * @param input           List of <SinkRecord, JSONObject> input data
+     * @param indexToErrorMap Map of record index to error received from api call
+     * @param exception       locally built exception to be sent to DLQ topic
+     * @return Returns list of good <Sink, JSONObject> filtered from input which needs to be retried. Append row does
+     * not write partially even if there is a single failure, good data has to be retried
+     */
+    protected List<Object[]> sendBadRecordsToDlqAndFilterGood(
+            List<Object[]> input,
+            Map<Integer, String> indexToErrorMap,
+            Exception exception) {
+        List<Object[]> filteredRecords = new ArrayList<>();
+        Set<SinkRecord> recordsToDLQ = new TreeSet<>(Comparator.comparing(SinkRecord::kafkaPartition)
+                .thenComparing(SinkRecord::kafkaOffset));
+
+        for (int i = 0; i < input.size(); i++) {
+            if (indexToErrorMap.containsKey(i)) {
+                recordsToDLQ.add((SinkRecord) input.get(i)[0]);
+            } else {
+                filteredRecords.add(input.get(i));
+            }
+        }
+
+        if (getErrantRecordHandler().getErrantRecordReporter() != null) {
+            getErrantRecordHandler().sendRecordsToDLQ(recordsToDLQ, exception);
+        }
+
+        return filteredRecords;
     }
 }
