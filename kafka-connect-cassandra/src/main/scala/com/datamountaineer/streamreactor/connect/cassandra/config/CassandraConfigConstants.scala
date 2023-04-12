@@ -38,9 +38,7 @@ import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigCon
 object CassandraConfigConstants {
   val CONNECTOR_PREFIX = "connect.cassandra"
 
-  val USERNAME_PASSWORD     = "username_password"
   val NONE                  = "none"
-  val PAYLOAD               = "payload"
   val DEFAULT_POLL_INTERVAL = 1000L
 
   val POLL_INTERVAL     = s"$CONNECTOR_PREFIX.import.poll.interval"
@@ -57,16 +55,11 @@ object CassandraConfigConstants {
   val PORT_DEFAULT = "9042"
   val PORT_DOC     = "Cassandra native port."
 
-  val INSERT_JSON_PREFIX  = "INSERT INTO "
-  val INSERT_JSON_POSTFIX = " JSON '?';"
+  val USERNAME     = s"$CONNECTOR_PREFIX.$USERNAME_SUFFIX"
+  val USERNAME_DOC = "Username to connect to Cassandra with."
 
-  val USERNAME         = s"$CONNECTOR_PREFIX.$USERNAME_SUFFIX"
-  val USERNAME_DOC     = "Username to connect to Cassandra with."
-  val USERNAME_DEFAULT = "cassandra.cassandra"
-
-  val PASSWD         = s"$CONNECTOR_PREFIX.$PASSWORD_SUFFIX"
-  val PASSWD_DOC     = "Password for the username to connect to Cassandra with."
-  val PASSWD_DEFAULT = "cassandra"
+  val PASSWD     = s"$CONNECTOR_PREFIX.$PASSWORD_SUFFIX"
+  val PASSWD_DOC = "Password for the username to connect to Cassandra with."
 
   val SSL_ENABLED         = s"$CONNECTOR_PREFIX.ssl.enabled"
   val SSL_ENABLED_DOC     = "Secure Cassandra driver connection via SSL."
@@ -121,7 +114,6 @@ object CassandraConfigConstants {
   val ASSIGNED_TABLES_DOC = "The tables a task has been assigned."
 
   val MISSING_KEY_SPACE_MESSAGE = s"$KEY_SPACE must be provided."
-  val SELECT_OFFSET_COLUMN      = "___kafka_connect_offset_col"
 
   val ERROR_POLICY = s"$CONNECTOR_PREFIX.$ERROR_POLICY_PROP_SUFFIX"
   val ERROR_POLICY_DOC =

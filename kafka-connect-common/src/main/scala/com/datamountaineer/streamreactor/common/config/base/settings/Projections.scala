@@ -110,29 +110,6 @@ object Projections extends StrictLogging {
   def getFormat(kcql: Set[Kcql]): Map[String, FormatType] =
     kcql.toList.map(r => (r.getSource, r.getFormatType)).toMap
 
-  def getUpsertKeys(kcqls: Set[Kcql], preserveFullKeys: Boolean = false): Map[String, Set[String]] =
-    kcqls
-      .filter(c => c.getWriteMode == WriteModeEnum.UPSERT)
-      .map { r =>
-        val keys: Set[String] = ListSet(
-          r.getPrimaryKeys.asScala
-            .map(key =>
-              if (preserveFullKeys) {
-                key.toString
-              } else {
-                key.getName
-              },
-            )
-            .reverse.toSeq: _*,
-        )
-        if (keys.isEmpty)
-          throw new ConfigException(
-            s"[${r.getTarget}] is set up with upsert, you need to set primary keys",
-          )
-        (r.getSource, keys)
-      }
-      .toMap
-
   def getWriteMode(kcql: Set[Kcql]): Map[String, WriteModeEnum] =
     kcql.toList.map(r => (r.getSource, r.getWriteMode)).toMap
 
@@ -205,11 +182,8 @@ object Projections extends StrictLogging {
   def getBucketing(kcql: Set[Kcql]): Map[String, Bucketing] =
     kcql.map(k => (k.getSource -> k.getBucketing)).toMap
 
-  def getKeyDelimiter(kcql: Set[Kcql]): Map[String, String] =
-    kcql.map(k => (k.getSource -> k.getKeyDelimeter)).toMap
-
   def getWithKeys(kcql: Set[Kcql]): Map[String, Set[String]] =
-    kcql.map(k => (k.getSource -> k.getWithKeys.asScala.toSet)).toMap
+    kcql.map(k => k.getSource -> k.getWithKeys.asScala.toSet).toMap
 
   def getSourceConverters(kcql: Set[Kcql], props: Map[String, String]): Map[String, Converter] =
     kcql

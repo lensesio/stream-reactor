@@ -59,21 +59,6 @@ object QueueHelpers extends StrictLogging {
   }
 
   /**
-    * Drain the queue with timeout
-    *
-    * @param queue     The queue to drain
-    * @param batchSize Batch size to take
-    * @param timeOut   Timeout to take the batch
-    * @return ArrayList of T
-    */
-  def drainQueueWithTimeOut[T](queue: LinkedBlockingQueue[T], batchSize: Int, timeOut: Long): util.ArrayList[T] = {
-    val l = new util.ArrayList[T]()
-    logger.debug(s"Found [{}]. Draining entries to batchSize [{}].", queue.size(), batchSize)
-    queue.drainWithTimeoutTo(l, batchSize, timeOut, TimeUnit.MILLISECONDS)
-    l
-  }
-
-  /**
     * Drain the queue
     *
     * @param queue     The queue to drain

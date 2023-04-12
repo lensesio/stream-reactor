@@ -27,7 +27,7 @@ import scala.util.Try
   * Generic converter for files to source records. Needs to track
   * file offsets for the FtpMonitor.
   */
-abstract class FileConverter(props: util.Map[String, String], offsetStorageReader: OffsetStorageReader) {
+abstract class FileConverter() {
   def convert(topic:      String, meta: FileMetaData, body: FileBody): Seq[SourceRecord]
   def getFileOffset(path: String): Option[FileMetaData]
 }

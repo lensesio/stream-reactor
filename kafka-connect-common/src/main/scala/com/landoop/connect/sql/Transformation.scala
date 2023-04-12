@@ -35,10 +35,10 @@ class Transformation[T <: ConnectRecord[T]] extends org.apache.kafka.connect.tra
     val topic = record.topic()
 
     sqlKeyMap.get(topic).map { sql =>
-      val (keySchema, keyValue) = Transform(sql, record.keySchema(), record.key(), true, topic, record.kafkaPartition())
+      val (keySchema, keyValue) = Transform(sql, record.keySchema(), record.key(), topic, record.kafkaPartition())
       sqlValueMap.get(topic).map { sql =>
         val (valueSchema, value) =
-          Transform(sql, record.valueSchema(), record.value(), false, topic, record.kafkaPartition())
+          Transform(sql, record.valueSchema(), record.value(), topic, record.kafkaPartition())
         record.newRecord(
           record.topic(),
           record.kafkaPartition(),
@@ -62,7 +62,7 @@ class Transformation[T <: ConnectRecord[T]] extends org.apache.kafka.connect.tra
     }.getOrElse {
       sqlValueMap.get(topic).map { sql =>
         val (valueSchema, value) =
-          Transform(sql, record.valueSchema(), record.value(), false, topic, record.kafkaPartition())
+          Transform(sql, record.valueSchema(), record.value(), topic, record.kafkaPartition())
         record.newRecord(
           topic,
           record.kafkaPartition(),

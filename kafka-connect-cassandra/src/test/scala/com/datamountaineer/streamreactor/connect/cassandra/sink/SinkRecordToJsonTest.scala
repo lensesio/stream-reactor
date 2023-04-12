@@ -56,7 +56,6 @@ class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil 
         @nowarn
         val actual = ToJsonWithProjections(
           kcql.getFields.asScala.map(FieldConverter.apply).toSeq,
-          kcql.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
           record.valueSchema(),
           record.value(),
           kcql.hasRetainStructure(),
@@ -90,7 +89,6 @@ class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil 
         val kcql = kcqlMap(record.topic())
         val actual = ToJsonWithProjections(
           kcql.getFields.asScala.map(FieldConverter.apply).toSeq,
-          kcql.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
           record.valueSchema(),
           record.value(),
           kcql.hasRetainStructure(),
@@ -125,7 +123,6 @@ class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil 
         val kcql = kcqlMap(record.topic())
         val actual = ToJsonWithProjections(
           kcql.getFields.asScala.map(FieldConverter.apply).toSeq,
-          kcql.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
           record.valueSchema(),
           record.value(),
           kcql.hasRetainStructure(),

@@ -26,66 +26,6 @@ import org.apache.kafka.common.config.ConfigException
 
 object Helpers extends StrictLogging {
 
-  /**
-    * Build a mapping of table to topic
-    * filtering on the assigned tables.
-    *
-    * @param input The raw input string to parse .i.e. table:topic,table2:topic2.
-    * @param filterTable The tables to filter for.
-    * @return a Map of table->topic.
-    */
-  def buildRouteMaps(input: String, filterTable: List[String]): Map[String, String] =
-    tableTopicParser(input).filter({ case (k, _) => filterTable.contains(k) })
-
-  //{table:f1,f2}
-  def pKParser(input: String): Map[String, List[String]] = {
-    val mappings = input.split("\\}")
-      .toList
-      .map(s => s.replace(",{", "").replace("{", "").replace("}", "").trim())
-
-    mappings.map {
-      m =>
-        val colon = m.indexOf(":")
-        if (colon >= 0) {
-          val topic  = m.substring(0, colon)
-          val fields = m.substring(colon + 1, m.length).split(",").toList
-          (topic, fields)
-        } else {
-          throw new ConfigException(s"Invalid format for PKs. Received $input. Format should be {topic:f1,2}," +
-            s"{topic2:f3,f3}....")
-        }
-    }
-      .toMap
-  }
-
-  /**
-    * Break a comma and colon separated string into a map of table to topic or topic to table
-    *
-    * If now values is found after a comma the value before the comma is used.
-    *
-    * @param input The input string to parse.
-    * @return a Map of table->topic or topic->table.
-    */
-  def splitter(input: String, delimiter: String): Map[String, String] =
-    input.split(",")
-      .toList
-      .map(c => c.split(delimiter))
-      .map(a => if (a.length == 1) (a(0), a(0)) else (a(0), a(1))).toMap
-
-  /**
-    * Break a comma and colon separated string into a map of table to topic or topic to table
-    *
-    * If now values is found after a comma the value before the comma is used.
-    *
-    * @param input The input string to parse.
-    * @return a Map of table->topic or topic->table.
-    */
-  def tableTopicParser(input: String): Map[String, String] =
-    input.split(",")
-      .toList
-      .map(c => c.split(":"))
-      .map(a => if (a.length == 1) (a(0), a(0)) else (a(0), a(1))).toMap
-
   def checkInputTopics(kcqlConstant: String, props: Map[String, String]): Boolean = {
     val topics = props("topics").split(",").map(t => t.trim).toSet
     val raw    = props(kcqlConstant)

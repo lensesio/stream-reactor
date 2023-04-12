@@ -31,13 +31,8 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 trait KcqlSettings extends BaseSettings {
   val kcqlConstant: String = s"$connectorPrefix.$KCQL_PROP_SUFFIX"
 
-  def getKCQL: Set[Kcql] = {
-    val raw = getString(kcqlConstant)
-    if (raw.isEmpty) {
-      throw new ConfigException(s"Missing [$kcqlConstant]")
-    }
-    raw.split(";").map(r => Kcql.parse(r)).toSet
-  }
+  def getKCQL: Set[Kcql] =
+    getKCQLRaw.map(r => Kcql.parse(r)).toSet
 
   def getKCQLRaw: Array[String] = {
     val raw = getString(kcqlConstant)
@@ -95,9 +90,6 @@ trait KcqlSettings extends BaseSettings {
       .map(r => (r.getSource, Option(r.getBatchSize).getOrElse(defaultBatchSize)))
       .toMap
 
-  def getBucketSize(kcql: Set[Kcql] = getKCQL): Map[String, Int] =
-    kcql.toList.map(r => (r.getSource, r.getBucketing.getBucketsNumber)).toMap
-
   def getWriteMode(kcql: Set[Kcql] = getKCQL): Map[String, WriteModeEnum] =
     kcql.toList.map(r => (r.getSource, r.getWriteMode)).toMap
 
@@ -141,20 +133,6 @@ trait KcqlSettings extends BaseSettings {
       }
       .toMap
 
-  def getUpsertKey(kcql: Set[Kcql] = getKCQL): Map[String, String] =
-    kcql
-      .filter(c => c.getWriteMode == WriteModeEnum.UPSERT)
-      .map { r =>
-        val keyList: List[Field] = r.getPrimaryKeys.asScala.toList
-        val keys:    Set[Field]  = ListSet(keyList.reverse: _*)
-        if (keys.isEmpty)
-          throw new ConfigException(
-            s"[${r.getTarget}] is set up with upsert, you need to set primary keys",
-          )
-        (r.getSource, keys.head.getName)
-      }
-      .toMap
-
   def getRowKeyBuilders(kcql: Set[Kcql] = getKCQL): List[StringKeyBuilder] =
     kcql.toList.map { k =>
       val keys = k.getPrimaryKeys.asScala.map(k => k.getName).toSeq
@@ -171,31 +149,4 @@ trait KcqlSettings extends BaseSettings {
   def getIncrementalMode(routes: Set[Kcql]): Map[String, String] =
     routes.toList.map(r => (r.getSource, r.getIncrementalMode)).toMap
 
-  def checkInputTopics(props: Map[String, String]): Boolean = {
-    val topics = props("topics").split(",").toSet
-    val raw    = props(kcqlConstant)
-    if (raw.isEmpty) {
-      throw new ConfigException(s"Missing [$kcqlConstant]")
-    }
-    val kcql    = raw.split(";").map(r => Kcql.parse(r)).toSet
-    val sources = kcql.map(k => k.getSource)
-
-    val res = topics.subsetOf(sources)
-
-    if (!res) {
-      throw new ConfigException(
-        s"Mandatory `topics` configuration contains topics not set in [$kcqlConstant]",
-      )
-    }
-
-    val res1 = sources.subsetOf(topics)
-
-    if (!res1) {
-      throw new ConfigException(
-        s"[$kcqlConstant] configuration contains topics not set in mandatory `topic` configuration",
-      )
-    }
-
-    true
-  }
 }

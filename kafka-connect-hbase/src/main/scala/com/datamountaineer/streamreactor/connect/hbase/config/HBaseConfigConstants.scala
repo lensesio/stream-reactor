@@ -29,7 +29,6 @@ object HBaseConfigConstants extends KerberosSettings {
   val COLUMN_FAMILY_DOC = "The hbase column family."
 
   val KCQL_QUERY = s"${CONNECTOR_PREFIX}.${KCQL_PROP_SUFFIX}"
-  val KCQL_DOC   = "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY = s"${CONNECTOR_PREFIX}.${ERROR_POLICY_PROP_SUFFIX}"
   val ERROR_POLICY_DOC: String =

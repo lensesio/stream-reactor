@@ -36,16 +36,7 @@ case class PulsarSourceSettings(
   sslCertFile:         Option[String],
   sslCertKeyFile:      Option[String],
   enableProgress:      Boolean = PulsarConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
-) {
-
-  def asMap(): java.util.Map[String, String] = {
-    val map = new java.util.HashMap[String, String]()
-    map.put(PulsarConfigConstants.HOSTS_CONFIG, connection)
-    map.put(PulsarConfigConstants.POLLING_TIMEOUT_CONFIG, pollingTimeout.toString)
-    map.put(PulsarConfigConstants.KCQL_CONFIG, kcql.mkString(";"))
-    map
-  }
-}
+) {}
 
 object PulsarSourceSettings {
   def apply(config: PulsarSourceConfig, maxTasks: Int): PulsarSourceSettings = {

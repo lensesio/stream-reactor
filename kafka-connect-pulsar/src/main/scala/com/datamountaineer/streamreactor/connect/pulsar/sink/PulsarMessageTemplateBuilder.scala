@@ -53,7 +53,6 @@ case class PulsarMessageTemplateBuilder(settings: PulsarSinkSettings) extends St
 
       val jsonKey = ToJsonWithProjections(
         keyFields.toSeq,
-        List.empty[Field].map(FieldConverter.apply),
         schema,
         value,
         k.hasRetainStructure,
@@ -79,7 +78,6 @@ case class PulsarMessageTemplateBuilder(settings: PulsarSinkSettings) extends St
 
           val json = ToJsonWithProjections(
             fields.toSeq,
-            ignoredFields.toSeq,
             record.valueSchema(),
             record.value(),
             k.hasRetainStructure,

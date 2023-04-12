@@ -75,9 +75,6 @@ trait KerberosSettings {
   def KerberosJaasDisplay = "JAAS file path"
 
   def HiveMetastorePrincipalKey = s"$CONNECTOR_PREFIX.security.metastore.principal"
-  def HiveMetastorePrincipalDoc = "Hive metastore Kerberos Principal"
-  def HiveMetastorePrincipalDefault: String = null
-  def HiveMetastorePrincipalDisplay = "Hive metastore Kerberos Principal"
 
   def JaasEntryNameKey     = s"$CONNECTOR_PREFIX.security.kerberos.jaas.entry.name"
   def JaasEntryNameDefault = s"com.sun.security.jgss.initiate"

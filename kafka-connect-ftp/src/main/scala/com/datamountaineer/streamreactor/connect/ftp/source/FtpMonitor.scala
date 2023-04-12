@@ -175,9 +175,8 @@ class FtpMonitor(settings: FtpMonitorSettings, fileConverter: FileConverter) ext
             IOUtils.copyLarge(inputStream, outputStream, 0, sliceSize.toLong)
         } match {
           case Failure(exception) => throw exception
-          case Success(_value)    => _value
+          case Success(_)         => Option.when(outputStream.size() > 0)(outputStream.toByteArray)
         }
-        if (outputStream.size() > 0) Some(outputStream.toByteArray) else None
     }
 
     val attributes = profile("createAttributes",

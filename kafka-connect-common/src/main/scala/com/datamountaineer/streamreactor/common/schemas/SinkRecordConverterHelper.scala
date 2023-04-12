@@ -15,11 +15,10 @@
  */
 package com.datamountaineer.streamreactor.common.schemas
 
-import StructHelper.StructExtension
 import com.datamountaineer.streamreactor.common.config.base.settings.Projections
+import com.datamountaineer.streamreactor.common.schemas.StructHelper.StructExtension
 import com.datamountaineer.streamreactor.connect.converters.source.JsonSimpleConverter
 import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.Schema
@@ -38,12 +37,6 @@ object SinkRecordConverterHelper extends StrictLogging {
   lazy val simpleJsonConverter = new SimpleJsonConverter()
 
   implicit final class SinkRecordExtension(val record: SinkRecord) extends AnyVal {
-
-    def valueToJson(): JsonNode =
-      simpleJsonConverter.fromConnectData(record.valueSchema(), record.value())
-
-    def keyToJson(): JsonNode =
-      simpleJsonConverter.fromConnectData(record.valueSchema(), record.value())
 
     /**
       * make new sink record, taking fields
@@ -160,7 +153,7 @@ object SinkRecordConverterHelper extends StrictLogging {
 
           // json with string schema
           case Schema.Type.STRING =>
-            val struct = toStructFromStringAndJson(payload, payloadSchema, "")
+            val struct = toStructFromStringAndJson(payload, payloadSchema)
             struct.reduceSchema(schema = struct.schema(), fields = fields, ignoreFields)
 
           case other =>
@@ -186,7 +179,7 @@ object SinkRecordConverterHelper extends StrictLogging {
       }
 
     //handle json with string schema
-    private def toStructFromStringAndJson(payload: Object, payloadSchema: Schema, name: String): Struct = {
+    private def toStructFromStringAndJson(payload: AnyRef, payloadSchema: Schema): Struct = {
 
       val expectedInput = payloadSchema != null && payloadSchema
         .`type`() == Schema.STRING_SCHEMA.`type`()

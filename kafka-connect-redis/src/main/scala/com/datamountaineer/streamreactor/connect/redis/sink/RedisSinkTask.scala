@@ -217,15 +217,6 @@ class RedisSinkTask extends SinkTask with StrictLogging {
       },
   )
 
-  def filterSearch(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(
-    kcqlSettings =
-      settings.kcqlSettings
-        .filter { k =>
-          Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SEARCH") &&
-          k.kcqlConfig.getPrimaryKeys.size() >= 1
-        },
-  )
-
   /**
     * Pass the SinkRecords to the writer for Writing
     */

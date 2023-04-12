@@ -32,8 +32,6 @@ class NanoClock(val clock: Clock) {
     this(Clock.systemUTC)
   }
 
-  def getZone = clock.getZone
-
   def instant = initialInstant.plusNanos(getSystemNanos - initialNanos)
 
   def withZone(zone: ZoneId) = new NanoClock(clock.withZone(zone))

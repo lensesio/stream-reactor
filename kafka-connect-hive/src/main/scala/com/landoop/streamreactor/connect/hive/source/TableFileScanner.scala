@@ -38,9 +38,9 @@ object TableFileScanner {
   ): Seq[(Path, Option[Partition])] =
     // the partitions from the metastore which each contain a pointer to the partition location
     hive.partitionPlan(db, tableName) match {
-      case Some(plan @ _) =>
+      case Some(_) =>
         hive.partitions(db, tableName).flatMap {
-          case partition @ Partition(entries @ _, Some(location)) =>
+          case partition @ Partition(_, Some(location)) =>
             val files = fs.listFiles(location, false)
             files.map(_.getPath).toVector.map(_ -> Some(partition))
           case other => throw new IllegalStateException(s"No match for other $other in scan")

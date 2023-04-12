@@ -30,7 +30,6 @@ trait ConnectionSettings extends BaseSettings {
   val hostConst           = s"$connectorPrefix.$CONNECTION_HOST_SUFFIX"
   val hostsConst          = s"$connectorPrefix.$CONNECTION_HOSTS_SUFFIX"
   val portConst           = s"$connectorPrefix.$CONNECTION_PORT_SUFFIX"
-  val portsConst          = s"$connectorPrefix.$CONNECTION_PORTS_SUFFIX"
 
   def getPort              = getInt(portConst)
   def getUri               = getString(uriConst)

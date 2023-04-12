@@ -21,7 +21,7 @@ import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticSettings
 class ElasticWriterCredentialsTest extends TestBase {
 
   "A writer should be using HTTP is set with HTTP Basic Auth Credentials" in {
-    val config   = new ElasticConfig(getElasticSinkConfigPropsHTTPClient(autoCreate = false, auth = true))
+    val config   = new ElasticConfig(getElasticSinkConfigPropsHTTPClient(auth = true))
     val settings = ElasticSettings(config)
     settings.httpBasicAuthUsername shouldBe BASIC_AUTH_USERNAME
     settings.httpBasicAuthPassword shouldBe BASIC_AUTH_PASSWORD

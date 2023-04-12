@@ -119,7 +119,6 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                 val (json, pks) = if (kcqlValue.primaryKeysPath.isEmpty) {
                   (Transform(
                      kcqlValue.fields,
-                     kcqlValue.ignoredFields,
                      r.valueSchema(),
                      r.value(),
                      kcql.hasRetainStructure,
@@ -129,7 +128,6 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                 } else {
                   TransformAndExtractPK(
                     kcqlValue.fields,
-                    kcqlValue.ignoredFields,
                     kcqlValue.primaryKeysPath,
                     r.valueSchema(),
                     r.value(),

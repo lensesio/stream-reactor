@@ -51,7 +51,7 @@ class DocumentDbSinkConnectorTest extends AnyWordSpec with Matchers with Mockito
       when(documentClient.readCollection(mockEq("dbs/database1/colls/collection1"), any(classOf[RequestOptions])))
         .thenReturn(collResource)
 
-      val connector = new DocumentDbSinkConnector(s => documentClient)
+      val connector = new DocumentDbSinkConnector(_ => documentClient)
       connector.start(map.asJava)
       connector.taskConfigs(3).asScala.length shouldBe 1
     }
@@ -79,7 +79,7 @@ class DocumentDbSinkConnectorTest extends AnyWordSpec with Matchers with Mockito
         when(documentClient.readCollection(mockEq(c), any(classOf[RequestOptions])))
           .thenReturn(resource)
       }
-      val connector = new DocumentDbSinkConnector(s => documentClient)
+      val connector = new DocumentDbSinkConnector(_ => documentClient)
 
       connector.start(map.asJava)
       connector.taskConfigs(1).asScala.length shouldBe 1
@@ -109,7 +109,7 @@ class DocumentDbSinkConnectorTest extends AnyWordSpec with Matchers with Mockito
       when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
-      val connector = new DocumentDbSinkConnector(s => documentClient)
+      val connector = new DocumentDbSinkConnector(_ => documentClient)
 
       connector.start(map.asJava)
       val tasksConfigs = connector.taskConfigs(2).asScala
@@ -144,7 +144,7 @@ class DocumentDbSinkConnectorTest extends AnyWordSpec with Matchers with Mockito
       when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
-      val connector = new DocumentDbSinkConnector(s => documentClient)
+      val connector = new DocumentDbSinkConnector(_ => documentClient)
 
       connector.start(map.asJava)
       val tasksConfigs = connector.taskConfigs(3).asScala
@@ -182,7 +182,7 @@ class DocumentDbSinkConnectorTest extends AnyWordSpec with Matchers with Mockito
       when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
-      val connector = new DocumentDbSinkConnector(s => documentClient)
+      val connector = new DocumentDbSinkConnector(_ => documentClient)
 
       connector.start(map.asJava)
       val tasksConfigs = connector.taskConfigs(2).asScala

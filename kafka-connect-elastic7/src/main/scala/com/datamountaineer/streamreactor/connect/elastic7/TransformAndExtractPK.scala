@@ -36,7 +36,6 @@ private object TransformAndExtractPK extends StrictLogging {
 
   def apply(
     fields:           Seq[Field],
-    ignoredFields:    Seq[Field],
     primaryKeysPaths: Seq[Vector[String]],
     schema:           Schema,
     value:            Any,

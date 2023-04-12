@@ -74,7 +74,6 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings, convertersMap: 
                     @nowarn
                     val transformed = ToJsonWithProjections(
                       k.getFields.asScala.map(FieldConverter.apply).toSeq,
-                      k.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
                       r.valueSchema(),
                       r.value(),
                       k.hasRetainStructure,

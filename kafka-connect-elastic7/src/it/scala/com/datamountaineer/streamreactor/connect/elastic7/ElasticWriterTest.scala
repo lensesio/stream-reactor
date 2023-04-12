@@ -161,7 +161,7 @@ class ElasticWriterTest extends ITBase with MockitoSugar with BeforeAndAfterEach
   "A ElasticWriter should insert into Elastic Search a number of records with the HTTP Client" in new TestContext {
 
     val (node: ElasticsearchContainer, client: ElasticClient, writer: ElasticJsonWriter) = writeTestRecords(
-      getElasticSinkConfigPropsHTTPClient(autoCreate = true),
+      getElasticSinkConfigPropsHTTPClient(),
     )
 
     Thread.sleep(2000)

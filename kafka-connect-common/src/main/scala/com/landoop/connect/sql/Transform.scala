@@ -30,7 +30,7 @@ import scala.util.Success
 import scala.util.Try
 
 private object Transform extends StrictLogging {
-  def apply(sql: Sql, schema: Schema, value: Any, isKey: Boolean, topic: String, partition: Int): (Schema, Any) = {
+  def apply(sql: Sql, schema: Schema, value: Any, topic: String, partition: Int): (Schema, Any) = {
     def raiseException(msg: String, e: Option[Throwable]): (Schema, Any) = {
       val errMsg =
         s"""
