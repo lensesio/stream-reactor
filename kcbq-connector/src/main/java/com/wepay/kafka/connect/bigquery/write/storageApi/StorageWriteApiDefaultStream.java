@@ -30,6 +30,29 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
         super(retry, retryWait, writeSettings, autoCreateTables);
     }
 
+    @Override
+    public void preShutdown() {
+        logger.info("Closing all writer for default stream on all tables");
+        tableToStream.keySet().forEach(this::closeAndDelete);
+        logger.info("Closed all writer for default stream on all tables");
+    }
+
+    /**
+     * Either gets called when shutting down the task or when we receive exception that the stream
+     * is actually closed on Google side. This will close and remove the stream from our cache.
+     * @param tableName The table name for which stream has to be removed.
+     */
+    private void closeAndDelete(String tableName) {
+        logger.debug("Closing stream on table {}", tableName);
+        if(tableToStream.containsKey(tableName)) {
+            synchronized (tableToStream) {
+                tableToStream.get(tableName).close();
+                tableToStream.remove(tableName);
+            }
+            logger.debug("Closed stream on table {}", tableName);
+        }
+    }
+
     /**
      * Open a default stream on table if not already present
      * @param tableName The tablename on which stream has to be opened

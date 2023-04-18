@@ -58,6 +58,16 @@ public abstract class StorageWriteApiBase {
         appendRows(tableName, rows, streamName);
     }
 
+    abstract public void preShutdown();
+
+    /**
+     * Gets called on task.stop() and should have resource cleanup logic.
+     */
+    public void shutdown() {
+        preShutdown();
+        this.writeClient.close();
+    }
+
     /**
      * @param tableName  The table to write data to
      * @param rows       The records to write
