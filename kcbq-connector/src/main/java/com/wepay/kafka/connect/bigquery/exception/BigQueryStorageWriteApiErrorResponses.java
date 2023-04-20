@@ -44,12 +44,11 @@ public class BigQueryStorageWriteApiErrorResponses {
 
     /**
      * Indicates user input is incorrect
-     * @param exception Exception received on append call
+     * @param errorMessage Exception message received on append call
      * @return Returns if the exception is due to bad input
      */
-    public static boolean isMalformedRequest(Exception exception) {
-        return exception instanceof Exceptions.AppendSerializtionError
-                && isMalformedErrorCode(((Exceptions.AppendSerializtionError) exception)
-                .getStatus().getCode().value());
+    public static boolean isMalformedRequest(String errorMessage) {
+        return errorMessage.contains(Code.INVALID_ARGUMENT.name());
+
     }
 }
