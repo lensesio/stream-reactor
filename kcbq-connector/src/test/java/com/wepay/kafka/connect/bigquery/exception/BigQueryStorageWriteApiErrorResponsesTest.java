@@ -6,6 +6,8 @@ import static org.junit.Assert.assertTrue;
 import com.google.cloud.bigquery.storage.v1.Exceptions;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -96,6 +98,31 @@ public class BigQueryStorageWriteApiErrorResponsesTest {
         boolean result = BigQueryStorageWriteApiErrorResponses.isMalformedRequest(e.getMessage());
 
         assertFalse(result);
+    }
+
+    @Test
+    public void testHasInvalidSchema() {
+        Collection<String> errors = new ArrayList<>();
+        errors.add("JSONObject has malformed field with length 5, specified length 3");
+        errors.add("JSONObject has fields unknown to BigQuery root.f1");
+        boolean result = BigQueryStorageWriteApiErrorResponses.hasInvalidSchema(errors);
+        assertTrue(result);
+    }
+
+    @Test
+    public void testHasNoInvalidSchema() {
+        Collection<String> errors = new ArrayList<>();
+        errors.add("JSONObject has malformed field with length 5, specified length 3");
+        errors.add("JSONObject has fields specified twice");
+        boolean result = BigQueryStorageWriteApiErrorResponses.hasInvalidSchema(errors);
+        assertFalse(result);
+    }
+
+    @Test
+    public void testStreamClosed() {
+        String message = "ExecutionException$StreamWriterClosedException due to FAILED PRE_CONDITION";
+        boolean result = BigQueryStorageWriteApiErrorResponses.isStreamClosed(message);
+        assertTrue(result);
     }
 }
 

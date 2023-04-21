@@ -4,6 +4,7 @@ import com.google.cloud.bigquery.storage.v1.BigQueryWriteClient;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import com.google.cloud.bigquery.storage.v1.TableName;
 import com.google.cloud.bigquery.storage.v1.Exceptions;
+import com.wepay.kafka.connect.bigquery.SchemaManager;
 import com.google.cloud.bigquery.storage.v1.RowError;
 import com.wepay.kafka.connect.bigquery.ErrantRecordHandler;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiConnectException;
@@ -17,6 +18,7 @@ import java.util.Random;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.HashMap;
 
 /**
@@ -26,29 +28,35 @@ public abstract class StorageWriteApiBase {
 
     private static final Logger logger = LoggerFactory.getLogger(StorageWriteApiBase.class);
     private final ErrantRecordHandler errantRecordHandler;
+    protected SchemaManager schemaManager;
     private BigQueryWriteClient writeClient;
     protected final int retry;
     protected final long retryWait;
     private final boolean autoCreateTables;
     private final Random random;
     private final BigQueryWriteSettings writeSettings;
-    static final int ADDITIONAL_RETRIES_TABLE_CREATE_UPDATE = 30;
 
     /**
-     * @param retry               How many retries to make in the event of a 500/503 error.
+     * @param retry               How many retries to make in the event of a retriable error.
      * @param retryWait           How long to wait in between retries.
      * @param writeSettings       Write Settings for stream which carry authentication and other header information
      * @param autoCreateTables    boolean flag set if table should be created automatically
      * @param errantRecordHandler Used to handle errant records
      */
-    public StorageWriteApiBase(int retry, long retryWait, BigQueryWriteSettings writeSettings, boolean autoCreateTables, ErrantRecordHandler errantRecordHandler) {
-
+    public StorageWriteApiBase(int retry,
+                               long retryWait,
+                               BigQueryWriteSettings writeSettings,
+                               boolean autoCreateTables,
+                               ErrantRecordHandler errantRecordHandler,
+                               SchemaManager schemaManager) {
         this.retry = retry;
         this.retryWait = retryWait;
         this.autoCreateTables = autoCreateTables;
         this.random = new Random();
         this.writeSettings = writeSettings;
         this.errantRecordHandler = errantRecordHandler;
+        this.schemaManager = schemaManager;
+
         try {
             this.writeClient = getWriteClient();
         } catch (IOException e) {
@@ -124,16 +132,18 @@ public abstract class StorageWriteApiBase {
         }
     }
 
-    /**
-     * Wait at least {@link #retryWait}, with up to an additional 1 second of random jitter.
-     * @throws InterruptedException if interrupted.
-     */
-    protected void waitRandomTime() throws InterruptedException {
-        Thread.sleep(retryWait + random.nextInt(1000));
-    }
-
     protected boolean getAutoCreateTables() {
         return this.autoCreateTables;
+    }
+
+    /**
+     * @param rows Rows of <SinkRecord, JSONObject > format
+     * @return Returns list of all SinkRecords
+     */
+    protected List<SinkRecord> getSinkRecords(List<Object[]> rows) {
+        return rows.stream()
+                .map(row -> (SinkRecord) row[0])
+                .collect(Collectors.toList());
     }
 
     protected ErrantRecordHandler getErrantRecordHandler() {
@@ -198,3 +208,4 @@ public abstract class StorageWriteApiBase {
         }
     }
 }
+

@@ -38,4 +38,8 @@ public class TableNameUtils {
   public static String destTable(TableId table) {
     return "destination " + table(table);
   }
+
+  public static TableId tableId(TableName name) {
+    return TableId.of(name.getProject(), name.getDataset(), name.getTable());
+  }
 }

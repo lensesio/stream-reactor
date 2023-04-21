@@ -7,8 +7,10 @@ import com.google.cloud.bigquery.storage.v1.RowError;
 import com.google.cloud.bigquery.storage.v1.TableName;
 import com.google.cloud.bigquery.storage.v1.Exceptions;
 
+import com.google.cloud.bigquery.storage.v1.TableSchema;
 import com.google.rpc.Status;
 import com.wepay.kafka.connect.bigquery.ErrantRecordHandler;
+import com.wepay.kafka.connect.bigquery.SchemaManager;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiConnectException;
 import io.grpc.StatusRuntimeException;
 import org.apache.kafka.connect.data.Schema;
@@ -21,6 +23,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
@@ -28,7 +31,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.times;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -85,13 +87,26 @@ public class StorageWriteApiDefaultStreamTest {
             "INVALID_ARGUMENT",
             "DEFAULT",
             errorMapping);
+    AppendRowsResponse schemaError = AppendRowsResponse.newBuilder()
+            .setUpdatedSchema(TableSchema.newBuilder().build())
+            .build();
+    ExecutionException tableMissingException = new ExecutionException(new StatusRuntimeException(
+            io.grpc.Status
+                    .fromCode(io.grpc.Status.Code.NOT_FOUND)
+                    .withDescription("Not found: table. Table is deleted")
+    ));
+    SchemaManager mockedSchemaManager = mock(SchemaManager.class);
 
     @Before
     public void setUp() throws Exception {
         errorMapping.put(0, "f0 field is unknown");
-        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(ArgumentMatchers.any());
+        defaultStream.tableToStream = new ConcurrentHashMap<>();
+        defaultStream.tableToStream.put("testTable", mockedStreamWriter);
+        defaultStream.schemaManager = mockedSchemaManager;
+        doReturn(mockedStreamWriter).when(defaultStream).getDefaultStream(any(), any());
         when(mockedStreamWriter.append(ArgumentMatchers.any())).thenReturn(mockedResponse);
-        doNothing().when(defaultStream).waitRandomTime();
+        doReturn(true).when(mockedSchemaManager).createTable(any(), any());
+        doNothing().when(mockedSchemaManager).updateSchema(any(), any());
         when(defaultStream.getErrantRecordHandler()).thenReturn(mockedErrantRecordHandler);
         when(mockedErrantRecordHandler.getErrantRecordReporter()).thenReturn(mockedErrantReporter);
         when(defaultStream.getAutoCreateTables()).thenReturn(true);
@@ -146,6 +161,15 @@ public class StorageWriteApiDefaultStreamTest {
         verifyDLQ(testMultiRows);
     }
 
+    @Test
+    public void testHasSchemaUpdates() throws Exception {
+        when(mockedResponse.get()).thenReturn(schemaError).thenReturn(successResponse);
+
+        defaultStream.appendRows(mockedTableName, testRows, null);
+
+        verify(mockedSchemaManager, times(1)).updateSchema(any(), any());
+
+    }
     @Test(expected = BigQueryStorageWriteApiConnectException.class)
     public void testDefaultStreamNonRetriableException() throws Exception {
         InterruptedException exception = new InterruptedException("I am non-retriable error");
@@ -178,19 +202,33 @@ public class StorageWriteApiDefaultStreamTest {
         verifyDLQ(testMultiRows);
     }
 
-    @Test(expected = BigQueryStorageWriteApiConnectException.class)
+    @Test
     public void testDefaultStreamTableMissingException() throws Exception {
-        ExecutionException exception = new ExecutionException(new StatusRuntimeException(
-                io.grpc.Status
-                        .fromCode(io.grpc.Status.Code.NOT_FOUND)
-                        .withDescription("Not found: table. Table is deleted")
-        ));
-        String expectedException = "Exceeded 30 attempts to write to table "
-                + mockedTableName.toString() + " ";
+        when(mockedResponse.get()).thenThrow(tableMissingException).thenReturn(successResponse);
+        when(defaultStream.getAutoCreateTables()).thenReturn(true);
+        defaultStream.appendRows(mockedTableName, testRows, null);
+        verify(mockedSchemaManager, times(1)).createTable(any(), any());
+    }
 
+    @Test
+    public void testHasSchemaUpdatesException() throws Exception {
+        errorMapping.put(0, "JSONObject does not have the required field f1");
+        when(mockedResponse.get()).thenThrow(appendSerializationException).thenReturn(successResponse);
+
+        defaultStream.appendRows(mockedTableName, testRows, null);
+        verify(mockedSchemaManager, times(1)).updateSchema(any(), any());
+
+    }
+
+    @Test(expected = BigQueryStorageWriteApiConnectException.class)
+    public void testDefaultStreamClosedException() throws Exception {
+        ExecutionException exception = new ExecutionException(
+                new Throwable("Exceptions$StreamWriterClosedException due to FAILED_PRECONDITION"));
         when(mockedResponse.get()).thenThrow(exception);
 
-        verifyException(expectedException);
+        defaultStream.appendRows(mockedTableName, testRows, null);
+
+        verify(mockedStreamWriter, times(1)).close();
     }
 
     @Test

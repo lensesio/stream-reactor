@@ -1,9 +1,9 @@
 package com.wepay.kafka.connect.bigquery.exception;
 
-
 import com.google.cloud.bigquery.storage.v1.Exceptions;
 import com.google.rpc.Code;
 import java.util.Arrays;
+import java.util.Collection;
 
 /**
  * Util for storage Write API error responses. This new API uses gRPC protocol.
@@ -17,6 +17,10 @@ public class BigQueryStorageWriteApiErrorResponses {
     private static final String NOT_FOUND = "Not found: table";
     private static final String TABLE_IS_DELETED = "Table is deleted";
     private static final String[] retriableCodes = {Code.INTERNAL.name(), Code.ABORTED.name(), Code.CANCELLED.name()};
+    private static final String UNKNOWN_FIELD = "JSONObject has fields unknown to BigQuery";
+    private static final String MISSING_REQUIRED_FIELD = "JSONObject does not have the required field";
+    private static final String STREAM_CLOSED = "StreamWriterClosedException";
+
 
     /**
      * Expected BigQuery Table does not exist
@@ -26,6 +30,7 @@ public class BigQueryStorageWriteApiErrorResponses {
     public static boolean isTableMissing(String errorMessage) {
         return (errorMessage.contains(PERMISSION_DENIED) && errorMessage.contains(NOT_EXIST))
                 || errorMessage.contains(NOT_FOUND)
+                || errorMessage.contains(Code.NOT_FOUND.name())
                 || errorMessage.contains(TABLE_IS_DELETED);
     }
 
@@ -50,5 +55,24 @@ public class BigQueryStorageWriteApiErrorResponses {
     public static boolean isMalformedRequest(String errorMessage) {
         return errorMessage.contains(Code.INVALID_ARGUMENT.name());
 
+    }
+
+    /**
+     * Tells if the exception is caused by an invalid schema in request
+     * @param messages List of Row error messages
+     * @return Returns true if any of the messages matches invalid schema substrings
+     */
+    public static boolean hasInvalidSchema(Collection<String> messages) {
+        return messages.stream().anyMatch(message ->
+                message.contains(UNKNOWN_FIELD) || message.contains(MISSING_REQUIRED_FIELD));
+    }
+
+    /**
+     * Tells if the exception is caused by auto-close of JSON stream
+     * @param errorMessage Exception message received on append call
+     * @return Returns true is message contains StreamClosed exception
+     */
+    public static boolean isStreamClosed(String errorMessage) {
+        return errorMessage.contains(STREAM_CLOSED);
     }
 }
