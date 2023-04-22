@@ -11,7 +11,6 @@ import org.junit.Test;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 import static com.wepay.kafka.connect.bigquery.config.StorageWriteApiValidator.legacyBatchNotSupportedError;
 import static com.wepay.kafka.connect.bigquery.config.StorageWriteApiValidator.upsertNotSupportedError;
 import static com.wepay.kafka.connect.bigquery.config.StorageWriteApiValidator.deleteNotSupportedError;

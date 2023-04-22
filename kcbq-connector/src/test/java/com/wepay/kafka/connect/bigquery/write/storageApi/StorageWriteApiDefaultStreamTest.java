@@ -181,7 +181,6 @@ public class StorageWriteApiDefaultStreamTest {
 
     @Test(expected = BigQueryStorageWriteApiConnectException.class)
     public void testDefaultStreamRetriableException() throws Exception {
-
         ExecutionException exception = new ExecutionException(new StatusRuntimeException(
                 io.grpc.Status.fromCode(io.grpc.Status.Code.INTERNAL).withDescription("I am an INTERNAL error")
         ));
