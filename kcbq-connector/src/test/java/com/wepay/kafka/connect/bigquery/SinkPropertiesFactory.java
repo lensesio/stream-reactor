@@ -46,7 +46,7 @@ public class SinkPropertiesFactory {
 
     properties.put(BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG, "false");
     properties.put(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG, "false");
-    properties.put(BigQuerySinkConfig.USE_STORAGE_WRITE_API_CONFIG, "false");
+
     return properties;
   }
 }
