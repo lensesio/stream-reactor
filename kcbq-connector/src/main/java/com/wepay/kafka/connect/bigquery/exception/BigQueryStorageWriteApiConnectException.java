@@ -23,12 +23,10 @@ public class BigQueryStorageWriteApiConnectException extends ConnectException {
 
     public BigQueryStorageWriteApiConnectException(String tableName, List<RowError> errors) {
         super(formatRowErrors(tableName, errors));
-
     }
 
     public BigQueryStorageWriteApiConnectException(String tableName, Map<Integer, String> errors) {
         super(formatRowErrors(tableName, errors));
-
     }
 
     private static String formatRowErrors(String tableName, List<RowError> errors) {

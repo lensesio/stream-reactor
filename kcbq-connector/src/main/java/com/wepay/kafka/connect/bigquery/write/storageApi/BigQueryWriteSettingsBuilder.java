@@ -15,7 +15,6 @@ import java.io.IOException;
 /**
  * Prepares BigQuery Write settings object which includes project info, header info, credentials etc.
  */
-
 public class BigQueryWriteSettingsBuilder extends GcpClientBuilder<BigQueryWriteSettings> {
 
     private static final Logger logger = LoggerFactory.getLogger(BigQueryWriteSettingsBuilder.class);
@@ -31,6 +30,7 @@ public class BigQueryWriteSettingsBuilder extends GcpClientBuilder<BigQueryWrite
         } else {
             logger.warn("Attempting to access GCS without authentication");
         }
+        
         try {
             return builder.build();
         } catch (IOException e) {
