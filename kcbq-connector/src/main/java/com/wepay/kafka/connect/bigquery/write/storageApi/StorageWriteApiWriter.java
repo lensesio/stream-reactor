@@ -27,14 +27,14 @@ public class StorageWriteApiWriter implements Runnable {
     private final StorageWriteApiBase streamWriter;
     private final TableName tableName;
     private final List<Object[]> records;
-
     private final String streamName;
 
     /**
-     * @param tableName    The table to write the records to
+     *
+     * @param tableName The table to write the records to
      * @param streamWriter The stream writer to use - Default, Batch etc
-     * @param records      The records to write
-     * @param streamName   The stream to use while writing data
+     * @param records The records to write
+     * @param streamName The stream to use while writing data
      */
     public StorageWriteApiWriter(TableName tableName, StorageWriteApiBase streamWriter, List<Object[]> records, String streamName) {
 
@@ -69,11 +69,11 @@ public class StorageWriteApiWriter implements Runnable {
             this.recordConverter = storageApiRecordConverter;
             this.config = config;
             this.batchModeHandler = batchModeHandler;
+
         }
 
         /**
          * Captures actual record and corresponding JSONObject converted record
-         *
          * @param sinkRecord The actual records
          */
         @Override
@@ -83,7 +83,6 @@ public class StorageWriteApiWriter implements Runnable {
 
         /**
          * Converts SinkRecord to JSONObject to be sent to BQ Streams
-         *
          * @param record which is to be converted
          * @return converted record as JSONObject
          */

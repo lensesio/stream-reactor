@@ -26,7 +26,6 @@ public class BigQueryWriteSettingsBuilderTest {
         assertEquals(actualSettings.getHeaderProvider(), expectedHeader);
     }
 
-
     private BigQuerySinkConfig getConfig() {
         Map<String, String> properties = new HashMap<>();
         properties.put(BigQuerySinkConfig.PROJECT_CONFIG, "abcd");

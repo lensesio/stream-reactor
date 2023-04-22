@@ -1,8 +1,6 @@
 package com.wepay.kafka.connect.bigquery.write.storageApi;
 
 import static org.junit.Assert.assertEquals;
-
-import com.google.cloud.bigquery.storage.v1.TableName;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.convert.BigQueryRecordConverter;
@@ -19,11 +17,12 @@ import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 
-import java.util.*;
+import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Optional;
 
 public class StorageWriteApiWriterTest {
     Schema keySchema = SchemaBuilder.struct().field("key", Schema.STRING_SCHEMA).build();
@@ -62,7 +61,7 @@ public class StorageWriteApiWriterTest {
         assertEquals(1, records.getValue().size());
 
         JSONObject actual = (JSONObject) records.getValue().get(0)[1];
-        assertEquals(expectedKeys, actual.keySet());
+        assertEquals(expectedKeys,actual.keySet());
 
         String actualKafkaKey = actual.get("i_am_kafka_key").toString();
         assertEquals(expectedKafkaKey, actualKafkaKey);
