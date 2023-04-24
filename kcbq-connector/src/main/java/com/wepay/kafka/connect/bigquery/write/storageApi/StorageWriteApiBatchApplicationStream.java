@@ -40,17 +40,17 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
      * Map of <tableName , <StreamName, {@link ApplicationStream}>>
      * Streams should be accessed in the order of entry, so we need LinkedHashMap here
      */
-    private final ConcurrentMap<String, LinkedHashMap<String, ApplicationStream>> streams;
+    protected ConcurrentMap<String, LinkedHashMap<String, ApplicationStream>> streams;
 
     /**
      * Quick lookup for current open stream by tableName
      */
-    private final ConcurrentMap<String, String> currentStreams;
+    protected ConcurrentMap<String, String> currentStreams;
 
     /**
      * Lock on table names to prevent execution of critical section by multiple threads
      */
-    private final ConcurrentMap<String, Object> tableLocks;
+    protected ConcurrentMap<String, Object> tableLocks;
 
     public StorageWriteApiBatchApplicationStream(
             int retry,
@@ -69,7 +69,7 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
      * Takes care of resource cleanup
      */
     @Override
-    public void shutdown() {
+    public void preShutdown() {
         logger.debug("Shutting down all streams on all tables as due to task shutdown!!!");
         this.streams.values()
                 .stream().flatMap(item -> item.values().stream())
@@ -123,19 +123,21 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
                     synchronized (lock(tableName)) {
                         int i = 0;
                         Set<String> deletableStreams = new HashSet<>();
-                        for (ApplicationStream applicationStream : streamDetails.values()) {
+                        for (Map.Entry<String, ApplicationStream> applicationStreamEntry : streamDetails.entrySet()) {
+                            ApplicationStream applicationStream = applicationStreamEntry.getValue();
+                            String streamName = applicationStreamEntry.getKey();
                             if (applicationStream.isInactive()) {
-                                logger.trace("Ignoring inactive stream {} at index {}...", applicationStream.getStreamName(), i);
+                                logger.trace("Ignoring inactive stream {} at index {}...", streamName, i);
                             } else if (applicationStream.isReadyForOffsetCommit()) {
-                                logger.trace("Pulling offsets from committed stream {} at index {} ...", applicationStream.getStreamName(), i);
+                                logger.trace("Pulling offsets from committed stream {} at index {} ...", streamName, i);
                                 offsetsReadyForCommits.putAll(applicationStream.getOffsetInformation());
                                 applicationStream.markInactive();
                             } else {
-                                logger.trace("Ignoring all streams as stream {} at index {} is not yet committed", applicationStream.getStreamName(), i);
+                                logger.trace("Ignoring all streams as stream {} at index {} is not yet committed", streamName, i);
                                 // We move sequentially for offset commit, until current offsets are ready, we cannot commit next.
                                 break;
                             }
-                            deletableStreams.add(applicationStream.getStreamName());
+                            deletableStreams.add(streamName);
                             i++;
                         }
                         deletableStreams.forEach(streamDetails::remove);

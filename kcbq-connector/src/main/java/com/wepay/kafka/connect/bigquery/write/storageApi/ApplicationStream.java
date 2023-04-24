@@ -56,6 +56,7 @@ public class ApplicationStream {
         this.maxCallsCount = new AtomicInteger();
         this.completedCallsCount = new AtomicInteger();
         generateStream();
+        currentState = StreamState.CREATED;
     }
 
     public Map<TopicPartition, OffsetAndMetadata> getOffsetInformation() {
@@ -66,7 +67,6 @@ public class ApplicationStream {
         this.stream = client.createWriteStream(
                 tableName, WriteStream.newBuilder().setType(WriteStream.Type.PENDING).build());
         this.jsonWriter = JsonStreamWriter.newBuilder(stream.getName(), client).build();
-        currentState = StreamState.CREATED;
     }
 
     public void closeStream() {
@@ -130,6 +130,12 @@ public class ApplicationStream {
     }
 
     public JsonStreamWriter writer() {
+        if (this.jsonWriter.isClosed()) {
+            logger.debug("JSON Stream Writer is closed. Attempting to recreate stream and writer");
+            synchronized (this) {
+                resetStream();
+            }
+        }
         return this.jsonWriter;
     }
 
@@ -221,12 +227,22 @@ public class ApplicationStream {
         return currentState == StreamState.INACTIVE;
     }
 
-    public StreamState getCurrentState() {
-        return this.currentState;
+    private void resetStream() {
+        if (this.jsonWriter.isClosed()) {
+            logger.trace("Recreating stream on table {}", tableName);
+            try {
+                generateStream();
+                logger.trace("Stream recreated successfully on table {}", tableName);
+            } catch (Exception exception) {
+                throw new BigQueryStorageWriteApiConnectException(
+                        String.format(
+                                "Stream Writer recreation attempt failed on stream %s due to %s",
+                                getStreamName(),
+                                exception.getMessage())
+                );
+            }
+        } else {
+            logger.trace("Not attempting stream recreation on table {} as Json writer is not closed!", tableName);
+        }
     }
-
-//    @VisibleForTesting
-//    void setCurrentState(StreamState testState) {
-//        currentState =
-//    }
 }
