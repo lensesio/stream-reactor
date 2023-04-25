@@ -102,7 +102,7 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
      * Calls AppendRows and handles exception if the ingestion fails
      *
      * @param tableName  The table to write data to
-     * @param rows       List of records in <{@link org.apache.kafka.connect.sink.SinkRecord}, {@link org.json.JSONObject}>
+     * @param rows       List of records in {@link org.apache.kafka.connect.sink.SinkRecord}, {@link org.json.JSONObject}
      *                   format. JSONObjects would be sent to api. SinkRecords are requireed for DLQ routing
      * @param streamName The stream to use to write table to table. This will be DEFAULT always.
      */

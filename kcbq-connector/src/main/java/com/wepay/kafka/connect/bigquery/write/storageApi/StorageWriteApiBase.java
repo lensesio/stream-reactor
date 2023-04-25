@@ -68,7 +68,7 @@ public abstract class StorageWriteApiBase {
     /**
      * Handles required initialization steps and goes to append records to table
      * @param tableName  The table to write data to
-     * @param rows       List of records in <{@link org.apache.kafka.connect.sink.SinkRecord}, {@link org.json.JSONObject}>
+     * @param rows       List of records in {@link org.apache.kafka.connect.sink.SinkRecord}, {@link org.json.JSONObject}
      *                   format. JSONObjects would be sent to api. SinkRecords are requireed for DLQ routing
      * @param streamName The stream to use to write table to table.
      */
@@ -137,7 +137,7 @@ public abstract class StorageWriteApiBase {
     }
 
     /**
-     * @param rows Rows of <SinkRecord, JSONObject > format
+     * @param rows Rows of {SinkRecord, JSONObject} format
      * @return Returns list of all SinkRecords
      */
     protected List<SinkRecord> getSinkRecords(List<Object[]> rows) {
@@ -152,9 +152,9 @@ public abstract class StorageWriteApiBase {
 
     /**
      * Sends errant records to configured DLQ and returns remaining
-     * @param input List of <SinkRecord, JSONObject> input data
+     * @param input List of SinkRecord, JSONObject input data
      * @param indexToErrorMap Map of record index to error received from api call
-     * @return Returns list of good <Sink, JSONObject> filtered from input which needs to be retried. Append row does
+     * @return Returns list of good Sink, JSONObject filtered from input which needs to be retried. Append row does
      * not write partially even if there is a single failure, good data has to be retried
      */
     protected List<Object[]> sendErrantRecordsToDlqAndFilterValidRecords(
