@@ -35,6 +35,11 @@ public abstract class StorageWriteApiApplicationStream extends StorageWriteApiBa
 
     public abstract boolean mayBeCreateStream(String tableName, List<Object[]> rows);
 
+    /**
+     * This returns offset information of records
+     * @param records List of {SinkRecord, JSONObject} items
+     * @return Offsets of the SinkRecords in records list
+     */
     protected Map<TopicPartition, OffsetAndMetadata> getOffsetFromRecords(List<Object[]> records) {
         Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
         records.forEach(record -> {

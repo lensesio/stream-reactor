@@ -92,12 +92,12 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
         ApplicationStream applicationStream = this.streams.get(tableName.toString()).get(streamName);
         try {
             ApiFuture<AppendRowsResponse> response = applicationStream.writer().append(jsonArray);
-            applicationStream.increaseAppendCallCount();
+            applicationStream.increaseAppendCall();
             AppendRowsResponse writeResult = response.get();
 
             if (writeResult.hasAppendResult()) {
                 logger.trace("Append call completed successfully on stream {}", applicationStream.getStreamName());
-                applicationStream.increaseCompletedCallsCount();
+                applicationStream.increaseCompletedCalls();
                 commitStreamIfEligible(tableName.toString(), applicationStream.getStreamName());
             } else if (writeResult.hasUpdatedSchema()) {
                 //TODO: Schema Update attempt once

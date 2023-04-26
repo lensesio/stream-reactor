@@ -37,24 +37,24 @@ public class ApplicationStream {
     /**
      * Number of times append is called
      */
-    private final AtomicInteger appendCallsCount;
+    private final AtomicInteger appendCalls;
     /**
-     * Number of append requests completed successfully. This can never be greater than appendCallsCount
+     * Number of append requests completed successfully. This can never be greater than appendCalls
      */
-    private final AtomicInteger completedCallsCount;
+    private final AtomicInteger completedCalls;
 
     /**
      * This is called by builder to guarantee sequence.
      */
-    private final AtomicInteger maxCallsCount;
+    private final AtomicInteger maxCalls;
 
     public ApplicationStream(String tableName, BigQueryWriteClient client) throws Exception {
         this.client = client;
         this.tableName = tableName;
         this.offsetInformation = new HashMap<>();
-        this.appendCallsCount = new AtomicInteger();
-        this.maxCallsCount = new AtomicInteger();
-        this.completedCallsCount = new AtomicInteger();
+        this.appendCalls = new AtomicInteger();
+        this.maxCalls = new AtomicInteger();
+        this.completedCalls = new AtomicInteger();
         generateStream();
         currentState = StreamState.CREATED;
     }
@@ -83,16 +83,16 @@ public class ApplicationStream {
     /**
      * Increases the Append call count and returns the updated value
      */
-    public void increaseAppendCallCount() {
-        this.appendCallsCount.incrementAndGet();
+    public void increaseAppendCall() {
+        this.appendCalls.incrementAndGet();
     }
 
     /**
      * Increases the Max call count by 1. This tells the total expected calls which would be made to append method.
      * Returns the updated value
      */
-    public int increaseMaxCallsCount() {
-        int count = this.maxCallsCount.incrementAndGet();
+    public int increaseMaxCalls() {
+        int count = this.maxCalls.incrementAndGet();
         if (currentState == StreamState.CREATED) {
             currentState = StreamState.APPEND;
         }
@@ -103,8 +103,8 @@ public class ApplicationStream {
      * Increases the count of Append calls which are completed.
      * Returns the updated value
      */
-    public void increaseCompletedCallsCount() {
-        this.completedCallsCount.incrementAndGet();
+    public void increaseCompletedCalls() {
+        this.completedCalls.incrementAndGet();
     }
 
     /**
@@ -112,7 +112,8 @@ public class ApplicationStream {
      * A stream with CREATED state tells the stream has not been used for writing anything and would result in resource
      * wastage we create new without using the existing one
      *
-     * @return
+     * @return True if this stream can be marked as non-active(No new data would be assigned to it). Please note inactive is different
+     * which means the stream has completed it lifecycle
      */
     public boolean canBeMovedToNonActive() {
         return currentState != StreamState.CREATED;
@@ -122,11 +123,11 @@ public class ApplicationStream {
      * Updates offset handled by this particular stream. Each update offset call mean one batch of records that would
      * be sent to append
      *
-     * @param newOffsets - New offsets to be added on top of existing
+     * @param offsets - New offsets to be added on top of existing
      */
-    public void updateOffsetInformation(Map<TopicPartition, OffsetAndMetadata> newOffsets) {
-        offsetInformation.putAll(newOffsets);
-        increaseMaxCallsCount();
+    public void updateOffsetInformation(Map<TopicPartition, OffsetAndMetadata> offsets) {
+        offsetInformation.putAll(offsets);
+        increaseMaxCalls();
     }
 
     public JsonStreamWriter writer() {
@@ -144,8 +145,8 @@ public class ApplicationStream {
      * this stream
      */
     public boolean areAllExpectedCallsCompleted() {
-        return (this.maxCallsCount.intValue() == this.appendCallsCount.intValue())
-                && (this.appendCallsCount.intValue() == this.completedCallsCount.intValue());
+        return (this.maxCalls.intValue() == this.appendCalls.intValue())
+                && (this.appendCalls.intValue() == this.completedCalls.intValue());
     }
 
     /**
@@ -217,9 +218,9 @@ public class ApplicationStream {
                 "currentState=" + currentState +
                 ", tableName='" + tableName + '\'' +
                 ", offsetInformation=" + offsetInformation +
-                ", appendCallsCount=" + appendCallsCount +
-                ", completedCallsCount=" + completedCallsCount +
-                ", maxCallsCount=" + maxCallsCount +
+                ", appendCalls=" + appendCalls +
+                ", completedCalls=" + completedCalls +
+                ", maxCalls=" + maxCalls +
                 '}';
     }
 
