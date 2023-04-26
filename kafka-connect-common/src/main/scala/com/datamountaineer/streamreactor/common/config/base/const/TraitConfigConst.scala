@@ -47,5 +47,6 @@ object TraitConfigConst {
   val CONNECTION_PORTS_SUFFIX    = "ports"
   val WRITE_TIMEOUT_SUFFIX       = "write.timeout"
   val SCHEMA_REGISTRY_SUFFIX     = "schema.registry.url"
+  val LOG_LEVEL_OVERRIDE         = "log.level.override"
 
 }
