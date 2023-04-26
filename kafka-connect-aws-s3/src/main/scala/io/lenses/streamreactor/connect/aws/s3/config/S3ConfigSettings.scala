@@ -128,4 +128,9 @@ object S3ConfigSettings {
   val PADDING_LENGTH         = s"$CONNECTOR_PREFIX.padding.length"
   val PADDING_LENGTH_DOC     = s"Length to pad the string up to if $PADDING_STRATEGY is set."
   val PADDING_LENGTH_DEFAULT = 8
+
+  val LOG_LEVEL_OVERRIDE = s"$CONNECTOR_PREFIX.log.level.override"
+  val LOG_LEVEL_OVERRIDE_DOC =
+    "Override the log level of the classes provided by the connector.  Useful if it can't be set in the environment (eg MSK). Options: DEFAULT, OFF, ERROR, WARN, INFO, DEBUG, TRACE, ALL"
+
 }
