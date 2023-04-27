@@ -115,7 +115,7 @@ public class ApplicationStream {
      * @return True if this stream can be marked as non-active(No new data would be assigned to it). Please note inactive is different
      * which means the stream has completed it lifecycle
      */
-    public boolean canBeMovedToNonActive() {
+    public boolean canTransitionToNonActive() {
         return currentState != StreamState.CREATED;
     }
 

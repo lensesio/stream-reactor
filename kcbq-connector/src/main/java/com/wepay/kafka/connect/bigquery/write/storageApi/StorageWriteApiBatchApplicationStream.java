@@ -163,7 +163,7 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
         String streamName = this.currentStreams.get(tableName);
         boolean result = (streamName == null) ||
                 (this.streams.get(tableName).get(streamName) != null
-                        && this.streams.get(tableName).get(streamName).canBeMovedToNonActive());
+                        && this.streams.get(tableName).get(streamName).canTransitionToNonActive());
         if (result) {
             logger.trace("Attempting to create new stream on table {}", tableName);
             return this.createStream(tableName, streamName, rows);
