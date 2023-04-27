@@ -26,5 +26,5 @@ common {
           ['gcp/kcbq', 'creds',   '/tmp/creds.json', 'KCBQ_TEST_KEYFILE'],
           ['gcp/kcbq', 'creds',   '/tmp/creds.json', 'GOOGLE_APPLICATION_CREDENTIALS']
   ]
-  timeoutHours = 2
+  timeoutHours = 3
 }
