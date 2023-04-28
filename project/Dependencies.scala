@@ -80,7 +80,7 @@ object Dependencies {
     val jerseyCommonVersion = "3.1.1"
 
     val calciteVersion    = "1.33.0"
-    val awsSdkVersion     = "2.19.33"
+    val awsSdkVersion     = "2.20.54"
     val jCloudsSdkVersion = "2.5.0"
     val guavaVersion      = "31.0.1-jre"
     val guiceVersion      = "5.1.0"
