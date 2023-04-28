@@ -67,7 +67,7 @@ public class KafkaDataConverterTest {
     @Test
     public void testBuildKafkaDataRecordStorageWriteApi() {
         SinkRecord record = new SinkRecord(kafkaDataTopicValue, kafkaDataPartitionValue, null, null, null, null, kafkaDataOffsetValue);
-        Map<String, Object> actualKafkaDataFields = KafkaDataBuilder.buildKafkaDataRecordSorageApi(record);
+        Map<String, Object> actualKafkaDataFields = KafkaDataBuilder.buildKafkaDataRecordStorageApi(record);
 
         assertTrue(actualKafkaDataFields.containsKey(kafkaDataInsertTimeName));
         assertTrue(actualKafkaDataFields.get(kafkaDataInsertTimeName) instanceof Long);

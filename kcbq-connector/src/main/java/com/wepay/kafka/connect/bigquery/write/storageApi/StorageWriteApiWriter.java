@@ -90,7 +90,7 @@ public class StorageWriteApiWriter implements Runnable {
             Map<String, Object> convertedRecord = recordConverter.convertRecord(record, KafkaSchemaRecordType.VALUE);
 
             config.getKafkaDataFieldName().ifPresent(
-                    fieldName -> convertedRecord.put(fieldName, KafkaDataBuilder.buildKafkaDataRecordSorageApi(record))
+                    fieldName -> convertedRecord.put(fieldName, KafkaDataBuilder.buildKafkaDataRecordStorageApi(record))
             );
 
             config.getKafkaKeyFieldName().ifPresent(fieldName -> {
