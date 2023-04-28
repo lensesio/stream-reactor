@@ -1,6 +1,8 @@
 package com.wepay.kafka.connect.bigquery.write.storageApi;
 
 import static org.junit.Assert.assertEquals;
+
+import com.google.cloud.bigquery.storage.v1.TableName;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.convert.BigQueryRecordConverter;
@@ -16,8 +18,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.HashSet;
