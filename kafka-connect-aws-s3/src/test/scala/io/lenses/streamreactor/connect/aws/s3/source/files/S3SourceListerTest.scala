@@ -59,25 +59,17 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
     )
   }
 
-  "listBatch" should "ignore other, unknown extensions and files without extensions" in {
-    when(storageInterface.list(bucketAndPrefix, None, 10)).thenReturn(
-      List(
-        "path/myTopic/0/100.json",
-        "path/myTopic/0/200.xls",
-        "path/myTopic/0/300.doc",
-        "path/myTopic/0/400.csv",
-        "path/myTopic/0/500",
-      )
-        .asRight,
+  "listBatch" should "take all the files regardless of extension" in {
+    val actual = List(
+      "path/myTopic/0/100.json",
+      "path/myTopic/0/200.xls",
+      "path/myTopic/0/300.doc",
+      "path/myTopic/0/400.csv",
+      "path/myTopic/0/500",
     )
+    when(storageInterface.list(bucketAndPrefix, None, 10)).thenReturn(actual.asRight)
 
-    sourceLister.listBatch(bucketAndPrefix, None, 10) should be(
-      Right(
-        List(
-          bucketAndPrefix.withPath("path/myTopic/0/100.json"),
-        ),
-      ),
-    )
+    sourceLister.listBatch(bucketAndPrefix, None, 10) shouldBe actual.map(bucketAndPrefix.withPath).asRight
   }
 
   "listBatch" should "return throwable when storageInterface errors" in {
