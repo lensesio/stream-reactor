@@ -24,18 +24,7 @@ public class StorageApiBatchModeHandler {
 
     public StorageApiBatchModeHandler(StorageWriteApiApplicationStream streamApi, BigQuerySinkTaskConfig config) {
         this.streamApi = streamApi;
-        addTableNames(config);
-    }
-
-    private void addTableNames(BigQuerySinkTaskConfig config) {
-        String projectId = config.getString(BigQuerySinkTaskConfig.PROJECT_CONFIG);
-        tableNames = config.getList(BigQuerySinkConfig.TOPICS_CONFIG)
-                .stream()
-                .map(topic -> {
-                    String[] dataSetAndTopic = TableNameUtils.getDataSetAndTableName(config, topic);
-                    return TableName.of(projectId, dataSetAndTopic[0], dataSetAndTopic[1]).toString();
-                })
-                .collect(Collectors.toList());
+        this.tableNames = TableNameUtils.getAllTableNames(config);
     }
 
     /**

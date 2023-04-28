@@ -25,7 +25,9 @@ import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import org.apache.kafka.connect.errors.ConnectException;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class TableNameUtils {
 
@@ -77,5 +79,19 @@ public class TableNameUtils {
     }
 
     return new String[]{dataset, tableName};
+  }
+
+  /**
+   * Returns list of all tablenames in project/project_id/dataset/dataset_id/tablename format
+   */
+  public static List<String> getAllTableNames(BigQuerySinkTaskConfig config) {
+    String projectId = config.getString(BigQuerySinkTaskConfig.PROJECT_CONFIG);
+    return config.getList(BigQuerySinkConfig.TOPICS_CONFIG)
+            .stream()
+            .map(topic -> {
+              String[] dataSetAndTopic = getDataSetAndTableName(config, topic);
+              return TableName.of(projectId, dataSetAndTopic[0], dataSetAndTopic[1]).toString();
+            })
+            .collect(Collectors.toList());
   }
 }

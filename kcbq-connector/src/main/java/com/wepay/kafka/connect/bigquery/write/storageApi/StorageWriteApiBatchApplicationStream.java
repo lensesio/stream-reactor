@@ -87,11 +87,11 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
      */
     @Override
     public void appendRows(TableName tableName, List<Object[]> rows, String streamName) {
-        JSONArray jsonArray = new JSONArray();
-        rows.forEach(item -> jsonArray.put(item[1]));
+        JSONArray jsonRecords = new JSONArray();
+        rows.forEach(item -> jsonRecords.put(item[1]));
         ApplicationStream applicationStream = this.streams.get(tableName.toString()).get(streamName);
         try {
-            ApiFuture<AppendRowsResponse> response = applicationStream.writer().append(jsonArray);
+            ApiFuture<AppendRowsResponse> response = applicationStream.writer().append(jsonRecords);
             applicationStream.increaseAppendCall();
             AppendRowsResponse writeResult = response.get();
 

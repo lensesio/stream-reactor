@@ -44,7 +44,7 @@ public class ApplicationStream {
     private final AtomicInteger completedCalls;
 
     /**
-     * This is called by builder to guarantee sequence.
+     * This is called by builder to capture maximum calls expected to append.
      */
     private final AtomicInteger maxCalls;
 

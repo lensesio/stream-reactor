@@ -5,6 +5,7 @@ import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -20,12 +21,17 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.any;
 
 public class StorageApiBatchModeHandlerTest {
+    StorageWriteApiApplicationStream mockedStreamApi = mock(StorageWriteApiApplicationStream.class);
+    BigQuerySinkTaskConfig mockedConfig = mock(BigQuerySinkTaskConfig.class);
+    Map<TopicPartition, OffsetAndMetadata> offsetInfo = new HashMap<>();
+    StorageApiBatchModeHandler batchModeHandler = new StorageApiBatchModeHandler(
+            mockedStreamApi,
+            mockedConfig
+    );
+    List<Object[]> rows = new ArrayList<>();
 
-    @Test
-    public void testCreateStreams() {
-        StorageWriteApiApplicationStream mockedStreamApi = mock(StorageWriteApiApplicationStream.class);
-        BigQuerySinkTaskConfig mockedConfig = mock(BigQuerySinkTaskConfig.class);
-
+    @Before
+    public void setup() {
         when(mockedConfig.getString(BigQuerySinkTaskConfig.PROJECT_CONFIG)).thenReturn("p");
         when(mockedConfig.getString(BigQuerySinkTaskConfig.DEFAULT_DATASET_CONFIG)).thenReturn("d1");
         when(mockedConfig.getBoolean(BigQuerySinkTaskConfig.SANITIZE_TOPICS_CONFIG)).thenReturn(false);
@@ -33,12 +39,12 @@ public class StorageApiBatchModeHandlerTest {
                 Arrays.asList("topic1", "topic2")
         );
         when(mockedStreamApi.mayBeCreateStream(any(), any())).thenReturn(true);
+        when(mockedStreamApi.updateOffsetsOnStream(any(), any())).thenReturn("s1_app_stream");
+        when(mockedStreamApi.getCommitableOffsets()).thenReturn(offsetInfo);
+    }
 
-        StorageApiBatchModeHandler batchModeHandler = new StorageApiBatchModeHandler(
-                mockedStreamApi,
-                mockedConfig
-        );
-
+    @Test
+    public void testCreateStreams() {
         batchModeHandler.createNewStream();
 
         verify(mockedStreamApi, times(1))
@@ -49,22 +55,6 @@ public class StorageApiBatchModeHandlerTest {
 
     @Test
     public void testUpdateOffsetsOnStream() {
-        StorageWriteApiApplicationStream mockedStreamApi = mock(StorageWriteApiApplicationStream.class);
-        BigQuerySinkTaskConfig mockedConfig = mock(BigQuerySinkTaskConfig.class);
-        List<Object[]> rows = new ArrayList<>();
-
-        when(mockedConfig.getString(BigQuerySinkTaskConfig.PROJECT_CONFIG)).thenReturn("p");
-        when(mockedConfig.getString(BigQuerySinkTaskConfig.DEFAULT_DATASET_CONFIG)).thenReturn("d1");
-        when(mockedConfig.getBoolean(BigQuerySinkTaskConfig.SANITIZE_TOPICS_CONFIG)).thenReturn(false);
-        when(mockedConfig.getList(BigQuerySinkTaskConfig.TOPICS_CONFIG)).thenReturn(
-                Arrays.asList("topic1", "topic2")
-        );
-        when(mockedStreamApi.updateOffsetsOnStream(any(), any())).thenReturn("s1_app_stream");
-
-        StorageApiBatchModeHandler batchModeHandler = new StorageApiBatchModeHandler(
-                mockedStreamApi,
-                mockedConfig
-        );
         String actualStreamName = batchModeHandler.updateOffsetsOnStream(
                 TableName.of("p", "d1", "topic1").toString(), rows);
 
@@ -75,22 +65,6 @@ public class StorageApiBatchModeHandlerTest {
 
     @Test
     public void testGetCommitableOffsets() {
-        StorageWriteApiApplicationStream mockedStreamApi = mock(StorageWriteApiApplicationStream.class);
-        BigQuerySinkTaskConfig mockedConfig = mock(BigQuerySinkTaskConfig.class);
-        Map<TopicPartition, OffsetAndMetadata> offsetInfo = new HashMap<>();
-        when(mockedConfig.getString(BigQuerySinkTaskConfig.PROJECT_CONFIG)).thenReturn("p");
-        when(mockedConfig.getString(BigQuerySinkTaskConfig.DEFAULT_DATASET_CONFIG)).thenReturn("d1");
-        when(mockedConfig.getBoolean(BigQuerySinkTaskConfig.SANITIZE_TOPICS_CONFIG)).thenReturn(false);
-        when(mockedConfig.getList(BigQuerySinkTaskConfig.TOPICS_CONFIG)).thenReturn(
-                Arrays.asList("topic1", "topic2")
-        );
-        when(mockedStreamApi.getCommitableOffsets()).thenReturn(offsetInfo);
-
-        StorageApiBatchModeHandler batchModeHandler = new StorageApiBatchModeHandler(
-                mockedStreamApi,
-                mockedConfig
-        );
-
         batchModeHandler.getCommitableOffsets();
         verify(mockedStreamApi, times(1)).getCommitableOffsets();
     }
