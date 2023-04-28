@@ -43,12 +43,14 @@ public class KafkaDataConverterTest {
     private static final String kafkaDataTopicValue = "testTopic";
     private static final int kafkaDataPartitionValue = 101;
     private static final long kafkaDataOffsetValue = 1337;
+
     @Before
     public void setup() {
         expectedKafkaDataFields.put(kafkaDataTopicName, kafkaDataTopicValue);
         expectedKafkaDataFields.put(kafkaDataPartitionName, kafkaDataPartitionValue);
         expectedKafkaDataFields.put(kafkaDataOffsetName, kafkaDataOffsetValue);
     }
+
     @Test
     public void testBuildKafkaDataRecord() {
         SinkRecord record = new SinkRecord(kafkaDataTopicValue, kafkaDataPartitionValue, null, null, null, null, kafkaDataOffsetValue);
