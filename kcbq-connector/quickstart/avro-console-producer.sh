@@ -24,68 +24,8 @@ if [ -z $CONFLUENT_DIR ]; then
   CONFLUENT_DIR="$BASE_DIR/../../confluent-3.0.0"
 fi
 
-KAFKA_TOPIC='bugfix_case2'
-KAFKA_TOPIC_2='five'
+KAFKA_TOPIC='kcbq-quickstart'
 AVRO_SCHEMA='{"type":"record","name":"myrecord","fields":[{"name":"f1","type":"string"}]}'
-#AVRO_SCHEMA='{"type":"record","name":"myrecord","fields":[{
-#                                                                "name": "f1",
-#                                                                "type": {
-#                                                                          "type": "array",
-#                                                                          "items": "string"
-#                                                                          }
-#                                                              }
-#
-#
-#                                                              ]}'
-#AVRO_SCHEMA='{"type":"record","name":"myrecord","fields":[{
-#                                                                "name": "f1",
-#                                                                "type": "bytes"
-#                                                          },{
-#                                                                "name": "f2",
-#                                                                "type": "boolean"
-#                                                              }
-#
-#
-#                                                              ]}'
-#AVRO_SCHEMA='{"type":"record","name":"myrecord","fields":[{
-#                                                                "name": "ordertime",
-#                                                                "type": "long"
-#                                                              },
-#                                                              {
-#                                                                "name": "orderid",
-#                                                                "type": "int"
-#                                                              },
-#                                                              {
-#                                                                "name": "itemid",
-#                                                                 "type": "string"
-#                                                              },
-#                                                              {
-#                                                                "name": "orderunits",
-#                                                                "type": "double"
-#                                                              },
-#
-#                                                              {
-#                                                                "name": "address",
-#                                                                "type": {
-#                                                                  "connect.name": "ksql.address",
-#                                                                  "fields": [
-#                                                                    {
-#                                                                      "name": "city",
-#                                                                      "type": "string"
-#                                                                    },
-#                                                                    {
-#                                                                      "name": "state",
-#                                                                      "type": "string"
-#                                                                    },
-#                                                                    {
-#                                                                      "name": "zipcode",
-#                                                                      "type": "long"
-#                                                                    }
-#                                                                  ],
-#                                                                  "name": "address",
-#                                                                  "type": "record"
-#                                                                }
-#                                                              }]}'
 REGISTRY_URL='http://localhost:8081'
 BROKER_LIST='localhost:9092'
 
@@ -157,43 +97,9 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
-export CONFLUENT_DIR=~/confluent-7.3.0
 
-#FILE_NAME='/Users/bhagyashree/Utilities/order_key.txt'
-#while true; do
-#    while read line; do
-#      echo $line
-#      done < $FILE_NAME | exec "$CONFLUENT_DIR/bin/kafka-avro-console-producer" \
-#        --broker-list "$BROKER_LIST" \
-#        --topic "$KAFKA_TOPIC" \
-#        --property key.schema="$AVRO_KEY_SCHEMA" \
-#        --property value.schema="$AVRO_SCHEMA" \
-#        -property "parse.key=true" \
-#        --property "key.separator=@" \
-#        --property schema.registry.url="$REGISTRY_URL"
-#break
-##      echo "Iteration next"
-#done
-###
 exec "$CONFLUENT_DIR/bin/kafka-avro-console-producer" \
-        --broker-list "$BROKER_LIST" \
-        --topic "$KAFKA_TOPIC" \
-        --property value.schema="$AVRO_SCHEMA" \
-        --property schema.registry.url="$REGISTRY_URL"
-
-#        {"ordertime": 167817698691600,"orderid": 0,"itemid": "Item_1","orderunits": 1678176.986916,"address": { "city": "City_1","state": "State_","zipcode": 10100010001001}}
-
-#/*
-
-{"f1":"113"}
-{"f1":"1113"}
-{"f1":"2"}
-{"f1":"20"}
-{"f1":"200"}
-{"f1":"2000"}
-{"f1":"20000"}
-
-{"f1":"114"}
-{"f1":"1114"}
-{"f1":"14"}
-#*/
+    --broker-list "$BROKER_LIST" \
+    --topic "$KAFKA_TOPIC" \
+    --property value.schema="$AVRO_SCHEMA" \
+    --property schema.registry.url="$REGISTRY_URL"
