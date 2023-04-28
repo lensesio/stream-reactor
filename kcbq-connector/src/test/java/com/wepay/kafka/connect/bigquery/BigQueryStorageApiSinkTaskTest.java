@@ -37,6 +37,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
+import static com.wepay.kafka.connect.bigquery.write.storageApi.StorageWriteApiWriter.DEFAULT;
 
 public class BigQueryStorageApiSinkTaskTest {
     private static final SinkTaskPropertiesFactory propertiesFactory = new SinkTaskPropertiesFactory();
@@ -66,7 +67,7 @@ public class BigQueryStorageApiSinkTaskTest {
         properties.put(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG, "scratch");
         spoofedRecordOffset.set(0);
 
-        doNothing().when(mockedStorageWriteApiDefaultStream).appendRows(any(), any(), eq(null));
+        doNothing().when(mockedStorageWriteApiDefaultStream).appendRows(any(), any(), eq(DEFAULT));
         doNothing().when(mockedStorageWriteApiDefaultStream).shutdown();
 
         testTask.initialize(sinkTaskContext);
@@ -78,14 +79,14 @@ public class BigQueryStorageApiSinkTaskTest {
         testTask.put(Collections.singletonList(spoofSinkRecord()));
         testTask.flush(Collections.emptyMap());
 
-        verify(mockedStorageWriteApiDefaultStream, times(1)).appendRows(any(), any(), eq(null));
+        verify(mockedStorageWriteApiDefaultStream, times(1)).appendRows(any(), any(), eq(DEFAULT));
     }
 
     @Test(expected = BigQueryConnectException.class)
     public void testSimplePutException() throws Exception {
         BigQueryStorageWriteApiConnectException exception = new BigQueryStorageWriteApiConnectException("error 12345");
 
-        doThrow(exception).when(mockedStorageWriteApiDefaultStream).appendRows(any(), any(),eq(null));
+        doThrow(exception).when(mockedStorageWriteApiDefaultStream).appendRows(any(), any(),eq(DEFAULT));
 
         testTask.put(Collections.singletonList(spoofSinkRecord()));
         try {

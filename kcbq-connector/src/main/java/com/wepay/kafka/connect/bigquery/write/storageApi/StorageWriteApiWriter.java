@@ -28,6 +28,7 @@ public class StorageWriteApiWriter implements Runnable {
     private final TableName tableName;
     private final List<Object[]> records;
     private final String streamName;
+    public static final String DEFAULT= "default";
 
     /**
      *
@@ -109,7 +110,7 @@ public class StorageWriteApiWriter implements Runnable {
          */
         @Override
         public Runnable build() {
-            return new StorageWriteApiWriter(tableName, streamWriter, records, null);
+            return new StorageWriteApiWriter(tableName, streamWriter, records, DEFAULT);
         }
     }
 }
