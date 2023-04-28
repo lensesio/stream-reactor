@@ -161,10 +161,10 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
     @Override
     public boolean mayBeCreateStream(String tableName, List<Object[]> rows) {
         String streamName = this.currentStreams.get(tableName);
-        boolean result = (streamName == null) ||
+        boolean shouldCreateNewStream = (streamName == null) ||
                 (this.streams.get(tableName).get(streamName) != null
                         && this.streams.get(tableName).get(streamName).canTransitionToNonActive());
-        if (result) {
+        if (shouldCreateNewStream) {
             logger.trace("Attempting to create new stream on table {}", tableName);
             return this.createStream(tableName, streamName, rows);
         }

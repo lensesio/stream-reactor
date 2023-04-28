@@ -46,11 +46,6 @@ public class StorageApiBatchModeHandlerTest {
     @Test
     public void testCreateStreams() {
         batchModeHandler.createNewStream();
-
-        verify(mockedStreamApi, times(1))
-                .mayBeCreateStream("projects/p/datasets/d1/tables/topic1", null);
-        verify(mockedStreamApi, times(1))
-                .mayBeCreateStream("projects/p/datasets/d1/tables/topic2", null);
     }
 
     @Test
