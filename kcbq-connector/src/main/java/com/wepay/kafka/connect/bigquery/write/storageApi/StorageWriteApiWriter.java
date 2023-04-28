@@ -28,6 +28,7 @@ public class StorageWriteApiWriter implements Runnable {
     private final TableName tableName;
     private final List<Object[]> records;
     private final String streamName;
+    public static final String DEFAULT= "default";
 
     /**
      *
@@ -46,6 +47,10 @@ public class StorageWriteApiWriter implements Runnable {
 
     @Override
     public void run() {
+        if(records.size() == 0) {
+            logger.debug("There are no records, skipping...");
+            return;
+        }
         logger.debug("Putting {} records into {} stream", records.size(), streamName);
         streamWriter.initializeAndWriteRecords(tableName, records, streamName);
     }
@@ -110,7 +115,7 @@ public class StorageWriteApiWriter implements Runnable {
          */
         @Override
         public Runnable build() {
-            String streamName = null;
+            String streamName = DEFAULT;
             if (streamWriter instanceof StorageWriteApiBatchApplicationStream) {
                 streamName = batchModeHandler.updateOffsetsOnStream(tableName.toString(), records);
             }
