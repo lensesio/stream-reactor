@@ -32,10 +32,5 @@ class S3SourceLister(format: Format)(implicit sourceStorageInterface: SourceStor
     lastFile:        Option[RemoteS3PathLocation],
     numResults:      Int,
   ): Either[Throwable, List[RemoteS3PathLocation]] =
-    for {
-      list <- sourceStorageInterface.list(bucketAndPrefix, lastFile, numResults)
-    } yield list.collect {
-      case path: String if path.toLowerCase.endsWith(format.entryName.toLowerCase) => bucketAndPrefix.withPath(path)
-    }
-
+    sourceStorageInterface.list(bucketAndPrefix, lastFile, numResults).map(_.map(bucketAndPrefix.withPath))
 }

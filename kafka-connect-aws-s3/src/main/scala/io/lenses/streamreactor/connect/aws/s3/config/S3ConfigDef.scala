@@ -16,7 +16,6 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import cats.implicits.catsSyntaxEitherId
-import cats.implicits.toBifunctorOps
 import com.datamountaineer.streamreactor.common.config.base.traits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.processors.ConfigDefProcessor
@@ -98,13 +97,6 @@ object S3ConfigDef {
       "",
       Importance.LOW,
       s"Local tmp directory for preparing the files",
-    )
-    .define(
-      LOG_LEVEL_OVERRIDE,
-      Type.STRING,
-      "DEFAULT",
-      Importance.LOW,
-      LOG_LEVEL_OVERRIDE_DOC,
     )
     .define(KCQL_CONFIG, Type.STRING, Importance.HIGH, KCQL_DOC)
     .define(
@@ -305,10 +297,7 @@ case class S3ConfigDefBuilder(sinkName: Option[String], props: util.Map[String, 
     with ConnectionSettings
     with S3FlushSettings
     with CompressionCodecSettings
-    with PaddingStrategySettings
-    with LogOverrideSettings {
-
-  configureLoggingOverrides().leftMap(throw _)
+    with PaddingStrategySettings {
 
   def getParsedValues: Map[String, _] = values().asScala.toMap
 
