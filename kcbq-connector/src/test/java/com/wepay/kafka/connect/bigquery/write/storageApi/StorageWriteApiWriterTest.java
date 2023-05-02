@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -45,9 +46,9 @@ public class StorageWriteApiWriterTest {
         expectedKeys.add("name");
         expectedKeys.add("available_name");
         expectedKeys.add("i_am_kafka_key");
+        expectedKeys.add("i_am_kafka_record_detail");
 
-
-        Mockito.when(mockedConfig.getKafkaDataFieldName()).thenReturn(Optional.empty());
+        Mockito.when(mockedConfig.getKafkaDataFieldName()).thenReturn(Optional.of("i_am_kafka_record_detail"));
         Mockito.when(mockedConfig.getKafkaKeyFieldName()).thenReturn(Optional.of("i_am_kafka_key"));
         Mockito.when(mockedConfig.getBoolean(BigQuerySinkConfig.SANITIZE_FIELD_NAME_CONFIG)).thenReturn(true);
 
@@ -63,6 +64,9 @@ public class StorageWriteApiWriterTest {
 
         String actualKafkaKey = actual.get("i_am_kafka_key").toString();
         assertEquals(expectedKafkaKey, actualKafkaKey);
+
+        JSONObject recordDetails = (JSONObject) actual.get("i_am_kafka_record_detail");
+        assertTrue(recordDetails.get("insertTime") instanceof Long);
     }
 
     private SinkRecord createRecord(String topic, long offset) {
