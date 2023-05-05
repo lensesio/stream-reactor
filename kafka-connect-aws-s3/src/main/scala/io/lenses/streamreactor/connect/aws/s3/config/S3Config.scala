@@ -116,10 +116,8 @@ case object FormatSelection {
   def fromKcql(
     kcql: Kcql,
   ): FormatSelection =
-    Option(kcql.getStoredAs) match {
-      case Some(format: String) => FormatSelection.fromString(format)
-      case None => FormatSelection(Json, Set.empty)
-    }
+    Option(kcql.getStoredAs).map(FormatSelection.fromString).getOrElse(FormatSelection(Json, Set.empty))
+
   def fromString(
     formatAsString: String,
   ): FormatSelection = {

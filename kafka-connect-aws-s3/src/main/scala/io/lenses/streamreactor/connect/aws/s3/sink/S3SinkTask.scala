@@ -45,7 +45,8 @@ import scala.util.Try
 
 class S3SinkTask extends SinkTask with ErrorHandler {
 
-  implicit val contextPropsFn: () => util.Map[String, String] = SinkContextReader.getProps(() => context)
+  private val choosePropsFn: util.Map[String, String] => Either[String, util.Map[String, String]] =
+    SinkContextReader.getProps(() => context.configs())
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
@@ -55,16 +56,17 @@ class S3SinkTask extends SinkTask with ErrorHandler {
 
   override def version(): String = manifest.version()
 
-  override def start(props: util.Map[String, String]): Unit = {
+  override def start(fallbackProps: util.Map[String, String]): Unit = {
 
     printAsciiHeader(manifest, "/aws-s3-sink-ascii.txt")
 
-    connectorTaskId = ConnectorTaskId.fromProps(props)
+    connectorTaskId = ConnectorTaskId.fromProps(fallbackProps)
 
     logger.debug(s"[{}] S3SinkTask.start", connectorTaskId.show)
 
     val errOrWriterMan = for {
-      config           <- S3SinkConfig.fromProps(props, contextPropsFn())
+      props            <- choosePropsFn(fallbackProps)
+      config           <- S3SinkConfig.fromProps(props)
       authResources     = new AuthResources(config.s3Config)
       storageInterface <- config.s3Config.awsClient.createStorageInterface(authResources)
       _                <- Try(setErrorRetryInterval(config.s3Config)).toEither

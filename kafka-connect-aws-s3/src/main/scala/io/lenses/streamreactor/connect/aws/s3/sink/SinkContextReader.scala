@@ -15,15 +15,23 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import org.apache.kafka.connect.sink.SinkTaskContext
-
 import java.util
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
 
 object SinkContextReader {
 
-  def getProps(context: () => SinkTaskContext)(): util.Map[String, String] =
-    Try(context().configs()).getOrElse(Map().asJava)
+  def getProps(
+    contextPropsFn: () => util.Map[String, String],
+  )(fallbackProps:  util.Map[String, String],
+  ): Either[String, util.Map[String, String]] =
+    choosePropsMap(
+      Try(contextPropsFn()).toOption,
+      Option(fallbackProps),
+    ).toRight("No props found")
+
+  private def choosePropsMap(
+    propsMaps: Option[util.Map[String, String]]*,
+  ): Option[util.Map[String, String]] =
+    propsMaps.filter(_ != null).find(_.nonEmpty).flatten
 
 }

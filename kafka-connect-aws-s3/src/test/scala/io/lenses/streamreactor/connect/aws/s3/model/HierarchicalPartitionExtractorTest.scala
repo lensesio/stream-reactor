@@ -24,4 +24,6 @@ class HierarchicalPartitionExtractorTest extends AnyFlatSpecLike with LazyLoggin
   val hpe = new HierarchicalPartitionExtractor()
   logger.info("REG: {}", hpe.pathRegex)
 
+  // TODO: Add tests
+
 }

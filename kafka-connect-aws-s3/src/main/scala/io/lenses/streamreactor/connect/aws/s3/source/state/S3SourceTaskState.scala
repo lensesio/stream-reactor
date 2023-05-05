@@ -19,17 +19,12 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocatio
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import org.apache.kafka.connect.source.SourceRecord
 
-import java.time.Clock
 import java.util
 
 trait S3SourceTaskState {
   def start(
-    props: util.Map[String, String],
-  )(
-    implicit
-    contextPropsFn:  () => util.Map[String, String],
+    props:           util.Map[String, String],
     contextOffsetFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine],
-    clock:           Clock,
   ):           Either[Throwable, S3SourceTaskState]
   def close(): S3SourceTaskState
   def poll():  Either[Throwable, Seq[SourceRecord]]

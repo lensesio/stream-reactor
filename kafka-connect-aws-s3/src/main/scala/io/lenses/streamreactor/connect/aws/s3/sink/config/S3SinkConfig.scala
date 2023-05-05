@@ -35,13 +35,12 @@ import java.util
 object S3SinkConfig {
 
   def fromProps(
-    props:        util.Map[String, String],
-    contextProps: util.Map[String, String],
+    props: util.Map[String, String],
   )(
     implicit
     connectorTaskId: ConnectorTaskId,
   ): Either[Throwable, S3SinkConfig] =
-    S3SinkConfig(S3SinkConfigDefBuilder(props, contextProps))
+    S3SinkConfig(S3SinkConfigDefBuilder(props))
 
   def apply(
     s3ConfigDefBuilder: S3SinkConfigDefBuilder,

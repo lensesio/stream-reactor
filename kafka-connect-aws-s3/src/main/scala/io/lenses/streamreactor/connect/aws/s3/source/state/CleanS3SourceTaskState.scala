@@ -22,19 +22,14 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocatio
 import io.lenses.streamreactor.connect.aws.s3.source.WrappedSourceException
 import org.apache.kafka.connect.source.SourceRecord
 
-import java.time.Clock
 import java.util
 
 object CleanS3SourceTaskState extends S3SourceTaskState with LazyLogging {
 
   override def start(
-    props: util.Map[String, String],
-  )(
-    implicit
-    contextPropsFn:  () => util.Map[String, String],
+    props:           util.Map[String, String],
     contextOffsetFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine],
-    clock:           Clock,
-  ): Either[Throwable, S3SourceTaskState] = OpenS3SourceTaskState(props)
+  ): Either[Throwable, S3SourceTaskState] = OpenS3SourceTaskState(props, contextOffsetFn)
 
   override def close(): S3SourceTaskState = this
 
