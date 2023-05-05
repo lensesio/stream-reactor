@@ -46,30 +46,22 @@ class OpenS3SourceTaskState(
       .asRight[Throwable]
 
   override def start(
-    props: util.Map[String, String],
-  )(
-    implicit
-    contextPropsFn:  () => util.Map[String, String],
+    props:           util.Map[String, String],
     contextOffsetFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine],
-    clock:           Clock,
   ): Either[Throwable, S3SourceTaskState] = new ConnectException("Cannot start").asLeft
 
 }
 
 object OpenS3SourceTaskState {
   def apply(
-    props: util.Map[String, String],
-  )(
-    implicit
-    contextPropsFn:  () => util.Map[String, String],
+    props:           util.Map[String, String],
     contextOffsetFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine],
-    clock:           Clock,
   ): Either[Throwable, OpenS3SourceTaskState] = {
     implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId.fromProps(props)
 
     {
       for {
-        config           <- S3SourceConfig.fromProps(props, contextPropsFn())
+        config           <- S3SourceConfig.fromProps(props)
         authResources     = new AuthResources(config.s3Config)
         storageInterface <- config.s3Config.awsClient.createStorageInterface(authResources)
         partitionSearcher = new PartitionSearcher(

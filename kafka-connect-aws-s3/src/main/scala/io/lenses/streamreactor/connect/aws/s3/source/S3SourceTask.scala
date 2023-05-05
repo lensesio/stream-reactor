@@ -18,23 +18,24 @@ package io.lenses.streamreactor.connect.aws.s3.source
 import cats.implicits.toBifunctorOps
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
+import fs2.io.net.ConnectException
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.sink.SinkContextReader
 import io.lenses.streamreactor.connect.aws.s3.source.state.CleanS3SourceTaskState
 import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceTaskState
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask
 
-import java.time.Clock
 import java.util
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class S3SourceTask extends SourceTask with LazyLogging {
 
-  implicit val contextPropsFn: () => util.Map[String, String] = SourceContextReader.getProps(() => context)
-  implicit val contextOffsetFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine] =
+  private val choosePropsFn: util.Map[String, String] => Either[String, util.Map[String, String]] =
+    SinkContextReader.getProps(() => context.configs())
+  private val contextOffsetFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine] =
     SourceContextReader.getCurrentOffset(() => context)
-  implicit val clock: Clock = Clock.systemDefaultZone()
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
@@ -48,10 +49,15 @@ class S3SourceTask extends SourceTask with LazyLogging {
   override def start(props: util.Map[String, String]): Unit = {
 
     logger.debug(s"Received call to S3SourceTask.start with ${props.size()} properties")
-    s3SourceTaskState = s3SourceTaskState
-      .start(props)
-      .leftMap(throw _)
-      .merge
+
+    {
+      for {
+        props <- choosePropsFn(props).leftMap(new ConnectException(_))
+        state <- s3SourceTaskState.start(props, contextOffsetFn)
+      } yield state
+    }.leftMap(throw _).merge
+    ()
+
   }
 
   override def stop(): Unit = {

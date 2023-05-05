@@ -133,19 +133,6 @@ class S3SinkConfigDef() extends ConfigDef with LazyLogging {
 
 }
 
-object S3SinkConfigDefBuilder {
-  def apply(
-    props:        util.Map[String, String],
-    contextProps: util.Map[String, String],
-  ): S3SinkConfigDefBuilder =
-    S3SinkConfigDefBuilder(
-      Option(contextProps)
-        .filterNot(_.isEmpty)
-        .getOrElse(props),
-    )
-
-}
-
 case class S3SinkConfigDefBuilder(props: util.Map[String, String])
     extends BaseConfig(S3ConfigSettings.CONNECTOR_PREFIX, S3SinkConfigDef.config, props)
     with KcqlSettings

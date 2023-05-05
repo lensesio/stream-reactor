@@ -24,24 +24,19 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PAR
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 
-import java.time.Clock
 import java.util
 import scala.util.Try
 
 object S3SourceConfig {
 
   def fromProps(
-    props:        util.Map[String, String],
-    contextProps: util.Map[String, String],
-  )(
-    implicit
-    clock: Clock,
+    props: util.Map[String, String],
   ): Either[Throwable, S3SourceConfig] =
     Try(
-      S3SourceConfig(S3SourceConfigDefBuilder(props, contextProps)),
+      S3SourceConfig(S3SourceConfigDefBuilder(props)),
     ).toEither
 
-  def apply(s3ConfigDefBuilder: S3SourceConfigDefBuilder)(implicit clock: Clock): S3SourceConfig = {
+  def apply(s3ConfigDefBuilder: S3SourceConfigDefBuilder): S3SourceConfig = {
     val parsedValues = s3ConfigDefBuilder.getParsedValues
     S3SourceConfig(
       S3Config(parsedValues),
