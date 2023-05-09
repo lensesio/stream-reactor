@@ -61,15 +61,15 @@ abstract class AwsS3DirectoryLister(
       for {
         ioPrefixes <- IO.delay(prefixes)
         bap        <- IO.delay(ioPrefixes.map(bucketAndPrefix.fromRoot))
-        recursiveResult <- bap
-          .map(
+        recursiveResult <- bap.toList
+          .traverse(
             findDirectories(
               _,
               completionConfig.copy(levelsToRecurse = completionConfig.levelsToRecurse - 1),
               exclude,
               Option.empty,
             ).map(_.partitions),
-          ).toList.sequence.map {
+          ).map {
             listSetString: List[Set[String]] =>
               listSetString.toSet.flatten
           }

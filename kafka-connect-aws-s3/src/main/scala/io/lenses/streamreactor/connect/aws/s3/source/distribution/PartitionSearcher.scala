@@ -40,21 +40,19 @@ class PartitionSearcher(
   def findNewPartitions(
     lastFound: Seq[PartitionSearcherResponse],
   ): IO[Seq[PartitionSearcherResponse]] =
-    IO {
-      (if (lastFound.isEmpty && roots.nonEmpty) {
-         roots.map(findNewPartitionsInRoot(_, settings, Set.empty, Option.empty))
-       } else {
-         lastFound.map {
-           prevResponse =>
-             findNewPartitionsInRoot(
-               prevResponse.root,
-               settings,
-               prevResponse.allPartitions,
-               resumeFrom(prevResponse),
-             )
-         }
-       }).sequence
-    }.flatMap(identity)
+    if (lastFound.isEmpty && roots.nonEmpty) {
+      roots.traverse(findNewPartitionsInRoot(_, settings, Set.empty, Option.empty))
+    } else {
+      lastFound.traverse {
+        prevResponse =>
+          findNewPartitionsInRoot(
+            prevResponse.root,
+            settings,
+            prevResponse.allPartitions,
+            resumeFrom(prevResponse),
+          )
+      }
+    }
 
   private def findNewPartitionsInRoot(
     root:       RemoteS3RootLocation,
@@ -62,29 +60,26 @@ class PartitionSearcher(
     exclude:    Set[String],
     resumeFrom: Option[String],
     maybeClock: Option[Clock] = Option.empty,
-  ): IO[PartitionSearcherResponse] = {
-    IO {
-      for {
-        originalPartitions <- IO.delay(exclude)
-        clock               = maybeClock.getOrElse(Clock.systemDefaultZone())
-        foundPartitions <-
-          storageInterface.findDirectories(
-            root,
-            DirectoryFindCompletionConfig.fromSearchOptions(settings, clock),
-            originalPartitions,
-            resumeFrom,
-          )
-        _ <- IO(logger.debug("[{}] Found new partitions {} under {}", connectorTaskId.show, foundPartitions, root))
+  ): IO[PartitionSearcherResponse] =
+    for {
+      originalPartitions <- IO.delay(exclude)
+      clock               = maybeClock.getOrElse(Clock.systemDefaultZone())
+      foundPartitions <-
+        storageInterface.findDirectories(
+          root,
+          DirectoryFindCompletionConfig.fromSearchOptions(settings, clock),
+          originalPartitions,
+          resumeFrom,
+        )
+      _ <- IO(logger.debug("[{}] Found new partitions {} under {}", connectorTaskId.show, foundPartitions, root))
 
-      } yield PartitionSearcherResponse(
-        root,
-        clock.instant(),
-        originalPartitions ++ foundPartitions.partitions,
-        foundPartitions,
-        Option.empty,
-      )
-    }
-  }.flatten
+    } yield PartitionSearcherResponse(
+      root,
+      clock.instant(),
+      originalPartitions ++ foundPartitions.partitions,
+      foundPartitions,
+      Option.empty,
+    )
 
   private def resumeFrom(prevResponse: PartitionSearcherResponse) =
     prevResponse.results match {
