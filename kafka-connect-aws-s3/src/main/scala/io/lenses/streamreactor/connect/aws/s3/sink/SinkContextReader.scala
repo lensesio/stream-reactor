@@ -15,23 +15,23 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import cats.implicits.catsSyntaxEitherId
+
 import java.util
+import java.util.Collections
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 
 object SinkContextReader {
 
-  def getProps(
+  def mergeProps(
     contextPropsFn: () => util.Map[String, String],
   )(fallbackProps:  util.Map[String, String],
-  ): Either[String, util.Map[String, String]] =
-    choosePropsMap(
-      Try(contextPropsFn()).toOption,
-      Option(fallbackProps),
-    ).toRight("No props found")
-
-  private def choosePropsMap(
-    propsMaps: Option[util.Map[String, String]]*,
-  ): Option[util.Map[String, String]] =
-    propsMaps.filter(_ != null).find(_.nonEmpty).flatten
+  ): Either[String, util.Map[String, String]] = {
+    val context  = Try(contextPropsFn()).toOption.getOrElse(Collections.emptyMap())
+    val fallback = Option(fallbackProps).getOrElse(Collections.emptyMap())
+    fallback.asScala.addAll(context.asScala).asJava.asRight
+  }
 
 }

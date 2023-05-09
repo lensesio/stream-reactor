@@ -59,7 +59,7 @@ class S3Container(
 
 object S3Container {
   private val dockerImage         = DockerImageName.parse("andrewgaul/s3proxy")
-  private val defaultTag          = "s3proxy-1.9.0"
+  private val defaultTag          = "sha-ba0fd6d"
   private val defaultNetworkAlias = "s3"
   private val defaultPort         = 8080
 

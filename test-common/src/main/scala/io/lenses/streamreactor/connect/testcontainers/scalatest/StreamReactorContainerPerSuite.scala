@@ -86,12 +86,13 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
 
   private def connectPluginPath(): String = {
     val regex           = s".*$connectorModule.*.jar"
-    val files = Files.find(
-      artifactDir,
-      5,
-      (p, _) => p.toFile.getName.matches(regex),
-    ).iterator().asScala
-    Try(files.next()) match {
+    Try{
+      Files
+        .find(artifactDir, 5, (p, _) => p.toFile.getName.matches(regex))
+        .iterator()
+        .asScala
+        .next()
+    } match {
       case Failure(exception) => fail(s"""Please run `sbt "project $connectorModule" assembly""", exception)
       case Success(nextFile) => nextFile.getParent.toString
     }

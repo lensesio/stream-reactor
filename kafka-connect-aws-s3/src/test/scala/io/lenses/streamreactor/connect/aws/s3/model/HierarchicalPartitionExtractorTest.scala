@@ -15,15 +15,29 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.model
 
+import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.source.config.HierarchicalPartitionExtractor
 import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
 
-class HierarchicalPartitionExtractorTest extends AnyFlatSpecLike with LazyLogging {
+class HierarchicalPartitionExtractorTest extends AnyFlatSpecLike with Matchers with LazyLogging {
 
-  val hpe = new HierarchicalPartitionExtractor()
-  logger.info("REG: {}", hpe.pathRegex)
+  private val hpe = new HierarchicalPartitionExtractor()
 
-  // TODO: Add tests
+  "apply" should "parse a flattish path" in {
+    val path = "topic/123/1.csv"
+    hpe.extract(path) should be(123.some)
+  }
+
+  "apply" should "parse a path with long prefix" in {
+    val path = "a/b/c/d/e/f/topic/456/1.json"
+    hpe.extract(path) should be(456.some)
+  }
+
+  "apply" should "parse a path that starts with a slash" in {
+    val path = "/topic/789/1.json"
+    hpe.extract(path) should be(789.some)
+  }
 
 }

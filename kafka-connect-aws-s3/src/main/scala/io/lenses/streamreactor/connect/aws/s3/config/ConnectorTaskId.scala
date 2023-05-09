@@ -45,11 +45,13 @@ object ConnectorTaskId {
   val defaultConnectorName = "MissingConnectorName"
 
   def fromProps(props: util.Map[String, String]): ConnectorTaskId = {
-    val taskIndex     = props.get(TASK_INDEX).split(":")
-    val maybeTaskName = Option(props.get("name")).filter(_.trim.nonEmpty)
-    val taskName      = maybeTaskName.getOrElse(defaultConnectorName)
-    InitedConnectorTaskId(taskName, taskIndex.head.toInt, taskIndex.last.toInt)
+    for {
+      taskIndexString <- Option(props.get(TASK_INDEX))
+      taskIndex        = taskIndexString.split(":")
+      maybeTaskName   <- Option(props.get("name")).filter(_.trim.nonEmpty)
+    } yield InitedConnectorTaskId(maybeTaskName, taskIndex.head.toInt, taskIndex.last.toInt)
   }
+    .getOrElse(DefaultConnectorTaskId)
 
   implicit val showConnector: Show[ConnectorTaskId] = Show.show(_.name)
 

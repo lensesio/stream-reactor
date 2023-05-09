@@ -30,11 +30,12 @@ import org.apache.kafka.connect.source.SourceTask
 
 import java.util
 import scala.jdk.CollectionConverters.SeqHasAsJava
-
+import SinkContextReader._
 class S3SourceTask extends SourceTask with LazyLogging {
 
-  private val choosePropsFn: util.Map[String, String] => Either[String, util.Map[String, String]] =
-    SinkContextReader.getProps(() => context.configs())
+  private val mergePropsFn: util.Map[String, String] => Either[String, util.Map[String, String]] =
+    mergeProps(() => context.configs())
+
   private val contextOffsetFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine] =
     SourceContextReader.getCurrentOffset(() => context)
 
@@ -53,9 +54,9 @@ class S3SourceTask extends SourceTask with LazyLogging {
 
     logger.debug(s"Received call to S3SourceTask.start with ${props.size()} properties")
 
-    {
+    s3SourceTaskState = {
       for {
-        props <- choosePropsFn(props).leftMap(new ConnectException(_))
+        props <- mergePropsFn(props).leftMap(new ConnectException(_))
         state <- s3SourceTaskState.start(props, contextOffsetFn)
       } yield state
     }.leftMap(throw _).merge

@@ -45,7 +45,7 @@ trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with Laz
   lazy val helper:   RemoteFileHelper = helperOpt.getOrElse(throw new IllegalStateException("Test not initialised"))
 
   override val container: GenericContainer = GenericContainer(
-    dockerImage  = "andrewgaul/s3proxy:s3proxy-1.9.0",
+    dockerImage  = "andrewgaul/s3proxy:sha-ba0fd6d",
     exposedPorts = Seq(Port),
     env = Map[String, String](
       "S3PROXY_ENDPOINT" -> ("http://0.0.0.0:" + Port),

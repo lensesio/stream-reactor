@@ -42,11 +42,12 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
+import SinkContextReader._
 
 class S3SinkTask extends SinkTask with ErrorHandler {
 
-  private val choosePropsFn: util.Map[String, String] => Either[String, util.Map[String, String]] =
-    SinkContextReader.getProps(() => context.configs())
+  private val mergePropsFn: util.Map[String, String] => Either[String, util.Map[String, String]] =
+    mergeProps(() => context.configs())
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
@@ -65,7 +66,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
     logger.debug(s"[{}] S3SinkTask.start", connectorTaskId.show)
 
     val errOrWriterMan = for {
-      props            <- choosePropsFn(fallbackProps)
+      props            <- mergePropsFn(fallbackProps)
       config           <- S3SinkConfig.fromProps(props)
       authResources     = new AuthResources(config.s3Config)
       storageInterface <- config.s3Config.awsClient.createStorageInterface(authResources)
