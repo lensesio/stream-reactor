@@ -56,11 +56,11 @@ abstract class AwsS3DirectoryLister(
     completionConfig: DirectoryFindCompletionConfig,
     exclude:          Set[String],
   ): IO[Set[String]] =
-    if (completionConfig.levelsToRecurse == 0) IO.pure(prefixes)
+    if (completionConfig.levelsToRecurse == 0) IO.delay(prefixes)
     else
       for {
-        ioPrefixes <- IO.pure(prefixes)
-        bap        <- IO.pure(ioPrefixes.map(bucketAndPrefix.fromRoot))
+        ioPrefixes <- IO.delay(prefixes)
+        bap        <- IO.delay(ioPrefixes.map(bucketAndPrefix.fromRoot))
         recursiveResult <- bap
           .map(
             findDirectories(
@@ -81,7 +81,7 @@ abstract class AwsS3DirectoryLister(
     bucketAndPrefix: RemoteS3RootLocation,
     lastFound:       Option[String],
   ): IO[ListObjectsV2Request] =
-    IO.pure {
+    IO.delay {
       val builder = ListObjectsV2Request
         .builder()
         .maxKeys(1000)

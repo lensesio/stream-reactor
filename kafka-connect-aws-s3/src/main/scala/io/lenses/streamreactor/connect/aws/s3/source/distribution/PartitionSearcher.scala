@@ -65,7 +65,7 @@ class PartitionSearcher(
   ): IO[PartitionSearcherResponse] = {
     IO {
       for {
-        originalPartitions <- IO.pure(exclude)
+        originalPartitions <- IO.delay(exclude)
         clock               = maybeClock.getOrElse(Clock.systemDefaultZone())
         foundPartitions <-
           storageInterface.findDirectories(
