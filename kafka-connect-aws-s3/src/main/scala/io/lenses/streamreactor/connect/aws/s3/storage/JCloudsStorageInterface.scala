@@ -19,18 +19,23 @@ import cats.effect.IO
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import org.apache.commons.io.IOUtils
 import org.apache.kafka.connect.errors.ConnectException
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.blobstore.domain.StorageType
 import org.jclouds.blobstore.options.ListContainerOptions
 
-import java.io.{File, InputStream}
+import java.io.File
+import java.io.InputStream
 import java.nio.charset.Charset
 import java.time.Instant
-import scala.jdk.CollectionConverters.{CollectionHasAsScala, SeqHasAsJava}
-import scala.util.{Failure, Success, Try}
+import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 class JCloudsStorageInterface(blobStoreContext: BlobStoreContext)(implicit connectorTaskId: ConnectorTaskId)
     extends StorageInterface

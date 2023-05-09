@@ -45,7 +45,7 @@ class ResultReader(
           results,
           reader.getBucketAndPath,
           targetTopic,
-          partitionFn
+          partitionFn,
         ),
       )
     }

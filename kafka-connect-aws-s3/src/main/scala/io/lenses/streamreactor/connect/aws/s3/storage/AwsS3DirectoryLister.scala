@@ -24,7 +24,8 @@ import software.amazon.awssdk.services.s3.model._
 import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable
 
 import scala.collection.mutable
-import scala.jdk.CollectionConverters.{IteratorHasAsScala, ListHasAsScala}
+import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 abstract class AwsS3DirectoryLister(
   implicit

@@ -26,14 +26,18 @@ object WithSizesBytesOutputRowReader {
 
     var bytesRead: Int = 0
 
-    val keySize: Option[Long] = Option.when(readKey) {
+    val keySize: Option[Long] = if (readKey) {
       bytesRead += java.lang.Long.BYTES
-      inputStream.readLong()
+      Option(inputStream.readLong())
+    } else {
+      None
     }
 
-    val valSize: Option[Long] = Option.when(readValue) {
+    val valSize: Option[Long] = if (readValue) {
       bytesRead += java.lang.Long.BYTES
-      inputStream.readLong()
+      Option(inputStream.readLong())
+    } else {
+      None
     }
 
     val theKey: Array[Byte] = readSegmentFromInputStream(inputStream, keySize)

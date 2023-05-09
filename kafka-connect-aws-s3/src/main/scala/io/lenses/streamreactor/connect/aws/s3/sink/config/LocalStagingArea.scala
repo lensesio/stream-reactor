@@ -22,16 +22,9 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.LOCAL_TMP_
 import java.io.File
 import java.nio.file.Files
 import java.util.UUID
+import scala.util.Try
 
 object LocalStagingArea {
-
-  private def createLocalDirBasedOnSinkName(implicit connectorTaskId: ConnectorTaskId): String =
-    Files.createTempDirectory(s"${connectorTaskId.show}.${UUID.randomUUID().toString}").toAbsolutePath.toString
-
-  private def getStringValue(props: Map[String, _], key: String): Option[String] =
-    props.get(key).collect {
-      case value: String if value.trim.nonEmpty => value.trim
-    }
 
   def apply(
     confDef: S3SinkConfigDefBuilder,
@@ -40,18 +33,35 @@ object LocalStagingArea {
     connectorTaskId: ConnectorTaskId,
   ): Either[Exception, LocalStagingArea] =
     getStringValue(confDef.getParsedValues, LOCAL_TMP_DIRECTORY)
-      .orElse {
-        Option.when(!connectorTaskId.hasDefaultConnectorName)(createLocalDirBasedOnSinkName)
-      }.map {
-        value: String =>
-          val stagingDir = new File(value)
-          stagingDir.mkdirs()
-          LocalStagingArea(stagingDir).asRight
-      }.getOrElse(
+      .fold(useTmpDir)(useConfiguredDir)
+      .leftMap(
         new IllegalStateException(
           s"Either a local temporary directory ($LOCAL_TMP_DIRECTORY) or a Sink Name (name) must be configured.",
-        ).asLeft[LocalStagingArea],
+          _,
+        ),
       )
+
+  private def useConfiguredDir(dirName: String): Either[Throwable, LocalStagingArea] =
+    Try {
+      val stagingDir = new File(dirName)
+      stagingDir.mkdirs()
+      LocalStagingArea(stagingDir)
+    }.toEither
+  private def useTmpDir(implicit connectorTaskId: ConnectorTaskId): Either[Throwable, LocalStagingArea] =
+    for {
+      _ <- if (connectorTaskId.hasDefaultConnectorName) {
+        new IllegalArgumentException("No connector name specified").asLeft
+      } else ().asRight
+      stagDir <- Try {
+        val stagingDir = Files.createTempDirectory(s"${connectorTaskId.show}.${UUID.randomUUID().toString}").toFile
+        LocalStagingArea(stagingDir)
+      }.toEither
+    } yield stagDir
+
+  private def getStringValue(props: Map[String, _], key: String): Option[String] =
+    props.get(key).collect {
+      case value: String if value.trim.nonEmpty => value.trim
+    }
 
 }
 

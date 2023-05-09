@@ -23,7 +23,7 @@ case class PollResults(
   resultList:    Vector[_ <: SourceData],
   bucketAndPath: RemoteS3PathLocation,
   targetTopic:   String,
-  partitionFn: String => Option[Int],
+  partitionFn:   String => Option[Int],
 ) {
 
   def toSourceRecordList: Vector[SourceRecord] =

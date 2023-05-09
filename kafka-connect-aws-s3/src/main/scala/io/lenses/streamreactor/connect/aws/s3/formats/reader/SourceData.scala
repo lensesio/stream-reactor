@@ -37,7 +37,7 @@ abstract class SourceData(lineNumber: Long) {
   def toSourceRecord(
     bucketAndPath: RemoteS3PathLocation,
     targetTopic:   String,
-    partitionFn: String => Option[Int],
+    partitionFn:   String => Option[Int],
   ): SourceRecord = representationKey match {
     case Some(key) =>
       new SourceRecord(

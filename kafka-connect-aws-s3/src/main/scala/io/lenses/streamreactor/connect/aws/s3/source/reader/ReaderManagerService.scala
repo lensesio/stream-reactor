@@ -27,18 +27,18 @@ import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearc
 import java.time.Instant
 
 case class ReaderManagerState(
-                               partitionResponses: Seq[PartitionSearcherResponse],
-                               readerManagers: Seq[ReaderManager],
-                             ) {
+  partitionResponses: Seq[PartitionSearcherResponse],
+  readerManagers:     Seq[ReaderManager],
+) {
   def lastSearchTime: Option[Instant] = partitionResponses.map(_.lastSearchTime).minOption
 
 }
 
 class ReaderManagerService(
-                            settings: PartitionSearcherOptions,
-                            partitionSearcher: PartitionSearcher,
-                            readerManagerCreateFn: (RemoteS3RootLocation, String) => ReaderManager,
-                          ) extends LazyLogging {
+  settings:              PartitionSearcherOptions,
+  partitionSearcher:     PartitionSearcher,
+  readerManagerCreateFn: (RemoteS3RootLocation, String) => ReaderManager,
+) extends LazyLogging {
 
   private val readerManagerState: Ref[IO, ReaderManagerState] =
     Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty)).unsafeRunSync()
@@ -50,9 +50,9 @@ class ReaderManagerService(
 
   private def launchDiscover(): IO[Unit] = {
     for {
-      ioState <- readerManagerState.get
+      ioState       <- readerManagerState.get
       lastSearchTime = ioState.lastSearchTime
-      rediscoverDue = settings.rediscoverDue(lastSearchTime)
+      rediscoverDue  = settings.rediscoverDue(lastSearchTime)
     } yield {
       if (rediscoverDue && settings.blockOnSearch) {
         rediscover()
@@ -66,7 +66,7 @@ class ReaderManagerService(
 
   private def rediscover(): IO[Unit] =
     for {
-      _ <- IO(logger.debug("calculating updated state"))
+      _        <- IO(logger.debug("calculating updated state"))
       oldState <- readerManagerState.get
       newParts <- partitionSearcher.findNewPartitions(oldState.partitionResponses)
       newReaderManagers = newParts
@@ -76,7 +76,7 @@ class ReaderManagerService(
         }
       newState = oldState.copy(
         partitionResponses = newParts,
-        readerManagers = oldState.readerManagers ++ newReaderManagers,
+        readerManagers     = oldState.readerManagers ++ newReaderManagers,
       )
       _ <- readerManagerState.set(newState)
     } yield ()

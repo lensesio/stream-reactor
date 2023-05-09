@@ -48,7 +48,7 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
         Vector(result1),
         readerBucketAndPath,
         targetTopic,
-        partitionFn
+        partitionFn,
       ),
     ))
   }
@@ -67,7 +67,7 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
         ),
         readerBucketAndPath,
         targetTopic,
-        partitionFn
+        partitionFn,
       ),
     ))
   }
@@ -90,7 +90,7 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
         Vector(result1, result2),
         readerBucketAndPath,
         targetTopic,
-        partitionFn
+        partitionFn,
       ),
     ))
 
@@ -99,7 +99,7 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
         Vector(result3),
         readerBucketAndPath,
         targetTopic,
-        partitionFn
+        partitionFn,
       ),
     ))
   }
