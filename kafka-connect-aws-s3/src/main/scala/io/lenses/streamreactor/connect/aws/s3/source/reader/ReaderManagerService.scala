@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.source.reader
 
 import cats.effect.IO
+import cats.effect.kernel.Ref
 import cats.effect.unsafe.implicits.global
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
@@ -24,7 +25,6 @@ import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearc
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcherResponse
 
 import java.time.Instant
-import java.util.concurrent.atomic.AtomicReference
 
 case class ReaderManagerState(
   partitionResponses: Seq[PartitionSearcherResponse],
@@ -40,50 +40,50 @@ class ReaderManagerService(
   readerManagerCreateFn: (RemoteS3RootLocation, String) => ReaderManager,
 ) extends LazyLogging {
 
-  private val readerManagerState: AtomicReference[ReaderManagerState] =
-    new AtomicReference(ReaderManagerState(Seq.empty, Seq.empty))
+  private val readerManagerState: Ref[IO, ReaderManagerState] =
+    Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty)).unsafeRunSync()
 
   def getReaderManagers: Seq[ReaderManager] = {
     launchDiscover().unsafeRunSync()
-    readerManagerState.get().readerManagers
+    readerManagerState.get.map(_.readerManagers).unsafeRunSync()
   }
 
   private def launchDiscover(): IO[Unit] = {
-
-    val lastSearchTime = readerManagerState.get().lastSearchTime
-    val rediscoverDue  = settings.rediscoverDue(lastSearchTime)
-
-    if (rediscoverDue && settings.blockOnSearch) {
-      rediscover()
-    } else if (rediscoverDue && !settings.blockOnSearch) {
-      rediscover().start *> IO.unit
-    } else {
-      IO.unit
+    for {
+      ioState       <- readerManagerState.get
+      lastSearchTime = ioState.lastSearchTime
+      rediscoverDue  = settings.rediscoverDue(lastSearchTime)
+    } yield {
+      if (rediscoverDue && settings.blockOnSearch) {
+        rediscover()
+      } else if (rediscoverDue && !settings.blockOnSearch) {
+        rediscover().start *> IO.unit
+      } else {
+        IO.unit
+      }
     }
-  }
+  }.flatten
 
   private def rediscover(): IO[Unit] =
-    IO {
-      readerManagerState.getAndUpdate {
-        (state: ReaderManagerState) =>
-          val ioState = IO.pure(state)
-          calculateUpdatedState(ioState).unsafeRunSync()
-      }
-    } *> IO.unit
-
-  private def calculateUpdatedState(state: IO[ReaderManagerState]): IO[ReaderManagerState] =
     for {
-      _        <- IO(logger.debug("calculating updated state"))
-      ioState  <- state
-      newParts <- partitionSearcher.findNewPartitions(ioState.partitionResponses)
-      newReaderManagers = newParts
-        .flatMap(part => part.results.partitions.map(part.root -> _))
-        .map {
-          case (location, res) => readerManagerCreateFn(location, res)
-        }
-    } yield ioState.copy(
-      partitionResponses = newParts,
-      readerManagers     = readerManagerState.get().readerManagers ++ newReaderManagers,
-    )
+      _ <- IO(logger.debug("calculating updated state"))
+      _ <- readerManagerState.getAndUpdate {
+        oldState: ReaderManagerState =>
+          {
+            for {
+              newParts <- partitionSearcher.findNewPartitions(oldState.partitionResponses)
+              newReaderManagers = newParts
+                .flatMap(part => part.results.partitions.map(part.root -> _))
+                .map {
+                  case (location, res) => readerManagerCreateFn(location, res)
+                }
+              newState = oldState.copy(
+                partitionResponses = newParts,
+                readerManagers     = oldState.readerManagers ++ newReaderManagers,
+              )
+            } yield newState
+          }.unsafeRunSync()
+      }
+    } yield ()
 
 }
