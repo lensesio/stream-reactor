@@ -19,7 +19,7 @@ class Elastic7Test extends AnyFlatSpec with StreamReactorContainerPerSuite with 
 
   lazy val container: ElasticsearchContainer = ElasticsearchContainer(dockerTag = "7.17.8").withNetwork(network)
 
-  override def schemaRegistryContainer(): Option[SchemaRegistryContainer] = None
+  override val schemaRegistryContainer: Option[SchemaRegistryContainer] = None
 
   override val connectorModule: String = "elastic7"
 

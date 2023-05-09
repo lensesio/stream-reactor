@@ -1,11 +1,10 @@
 package io.lenses.streamreactor.connect.testcontainers
 
 import com.github.dockerjava.api.model.Ulimit
-import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer.defaultNetworkAlias
-import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer.defaultRestPort
+import io.lenses.streamreactor.connect.testcontainers.KafkaVersions.ConfluentVersion
+import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer.{defaultNetworkAlias, defaultRestPort}
+import org.testcontainers.containers.{GenericContainer, KafkaContainer}
 import org.testcontainers.containers.wait.strategy.Wait
-import org.testcontainers.containers.GenericContainer
-import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 
 import java.time.Duration
@@ -78,18 +77,17 @@ class KafkaConnectContainer(
 }
 object KafkaConnectContainer {
   private val dockerImage = DockerImageName.parse("confluentinc/cp-kafka-connect")
-  private val defaultConfluentPlatformVersion: String = sys.env.getOrElse("CONFLUENT_VERSION", "6.1.0")
   private val defaultNetworkAlias = "connect"
   private val defaultRestPort     = 8083
 
   def apply(
-    confluentPlatformVersion: String                          = defaultConfluentPlatformVersion,
-    networkAlias:             String                          = defaultNetworkAlias,
-    restPort:                 Int                             = defaultRestPort,
-    connectPluginPath:        Option[String]                  = None,
-    kafkaContainer:           KafkaContainer,
-    schemaRegistryContainer:  Option[SchemaRegistryContainer] = None,
-    providedJars:             Seq[String]                     = Seq.empty,
+             confluentPlatformVersion: String                          = ConfluentVersion,
+             networkAlias:             String                          = defaultNetworkAlias,
+             restPort:                 Int                             = defaultRestPort,
+             connectPluginPath:        Option[String]                  = None,
+             kafkaContainer:           KafkaContainer,
+             schemaRegistryContainer:  Option[SchemaRegistryContainer] = None,
+             providedJars:             Seq[String]                     = Seq.empty,
   ): KafkaConnectContainer =
     new KafkaConnectContainer(dockerImage.withTag(confluentPlatformVersion).toString,
                               networkAlias,

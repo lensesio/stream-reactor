@@ -3,6 +3,7 @@ package io.lenses.streamreactor.connect.testcontainers.scalatest
 import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
+import io.lenses.streamreactor.connect.testcontainers.KafkaVersions.ConfluentVersion
 import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient
 import io.lenses.streamreactor.connect.testcontainers.{KafkaConnectContainer, SchemaRegistryContainer}
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
@@ -11,7 +12,6 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Minute, Span}
 import org.scalatest.{BeforeAndAfterAll, TestSuite}
-import org.slf4j.{Logger, LoggerFactory}
 import org.testcontainers.containers.output.Slf4jLogConsumer
 import org.testcontainers.containers.{KafkaContainer, Network}
 import org.testcontainers.utility.DockerImageName
@@ -27,43 +27,30 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
 
   override implicit def patienceConfig: PatienceConfig = PatienceConfig(timeout = Span(1, Minute))
 
-  private val log: Logger = LoggerFactory.getLogger(getClass)
-
-  private val confluentPlatformVersion: String = {
-    val (vers, from) = sys.env.get("CONFLUENT_VERSION") match {
-      case Some(value) => (value, "env")
-      case None => ("7.3.1", "default")
-    }
-     log.info("Selected confluent version {} from {}", vers,from )
-    vers
-  }
-
   val network: Network = Network.SHARED
 
   def connectorModule: String
   def providedJars(): Seq[String] = Seq()
 
-  lazy val schemaRegistryInstance: Option[SchemaRegistryContainer] = schemaRegistryContainer()
-
   lazy val kafkaContainer: KafkaContainer =
-    new KafkaContainer(DockerImageName.parse(s"confluentinc/cp-kafka:$confluentPlatformVersion"))
+    new KafkaContainer(DockerImageName.parse(s"confluentinc/cp-kafka").withTag(ConfluentVersion))
       .withNetwork(network)
       .withNetworkAliases("kafka")
-      .withLogConsumer(new Slf4jLogConsumer(log))
+      .withLogConsumer(new Slf4jLogConsumer(logger.underlying))
 
   lazy val kafkaConnectContainer: KafkaConnectContainer = {
     KafkaConnectContainer(
       kafkaContainer          = kafkaContainer,
-      schemaRegistryContainer = schemaRegistryContainer(),
+      schemaRegistryContainer = schemaRegistryContainer,
       connectPluginPath       = Some(connectPluginPath()),
       providedJars            = providedJars(),
-    ).withNetwork(network).withLogConsumer(new Slf4jLogConsumer(log))
+    ).withNetwork(network).withLogConsumer(new Slf4jLogConsumer(logger.underlying))
   }
 
   // Override for different SchemaRegistryContainer configs
-  def schemaRegistryContainer(): Option[SchemaRegistryContainer] =
+  val schemaRegistryContainer: Option[SchemaRegistryContainer] =
     SchemaRegistryContainer(kafkaContainer = kafkaContainer)
-      .withLogConsumer(new Slf4jLogConsumer(log))
+      .withLogConsumer(new Slf4jLogConsumer(logger.underlying))
       .withNetwork(network)
       .some
 
@@ -71,7 +58,7 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
 
   override def beforeAll(): Unit = {
     kafkaContainer.start()
-    schemaRegistryInstance.foreach(_.start())
+    schemaRegistryContainer.foreach(_.start())
     kafkaConnectContainer.start()
     super.beforeAll()
   }
@@ -80,7 +67,7 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
     try super.afterAll()
     finally {
       kafkaConnectContainer.stop()
-      schemaRegistryInstance.foreach(_.stop())
+      schemaRegistryContainer.foreach(_.stop())
       kafkaContainer.stop()
     }
 
@@ -113,7 +100,7 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
     props.put(ProducerConfig.RETRIES_CONFIG, 0)
     props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySer)
     props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSer)
-    schemaRegistryInstance.foreach(s => props.put(SCHEMA_REGISTRY_URL_CONFIG, s.hostNetwork.schemaRegistryUrl))
+    schemaRegistryContainer.foreach(s => props.put(SCHEMA_REGISTRY_URL_CONFIG, s.hostNetwork.schemaRegistryUrl))
     new KafkaProducer[K, V](props)
   }
 
