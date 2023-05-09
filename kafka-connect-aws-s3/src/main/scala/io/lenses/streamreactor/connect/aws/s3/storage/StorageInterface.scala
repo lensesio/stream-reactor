@@ -16,12 +16,9 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import cats.effect.IO
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
 
-import java.io.File
-import java.io.InputStream
-import java.time.Clock
+import java.io.{File, InputStream}
 import java.time.Instant
 
 trait StorageInterface {
@@ -57,9 +54,6 @@ trait StorageInterface {
     completionConfig: DirectoryFindCompletionConfig,
     exclude:          Set[String],
     continueFrom:     Option[String],
-  )(
-    implicit
-    clock: Clock,
   ): IO[DirectoryFindResults]
 
 }

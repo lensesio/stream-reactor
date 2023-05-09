@@ -23,12 +23,9 @@ import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import software.amazon.awssdk.services.s3.S3Client
 
-import java.time.Clock
-
 class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
 
   implicit val connectorTaskId = DefaultConnectorTaskId
-  implicit val clock           = Clock.systemDefaultZone()
 
   "dirLister" should "list all directories" in {
 

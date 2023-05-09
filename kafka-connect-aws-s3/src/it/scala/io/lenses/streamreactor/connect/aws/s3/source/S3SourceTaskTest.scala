@@ -4,15 +4,11 @@ import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Bytes
-import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
-import io.lenses.streamreactor.connect.aws.s3.config.Format
-import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions
-import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.KeyAndValueWithSizes
-import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.ValueOnly
+import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, Format, FormatOptions}
+import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.{KeyAndValueWithSizes, ValueOnly}
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
-import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindCompletionConfig
-import io.lenses.streamreactor.connect.aws.s3.storage.CompletedDirectoryFindResults
+import io.lenses.streamreactor.connect.aws.s3.storage.{CompletedDirectoryFindResults, DirectoryFindCompletionConfig}
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
@@ -21,10 +17,8 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
-import java.time.Clock
 import java.util
-import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava}
 
 class S3SourceTaskTest
     extends AnyFlatSpec
@@ -33,8 +27,7 @@ class S3SourceTaskTest
     with LazyLogging
     with BeforeAndAfter {
 
-  implicit val clock = Clock.systemDefaultZone()
-  var bucketSetupOpt: Option[BucketSetup] = None
+  private var bucketSetupOpt: Option[BucketSetup] = None
   def bucketSetup:    BucketSetup         = bucketSetupOpt.getOrElse(throw new IllegalStateException("Not initialised"))
 
   def DefaultProps = Map(

@@ -24,7 +24,7 @@ import java.time.Instant
 
 object DirectoryFindCompletionConfig {
 
-  def fromSearchOptions(searchOptions: PartitionSearcherOptions)(implicit clock: Clock): DirectoryFindCompletionConfig =
+  def fromSearchOptions(searchOptions: PartitionSearcherOptions, clock: Clock): DirectoryFindCompletionConfig =
     DirectoryFindCompletionConfig(
       searchOptions.recurseLevels,
       searchOptions.pauseSearchOnPartitionCount,
@@ -36,9 +36,6 @@ case class DirectoryFindCompletionConfig(
   levelsToRecurse: Int,
   minResults:      Option[Int],
   maxTime:         Option[Instant],
-)(
-  implicit
-  clock: Clock,
 ) {
 
   def stopReason(partitionsFound: Int): Option[String] = {
@@ -52,7 +49,7 @@ case class DirectoryFindCompletionConfig(
     }
   }
 
-  private def timeExpired: Boolean = maxTime.exists(clock.instant().isAfter(_))
+  private def timeExpired: Boolean = maxTime.exists(Clock.systemDefaultZone().instant().isAfter(_))
 }
 
 trait DirectoryFindResults {

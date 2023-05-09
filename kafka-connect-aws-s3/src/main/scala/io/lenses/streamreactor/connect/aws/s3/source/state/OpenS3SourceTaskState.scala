@@ -27,7 +27,6 @@ import io.lenses.streamreactor.connect.aws.s3.source.reader.ReaderManagerService
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
 
-import java.time.Clock
 import java.util
 
 class OpenS3SourceTaskState(
@@ -70,7 +69,6 @@ object OpenS3SourceTaskState {
         )(
           connectorTaskId,
           storageInterface,
-          Clock.systemDefaultZone(),
         )
 
       } yield {

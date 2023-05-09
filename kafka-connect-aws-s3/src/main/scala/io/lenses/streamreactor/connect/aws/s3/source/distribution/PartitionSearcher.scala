@@ -35,7 +35,6 @@ class PartitionSearcher(
   implicit
   connectorTaskId:  ConnectorTaskId,
   storageInterface: StorageInterface,
-  clock:            Clock,
 ) extends LazyLogging {
 
   def findNewPartitions(
@@ -62,14 +61,16 @@ class PartitionSearcher(
     settings:   PartitionSearcherOptions,
     exclude:    Set[String],
     resumeFrom: Option[String],
+    maybeClock: Option[Clock] = Option.empty,
   ): IO[PartitionSearcherResponse] = {
     IO {
       for {
         originalPartitions <- IO.pure(exclude)
+        clock = maybeClock.getOrElse(Clock.systemDefaultZone())
         foundPartitions <-
           storageInterface.findDirectories(
             root,
-            DirectoryFindCompletionConfig.fromSearchOptions(settings),
+            DirectoryFindCompletionConfig.fromSearchOptions(settings, clock),
             originalPartitions,
             resumeFrom,
           )

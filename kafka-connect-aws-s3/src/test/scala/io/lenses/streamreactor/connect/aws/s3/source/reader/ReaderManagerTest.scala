@@ -89,6 +89,7 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
       resultList    = Vector(StringSourceData("abc", 0)),
       bucketAndPath = firstFileBucketAndPath,
       targetTopic   = "target",
+      partitionFn = partitionFn
     )
 
     val resultReader = mock[ResultReader]

@@ -23,10 +23,8 @@ import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model._
 import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable
 
-import java.time.Clock
 import scala.collection.mutable
-import scala.jdk.CollectionConverters.IteratorHasAsScala
-import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.{IteratorHasAsScala, ListHasAsScala}
 
 abstract class AwsS3DirectoryLister(
   implicit
@@ -38,9 +36,6 @@ abstract class AwsS3DirectoryLister(
     completionConfig: DirectoryFindCompletionConfig,
     exclude:          Set[String],
     continueFrom:     Option[String],
-  )(
-    implicit
-    clock: Clock,
   ): IO[DirectoryFindResults] =
     for {
       listObjsReq <- createListObjectsRequest(bucketAndPrefix, continueFrom)
@@ -59,9 +54,6 @@ abstract class AwsS3DirectoryLister(
     prefixes:         Set[String],
     completionConfig: DirectoryFindCompletionConfig,
     exclude:          Set[String],
-  )(
-    implicit
-    clock: Clock,
   ): IO[Set[String]] =
     if (completionConfig.levelsToRecurse == 0) IO.pure(prefixes)
     else

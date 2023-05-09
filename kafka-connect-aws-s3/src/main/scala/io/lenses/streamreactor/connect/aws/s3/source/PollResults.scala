@@ -23,12 +23,10 @@ case class PollResults(
   resultList:    Vector[_ <: SourceData],
   bucketAndPath: RemoteS3PathLocation,
   targetTopic:   String,
-)(
-  implicit
   partitionFn: String => Option[Int],
 ) {
 
   def toSourceRecordList: Vector[SourceRecord] =
-    resultList.map(_.toSourceRecord(bucketAndPath, targetTopic))
+    resultList.map(_.toSourceRecord(bucketAndPath, targetTopic, partitionFn))
 
 }
