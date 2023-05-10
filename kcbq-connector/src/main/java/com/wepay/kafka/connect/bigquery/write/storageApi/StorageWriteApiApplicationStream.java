@@ -25,8 +25,9 @@ public abstract class StorageWriteApiApplicationStream extends StorageWriteApiBa
                                             BigQueryWriteSettings writeSettings,
                                             boolean autoCreateTables,
                                             ErrantRecordHandler errantRecordHandler,
-                                            SchemaManager schemaManager) {
-        super(retry, retryWait, writeSettings, autoCreateTables, errantRecordHandler, schemaManager);
+                                            SchemaManager schemaManager,
+                                            boolean attemptSchemaUpdate) {
+        super(retry, retryWait, writeSettings, autoCreateTables, errantRecordHandler, schemaManager, attemptSchemaUpdate);
     }
 
     public abstract Map<TopicPartition, OffsetAndMetadata> getCommitableOffsets();

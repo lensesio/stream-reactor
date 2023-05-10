@@ -140,6 +140,8 @@ public class BigQuerySinkTask extends SinkTask {
   private final StorageApiBatchModeHandler testStorageApiBatchHandler;
   private Map<String, PartitionedTableId> topicToPartitionTableId;
 
+  private boolean allowNewBigQueryFields;
+  private boolean allowRequiredFieldRelaxation;
   /**
    * Create a new BigquerySinkTask.
    */
@@ -482,20 +484,16 @@ public class BigQuerySinkTask extends SinkTask {
     Optional<Long> partitionExpiration = config.getPartitionExpirationMs();
     Optional<List<String>> clusteringFieldName = config.getClusteringPartitionFieldNames();
     Optional<TimePartitioning.Type> timePartitioningType = config.getTimePartitioningType();
-    boolean allowNewBQFields = config.getBoolean(BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG);
-    boolean allowReqFieldRelaxation = config.getBoolean(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG);
     boolean allowSchemaUnionization = config.getBoolean(BigQuerySinkConfig.ALLOW_SCHEMA_UNIONIZATION_CONFIG);
     boolean sanitizeFieldNames = config.getBoolean(BigQuerySinkConfig.SANITIZE_FIELD_NAME_CONFIG);
     return new SchemaManager(schemaRetriever, schemaConverter, getBigQuery(),
-                             allowNewBQFields, allowReqFieldRelaxation, allowSchemaUnionization,
+                             allowNewBigQueryFields, allowRequiredFieldRelaxation, allowSchemaUnionization,
                              sanitizeFieldNames,
                              kafkaKeyFieldName, kafkaDataFieldName,
                              timestampPartitionFieldName, partitionExpiration, clusteringFieldName, timePartitioningType);
   }
 
   private BigQueryWriter getBigQueryWriter(ErrantRecordHandler errantRecordHandler) {
-    boolean allowNewBigQueryFields = config.getBoolean(BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG);
-    boolean allowRequiredFieldRelaxation = config.getBoolean(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG);
     BigQuery bigQuery = getBigQuery();
     if (upsertDelete) {
       return new UpsertDeleteBigQueryWriter(bigQuery,
@@ -565,6 +563,8 @@ public class BigQuerySinkTask extends SinkTask {
 
     retry = config.getInt(BigQuerySinkConfig.BIGQUERY_RETRY_CONFIG);
     retryWait = config.getLong(BigQuerySinkConfig.BIGQUERY_RETRY_WAIT_CONFIG);
+    allowNewBigQueryFields = config.getBoolean(BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG);
+    allowRequiredFieldRelaxation = config.getBoolean(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG);
     topicToPartitionTableId = new HashMap<>();
     bigQuery = new AtomicReference<>();
     schemaManager = new AtomicReference<>();
@@ -625,6 +625,7 @@ public class BigQuerySinkTask extends SinkTask {
       loadExecutor = Executors.newScheduledThreadPool(1);
       loadExecutor.scheduleAtFixedRate(batchHandler::createNewStream, 10, 10, TimeUnit.SECONDS);
     } else {
+      boolean attemptSchemaUpdate = allowNewBigQueryFields || allowRequiredFieldRelaxation;
       BigQueryWriteSettings writeSettings = new BigQueryWriteSettingsBuilder().withConfig(config).build();
       if (useStorageApiBatchMode) {
         int commitInterval = config.getInt(BigQuerySinkConfig.COMMIT_INTERVAL_SEC_CONFIG);
@@ -634,7 +635,8 @@ public class BigQuerySinkTask extends SinkTask {
                 writeSettings,
                 autoCreateTables,
                 errantRecordHandler,
-                getSchemaManager()
+                getSchemaManager(),
+                attemptSchemaUpdate
         );
 
         logger.info("Starting task with Storage Write API Batch Mode...");
@@ -651,7 +653,8 @@ public class BigQuerySinkTask extends SinkTask {
                 writeSettings,
                 autoCreateTables,
                 errantRecordHandler,
-                getSchemaManager()
+                getSchemaManager(),
+                attemptSchemaUpdate
         );
       }
     }

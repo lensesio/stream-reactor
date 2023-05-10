@@ -58,8 +58,9 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
             BigQueryWriteSettings writeSettings,
             boolean autoCreateTables,
             ErrantRecordHandler errantRecordHandler,
-            SchemaManager schemaManager) {
-        super(retry, retryWait, writeSettings, autoCreateTables, errantRecordHandler, schemaManager);
+            SchemaManager schemaManager,
+            boolean attemptSchemaUpdate) {
+        super(retry, retryWait, writeSettings, autoCreateTables, errantRecordHandler, schemaManager, attemptSchemaUpdate);
         streams = new ConcurrentHashMap<>();
         currentStreams = new ConcurrentHashMap<>();
         tableLocks = new ConcurrentHashMap<>();
