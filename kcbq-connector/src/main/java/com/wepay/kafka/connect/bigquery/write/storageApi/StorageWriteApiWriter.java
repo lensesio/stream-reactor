@@ -10,6 +10,7 @@ import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import com.wepay.kafka.connect.bigquery.write.batch.TableWriterBuilder;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,7 +108,8 @@ public class StorageWriteApiWriter implements Runnable {
                     ? FieldNameSanitizer.replaceInvalidKeys(convertedRecord)
                     : convertedRecord;
 
-            return new JSONObject(result);
+            return getJsonFromMap(result);
+
         }
 
         /**
@@ -120,6 +122,27 @@ public class StorageWriteApiWriter implements Runnable {
                 streamName = batchModeHandler.updateOffsetsOnStream(tableName.toString(), records);
             }
             return new StorageWriteApiWriter(tableName, streamWriter, records, streamName);
+        }
+
+        private JSONObject getJsonFromMap(Map<String, Object> map) {
+            JSONObject jsonObject = new JSONObject();
+            map.forEach((key, value) -> {
+                if (value instanceof Map<?, ?>) {
+                    value = getJsonFromMap((Map<String, Object>) value);
+                } else if (value instanceof List<?>) {
+                    JSONArray items = new JSONArray();
+                    ((List<?>) value).forEach(v -> {
+                        if(v instanceof Map<?,?>) {
+                            items.put(getJsonFromMap((Map<String, Object>) v));
+                        } else {
+                            items.put(v);
+                        }
+                    });
+                    value = items;
+                }
+                jsonObject.put(key, value);
+            });
+            return jsonObject;
         }
     }
 }

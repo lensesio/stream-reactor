@@ -3,6 +3,7 @@ package com.wepay.kafka.connect.bigquery.write.storageApi;
 import static org.junit.Assert.assertEquals;
 
 import com.google.cloud.bigquery.storage.v1.TableName;
+import com.google.protobuf.ByteString;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.convert.BigQueryRecordConverter;
@@ -35,6 +36,7 @@ public class StorageWriteApiWriterTest {
             .field("id", Schema.INT64_SCHEMA)
             .field("name", Schema.STRING_SCHEMA)
             .field("available-name", Schema.BOOLEAN_SCHEMA)
+            .field("bytes_check", Schema.BYTES_SCHEMA)
             .build();
 
     @Test
@@ -42,7 +44,7 @@ public class StorageWriteApiWriterTest {
         StorageWriteApiBase mockStreamWriter = Mockito.mock(StorageWriteApiBase.class);
         BigQuerySinkTaskConfig mockedConfig = Mockito.mock(BigQuerySinkTaskConfig.class);
         StorageApiBatchModeHandler batchModeHandler = mock(StorageApiBatchModeHandler.class);
-        RecordConverter mockedRecordConverter = new BigQueryRecordConverter(false, false);
+        RecordConverter mockedRecordConverter = new BigQueryRecordConverter(false, false, true);
         TableWriterBuilder builder = new StorageWriteApiWriter.Builder(
                 mockStreamWriter, null, mockedRecordConverter, mockedConfig, batchModeHandler);
         ArgumentCaptor<List<Object[]>> records = ArgumentCaptor.forClass(List.class);
@@ -53,6 +55,7 @@ public class StorageWriteApiWriterTest {
         expectedKeys.add("available_name");
         expectedKeys.add("i_am_kafka_key");
         expectedKeys.add("i_am_kafka_record_detail");
+        expectedKeys.add("bytes_check");
 
         Mockito.when(mockedConfig.getKafkaDataFieldName()).thenReturn(Optional.of("i_am_kafka_record_detail"));
         Mockito.when(mockedConfig.getKafkaKeyFieldName()).thenReturn(Optional.of("i_am_kafka_key"));
@@ -73,6 +76,9 @@ public class StorageWriteApiWriterTest {
 
         JSONObject recordDetails = (JSONObject) actual.get("i_am_kafka_record_detail");
         assertTrue(recordDetails.get("insertTime") instanceof Long);
+
+        Object bytes_check = actual.get("bytes_check");
+        assertTrue(bytes_check instanceof ByteString);
     }
 
     @Test
@@ -82,7 +88,7 @@ public class StorageWriteApiWriterTest {
         BigQuerySinkTaskConfig mockedConfig = Mockito.mock(BigQuerySinkTaskConfig.class);
         StorageApiBatchModeHandler batchModeHandler = mock(StorageApiBatchModeHandler.class);
         RecordConverter mockedRecordConverter = new BigQueryRecordConverter(
-                false, false);
+                false, false, false);
         ArgumentCaptor<String> streamName = ArgumentCaptor.forClass(String.class);
         String expectedStreamName = tableName.toString() + "_s1";
         TableWriterBuilder builder = new StorageWriteApiWriter.Builder(
@@ -110,7 +116,8 @@ public class StorageWriteApiWriterTest {
         Object value = new Struct(valueSchema)
                 .put("id", 1L)
                 .put("name", "1")
-                .put("available-name", true);
+                .put("available-name", true)
+                .put("bytes_check",new byte[]{47,48,49});
         return new SinkRecord(topic, 0, keySchema, key, valueSchema, value, offset);
     }
 }
