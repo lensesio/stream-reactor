@@ -30,6 +30,9 @@ import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask
 
+import java.nio.charset.CodingErrorAction
+import scala.io.Codec
+import scala.io.Source
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Failure
@@ -43,11 +46,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
-
-    logger.info(scala.io.Source.fromInputStream(
-      this.getClass.getResourceAsStream("/mqtt-source-ascii.txt"),
-    ).mkString + s" $version")
-    logger.info(manifest.printManifest())
+    printAsciiHeader()
 
     val conf = if (context.configs().isEmpty) props else context.configs()
 
@@ -88,6 +87,18 @@ class MqttSourceTask extends SourceTask with StrictLogging {
     logger.info("Starting Mqtt source...")
     mqttManager    = Some(new MqttManager(MqttClientConnectionFn.apply, convertersMap, settings))
     enableProgress = settings.enableProgress
+  }
+
+  private def printAsciiHeader(): Unit = {
+    implicit val codec: Codec = Codec("UTF-8")
+    codec.onMalformedInput(CodingErrorAction.REPLACE)
+    codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
+    logger.info(
+      Source.fromInputStream(
+        getClass.getResourceAsStream("/mqtt-source-ascii.txt"),
+      ).mkString + s" $version",
+    )
+    logger.info(manifest.printManifest())
   }
 
   /**
