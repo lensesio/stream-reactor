@@ -114,7 +114,7 @@ public class StorageWriteApiRetryHandler {
                 // Table takes time to be available for after creation
                 setAdditionalRetriesAndWait();
             } else {
-                logger.info("Skipping multiple table creation attempts");
+                logger.info("Skipping multiple table operation attempts");
             }
         } catch (BigQueryException exception) {
             throw new BigQueryStorageWriteApiConnectException(

@@ -103,8 +103,8 @@ public class BigQueryStorageWriteApiErrorResponsesTest {
     @Test
     public void testHasInvalidSchema() {
         Collection<String> errors = new ArrayList<>();
-        errors.add("JSONObject has malformed field with length 5, specified length 3");
-        errors.add("JSONObject has fields unknown to BigQuery root.f1");
+        errors.add("The source object has malformed field with length 5, specified length 3");
+        errors.add("The source object has fields unknown to BigQuery root.f1");
         boolean result = BigQueryStorageWriteApiErrorResponses.hasInvalidSchema(errors);
         assertTrue(result);
     }
