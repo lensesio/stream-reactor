@@ -40,7 +40,7 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
     private static final Logger logger = LoggerFactory.getLogger(StorageWriteApiBatchApplicationStream.class);
 
     /**
-     * Map of <tableName , <StreamName, {@link ApplicationStream}>>
+     * Map of {tableName , {StreamName, {@link ApplicationStream}}}
      * Streams should be accessed in the order of entry, so we need LinkedHashMap here
      */
     protected ConcurrentMap<String, LinkedHashMap<String, ApplicationStream>> streams;
