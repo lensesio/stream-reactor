@@ -245,4 +245,8 @@ public class ApplicationStream {
             logger.trace("Not attempting stream recreation on table {} as Json writer is not closed!", tableName);
         }
     }
+
+    public StreamState getCurrentState() {
+        return this.currentState;
+    }
 }
