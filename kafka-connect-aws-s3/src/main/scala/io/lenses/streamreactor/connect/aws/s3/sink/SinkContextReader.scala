@@ -15,8 +15,6 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import cats.implicits.catsSyntaxEitherId
-
 import java.util
 import java.util.Collections
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -25,13 +23,20 @@ import scala.util.Try
 
 object SinkContextReader {
 
+  /**
+    * Kafka Connect provides properties both in the SinkTask.start as
+    * well as enables reading the properties via the Connector contextProps.
+    * This is a simple utility to merge the properties from both sources.
+    * @param contextPropsFn connector properties from the contextProps
+    * @param fallbackProps connector properties from the start method
+    * @return util.Map[String,String] properties from both sources merged
+    */
   def mergeProps(
     contextPropsFn: () => util.Map[String, String],
   )(fallbackProps:  util.Map[String, String],
-  ): Either[String, util.Map[String, String]] = {
-    val context  = Try(contextPropsFn()).toOption.getOrElse(Collections.emptyMap())
-    val fallback = Option(fallbackProps).getOrElse(Collections.emptyMap())
-    fallback.asScala.addAll(context.asScala).asJava.asRight
+  ): util.Map[String, String] = {
+    val contextProps = Try(contextPropsFn()).toOption.getOrElse(Collections.emptyMap())
+    fallbackProps.asScala.addAll(contextProps.asScala).asJava
   }
 
 }

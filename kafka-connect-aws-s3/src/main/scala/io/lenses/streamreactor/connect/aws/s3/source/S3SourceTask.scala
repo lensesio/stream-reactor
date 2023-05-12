@@ -19,7 +19,6 @@ import cats.implicits.toBifunctorOps
 import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
-import fs2.io.net.ConnectException
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkContextReader
@@ -33,7 +32,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 import SinkContextReader._
 class S3SourceTask extends SourceTask with LazyLogging {
 
-  private val mergePropsFn: util.Map[String, String] => Either[String, util.Map[String, String]] =
+  private val mergePropsFn: util.Map[String, String] => util.Map[String, String] =
     mergeProps(() => context.configs())
 
   private val contextOffsetFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine] =
@@ -54,12 +53,7 @@ class S3SourceTask extends SourceTask with LazyLogging {
 
     logger.debug(s"Received call to S3SourceTask.start with ${props.size()} properties")
 
-    s3SourceTaskState = {
-      for {
-        props <- mergePropsFn(props).leftMap(new ConnectException(_))
-        state <- s3SourceTaskState.start(props, contextOffsetFn)
-      } yield state
-    }.leftMap(throw _).merge
+    s3SourceTaskState = s3SourceTaskState.start(mergePropsFn(props), contextOffsetFn).leftMap(throw _).merge
     ()
 
   }
