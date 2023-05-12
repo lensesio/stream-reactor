@@ -16,6 +16,7 @@
 package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
+import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.datamountaineer.streamreactor.common.utils.ProgressCounter
 import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfig
@@ -45,10 +46,7 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     */
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(
-      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hazelcast-ascii.txt")).mkString + s" $version",
-    )
-    logger.info(manifest.printManifest())
+    printAsciiHeader(manifest, "/hazelcast-ascii.txt")
 
     if (Option(System.getProperty("hazelcast.logging.type")).isEmpty) {
       System.setProperty("hazelcast.logging.type", "slf4j")

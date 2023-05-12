@@ -15,6 +15,7 @@
  */
 package com.datamountaineer.streamreactor.connect.mongodb.sink
 
+import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.datamountaineer.streamreactor.common.utils.ProgressCounter
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfig
@@ -54,10 +55,7 @@ class MongoSinkTask extends SinkTask with StrictLogging {
 
     val conf = if (context.configs().isEmpty) props else context.configs()
 
-    logger.info(
-      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/mongo-ascii.txt")).mkString + s" $version",
-    )
-    logger.info(manifest.printManifest())
+    printAsciiHeader(manifest, "/mongo-ascii.txt")
 
     val taskConfig = Try(MongoConfig(conf)) match {
       case Failure(f) => throw new ConnectException("Couldn't start Mongo Sink due to configuration error.", f)

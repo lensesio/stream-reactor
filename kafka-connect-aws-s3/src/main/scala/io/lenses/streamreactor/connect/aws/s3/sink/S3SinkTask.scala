@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import cats.implicits._
 import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
+import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
@@ -50,6 +51,9 @@ class S3SinkTask extends SinkTask with ErrorHandler {
   override def version(): String = manifest.version()
 
   override def start(props: util.Map[String, String]): Unit = {
+
+    printAsciiHeader(manifest, "/aws-s3-sink-ascii.txt")
+
     sinkName = getSinkName(props).getOrElse("MissingSinkName")
 
     logger.debug(s"[{}] S3SinkTask.start", sinkName)

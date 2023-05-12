@@ -15,6 +15,7 @@
  */
 package com.datamountaineer.streamreactor.connect.jms.source
 
+import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.datamountaineer.streamreactor.common.utils.ProgressCounter
 import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
@@ -55,10 +56,7 @@ class JMSSourceTask extends SourceTask with StrictLogging {
   private var evictThreshold:       Int            = 0
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(
-      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-source-ascii.txt")).mkString + s" $version",
-    )
-    logger.info(manifest.printManifest())
+    printAsciiHeader(manifest, "/jms-source-ascii.txt")
 
     val conf = if (context.configs().isEmpty) props else context.configs()
 

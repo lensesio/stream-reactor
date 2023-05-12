@@ -15,6 +15,7 @@
  */
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
+import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.datamountaineer.streamreactor.common.utils.ProgressCounter
 
@@ -50,10 +51,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     */
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(
-      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-sink-ascii.txt")).mkString + s" $version",
-    )
-    logger.info(manifest.printManifest())
+    printAsciiHeader(manifest, "/cass-sink-ascii.txt")
 
     val config = if (context.configs().isEmpty) props else context.configs()
 
