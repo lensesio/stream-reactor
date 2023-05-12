@@ -332,7 +332,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
   public static final String USE_STORAGE_WRITE_API_CONFIG = "useStorageWriteApi";
 
   private static final ConfigDef.Type USE_STORAGE_WRITE_API_TYPE = ConfigDef.Type.BOOLEAN;
-  public static final boolean USE_STORAGE_WRITE_API_DEFAULT = true;
+  public static final boolean USE_STORAGE_WRITE_API_DEFAULT = false;
   private static final ConfigDef.Importance USE_STORAGE_WRITE_API_IMPORTANCE = ConfigDef.Importance.MEDIUM;
   private static final String USE_STORAGE_WRITE_API_DOC =
           "Use Google's New Storage Write API for data streaming. Not available for upsert/delete mode";
