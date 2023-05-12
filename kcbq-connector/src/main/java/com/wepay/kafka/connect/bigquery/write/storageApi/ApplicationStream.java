@@ -177,12 +177,11 @@ public class ApplicationStream {
             BatchCommitWriteStreamsResponse commitResponse = client.batchCommitWriteStreams(commitRequest);
             // If the response does not have a commit time, it means the commit operation failed.
             if (!commitResponse.hasCommitTime()) {
-                // TODO:: prepare a formatted error message for below list as part of exception handling
-                for (StorageError err : commitResponse.getStreamErrorsList()) {
-                    logger.error(err.getErrorMessage());
-                }
-                //TODO:Exception Handling
-                throw new RuntimeException("Error committing the streams");
+                // We are always sending 1 stream so at max should have just 1 error
+                StorageError storageError = commitResponse.getStreamErrors(0);
+                throw new BigQueryStorageWriteApiConnectException(
+                        String.format("Failed to commit stream %s due to %s", getStreamName(), storageError));
+
             }
             logger.debug(
                     "Appended and committed records successfully for stream {} at {}",
