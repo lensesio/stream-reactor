@@ -110,6 +110,7 @@ public class StorageWriteApiDefaultStreamTest {
         when(defaultStream.getErrantRecordHandler()).thenReturn(mockedErrantRecordHandler);
         when(mockedErrantRecordHandler.getErrantRecordReporter()).thenReturn(mockedErrantReporter);
         when(defaultStream.getAutoCreateTables()).thenReturn(true);
+        when(defaultStream.canAttemptSchemaUpdate()).thenReturn(true);
     }
 
     @Test
@@ -170,6 +171,17 @@ public class StorageWriteApiDefaultStreamTest {
         verify(mockedSchemaManager, times(1)).updateSchema(any(), any());
 
     }
+
+    @Test(expected = BigQueryStorageWriteApiConnectException.class)
+    public void testHasSchemaUpdatesNotConfigured() throws Exception {
+        when(mockedResponse.get()).thenReturn(schemaError).thenReturn(successResponse);
+        when(defaultStream.canAttemptSchemaUpdate()).thenReturn(false);
+
+        defaultStream.appendRows(mockedTableName, testRows, null);
+
+        verify(mockedSchemaManager, times(1)).updateSchema(any(), any());
+    }
+
     @Test(expected = BigQueryStorageWriteApiConnectException.class)
     public void testDefaultStreamNonRetriableException() throws Exception {
         InterruptedException exception = new InterruptedException("I am non-retriable error");

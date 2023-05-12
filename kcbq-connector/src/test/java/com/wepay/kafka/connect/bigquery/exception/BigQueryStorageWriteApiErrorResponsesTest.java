@@ -103,11 +103,20 @@ public class BigQueryStorageWriteApiErrorResponsesTest {
     @Test
     public void testHasInvalidSchema() {
         Collection<String> errors = new ArrayList<>();
-        errors.add("JSONObject has malformed field with length 5, specified length 3");
-        errors.add("JSONObject has fields unknown to BigQuery root.f1");
+        errors.add("The source object has malformed field with length 5, specified length 3");
+        errors.add("The source object has fields unknown to BigQuery root.f1");
         boolean result = BigQueryStorageWriteApiErrorResponses.hasInvalidSchema(errors);
         assertTrue(result);
     }
+
+    @Test
+    public void testHasInvalidStorageSchema() {
+        Collection<String> errors = new ArrayList<>();
+        errors.add("Failed to write records due to SCHEMA_MISMATCH_EXTRA_FIELDS");
+        boolean result = BigQueryStorageWriteApiErrorResponses.hasInvalidSchema(errors);
+        assertTrue(result);
+    }
+
 
     @Test
     public void testHasNoInvalidSchema() {
@@ -122,6 +131,25 @@ public class BigQueryStorageWriteApiErrorResponsesTest {
     public void testStreamClosed() {
         String message = "ExecutionException$StreamWriterClosedException due to FAILED PRE_CONDITION";
         boolean result = BigQueryStorageWriteApiErrorResponses.isStreamClosed(message);
+        assertTrue(result);
+    }
+
+    @Test
+    public void testIsNonRetriableStorageError() {
+        Exception exception = new Exception(
+                io.grpc.Status.fromThrowable(new Throwable())
+                        .withDescription("STREAM_FINALIZED")
+                        .asRuntimeException()
+        );
+
+        boolean result = BigQueryStorageWriteApiErrorResponses.isNonRetriableStorageError(exception);
+        assertTrue(result);
+    }
+
+    @Test
+    public void testIsNonStorageError() {
+        Exception exception = new Exception("I am not a storage error");
+        boolean result = BigQueryStorageWriteApiErrorResponses.isNonRetriableStorageError(exception);
         assertTrue(result);
     }
 }

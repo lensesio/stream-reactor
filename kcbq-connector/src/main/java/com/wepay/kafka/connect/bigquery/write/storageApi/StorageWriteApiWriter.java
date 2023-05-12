@@ -10,6 +10,7 @@ import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import com.wepay.kafka.connect.bigquery.write.batch.TableWriterBuilder;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,14 +63,19 @@ public class StorageWriteApiWriter implements Runnable {
         private final BigQuerySinkTaskConfig config;
         private final TableName tableName;
         private final StorageWriteApiBase streamWriter;
+        private final StorageApiBatchModeHandler batchModeHandler;
+
         public Builder(StorageWriteApiBase streamWriter,
-                                      TableName tableName,
-                                      RecordConverter<Map<String, Object>> storageApiRecordConverter,
-                                      BigQuerySinkTaskConfig config) {
+                       TableName tableName,
+                       RecordConverter<Map<String, Object>> storageApiRecordConverter,
+                       BigQuerySinkTaskConfig config,
+                       StorageApiBatchModeHandler batchModeHandler) {
             this.streamWriter = streamWriter;
             this.tableName = tableName;
             this.recordConverter = storageApiRecordConverter;
             this.config = config;
+            this.batchModeHandler = batchModeHandler;
+
         }
 
         /**
@@ -90,7 +96,7 @@ public class StorageWriteApiWriter implements Runnable {
             Map<String, Object> convertedRecord = recordConverter.convertRecord(record, KafkaSchemaRecordType.VALUE);
 
             config.getKafkaDataFieldName().ifPresent(
-                    fieldName -> convertedRecord.put(fieldName, KafkaDataBuilder.buildKafkaDataRecord(record))
+                    fieldName -> convertedRecord.put(fieldName, KafkaDataBuilder.buildKafkaDataRecordStorageApi(record))
             );
 
             config.getKafkaKeyFieldName().ifPresent(fieldName -> {
@@ -102,7 +108,8 @@ public class StorageWriteApiWriter implements Runnable {
                     ? FieldNameSanitizer.replaceInvalidKeys(convertedRecord)
                     : convertedRecord;
 
-            return new JSONObject(result);
+            return getJsonFromMap(result);
+
         }
 
         /**
@@ -110,7 +117,32 @@ public class StorageWriteApiWriter implements Runnable {
          */
         @Override
         public Runnable build() {
-            return new StorageWriteApiWriter(tableName, streamWriter, records, DEFAULT);
+            String streamName = DEFAULT;
+            if (streamWriter instanceof StorageWriteApiBatchApplicationStream) {
+                streamName = batchModeHandler.updateOffsetsOnStream(tableName.toString(), records);
+            }
+            return new StorageWriteApiWriter(tableName, streamWriter, records, streamName);
+        }
+
+        private JSONObject getJsonFromMap(Map<String, Object> map) {
+            JSONObject jsonObject = new JSONObject();
+            map.forEach((key, value) -> {
+                if (value instanceof Map<?, ?>) {
+                    value = getJsonFromMap((Map<String, Object>) value);
+                } else if (value instanceof List<?>) {
+                    JSONArray items = new JSONArray();
+                    ((List<?>) value).forEach(v -> {
+                        if(v instanceof Map<?,?>) {
+                            items.put(getJsonFromMap((Map<String, Object>) v));
+                        } else {
+                            items.put(v);
+                        }
+                    });
+                    value = items;
+                }
+                jsonObject.put(key, value);
+            });
+            return jsonObject;
         }
     }
 }

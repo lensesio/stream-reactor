@@ -33,8 +33,9 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
                                         BigQueryWriteSettings writeSettings,
                                         boolean autoCreateTables,
                                         ErrantRecordHandler errantRecordHandler,
-                                        SchemaManager schemaManager) {
-        super(retry, retryWait, writeSettings, autoCreateTables, errantRecordHandler, schemaManager);
+                                        SchemaManager schemaManager,
+                                        boolean attemptSchemaUpdate) {
+        super(retry, retryWait, writeSettings, autoCreateTables, errantRecordHandler, schemaManager, attemptSchemaUpdate);
 
     }
 
@@ -126,6 +127,9 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
 
                 if (writeResult.hasUpdatedSchema()) {
                     logger.warn("Sent records schema does not match with table schema, will attempt to update schema");
+                    if(!canAttemptSchemaUpdate()) {
+                        throw new BigQueryStorageWriteApiConnectException("Connector is not configured to perform schema updates.");
+                    }
                     retryHandler.attemptTableOperation(schemaManager::updateSchema);
                 } else if (writeResult.hasError()) {
                     Status errorStatus = writeResult.getError();
@@ -153,7 +157,8 @@ public class StorageWriteApiDefaultStream extends StorageWriteApiBase {
                 String errorMessage = String.format("Failed to write rows on table %s due to %s", tableName, message);
                 retryHandler.setMostRecentException(new BigQueryStorageWriteApiConnectException(errorMessage, e));
 
-                if (BigQueryStorageWriteApiErrorResponses.isMalformedRequest(message)
+                if (canAttemptSchemaUpdate()
+                        && BigQueryStorageWriteApiErrorResponses.isMalformedRequest(message)
                         && BigQueryStorageWriteApiErrorResponses.hasInvalidSchema(getRowErrorMapping(e).values())) {
                     logger.warn("Sent records schema does not match with table schema, will attempt to update schema");
                     retryHandler.attemptTableOperation(schemaManager::updateSchema);

@@ -20,6 +20,7 @@
 package com.wepay.kafka.connect.bigquery.convert;
 
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
+import com.google.protobuf.ByteString;
 import com.wepay.kafka.connect.bigquery.api.KafkaSchemaRecordType;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.DebeziumLogicalConverters;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.KafkaLogicalConverters;
@@ -55,6 +56,7 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
           );
   private final boolean shouldConvertSpecialDouble;
   private boolean shouldConvertDebeziumTimestampToInteger;
+  private boolean useStorageWriteApi;
 
   static {
     // force registration
@@ -62,9 +64,12 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
     new KafkaLogicalConverters();
   }
 
-  public BigQueryRecordConverter(boolean shouldConvertDoubleSpecial, boolean shouldConvertDebeziumTimestampToInteger) {
+  public BigQueryRecordConverter(boolean shouldConvertDoubleSpecial,
+                                 boolean shouldConvertDebeziumTimestampToInteger,
+                                 boolean useStorageWriteApi) {
     this.shouldConvertSpecialDouble = shouldConvertDoubleSpecial;
     this.shouldConvertDebeziumTimestampToInteger = shouldConvertDebeziumTimestampToInteger;
+    this.useStorageWriteApi = useStorageWriteApi;
   }
 
   /**
@@ -262,7 +267,7 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
     return kafkaConnectDouble;
   }
 
-  private String convertBytes(Object kafkaConnectObject) {
+  private Object convertBytes(Object kafkaConnectObject) {
     byte[] bytes;
     if (kafkaConnectObject instanceof ByteBuffer) {
       ByteBuffer byteBuffer = (ByteBuffer) kafkaConnectObject;
@@ -270,6 +275,6 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
     } else {
       bytes = (byte[]) kafkaConnectObject;
     }
-    return Base64.getEncoder().encodeToString(bytes);
+    return useStorageWriteApi? ByteString.copyFrom(bytes) : Base64.getEncoder().encodeToString(bytes);
   }
 }

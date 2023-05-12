@@ -35,6 +35,7 @@ public abstract class StorageWriteApiBase {
     private final boolean autoCreateTables;
     private final Random random;
     private final BigQueryWriteSettings writeSettings;
+    private final boolean attemptSchemaUpdate;
 
     /**
      * @param retry               How many retries to make in the event of a retriable error.
@@ -48,7 +49,8 @@ public abstract class StorageWriteApiBase {
                                BigQueryWriteSettings writeSettings,
                                boolean autoCreateTables,
                                ErrantRecordHandler errantRecordHandler,
-                               SchemaManager schemaManager) {
+                               SchemaManager schemaManager,
+                               boolean attemptSchemaUpdate) {
         this.retry = retry;
         this.retryWait = retryWait;
         this.autoCreateTables = autoCreateTables;
@@ -56,7 +58,7 @@ public abstract class StorageWriteApiBase {
         this.writeSettings = writeSettings;
         this.errantRecordHandler = errantRecordHandler;
         this.schemaManager = schemaManager;
-
+        this.attemptSchemaUpdate = attemptSchemaUpdate;
         try {
             this.writeClient = getWriteClient();
         } catch (IOException e) {
@@ -134,6 +136,10 @@ public abstract class StorageWriteApiBase {
 
     protected boolean getAutoCreateTables() {
         return this.autoCreateTables;
+    }
+
+    protected  boolean canAttemptSchemaUpdate() {
+        return this.attemptSchemaUpdate;
     }
 
     /**
