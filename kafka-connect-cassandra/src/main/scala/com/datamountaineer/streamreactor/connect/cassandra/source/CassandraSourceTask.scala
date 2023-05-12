@@ -16,6 +16,7 @@
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import com.datamountaineer.streamreactor.common.queues.QueueHelpers
+import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 
 import java.util
@@ -62,11 +63,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     * @param props A map of supplied properties.
     */
   override def start(props: util.Map[String, String]): Unit = {
-
-    logger.info(
-      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-source-ascii.txt")).mkString + version,
-    )
-    logger.info(manifest.printManifest())
+    printAsciiHeader(manifest, "/cass-source-ascii.txt")
 
     val config = if (context.configs().isEmpty) props else context.configs()
 

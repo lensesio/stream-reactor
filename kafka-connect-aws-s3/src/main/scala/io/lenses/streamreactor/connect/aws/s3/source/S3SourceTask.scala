@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source
 
+import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
@@ -55,6 +56,9 @@ class S3SourceTask extends SourceTask with LazyLogging {
     * Start sets up readers for every configured connection in the properties
     */
   override def start(props: util.Map[String, String]): Unit = {
+
+    printAsciiHeader(manifest, "/aws-s3-source-ascii.txt")
+
     sourceName = getSourceName(props).getOrElse("MissingSourceName")
 
     logger.debug(s"Received call to S3SourceTask.start with ${props.size()} properties")

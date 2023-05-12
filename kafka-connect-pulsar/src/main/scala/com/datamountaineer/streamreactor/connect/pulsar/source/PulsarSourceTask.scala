@@ -15,6 +15,7 @@
  */
 package com.datamountaineer.streamreactor.connect.pulsar.source
 
+import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.datamountaineer.streamreactor.common.utils.ProgressCounter
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
@@ -46,11 +47,7 @@ class PulsarSourceTask extends SourceTask with StrictLogging {
 
   @nowarn
   override def start(props: util.Map[String, String]): Unit = {
-
-    logger.info(scala.io.Source.fromInputStream(
-      this.getClass.getResourceAsStream("/pulsar-source-ascii.txt"),
-    ).mkString + s" $version")
-    logger.info(manifest.printManifest())
+    printAsciiHeader(manifest, "/pulsar-source-ascii.txt")
 
     val conf = if (context.configs().isEmpty) props else context.configs()
 
