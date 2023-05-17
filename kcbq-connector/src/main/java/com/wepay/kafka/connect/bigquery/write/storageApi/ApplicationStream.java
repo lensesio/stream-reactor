@@ -59,6 +59,7 @@ public class ApplicationStream {
         this.totalRowsSent = new AtomicInteger();
         generateStream();
         currentState = StreamState.CREATED;
+        logger.debug("New Application stream {} created", getStreamName());
     }
 
     public Map<TopicPartition, OffsetAndMetadata> getOffsetInformation() {
@@ -162,7 +163,11 @@ public class ApplicationStream {
         if (currentState == StreamState.APPEND) {
             FinalizeWriteStreamResponse finalizeResponse =
                     client.finalizeWriteStream(this.getStreamName());
-            logger.info("Rows Sent: {}, Rows written: {}", this.totalRowsSent, finalizeResponse.getRowCount());
+            logger.info("Rows Sent: {}, Rows written: {} on stream {}",
+                    this.totalRowsSent,
+                    finalizeResponse.getRowCount(),
+                    getStreamName()
+            );
             currentState = StreamState.FINALISED;
         } else {
             throw new BigQueryStorageWriteApiConnectException(
@@ -215,6 +220,7 @@ public class ApplicationStream {
     public void markInactive() {
         currentState = StreamState.INACTIVE;
         this.jsonWriter.close();
+        logger.debug("Closing writer on stream {} ",getStreamName());
     }
 
     @Override
@@ -235,10 +241,10 @@ public class ApplicationStream {
 
     private void resetStream() {
         if (this.jsonWriter.isClosed()) {
-            logger.trace("Recreating stream on table {}", tableName);
+            logger.trace("Replacing old stream {} on table {}", getStreamName(), tableName);
             try {
                 generateStream();
-                logger.trace("Stream recreated successfully on table {}", tableName);
+                logger.trace("New Stream {} recreated successfully on table {}", getStreamName(), tableName);
             } catch (Exception exception) {
                 throw new BigQueryStorageWriteApiConnectException(
                         String.format(
