@@ -40,6 +40,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
@@ -103,6 +104,7 @@ public class StorageWriteApiBatchApplicationStreamTest {
     @Before
     public void setup() throws InterruptedException, Descriptors.DescriptorValidationException, IOException {
         mockedStream.tableLocks = new ConcurrentHashMap<>();
+        mockedStream.streamLocks = new ConcurrentHashMap<>();
         mockedStream.streams = new ConcurrentHashMap<>();
         mockedStream.currentStreams = new ConcurrentHashMap<>();
         mockedStream.schemaManager = mockedSchemaManager;
@@ -240,7 +242,7 @@ public class StorageWriteApiBatchApplicationStreamTest {
         ArgumentCaptor<Map<TopicPartition, OffsetAndMetadata>> captor = ArgumentCaptor.forClass(Map.class);
 
         assertEquals(mockedStreamName1, streamName);
-        verify(mockedApplicationStream1, times(1)).updateOffsetInformation(captor.capture());
+        verify(mockedApplicationStream1, times(1)).updateOffsetInformation(captor.capture(), eq(1));
 
         Map<TopicPartition, OffsetAndMetadata> actualOffset = captor.getValue();
         assertEquals(1, actualOffset.size());
@@ -257,6 +259,7 @@ public class StorageWriteApiBatchApplicationStreamTest {
         initialiseStreams();
         mockedStream.currentStreams.put(mockedTable1.toString(), "newStream");
         when(mockedApplicationStream1.areAllExpectedCallsCompleted()).thenReturn(true);
+        when(mockedApplicationStream1.canBeCommitted()).thenReturn(true);
         when(mockedResponse.get()).thenReturn(successResponse);
 
         mockedStream.appendRows(mockedTable1, mockedRows, mockedStreamName1);
@@ -270,7 +273,7 @@ public class StorageWriteApiBatchApplicationStreamTest {
         initialiseStreams();
         mockedStream.currentStreams.put(mockedTable1.toString(), "newStream");
         when(mockedResponse.get()).thenThrow(schemaException).thenReturn(successResponse);
-
+        when(mockedApplicationStream1.canBeCommitted()).thenReturn(true);
         mockedStream.appendRows(mockedTable1, mockedRows, mockedStreamName1);
 
         verify(mockedSchemaManager, times(1)).updateSchema(any(), any());
@@ -293,7 +296,7 @@ public class StorageWriteApiBatchApplicationStreamTest {
         initialiseStreams();
         mockedStream.currentStreams.put(mockedTable1.toString(), "newStream");
         when(mockedResponse.get()).thenThrow(noTable).thenReturn(successResponse);
-
+        when(mockedApplicationStream1.canBeCommitted()).thenReturn(true);
         mockedStream.appendRows(mockedTable1, mockedRows, mockedStreamName1);
 
         verify(mockedSchemaManager, times(1)).createTable(any(), any());

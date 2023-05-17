@@ -47,6 +47,7 @@ public class ApplicationStream {
      * This is called by builder to capture maximum calls expected to append.
      */
     private final AtomicInteger maxCalls;
+    private final AtomicInteger totalRowsSent;
 
     public ApplicationStream(String tableName, BigQueryWriteClient client) throws Exception {
         this.client = client;
@@ -55,6 +56,7 @@ public class ApplicationStream {
         this.appendCalls = new AtomicInteger();
         this.maxCalls = new AtomicInteger();
         this.completedCalls = new AtomicInteger();
+        this.totalRowsSent = new AtomicInteger();
         generateStream();
         currentState = StreamState.CREATED;
     }
@@ -125,8 +127,9 @@ public class ApplicationStream {
      *
      * @param offsets - New offsets to be added on top of existing
      */
-    public void updateOffsetInformation(Map<TopicPartition, OffsetAndMetadata> offsets) {
+    public void updateOffsetInformation(Map<TopicPartition, OffsetAndMetadata> offsets, int totalRows) {
         offsetInformation.putAll(offsets);
+        this.totalRowsSent.addAndGet(totalRows);
         increaseMaxCalls();
     }
 
@@ -149,6 +152,9 @@ public class ApplicationStream {
                 && (this.appendCalls.intValue() == this.completedCalls.intValue());
     }
 
+    public boolean canBeCommitted() {
+        return currentState == StreamState.APPEND;
+    }
     /**
      * Finalises the stream
      */
@@ -156,7 +162,7 @@ public class ApplicationStream {
         if (currentState == StreamState.APPEND) {
             FinalizeWriteStreamResponse finalizeResponse =
                     client.finalizeWriteStream(this.getStreamName());
-            logger.debug("Rows written: " + finalizeResponse.getRowCount());
+            logger.info("Rows Sent: {}, Rows written: {}", this.totalRowsSent, finalizeResponse.getRowCount());
             currentState = StreamState.FINALISED;
         } else {
             throw new BigQueryStorageWriteApiConnectException(
@@ -183,7 +189,7 @@ public class ApplicationStream {
                         String.format("Failed to commit stream %s due to %s", getStreamName(), storageError));
 
             }
-            logger.debug(
+            logger.trace(
                     "Appended and committed records successfully for stream {} at {}",
                     getStreamName(),
                     commitResponse.getCommitTime());

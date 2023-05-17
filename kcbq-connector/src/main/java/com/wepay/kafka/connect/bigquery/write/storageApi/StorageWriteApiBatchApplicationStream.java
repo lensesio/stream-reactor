@@ -5,10 +5,8 @@ import com.google.cloud.bigquery.storage.v1.AppendRowsResponse;
 import com.google.cloud.bigquery.storage.v1.BigQueryWriteSettings;
 import com.google.cloud.bigquery.storage.v1.TableName;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.rpc.Status;
 import com.wepay.kafka.connect.bigquery.ErrantRecordHandler;
 import com.wepay.kafka.connect.bigquery.SchemaManager;
-import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiConnectException;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiErrorResponses;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -54,7 +52,7 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
      * Lock on table names to prevent execution of critical section by multiple threads
      */
     protected ConcurrentMap<String, Object> tableLocks;
-
+    protected ConcurrentMap<ApplicationStream, Object> streamLocks;
     public StorageWriteApiBatchApplicationStream(
             int retry,
             long retryWait,
@@ -67,6 +65,7 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
         streams = new ConcurrentHashMap<>();
         currentStreams = new ConcurrentHashMap<>();
         tableLocks = new ConcurrentHashMap<>();
+        streamLocks = new ConcurrentHashMap<>();
     }
 
     /**
@@ -229,9 +228,9 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
         Map<TopicPartition, OffsetAndMetadata> offsetInfo = getOffsetFromRecords(rows);
         synchronized (lock(tableName)) {
             streamName = this.getCurrentStreamForTable(tableName, rows);
-            this.streams.get(tableName).get(streamName).updateOffsetInformation(offsetInfo);
+            this.streams.get(tableName).get(streamName).updateOffsetInformation(offsetInfo, rows.size());
         }
-        logger.trace("Assigned offsets {} to stream {}", offsetInfo, streamName);
+        logger.trace("Assigned offsets {} to stream {} for {} rows", offsetInfo, streamName, rows.size());
         return streamName;
     }
 
@@ -379,12 +378,18 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
         if (!Objects.equals(currentStreams.get(tableName), streamName)) {
             logger.trace("Stream {} is not active, can be committed", streamName);
             ApplicationStream stream = this.streams.get(tableName).get(streamName);
-            if (stream != null && stream.areAllExpectedCallsCompleted()) {
-                // We are done with all expected calls for non-active streams, lets finalise and commit the stream.
-                logger.trace("Stream {} has written all assigned offsets.", streamName);
-                finaliseAndCommitStream(stream);
-                logger.trace("Stream {} is now committed.", streamName);
-                return;
+            synchronized (lock(stream)) {
+                if (stream != null && stream.areAllExpectedCallsCompleted()) {
+                    if(!stream.canBeCommitted()) {
+                        logger.trace("Stream {} with state {} is not committable", streamName, stream.getCurrentState());
+                        return;
+                    }
+                    // We are done with all expected calls for non-active streams, lets finalise and commit the stream.
+                    logger.trace("Stream {} has written all assigned offsets.", streamName);
+                    finaliseAndCommitStream(stream);
+                    logger.trace("Stream {} is now committed.", streamName);
+                    return;
+                }
             }
             logger.trace("Stream {} has not written all assigned offsets.", streamName);
         }
@@ -398,5 +403,9 @@ public class StorageWriteApiBatchApplicationStream extends StorageWriteApiApplic
 
     private Object lock(String tableName) {
         return tableLocks.computeIfAbsent(tableName, t -> new Object());
+    }
+
+    private Object lock(ApplicationStream stream) {
+        return streamLocks.computeIfAbsent(stream, s -> new Object());
     }
 }
