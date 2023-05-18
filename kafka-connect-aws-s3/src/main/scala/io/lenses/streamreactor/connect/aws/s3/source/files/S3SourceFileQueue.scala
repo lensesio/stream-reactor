@@ -41,9 +41,8 @@ trait SourceFileQueue {
   * @param storageInterface the storage interface of the remote service.
   */
 class S3SourceFileQueue(
-  root:         RemoteS3RootLocation,
-  numResults:   Int,
-  sourceLister: S3SourceLister,
+  root:       RemoteS3RootLocation,
+  numResults: Int,
 )(
   implicit
   storageInterface: StorageInterface,
@@ -60,12 +59,21 @@ class S3SourceFileQueue(
   private def retrieveNextFile(
     lastSeenFile: Option[RemoteS3PathLocation],
   ): Either[Throwable, Option[RemoteS3PathLocationWithLine]] =
-    sourceLister.listBatch(root, lastSeenFile, numResults) match {
-      case Left(ex) => ex.asLeft
-      case Right(value) =>
-        files ++= value.map(_.fromStart())
-        files.headOption.asRight
-    }
+    listBatch(root, lastSeenFile, numResults)
+      .map {
+        value =>
+          files ++= value.map(_.fromStart())
+          files.headOption
+      }
+
+  def listBatch(
+    bucketAndPrefix: RemoteS3RootLocation,
+    lastFile:        Option[RemoteS3PathLocation],
+    numResults:      Int,
+  ): Either[Throwable, List[RemoteS3PathLocation]] =
+    storageInterface
+      .list(bucketAndPrefix, lastFile, numResults)
+      .map(_.map(bucketAndPrefix.withPath))
 
   override def markFileComplete(file: RemoteS3PathLocation): Either[String, Unit] =
     files.headOption match {

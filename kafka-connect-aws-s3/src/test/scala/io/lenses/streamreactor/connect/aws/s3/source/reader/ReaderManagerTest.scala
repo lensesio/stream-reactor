@@ -20,7 +20,6 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.InitedConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
-import io.lenses.streamreactor.connect.aws.s3.source.files.S3SourceLister
 import io.lenses.streamreactor.connect.aws.s3.source.files.SourceFileQueue
 import io.lenses.streamreactor.connect.aws.s3.source.PollResults
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
@@ -32,7 +31,6 @@ import org.scalatest.matchers.should.Matchers
 class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with LazyLogging with BeforeAndAfter {
 
   private implicit val storageInterface: StorageInterface      = mock[StorageInterface]
-  private implicit val sourceLister:     S3SourceLister        = mock[S3SourceLister]
   private implicit val partitionFn:      String => Option[Int] = _ => Option.empty
   private val fileQueueProcessor:        SourceFileQueue       = mock[SourceFileQueue]
   private val readerCreator = mock[ReaderCreator]
@@ -114,6 +112,6 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
   }
 
   before {
-    reset(storageInterface, sourceLister, fileQueueProcessor, readerCreator)
+    reset(storageInterface, fileQueueProcessor, readerCreator)
   }
 }

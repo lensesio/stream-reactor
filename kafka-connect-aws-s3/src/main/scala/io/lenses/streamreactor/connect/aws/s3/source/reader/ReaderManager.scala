@@ -23,7 +23,6 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocatio
 import io.lenses.streamreactor.connect.aws.s3.source.PollResults
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
 import io.lenses.streamreactor.connect.aws.s3.source.files.S3SourceFileQueue
-import io.lenses.streamreactor.connect.aws.s3.source.files.S3SourceLister
 import io.lenses.streamreactor.connect.aws.s3.source.files.SourceFileQueue
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.utils.ThrowableEither.toJavaThrowableConverter
@@ -179,7 +178,6 @@ object ReaderManager {
       new S3SourceFileQueue(
         root,
         bOpts.filesLimit,
-        new S3SourceLister(),
       ),
       new ReaderCreator(bOpts.format, bOpts.targetTopic, bOpts.getPartitionExtractorFn).create,
     )

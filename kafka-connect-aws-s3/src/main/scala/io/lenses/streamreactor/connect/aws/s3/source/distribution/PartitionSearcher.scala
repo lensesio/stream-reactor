@@ -41,7 +41,7 @@ class PartitionSearcher(
     lastFound: Seq[PartitionSearcherResponse],
   ): IO[Seq[PartitionSearcherResponse]] =
     if (lastFound.isEmpty && roots.nonEmpty) {
-      roots.traverse(findNewPartitionsInRoot(_, settings, Set.empty, Option.empty))
+      roots.traverse(findNewPartitionsInRoot(_, settings, Set.empty, Option.empty, settings.clock))
     } else {
       lastFound.traverse {
         prevResponse =>
@@ -50,6 +50,7 @@ class PartitionSearcher(
             settings,
             prevResponse.allPartitions,
             resumeFrom(prevResponse),
+            settings.clock,
           )
       }
     }
@@ -59,11 +60,10 @@ class PartitionSearcher(
     settings:   PartitionSearcherOptions,
     exclude:    Set[String],
     resumeFrom: Option[String],
-    maybeClock: Option[Clock] = Option.empty,
+    clock:      Clock,
   ): IO[PartitionSearcherResponse] =
     for {
       originalPartitions <- IO.delay(exclude)
-      clock               = maybeClock.getOrElse(Clock.systemDefaultZone())
       foundPartitions <-
         storageInterface.findDirectories(
           root,

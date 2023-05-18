@@ -25,10 +25,8 @@ case class PartitionSearcherOptions(
   searchInterval:              Duration, // searches again or resumes search in partial mode
   pauseSearchOnPartitionCount: Option[Int], // this is per root
   pauseSearchAfterTime:        Option[Duration], // this is per root
-  maybeClock:                  Option[Clock] = None,
+  clock:                       Clock,
 ) {
-
-  private val clock = maybeClock.getOrElse(Clock.systemDefaultZone())
 
   def rediscoverDue(lastSearchTime: Option[Instant]): Boolean =
     lastSearchTime.fold(true) {
