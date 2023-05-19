@@ -57,7 +57,7 @@ class ReaderManagerService(
       if (rediscoverDue && settings.blockOnSearch) {
         rediscover()
       } else if (rediscoverDue && !settings.blockOnSearch) {
-        rediscover().start *> IO.unit
+        rediscover().background.use_
       } else {
         IO.unit
       }
