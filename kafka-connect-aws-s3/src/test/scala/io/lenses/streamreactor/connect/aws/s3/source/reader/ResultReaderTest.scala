@@ -15,11 +15,11 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.reader
 
-import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatStreamReader
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.S3FormatStreamReader
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.SourceData
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.PollResults
-import io.lenses.streamreactor.connect.aws.s3.model.SourceData
-import io.lenses.streamreactor.connect.aws.s3.model.StringSourceData
+import io.lenses.streamreactor.connect.aws.s3.source.PollResults
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -30,13 +30,13 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
   private val targetTopic         = "MyTargetTopic"
   private val limit               = 10
   private val reader              = mock[S3FormatStreamReader[_ <: SourceData]]
-  private implicit val partitionFn: String => Option[Int] = _ => Option.empty
+  private val partitionFn: String => Option[Int] = _ => Option.empty
 
   private val result1 = StringSourceData("myJsonStuff0", 0)
   private val result2 = StringSourceData("myJsonStuff1", 1)
   private val result3 = StringSourceData("myJsonStuff2", 2)
 
-  val target = new ResultReader(reader, targetTopic)
+  val target = new ResultReader(reader, targetTopic, partitionFn)
 
   "resultReader" should "read a single results from the reader" in {
     when(reader.getBucketAndPath).thenReturn(readerBucketAndPath)
@@ -48,6 +48,7 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
         Vector(result1),
         readerBucketAndPath,
         targetTopic,
+        partitionFn,
       ),
     ))
   }
@@ -66,6 +67,7 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
         ),
         readerBucketAndPath,
         targetTopic,
+        partitionFn,
       ),
     ))
   }
@@ -88,6 +90,7 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
         Vector(result1, result2),
         readerBucketAndPath,
         targetTopic,
+        partitionFn,
       ),
     ))
 
@@ -96,6 +99,7 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
         Vector(result3),
         readerBucketAndPath,
         targetTopic,
+        partitionFn,
       ),
     ))
   }

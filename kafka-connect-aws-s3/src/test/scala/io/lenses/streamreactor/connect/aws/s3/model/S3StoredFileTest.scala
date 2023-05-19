@@ -19,6 +19,8 @@ import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.sink.HierarchicalS3FileNamingStrategy
 import io.lenses.streamreactor.connect.aws.s3.sink.NoOpPaddingStrategy
 import io.lenses.streamreactor.connect.aws.s3.sink.PartitionedS3FileNamingStrategy
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionField
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

@@ -15,10 +15,11 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroFormatReader
+import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
-import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
 import org.apache.kafka.connect.data.Schema

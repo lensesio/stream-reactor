@@ -17,34 +17,35 @@ package io.lenses.streamreactor.connect.aws.s3.source
 
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDef
+import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfigDef
+import io.lenses.streamreactor.connect.aws.s3.config.TaskDistributor.distributeTasks
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 
 import java.util
-import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class S3SourceConnector extends SourceConnector with LazyLogging {
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
-  private var props: util.Map[String, String] = _
+  private val props: util.Map[String, String] = new util.HashMap[String, String]()
 
   override def version(): String = manifest.version()
 
   override def taskClass(): Class[_ <: Task] = classOf[S3SourceTask]
 
-  override def config(): ConfigDef = S3ConfigDef.config
+  override def config(): ConfigDef = S3SourceConfigDef.config
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Creating S3 source connector")
-    this.props = props
+    this.props.putAll(props)
   }
 
   override def stop(): Unit = ()
 
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Creating $maxTasks tasks config")
-    List.fill(maxTasks)(props).asJava
+    distributeTasks(props, maxTasks)
   }
+
 }

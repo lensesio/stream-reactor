@@ -15,10 +15,14 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.storage
 
+import cats.effect.IO
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import org.apache.commons.io.IOUtils
+import org.apache.kafka.connect.errors.ConnectException
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.blobstore.domain.StorageType
 import org.jclouds.blobstore.options.ListContainerOptions
@@ -33,14 +37,14 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreContext)
+class JCloudsStorageInterface(blobStoreContext: BlobStoreContext)(implicit connectorTaskId: ConnectorTaskId)
     extends StorageInterface
     with LazyLogging {
 
   private val blobStore = blobStoreContext.getBlobStore
 
   override def uploadFile(source: File, target: RemoteS3PathLocation): Either[UploadError, Unit] = {
-    logger.debug(s"[{}] JCLOUDS Uploading file from local {} to s3 {}", sinkName, source, target)
+    logger.debug(s"[{}] JCLOUDS Uploading file from local {} to s3 {}", connectorTaskId.show, source, target)
 
     if (!source.exists()) {
       NonExistingFileError(source).asLeft
@@ -57,17 +61,17 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
         )
       } match {
         case Failure(exception) =>
-          logger.error(s"[{}] Failed upload from local {} to s3 {}", sinkName, source, target, exception)
+          logger.error(s"[{}] Failed upload from local {} to s3 {}", connectorTaskId.show, source, target, exception)
           UploadFailedError(exception, source).asLeft
         case Success(_) =>
-          logger.debug(s"[{}] Completed upload from local {} to s3 {}", sinkName, source, target)
+          logger.debug(s"[{}] Completed upload from local {} to s3 {}", connectorTaskId.show, source, target)
           ().asRight
       }
     }
   }
 
   override def writeStringToFile(target: RemoteS3PathLocation, data: String): Either[UploadError, Unit] = {
-    logger.debug(s"[{}] Uploading file from data string ({}) to s3 {}", sinkName, data, target)
+    logger.debug(s"[{}] Uploading file from data string ({}) to s3 {}", connectorTaskId.show, data, target)
 
     if (data.isEmpty) {
       EmptyContentsStringError(data).asLeft
@@ -82,10 +86,15 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
         )
       } match {
         case Failure(exception) =>
-          logger.error(s"[{}] Failed upload from data string ({}) to s3 {}", sinkName, data, target, exception)
+          logger.error(s"[{}] Failed upload from data string ({}) to s3 {}",
+                       connectorTaskId.show,
+                       data,
+                       target,
+                       exception,
+          )
           FileCreateError(exception, data).asLeft
         case Success(_) =>
-          logger.debug(s"[{}] Completed upload from data string ({}) to s3 {}", sinkName, data, target)
+          logger.debug(s"[{}] Completed upload from data string ({}) to s3 {}", connectorTaskId.show, data, target)
           ().asRight
       }
     }
@@ -155,4 +164,18 @@ class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreConte
 
   override def getBlobModified(location: RemoteS3PathLocation): Either[String, Instant] =
     Try(blobStore.blobMetadata(location.bucket, location.path).getLastModified.toInstant).toEither.leftMap(_.getMessage)
+
+  override def list(
+    bucketAndPrefix: RemoteS3RootLocation,
+    lastFile:        Option[RemoteS3PathLocation],
+    numResults:      Int,
+  ): Either[Throwable, List[String]] = new ConnectException("Source must use AWS client").asLeft
+
+  override def findDirectories(
+    bucketAndPrefix:  RemoteS3RootLocation,
+    completionConfig: DirectoryFindCompletionConfig,
+    exclude:          Set[String],
+    continueFrom:     Option[String],
+  ): IO[DirectoryFindResults] = IO.raiseError(new ConnectException("Source must use AWS client"))
+
 }

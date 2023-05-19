@@ -21,6 +21,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.Year
 import java.util.Calendar
+import scala.collection.Seq
 import scala.sys.process._
 
 object Settings extends Dependencies {
@@ -244,6 +245,7 @@ object Settings extends Dependencies {
               fork := requiresFork,
               testFrameworks := Seq(sbt.TestFrameworks.ScalaTest),
               classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
+              javaOptions += "-Dartifact.dir=" + (project.base / "target" / "libs").getAbsolutePath,
             )
           },
         )

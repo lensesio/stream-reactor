@@ -1,14 +1,20 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
+import cats.effect.IO
+import cats.effect.kernel.Clock
+import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Bytes
-import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.KeyAndValueWithSizes
-import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.ValueOnly
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions
+import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.KeyAndValueWithSizes
+import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.ValueOnly
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.storage.CompletedDirectoryFindResults
+import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindCompletionConfig
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
@@ -28,10 +34,10 @@ class S3SourceTaskTest
     with LazyLogging
     with BeforeAndAfter {
 
-  var bucketSetupOpt: Option[BucketSetup] = None
-  def bucketSetup:    BucketSetup         = bucketSetupOpt.getOrElse(throw new IllegalStateException("Not initialised"))
+  private var bucketSetupOpt: Option[BucketSetup] = None
+  def bucketSetup:            BucketSetup         = bucketSetupOpt.getOrElse(throw new IllegalStateException("Not initialised"))
 
-  def DefaultProps = Map(
+  def DefaultProps: Map[String, String] = Map(
     AWS_ACCESS_KEY              -> Identity,
     AWS_SECRET_KEY              -> Credential,
     AWS_REGION                  -> "eu-west-1",
@@ -39,6 +45,7 @@ class S3SourceTaskTest
     CUSTOM_ENDPOINT             -> uri(),
     ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
     AWS_CLIENT                  -> "aws",
+    TASK_INDEX                  -> "1:1",
   )
 
   private val formats = Table(
@@ -64,6 +71,13 @@ class S3SourceTaskTest
     }
   }
 
+  "task" should "retrieve subdirectories correctly" in {
+    val root = RemoteS3RootLocation(BucketName, s"${bucketSetup.PrefixName}/avro/myTopic/".some, allowSlash = true)
+    val dirs =
+      storageInterface.findDirectories(root, DirectoryFindCompletionConfig(3, none, none, Clock[IO]), Set.empty, none)
+    dirs.unsafeRunSync() should be(CompletedDirectoryFindResults(Set("streamReactorBackups/avro/myTopic/0/")))
+  }
+
   "task" should "read stored files continuously" in {
     forAll(formats) {
       (format, formatOptions, dir) =>
@@ -76,7 +90,7 @@ class S3SourceTaskTest
         val props = DefaultProps
           .combine(
             Map(
-              "connect.s3.kcql" -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
+              "connect.s3.kcql" -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir/ STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
             ),
           ).asJava
 

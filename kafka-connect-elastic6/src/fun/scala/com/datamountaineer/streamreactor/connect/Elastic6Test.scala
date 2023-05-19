@@ -19,7 +19,7 @@ class Elastic6Test extends AnyFlatSpec with StreamReactorContainerPerSuite with 
 
   lazy val container: ElasticsearchContainer = ElasticsearchContainer().withNetwork(network)
 
-  override def schemaRegistryContainer(): Option[SchemaRegistryContainer] = None
+  override val schemaRegistryContainer: Option[SchemaRegistryContainer] = None
 
   override val connectorModule: String = "elastic6"
 

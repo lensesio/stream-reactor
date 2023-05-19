@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink.seek
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
@@ -36,20 +37,21 @@ import scala.util.Try
   * @param fileNamingStrategy we need the policy so we can match on this.
   */
 @Deprecated
-class LegacyOffsetSeeker(sinkName: String)(implicit storageInterface: StorageInterface) extends LazyLogging {
+class LegacyOffsetSeeker(implicit connectorTaskId: ConnectorTaskId, storageInterface: StorageInterface)
+    extends LazyLogging {
 
   def seek(
     topicPartition:     TopicPartition,
     fileNamingStrategy: S3FileNamingStrategy,
     bucketAndPrefix:    RemoteS3RootLocation,
   ): Either[SinkError, Option[(TopicPartitionOffset, RemoteS3PathLocation)]] = {
-    logger.debug(s"[{}] seekOffsetsForTopicPartition {}", sinkName, topicPartition)
+    logger.debug(s"[{}] seekOffsetsForTopicPartition {}", connectorTaskId.show, topicPartition)
     for {
       topicPartitionRoot <- Try(fileNamingStrategy.topicPartitionPrefix(bucketAndPrefix, topicPartition))
         .toEither.leftMap(ex => FatalS3SinkError(ex.getMessage, ex, topicPartition))
       seeked <- seek(fileNamingStrategy, topicPartition, topicPartitionRoot)
     } yield {
-      logger.info("[{}] Seeked {} {}", sinkName, bucketAndPrefix.toString, seeked)
+      logger.info("[{}] Seeked {} {}", connectorTaskId.show, bucketAndPrefix.toString, seeked)
       seeked
     }
   }

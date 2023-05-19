@@ -25,7 +25,7 @@ class S3Test extends AnyFlatSpec with StreamReactorContainerPerSuite with Matche
     .withNetwork(network)
   private val bucketName = "fancystuff"
 
-  override def schemaRegistryContainer(): Option[SchemaRegistryContainer] = None
+  override val schemaRegistryContainer: Option[SchemaRegistryContainer] = None
 
   override val connectorModule: String = "aws-s3"
 

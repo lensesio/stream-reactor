@@ -18,24 +18,36 @@ package io.lenses.streamreactor.connect.aws.s3.sink.config
 import cats.syntax.all._
 import com.datamountaineer.kcql.Kcql
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MAX_INDEX_FILES
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MIGRATION
-import io.lenses.streamreactor.connect.aws.s3.config.S3FlushSettings.defaultFlushCount
-import io.lenses.streamreactor.connect.aws.s3.config.S3FlushSettings.defaultFlushInterval
-import io.lenses.streamreactor.connect.aws.s3.config.S3FlushSettings.defaultFlushSize
+import S3FlushSettings.defaultFlushCount
+import S3FlushSettings.defaultFlushInterval
+import S3FlushSettings.defaultFlushSize
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
-import io.lenses.streamreactor.connect.aws.s3.model.LocalStagingArea
-import io.lenses.streamreactor.connect.aws.s3.model.PartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink._
+
+import java.util
 
 object S3SinkConfig {
 
-  def apply(s3ConfigDefBuilder: S3ConfigDefBuilder): Either[Throwable, S3SinkConfig] =
+  def fromProps(
+    props: util.Map[String, String],
+  )(
+    implicit
+    connectorTaskId: ConnectorTaskId,
+  ): Either[Throwable, S3SinkConfig] =
+    S3SinkConfig(S3SinkConfigDefBuilder(props))
+
+  def apply(
+    s3ConfigDefBuilder: S3SinkConfigDefBuilder,
+  )(
+    implicit
+    connectorTaskId: ConnectorTaskId,
+  ): Either[Throwable, S3SinkConfig] =
     for {
       sinkBucketOptions <- SinkBucketOptions(s3ConfigDefBuilder)
       offsetSeekerOptions = OffsetSeekerOptions(
@@ -60,12 +72,14 @@ case class S3SinkConfig(
 
 object SinkBucketOptions extends LazyLogging {
 
-  def apply(config: S3ConfigDefBuilder): Either[Throwable, Set[SinkBucketOptions]] =
+  def apply(
+    config: S3SinkConfigDefBuilder,
+  )(
+    implicit
+    connectorTaskId: ConnectorTaskId,
+  ): Either[Throwable, Set[SinkBucketOptions]] =
     config.getKCQL.map { kcql: Kcql =>
-      val formatSelection: FormatSelection = Option(kcql.getStoredAs) match {
-        case Some(format: String) => FormatSelection.fromString(format)
-        case None => FormatSelection(Json, Set.empty)
-      }
+      val formatSelection: FormatSelection = FormatSelection.fromKcql(kcql)
 
       val partitionSelection = PartitionSelection(kcql)
       val namingStrategy = partitionSelection match {

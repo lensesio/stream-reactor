@@ -15,7 +15,9 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.storage
 
+import cats.effect.IO
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 
 import java.io.File
 import java.io.InputStream
@@ -42,4 +44,18 @@ trait StorageInterface {
   def writeStringToFile(target: RemoteS3PathLocation, data: String): Either[UploadError, Unit]
 
   def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit]
+
+  def list(
+    bucketAndPrefix: RemoteS3RootLocation,
+    lastFile:        Option[RemoteS3PathLocation],
+    numResults:      Int,
+  ): Either[Throwable, List[String]]
+
+  def findDirectories(
+    bucketAndPrefix:  RemoteS3RootLocation,
+    completionConfig: DirectoryFindCompletionConfig,
+    exclude:          Set[String],
+    continueFrom:     Option[String],
+  ): IO[DirectoryFindResults]
+
 }

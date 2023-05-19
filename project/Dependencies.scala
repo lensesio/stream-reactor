@@ -56,7 +56,7 @@ object Dependencies {
     val avro4sVersion = "4.1.0"
 
     val catsVersion           = "2.9.0"
-    val catsEffectVersion     = "3.4.6"
+    val catsEffectVersion     = "3.4.8"
     val `cats-effect-testing` = "1.4.0"
 
     val urlValidatorVersion       = "1.7"
@@ -70,16 +70,16 @@ object Dependencies {
     val kindProjectorVersion    = "0.13.2"
     val betterMonadicForVersion = "0.3.1"
 
-    val logbackVersion      = "1.4.5"
+    val logbackVersion      = "1.4.6"
     val scalaLoggingVersion = "3.9.5"
-    val classGraphVersions  = "4.8.154"
+    val classGraphVersions  = "4.8.157"
 
     val wiremockJre8Version = "2.35.0"
     val parquetVersion      = "1.12.3"
 
     val jerseyCommonVersion = "3.1.1"
 
-    val calciteVersion    = "1.33.0"
+    val calciteVersion    = "1.34.0"
     val awsSdkVersion     = "2.20.54"
     val jCloudsSdkVersion = "2.5.0"
     val guavaVersion      = "31.0.1-jre"
@@ -90,7 +90,7 @@ object Dependencies {
     val jacksonVersion      = "2.14.2"
     val json4sVersion       = "4.0.6"
     val mockitoScalaVersion = "1.17.12"
-    val snakeYamlVersion    = "1.33"
+    val snakeYamlVersion    = "2.0"
     val openCsvVersion      = "5.7.1"
 
     val xzVersion  = "1.9"
@@ -102,7 +102,7 @@ object Dependencies {
     //val nettyVersion = "4.0.47.Final"
     val nettyVersion = "4.1.71.Final"
 
-    val dropWizardMetricsVersion = "4.2.15"
+    val dropWizardMetricsVersion = "4.2.17"
     val cassandraDriverVersion   = "3.11.3"
     val jsonPathVersion          = "2.7.0"
 
@@ -122,7 +122,7 @@ object Dependencies {
     val influxVersion = "2.23"
 
     val jmsApiVersion                 = "2.0.1"
-    val activeMqVersion               = "5.17.0"
+    val activeMqVersion               = "5.17.4"
     val protocVersion                 = "3.11.4"
     val googleProtobufVersion         = "3.21.12"
     val protobufCompilerPluginVersion = "0.11.12"
@@ -154,7 +154,7 @@ object Dependencies {
 
     val hbaseClientVersion = "2.5.3"
 
-    val nimbusJoseJwtVersion = "9.30.1"
+    val nimbusJoseJwtVersion = "9.30.2"
     val hiveVersion          = "3.1.3"
     val hadoopVersion        = "3.3.2"
 
@@ -181,11 +181,9 @@ object Dependencies {
   import Versions._
 
   // functional libraries
-  val cats           = "org.typelevel" %% "cats-core"        % catsVersion
-  val catsLaws       = "org.typelevel" %% "cats-laws"        % catsVersion
-  val catsEffect     = "org.typelevel" %% "cats-effect"      % catsEffectVersion
-  val catsEffectLaws = "org.typelevel" %% "cats-effect-laws" % catsEffectVersion
-  lazy val catsFree  = "org.typelevel" %% "cats-free"        % catsVersion
+  val catsEffectKernel = "org.typelevel" %% "cats-effect-kernel" % catsEffectVersion
+  val catsEffectStd    = "org.typelevel" %% "cats-effect-std"    % catsEffectVersion
+  val catsEffect       = "org.typelevel" %% "cats-effect"        % catsEffectVersion
 
   val urlValidator = "commons-validator" % "commons-validator" % urlValidatorVersion
 
@@ -446,7 +444,7 @@ object Dependencies {
   lazy val hiveJdbc      = hiveExcludes("org.apache.hive" % "hive-jdbc" % hiveVersion)
   lazy val hiveMetastore = hiveExcludes("org.apache.hive" % "hive-metastore" % hiveVersion)
   lazy val hiveExec      = hiveExcludes("org.apache.hive" % "hive-exec" % hiveVersion classifier "core")
-  lazy val airCompressor = "io.airlift" % "aircompressor" % "0.21"
+  lazy val airCompressor = "io.airlift" % "aircompressor" % "0.24"
 
   // testcontainers module only
   lazy val festAssert = "org.easytesting" % "fest-assert" % "1.4"
@@ -468,8 +466,8 @@ trait Dependencies {
   import Versions._
 
   val loggingDeps: Seq[ModuleID] = Seq(
-    "org.apache.logging.log4j" % "log4j-api"      % "2.19.0",
-    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.19.0",
+    "org.apache.logging.log4j" % "log4j-api"      % "2.20.0",
+    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.20.0",
     log4jToSlf4j,
     jclToSlf4j,
     logback,
@@ -481,10 +479,9 @@ trait Dependencies {
   val projectResolvers: Seq[MavenRepository] = commonResolvers
 
   val baseTestDeps: Seq[ModuleID] = loggingDeps ++ Seq(
-    cats,
-    catsLaws,
+    catsEffectKernel,
+    catsEffectStd,
     catsEffect,
-    catsEffectLaws,
     scalatest,
     catsEffectScalatest,
     scalatestPlusScalaCheck,
@@ -499,12 +496,10 @@ trait Dependencies {
 
   //Specific modules dependencies
   val baseDeps: Seq[ModuleID] = loggingDeps ++ Seq(
-    cats,
-    catsLaws,
+    catsEffectKernel,
+    catsEffectStd,
     catsEffect,
-    catsEffectLaws,
     urlValidator,
-    catsFree,
     guava,
     snakeYaml,
     commonsBeanUtils,

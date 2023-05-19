@@ -15,8 +15,10 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroFormatStreamReader
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.AvroFormatWriter
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
-import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.checkRecord
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.firstUsers

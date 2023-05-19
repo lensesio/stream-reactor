@@ -15,9 +15,11 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.TextFormatStreamReader
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.JsonFormatWriter
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.StringSourceData
-import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.topic

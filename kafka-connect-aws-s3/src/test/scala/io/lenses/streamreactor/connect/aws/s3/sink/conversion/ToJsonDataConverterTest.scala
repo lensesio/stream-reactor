@@ -15,10 +15,10 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
-import io.lenses.streamreactor.connect.aws.s3.model.ArraySinkData
-import io.lenses.streamreactor.connect.aws.s3.model.MapSinkData
-import io.lenses.streamreactor.connect.aws.s3.model.NullSinkData
-import io.lenses.streamreactor.connect.aws.s3.model.StringSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.ArraySinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.MapSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.StringSinkData
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

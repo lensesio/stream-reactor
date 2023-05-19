@@ -15,10 +15,11 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesFormatStreamFileReader
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.BytesOutputRow
 import io.lenses.streamreactor.connect.aws.s3.model.BytesOutputRowTest
-import io.lenses.streamreactor.connect.aws.s3.model.BytesWriteMode
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

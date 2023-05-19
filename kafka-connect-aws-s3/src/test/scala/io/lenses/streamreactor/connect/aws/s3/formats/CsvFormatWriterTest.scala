@@ -16,7 +16,8 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.opencsv.CSVReader
-import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.CsvFormatWriter
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorError
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.UnexpectedType
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._

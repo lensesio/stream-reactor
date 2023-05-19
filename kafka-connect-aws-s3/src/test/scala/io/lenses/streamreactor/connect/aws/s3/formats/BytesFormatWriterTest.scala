@@ -16,10 +16,12 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesFormatWithSizesStreamReader
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.ByteArraySinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.BytesFormatWriter
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.ByteArraySinkData
-import io.lenses.streamreactor.connect.aws.s3.model.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream

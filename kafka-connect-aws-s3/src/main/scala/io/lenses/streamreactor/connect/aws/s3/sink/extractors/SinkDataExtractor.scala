@@ -17,7 +17,8 @@ package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.formats.writer._
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
 
 /**
   * Extracts values from a SinkData wrapper type

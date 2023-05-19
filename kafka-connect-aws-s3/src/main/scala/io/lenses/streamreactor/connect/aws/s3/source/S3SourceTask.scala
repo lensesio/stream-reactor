@@ -15,42 +15,34 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source
 
+import cats.implicits.toBifunctorOps
 import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
-import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither.toJavaThrowableConverter
-import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
-import io.lenses.streamreactor.connect.aws.s3.source.files.S3SourceFileQueue
-import io.lenses.streamreactor.connect.aws.s3.source.files.S3SourceLister
-import io.lenses.streamreactor.connect.aws.s3.source.reader.ReaderCreator
-import io.lenses.streamreactor.connect.aws.s3.source.reader.S3ReaderManager
-import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.sink.SinkContextReader
+import io.lenses.streamreactor.connect.aws.s3.source.state.CleanS3SourceTaskState
+import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceTaskState
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask
 
 import java.util
 import scala.jdk.CollectionConverters.SeqHasAsJava
-import scala.util.Try
-
+import SinkContextReader._
 class S3SourceTask extends SourceTask with LazyLogging {
+
+  private val mergePropsFn: util.Map[String, String] => util.Map[String, String] =
+    mergeProps(() => context.configs())
+
+  private val contextOffsetFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine] =
+    SourceContextReader.getCurrentOffset(() => context)
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
-  private var readerManagers: Seq[S3ReaderManager] = _
-
-  private var sourceName: String = _
+  private var s3SourceTaskState: S3SourceTaskState = CleanS3SourceTaskState
 
   override def version(): String = manifest.version()
-
-  private def propsFromContext(props: util.Map[String, String]): util.Map[String, String] =
-    Option(context)
-      .flatMap(c => Option(c.configs()))
-      .filter(!_.isEmpty)
-      .getOrElse(props)
 
   /**
     * Start sets up readers for every configured connection in the properties
@@ -59,55 +51,24 @@ class S3SourceTask extends SourceTask with LazyLogging {
 
     printAsciiHeader(manifest, "/aws-s3-source-ascii.txt")
 
-    sourceName = getSourceName(props).getOrElse("MissingSourceName")
-
     logger.debug(s"Received call to S3SourceTask.start with ${props.size()} properties")
 
-    val contextFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine] = new ContextReader(() =>
-      context,
-    ).getCurrentOffset
+    s3SourceTaskState = s3SourceTaskState.start(mergePropsFn(props), contextOffsetFn).leftMap(throw _).merge
+    ()
 
-    val eitherErrOrReaderMan = for {
-      config                 <- Try(S3SourceConfig(S3ConfigDefBuilder(getSourceName(props), propsFromContext(props)))).toEither
-      authResources           = new AuthResources(config.s3Config)
-      awsAuth                <- authResources.aws
-      storageInterface       <- config.s3Config.awsClient.createStorageInterface(sourceName, authResources)
-      sourceStorageInterface <- Try(new AwsS3StorageInterface(getConnectorName(props), awsAuth)).toEither
-      readerManagers = config.bucketOptions.map(bOpts =>
-        new S3ReaderManager(
-          sourceName,
-          bOpts.recordsLimit,
-          contextFn(bOpts.sourceBucketAndPrefix),
-          new S3SourceFileQueue(
-            bOpts.sourceBucketAndPrefix,
-            bOpts.filesLimit,
-            new S3SourceLister(bOpts.format.format)(sourceStorageInterface),
-          ),
-          new ReaderCreator(sourceName, bOpts.format, bOpts.targetTopic)(storageInterface,
-                                                                         bOpts.getPartitionExtractorFn,
-          ).create,
-        ),
-      )
-    } yield readerManagers
-
-    readerManagers = eitherErrOrReaderMan.toThrowable(sourceName)
   }
 
-  private def getConnectorName(props: util.Map[String, String]) =
-    getSourceName(props).getOrElse("EmptySourceName")
-
   override def stop(): Unit = {
-    logger.debug(s"Received call to S3SinkTask.stop")
-
-    readerManagers.foreach(_.close())
+    logger.debug(s"Received call to S3SourceTask.stop")
+    s3SourceTaskState = s3SourceTaskState.close()
+    ()
   }
 
   override def poll(): util.List[SourceRecord] =
-    readerManagers
-      .flatMap(_.poll())
-      .flatMap(_.toSourceRecordList)
+    s3SourceTaskState
+      .poll()
+      .leftMap(throw _)
+      .merge
       .asJava
 
-  private def getSourceName(props: util.Map[String, String]) =
-    Option(props.get("name")).filter(_.trim.nonEmpty)
 }

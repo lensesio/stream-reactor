@@ -41,7 +41,7 @@ class AwsS3ClientCreator(config: S3Config) {
   private val missingCredentialsError =
     "Configured to use credentials however one or both of `AWS_ACCESS_KEY` or `AWS_SECRET_KEY` are missing."
 
-  val defaultCredentialsProvider: AwsCredentialsProvider = DefaultCredentialsProvider.create()
+  private val defaultCredentialsProvider: AwsCredentialsProvider = DefaultCredentialsProvider.create()
 
   def createS3Client(): Either[String, S3Client] =
     Try {

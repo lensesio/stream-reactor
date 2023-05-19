@@ -1,8 +1,10 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxEitherId
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
+import io.lenses.streamreactor.connect.aws.s3.config.InitedConnectorTaskId
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
@@ -18,12 +20,12 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.SECONDS
 
 class S3WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with MockitoSugar {
+  private implicit val connectorTaskId: ConnectorTaskId = InitedConnectorTaskId("sinkName", 1, 1)
 
   private val topicPartition = Topic("topic").withPartition(10)
 
   "S3WriterManager" should "return empty map when no offset or metadata writers can be found" in {
     val wm = new S3WriterManager(
-      "myLovelySink",
       _ => DefaultCommitPolicy(Some(5L), Some(FiniteDuration(5, SECONDS)), Some(5L)).asRight,
       _ => RemoteS3RootLocation("bucketAndPath:location").asRight,
       _ => new HierarchicalS3FileNamingStrategy(FormatSelection.fromString("csv"), NoOpPaddingStrategy).asRight,
