@@ -23,6 +23,7 @@ import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model._
 import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable
 
+import scala.collection.mutable
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 
@@ -95,43 +96,36 @@ abstract class AwsS3DirectoryLister(
     listObjectsV2Response: ListObjectsV2Iterable,
     exclude:               Set[String],
     completionConfig:      DirectoryFindCompletionConfig,
-  ): IO[DirectoryFindResults] = {
-    def loop(
-      resp:              Iterator[ListObjectsV2Response],
-      prefixes:          Set[String],
-      partialResultInfo: Option[(String, String)],
-    ): IO[DirectoryFindResults] =
-      IO.delay(resp.nextOption()).flatMap {
-        case Some(listResp) if partialResultInfo.isEmpty =>
-          val updatedPrefixes = prefixes ++ extractCommonPrefixes(exclude, listResp)
+  ): IO[DirectoryFindResults] =
+    IO {
+      val rtn: mutable.Set[String] = mutable.Set()
+      val resp = listObjectsV2Response
+        .iterator()
+        .asScala
 
-          val updatedPartialResultInfo = completionConfig
-            .stopReason(updatedPrefixes.size)
+      var partialResultInfo: Option[(String, String)] = none
+
+      while (resp.hasNext && partialResultInfo.isEmpty) {
+        val listResp: ListObjectsV2Response = resp.next()
+        val commonPrefixesFiltered = listResp
+          .commonPrefixes()
+          .asScala
+          .map(_.prefix())
+          .filter(connectorTask.ownsDir)
+          .filterNot(exclude.contains)
+        rtn.addAll(commonPrefixesFiltered)
+
+        partialResultInfo =
+          completionConfig
+            .stopReason(rtn.size)
             .map(sr => (sr, listResp.contents().get(listResp.contents().size() - 1).key()))
 
-          loop(resp, updatedPrefixes, updatedPartialResultInfo)
-        case _ =>
-          IO.delay(
-            partialResultInfo.map {
-              case (sr, lf) => PausedDirectoryFindResults(prefixes, sr, lf)
-            }.getOrElse(CompletedDirectoryFindResults(prefixes)),
-          )
       }
 
-    loop(
-      listObjectsV2Response.iterator().asScala,
-      Set.empty,
-      None,
-    )
-  }
-
-  private def extractCommonPrefixes(exclude: Set[String], listResp: ListObjectsV2Response) =
-    listResp
-      .commonPrefixes()
-      .asScala
-      .map(_.prefix())
-      .filter(connectorTask.ownsDir)
-      .filterNot(exclude.contains)
+      partialResultInfo.map {
+        case (sr, lf) => PausedDirectoryFindResults(rtn.toSet, sr, lf)
+      }.getOrElse(CompletedDirectoryFindResults(rtn.toSet))
+    }
 
   private def addTrailingSlash(in: String): String =
     if (!in.endsWith("/")) in + "/" else in
