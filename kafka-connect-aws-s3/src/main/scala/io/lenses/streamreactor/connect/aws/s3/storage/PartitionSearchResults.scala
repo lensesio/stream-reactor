@@ -18,38 +18,57 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
 import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions
+import cats.effect.Clock
+import cats.effect.IO
 
-import java.time.Clock
 import java.time.Instant
 
 object DirectoryFindCompletionConfig {
 
-  def fromSearchOptions(searchOptions: PartitionSearcherOptions, clock: Clock): DirectoryFindCompletionConfig =
-    DirectoryFindCompletionConfig(
+  def fromSearchOptions(
+    searchOptions: PartitionSearcherOptions,
+    clock:         Clock[IO],
+  ): IO[DirectoryFindCompletionConfig] =
+    for {
+      pauseAfter <- IO.delay(searchOptions.pauseSearchAfterTime)
+      now        <- clock.realTimeInstant
+
+    } yield DirectoryFindCompletionConfig(
       searchOptions.recurseLevels,
       searchOptions.pauseSearchOnPartitionCount,
-      searchOptions.pauseSearchAfterTime.map(clock.instant().plus),
+      pauseAfter.map(now.plus(_)),
+      clock,
     )
-
 }
+
 case class DirectoryFindCompletionConfig(
   levelsToRecurse: Int,
   minResults:      Option[Int],
   maxTime:         Option[Instant],
+  clock:           Clock[IO],
 ) {
 
-  def stopReason(partitionsFound: Int): Option[String] = {
+  def stopReason(partitionsFound: Int): IO[Option[String]] = {
     val maxPartsFound = minResults.exists(partitionsFound >= _)
-    val exp           = timeExpired
-    (maxPartsFound, exp) match {
-      case (true, true)   => "pt".some
-      case (true, false)  => "p".some
-      case (false, true)  => "t".some
-      case (false, false) => none
+    timeExpired.map {
+      exp =>
+        (maxPartsFound, exp) match {
+          case (true, true)   => "pt".some
+          case (true, false)  => "p".some
+          case (false, true)  => "t".some
+          case (false, false) => none
+        }
     }
+
   }
 
-  private def timeExpired: Boolean = maxTime.exists(Clock.systemDefaultZone().instant().isAfter(_))
+  private def timeExpired: IO[Boolean] =
+    for {
+      maxTime <- IO.delay(maxTime)
+      instant <- clock.realTimeInstant
+    } yield {
+      maxTime.exists(instant.isAfter)
+    }
 }
 
 trait DirectoryFindResults {

@@ -1,5 +1,7 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
+import cats.effect.IO
+import cats.effect.kernel.Clock
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
@@ -35,7 +37,7 @@ class S3SourceTaskTest
   private var bucketSetupOpt: Option[BucketSetup] = None
   def bucketSetup:            BucketSetup         = bucketSetupOpt.getOrElse(throw new IllegalStateException("Not initialised"))
 
-  def DefaultProps = Map(
+  def DefaultProps: Map[String, String] = Map(
     AWS_ACCESS_KEY              -> Identity,
     AWS_SECRET_KEY              -> Credential,
     AWS_REGION                  -> "eu-west-1",
@@ -71,7 +73,8 @@ class S3SourceTaskTest
 
   "task" should "retrieve subdirectories correctly" in {
     val root = RemoteS3RootLocation(BucketName, s"${bucketSetup.PrefixName}/avro/myTopic/".some, allowSlash = true)
-    val dirs = storageInterface.findDirectories(root, DirectoryFindCompletionConfig(3, none, none), Set.empty, none)
+    val dirs =
+      storageInterface.findDirectories(root, DirectoryFindCompletionConfig(3, none, none, Clock[IO]), Set.empty, none)
     dirs.unsafeRunSync() should be(CompletedDirectoryFindResults(Set("streamReactorBackups/avro/myTopic/0/")))
   }
 

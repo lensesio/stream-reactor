@@ -15,8 +15,11 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.storage
 
+import cats.effect.Clock
+import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.DefaultConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -25,7 +28,7 @@ import software.amazon.awssdk.services.s3.S3Client
 
 class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
 
-  implicit val connectorTaskId = DefaultConnectorTaskId
+  implicit val connectorTaskId: ConnectorTaskId = DefaultConnectorTaskId
 
   "dirLister" should "list all directories" in {
 
@@ -40,7 +43,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface()
     directoryLister.findDirectories(
       RemoteS3RootLocation("bucket", "prefix1/".some, allowSlash = true),
-      DirectoryFindCompletionConfig(1, none, none),
+      DirectoryFindCompletionConfig(1, none, none, Clock[IO]),
       Set.empty,
       Option.empty,
     ).unsafeRunSync() should be(CompletedDirectoryFindResults(
@@ -48,7 +51,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     ))
     directoryLister.findDirectories(
       RemoteS3RootLocation("bucket", none, allowSlash = true),
-      DirectoryFindCompletionConfig(1, none, none),
+      DirectoryFindCompletionConfig(1, none, none, Clock[IO]),
       Set.empty,
       Option.empty,
     ).unsafeRunSync() should be(CompletedDirectoryFindResults(
@@ -75,7 +78,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface()
     directoryLister.findDirectories(
       RemoteS3RootLocation("bucket", none, allowSlash = true),
-      DirectoryFindCompletionConfig(1, none, none),
+      DirectoryFindCompletionConfig(1, none, none, Clock[IO]),
       Set.empty,
       Option.empty,
     ).unsafeRunSync() should be(CompletedDirectoryFindResults(
@@ -102,7 +105,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface()
     directoryLister.findDirectories(
       RemoteS3RootLocation("bucket", none, allowSlash = true),
-      DirectoryFindCompletionConfig(1, none, none),
+      DirectoryFindCompletionConfig(1, none, none, Clock[IO]),
       Set("prefix1/", "prefix4/"),
       Option.empty,
     ).unsafeRunSync() should be(CompletedDirectoryFindResults(
@@ -129,7 +132,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface()
     directoryLister.findDirectories(
       RemoteS3RootLocation("bucket", none, allowSlash = true),
-      DirectoryFindCompletionConfig(1, 1.some, none),
+      DirectoryFindCompletionConfig(1, 1.some, none, Clock[IO]),
       Set.empty,
       Option.empty,
     ).unsafeRunSync() should be(PausedDirectoryFindResults(

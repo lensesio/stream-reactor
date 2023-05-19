@@ -18,8 +18,9 @@ package io.lenses.streamreactor.connect.aws.s3.source.config
 import com.datamountaineer.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import cats.effect.Clock
+import cats.effect.IO
 
-import java.time.Clock
 import java.time.Duration
 import java.time.temporal.ChronoUnit
 
@@ -42,6 +43,6 @@ trait SourcePartitionSearcherSettings extends BaseSettings {
           count =>
             Duration.of(count.longValue(), ChronoUnit.MILLIS)
         },
-      clock = Clock.systemDefaultZone(),
+      clock = Clock[IO],
     )
 }

@@ -26,7 +26,7 @@ import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindCompletionCon
 import io.lenses.streamreactor.connect.aws.s3.storage.PausedDirectoryFindResults
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
-import java.time.Clock
+import cats.effect.Clock
 
 class PartitionSearcher(
   roots:    Seq[RemoteS3RootLocation],
@@ -60,22 +60,23 @@ class PartitionSearcher(
     settings:   PartitionSearcherOptions,
     exclude:    Set[String],
     resumeFrom: Option[String],
-    clock:      Clock,
+    clock:      Clock[IO],
   ): IO[PartitionSearcherResponse] =
     for {
       originalPartitions <- IO.delay(exclude)
+      searchOpts         <- DirectoryFindCompletionConfig.fromSearchOptions(settings, clock)
       foundPartitions <-
         storageInterface.findDirectories(
           root,
-          DirectoryFindCompletionConfig.fromSearchOptions(settings, clock),
+          searchOpts,
           originalPartitions,
           resumeFrom,
         )
-      _ <- IO(logger.debug("[{}] Found new partitions {} under {}", connectorTaskId.show, foundPartitions, root))
-
+      _       <- IO(logger.debug("[{}] Found new partitions {} under {}", connectorTaskId.show, foundPartitions, root))
+      instant <- clock.realTimeInstant
     } yield PartitionSearcherResponse(
       root,
-      clock.instant(),
+      instant,
       originalPartitions ++ foundPartitions.partitions,
       foundPartitions,
       Option.empty,

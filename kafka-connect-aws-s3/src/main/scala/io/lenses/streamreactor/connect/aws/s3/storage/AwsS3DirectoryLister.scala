@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import cats.effect.IO
+import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
@@ -115,10 +116,13 @@ abstract class AwsS3DirectoryLister(
           .filterNot(exclude.contains)
         rtn.addAll(commonPrefixesFiltered)
 
-        partialResultInfo =
-          completionConfig
-            .stopReason(rtn.size)
-            .map(sr => (sr, listResp.contents().get(listResp.contents().size() - 1).key()))
+        partialResultInfo = {
+          for {
+            stopReason <- completionConfig.stopReason(rtn.size)
+          } yield {
+            stopReason.map(sr => (sr, listResp.contents().get(listResp.contents().size() - 1).key()))
+          }
+        }.unsafeRunSync()
 
       }
 

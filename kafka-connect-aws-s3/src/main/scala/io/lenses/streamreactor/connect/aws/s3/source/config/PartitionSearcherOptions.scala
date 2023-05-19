@@ -15,7 +15,9 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
-import java.time.Clock
+import cats.effect.Clock
+import cats.effect.IO
+
 import java.time.Duration
 import java.time.Instant
 
@@ -25,13 +27,19 @@ case class PartitionSearcherOptions(
   searchInterval:              Duration, // searches again or resumes search in partial mode
   pauseSearchOnPartitionCount: Option[Int], // this is per root
   pauseSearchAfterTime:        Option[Duration], // this is per root
-  clock:                       Clock,
+  clock:                       Clock[IO],
 ) {
 
-  def rediscoverDue(lastSearchTime: Option[Instant]): Boolean =
-    lastSearchTime.fold(true) {
-      st =>
-        val nextSearchTime = st.plus(searchInterval)
-        clock.instant().isAfter(nextSearchTime)
+  def rediscoverDue(lastSearchTime: Option[Instant]): IO[Boolean] =
+    for {
+      lst <- IO(lastSearchTime)
+      now <- clock.realTimeInstant
+    } yield {
+      lst.fold(true) {
+        st =>
+          val nextSearchTime = st.plus(searchInterval)
+          now.isAfter(nextSearchTime)
+      }
     }
+
 }

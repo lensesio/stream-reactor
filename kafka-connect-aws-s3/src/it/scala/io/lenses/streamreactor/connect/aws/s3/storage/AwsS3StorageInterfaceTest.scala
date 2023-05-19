@@ -1,5 +1,7 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
+import cats.effect.Clock
+import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
@@ -14,12 +16,9 @@ import org.scalatest.matchers.should.Matchers
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 
-import java.time.Clock
-
 class AwsS3StorageInterfaceTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with LazyLogging {
 
   private implicit val connectorTaskId: ConnectorTaskId = InitedConnectorTaskId("sinkName", 1, 1)
-  implicit val clock = Clock.systemDefaultZone()
 
   override def cleanUpEnabled: Boolean = false
 
@@ -49,7 +48,7 @@ class AwsS3StorageInterfaceTest extends AnyFlatSpec with Matchers with S3ProxyCo
 
     val dirs = s3StorageInterface.findDirectories(
       topicRoot,
-      DirectoryFindCompletionConfig(0, none, none),
+      DirectoryFindCompletionConfig(0, none, none, Clock[IO]),
       Set.empty,
       Option.empty,
     ).unsafeRunSync()
@@ -68,7 +67,7 @@ class AwsS3StorageInterfaceTest extends AnyFlatSpec with Matchers with S3ProxyCo
 
     val dirs = s3StorageInterface.findDirectories(
       bucketRoot,
-      DirectoryFindCompletionConfig(3, none, none),
+      DirectoryFindCompletionConfig(3, none, none, Clock[IO]),
       Set.empty,
       Option.empty,
     ).unsafeRunSync()

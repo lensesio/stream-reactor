@@ -52,7 +52,7 @@ class ReaderManagerService(
     for {
       ioState       <- readerManagerState.get
       lastSearchTime = ioState.lastSearchTime
-      rediscoverDue  = settings.rediscoverDue(lastSearchTime)
+      rediscoverDue <- settings.rediscoverDue(lastSearchTime)
     } yield {
       if (rediscoverDue && settings.blockOnSearch) {
         rediscover()
