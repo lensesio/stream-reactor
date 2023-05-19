@@ -29,7 +29,8 @@ import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileDeleteError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
-
+import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
+import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processObjectsAsString
 class IndexManager(
   maxIndexes: Int,
 )(
@@ -50,14 +51,15 @@ class IndexManager(
       mostRecentIndexFile.root().withPath(IndexFilenames.indexForTopicPartition(topicPartition.topic.value,
                                                                                 topicPartition.partition,
       ))
-    storageInterface.list(remoteS3PathLocation)
+    storageInterface.listRecursive(remoteS3PathLocation, processObjectsAsString)
       .leftMap { e =>
         val logLine = s"Couldn't retrieve listing for (${mostRecentIndexFile.path}})"
         logger.error("[{}] {}", connectorTaskId.show, logLine, e.exception)
         new NonFatalS3SinkError(logLine, e.exception)
       }
       .flatMap {
-        indexes: List[String] =>
+        case None => 0.asRight
+        case Some(ListResponse(_, indexes, _)) =>
           val filtered = indexes.filterNot(_ == mostRecentIndexFile.path)
           if (indexes.size > maxIndexes) {
             logAndReturnMaxExceededError(topicPartition, indexes)
@@ -85,7 +87,7 @@ class IndexManager(
       }
   }
 
-  private def logAndReturnMaxExceededError(topicPartition: TopicPartition, indexes: List[String]) = {
+  private def logAndReturnMaxExceededError(topicPartition: TopicPartition, indexes: Seq[String]) = {
     val logLine = s"Too many index files have accumulated (${indexes.size} out of max $maxIndexes)"
     logger.error(s"[{}] {}", connectorTaskId.show, logLine)
     FatalS3SinkError(logLine, topicPartition).asLeft
@@ -133,20 +135,22 @@ class IndexManager(
     fileNamingStrategy: S3FileNamingStrategy,
     bucketAndPrefix:    RemoteS3RootLocation,
   ): Either[SinkError, Option[TopicPartitionOffset]] =
-    storageInterface.list(
+    storageInterface.listRecursive(
       bucketAndPrefix.withPath(
         IndexFilenames.indexForTopicPartition(topicPartition.topic.value, topicPartition.partition),
       ),
+      processObjectsAsString,
     )
       .leftMap { e =>
         logger.error("Error retrieving listing", e.exception)
         new NonFatalS3SinkError("Couldn't retrieve listing", e.exception)
       }
       .flatMap {
-        indexes =>
-          val seekResult = seekAndClean(topicPartition, bucketAndPrefix, indexes)
-          if (indexes.size > maxIndexes) {
-            logAndReturnMaxExceededError(topicPartition, indexes)
+        case None => Option.empty[TopicPartitionOffset].asRight[SinkError]
+        case Some(ListResponse(_, files, _)) =>
+          val seekResult = seekAndClean(topicPartition, bucketAndPrefix, files)
+          if (files.size > maxIndexes) {
+            logAndReturnMaxExceededError(topicPartition, files)
           } else {
             seekResult
           }
@@ -155,7 +159,7 @@ class IndexManager(
   private def seekAndClean(
     topicPartition:  TopicPartition,
     bucketAndPrefix: RemoteS3RootLocation,
-    indexes:         List[String],
+    indexes:         Seq[String],
   ) = {
 
     /**
@@ -208,7 +212,7 @@ class IndexManager(
     */
   def scanIndexes(
     bucketAndPrefix: RemoteS3RootLocation,
-    indexFiles:      List[String],
+    indexFiles:      Seq[String],
   ): Either[FileLoadError, Option[String]] =
     indexFiles
       .foldRight(

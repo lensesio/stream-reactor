@@ -23,6 +23,7 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaAndValue
 import org.apache.kafka.connect.source.SourceRecord
 
+import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 abstract class SourceData(lineNumber: Long) {
@@ -42,7 +43,7 @@ abstract class SourceData(lineNumber: Long) {
     case Some(key) =>
       new SourceRecord(
         fromSourcePartition(bucketAndPath.root()).asJava,
-        fromSourceOffset(bucketAndPath, getLineNumber).asJava,
+        fromSourceOffset(bucketAndPath, getLineNumber, Instant.now()).asJava,
         targetTopic,
         partitionFn(bucketAndPath.path).map(Int.box).orNull,
         null,
@@ -53,7 +54,7 @@ abstract class SourceData(lineNumber: Long) {
     case None =>
       new SourceRecord(
         fromSourcePartition(bucketAndPath.root()).asJava,
-        fromSourceOffset(bucketAndPath, getLineNumber).asJava,
+        fromSourceOffset(bucketAndPath, getLineNumber, Instant.now()).asJava,
         targetTopic,
         partitionFn(bucketAndPath.path).map(Int.box).orNull,
         representationSchema.orNull,

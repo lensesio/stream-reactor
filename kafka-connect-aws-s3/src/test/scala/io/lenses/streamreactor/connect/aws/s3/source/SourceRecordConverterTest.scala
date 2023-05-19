@@ -19,6 +19,8 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocatio
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.time.Instant
+
 class SourceRecordConverterTest extends AnyFlatSpec with Matchers {
 
   "fromSourcePartition" should "convert RemoteS3RootLocation to Map" in {
@@ -36,12 +38,15 @@ class SourceRecordConverterTest extends AnyFlatSpec with Matchers {
   }
 
   "fromSourceOffset" should "convert RemoteS3RootLocation to Map" in {
+    val nowInst = Instant.now
     SourceRecordConverter.fromSourceOffset(
       RemoteS3RootLocation("test-bucket:test-prefix").withPath("test-path"),
       100L,
+      nowInst,
     ) should contain allOf (
       "path" -> "test-path",
-      "line" -> "100"
+      "line" -> "100",
+      "inst" -> nowInst.toEpochMilli,
     )
   }
 

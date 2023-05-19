@@ -20,6 +20,7 @@ import com.google.common.io.ByteStreams
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import ThrowableEither._
+import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processObjectsAsString
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 import java.io.File
@@ -30,7 +31,9 @@ import java.time.Instant
 class RemoteFileHelper(implicit connectorTaskId: ConnectorTaskId, storageInterface: StorageInterface) {
 
   def listBucketPath(bucketName: String, prefix: String): List[String] =
-    storageInterface.list(RemoteS3PathLocation(bucketName, prefix)).toThrowable
+    storageInterface.listRecursive(RemoteS3PathLocation(bucketName, prefix), processObjectsAsString).toThrowable.map(
+      _.files,
+    ).toList.flatten
 
   def remoteFileAsBytes(bucketName: String, fileName: String): Array[Byte] =
     streamToByteArray(remoteFileAsStream(bucketName, fileName))

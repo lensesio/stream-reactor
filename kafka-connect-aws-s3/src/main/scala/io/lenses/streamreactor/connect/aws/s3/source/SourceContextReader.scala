@@ -20,6 +20,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocatio
 import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.fromSourcePartition
 import org.apache.kafka.connect.source.SourceTaskContext
 
+import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
@@ -39,7 +40,10 @@ object SourceContextReader {
       offsetMap <- Try(context().offsetStorageReader.offset(key).asScala).toOption.filterNot(_ == null)
       path      <- offsetMap.get("path").collect { case value: String => value }
       line      <- offsetMap.get("line").collect { case value: String if value forall Character.isDigit => value.toInt }
-    } yield sourceRoot.withPath(path).atLine(line)
+      inst <- offsetMap.get("inst").collect {
+        case value: String if value forall Character.isDigit => Instant.ofEpochMilli(value.toLong)
+      }
+    } yield sourceRoot.withPath(path).atLine(line, inst)
   }
 
 }

@@ -23,6 +23,11 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PAR
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_TYPE
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.source.config.OrderingType.AlphaNumeric
+import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
+import io.lenses.streamreactor.connect.aws.s3.storage.FileMetadata
+import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 import java.util
 import scala.util.Try
@@ -68,7 +73,18 @@ case class SourceBucketOptions(
   recordsLimit:          Int,
   filesLimit:            Int,
   partitionExtractor:    Option[PartitionExtractor],
+  orderingType:          OrderingType,
 ) {
+  def createBatchListerFn(
+    storageInterface: StorageInterface,
+  ): Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]] =
+    orderingType
+      .getBatchLister
+      .listBatch(
+        storageInterface = storageInterface,
+        bucketAndPrefix  = sourceBucketAndPrefix.toPath(),
+        numResults       = filesLimit,
+      )
 
   def getPartitionExtractorFn: String => Option[Int] =
     partitionExtractor.fold((_: String) => Option.empty[Int])(_.extract)
@@ -94,6 +110,7 @@ object SourceBucketOptions {
           recordsLimit       = if (kcql.getLimit < 1) DEFAULT_RECORDS_LIMIT else kcql.getLimit,
           filesLimit         = if (kcql.getBatchSize < 1) DEFAULT_FILES_LIMIT else kcql.getBatchSize,
           partitionExtractor = partitionExtractor,
+          orderingType       = AlphaNumeric,// TODO
         )
     }.toList
 

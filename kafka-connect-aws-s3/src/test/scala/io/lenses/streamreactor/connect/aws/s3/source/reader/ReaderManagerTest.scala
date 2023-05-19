@@ -28,6 +28,8 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.time.Instant
+
 class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with LazyLogging with BeforeAndAfter {
 
   private implicit val storageInterface: StorageInterface      = mock[StorageInterface]
@@ -39,7 +41,7 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
   private val recordsLimit                  = 10
   private val bucketAndPrefix               = RemoteS3RootLocation("test:ing")
   private val firstFileBucketAndPath        = bucketAndPrefix.withPath("test:ing/topic/9/0.json")
-  private val firstFileBucketAndPathAndLine = firstFileBucketAndPath.atLine(0)
+  private val firstFileBucketAndPathAndLine = firstFileBucketAndPath.atLine(0, Instant.now)
 
   "poll" should "be empty when no results found" in {
 

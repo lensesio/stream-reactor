@@ -22,6 +22,7 @@ import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 class SourceContextReaderTest extends AnyFlatSpec with Matchers with MockitoSugar {
@@ -41,15 +42,20 @@ class SourceContextReaderTest extends AnyFlatSpec with Matchers with MockitoSuga
 
   val contextReaderFn = SourceContextReader.getCurrentOffset(() => sourceTaskContext) _
 
+  val nowMillis = Instant.now().toEpochMilli
+
   "getCurrentOffset" should "return offset when one has been defined" in {
     val mapValue = Map[String, AnyRef](
       "path" -> filePath,
       "line" -> "100",
+      "inst" -> nowMillis.toString,
     ).asJava
 
     when(sourceTaskContext.offsetStorageReader().offset(mapKey)).thenReturn(mapValue)
 
-    contextReaderFn(rootLocation) should be(Some(rootLocation.withPath(filePath).atLine(100)))
+    contextReaderFn(rootLocation) should be(Some(rootLocation.withPath(filePath).atLine(100,
+                                                                                        Instant.ofEpochMilli(nowMillis),
+    )))
   }
 
   "getCurrentOffset" should "return none when no offset has been defined" in {
@@ -65,6 +71,7 @@ class SourceContextReaderTest extends AnyFlatSpec with Matchers with MockitoSuga
     val mapValue = Map[String, AnyRef](
       "path" -> filePath,
       "line" -> "???",
+      "inst" -> nowMillis.toString,
     ).asJava
 
     when(sourceTaskContext.offsetStorageReader().offset(mapKey)).thenReturn(mapValue)

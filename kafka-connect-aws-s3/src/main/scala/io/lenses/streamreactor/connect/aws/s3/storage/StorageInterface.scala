@@ -18,11 +18,22 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import cats.effect.IO
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import software.amazon.awssdk.services.s3.model.S3Object
 
 import java.io.File
 import java.io.InputStream
 import java.time.Instant
 
+case class FileMetadata(
+  file:         String,
+  lastModified: Instant,
+)
+
+case class ListResponse[T](
+  containingBucketAndPath: RemoteS3PathLocation,
+  files:                   Seq[T],
+  latestFileMetadata:      FileMetadata,
+)
 trait StorageInterface {
 
   def uploadFile(source: File, target: RemoteS3PathLocation): Either[UploadError, Unit]
@@ -31,7 +42,16 @@ trait StorageInterface {
 
   def pathExists(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, Boolean]
 
-  def list(bucketAndPrefix: RemoteS3PathLocation): Either[FileListError, List[String]]
+  def list(
+    bucketAndPrefix: RemoteS3PathLocation,
+    lastFile:        Option[FileMetadata],
+    numResults:      Int,
+  ): Either[FileListError, Option[ListResponse[String]]]
+
+  def listRecursive[T](
+    bucketAndPrefix: RemoteS3PathLocation,
+    processFn:       (RemoteS3PathLocation, Seq[S3Object]) => Option[ListResponse[T]],
+  ): Either[FileListError, Option[ListResponse[T]]]
 
   def getBlob(bucketAndPath: RemoteS3PathLocation): Either[String, InputStream]
 
@@ -44,12 +64,6 @@ trait StorageInterface {
   def writeStringToFile(target: RemoteS3PathLocation, data: String): Either[UploadError, Unit]
 
   def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit]
-
-  def list(
-    bucketAndPrefix: RemoteS3RootLocation,
-    lastFile:        Option[RemoteS3PathLocation],
-    numResults:      Int,
-  ): Either[Throwable, List[String]]
 
   def findDirectories(
     bucketAndPrefix:  RemoteS3RootLocation,

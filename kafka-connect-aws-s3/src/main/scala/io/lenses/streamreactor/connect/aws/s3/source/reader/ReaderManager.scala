@@ -24,6 +24,7 @@ import io.lenses.streamreactor.connect.aws.s3.source.PollResults
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
 import io.lenses.streamreactor.connect.aws.s3.source.files.S3SourceFileQueue
 import io.lenses.streamreactor.connect.aws.s3.source.files.SourceFileQueue
+import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.utils.ThrowableEither.toJavaThrowableConverter
 
@@ -58,8 +59,8 @@ class ReaderManager(
 
     def readNextFile: ReaderState =
       fileSource.next() match {
-        case Left(exception: Throwable) =>
-          toExceptionState(exception)
+        case Left(exception: FileListError) =>
+          toExceptionState(exception.exception)
         case Right(Some(nextFile)) =>
           logger.debug(s"[${connectorTaskId.show}] readNextFile - Next file ($nextFile) found")
           readerFn(nextFile) match {
@@ -176,8 +177,7 @@ object ReaderManager {
       bOpts.recordsLimit,
       contextOffsetFn(root),
       new S3SourceFileQueue(
-        root,
-        bOpts.filesLimit,
+        bOpts.createBatchListerFn(storageInterface),
       ),
       new ReaderCreator(bOpts.format, bOpts.targetTopic, bOpts.getPartitionExtractorFn).create,
     )

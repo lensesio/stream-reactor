@@ -16,159 +16,122 @@
 package io.lenses.streamreactor.connect.aws.s3.source.files
 
 import cats.implicits.catsSyntaxEitherId
+import cats.implicits.catsSyntaxOptionId
+import cats.implicits.none
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
-import org.mockito.InOrder
+import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
+import io.lenses.streamreactor.connect.aws.s3.storage.FileMetadata
+import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
 import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import org.mockito.ArgumentMatchers._
 
-class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar {
+import java.time.Instant
 
-  private implicit val storageInterface: StorageInterface = mock[StorageInterface]
+class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar with BeforeAndAfter {
 
   private val rootLocation = RemoteS3RootLocation("bucket:path")
-  private val files        = (0 to 3).map(file => rootLocation.withPath(file.toString + ".json")).toList
+  private val files:    Seq[String]               = (0 to 3).map(file => file.toString + ".json")
+  private val fileLocs: Seq[RemoteS3PathLocation] = files.map(rootLocation.withPath)
+  private val lastModified = Instant.now
+
+  private val batchListerFn = mock[Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]]]
+
+  private val sourceFileQueue = new S3SourceFileQueue(batchListerFn)
+
+  private val order = inOrder(batchListerFn)
+
+  before {
+
+    def listBatch(lastFileMeta: Option[FileMetadata]): Either[FileListError, Option[ListResponse[String]]] = {
+      val num = lastFileMeta match {
+        case Some(lastFile) => lastFile.file.stripSuffix(".json").toInt
+        case None           => -1
+      }
+      extract(num).asRight
+    }
+
+    def extract(num: Int) = {
+      val filesToRet = files.zipWithIndex.toMap.collect {
+        case (file, i) if i == num + 1 || i == num + 2 => file
+      }.toSeq
+      Option.when(filesToRet.nonEmpty)(ListResponse(rootLocation.toPath(),
+                                                    filesToRet,
+                                                    FileMetadata(filesToRet.last, lastModified),
+      ))
+    }
+
+    doAnswer(x => listBatch(x)).when(batchListerFn)(
+      any[Option[FileMetadata]],
+    )
+  }
 
   "list" should "cache a batch of results from the beginning" in {
 
-    val (order: InOrder, sourceFileQueue: S3SourceFileQueue) = setUpListTest
-
     // file 0 = 0.json
-    sourceFileQueue.next() should be(Right(Some(files(0).atLine(-1))))
-    order.verify(sourceFileQueue).listBatch(rootLocation, None, 2)
-    sourceFileQueue.markFileComplete(files(0))
+    sourceFileQueue.next() should be(Right(Some(fileLocs(0).atLine(-1, lastModified))))
+    order.verify(batchListerFn)(none)
+    sourceFileQueue.markFileComplete(fileLocs(0))
 
     // file 1 = 1.json
-    sourceFileQueue.next() should be(Right(Some(files(1).atLine(-1))))
-    sourceFileQueue.markFileComplete(files(1))
+    sourceFileQueue.next() should be(Right(Some(fileLocs(1).atLine(-1, lastModified))))
+    order.verifyNoMoreInteractions()
+    sourceFileQueue.markFileComplete(fileLocs(1))
 
     // file 2 = 2.json
-    sourceFileQueue.next() should be(Right(Some(files(2).atLine(-1))))
-    order.verify(sourceFileQueue).listBatch(rootLocation, Some(files(1)), 2)
-    sourceFileQueue.markFileComplete(files(2))
+    sourceFileQueue.next() should be(Right(Some(fileLocs(2).atLine(-1, lastModified))))
+    order.verify(batchListerFn)(FileMetadata(files(1), lastModified).some)
+    sourceFileQueue.markFileComplete(fileLocs(2))
 
     // file 3 = 3.json
-    sourceFileQueue.next() should be(Right(Some(files(3).atLine(-1))))
-    sourceFileQueue.markFileComplete(files(3))
+    sourceFileQueue.next() should be(Right(Some(fileLocs(3).atLine(-1, lastModified))))
+    order.verifyNoMoreInteractions()
+    sourceFileQueue.markFileComplete(fileLocs(3))
 
     // No more files
     sourceFileQueue.next() should be(Right(None))
-    order.verify(sourceFileQueue).listBatch(rootLocation, Some(files(3)), 2)
+    order.verify(batchListerFn)(FileMetadata(files(3), lastModified).some)
 
     // Try again, but still no more files
     sourceFileQueue.next() should be(Right(None))
-    order.verify(sourceFileQueue).listBatch(rootLocation, Some(files(3)), 2)
+    order.verify(batchListerFn)(FileMetadata(files(3), lastModified).some)
 
-  }
-
-  private def setUpListTest = {
-
-    val sourceFileQueue = spy(new S3SourceFileQueue(rootLocation, 2))
-    doReturn(files.slice(0, 2).asRight).when(sourceFileQueue).listBatch(rootLocation, None, 2)
-    doReturn(files.slice(2, 4).asRight).when(sourceFileQueue).listBatch(rootLocation, Some(files(1)), 2)
-    doReturn(files.slice(3, 4).asRight).when(sourceFileQueue).listBatch(rootLocation, Some(files(2)), 2)
-    doReturn(List.empty[RemoteS3PathLocation].asRight).when(sourceFileQueue).listBatch(rootLocation, Some(files(3)), 2)
-
-    val order = inOrder(sourceFileQueue)
-
-    (order, sourceFileQueue)
   }
 
   "list" should "process the init file before reading additional files" in {
 
-    val (order: InOrder, sourceFileQueue: S3SourceFileQueue) = setUpListTest
-
-    sourceFileQueue.init(files(2).atLine(1000))
+    sourceFileQueue.init(fileLocs(2).atLine(1000, lastModified))
 
     // file 2 = 2.json
-    sourceFileQueue.next() should be(Right(Some(files(2).atLine(1000))))
-    sourceFileQueue.markFileComplete(files(2))
+    sourceFileQueue.next() should be(Right(Some(fileLocs(2).atLine(1000, lastModified))))
+    sourceFileQueue.markFileComplete(fileLocs(2))
 
     // file 3 = 3.json
-    sourceFileQueue.next() should be(Right(Some(files(3).atLine(-1))))
-    order.verify(sourceFileQueue).listBatch(rootLocation, Some(files(2)), 2)
-    sourceFileQueue.markFileComplete(files(3))
+    sourceFileQueue.next() should be(Right(Some(fileLocs(3).atLine(-1, lastModified))))
+    order.verify(batchListerFn)(FileMetadata(files(2), lastModified).some)
+    sourceFileQueue.markFileComplete(fileLocs(3))
 
     // No more files
     sourceFileQueue.next() should be(Right(None))
-    order.verify(sourceFileQueue).listBatch(rootLocation, Some(files(3)), 2)
+    order.verify(batchListerFn)(FileMetadata(files(3), lastModified).some)
   }
 
   "markFileComplete" should "return error when no files in list" in {
 
-    val (_: InOrder, sourceFileQueue: S3SourceFileQueue) = setUpListTest
-
-    sourceFileQueue.markFileComplete(files(2)) should be(Left("No files in queue to mark as complete"))
+    sourceFileQueue.markFileComplete(fileLocs(2)) should be(Left("No files in queue to mark as complete"))
   }
 
   "markFileComplete" should "return error when file is not next file" in {
 
-    val (_: InOrder, sourceFileQueue: S3SourceFileQueue) = setUpListTest
+    sourceFileQueue.init(fileLocs(1).atLine(100, lastModified))
 
-    sourceFileQueue.init(files(1).atLine(100))
-
-    sourceFileQueue.markFileComplete(files(2)) should be(
+    sourceFileQueue.markFileComplete(fileLocs(2)) should be(
       Left("File (bucket:2.json) does not match that at head of the queue, which is (bucket:1.json)"),
     )
 
-  }
-
-  "listBatch" should "return first result when no TopicPartitionOffset has been provided" in {
-
-    when(storageInterface.list(rootLocation, None, 10)).thenReturn(
-      List("path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json")
-        .asRight,
-    )
-
-    new S3SourceFileQueue(rootLocation, 1000).listBatch(rootLocation, None, 10) should be(
-      Right(
-        List(
-          rootLocation.withPath("path/myTopic/0/100.json"),
-          rootLocation.withPath("path/myTopic/0/200.json"),
-          rootLocation.withPath("path/myTopic/0/300.json"),
-        ),
-      ),
-    )
-  }
-
-  "listBatch" should "return empty when no results are found" in {
-
-    when(storageInterface.list(rootLocation, None, 10)).thenReturn(
-      List.empty.asRight,
-    )
-
-    new S3SourceFileQueue(rootLocation, 1000).listBatch(rootLocation, None, 10) should be(
-      Right(List()),
-    )
-  }
-
-  "listBatch" should "take all the files regardless of extension" in {
-    val actual = List(
-      "path/myTopic/0/100.json",
-      "path/myTopic/0/200.xls",
-      "path/myTopic/0/300.doc",
-      "path/myTopic/0/400.csv",
-      "path/myTopic/0/500",
-    )
-    when(storageInterface.list(rootLocation, None, 10)).thenReturn(actual.asRight)
-
-    new S3SourceFileQueue(rootLocation, 1000).listBatch(rootLocation, None, 10) shouldBe actual.map(
-      rootLocation.withPath,
-    ).asRight
-  }
-
-  "listBatch" should "return throwable when storageInterface errors" in {
-    val exception = new IllegalStateException("BadThingsHappened")
-
-    when(storageInterface.list(rootLocation, None, 10)).thenReturn(
-      exception.asLeft,
-    )
-
-    new S3SourceFileQueue(rootLocation, 1000).listBatch(rootLocation, None, 10) should be(
-      Left(exception),
-    )
   }
 
 }

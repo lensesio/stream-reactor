@@ -18,6 +18,8 @@ package io.lenses.streamreactor.connect.aws.s3.model.location
 import cats.implicits.catsSyntaxOptionId
 import software.amazon.awssdk.services.s3.internal.BucketUtils
 
+import java.time.Instant
+
 case object RemoteS3RootLocation {
   def apply(bucketAndPath: String, allowSlash: Boolean = false): RemoteS3RootLocation =
     bucketAndPath.split(":") match {
@@ -48,6 +50,8 @@ case class RemoteS3RootLocation(
   override def withPath(path: String): RemoteS3PathLocation = RemoteS3PathLocation(bucket, prefix, path)
 
   def prefixOrDefault(): String = prefix.getOrElse("")
+
+  def toPath(): RemoteS3PathLocation = RemoteS3PathLocation(bucket, prefix, prefix.getOrElse(""))
 }
 
 case object RemoteS3PathLocation {
@@ -63,16 +67,18 @@ case class RemoteS3PathLocation(
 
   BucketUtils.isValidDnsBucketName(bucket, true)
 
-  def atLine(line: Int): RemoteS3PathLocationWithLine =
-    RemoteS3PathLocationWithLine(this, line)
+  def atLine(line: Int, lastModified: Instant): RemoteS3PathLocationWithLine =
+    RemoteS3PathLocationWithLine(this, line, lastModified)
 
-  def fromStart(): RemoteS3PathLocationWithLine =
-    RemoteS3PathLocationWithLine(this, -1)
+  def fromStart(lastModified: Instant): RemoteS3PathLocationWithLine =
+    RemoteS3PathLocationWithLine(this, -1, lastModified)
 
   def root(): RemoteS3RootLocation = RemoteS3RootLocation(bucket, prefix, true)
+  def withPath(path: String): RemoteS3PathLocation = RemoteS3PathLocation(bucket, prefix, path)
+
 }
 
-case class RemoteS3PathLocationWithLine(file: RemoteS3PathLocation, line: Int) {
+case class RemoteS3PathLocationWithLine(file: RemoteS3PathLocation, line: Int, lastModified: Instant) {
   // TODO: use option instead of -1
   def isFromStart: Boolean = line == -1
 }

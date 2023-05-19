@@ -13,26 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.source
+package io.lenses.streamreactor.connect.aws.s3.source.files
 
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
+import io.lenses.streamreactor.connect.aws.s3.storage.FileMetadata
+import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
-import java.time.Instant
+trait BatchLister {
 
-object SourceRecordConverter {
-
-  def fromSourcePartition(root: RemoteS3RootLocation): Map[String, String] =
-    Map(
-      "container" -> root.bucket,
-      "prefix"    -> root.prefixOrDefault(),
-    )
-
-  def fromSourceOffset(bucketAndPath: RemoteS3PathLocation, offset: Long, lastModified: Instant): Map[String, AnyRef] =
-    Map(
-      "path" -> bucketAndPath.path,
-      "line" -> offset.toString,
-      "inst" -> lastModified.toEpochMilli.toString,
-    )
+  def listBatch(
+    storageInterface: StorageInterface,
+    bucketAndPrefix:  RemoteS3PathLocation,
+    numResults:       Int,
+  )(lastFile:         Option[FileMetadata],
+  ): Either[FileListError, Option[ListResponse[String]]]
 
 }

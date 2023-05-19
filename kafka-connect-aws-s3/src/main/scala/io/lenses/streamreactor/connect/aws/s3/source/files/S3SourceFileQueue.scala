@@ -16,11 +16,13 @@
 package io.lenses.streamreactor.connect.aws.s3.source.files
 
 import cats.implicits.catsSyntaxEitherId
+import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
+import io.lenses.streamreactor.connect.aws.s3.storage.FileMetadata
+import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
 
 import scala.collection.mutable.ListBuffer
 
@@ -28,7 +30,7 @@ trait SourceFileQueue {
 
   def init(initFile: RemoteS3PathLocationWithLine): Unit
 
-  def next(): Either[Throwable, Option[RemoteS3PathLocationWithLine]]
+  def next(): Either[FileListError, Option[RemoteS3PathLocationWithLine]]
 
   def markFileComplete(fileWithLine: RemoteS3PathLocation): Either[String, Unit]
 
@@ -37,56 +39,43 @@ trait SourceFileQueue {
 /**
   * Blocking processor for queues of operations.  Used to ensure consistency.
   * Will block any further writes by the current file until the remote has caught up.
-  *
-  * @param storageInterface the storage interface of the remote service.
   */
 class S3SourceFileQueue(
-  root:       RemoteS3RootLocation,
-  numResults: Int,
-)(
-  implicit
-  storageInterface: StorageInterface,
+  batchListerFn: Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]],
 ) extends SourceFileQueue
     with LazyLogging {
 
-  private var lastSeenFile: Option[RemoteS3PathLocation] = None
+  private var lastSeenFile: Option[FileMetadata] = None
 
   private var files = ListBuffer.empty[RemoteS3PathLocationWithLine]
 
-  override def next(): Either[Throwable, Option[RemoteS3PathLocationWithLine]] =
-    files.headOption.fold(retrieveNextFile(lastSeenFile))(nextFile => Some(nextFile).asRight)
+  override def next(): Either[FileListError, Option[RemoteS3PathLocationWithLine]] =
+    files.headOption.fold(retrieveNextFile())(Some(_).asRight)
 
   private def retrieveNextFile(
-    lastSeenFile: Option[RemoteS3PathLocation],
-  ): Either[Throwable, Option[RemoteS3PathLocationWithLine]] =
-    listBatch(root, lastSeenFile, numResults)
-      .map {
-        value =>
-          files ++= value.map(_.fromStart())
-          files.headOption
-      }
-
-  def listBatch(
-    bucketAndPrefix: RemoteS3RootLocation,
-    lastFile:        Option[RemoteS3PathLocation],
-    numResults:      Int,
-  ): Either[Throwable, List[RemoteS3PathLocation]] =
-    storageInterface
-      .list(bucketAndPrefix, lastFile, numResults)
-      .map(_.map(bucketAndPrefix.withPath))
+  ): Either[FileListError, Option[RemoteS3PathLocationWithLine]] = {
+    val nextBatch: Either[FileListError, Option[ListResponse[String]]] = batchListerFn(lastSeenFile)
+    nextBatch.flatMap {
+      case Some(ListResponse(container, value, meta)) =>
+        lastSeenFile = meta.some
+        files ++= value.map(container.withPath(_).fromStart(meta.lastModified))
+        files.headOption.asRight
+      case _ => Option.empty.asRight
+    }
+  }
 
   override def markFileComplete(file: RemoteS3PathLocation): Either[String, Unit] =
     files.headOption match {
-      case Some(RemoteS3PathLocationWithLine(headFile, _)) if headFile.equals(file) => files =
-          files.drop(1)
-        lastSeenFile = Some(file)
+      case Some(RemoteS3PathLocationWithLine(headFile, _, _)) if headFile.equals(file) =>
+        files = files.drop(1)
         ().asRight
-      case Some(RemoteS3PathLocationWithLine(headFile, _)) =>
+      case Some(RemoteS3PathLocationWithLine(headFile, _, _)) =>
         s"File (${file.bucket}:${file.path}) does not match that at head of the queue, which is (${headFile.bucket}:${headFile.path})".asLeft
       case None => "No files in queue to mark as complete".asLeft
     }
 
   override def init(initFile: RemoteS3PathLocationWithLine): Unit = {
-    val _ = { files += initFile }
+    files += initFile
+    lastSeenFile = FileMetadata(initFile.file.path, initFile.lastModified).some
   }
 }

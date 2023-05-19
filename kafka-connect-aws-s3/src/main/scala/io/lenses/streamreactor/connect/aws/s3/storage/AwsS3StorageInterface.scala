@@ -18,7 +18,7 @@ import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processObjectsAsString
 import org.apache.commons.io.IOUtils
 import software.amazon.awssdk.core.ResponseInputStream
 import software.amazon.awssdk.core.sync.RequestBody
@@ -29,6 +29,7 @@ import java.io.File
 import java.io.InputStream
 import java.nio.charset.Charset
 import java.time.Instant
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Failure
 import scala.util.Success
@@ -40,10 +41,10 @@ class AwsS3StorageInterface(implicit connectorTaskId: ConnectorTaskId, s3Client:
     with LazyLogging {
 
   override def list(
-    bucketAndPrefix: RemoteS3RootLocation,
-    lastFile:        Option[RemoteS3PathLocation],
+    bucketAndPrefix: RemoteS3PathLocation,
+    lastFile:        Option[FileMetadata],
     numResults:      Int,
-  ): Either[Throwable, List[String]] =
+  ): Either[FileListError, Option[ListResponse[String]]] =
     Try {
 
       val builder = ListObjectsV2Request
@@ -52,12 +53,41 @@ class AwsS3StorageInterface(implicit connectorTaskId: ConnectorTaskId, s3Client:
         .bucket(bucketAndPrefix.bucket)
 
       bucketAndPrefix.prefix.foreach(builder.prefix)
-      lastFile.foreach(lf => builder.startAfter(lf.path))
+      lastFile.foreach(lf => builder.startAfter(lf.file))
 
       val listObjectsV2Response = s3Client.listObjectsV2(builder.build())
-      listObjectsV2Response.contents().asScala.map(_.key()).toList
+      processObjectsAsString(
+        bucketAndPrefix,
+        listObjectsV2Response
+          .contents()
+          .asScala
+          .toSeq,
+      )
 
-    }.toEither
+    }.toEither.leftMap {
+      ex: Throwable => FileListError(ex, bucketAndPrefix.path)
+    }
+
+  override def listRecursive[T](
+    bucketAndPrefix: RemoteS3PathLocation,
+    processFn:       (RemoteS3PathLocation, Seq[S3Object]) => Option[ListResponse[T]],
+  ): Either[FileListError, Option[ListResponse[T]]] = Try {
+
+    logger.debug(s"[{}] List path {}", connectorTaskId.show, bucketAndPrefix)
+
+    val options = ListObjectsV2Request
+      .builder()
+      .bucket(bucketAndPrefix.bucket)
+      .prefix(bucketAndPrefix.path)
+      .build()
+
+    val pagReq = s3Client.listObjectsV2Paginator(options)
+
+    processFn(bucketAndPrefix, pagReq.iterator().asScala.flatMap(_.contents().asScala.toSeq).toSeq)
+
+  }.toEither.leftMap {
+    ex: Throwable => FileListError(ex, bucketAndPrefix.path)
+  }
 
   override def uploadFile(source: File, target: RemoteS3PathLocation): Either[UploadError, Unit] = {
 
@@ -132,31 +162,6 @@ class AwsS3StorageInterface(implicit connectorTaskId: ConnectorTaskId, s3Client:
 
   override def getBlobSize(bucketAndPath: RemoteS3PathLocation): Either[String, Long] =
     Try(headBlobInner(bucketAndPath).contentLength().toLong).toEither.leftMap(_.getMessage)
-
-  override def list(bucketAndPrefix: RemoteS3PathLocation): Either[FileListError, List[String]] = Try {
-
-    logger.debug(s"[{}] List path {}", connectorTaskId.show, bucketAndPrefix)
-
-    val options = ListObjectsV2Request.builder().bucket(bucketAndPrefix.bucket).prefix(bucketAndPrefix.path)
-
-    var pageSetStrings: List[String]   = List()
-    var nextMarker:     Option[String] = None
-    do {
-      options.continuationToken(nextMarker.orNull)
-      val pageSet = s3Client.listObjectsV2(options.build())
-      nextMarker = Option(pageSet.continuationToken()).filter(_.trim.nonEmpty)
-      pageSetStrings ++= pageSet
-        .contents()
-        .asScala
-        .map(_.key)
-        .toList
-
-    } while (nextMarker.nonEmpty)
-
-    pageSetStrings
-  }.toEither.leftMap {
-    ex: Throwable => FileListError(ex, bucketAndPrefix.path)
-  }
 
   override def close(): Unit = s3Client.close()
 

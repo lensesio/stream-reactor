@@ -113,7 +113,7 @@ class S3Writer(
           }.leftMap {
             case UploadFailedError(exception, _) => NonFatalS3SinkError(exception.getMessage, exception)
           }
-          clean <- indexManager.clean(indexFileName, topicPartition)
+          _ <- indexManager.clean(indexFileName, topicPartition)
           stateReset <- Try {
             logger.debug(s"[{}] S3Writer.resetState: Resetting state $writeState", connectorTaskId.show)
             writeState = uploadState.toNoWriter()
