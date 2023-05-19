@@ -75,7 +75,6 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     DEP_CUSTOM_ENDPOINT             -> uri(),
     DEP_ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
     "name"                          -> "s3SinkTaskBuildLocalTest",
-    AWS_CLIENT                      -> "jclouds",
     TASK_INDEX                      -> "1:1",
   )
 

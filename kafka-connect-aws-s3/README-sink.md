@@ -364,6 +364,4 @@ On the first run of any connector then the old slow offset seek will be performe
 
 Originally the sink used the jClouds java library to communicate with S3.
 From version 4.1 onwards we have switched to using the official AWS library.
-If you still want to use the jClouds client you can configure it like this:
-
-    connect.s3.aws.client=jclouds
+From version x.x jClouds is no longer available as an option.

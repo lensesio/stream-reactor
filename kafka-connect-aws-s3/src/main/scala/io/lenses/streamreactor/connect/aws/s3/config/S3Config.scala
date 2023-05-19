@@ -16,7 +16,6 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import cats.implicits.catsSyntaxEitherId
-import cats.implicits.toBifunctorOps
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
@@ -29,12 +28,10 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
-import io.lenses.streamreactor.connect.aws.s3.storage.JCloudsStorageInterface
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.apache.kafka.common.config.types.Password
 
 import scala.collection.immutable
-import scala.util.Try
 
 sealed trait AwsClient extends EnumEntry {
   def createStorageInterface(
@@ -59,19 +56,6 @@ object AwsClient extends Enum[AwsClient] {
       for {
         s3Client <- authResources.aws
         si       <- { new AwsS3StorageInterface()(connectorTaskId, s3Client) }.asRight
-      } yield si
-  }
-
-  case object JClouds extends AwsClient {
-    override def createStorageInterface(
-      authResources: AuthResources,
-    )(
-      implicit
-      connectorTaskId: ConnectorTaskId,
-    ): Either[String, StorageInterface] =
-      for {
-        blobStore <- authResources.jClouds
-        si        <- Try(new JCloudsStorageInterface(blobStore)).toEither.leftMap(_.getMessage)
       } yield si
   }
 
@@ -240,9 +224,7 @@ object S3Config {
     getString(props, AWS_REGION),
     getPassword(props, AWS_ACCESS_KEY),
     getPassword(props, AWS_SECRET_KEY),
-    AwsClient.withNameInsensitive(
-      getString(props, AWS_CLIENT).getOrElse(AwsClient.Aws.toString),
-    ),
+    AwsClient.Aws,
     AuthMode.withNameInsensitive(
       getString(props, AUTH_MODE).getOrElse(AuthMode.Default.toString),
     ),

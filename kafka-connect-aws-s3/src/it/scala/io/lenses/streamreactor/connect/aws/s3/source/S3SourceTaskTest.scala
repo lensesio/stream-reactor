@@ -44,7 +44,6 @@ class S3SourceTaskTest
     AUTH_MODE                   -> AuthMode.Credentials.toString,
     CUSTOM_ENDPOINT             -> uri(),
     ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
-    AWS_CLIENT                  -> "aws",
     TASK_INDEX                  -> "1:1",
     "name"                      -> "s3-source",
   )
