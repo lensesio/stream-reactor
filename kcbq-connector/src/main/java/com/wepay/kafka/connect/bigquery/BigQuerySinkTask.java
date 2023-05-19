@@ -36,6 +36,7 @@ import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
+import com.wepay.kafka.connect.bigquery.exception.BigQueryStorageWriteApiConnectException;
 import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.utils.*;
@@ -70,6 +71,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -300,7 +302,7 @@ public class BigQuerySinkTask extends SinkTask {
   }
   public void writeSinkRecords(Collection<SinkRecord> records) {
     // Periodically poll for errors here instead of doing a stop-the-world check in flush()
-    executor.maybeThrowEncounteredError();
+    mayBeThrowErrors();
 
     logger.debug("Putting {} records in the sink.", records.size());
 
@@ -623,7 +625,7 @@ public class BigQuerySinkTask extends SinkTask {
       storageApiWriter = testStorageWriteApi;
       batchHandler = testStorageApiBatchHandler;
       loadExecutor = Executors.newScheduledThreadPool(1);
-      loadExecutor.scheduleAtFixedRate(batchHandler::createNewStream, 10, 10, TimeUnit.SECONDS);
+      loadExecutor.scheduleAtFixedRate(this::batchLoadExecutorRunnable, 10, 10, TimeUnit.SECONDS);
     } else {
       boolean attemptSchemaUpdate = allowNewBigQueryFields || allowRequiredFieldRelaxation;
       BigQueryWriteSettings writeSettings = new BigQueryWriteSettingsBuilder().withConfig(config).build();
@@ -644,7 +646,7 @@ public class BigQuerySinkTask extends SinkTask {
 
         logger.info("Starting Load Executor for Storage Write API Batch Mode with {} seconds interval ...", commitInterval);
         loadExecutor = Executors.newScheduledThreadPool(1);
-        loadExecutor.scheduleAtFixedRate(batchHandler::createNewStream, commitInterval, commitInterval, TimeUnit.SECONDS);
+        loadExecutor.scheduleAtFixedRate(this::batchLoadExecutorRunnable, commitInterval, commitInterval, TimeUnit.SECONDS);
       } else {
         logger.info("Starting task with Storage Write API Default Stream...");
         storageApiWriter = new StorageWriteApiDefaultStream(
@@ -659,6 +661,25 @@ public class BigQuerySinkTask extends SinkTask {
       }
     }
   }
+
+  private void batchLoadExecutorRunnable() {
+    try {
+      batchHandler.createNewStream();
+    } catch(Throwable t) {
+      logger.error("Storage Write API batch handler has failed due to : {}, {} ", t, Arrays.toString(t.getStackTrace()));
+      loadExecutor.shutdown();
+      logger.error("Shutting down the batch load handler...");
+    }
+  }
+
+  private void mayBeThrowErrors() {
+    executor.maybeThrowEncounteredError();
+    if(useStorageApiBatchMode && loadExecutor.isTerminated()) {
+      throw new BigQueryStorageWriteApiConnectException(
+              "Batch load handler is terminated, failing task as no data would be written to bigquery tables!");
+    }
+  }
+
   private void startGCSToBQLoadTask() {
     logger.info("Attempting to start GCS Load Executor.");
     loadExecutor = Executors.newScheduledThreadPool(1);

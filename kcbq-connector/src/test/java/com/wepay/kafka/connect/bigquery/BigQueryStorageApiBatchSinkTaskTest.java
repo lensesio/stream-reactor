@@ -75,7 +75,7 @@ public class BigQueryStorageApiBatchSinkTaskTest {
     Map<TableId, Table> cache = new HashMap<>();
     BigQuerySinkTask testTask = new BigQuerySinkTask(
             bigQuery, schemaRetriever, storage, schemaManager, cache, mockedStorageWriteApiBatchStream, mockedBatchHandler);
-
+    BigQueryStorageWriteApiConnectException exception = new BigQueryStorageWriteApiConnectException("error 12345");
     final String topic = "test-topic";
 
     Map<TopicPartition, OffsetAndMetadata> mockedOffset = mock(Map.class);
@@ -120,10 +120,18 @@ public class BigQueryStorageApiBatchSinkTaskTest {
         verify(mockedBatchHandler, times(1)).createNewStream();
     }
 
+    @Test(expected = BigQueryStorageWriteApiConnectException.class)
+    public void testBatchLoadFailure() throws InterruptedException {
+        doThrow(exception).when(mockedBatchHandler).createNewStream();
+        Thread.sleep(12000); // 10 seconds is default, check after 12 seconds
+        while (true) {
+            Thread.sleep(100);
+            testTask.put(Collections.emptyList());
+        }
+    }
+
     @Test(expected = BigQueryConnectException.class)
     public void testSimplePutException() throws Exception {
-        BigQueryStorageWriteApiConnectException exception = new BigQueryStorageWriteApiConnectException("error 12345");
-
         doThrow(exception).when(mockedStorageWriteApiBatchStream).appendRows(any(), any(), eq("dummyStream"));
 
         testTask.put(Collections.singletonList(spoofSinkRecord()));
@@ -145,7 +153,7 @@ public class BigQueryStorageApiBatchSinkTaskTest {
     }
 
 
-    @Test(expected = RejectedExecutionException.class)
+    @Test(expected = BigQueryStorageWriteApiConnectException.class)
     public void testStop() {
         testTask.stop();
 

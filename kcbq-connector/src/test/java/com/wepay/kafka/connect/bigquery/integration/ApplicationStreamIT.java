@@ -108,6 +108,8 @@ public class ApplicationStreamIT extends BaseConnectorIT {
     public void testStreamFinalised() throws Exception {
         ApplicationStream applicationStream = new ApplicationStream(tableNameStr, client);
         applicationStream.increaseMaxCalls();
+        applicationStream.closeStream();
+        applicationStream.writer();
         assertEquals(applicationStream.getCurrentState(), StreamState.APPEND);
         applicationStream.finalise();
         assertEquals(applicationStream.getCurrentState(), StreamState.FINALISED);
@@ -118,6 +120,8 @@ public class ApplicationStreamIT extends BaseConnectorIT {
     public void testStreamCommitted() throws Exception {
         ApplicationStream applicationStream = new ApplicationStream(tableNameStr, client);
         applicationStream.increaseMaxCalls();
+        applicationStream.closeStream();
+        applicationStream.writer();
         applicationStream.finalise();
         assertEquals(applicationStream.getCurrentState(), StreamState.FINALISED);
         applicationStream.commit();
