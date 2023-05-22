@@ -3,7 +3,6 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.config.InitedConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
@@ -20,7 +19,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.SECONDS
 
 class S3WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with MockitoSugar {
-  private implicit val connectorTaskId: ConnectorTaskId = InitedConnectorTaskId("sinkName", 1, 1)
+  private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
 
   private val topicPartition = Topic("topic").withPartition(10)
 

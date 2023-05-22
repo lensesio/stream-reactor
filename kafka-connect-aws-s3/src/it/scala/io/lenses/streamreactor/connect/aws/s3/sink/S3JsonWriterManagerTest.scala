@@ -20,7 +20,6 @@ import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.InitedConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.AwsClient
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
@@ -48,7 +47,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
   private val TopicName  = "myTopic"
   private val PathPrefix = "streamReactorBackups"
-  private implicit val connectorTaskId: ConnectorTaskId = InitedConnectorTaskId("sinkName", 1, 1)
+  private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
 
   "json sink" should "write single json record" in {
 

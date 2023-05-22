@@ -7,8 +7,6 @@ import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.DefaultConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.InitedConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.scalatest.flatspec.AnyFlatSpec
@@ -18,7 +16,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest
 
 class AwsS3StorageInterfaceTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with LazyLogging {
 
-  private implicit val connectorTaskId: ConnectorTaskId = InitedConnectorTaskId("sinkName", 1, 1)
+  private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
 
   override def cleanUpEnabled: Boolean = false
 
@@ -61,7 +59,7 @@ class AwsS3StorageInterfaceTest extends AnyFlatSpec with Matchers with S3ProxyCo
 
   "s3StorageInterface" should "list directories within a path recursively from bucket root" in {
 
-    val s3StorageInterface = new AwsS3StorageInterface()(DefaultConnectorTaskId, s3Client)
+    val s3StorageInterface = new AwsS3StorageInterface()(ConnectorTaskId("sinkName", 1, 0), s3Client)
 
     val bucketRoot = RemoteS3RootLocation(BucketName, none, allowSlash = true)
 

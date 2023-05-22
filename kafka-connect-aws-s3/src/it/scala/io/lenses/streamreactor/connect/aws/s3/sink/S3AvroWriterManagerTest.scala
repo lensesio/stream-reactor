@@ -20,7 +20,6 @@ import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Avro
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.InitedConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.AwsClient
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
@@ -53,7 +52,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   private val PathPrefix       = "streamReactorBackups"
   private val avroFormatReader = new AvroFormatReader
 
-  private implicit val connectorTaskId: ConnectorTaskId = InitedConnectorTaskId("sinkName", 1, 1)
+  private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
   private val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix), allowSlash = false)
   private def avroConfig = S3SinkConfig(
     S3Config(

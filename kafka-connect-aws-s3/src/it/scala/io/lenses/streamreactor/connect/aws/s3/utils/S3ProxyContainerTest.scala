@@ -6,7 +6,6 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.InitedConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.AwsClient
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import ThrowableEither._
@@ -25,7 +24,7 @@ import java.nio.file.Files
 import scala.util.Try
 
 trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with LazyLogging with BeforeAndAfter {
-  private implicit val connectorTaskId: ConnectorTaskId = InitedConnectorTaskId("unit-tests", 1, 1)
+  private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("unit-tests", 1, 1)
   val Port:                             Int             = 8080
   val Identity:                         String          = "identity"
   val Credential:                       String          = "credential"
