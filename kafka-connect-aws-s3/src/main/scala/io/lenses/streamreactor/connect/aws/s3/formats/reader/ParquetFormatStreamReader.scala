@@ -19,7 +19,9 @@ import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.parquet.ParquetStreamingInputFile
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import org.apache.avro.generic.GenericRecord
+import org.apache.hadoop.conf.Configuration
 import org.apache.parquet.avro.AvroParquetReader
+import org.apache.parquet.avro.AvroReadSupport.READ_INT96_AS_FIXED
 import org.apache.parquet.hadoop.ParquetReader
 
 import java.io.InputStream
@@ -33,8 +35,12 @@ class ParquetFormatStreamReader(
     with Using {
 
   private val inputFile = new ParquetStreamingInputFile(inputStreamFn, fileSizeFn)
-  private val avroParquetReader: ParquetReader[GenericRecord] =
-    AvroParquetReader.builder[GenericRecord](inputFile).build()
+  private val avroParquetReader: ParquetReader[GenericRecord] = {
+    val conf = new Configuration
+    //allow deprecated INT96 to be read as FIXED and avoid runtime exception
+    conf.setBoolean(READ_INT96_AS_FIXED, true)
+    AvroParquetReader.builder[GenericRecord](inputFile).withConf(conf).build()
+  }
   private val parquetReaderIteratorAdaptor = new ParquetReaderIteratorAdaptor(avroParquetReader)
   private var lineNumber: Long = -1
   private val avroDataConverter = new AvroData(100)
