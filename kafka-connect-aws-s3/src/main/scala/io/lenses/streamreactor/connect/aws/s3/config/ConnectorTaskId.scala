@@ -23,7 +23,8 @@ import java.util
 
 case class ConnectorTaskId(name: String, maxTasks: Int, taskNo: Int) {
   def ownsDir(dirPath: String): Boolean =
-    PartitionHasher.hash(maxTasks, dirPath) == taskNo
+    if (maxTasks == 1) true
+    else PartitionHasher.hash(maxTasks, dirPath) == taskNo
 }
 
 object ConnectorTaskId {

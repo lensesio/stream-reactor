@@ -16,7 +16,5 @@
 package io.lenses.streamreactor.connect.aws.s3.source.distribution
 
 object PartitionHasher {
-
-  def hash(maxTasks: Int, fileName: String): Int = (Math.abs(fileName.hashCode) % maxTasks) + 1
-
+  def hash(maxTasks: Int, fileName: String): Int = Math.abs(fileName.hashCode) % maxTasks
 }

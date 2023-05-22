@@ -16,8 +16,6 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest
 
 class AwsS3StorageInterfaceTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with LazyLogging {
 
-  private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
-
   override def cleanUpEnabled: Boolean = false
 
   override def setUpTestData(): Unit = {
@@ -40,6 +38,7 @@ class AwsS3StorageInterfaceTest extends AnyFlatSpec with Matchers with S3ProxyCo
 
   "s3StorageInterface" should "list directories within a path" in {
 
+    implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
     val s3StorageInterface = new AwsS3StorageInterface()(connectorTaskId, s3Client)
 
     val topicRoot = RemoteS3RootLocation(BucketName, "topic-1/".some, allowSlash = true)

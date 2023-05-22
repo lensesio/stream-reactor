@@ -95,7 +95,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
     override def toString: String = s"$topic-$partition"
   }
 
-  object TopicAndPartition {
+  private object TopicAndPartition {
     implicit val ordering: Ordering[TopicAndPartition] = (x: TopicAndPartition, y: TopicAndPartition) => {
       val c = x.topic.compareTo(y.topic)
       if (c == 0) x.partition.compareTo(y.partition)
@@ -103,11 +103,11 @@ class S3SinkTask extends SinkTask with ErrorHandler {
     }
   }
 
-  case class Bounds(start: Long, end: Long) {
+  private case class Bounds(start: Long, end: Long) {
     override def toString: String = s"$start->$end"
   }
 
-  def buildLogForRecords(records: Iterable[SinkRecord]): Map[TopicAndPartition, Bounds] =
+  private def buildLogForRecords(records: Iterable[SinkRecord]): Map[TopicAndPartition, Bounds] =
     records.foldLeft(Map.empty[TopicAndPartition, Bounds]) {
       case (map, record) =>
         val topicAndPartition = TopicAndPartition(record.topic(), record.kafkaPartition())
@@ -121,7 +121,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
   private def rollback(topicPartitions: Set[TopicPartition]): Unit =
     topicPartitions.foreach(writerManager.cleanUp)
 
-  private def handleErrors(value: Either[SinkError, Unit]) =
+  private def handleErrors(value: Either[SinkError, Unit]): Unit =
     value match {
       case Left(error: SinkError) =>
         if (error.rollBack()) {
@@ -235,13 +235,16 @@ class S3SinkTask extends SinkTask with ErrorHandler {
     * for those (topic,partitions) to ensure no records are lost.
     */
   override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
-    logger.debug("[{}] S3SinkTask.close with {} partitions", connectorTaskId.show, partitions.size())
+    logger.debug("[{}] S3SinkTask.close with {} partitions",
+                 Option(connectorTaskId).map(_.show).getOrElse("Unnamed"),
+                 partitions.size(),
+    )
 
     Option(writerManager).foreach(_.close())
   }
 
   override def stop(): Unit = {
-    logger.debug("[{}] Stop", connectorTaskId.show)
+    logger.debug("[{}] Stop", Option(connectorTaskId).map(_.show).getOrElse("Unnamed"))
 
     Option(writerManager).foreach(_.close())
     writerManager = null
