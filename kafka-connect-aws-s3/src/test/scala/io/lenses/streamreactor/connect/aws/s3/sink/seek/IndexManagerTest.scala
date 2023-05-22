@@ -41,8 +41,8 @@ import org.scalatest.OptionValues
 
 class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues with OptionValues with BeforeAndAfter {
 
-  private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
-  private implicit val storageInterface = mock[StorageInterface]
+  private implicit val connectorTaskId:  ConnectorTaskId  = ConnectorTaskId("sinkName", 1, 1)
+  private implicit val storageInterface: StorageInterface = mock[StorageInterface]
 
   private val bucketName = "my-bucket"
 

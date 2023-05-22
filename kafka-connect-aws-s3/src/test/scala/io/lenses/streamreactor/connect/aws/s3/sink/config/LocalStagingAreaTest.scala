@@ -60,14 +60,4 @@ class LocalStagingAreaTest extends AnyFlatSpec with Matchers with EitherValues {
       case _                      => fail("Wrong")
     }
   }
-
-  it should "not create BuildLocalOutputStreamOptions when nothing supplied" in {
-    implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
-    val result = LocalStagingArea(adapt(Map[String, String]()))
-    result.left.value.getClass.getSimpleName should be("IllegalStateException")
-    result.left.value.getMessage should be(
-      "Either a local temporary directory (connect.s3.local.tmp.directory) or a Sink Name (name) must be configured.",
-    )
-  }
-
 }

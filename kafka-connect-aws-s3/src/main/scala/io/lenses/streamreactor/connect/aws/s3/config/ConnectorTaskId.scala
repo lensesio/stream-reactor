@@ -45,5 +45,5 @@ object ConnectorTaskId {
       maybeTaskName <- Option(props.get("name")).filter(_.trim.nonEmpty).toRight("Missing connector name")
     } yield ConnectorTaskId(maybeTaskName, maxTasks, taskNumber)
 
-  implicit val showConnector: Show[ConnectorTaskId] = Show.show(v => v.name + ":" + v.taskNo)
+  implicit val showConnector: Show[ConnectorTaskId] = Show.show(_.name)
 }
