@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.source.reader
 
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.InitedConnectorTaskId
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.source.files.SourceFileQueue
@@ -35,7 +35,7 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
   private val fileQueueProcessor:        SourceFileQueue       = mock[SourceFileQueue]
   private val readerCreator = mock[ReaderCreator]
 
-  private implicit val connectorTaskId      = InitedConnectorTaskId("mySource", 1, 1)
+  private implicit val connectorTaskId      = ConnectorTaskId("mySource", 1, 1)
   private val recordsLimit                  = 10
   private val bucketAndPrefix               = RemoteS3RootLocation("test:ing")
   private val firstFileBucketAndPath        = bucketAndPrefix.withPath("test:ing/topic/9/0.json")

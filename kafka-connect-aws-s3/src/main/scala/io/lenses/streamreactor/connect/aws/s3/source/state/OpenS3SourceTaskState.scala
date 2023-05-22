@@ -56,35 +56,32 @@ object OpenS3SourceTaskState {
     props:           util.Map[String, String],
     contextOffsetFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine],
   ): Either[Throwable, OpenS3SourceTaskState] = {
-    implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId.fromProps(props)
+    for {
+      connectorTaskId  <- ConnectorTaskId.fromProps(props)
+      config           <- S3SourceConfig.fromProps(props)
+      authResources     = new AuthResources(config.s3Config)
+      storageInterface <- config.s3Config.awsClient.createStorageInterface(authResources)(connectorTaskId)
+      partitionSearcher = new PartitionSearcher(
+        config.bucketOptions.map(_.sourceBucketAndPrefix),
+        config.partitionSearcher,
+      )(
+        connectorTaskId,
+        storageInterface,
+      )
 
-    {
-      for {
-        config           <- S3SourceConfig.fromProps(props)
-        authResources     = new AuthResources(config.s3Config)
-        storageInterface <- config.s3Config.awsClient.createStorageInterface(authResources)
-        partitionSearcher = new PartitionSearcher(
-          config.bucketOptions.map(_.sourceBucketAndPrefix),
-          config.partitionSearcher,
-        )(
-          connectorTaskId,
-          storageInterface,
+    } yield {
+      val readerManagerCreateFn: (RemoteS3RootLocation, String) => ReaderManager = (root, rootPath) => {
+        val sbo = config.bucketOptions.find(sb => sb.sourceBucketAndPrefix == root).getOrElse(
+          throw new ConnectException("no root found"),
         )
-
-      } yield {
-        val readerManagerCreateFn: (RemoteS3RootLocation, String) => ReaderManager = (root, rootPath) => {
-          val sbo = config.bucketOptions.find(sb => sb.sourceBucketAndPrefix == root).getOrElse(
-            throw new ConnectException("no root found"),
-          )
-          ReaderManager(root, sbo)(connectorTaskId, storageInterface, contextOffsetFn)
-        }
-        val readerManagerService =
-          new ReaderManagerService(config.partitionSearcher, partitionSearcher, readerManagerCreateFn)
-        new OpenS3SourceTaskState(() => readerManagerService.getReaderManagers)
+        ReaderManager(root, sbo)(connectorTaskId, storageInterface, contextOffsetFn)
       }
+      val readerManagerService =
+        new ReaderManagerService(config.partitionSearcher, partitionSearcher, readerManagerCreateFn)
+      new OpenS3SourceTaskState(() => readerManagerService.getReaderManagers)
     }
-      .leftMap {
-        case s: String => new WrappedSourceException(s)
-      }
   }
+    .leftMap {
+      case s: String => new WrappedSourceException(s)
+    }
 }

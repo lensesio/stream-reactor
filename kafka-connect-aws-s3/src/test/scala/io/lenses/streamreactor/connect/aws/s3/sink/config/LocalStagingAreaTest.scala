@@ -16,8 +16,6 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.DefaultConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.InitedConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.LOCAL_TMP_DIRECTORY
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
@@ -40,20 +38,20 @@ class LocalStagingAreaTest extends AnyFlatSpec with Matchers with EitherValues {
   }
 
   it should "create BuildLocalOutputStreamOptions when temp directory has been supplied" in {
-    implicit val connectorTaskId: ConnectorTaskId = DefaultConnectorTaskId
+    implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("unusedSinkName", 1, 1)
     LocalStagingArea(adapt(Map(LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path"))) should
       be(Right(LocalStagingArea(new File(s"$tmpDir/my/path"))))
   }
 
   it should "create BuildLocalOutputStreamOptions when temp directory and sink name has been supplied" in {
-    implicit val connectorTaskId: ConnectorTaskId = InitedConnectorTaskId("unusedSinkName", 1, 1)
+    implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("unusedSinkName", 1, 1)
     // should ignore the sinkName
     LocalStagingArea(adapt(Map(LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path"))) should
       be(Right(LocalStagingArea(new File(s"$tmpDir/my/path"))))
   }
 
   it should "create BuildLocalOutputStreamOptions when only sink name has been supplied" in {
-    implicit val connectorTaskId: ConnectorTaskId = InitedConnectorTaskId("superSleekSinkName", 1, 1)
+    implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("superSleekSinkName", 1, 1)
     val tempDir = System.getProperty("java.io.tmpdir")
     val result  = LocalStagingArea(adapt(Map()))
     result.isRight should be(true)
@@ -64,7 +62,7 @@ class LocalStagingAreaTest extends AnyFlatSpec with Matchers with EitherValues {
   }
 
   it should "not create BuildLocalOutputStreamOptions when nothing supplied" in {
-    implicit val connectorTaskId: ConnectorTaskId = DefaultConnectorTaskId
+    implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
     val result = LocalStagingArea(adapt(Map[String, String]()))
     result.left.value.getClass.getSimpleName should be("IllegalStateException")
     result.left.value.getMessage should be(

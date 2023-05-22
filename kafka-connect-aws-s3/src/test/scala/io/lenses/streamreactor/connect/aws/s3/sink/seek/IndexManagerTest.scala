@@ -17,7 +17,6 @@ package io.lenses.streamreactor.connect.aws.s3.sink.seek
 
 import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.InitedConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
@@ -42,7 +41,7 @@ import org.scalatest.OptionValues
 
 class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues with OptionValues with BeforeAndAfter {
 
-  private implicit val connectorTaskId: ConnectorTaskId = InitedConnectorTaskId("sinkName", 1, 1)
+  private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
   private implicit val storageInterface = mock[StorageInterface]
 
   private val bucketName = "my-bucket"

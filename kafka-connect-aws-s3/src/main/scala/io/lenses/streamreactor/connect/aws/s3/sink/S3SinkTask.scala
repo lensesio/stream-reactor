@@ -22,7 +22,6 @@ import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAscii
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.DefaultConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
@@ -36,13 +35,13 @@ import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
-import java.time.Instant
 import java.util
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 import SinkContextReader._
+import io.lenses.streamreactor.connect.aws.s3.utils.TimestampUtils
 
 class S3SinkTask extends SinkTask with ErrorHandler {
 
@@ -53,7 +52,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
 
   private var writerManager: S3WriterManager = _
 
-  private implicit var connectorTaskId: ConnectorTaskId = DefaultConnectorTaskId
+  private implicit var connectorTaskId: ConnectorTaskId = _
 
   override def version(): String = manifest.version()
 
@@ -61,7 +60,10 @@ class S3SinkTask extends SinkTask with ErrorHandler {
 
     printAsciiHeader(manifest, "/aws-s3-sink-ascii.txt")
 
-    connectorTaskId = ConnectorTaskId.fromProps(fallbackProps)
+    ConnectorTaskId.fromProps(fallbackProps) match {
+      case Left(value)  => throw new IllegalArgumentException(value)
+      case Right(value) => connectorTaskId = value
+    }
 
     logger.debug(s"[{}] S3SinkTask.start", connectorTaskId.show)
 
@@ -116,10 +118,10 @@ class S3SinkTask extends SinkTask with ErrorHandler {
         }
     }
 
-  def rollback(topicPartitions: Set[TopicPartition]): Unit =
+  private def rollback(topicPartitions: Set[TopicPartition]): Unit =
     topicPartitions.foreach(writerManager.cleanUp)
 
-  def handleErrors(value: Either[SinkError, Unit]) =
+  private def handleErrors(value: Either[SinkError, Unit]) =
     value match {
       case Left(error: SinkError) =>
         if (error.rollBack()) {
@@ -128,16 +130,6 @@ class S3SinkTask extends SinkTask with ErrorHandler {
         throw new IllegalStateException(error.message(), error.exception())
       case Right(_) =>
     }
-
-  def parseTime(timestamp: Option[Long]): Option[Instant] =
-    Try(timestamp.map(Instant.ofEpochMilli))
-      .toEither
-      .leftMap {
-        throwable: Throwable =>
-          logger.error("Error parsing time:", throwable)
-          None
-      }
-      .merge
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
 
@@ -162,7 +154,11 @@ class S3SinkTask extends SinkTask with ErrorHandler {
                   ),
                   valueSinkData = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
                   headers       = HeaderToStringConverter(record),
-                  parseTime(Option(record.timestamp().toLong)),
+                  TimestampUtils.parseTime(Option(record.timestamp()).map(_.toLong))(_ =>
+                    logger.debug(
+                      s"Record timestampt is invalid ${record.timestamp()}",
+                    ),
+                  ),
                 ),
               ),
             )

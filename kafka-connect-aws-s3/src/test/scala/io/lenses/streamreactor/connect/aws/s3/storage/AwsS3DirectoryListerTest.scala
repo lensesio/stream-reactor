@@ -20,7 +20,6 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.DefaultConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
@@ -28,7 +27,7 @@ import software.amazon.awssdk.services.s3.S3Client
 
 class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
 
-  implicit val connectorTaskId: ConnectorTaskId = DefaultConnectorTaskId
+  implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
 
   "dirLister" should "list all directories" in {
 
