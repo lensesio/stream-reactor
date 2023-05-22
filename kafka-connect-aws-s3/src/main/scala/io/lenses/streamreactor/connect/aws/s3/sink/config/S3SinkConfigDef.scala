@@ -50,17 +50,6 @@ object S3SinkConfigDef {
       s"Local tmp directory for preparing the files",
     )
     .define(
-      SEEK_MIGRATION,
-      Type.BOOLEAN,
-      SEEK_MIGRATION_DEFAULT,
-      Importance.LOW,
-      SEEK_MIGRATION_DOC,
-      "Sink Seek",
-      1,
-      ConfigDef.Width.LONG,
-      SEEK_MIGRATION,
-    )
-    .define(
       SEEK_MAX_INDEX_FILES,
       Type.INT,
       SEEK_MAX_INDEX_FILES_DEFAULT,

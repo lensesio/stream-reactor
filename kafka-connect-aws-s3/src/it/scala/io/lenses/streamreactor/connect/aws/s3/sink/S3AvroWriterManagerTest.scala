@@ -72,7 +72,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         localStagingArea   = LocalStagingArea(localRoot),
       ),
     ),
-    offsetSeekerOptions = OffsetSeekerOptions(5, true),
+    offsetSeekerOptions = OffsetSeekerOptions(5),
     compressionCodec    = compressionCodec,
   )
 

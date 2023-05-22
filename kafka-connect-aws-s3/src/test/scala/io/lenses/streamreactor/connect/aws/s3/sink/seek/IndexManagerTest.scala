@@ -17,14 +17,12 @@ package io.lenses.streamreactor.connect.aws.s3.sink.seek
 
 import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.NonFatalS3SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
-import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileCreateError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileDeleteError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
@@ -33,11 +31,11 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.{ eq => eqTo }
 import org.mockito.MockitoSugar
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.EitherValues
 import org.scalatest.OptionValues
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers._
 
 class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues with OptionValues with BeforeAndAfter {
 
@@ -56,14 +54,11 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
   private val maxIndexes = 5
 
   private val fileNamingStrategy = mock[S3FileNamingStrategy]
-  private val legacyOffsetSeeker = mock[LegacyOffsetSeeker]
 
-  private val indexManager = new IndexManager(maxIndexes, None)
-  private val indexManagerLegacySeeker =
-    new IndexManager(maxIndexes, Some(legacyOffsetSeeker))
+  private val indexManager = new IndexManager(maxIndexes)
 
   after {
-    reset(storageInterface, fileNamingStrategy, legacyOffsetSeeker)
+    reset(storageInterface, fileNamingStrategy)
   }
 
   "write" should "write an index for a topic/partition/offset" in {
@@ -214,28 +209,6 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     val seekInOrder = inOrder(storageInterface)
     seekInOrder.verify(storageInterface).list(topicPartitionRoot)
     seekInOrder.verify(storageInterface).deleteFiles(anyString(), any[Seq[String]])
-  }
-
-  "seek" should "fallback to legacy seeker when configured in legacy mode" in {
-
-    when(storageInterface.list(any[RemoteS3PathLocation])).thenReturn(List.empty.asRight)
-    when(legacyOffsetSeeker.seek(topicPartition, fileNamingStrategy, targetRoot)).thenReturn(
-      Some((topicPartition.withOffset(123), targetRoot.withPath("/my/returned/location"))).asRight,
-    )
-    when(storageInterface.writeStringToFile(any[RemoteS3PathLocation], anyString())).thenReturn(().asRight)
-
-    val offset: Either[SinkError, Option[TopicPartitionOffset]] =
-      indexManagerLegacySeeker.seek(topicPartition, fileNamingStrategy, targetRoot)
-    offset.value.value should be(topicPartition.withOffset(123))
-
-    val seekInOrder = inOrder(storageInterface, legacyOffsetSeeker, fileNamingStrategy)
-    seekInOrder.verify(storageInterface).list(topicPartitionRoot)
-    seekInOrder.verify(legacyOffsetSeeker).seek(topicPartition, fileNamingStrategy, targetRoot)
-    seekInOrder.verify(storageInterface).writeStringToFile(
-      targetRoot.withPath(".indexes/sinkName/myTopic/00005/00000000000000000123"),
-      "/my/returned/location",
-    )
-    seekInOrder.verifyNoMoreInteractions()
   }
 
   "scanIndexes" should "identify most recent index" in {

@@ -362,9 +362,7 @@ object S3WriterManager extends LazyLogging {
           case None => FatalS3SinkError("Can't find format choice in config", topicPartition).asLeft
         }
 
-    val maybeLegacyOffsetSeeker =
-      Option.when(config.offsetSeekerOptions.migrate)(new LegacyOffsetSeeker)
-    val indexManager = new IndexManager(config.offsetSeekerOptions.maxIndexFiles, maybeLegacyOffsetSeeker)
+    val indexManager = new IndexManager(config.offsetSeekerOptions.maxIndexFiles)
 
     new S3WriterManager(
       commitPolicyFn,

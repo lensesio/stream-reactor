@@ -31,8 +31,7 @@ import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 class IndexManager(
-  maxIndexes:     Int,
-  fallbackSeeker: Option[LegacyOffsetSeeker],
+  maxIndexes: Int,
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
@@ -121,27 +120,6 @@ class IndexManager(
       }
   }
 
-  def fallbackOffsetSeek(
-    seeker:             LegacyOffsetSeeker,
-    topicPartition:     TopicPartition,
-    fileNamingStrategy: S3FileNamingStrategy,
-    bucketAndPrefix:    RemoteS3RootLocation,
-  ): Either[SinkError, Option[TopicPartitionOffset]] =
-    seeker.seek(topicPartition, fileNamingStrategy, bucketAndPrefix) match {
-      case Left(err) =>
-        logger.error(
-          s"[{}] Error retrieving fallback offset seek topicPartition {} for {}",
-          connectorTaskId.show,
-          topicPartition,
-          bucketAndPrefix.bucket,
-        )
-        err.asLeft
-      case Right(Some((tpo, path))) =>
-        write(tpo, path).map(_ => Some(tpo))
-      case Right(None) =>
-        None.asRight
-    }
-
   /**
     * Seeks the filesystem to find the latyest offsets for a topic/partition.
     *
@@ -166,15 +144,11 @@ class IndexManager(
       }
       .flatMap {
         indexes =>
-          if (indexes.isEmpty && fallbackSeeker.nonEmpty) {
-            fallbackOffsetSeek(fallbackSeeker.get, topicPartition, fileNamingStrategy, bucketAndPrefix)
+          val seekResult = seekAndClean(topicPartition, bucketAndPrefix, indexes)
+          if (indexes.size > maxIndexes) {
+            logAndReturnMaxExceededError(topicPartition, indexes)
           } else {
-            val seekResult = seekAndClean(topicPartition, bucketAndPrefix, indexes)
-            if (indexes.size > maxIndexes) {
-              logAndReturnMaxExceededError(topicPartition, indexes)
-            } else {
-              seekResult
-            }
+            seekResult
           }
       }
 

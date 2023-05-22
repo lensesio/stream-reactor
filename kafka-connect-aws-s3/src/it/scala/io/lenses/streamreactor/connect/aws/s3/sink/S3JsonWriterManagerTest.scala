@@ -70,7 +70,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           localStagingArea   = LocalStagingArea(localRoot),
         ), // JsonS3Format
       ),
-      offsetSeekerOptions = OffsetSeekerOptions(5, true),
+      offsetSeekerOptions = OffsetSeekerOptions(5),
       compressionCodec,
     )
 
@@ -110,7 +110,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           localStagingArea = LocalStagingArea(localRoot),
         ),
       ),
-      offsetSeekerOptions = OffsetSeekerOptions(5, true),
+      offsetSeekerOptions = OffsetSeekerOptions(5),
       compressionCodec,
     )
 
