@@ -46,7 +46,7 @@ class SourceRecordConverterTest extends AnyFlatSpec with Matchers {
     ) should contain allOf (
       "path" -> "test-path",
       "line" -> "100",
-      "inst" -> nowInst.toEpochMilli,
+      "inst" -> nowInst.toEpochMilli.toString,
     )
   }
 

@@ -139,12 +139,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     )
     cleanInOrder.verifyNoMoreInteractions()
   }
-  /*
-storageInterface.listRecursive[String](
-  any[RemoteS3PathLocation],
-  any[(RemoteS3PathLocation, Seq[S3Object]) => Option[ListResponse[String]]]
-)
-   */
+
   private def setUpTooManyIndexes = {
     val tenIndexes = Range(0, 9).map(x => f".indexes/sinkName/myTopic/00005/000000000000000000$x%020d").toList
     when(
