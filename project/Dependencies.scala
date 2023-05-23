@@ -79,12 +79,11 @@ object Dependencies {
 
     val jerseyCommonVersion = "3.1.1"
 
-    val calciteVersion    = "1.34.0"
-    val awsSdkVersion     = "2.20.54"
-    val jCloudsSdkVersion = "2.5.0"
-    val guavaVersion      = "31.0.1-jre"
-    val guiceVersion      = "5.1.0"
-    val javaxBindVersion  = "2.3.1"
+    val calciteVersion   = "1.34.0"
+    val awsSdkVersion    = "2.20.54"
+    val guavaVersion     = "31.0.1-jre"
+    val guiceVersion     = "5.1.0"
+    val javaxBindVersion = "2.3.1"
 
     val kcqlVersion         = "2.9.1"
     val jacksonVersion      = "2.14.2"
@@ -322,8 +321,6 @@ object Dependencies {
   lazy val stsSdk    = "software.amazon.awssdk" % "sts"      % awsSdkVersion
   lazy val javaxBind = "javax.xml.bind"         % "jaxb-api" % javaxBindVersion
 
-  lazy val jcloudsBlobstore    = "org.apache.jclouds"           % "jclouds-blobstore"    % jCloudsSdkVersion
-  lazy val jcloudsProviderS3   = "org.apache.jclouds.provider"  % "aws-s3"               % jCloudsSdkVersion
   lazy val guava               = "com.google.guava"             % "guava"                % guavaVersion
   lazy val guice               = "com.google.inject"            % "guice"                % guiceVersion
   lazy val guiceAssistedInject = "com.google.inject.extensions" % "guice-assistedinject" % guiceVersion
@@ -532,8 +529,6 @@ trait Dependencies {
     hadoopMapReduceClient,
     hadoopMapReduceClientCore,
     javaxBind,
-    jcloudsBlobstore,
-    jcloudsProviderS3,
     openCsv,
     guice,
     guiceAssistedInject,

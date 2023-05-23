@@ -73,7 +73,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         localStagingArea   = LocalStagingArea(localRoot),
       ),
     ),
-    offsetSeekerOptions = OffsetSeekerOptions(5, true),
+    offsetSeekerOptions = OffsetSeekerOptions(5),
     compressionCodec,
   )
 

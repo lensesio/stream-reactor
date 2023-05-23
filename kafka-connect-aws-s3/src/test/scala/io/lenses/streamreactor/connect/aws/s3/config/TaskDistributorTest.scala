@@ -33,9 +33,9 @@ class TaskDistributorTest extends AnyWordSpec with Matchers {
       )
     }
     "handle 0 max tasks" in {
-        val tasks =
-            TaskDistributor.distributeTasks(Map.empty[String, String].asJava, 0).asScala.map(_.asScala.toMap).toList
-        tasks shouldBe List()
+      val tasks =
+        TaskDistributor.distributeTasks(Map.empty[String, String].asJava, 0).asScala.map(_.asScala.toMap).toList
+      tasks shouldBe List()
     }
   }
 }

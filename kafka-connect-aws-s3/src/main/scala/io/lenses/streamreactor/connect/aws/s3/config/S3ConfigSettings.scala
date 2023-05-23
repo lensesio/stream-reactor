@@ -35,7 +35,6 @@ object S3ConfigSettings {
   val AUTH_MODE:                   String = s"$CONNECTOR_PREFIX.aws.auth.mode"
   val CUSTOM_ENDPOINT:             String = s"$CONNECTOR_PREFIX.custom.endpoint"
   val ENABLE_VIRTUAL_HOST_BUCKETS: String = s"$CONNECTOR_PREFIX.vhost.bucket"
-  val AWS_CLIENT:                  String = s"$CONNECTOR_PREFIX.aws.client"
 
   val DISABLE_FLUSH_COUNT: String = s"$CONNECTOR_PREFIX.disable.flush.count"
   val LOCAL_TMP_DIRECTORY: String = s"$CONNECTOR_PREFIX.local.tmp.directory"
@@ -90,11 +89,6 @@ object S3ConfigSettings {
   val HTTP_CONNECTION_TIMEOUT         = s"$CONNECTOR_PREFIX.http.connection.timeout"
   val HTTP_CONNECTION_TIMEOUT_DOC     = "Connection timeout (ms)"
   val HTTP_CONNECTION_TIMEOUT_DEFAULT = 60000
-
-  val SEEK_MIGRATION = s"$CONNECTOR_PREFIX.seek.migration.enabled"
-  val SEEK_MIGRATION_DOC =
-    "Migration mode, from legacy to optimised sink seek method.  This will be deprecated and removed in a future version."
-  val SEEK_MIGRATION_DEFAULT = false
 
   val SEEK_MAX_INDEX_FILES = s"$CONNECTOR_PREFIX.seek.max.files"
   val SEEK_MAX_INDEX_FILES_DOC =

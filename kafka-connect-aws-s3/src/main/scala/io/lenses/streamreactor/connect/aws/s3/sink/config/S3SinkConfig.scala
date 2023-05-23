@@ -19,7 +19,6 @@ import cats.syntax.all._
 import com.datamountaineer.kcql.Kcql
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MAX_INDEX_FILES
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MIGRATION
 import S3FlushSettings.defaultFlushCount
 import S3FlushSettings.defaultFlushInterval
 import S3FlushSettings.defaultFlushSize
@@ -52,7 +51,6 @@ object S3SinkConfig {
       sinkBucketOptions <- SinkBucketOptions(s3ConfigDefBuilder)
       offsetSeekerOptions = OffsetSeekerOptions(
         s3ConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
-        s3ConfigDefBuilder.getBoolean(SEEK_MIGRATION),
       )
     } yield S3SinkConfig(
       S3Config(s3ConfigDefBuilder.getParsedValues),
@@ -117,5 +115,4 @@ case class SinkBucketOptions(
 
 case class OffsetSeekerOptions(
   maxIndexFiles: Int,
-  migrate:       Boolean,
 )

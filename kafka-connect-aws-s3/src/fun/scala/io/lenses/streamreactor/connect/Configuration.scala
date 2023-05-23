@@ -17,7 +17,6 @@ object Configuration {
       .`with`("connect.s3.aws.auth.mode", "Credentials")
       .`with`("connect.s3.custom.endpoint", networkAliasUrl)
       .`with`("connect.s3.vhost.bucket", "true")
-      .`with`("connect.s3.aws.client", "aws")
       .`with`("connect.s3.aws.region", "eu-west-1")
       .`with`("connect.s3.kcql", s"INSERT INTO `$bucketName:$prefix` SELECT * FROM `$topicName` STOREAS `$storeAs` WITH_FLUSH_COUNT=1")
 
