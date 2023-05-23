@@ -75,7 +75,7 @@ object Dependencies {
     val classGraphVersions  = "4.8.157"
 
     val wiremockJre8Version = "2.35.0"
-    val parquetVersion      = "1.12.3"
+    val parquetVersion      = "1.13.1"
 
     val jerseyCommonVersion = "3.1.1"
 
