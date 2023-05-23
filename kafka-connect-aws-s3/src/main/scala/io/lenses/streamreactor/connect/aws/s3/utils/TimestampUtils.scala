@@ -13,8 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.source.distribution
+package io.lenses.streamreactor.connect.aws.s3.utils
 
-object PartitionHasher {
-  def hash(maxTasks: Int, fileName: String): Int = Math.abs(fileName.hashCode) % maxTasks
+import java.time.Instant
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
+object TimestampUtils {
+  def parseTime(timestamp: Option[Long])(errorFn: Throwable => Unit): Option[Instant] =
+    Try(timestamp.map(Instant.ofEpochMilli)) match {
+      case Failure(exception) => errorFn(exception); None
+      case Success(value)     => value
+    }
 }

@@ -48,15 +48,10 @@ object LocalStagingArea {
       LocalStagingArea(stagingDir)
     }.toEither
   private def useTmpDir(implicit connectorTaskId: ConnectorTaskId): Either[Throwable, LocalStagingArea] =
-    for {
-      _ <- if (connectorTaskId.hasDefaultConnectorName) {
-        new IllegalArgumentException("No connector name specified").asLeft
-      } else ().asRight
-      stagDir <- Try {
-        val stagingDir = Files.createTempDirectory(s"${connectorTaskId.show}.${UUID.randomUUID().toString}").toFile
-        LocalStagingArea(stagingDir)
-      }.toEither
-    } yield stagDir
+    Try {
+      val stagingDir = Files.createTempDirectory(s"${connectorTaskId.show}.${UUID.randomUUID().toString}").toFile
+      LocalStagingArea(stagingDir)
+    }.toEither
 
   private def getStringValue(props: Map[String, _], key: String): Option[String] =
     props.get(key).collect {

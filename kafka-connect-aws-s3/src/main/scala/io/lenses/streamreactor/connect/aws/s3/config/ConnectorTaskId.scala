@@ -16,43 +16,35 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import cats.Show
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId.defaultConnectorName
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.TASK_INDEX
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionHasher
 
 import java.util
 
-sealed trait ConnectorTaskId {
-  val name: String
-
-  def hasDefaultConnectorName: Boolean = name == defaultConnectorName
-
-  def ownsDir(dirPath: String): Boolean = true
-}
-
-object DefaultConnectorTaskId extends ConnectorTaskId {
-  override val name: String = defaultConnectorName
-}
-
-case class InitedConnectorTaskId(name: String, maxTasks: Int, taskNo: Int) extends ConnectorTaskId {
-
-  override def ownsDir(dirPath: String): Boolean =
-    PartitionHasher.hash(maxTasks, dirPath) == taskNo
+case class ConnectorTaskId(name: String, maxTasks: Int, taskNo: Int) {
+  def ownsDir(dirPath: String): Boolean =
+    if (maxTasks == 1) true
+    else PartitionHasher.hash(maxTasks, dirPath) == taskNo
 }
 
 object ConnectorTaskId {
-
-  val defaultConnectorName = "MissingConnectorName"
-
-  def fromProps(props: util.Map[String, String]): ConnectorTaskId = {
+  def fromProps(props: util.Map[String, String]): Either[String, ConnectorTaskId] =
     for {
-      taskIndexString <- Option(props.get(TASK_INDEX))
+      taskIndexString <- Option(props.get(TASK_INDEX)).toRight(s"Missing $TASK_INDEX")
       taskIndex        = taskIndexString.split(":")
-      maybeTaskName   <- Option(props.get("name")).filter(_.trim.nonEmpty)
-    } yield InitedConnectorTaskId(maybeTaskName, taskIndex.head.toInt, taskIndex.last.toInt)
-  }
-    .getOrElse(DefaultConnectorTaskId)
+      _               <- if (taskIndex.size != 2) Left(s"Invalid $TASK_INDEX. Expecting TaskNumber:MaxTask format.") else Right(())
+      maxTasks <- taskIndex(1).toIntOption.toRight(
+        s"Invalid $TASK_INDEX. Expecting an integer but found:${taskIndex(1)}",
+      )
+      _ <- if (maxTasks <= 0) Left(s"Invalid $TASK_INDEX. Expecting a positive integer but found:${taskIndex(1)}")
+      else Right(())
+      taskNumber <- taskIndex(0).toIntOption.toRight(
+        s"Invalid $TASK_INDEX. Expecting an integer but found:${taskIndex(0)}",
+      )
+      _ <- if (taskNumber < 0) Left(s"Invalid $TASK_INDEX. Expecting a positive integer but found:${taskIndex(0)}")
+      else Right(())
+      maybeTaskName <- Option(props.get("name")).filter(_.trim.nonEmpty).toRight("Missing connector name")
+    } yield ConnectorTaskId(maybeTaskName, maxTasks, taskNumber)
 
   implicit val showConnector: Show[ConnectorTaskId] = Show.show(_.name)
-
 }

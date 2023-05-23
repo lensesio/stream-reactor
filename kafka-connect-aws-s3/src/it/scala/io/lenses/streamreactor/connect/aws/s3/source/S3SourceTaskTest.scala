@@ -46,6 +46,7 @@ class S3SourceTaskTest
     ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
     AWS_CLIENT                  -> "aws",
     TASK_INDEX                  -> "1:1",
+    "name"                      -> "s3-source",
   )
 
   private val formats = Table(

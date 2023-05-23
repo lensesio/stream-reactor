@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.distribution
 
+import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
@@ -40,7 +41,7 @@ class PartitionHasherTest extends AnyFlatSpecLike with Matchers {
     mapPartitionsToRange(numberOfValues = 1000,
                          maxTasks       = 1,
                          topics         = Seq("/myTopic/", "/anotherTopic/", "/thirdTopic/"),
-    ).foreach(mp => mp should be(1))
+    ).foreach(mp => mp should be(0))
   }
 
   private def testHashDistribution(numberOfValues: Int, maxTasks: Int, topics: Seq[String]) = {
@@ -54,12 +55,12 @@ class PartitionHasherTest extends AnyFlatSpecLike with Matchers {
     grouped.values.sum should be(numberOfValues * topics.size)
   }
 
-  private def shouldBeInRange(count: Int, upperBounds: Int) = {
+  private def shouldBeInRange(count: Int, upperBounds: Int): Assertion = {
     count should be > 0
     count should be <= upperBounds
   }
 
-  private def mapPartitionsToRange(numberOfValues: Int, maxTasks: Int, topics: Seq[String]) = {
+  private def mapPartitionsToRange(numberOfValues: Int, maxTasks: Int, topics: Seq[String]): Seq[Int] = {
     val rangeToTest = 1 to numberOfValues
     val partitions  = topics.flatMap(t => rangeToTest.map(t + _))
 
