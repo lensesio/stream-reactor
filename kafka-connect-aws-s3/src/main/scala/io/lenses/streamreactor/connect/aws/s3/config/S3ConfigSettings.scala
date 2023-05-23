@@ -152,4 +152,7 @@ object S3ConfigSettings {
     "When searching for new partitions, how long to run the search for before pausing.  Defaults to -1 (completes the search - no pause)."
   val SOURCE_PARTITION_SEARCH_PAUSE_AFTER_MILLIS_DEFAULT: Long = -1L
 
+  val SOURCE_ORDERING_TYPE:         String = s"$CONNECTOR_PREFIX.ordering.type"
+  val SOURCE_ORDERING_TYPE_DOC:     String = "AlphaNumeric (the default)"
+  val SOURCE_ORDERING_TYPE_DEFAULT: String = "AlphaNumeric"
 }
