@@ -32,7 +32,7 @@ object SourceRecordConverter {
     Map(
       "path" -> bucketAndPath.path,
       "line" -> offset.toString,
-      "inst" -> lastModified.toEpochMilli.toString,
+      "ts"   -> lastModified.toEpochMilli.toString,
     )
 
 }

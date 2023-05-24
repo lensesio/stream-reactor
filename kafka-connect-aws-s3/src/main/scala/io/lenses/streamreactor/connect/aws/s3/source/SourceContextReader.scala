@@ -40,7 +40,7 @@ object SourceContextReader {
       offsetMap <- Try(context().offsetStorageReader.offset(key).asScala).toOption.filterNot(_ == null)
       path      <- offsetMap.get("path").collect { case value: String => value }
       line      <- offsetMap.get("line").collect { case value: String if value forall Character.isDigit => value.toInt }
-      inst <- offsetMap.get("inst").collect {
+      inst <- offsetMap.get("ts").collect {
         case value: String if value forall Character.isDigit => Instant.ofEpochMilli(value.toLong)
       }
     } yield sourceRoot.withPath(path).atLine(line, inst)

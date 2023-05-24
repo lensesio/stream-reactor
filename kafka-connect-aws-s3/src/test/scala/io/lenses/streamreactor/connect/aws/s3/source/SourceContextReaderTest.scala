@@ -48,7 +48,7 @@ class SourceContextReaderTest extends AnyFlatSpec with Matchers with MockitoSuga
     val mapValue = Map[String, AnyRef](
       "path" -> filePath,
       "line" -> "100",
-      "inst" -> nowMillis.toString,
+      "ts"   -> nowMillis.toString,
     ).asJava
 
     when(sourceTaskContext.offsetStorageReader().offset(mapKey)).thenReturn(mapValue)
@@ -71,7 +71,7 @@ class SourceContextReaderTest extends AnyFlatSpec with Matchers with MockitoSuga
     val mapValue = Map[String, AnyRef](
       "path" -> filePath,
       "line" -> "???",
-      "inst" -> nowMillis.toString,
+      "ts"   -> nowMillis.toString,
     ).asJava
 
     when(sourceTaskContext.offsetStorageReader().offset(mapKey)).thenReturn(mapValue)
