@@ -19,8 +19,6 @@ import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.NonFatalS3SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
@@ -29,11 +27,11 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.{ eq => eqTo }
 import org.mockito.MockitoSugar
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.EitherValues
 import org.scalatest.OptionValues
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers._
 import software.amazon.awssdk.services.s3.model.S3Object
 
 import java.time.Instant
@@ -45,12 +43,10 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
 
   private val bucketName = "my-bucket"
 
-  private val targetRoot = RemoteS3RootLocation(s"$bucketName:myPrefix")
-
-  private val targetPath         = targetRoot.withPath("myPrefix/myTopic/5/100.json")
-  private val indexPath          = targetRoot.withPath(".indexes/sinkName/myTopic/00005/00000000000000000100")
-  private val topicPartitionRoot = targetRoot.withPath(".indexes/sinkName/myTopic/00005/")
-  private val topicPartition     = Topic("myTopic").withPartition(5)
+  private val targetPath             = "myPrefix/myTopic/5/100.json"
+  private val indexPath              = ".indexes/sinkName/myTopic/00005/00000000000000000100"
+  private val topicPartitionRootPath = ".indexes/sinkName/myTopic/00005/"
+  private val topicPartition         = Topic("myTopic").withPartition(5)
 
   private val maxIndexes = 5
 
@@ -63,31 +59,33 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
   }
 
   "write" should "write an index for a topic/partition/offset" in {
-    when(storageInterface.writeStringToFile(any(classOf[RemoteS3PathLocation]), anyString())).thenReturn(().asRight)
+    when(storageInterface.writeStringToFile(anyString(), anyString(), anyString())).thenReturn(().asRight)
 
     val res = indexManager.write(
-      Topic("myTopic").withPartition(5).withOffset(100),
+      bucketName,
       targetPath,
+      Topic("myTopic").withPartition(5).withOffset(100),
     )
 
     res.value should be(indexPath)
-    verify(storageInterface).writeStringToFile(indexPath, "myPrefix/myTopic/5/100.json")
+    verify(storageInterface).writeStringToFile(bucketName, indexPath, "myPrefix/myTopic/5/100.json")
   }
 
   "write" should "return an error when unable to write" in {
     val exception =
       FileCreateError(new IllegalArgumentException("Drying mode on. Jacket drying."), "Your jacket is now DRY")
-    when(storageInterface.writeStringToFile(any(classOf[RemoteS3PathLocation]), anyString())).thenReturn(
+    when(storageInterface.writeStringToFile(anyString(), anyString(), anyString())).thenReturn(
       exception.asLeft,
     )
 
     val res = indexManager.write(
-      Topic("myTopic").withPartition(5).withOffset(100),
+      bucketName,
       targetPath,
+      Topic("myTopic").withPartition(5).withOffset(100),
     )
 
     res.left.value shouldBe a[NonFatalS3SinkError]
-    verify(storageInterface).writeStringToFile(indexPath, "myPrefix/myTopic/5/100.json")
+    verify(storageInterface).writeStringToFile(bucketName, indexPath, "myPrefix/myTopic/5/100.json")
   }
 
   "clean" should "successfully clean old valid indexes" in {
@@ -98,23 +96,27 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     )
     when(
       storageInterface.listRecursive[String](
-        any[RemoteS3PathLocation],
-        any[(RemoteS3PathLocation, Seq[S3Object]) => Option[ListResponse[String]]],
+        eqTo(bucketName),
+        eqTo(topicPartitionRootPath.some),
+        any[(String, Option[String], Seq[S3Object]) => Option[ListResponse[String]]],
       ),
     ).thenReturn(
-      ListResponse[String](targetPath,
-                           existingIndexes,
-                           FileMetadata(".indexes/sinkName/myTopic/00005/00000000000000000100", Instant.now()),
+      ListResponse[String](
+        bucketName,
+        topicPartitionRootPath.some,
+        existingIndexes,
+        FileMetadata(".indexes/sinkName/myTopic/00005/00000000000000000100", Instant.now()),
       ).some.asRight,
     )
     when(storageInterface.deleteFiles(anyString, any[Seq[String]])).thenReturn(().asRight)
 
-    indexManager.clean(indexPath, topicPartition).value should be(2)
+    indexManager.clean(bucketName, indexPath, topicPartition).value should be(2)
 
     val cleanInOrder = inOrder(storageInterface)
     cleanInOrder.verify(storageInterface).listRecursive[String](
-      eqTo(topicPartitionRoot),
-      any[(RemoteS3PathLocation, Seq[S3Object]) => Option[ListResponse[String]]],
+      eqTo(bucketName),
+      eqTo(topicPartitionRootPath.some),
+      any[(String, Option[String], Seq[S3Object]) => Option[ListResponse[String]]],
     )
     cleanInOrder.verify(storageInterface).deleteFiles(
       bucketName,
@@ -128,14 +130,15 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
   "clean" should "return error when too many indexes have accumulated" in {
     setUpTooManyIndexes
 
-    val capturedEx = indexManager.clean(indexPath, topicPartition).left.value
+    val capturedEx = indexManager.clean(bucketName, indexPath, topicPartition).left.value
     capturedEx shouldBe a[FatalS3SinkError]
     capturedEx.message() should startWith("Too many index files have accumulated")
 
     val cleanInOrder = inOrder(storageInterface)
     cleanInOrder.verify(storageInterface).listRecursive[String](
-      eqTo(topicPartitionRoot),
-      any[(RemoteS3PathLocation, Seq[S3Object]) => Option[ListResponse[String]]],
+      eqTo(bucketName),
+      eqTo(topicPartitionRootPath.some),
+      any[(String, Option[String], Seq[S3Object]) => Option[ListResponse[String]]],
     )
     cleanInOrder.verifyNoMoreInteractions()
   }
@@ -144,15 +147,17 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     val tenIndexes = Range(0, 9).map(x => f".indexes/sinkName/myTopic/00005/000000000000000000$x%020d").toList
     when(
       storageInterface.listRecursive[String](
-        any[RemoteS3PathLocation],
-        any[(RemoteS3PathLocation, Seq[S3Object]) => Option[ListResponse[String]]],
+        any[String],
+        any[Option[String]],
+        any[(String, Option[String], Seq[S3Object]) => Option[ListResponse[String]]],
       ),
     ).thenReturn(
-      ListResponse(
-        targetPath,
-        tenIndexes :+ indexPath.path,
+      ListResponse[String](
+        bucketName,
+        targetPath.some,
+        tenIndexes :+ indexPath,
         FileMetadata(".indexes/sinkName/myTopic/00005/00000000000000000100", Instant.now()),
-      ).some.asRight,
+      ).some.asRight[FileListError],
     )
   }
 
@@ -160,24 +165,28 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     val existingIndexes = Range(0, 2).map(x => f".indexes/sinkName/myTopic/00005/000000000000000000$x%020d").toList
     when(
       storageInterface.listRecursive[String](
-        any[RemoteS3PathLocation],
-        any[(RemoteS3PathLocation, Seq[S3Object]) => Option[ListResponse[String]]],
+        any[String],
+        any[Option[String]],
+        any[(String, Option[String], Seq[S3Object]) => Option[ListResponse[String]]],
       ),
     ).thenReturn(
-      ListResponse(targetPath,
-                   existingIndexes,
-                   FileMetadata(".indexes/sinkName/myTopic/00005/00000000000000000100", Instant.now()),
+      ListResponse(
+        bucketName,
+        topicPartitionRootPath.some,
+        existingIndexes,
+        FileMetadata(".indexes/sinkName/myTopic/00005/00000000000000000100", Instant.now()),
       ).some.asRight,
     )
 
-    val capturedEx = indexManager.clean(indexPath, topicPartition).left.value
+    val capturedEx = indexManager.clean(bucketName, indexPath, topicPartition).left.value
     capturedEx shouldBe a[NonFatalS3SinkError]
     capturedEx.message() should startWith("Latest file not found in index")
 
     val cleanInOrder = inOrder(storageInterface)
     cleanInOrder.verify(storageInterface).listRecursive[String](
-      eqTo(topicPartitionRoot),
-      any[(RemoteS3PathLocation, Seq[S3Object]) => Option[ListResponse[String]]],
+      eqTo(bucketName),
+      eqTo(topicPartitionRootPath.some),
+      any[(String, Option[String], Seq[S3Object]) => Option[ListResponse[String]]],
     )
     cleanInOrder.verifyNoMoreInteractions()
   }
@@ -190,13 +199,16 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     )
     when(
       storageInterface.listRecursive[String](
-        any[RemoteS3PathLocation],
-        any[(RemoteS3PathLocation, Seq[S3Object]) => Option[ListResponse[String]]],
+        eqTo(bucketName),
+        eqTo(topicPartitionRootPath.some),
+        any[(String, Option[String], Seq[S3Object]) => Option[ListResponse[String]]],
       ),
     ).thenReturn(
-      ListResponse(targetPath,
-                   existingIndexes,
-                   FileMetadata(".indexes/sinkName/myTopic/00005/00000000000000000100", Instant.now()),
+      ListResponse(
+        bucketName,
+        topicPartitionRootPath.some,
+        existingIndexes,
+        FileMetadata(".indexes/sinkName/myTopic/00005/00000000000000000100", Instant.now()),
       ).some.asRight,
     )
     when(storageInterface.deleteFiles(anyString(), any[Seq[String]])).thenReturn(FileDeleteError(
@@ -204,12 +216,13 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
       "myFilename",
     ).asLeft)
 
-    indexManager.clean(indexPath, topicPartition).value should be(0)
+    indexManager.clean(bucketName, indexPath, topicPartition).value should be(0)
 
     val cleanInOrder = inOrder(storageInterface)
     cleanInOrder.verify(storageInterface).listRecursive[String](
-      eqTo(topicPartitionRoot),
-      any[(RemoteS3PathLocation, Seq[S3Object]) => Option[ListResponse[String]]],
+      eqTo(bucketName),
+      eqTo(topicPartitionRootPath.some),
+      any[(String, Option[String], Seq[S3Object]) => Option[ListResponse[String]]],
     )
     cleanInOrder.verify(storageInterface).deleteFiles(
       bucketName,
@@ -225,33 +238,41 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     val existingIndexes = setUpExistingIndexes
     when(
       storageInterface.listRecursive[String](
-        any[RemoteS3PathLocation],
-        any[(RemoteS3PathLocation, Seq[S3Object]) => Option[ListResponse[String]]],
+        any[String],
+        any[Option[String]],
+        any[(String, Option[String], Seq[S3Object]) => Option[ListResponse[String]]],
       ),
     ).thenReturn(
       ListResponse(
-        targetPath,
+        bucketName,
+        topicPartitionRootPath.some,
         existingIndexes.map(_._1).toList,
         FileMetadata(".indexes/sinkName/myTopic/00005/00000000000000000100", Instant.now()),
       ).some.asRight,
     )
     when(storageInterface.deleteFiles(eqTo(bucketName), any[List[String]])).thenReturn(().asRight)
-    val seekRes = indexManager.seek(topicPartition, fileNamingStrategy, targetRoot)
+    val seekRes = indexManager.seek(topicPartition, fileNamingStrategy, bucketName)
     seekRes.value should be(Some(topicPartition.withOffset(70)))
 
     val seekInOrder = inOrder(storageInterface)
     seekInOrder.verify(storageInterface).listRecursive[String](
-      eqTo(topicPartitionRoot),
-      any[(RemoteS3PathLocation, Seq[S3Object]) => Option[ListResponse[String]]],
+      eqTo(bucketName),
+      eqTo(topicPartitionRootPath.some),
+      any[(String, Option[String], Seq[S3Object]) => Option[ListResponse[String]]],
     )
     seekInOrder.verify(storageInterface).getBlobAsString(
-      targetRoot.withPath(".indexes/sinkName/myTopic/00005/00000000000000000100"),
+      bucketName,
+      ".indexes/sinkName/myTopic/00005/00000000000000000100",
     )
-    seekInOrder.verify(storageInterface).pathExists(targetRoot.withPath("/myTopic/5/100.csv"))
+    seekInOrder.verify(storageInterface).pathExists(
+      bucketName,
+      "/myTopic/5/100.csv",
+    )
     seekInOrder.verify(storageInterface).getBlobAsString(
-      targetRoot.withPath(".indexes/sinkName/myTopic/00005/00000000000000000070"),
+      bucketName,
+      ".indexes/sinkName/myTopic/00005/00000000000000000070",
     )
-    seekInOrder.verify(storageInterface).pathExists(targetRoot.withPath("/myTopic/5/70.csv"))
+    seekInOrder.verify(storageInterface).pathExists(bucketName, "/myTopic/5/70.csv")
     seekInOrder.verify(storageInterface).deleteFiles(
       bucketName,
       List(".indexes/sinkName/myTopic/00005/00000000000000000050",
@@ -265,19 +286,20 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
 
     setUpTooManyIndexes
     val target = "testString"
-    when(storageInterface.getBlobAsString(any[RemoteS3PathLocation])).thenReturn(target.asRight)
-    when(storageInterface.pathExists(any[RemoteS3PathLocation])).thenReturn(true.asRight)
+    when(storageInterface.getBlobAsString(any[String], any[String])).thenReturn(target.asRight)
+    when(storageInterface.pathExists(any[String], any[String])).thenReturn(true.asRight)
     when(storageInterface.deleteFiles(eqTo(bucketName), any[List[String]])).thenReturn(().asRight)
 
-    val seekRes    = indexManager.seek(topicPartition, fileNamingStrategy, targetRoot)
+    val seekRes    = indexManager.seek(topicPartition, fileNamingStrategy, bucketName)
     val capturedEx = seekRes.left.value
     capturedEx shouldBe a[FatalS3SinkError]
     capturedEx.message() should startWith("Too many index files have accumulated")
 
     val seekInOrder = inOrder(storageInterface)
     seekInOrder.verify(storageInterface).listRecursive[String](
-      eqTo(topicPartitionRoot),
-      any[(RemoteS3PathLocation, Seq[S3Object]) => Option[ListResponse[String]]],
+      eqTo(bucketName),
+      eqTo(topicPartitionRootPath.some),
+      any[(String, Option[String], Seq[S3Object]) => Option[ListResponse[String]]],
     )
     seekInOrder.verify(storageInterface).deleteFiles(anyString(), any[Seq[String]])
   }
@@ -286,19 +308,21 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
 
     val existingIndexes = setUpExistingIndexes
 
-    indexManager.scanIndexes(targetRoot, existingIndexes.map(_._1).toList) should be(
+    indexManager.scanIndexes(bucketName, existingIndexes.map(_._1).toList) should be(
       Right(Some(".indexes/sinkName/myTopic/00005/00000000000000000070")),
     )
 
     val scannedInOrder = inOrder(storageInterface)
     scannedInOrder.verify(storageInterface).getBlobAsString(
-      targetRoot.withPath(".indexes/sinkName/myTopic/00005/00000000000000000100"),
+      bucketName,
+      ".indexes/sinkName/myTopic/00005/00000000000000000100",
     )
-    scannedInOrder.verify(storageInterface).pathExists(targetRoot.withPath("/myTopic/5/100.csv"))
+    scannedInOrder.verify(storageInterface).pathExists(bucketName, "/myTopic/5/100.csv")
     scannedInOrder.verify(storageInterface).getBlobAsString(
-      targetRoot.withPath(".indexes/sinkName/myTopic/00005/00000000000000000070"),
+      bucketName,
+      ".indexes/sinkName/myTopic/00005/00000000000000000070",
     )
-    scannedInOrder.verify(storageInterface).pathExists(targetRoot.withPath("/myTopic/5/70.csv"))
+    scannedInOrder.verify(storageInterface).pathExists(bucketName, "/myTopic/5/70.csv")
     scannedInOrder.verifyNoMoreInteractions()
   }
 
@@ -315,25 +339,26 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
 
     existingIndexes.foreach {
       case (idxFile: String, target: String, fileExists: Boolean) =>
-        when(storageInterface.getBlobAsString(targetRoot.withPath(idxFile))).thenReturn(target.asRight)
-        when(storageInterface.pathExists(targetRoot.withPath(target))).thenReturn(fileExists.asRight)
+        when(storageInterface.getBlobAsString(bucketName, idxFile)).thenReturn(target.asRight)
+        when(storageInterface.pathExists(bucketName, target)).thenReturn(fileExists.asRight)
     }
     existingIndexes
   }
 
   "scanIndexes" should "pass through failure from storageInterface" in {
     val err = FileLoadError(new IllegalArgumentException(), "myfilename")
-    when(storageInterface.getBlobAsString(any[RemoteS3PathLocation])).thenReturn(err.asLeft)
+    when(storageInterface.getBlobAsString(any[String], any[String])).thenReturn(err.asLeft)
 
     val existingIndexes = Seq(
       (".indexes/sinkName/myTopic/00005/00000000000000000100", "/myTopic/5/50.csv", true),
     )
 
-    indexManager.scanIndexes(targetRoot, existingIndexes.map(_._1).toList).left.value should be(err)
+    indexManager.scanIndexes(bucketName, existingIndexes.map(_._1).toList).left.value should be(err)
 
     val scannedInOrder = inOrder(storageInterface)
     scannedInOrder.verify(storageInterface).getBlobAsString(
-      targetRoot.withPath(".indexes/sinkName/myTopic/00005/00000000000000000100"),
+      bucketName,
+      ".indexes/sinkName/myTopic/00005/00000000000000000100",
     )
     scannedInOrder.verifyNoMoreInteractions()
   }

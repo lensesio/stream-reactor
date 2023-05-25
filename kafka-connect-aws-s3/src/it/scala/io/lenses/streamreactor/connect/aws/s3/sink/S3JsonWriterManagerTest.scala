@@ -18,17 +18,13 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.AwsClient
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config
+import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink.config.LocalStagingArea
 import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
@@ -51,7 +47,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
   "json sink" should "write single json record" in {
 
-    val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix), false)
+    val bucketAndPrefix = S3Location(BucketName, PathPrefix.some)
     val config = S3SinkConfig(
       S3Config(
         None,
@@ -60,7 +56,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         AwsClient.Aws,
         AuthMode.Credentials,
       ),
-      bucketOptions = Set(
+      bucketOptions = Seq(
         SinkBucketOptions(
           TopicName.some,
           bucketAndPrefix,
@@ -90,7 +86,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
   "json sink" should "write schemas to json" in {
 
-    val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix), false)
+    val bucketAndPrefix = S3Location(BucketName, PathPrefix.some)
     val config = S3SinkConfig(
       S3Config(
         None,
@@ -99,7 +95,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         AwsClient.Aws,
         AuthMode.Credentials,
       ),
-      bucketOptions = Set(
+      bucketOptions = Seq(
         SinkBucketOptions(
           TopicName.some,
           bucketAndPrefix,

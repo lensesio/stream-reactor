@@ -16,12 +16,12 @@
 
 package io.lenses.streamreactor.connect.aws.s3.utils
 
+import cats.implicits.catsSyntaxOptionId
 import com.google.common.io.ByteStreams
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import ThrowableEither._
 import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processObjectsAsString
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.utils.ThrowableEither._
 
 import java.io.File
 import java.io.InputStream
@@ -31,7 +31,7 @@ import java.time.Instant
 class RemoteFileHelper(implicit connectorTaskId: ConnectorTaskId, storageInterface: StorageInterface) {
 
   def listBucketPath(bucketName: String, prefix: String): List[String] =
-    storageInterface.listRecursive(RemoteS3PathLocation(bucketName, prefix), processObjectsAsString).toThrowable.map(
+    storageInterface.listRecursive(bucketName, prefix.some, processObjectsAsString).toThrowable.map(
       _.files,
     ).toList.flatten
 
@@ -42,7 +42,7 @@ class RemoteFileHelper(implicit connectorTaskId: ConnectorTaskId, storageInterfa
     Files.readAllBytes(localFile.toPath)
 
   def remoteFileAsStream(bucketName: String, fileName: String): InputStream =
-    storageInterface.getBlob(RemoteS3PathLocation(bucketName, fileName)).toThrowable
+    storageInterface.getBlob(bucketName, fileName).toThrowable
 
   def remoteFileAsString(bucketName: String, fileName: String): String =
     streamToString(remoteFileAsStream(bucketName, fileName))
@@ -54,9 +54,9 @@ class RemoteFileHelper(implicit connectorTaskId: ConnectorTaskId, storageInterfa
     ByteStreams.toByteArray(inputStream)
 
   def getFileSize(bucket: String, path: String): Long =
-    storageInterface.getBlobSize(RemoteS3PathLocation(bucket, path)).toThrowable
+    storageInterface.getBlobSize(bucket, path).toThrowable
 
   def getModificationDate(bucket: String, path: String): Instant =
-    storageInterface.getBlobModified(RemoteS3PathLocation(bucket, path)).toThrowable
+    storageInterface.getBlobModified(bucket, path).toThrowable
 
 }

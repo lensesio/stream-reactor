@@ -25,7 +25,7 @@ import S3FlushSettings.defaultFlushSize
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.sink._
 
@@ -63,7 +63,7 @@ object S3SinkConfig {
 
 case class S3SinkConfig(
   s3Config:            S3Config,
-  bucketOptions:       Set[SinkBucketOptions] = Set.empty,
+  bucketOptions:       Seq[SinkBucketOptions] = Seq.empty,
   offsetSeekerOptions: OffsetSeekerOptions,
   compressionCodec:    CompressionCodec,
 )
@@ -75,7 +75,7 @@ object SinkBucketOptions extends LazyLogging {
   )(
     implicit
     connectorTaskId: ConnectorTaskId,
-  ): Either[Throwable, Set[SinkBucketOptions]] =
+  ): Either[Throwable, Seq[SinkBucketOptions]] =
     config.getKCQL.map { kcql: Kcql =>
       val formatSelection: FormatSelection = FormatSelection.fromKcql(kcql)
 
@@ -85,26 +85,27 @@ object SinkBucketOptions extends LazyLogging {
         case None          => new HierarchicalS3FileNamingStrategy(formatSelection, config.getPaddingStrategy())
       }
 
-      val stagingArea = LocalStagingArea(config)
-      stagingArea match {
-        case Right(value) => SinkBucketOptions(
-            Option(kcql.getSource).filterNot(Set("*", "`*`").contains(_)),
-            RemoteS3RootLocation(kcql.getTarget),
-            formatSelection    = formatSelection,
-            fileNamingStrategy = namingStrategy,
-            partitionSelection = partitionSelection,
-            commitPolicy       = config.commitPolicy(kcql),
-            localStagingArea   = value,
-          )
-        case Left(exception) => return exception.asLeft[Set[SinkBucketOptions]]
+      for {
+        stagingArea <- LocalStagingArea(config)
+        target      <- S3Location.splitAndValidate(kcql.getTarget, allowSlash = false)
+      } yield {
+        SinkBucketOptions(
+          Option(kcql.getSource).filterNot(Set("*", "`*`").contains(_)),
+          target,
+          formatSelection    = formatSelection,
+          fileNamingStrategy = namingStrategy,
+          partitionSelection = partitionSelection,
+          commitPolicy       = config.commitPolicy(kcql),
+          localStagingArea   = stagingArea,
+        )
       }
-    }.asRight
+    }.toSeq.traverse(identity)
 
 }
 
 case class SinkBucketOptions(
   sourceTopic:        Option[String],
-  bucketAndPrefix:    RemoteS3RootLocation,
+  bucketAndPrefix:    S3Location,
   formatSelection:    FormatSelection,
   fileNamingStrategy: S3FileNamingStrategy,
   partitionSelection: Option[PartitionSelection] = None,

@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
 import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.parquet.ParquetStreamingInputFile
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.conf.Configuration
 import org.apache.parquet.avro.AvroParquetReader
@@ -30,7 +30,7 @@ import scala.util.Try
 class ParquetFormatStreamReader(
   inputStreamFn: () => InputStream,
   fileSizeFn:    () => Long,
-  bucketAndPath: RemoteS3PathLocation,
+  bucketAndPath: S3Location,
 ) extends S3FormatStreamReader[SchemaAndValueSourceData]
     with Using {
 
@@ -45,7 +45,7 @@ class ParquetFormatStreamReader(
   private var lineNumber: Long = -1
   private val avroDataConverter = new AvroData(100)
 
-  override def getBucketAndPath: RemoteS3PathLocation = bucketAndPath
+  override def getBucketAndPath: S3Location = bucketAndPath
 
   override def getLineNumber: Long = lineNumber
 

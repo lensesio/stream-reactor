@@ -17,10 +17,8 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processObjectsAsString
 import org.apache.commons.io.IOUtils
-import software.amazon.awssdk.core.ResponseInputStream
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model._
@@ -41,23 +39,25 @@ class AwsS3StorageInterface(implicit connectorTaskId: ConnectorTaskId, s3Client:
     with LazyLogging {
 
   override def list(
-    bucketAndPrefix: RemoteS3PathLocation,
-    lastFile:        Option[FileMetadata],
-    numResults:      Int,
+    bucket:     String,
+    prefix:     Option[String],
+    lastFile:   Option[FileMetadata],
+    numResults: Int,
   ): Either[FileListError, Option[ListResponse[String]]] =
     Try {
 
       val builder = ListObjectsV2Request
         .builder()
         .maxKeys(numResults)
-        .bucket(bucketAndPrefix.bucket)
+        .bucket(bucket)
 
-      bucketAndPrefix.prefix.foreach(builder.prefix)
+      prefix.foreach(builder.prefix)
       lastFile.foreach(lf => builder.startAfter(lf.file))
 
       val listObjectsV2Response = s3Client.listObjectsV2(builder.build())
       processObjectsAsString(
-        bucketAndPrefix,
+        bucket,
+        prefix,
         listObjectsV2Response
           .contents()
           .asScala
@@ -65,77 +65,75 @@ class AwsS3StorageInterface(implicit connectorTaskId: ConnectorTaskId, s3Client:
       )
 
     }.toEither.leftMap {
-      ex: Throwable => FileListError(ex, bucketAndPrefix.path)
+      ex: Throwable => FileListError(ex, bucket, prefix)
     }
 
   override def listRecursive[T](
-    bucketAndPrefix: RemoteS3PathLocation,
-    processFn:       (RemoteS3PathLocation, Seq[S3Object]) => Option[ListResponse[T]],
-  ): Either[FileListError, Option[ListResponse[T]]] = Try {
+    bucket:    String,
+    prefix:    Option[String],
+    processFn: (String, Option[String], Seq[S3Object]) => Option[ListResponse[T]],
+  ): Either[FileListError, Option[ListResponse[T]]] = {
+    logger.debug(s"[{}] List path {}:{}", connectorTaskId.show, bucket, prefix)
+    Try {
+      val options = ListObjectsV2Request
+        .builder()
+        .bucket(bucket)
+        .prefix(prefix.getOrElse(""))
+        .build()
 
-    logger.debug(s"[{}] List path {}", connectorTaskId.show, bucketAndPrefix)
+      val pagReq = s3Client.listObjectsV2Paginator(options)
 
-    val options = ListObjectsV2Request
-      .builder()
-      .bucket(bucketAndPrefix.bucket)
-      .prefix(bucketAndPrefix.path)
-      .build()
-
-    val pagReq = s3Client.listObjectsV2Paginator(options)
-
-    processFn(bucketAndPrefix, pagReq.iterator().asScala.flatMap(_.contents().asScala.toSeq).toSeq)
-
-  }.toEither.leftMap {
-    ex: Throwable => FileListError(ex, bucketAndPrefix.path)
+      processFn(bucket, prefix, pagReq.iterator().asScala.flatMap(_.contents().asScala.toSeq).toSeq)
+    }.toEither.leftMap {
+      ex: Throwable => FileListError(ex, bucket, prefix)
+    }
   }
 
-  override def uploadFile(source: File, target: RemoteS3PathLocation): Either[UploadError, Unit] = {
-
-    logger.debug(s"[{}] AWS Uploading file from local {} to s3 {}", connectorTaskId.show, source, target)
-
+  override def uploadFile(source: File, bucket: String, path: String): Either[UploadError, Unit] = {
+    logger.debug(s"[{}] AWS Uploading file from local {} to s3 {}:{}", connectorTaskId.show, source, bucket, path)
     if (!source.exists()) {
       NonExistingFileError(source).asLeft
     } else if (source.length() == 0L) {
       ZeroByteFileError(source).asLeft
-    } else
+    } else {
       Try {
         s3Client.putObject(PutObjectRequest.builder()
-                             .bucket(target.bucket)
-                             .key(target.path)
+                             .bucket(bucket)
+                             .key(path)
                              .contentLength(source.length())
                              .build(),
                            source.toPath,
         )
-      } match {
-        case Failure(exception) =>
-          logger.error(s"[{}] Failed upload from local {} to s3 {}", connectorTaskId.show, source, target, exception)
-          UploadFailedError(exception, source).asLeft
-        case Success(_) =>
-          logger.debug(s"[{}] Completed upload from local {} to s3 {}", connectorTaskId.show, source, target)
-          ().asRight
+        logger.debug(s"[{}] Completed upload from local {} to s3 {}:{}", connectorTaskId.show, source, bucket, path)
       }
+        .toEither.leftMap { ex =>
+          logger.error(s"[{}] Failed upload from local {} to s3 {}:{}", connectorTaskId.show, source, bucket, path, ex)
+          UploadFailedError(ex, source)
+        }
+    }
+
   }
 
-  override def pathExists(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, Boolean] = {
+  override def pathExists(bucket: String, path: String): Either[FileLoadError, Boolean] = {
 
-    logger.debug(s"[{}] Path exists? {}", connectorTaskId.show, bucketAndPath)
+    logger.debug(s"[{}] Path exists? {}:{}", connectorTaskId.show, bucket, path)
 
-    Try {
+    Try(
       s3Client.listObjectsV2(
-        ListObjectsV2Request.builder().bucket(bucketAndPath.bucket).prefix(bucketAndPath.path).build(),
-      ).keyCount().toInt
-    } match {
-      case Failure(_: NoSuchKeyException) => false.asRight
-      case Failure(exception) => FileLoadError(exception, bucketAndPath.path).asLeft
-      case Success(keyCount: Int) => (keyCount > 0).asRight
+        ListObjectsV2Request.builder().bucket(bucket).prefix(path).build(),
+      ).keyCount().toInt,
+    ).toEither match {
+      case Left(_: NoSuchKeyException) => false.asRight
+      case Left(other) => FileLoadError(other, path).asLeft
+      case Right(keyCount: Int) => (keyCount > 0).asRight
     }
   }
 
-  private def getBlobInner(bucketAndPath: RemoteS3PathLocation) = {
+  private def getBlobInner(bucket: String, path: String) = {
     val request = GetObjectRequest
       .builder()
-      .bucket(bucketAndPath.bucket)
-      .key(bucketAndPath.path)
+      .bucket(bucket)
+      .key(path)
       .build()
     s3Client
       .getObject(
@@ -143,25 +141,23 @@ class AwsS3StorageInterface(implicit connectorTaskId: ConnectorTaskId, s3Client:
       )
   }
 
-  private def headBlobInner(bucketAndPath: RemoteS3PathLocation) =
+  private def headBlobInner(bucket: String, path: String) =
     s3Client
       .headObject(
         HeadObjectRequest
           .builder()
-          .bucket(bucketAndPath.bucket)
-          .key(bucketAndPath.path)
+          .bucket(bucket)
+          .key(path)
           .build(),
       )
 
-  override def getBlob(bucketAndPath: RemoteS3PathLocation): Either[String, InputStream] =
-    Try(getBlobInner(bucketAndPath)) match {
-      case Failure(exception) => exception.getMessage.asLeft
-      case Success(value: ResponseInputStream[GetObjectResponse]) =>
-        value.asRight
-    }
+  override def getBlob(bucket: String, path: String): Either[FileLoadError, InputStream] =
+    Try(getBlobInner(bucket, path)).toEither.leftMap(FileLoadError(_, path))
 
-  override def getBlobSize(bucketAndPath: RemoteS3PathLocation): Either[String, Long] =
-    Try(headBlobInner(bucketAndPath).contentLength().toLong).toEither.leftMap(_.getMessage)
+  override def getBlobSize(bucket: String, path: String): Either[FileLoadError, Long] =
+    Try(
+      headBlobInner(bucket, path).contentLength().toLong,
+    ).toEither.leftMap(ex => FileLoadError(ex, path))
 
   override def close(): Unit = s3Client.close()
 
@@ -189,18 +185,21 @@ class AwsS3StorageInterface(implicit connectorTaskId: ConnectorTaskId, s3Client:
     case Success(_)  => ().asRight
   }
 
-  override def getBlobAsString(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, String] = for {
-    blob <- getBlob(bucketAndPath).leftMap(e => FileLoadError(new IllegalArgumentException(e), bucketAndPath.path))
-    asString <- Try(IOUtils.toString(blob, Charset.forName("UTF-8"))).toEither.leftMap(FileLoadError(_,
-                                                                                                     bucketAndPath.path,
-    ))
-  } yield asString
+  override def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String] =
+    for {
+      blob <- getBlob(bucket, path)
+      asString <- Try(
+        IOUtils.toString(blob, Charset.forName("UTF-8")),
+      ).toEither.leftMap(ex => FileLoadError(ex, path))
+    } yield asString
 
-  override def getBlobModified(location: RemoteS3PathLocation): Either[String, Instant] =
-    Try(headBlobInner(location).lastModified()).toEither.leftMap(_.getMessage)
+  override def getBlobModified(bucket: String, path: String): Either[FileLoadError, Instant] =
+    Try(
+      headBlobInner(bucket, path).lastModified(),
+    ).toEither.leftMap(FileLoadError(_, path))
 
-  override def writeStringToFile(target: RemoteS3PathLocation, data: String): Either[UploadError, Unit] = {
-    logger.debug(s"[{}] Uploading file from data string ({}) to s3 {}", connectorTaskId.show, data, target)
+  override def writeStringToFile(bucket: String, path: String, data: String): Either[UploadError, Unit] = {
+    logger.debug(s"[{}] Uploading file from data string ({}) to s3 {}:{}", connectorTaskId.show, data, bucket, path)
 
     if (data.isEmpty) {
       EmptyContentsStringError(data).asLeft
@@ -209,24 +208,28 @@ class AwsS3StorageInterface(implicit connectorTaskId: ConnectorTaskId, s3Client:
         s3Client.putObject(
           PutObjectRequest
             .builder()
-            .bucket(target.bucket)
-            .key(target.path)
+            .bucket(bucket)
+            .key(path)
             .contentLength(data.length.toLong)
             .build(),
           RequestBody.fromString(data, Charset.forName("UTF-8")),
         )
-      } match {
-        case Failure(exception) =>
-          logger.error(s"[{}] Failed upload from data string ({}) to s3 {}",
+        logger.debug(s"[{}] Completed upload from data string ({}) to s3 {}:{}",
+                     connectorTaskId.show,
+                     data,
+                     bucket,
+                     path,
+        )
+      }.toEither.leftMap {
+        ex =>
+          logger.error(s"[{}] Failed upload from data string ({}) to s3 {}:{}",
                        connectorTaskId.show,
                        data,
-                       target,
-                       exception,
+                       bucket,
+                       path,
+                       ex,
           )
-          FileCreateError(exception, data).asLeft
-        case Success(_) =>
-          logger.debug(s"[{}] Completed upload from data string ({}) to s3 {}", connectorTaskId.show, data, target)
-          ().asRight
+          FileCreateError(ex, data)
       }
     }
   }

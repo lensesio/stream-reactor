@@ -19,7 +19,7 @@ import cats.effect.IO
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.aws.s3.storage.CompletedDirectoryFindResults
 import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindCompletionConfig
@@ -29,7 +29,7 @@ import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import cats.effect.Clock
 
 class PartitionSearcher(
-  roots:    Seq[RemoteS3RootLocation],
+  roots:    Seq[S3Location],
   settings: PartitionSearcherOptions,
 )(
   implicit
@@ -56,7 +56,7 @@ class PartitionSearcher(
     }
 
   private def findNewPartitionsInRoot(
-    root:       RemoteS3RootLocation,
+    root:       S3Location,
     settings:   PartitionSearcherOptions,
     exclude:    Set[String],
     resumeFrom: Option[String],

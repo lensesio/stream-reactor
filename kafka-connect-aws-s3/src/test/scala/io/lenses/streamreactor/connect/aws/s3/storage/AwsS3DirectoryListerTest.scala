@@ -20,7 +20,7 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import software.amazon.awssdk.services.s3.S3Client
@@ -41,7 +41,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     )
     val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface()
     directoryLister.findDirectories(
-      RemoteS3RootLocation("bucket", "prefix1/".some, allowSlash = true),
+      S3Location("bucket", "prefix1/".some),
       DirectoryFindCompletionConfig(1, none, none, Clock[IO]),
       Set.empty,
       Option.empty,
@@ -49,7 +49,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
       Set("prefix1/"),
     ))
     directoryLister.findDirectories(
-      RemoteS3RootLocation("bucket", none, allowSlash = true),
+      S3Location("bucket"),
       DirectoryFindCompletionConfig(1, none, none, Clock[IO]),
       Set.empty,
       Option.empty,
@@ -76,7 +76,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     )
     val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface()
     directoryLister.findDirectories(
-      RemoteS3RootLocation("bucket", none, allowSlash = true),
+      S3Location("bucket", none),
       DirectoryFindCompletionConfig(1, none, none, Clock[IO]),
       Set.empty,
       Option.empty,
@@ -103,7 +103,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     )
     val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface()
     directoryLister.findDirectories(
-      RemoteS3RootLocation("bucket", none, allowSlash = true),
+      S3Location("bucket", none),
       DirectoryFindCompletionConfig(1, none, none, Clock[IO]),
       Set("prefix1/", "prefix4/"),
       Option.empty,
@@ -130,7 +130,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     )
     val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface()
     directoryLister.findDirectories(
-      RemoteS3RootLocation("bucket", none, allowSlash = true),
+      S3Location("bucket", none),
       DirectoryFindCompletionConfig(1, 1.some, none, Clock[IO]),
       Set.empty,
       Option.empty,

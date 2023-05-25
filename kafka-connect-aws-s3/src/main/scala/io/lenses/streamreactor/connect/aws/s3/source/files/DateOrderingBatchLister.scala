@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.files
 import cats.implicits.catsSyntaxOptionId
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processObjectsAsFileMeta
 import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileMetadata
@@ -28,17 +27,18 @@ import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 object DateOrderingBatchLister extends BatchLister {
   override def listBatch(
     storageInterface: StorageInterface,
-    bucketAndPrefix:  RemoteS3PathLocation,
+    bucket:           String,
+    prefix:           Option[String],
     numResults:       Int,
   )(lastFile:         Option[FileMetadata],
   ): Either[FileListError, Option[ListResponse[String]]] = {
     val lastFileFilter = filter(lastFile) _
     for {
-      listResp <- storageInterface.listRecursive(bucketAndPrefix, processObjectsAsFileMeta)
+      listResp <- storageInterface.listRecursive(bucket, prefix, processObjectsAsFileMeta)
       ordered   = listResp.iterator.flatMap(_.files).filter(lastFileFilter).toSeq.sortBy(_.lastModified).take(numResults)
     } yield {
       ordered.lastOption.fold(Option.empty[ListResponse[String]])((last: FileMetadata) =>
-        ListResponse[String](bucketAndPrefix, ordered.map(_.file), last).some,
+        ListResponse[String](bucket, prefix, ordered.map(_.file), last).some,
       )
     }
   }

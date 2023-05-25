@@ -7,7 +7,7 @@ import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -41,7 +41,7 @@ class AwsS3StorageInterfaceTest extends AnyFlatSpec with Matchers with S3ProxyCo
     implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
     val s3StorageInterface = new AwsS3StorageInterface()(connectorTaskId, s3Client)
 
-    val topicRoot = RemoteS3RootLocation(BucketName, "topic-1/".some, allowSlash = true)
+    val topicRoot = S3Location(BucketName, "topic-1/".some)
 
     val dirs = s3StorageInterface.findDirectories(
       topicRoot,
@@ -60,7 +60,7 @@ class AwsS3StorageInterfaceTest extends AnyFlatSpec with Matchers with S3ProxyCo
 
     val s3StorageInterface = new AwsS3StorageInterface()(ConnectorTaskId("sinkName", 1, 0), s3Client)
 
-    val bucketRoot = RemoteS3RootLocation(BucketName, none, allowSlash = true)
+    val bucketRoot = S3Location(BucketName)
 
     val dirs = s3StorageInterface.findDirectories(
       bucketRoot,

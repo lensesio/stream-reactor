@@ -23,8 +23,7 @@ import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.Offset.orderingByOffsetValue
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionField
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
@@ -52,13 +51,12 @@ case class MapKey(topicPartition: TopicPartition, partitionValues: immutable.Map
   */
 class S3WriterManager(
   commitPolicyFn:       TopicPartition => Either[SinkError, CommitPolicy],
-  bucketAndPrefixFn:    TopicPartition => Either[SinkError, RemoteS3RootLocation],
+  bucketAndPrefixFn:    TopicPartition => Either[SinkError, S3Location],
   fileNamingStrategyFn: TopicPartition => Either[SinkError, S3FileNamingStrategy],
   stagingFilenameFn:    (TopicPartition, immutable.Map[PartitionField, String]) => Either[SinkError, File],
-  finalFilenameFn: (TopicPartition, immutable.Map[PartitionField, String],
-    Offset) => Either[SinkError, RemoteS3PathLocation],
-  formatWriterFn: (TopicPartition, File) => Either[SinkError, S3FormatWriter],
-  indexManager:   IndexManager,
+  finalFilenameFn:      (TopicPartition, immutable.Map[PartitionField, String], Offset) => Either[SinkError, S3Location],
+  formatWriterFn:       (TopicPartition, File) => Either[SinkError, S3FormatWriter],
+  indexManager:         IndexManager,
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
@@ -146,7 +144,7 @@ class S3WriterManager(
     for {
       fileNamingStrategy <- fileNamingStrategyFn(topicPartition)
       bucketAndPrefix    <- bucketAndPrefixFn(topicPartition)
-      offset             <- indexManager.seek(topicPartition, fileNamingStrategy, bucketAndPrefix)
+      offset             <- indexManager.seek(topicPartition, fileNamingStrategy, bucketAndPrefix.bucket)
     } yield offset
   }
 
@@ -224,7 +222,7 @@ class S3WriterManager(
     )
 
   private def createWriter(
-    bucketAndPrefix: RemoteS3RootLocation,
+    bucketAndPrefix: S3Location,
     topicPartition:  TopicPartition,
     partitionValues: immutable.Map[PartitionField, String],
   ): Either[SinkError, S3Writer] = {
@@ -297,7 +295,7 @@ object S3WriterManager extends LazyLogging {
   ): S3WriterManager = {
 
     implicit val compressionCodec = config.compressionCodec
-    val bucketAndPrefixFn: TopicPartition => Either[SinkError, RemoteS3RootLocation] = topicPartition => {
+    val bucketAndPrefixFn: TopicPartition => Either[SinkError, S3Location] = topicPartition => {
       bucketOptsForTopic(config, topicPartition.topic) match {
         case Some(sBO) => sBO.bucketAndPrefix.asRight
         case None      => FatalS3SinkError.apply(s"No bucket config for ${topicPartition.topic}", topicPartition).asLeft
@@ -335,7 +333,7 @@ object S3WriterManager extends LazyLogging {
       TopicPartition,
       immutable.Map[PartitionField, String],
       Offset,
-    ) => Either[SinkError, RemoteS3PathLocation] = (topicPartition, partitionValues, offset) =>
+    ) => Either[SinkError, S3Location] = (topicPartition, partitionValues, offset) =>
       bucketOptsForTopic(config, topicPartition.topic) match {
         case Some(bucketOptions) =>
           for {

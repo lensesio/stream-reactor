@@ -18,29 +18,38 @@ package io.lenses.streamreactor.connect.aws.s3.source.files
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
+import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileMetadata
 import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
+import org.mockito.ArgumentMatchers._
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.mockito.ArgumentMatchers._
 
 import java.time.Instant
 
 class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar with BeforeAndAfter {
 
-  private val rootLocation = RemoteS3RootLocation("bucket:path")
-  private val files:    Seq[String]               = (0 to 3).map(file => file.toString + ".json")
-  private val fileLocs: Seq[RemoteS3PathLocation] = files.map(rootLocation.withPath)
+  private val bucket = "bucket"
+  private val prefix = "prefix"
+  private val files: Seq[String] = (0 to 3).map(file => file.toString + ".json")
+  private val fileLocs: Seq[S3Location] = files.map(f =>
+    S3Location(
+      bucket = bucket,
+      prefix = prefix.some,
+      path   = f.some,
+    ),
+  )
   private val lastModified = Instant.now
 
   private val batchListerFn = mock[Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]]]
 
-  private val sourceFileQueue = new S3SourceFileQueue(batchListerFn)
+  private val blobModifiedFn: (String, String) => Either[FileLoadError, Instant] = (_, _) => Instant.now().asRight
+
+  private val sourceFileQueue = new S3SourceFileQueue(batchListerFn, blobModifiedFn)
 
   private val order = inOrder(batchListerFn)
 
@@ -58,7 +67,8 @@ class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar 
       val filesToRet = files.zipWithIndex.toMap.collect {
         case (file, i) if i == num + 1 || i == num + 2 => file
       }.toSeq
-      Option.when(filesToRet.nonEmpty)(ListResponse(rootLocation.toPath(),
+      Option.when(filesToRet.nonEmpty)(ListResponse(bucket,
+                                                    prefix.some,
                                                     filesToRet,
                                                     FileMetadata(filesToRet.last, lastModified),
       ))
@@ -72,22 +82,22 @@ class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar 
   "list" should "cache a batch of results from the beginning" in {
 
     // file 0 = 0.json
-    sourceFileQueue.next() should be(Right(Some(fileLocs(0).atLine(-1, lastModified))))
+    sourceFileQueue.next() should be(Right(Some(fileLocs(0).atLine(-1).withTimestamp(lastModified))))
     order.verify(batchListerFn)(none)
     sourceFileQueue.markFileComplete(fileLocs(0))
 
     // file 1 = 1.json
-    sourceFileQueue.next() should be(Right(Some(fileLocs(1).atLine(-1, lastModified))))
+    sourceFileQueue.next() should be(Right(Some(fileLocs(1).atLine(-1).withTimestamp(lastModified))))
     order.verifyNoMoreInteractions()
     sourceFileQueue.markFileComplete(fileLocs(1))
 
     // file 2 = 2.json
-    sourceFileQueue.next() should be(Right(Some(fileLocs(2).atLine(-1, lastModified))))
+    sourceFileQueue.next() should be(Right(Some(fileLocs(2).atLine(-1).withTimestamp(lastModified))))
     order.verify(batchListerFn)(FileMetadata(files(1), lastModified).some)
     sourceFileQueue.markFileComplete(fileLocs(2))
 
     // file 3 = 3.json
-    sourceFileQueue.next() should be(Right(Some(fileLocs(3).atLine(-1, lastModified))))
+    sourceFileQueue.next() should be(Right(Some(fileLocs(3).atLine(-1).withTimestamp(lastModified))))
     order.verifyNoMoreInteractions()
     sourceFileQueue.markFileComplete(fileLocs(3))
 
@@ -103,14 +113,14 @@ class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar 
 
   "list" should "process the init file before reading additional files" in {
 
-    sourceFileQueue.init(fileLocs(2).atLine(1000, lastModified))
+    sourceFileQueue.init(fileLocs(2).atLine(1000).withTimestamp(lastModified))
 
     // file 2 = 2.json
-    sourceFileQueue.next() should be(Right(Some(fileLocs(2).atLine(1000, lastModified))))
+    sourceFileQueue.next() should be(Right(Some(fileLocs(2).atLine(1000).withTimestamp(lastModified))))
     sourceFileQueue.markFileComplete(fileLocs(2))
 
     // file 3 = 3.json
-    sourceFileQueue.next() should be(Right(Some(fileLocs(3).atLine(-1, lastModified))))
+    sourceFileQueue.next() should be(Right(Some(fileLocs(3).atLine(-1).withTimestamp(lastModified))))
     order.verify(batchListerFn)(FileMetadata(files(2), lastModified).some)
     sourceFileQueue.markFileComplete(fileLocs(3))
 
@@ -126,7 +136,7 @@ class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar 
 
   "markFileComplete" should "return error when file is not next file" in {
 
-    sourceFileQueue.init(fileLocs(1).atLine(100, lastModified))
+    sourceFileQueue.init(fileLocs(1).atLine(100).withTimestamp(lastModified))
 
     sourceFileQueue.markFileComplete(fileLocs(2)) should be(
       Left("File (bucket:2.json) does not match that at head of the queue, which is (bucket:1.json)"),

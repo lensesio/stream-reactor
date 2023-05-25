@@ -18,21 +18,22 @@ package io.lenses.streamreactor.connect.aws.s3.source.files
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
+import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileMetadata
 import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
 
+import java.time.Instant
 import scala.collection.mutable.ListBuffer
 
 trait SourceFileQueue {
 
-  def init(initFile: RemoteS3PathLocationWithLine): Unit
+  def init(initFile: S3Location): Unit
 
-  def next(): Either[FileListError, Option[RemoteS3PathLocationWithLine]]
+  def next(): Either[FileListError, Option[S3Location]]
 
-  def markFileComplete(fileWithLine: RemoteS3PathLocation): Either[String, Unit]
+  def markFileComplete(fileWithLine: S3Location): Either[String, Unit]
 
 }
 
@@ -41,41 +42,58 @@ trait SourceFileQueue {
   * Will block any further writes by the current file until the remote has caught up.
   */
 class S3SourceFileQueue(
-  batchListerFn: Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]],
+  batchListerFn:     Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]],
+  getLastModifiedFn: (String, String) => Either[FileLoadError, Instant],
 ) extends SourceFileQueue
     with LazyLogging {
 
   private var lastSeenFile: Option[FileMetadata] = None
 
-  private var files = ListBuffer.empty[RemoteS3PathLocationWithLine]
+  private var files = ListBuffer.empty[S3Location]
 
-  override def next(): Either[FileListError, Option[RemoteS3PathLocationWithLine]] =
+  override def next(): Either[FileListError, Option[S3Location]] =
     files.headOption.fold(retrieveNextFile())(Some(_).asRight)
 
   private def retrieveNextFile(
-  ): Either[FileListError, Option[RemoteS3PathLocationWithLine]] = {
+  ): Either[FileListError, Option[S3Location]] = {
     val nextBatch: Either[FileListError, Option[ListResponse[String]]] = batchListerFn(lastSeenFile)
     nextBatch.flatMap {
-      case Some(ListResponse(container, value, meta)) =>
+      case Some(ListResponse(bucket, prefix, value, meta)) =>
         lastSeenFile = meta.some
-        files ++= value.map(container.withPath(_).fromStart(meta.lastModified))
+        files ++= value.map(path =>
+          S3Location(
+            bucket,
+            prefix,
+            path.some,
+          ).fromStart().withTimestamp(meta.lastModified),
+        )
         files.headOption.asRight
       case _ => Option.empty.asRight
     }
   }
 
-  override def markFileComplete(file: RemoteS3PathLocation): Either[String, Unit] =
+  override def markFileComplete(file: S3Location): Either[String, Unit] =
     files.headOption match {
-      case Some(RemoteS3PathLocationWithLine(headFile, _, _)) if headFile.equals(file) =>
+      case Some(headLocation) if headLocation.path == file.path =>
         files = files.drop(1)
         ().asRight
-      case Some(RemoteS3PathLocationWithLine(headFile, _, _)) =>
-        s"File (${file.bucket}:${file.path}) does not match that at head of the queue, which is (${headFile.bucket}:${headFile.path})".asLeft
-      case None => "No files in queue to mark as complete".asLeft
+      case Some(headLocation) if headLocation.path == headLocation.path =>
+        s"File (${file.bucket}:${file.pathOrUnknown}) does not match that at head of the queue, which is (${headLocation.bucket}:${headLocation.pathOrUnknown})".asLeft
+      case _ => "No files in queue to mark as complete".asLeft
     }
 
-  override def init(initFile: RemoteS3PathLocationWithLine): Unit = {
+  override def init(initFile: S3Location): Unit = {
     files += initFile
-    lastSeenFile = FileMetadata(initFile.file.path, initFile.lastModified).some
+    (initFile.path, initFile.timestamp) match {
+      case (Some(filePath), None) =>
+        // for migrations from previous version where ts not stored in offset
+        getLastModifiedFn(initFile.bucket, filePath)
+          .map(ts => lastSeenFile = FileMetadata(filePath, ts).some)
+        ()
+      case (Some(filePath), Some(timestamp)) =>
+        lastSeenFile = FileMetadata(filePath, timestamp).some
+      case _ =>
+        ()
+    }
   }
 }

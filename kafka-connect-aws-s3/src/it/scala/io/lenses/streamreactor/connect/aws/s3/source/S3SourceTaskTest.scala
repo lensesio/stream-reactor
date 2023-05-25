@@ -12,7 +12,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.KeyAndValueWithSizes
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.ValueOnly
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.storage.CompletedDirectoryFindResults
 import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindCompletionConfig
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
@@ -72,7 +72,7 @@ class S3SourceTaskTest
   }
 
   "task" should "retrieve subdirectories correctly" in {
-    val root = RemoteS3RootLocation(BucketName, s"${bucketSetup.PrefixName}/avro/myTopic/".some, allowSlash = true)
+    val root = S3Location(BucketName, s"${bucketSetup.PrefixName}/avro/myTopic/".some)
     val dirs =
       storageInterface.findDirectories(root, DirectoryFindCompletionConfig(3, none, none, Clock[IO]), Set.empty, none)
     dirs.unsafeRunSync() should be(CompletedDirectoryFindResults(Set("streamReactorBackups/avro/myTopic/0/")))

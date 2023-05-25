@@ -18,8 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.source.reader
 import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.PollResults
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
 import io.lenses.streamreactor.connect.aws.s3.source.files.S3SourceFileQueue
@@ -33,9 +32,9 @@ import io.lenses.streamreactor.connect.aws.s3.utils.ThrowableEither.toJavaThrowa
   */
 class ReaderManager(
   recordsLimit:   Int,
-  startingOffset: Option[RemoteS3PathLocationWithLine],
+  startingOffset: Option[S3Location],
   fileSource:     SourceFileQueue,
-  readerFn:       RemoteS3PathLocationWithLine => Either[Throwable, ResultReader],
+  readerFn:       S3Location => Either[Throwable, ResultReader],
 )(
   implicit
   connectorTaskId: ConnectorTaskId,
@@ -51,8 +50,6 @@ class ReaderManager(
     def toExceptionState(err: Throwable): ExceptionReaderState =
       ExceptionReaderState(err)
 
-    def toExceptionState(err: String): ExceptionReaderState =
-      ExceptionReaderState(new IllegalStateException(err))
   }
 
   sealed trait MoreFilesAvailableState extends ReaderState {
@@ -165,19 +162,20 @@ class ReaderManager(
 object ReaderManager {
 
   def apply(
-    root:  RemoteS3RootLocation,
+    root:  S3Location,
     bOpts: SourceBucketOptions,
   )(
     implicit
     connectorTaskId:  ConnectorTaskId,
     storageInterface: StorageInterface,
-    contextOffsetFn:  RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine],
+    contextOffsetFn:  S3Location => Option[S3Location],
   ) =
     new ReaderManager(
       bOpts.recordsLimit,
       contextOffsetFn(root),
       new S3SourceFileQueue(
         bOpts.createBatchListerFn(storageInterface),
+        storageInterface.getBlobModified,
       ),
       new ReaderCreator(bOpts.format, bOpts.targetTopic, bOpts.getPartitionExtractorFn).create,
     )

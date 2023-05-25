@@ -21,7 +21,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink._
 import io.lenses.streamreactor.connect.aws.s3.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.aws.s3.storage.NonExistingFileError
@@ -39,7 +39,7 @@ class S3Writer(
   commitPolicy:      CommitPolicy,
   indexManager:      IndexManager,
   stagingFilenameFn: () => Either[SinkError, File],
-  finalFilenameFn:   Offset => Either[SinkError, RemoteS3PathLocation],
+  finalFilenameFn:   Offset => Either[SinkError, S3Location],
   formatWriterFn:    File => Either[SinkError, S3FormatWriter],
   lastSeekedOffset:  Option[Offset],
 )(
@@ -106,14 +106,24 @@ class S3Writer(
       case uploadState @ Uploading(commitState, file, uncommittedOffset) =>
         for {
           finalFileName <- finalFilenameFn(uncommittedOffset)
-          indexFileName <- indexManager.write(topicPartition.withOffset(uncommittedOffset), finalFileName)
-          _ <- storageInterface.uploadFile(file, finalFileName).recover {
-            case _: NonExistingFileError => ()
-            case _: ZeroByteFileError    => ()
-          }.leftMap {
-            case UploadFailedError(exception, _) => NonFatalS3SinkError(exception.getMessage, exception)
-          }
-          _ <- indexManager.clean(indexFileName, topicPartition)
+          path <- finalFileName.pathOrError(
+            path => path.asRight,
+            () => NonFatalS3SinkError("No path exists within S3Location"),
+          )
+          indexFileName <- indexManager.write(
+            finalFileName.bucket,
+            path,
+            topicPartition.withOffset(uncommittedOffset),
+          )
+          _ <- storageInterface.uploadFile(file, finalFileName.bucket, path)
+            .recover {
+              case _: NonExistingFileError => ()
+              case _: ZeroByteFileError    => ()
+            }
+            .leftMap {
+              case UploadFailedError(exception, _) => NonFatalS3SinkError(exception.getMessage, exception)
+            }
+          _ <- indexManager.clean(finalFileName.bucket, indexFileName, topicPartition)
           stateReset <- Try {
             logger.debug(s"[{}] S3Writer.resetState: Resetting state $writeState", connectorTaskId.show)
             writeState = uploadState.toNoWriter()

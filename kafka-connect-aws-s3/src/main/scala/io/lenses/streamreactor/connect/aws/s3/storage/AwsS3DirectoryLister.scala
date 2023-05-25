@@ -19,7 +19,7 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model._
 import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable
@@ -34,7 +34,7 @@ abstract class AwsS3DirectoryLister(
   s3Client:      S3Client,
 ) extends StorageInterface {
   def findDirectories(
-    bucketAndPrefix:  RemoteS3RootLocation,
+    bucketAndPrefix:  S3Location,
     completionConfig: DirectoryFindCompletionConfig,
     exclude:          Set[String],
     continueFrom:     Option[String],
@@ -52,7 +52,7 @@ abstract class AwsS3DirectoryLister(
     }
 
   private def flattenPrefixes(
-    bucketAndPrefix:  RemoteS3RootLocation,
+    bucketAndPrefix:  S3Location,
     prefixes:         Set[String],
     completionConfig: DirectoryFindCompletionConfig,
     exclude:          Set[String],
@@ -79,7 +79,7 @@ abstract class AwsS3DirectoryLister(
       }
 
   private def createListObjectsRequest(
-    bucketAndPrefix: RemoteS3RootLocation,
+    bucketAndPrefix: S3Location,
     lastFound:       Option[String],
   ): IO[ListObjectsV2Request] =
     IO.delay {

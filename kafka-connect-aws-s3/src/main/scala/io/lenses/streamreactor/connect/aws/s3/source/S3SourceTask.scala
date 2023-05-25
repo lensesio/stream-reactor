@@ -19,8 +19,7 @@ import cats.implicits.toBifunctorOps
 import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkContextReader
 import io.lenses.streamreactor.connect.aws.s3.source.state.CleanS3SourceTaskState
 import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceTaskState
@@ -35,7 +34,7 @@ class S3SourceTask extends SourceTask with LazyLogging {
   private val mergePropsFn: util.Map[String, String] => util.Map[String, String] =
     mergeProps(() => context.configs())
 
-  private val contextOffsetFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine] =
+  private val contextOffsetFn: S3Location => Option[S3Location] =
     SourceContextReader.getCurrentOffset(() => context)
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)

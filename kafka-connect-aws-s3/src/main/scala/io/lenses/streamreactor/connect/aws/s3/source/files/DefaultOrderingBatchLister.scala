@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.files
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileMetadata
 import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
@@ -28,10 +27,11 @@ object DefaultOrderingBatchLister extends BatchLister {
 
   override def listBatch(
     storageInterface: StorageInterface,
-    bucketAndPrefix:  RemoteS3PathLocation,
+    bucket:           String,
+    prefix:           Option[String],
     numResults:       Int,
   )(lastFile:         Option[FileMetadata],
   ): Either[FileListError, Option[ListResponse[String]]] =
     storageInterface
-      .list(bucketAndPrefix, lastFile, numResults)
+      .list(bucket, prefix, lastFile, numResults)
 }

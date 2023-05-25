@@ -17,8 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.source.state
 
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.WrappedSourceException
 import org.apache.kafka.connect.source.SourceRecord
 
@@ -28,7 +27,7 @@ object CleanS3SourceTaskState extends S3SourceTaskState with LazyLogging {
 
   override def start(
     props:           util.Map[String, String],
-    contextOffsetFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine],
+    contextOffsetFn: S3Location => Option[S3Location],
   ): Either[Throwable, S3SourceTaskState] = OpenS3SourceTaskState(props, contextOffsetFn)
 
   override def close(): S3SourceTaskState = this

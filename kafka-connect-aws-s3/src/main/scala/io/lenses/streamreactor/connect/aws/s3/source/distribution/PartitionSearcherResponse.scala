@@ -15,13 +15,13 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.distribution
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindResults
 
 import java.time.Instant
 
 case class PartitionSearcherResponse(
-  root:           RemoteS3RootLocation,
+  root:           S3Location,
   lastSearchTime: Instant,
   allPartitions:  Set[String],
   results:        DirectoryFindResults,

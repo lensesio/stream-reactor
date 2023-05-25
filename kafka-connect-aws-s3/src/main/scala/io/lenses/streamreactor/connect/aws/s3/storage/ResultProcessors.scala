@@ -15,13 +15,13 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import software.amazon.awssdk.services.s3.model.S3Object
 
 object ResultProcessors {
 
   def processObjectsAsFileMeta(
-    bp:        RemoteS3PathLocation,
+    bucket:    String,
+    prefix:    Option[String],
     objectSeq: Seq[S3Object],
   ): Option[ListResponse[FileMetadata]] = {
     val list = objectSeq
@@ -32,7 +32,8 @@ object ResultProcessors {
       .map {
         last =>
           ListResponse[FileMetadata](
-            bp,
+            bucket,
+            prefix,
             list,
             last,
           )
@@ -41,13 +42,15 @@ object ResultProcessors {
   }
 
   def processObjectsAsString(
-    bp:        RemoteS3PathLocation,
+    bucket:    String,
+    prefix:    Option[String],
     objectSeq: Seq[S3Object],
   ): Option[ListResponse[String]] =
     objectSeq.lastOption.map {
       last =>
         ListResponse(
-          bp,
+          bucket,
+          prefix,
           objectSeq.map(_.key()),
           FileMetadata(last.key(), last.lastModified()),
         )

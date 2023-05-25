@@ -23,8 +23,7 @@ import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.createFileAndParents
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink.config.DatePartitionField
 import io.lenses.streamreactor.connect.aws.s3.sink.config.HeaderPartitionField
 import io.lenses.streamreactor.connect.aws.s3.sink.config.KeyPartitionField
@@ -51,20 +50,20 @@ trait S3FileNamingStrategy {
 
   def getFormat: Format
 
-  def prefix(bucketAndPrefix: RemoteS3RootLocation): String = bucketAndPrefix.prefix.getOrElse(DefaultPrefix)
+  def prefix(bucketAndPrefix: S3Location): String = bucketAndPrefix.prefix.getOrElse(DefaultPrefix)
 
   def stagingFile(
     stagingDirectory: File,
-    bucketAndPrefix:  RemoteS3RootLocation,
+    bucketAndPrefix:  S3Location,
     topicPartition:   TopicPartition,
     partitionValues:  Map[PartitionField, String],
   ): Either[FatalS3SinkError, File]
 
   def finalFilename(
-    bucketAndPrefix:      RemoteS3RootLocation,
+    bucketAndPrefix:      S3Location,
     topicPartitionOffset: TopicPartitionOffset,
     partitionValues:      Map[PartitionField, String],
-  ): Either[FatalS3SinkError, RemoteS3PathLocation]
+  ): Either[FatalS3SinkError, S3Location]
 
   def shouldProcessPartitionValues: Boolean
 
@@ -73,7 +72,7 @@ trait S3FileNamingStrategy {
     topicPartition: TopicPartition,
   ): Either[SinkError, Map[PartitionField, String]]
 
-  def topicPartitionPrefix(bucketAndPrefix: RemoteS3RootLocation, topicPartition: TopicPartition): RemoteS3PathLocation
+  def topicPartitionPrefix(bucketAndPrefix: S3Location, topicPartition: TopicPartition): S3Location
 
   val committedFilenameRegex: Regex
 
@@ -88,7 +87,7 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection, padding
 
   override def stagingFile(
     stagingDirectory: File,
-    bucketAndPrefix:  RemoteS3RootLocation,
+    bucketAndPrefix:  S3Location,
     topicPartition:   TopicPartition,
     partitionValues:  Map[PartitionField, String],
   ): Either[FatalS3SinkError, File] =
@@ -106,10 +105,10 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection, padding
     }.toEither.left.map(ex => FatalS3SinkError(ex.getMessage, ex, topicPartition))
 
   override def finalFilename(
-    bucketAndPrefix:      RemoteS3RootLocation,
+    bucketAndPrefix:      S3Location,
     topicPartitionOffset: TopicPartitionOffset,
     partitionValues:      Map[PartitionField, String],
-  ): Either[FatalS3SinkError, RemoteS3PathLocation] =
+  ): Either[FatalS3SinkError, S3Location] =
     Try(
       bucketAndPrefix.withPath(
         s"${prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${padString(
@@ -131,9 +130,9 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection, padding
   override val committedFilenameRegex: Regex = s".+/(.+)/(\\d+)/(\\d+).(.+)".r
 
   override def topicPartitionPrefix(
-    bucketAndPrefix: RemoteS3RootLocation,
+    bucketAndPrefix: S3Location,
     topicPartition:  TopicPartition,
-  ): RemoteS3PathLocation =
+  ): S3Location =
     bucketAndPrefix.withPath(
       s"${prefix(bucketAndPrefix)}/${topicPartition.topic.value}/${padString(topicPartition.partition.toString)}/",
     )
@@ -154,7 +153,7 @@ class PartitionedS3FileNamingStrategy(
 
   override def stagingFile(
     stagingDirectory: File,
-    bucketAndPrefix:  RemoteS3RootLocation,
+    bucketAndPrefix:  S3Location,
     topicPartition:   TopicPartition,
     partitionValues:  Map[PartitionField, String],
   ): Either[FatalS3SinkError, File] =
@@ -184,10 +183,10 @@ class PartitionedS3FileNamingStrategy(
     if (partitionSelection.partitionDisplay == KeysAndValues) s"${partition.valuePrefixDisplay()}=" else ""
 
   override def finalFilename(
-    bucketAndPrefix:      RemoteS3RootLocation,
+    bucketAndPrefix:      S3Location,
     topicPartitionOffset: TopicPartitionOffset,
     partitionValues:      Map[PartitionField, String],
-  ): Either[FatalS3SinkError, RemoteS3PathLocation] =
+  ): Either[FatalS3SinkError, S3Location] =
     Try(
       bucketAndPrefix.withPath(
         s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}(${padString(
@@ -264,9 +263,9 @@ class PartitionedS3FileNamingStrategy(
   override val committedFilenameRegex: Regex = s"^[^/]+?/(?:.+/)*(.+)\\((\\d+)_(\\d+)\\).(.+)".r
 
   override def topicPartitionPrefix(
-    bucketAndPrefix: RemoteS3RootLocation,
+    bucketAndPrefix: S3Location,
     topicPartition:  TopicPartition,
-  ): RemoteS3PathLocation = bucketAndPrefix.withPath(s"${prefix(bucketAndPrefix)}/")
+  ): S3Location = bucketAndPrefix.withPath(s"${prefix(bucketAndPrefix)}/")
 }
 
 object CommittedFileName {

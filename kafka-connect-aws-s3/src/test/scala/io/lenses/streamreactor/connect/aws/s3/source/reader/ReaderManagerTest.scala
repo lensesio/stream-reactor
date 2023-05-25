@@ -16,10 +16,11 @@
 package io.lenses.streamreactor.connect.aws.s3.source.reader
 
 import cats.implicits.catsSyntaxEitherId
+import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.files.SourceFileQueue
 import io.lenses.streamreactor.connect.aws.s3.source.PollResults
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
@@ -39,9 +40,9 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
 
   private implicit val connectorTaskId      = ConnectorTaskId("mySource", 1, 1)
   private val recordsLimit                  = 10
-  private val bucketAndPrefix               = RemoteS3RootLocation("test:ing")
+  private val bucketAndPrefix               = S3Location("test", "ing".some)
   private val firstFileBucketAndPath        = bucketAndPrefix.withPath("test:ing/topic/9/0.json")
-  private val firstFileBucketAndPathAndLine = firstFileBucketAndPath.atLine(0, Instant.now)
+  private val firstFileBucketAndPathAndLine = firstFileBucketAndPath.atLine(0).withTimestamp(Instant.now)
 
   "poll" should "be empty when no results found" in {
 

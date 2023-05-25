@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
+import cats.implicits.toTraverseOps
 import com.datamountaineer.kcql.Kcql
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
@@ -23,7 +24,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_ORD
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_REGEX
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_TYPE
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileMetadata
 import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
@@ -37,21 +38,21 @@ object S3SourceConfig {
   def fromProps(
     props: util.Map[String, String],
   ): Either[Throwable, S3SourceConfig] =
-    Try(
-      S3SourceConfig(S3SourceConfigDefBuilder(props)),
-    ).toEither
+    S3SourceConfig(S3SourceConfigDefBuilder(props))
 
-  def apply(s3ConfigDefBuilder: S3SourceConfigDefBuilder): S3SourceConfig = {
+  def apply(s3ConfigDefBuilder: S3SourceConfigDefBuilder): Either[Throwable, S3SourceConfig] = {
     val parsedValues = s3ConfigDefBuilder.getParsedValues
-    S3SourceConfig(
-      S3Config(parsedValues),
-      SourceBucketOptions(
+    for {
+      sbo <- SourceBucketOptions(
         s3ConfigDefBuilder,
         PartitionExtractor(
           getString(parsedValues, SOURCE_PARTITION_EXTRACTOR_TYPE).getOrElse("none"),
           getString(parsedValues, SOURCE_PARTITION_EXTRACTOR_REGEX),
         ),
-      ),
+      )
+    } yield S3SourceConfig(
+      S3Config(parsedValues),
+      sbo,
       s3ConfigDefBuilder.getCompressionCodec(),
       s3ConfigDefBuilder.getPartitionSearcherOptions(parsedValues),
     )
@@ -67,7 +68,7 @@ case class S3SourceConfig(
 )
 
 case class SourceBucketOptions(
-  sourceBucketAndPrefix: RemoteS3RootLocation,
+  sourceBucketAndPrefix: S3Location,
   targetTopic:           String,
   format:                FormatSelection,
   recordsLimit:          Int,
@@ -82,7 +83,8 @@ case class SourceBucketOptions(
       .getBatchLister
       .listBatch(
         storageInterface = storageInterface,
-        bucketAndPrefix  = sourceBucketAndPrefix.toPath(),
+        bucket           = sourceBucketAndPrefix.bucket,
+        prefix           = sourceBucketAndPrefix.prefix,
         numResults       = filesLimit,
       )
 
@@ -99,12 +101,13 @@ object SourceBucketOptions {
   def apply(
     config:             S3SourceConfigDefBuilder,
     partitionExtractor: Option[PartitionExtractor],
-  ): Seq[SourceBucketOptions] =
+  ): Either[Throwable, Seq[SourceBucketOptions]] =
     config.getKCQL.map {
-
       kcql: Kcql =>
-        SourceBucketOptions(
-          RemoteS3RootLocation(kcql.getSource, allowSlash = true),
+        for {
+          source <- S3Location.splitAndValidate(kcql.getSource, allowSlash = true)
+        } yield SourceBucketOptions(
+          source,
           kcql.getTarget,
           format             = FormatSelection.fromKcql(kcql),
           recordsLimit       = if (kcql.getLimit < 1) DEFAULT_RECORDS_LIMIT else kcql.getLimit,
@@ -114,6 +117,6 @@ object SourceBucketOptions {
             OrderingType.withNameInsensitiveOption,
           ).getOrElse(OrderingType.AlphaNumeric),
         )
-    }.toList
+    }.toSeq.traverse(identity)
 
 }

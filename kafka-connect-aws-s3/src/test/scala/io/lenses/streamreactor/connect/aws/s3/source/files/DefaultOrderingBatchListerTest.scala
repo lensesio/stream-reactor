@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.aws.s3.source.files
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
 import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
@@ -37,15 +36,17 @@ class DefaultOrderingBatchListerTest
     with OptionValues
     with EitherValues {
 
-  private val pathLocation     = RemoteS3RootLocation("bucket:path").toPath()
+  private val bucket = "bucket"
+  private val prefix = "prefix"
+
   private val storageInterface = mock[StorageInterface]
 
-  private val listerFn = DefaultOrderingBatchLister.listBatch(storageInterface, pathLocation, 10) _
+  private val listerFn = DefaultOrderingBatchLister.listBatch(storageInterface, bucket, prefix.some, 10) _
 
   "listBatch" should "return first result when no TopicPartitionOffset has been provided" in {
 
     val serviceResponse: ListResponse[String] = mock[ListResponse[String]]
-    when(storageInterface.list(pathLocation, None, 10))
+    when(storageInterface.list(bucket, prefix.some, None, 10))
       .thenReturn(serviceResponse.some.asRight)
 
     listerFn(none).value.value should be(serviceResponse)
@@ -53,7 +54,7 @@ class DefaultOrderingBatchListerTest
 
   "listBatch" should "return empty when no results are found" in {
 
-    when(storageInterface.list(pathLocation, None, 10)).thenReturn(
+    when(storageInterface.list(bucket, prefix.some, None, 10)).thenReturn(
       none.asRight,
     )
 
@@ -62,9 +63,10 @@ class DefaultOrderingBatchListerTest
   }
 
   "listBatch" should "pass through any errors" in {
-    val exception = FileListError(new IllegalStateException("BadThingsHappened"), "Oh No")
+    val exception =
+      FileListError(new IllegalStateException("BadThingsHappened"), bucket, prefix.some)
 
-    when(storageInterface.list(pathLocation, None, 10)).thenReturn(
+    when(storageInterface.list(bucket, prefix.some, None, 10)).thenReturn(
       exception.asLeft,
     )
     listerFn(none).left.value should be(exception)

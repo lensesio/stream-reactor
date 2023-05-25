@@ -18,9 +18,8 @@ package io.lenses.streamreactor.connect.aws.s3.source
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.scalatest.matchers.should.Matchers
 
 import java.io.File
@@ -39,10 +38,10 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
           s"$PrefixName/$dir/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}",
         )
 
-        storageInterface.pathExists(RemoteS3PathLocation(
+        storageInterface.pathExists(
           bucketName,
           s"$PrefixName/$dir/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}",
-        )) should be(Right(true))
+        ) should be(Right(true))
     }
 
   def totalFileLengthBytes(format: Format, formatOption: Option[FormatOptions]): Int = {
@@ -76,7 +75,8 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
     require(resource != null)
     val _ = storageInterface.uploadFile(
       new File(resource.getFile),
-      RemoteS3PathLocation(blobStoreContainerName, blobStoreTargetFilename),
+      blobStoreContainerName,
+      blobStoreTargetFilename,
     )
   }
 

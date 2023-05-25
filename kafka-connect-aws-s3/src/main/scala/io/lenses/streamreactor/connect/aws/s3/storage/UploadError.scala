@@ -49,6 +49,6 @@ case class FileLoadError(exception: Throwable, fileName: String) extends UploadE
   override def message() = s"error loading file (${fileName}) ${exception.getMessage}"
 }
 
-case class FileListError(exception: Throwable, path: String) extends UploadError {
+case class FileListError(exception: Throwable, bucket: String, path: Option[String]) extends UploadError {
   override def message() = s"error listing files (${path}) ${exception.getMessage}"
 }
