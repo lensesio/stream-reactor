@@ -25,20 +25,9 @@ class S3LocationTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "bucketAndPrefix" should "reject prefixes with slashes" in {
     expectException(
-      S3Location.createAndValidate("bucket", "/slash", allowSlash = false),
+      S3Location.splitAndValidate("bucket:/slash", allowSlash = false),
       "Nested prefix not currently supported",
     )
-  }
-
-  private def expectException(response: Either[Throwable, S3Location], expectedMessage: String): Unit =
-    response.left.value match {
-      case ex: IllegalArgumentException => ex.getMessage should be(expectedMessage)
-        ()
-      case _ => fail("Unexpected error message")
-    }
-
-  "bucketAndPrefix" should "allow prefixes without slashes" in {
-    S3Location.createAndValidate("bucket", "noSlash", allowSlash = false)
   }
 
   "bucketAndPrefix" should "split the bucket and prefix" in {
@@ -60,5 +49,12 @@ class S3LocationTest extends AnyFlatSpec with Matchers with EitherValues {
       "Bucket name should not contain '$'",
     )
   }
+
+  private def expectException(response: Either[Throwable, S3Location], expectedMessage: String): Unit =
+    response.left.value match {
+      case ex: IllegalArgumentException => ex.getMessage should be(expectedMessage)
+        ()
+      case _ => fail("Unexpected error message")
+    }
 
 }

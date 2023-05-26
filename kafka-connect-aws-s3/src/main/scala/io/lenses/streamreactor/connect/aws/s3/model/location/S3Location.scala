@@ -30,8 +30,7 @@ case class S3Location(
   line:      Option[Int]     = none,
   timestamp: Option[Instant] = none,
 ) {
-// todo remove
-  if (bucket.contains(":")) throw new IllegalStateException("Bucket contains :")
+
   def fromRoot(root: String): S3Location =
     copy(prefix = root.some)
 
@@ -76,9 +75,6 @@ case object S3Location {
         S3Location(bucket, Some(path)).validate(allowSlash).toEither
       case _ => new IllegalArgumentException("Invalid number of arguments provided to create BucketAndPrefix").asLeft
     }
-
-  def createAndValidate(bucket: String, prefix: String, allowSlash: Boolean): Either[Throwable, S3Location] =
-    S3Location(bucket, Some(prefix)).validate(allowSlash).toEither
 
   implicit val showLocation: Show[S3Location] =
     Show.show(loc => s"${loc.bucket}|${loc.prefix}|${loc.path}|${loc.line}|${loc.timestamp}")
