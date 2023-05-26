@@ -63,13 +63,9 @@ class IndexManager(
         case None => 0.asRight
         case Some(ListResponse(_, _, indexes, _)) =>
           val filtered = indexes.filterNot(_ == mostRecentIndexFile)
-          logger.info(s"MostRecentIndex.path: ${mostRecentIndexFile}")
-          logger.info(s"Filtered: $filtered")
-          logger.info(s"Indexes: $indexes")
           if (indexes.size > maxIndexes) {
             logAndReturnMaxExceededError(topicPartition, indexes)
           } else if (filtered.size == indexes.size) {
-
             val logLine = s"Latest file not found in index (${mostRecentIndexFile})"
             logger.error("[{}] {}", connectorTaskId.show, logLine)
             NonFatalS3SinkError(logLine).asLeft
@@ -134,7 +130,7 @@ class IndexManager(
     *
     * @param topicPartition     the TopicPartition for which to retrieve the offsets
     * @param fileNamingStrategy the S3FileNamingStrategy to use in the case that a fallback offset seeker is required.
-    * @param bucketAndPrefix    the configured S3Location
+    * @param bucket    the configured bucket
     * @return either a SinkError or an option to a TopicPartitionOffset with the seek result.
     */
   def seek(
@@ -214,7 +210,7 @@ class IndexManager(
   /**
     * Given a bucket and a list of files, attempts to load them to establish the most recent valid index
     *
-    * @param bucketAndPrefix Remote S3 Root Location of the sink files
+    * @param bucket    the configured bucket
     * @param indexFiles      List of index files
     * @return either a FileLoadError or an optional string containing the valid index file of the offset
     */
