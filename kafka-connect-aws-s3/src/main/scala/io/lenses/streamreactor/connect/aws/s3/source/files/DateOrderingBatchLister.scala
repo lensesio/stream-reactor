@@ -33,13 +33,12 @@ object DateOrderingBatchLister extends BatchLister {
   )(lastFile:         Option[FileMetadata],
   ): Either[FileListError, Option[ListResponse[String]]] = {
     val lastFileFilter = filter(lastFile) _
+
     for {
       listResp <- storageInterface.listRecursive(bucket, prefix, processObjectsAsFileMeta)
       ordered   = listResp.iterator.flatMap(_.files).filter(lastFileFilter).toSeq.sortBy(_.lastModified).take(numResults)
     } yield {
-      ordered.lastOption.fold(Option.empty[ListResponse[String]])((last: FileMetadata) =>
-        ListResponse[String](bucket, prefix, ordered.map(_.file), last).some,
-      )
+      ordered.lastOption.flatMap(lo => ListResponse[String](bucket, prefix, ordered.map(_.file), lo).some)
     }
   }
 

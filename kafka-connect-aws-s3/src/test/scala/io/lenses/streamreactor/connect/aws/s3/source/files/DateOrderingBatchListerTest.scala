@@ -44,8 +44,9 @@ class DateOrderingBatchListerTest
   private val prefix:           String           = "prefix"
   private val storageInterface: StorageInterface = mock[StorageInterface]
 
+  private val NumResults: Int = 10
   private val listerFn: Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]] =
-    DateOrderingBatchLister.listBatch(storageInterface, bucket, prefix.some, 10)
+    DateOrderingBatchLister.listBatch(storageInterface, bucket, prefix.some, NumResults)
   private val instBase: Instant = Instant.now
   private def instant(no: Int): Instant = {
     require(no <= 100)
@@ -54,7 +55,7 @@ class DateOrderingBatchListerTest
   private val allFiles = (1 to 100).map(i => FileMetadata(s"/file$i", instant(i)))
 
   "listBatch" should "return first result when no TopicPartitionOffset has been provided" in {
-    val returnFiles = allFiles.slice(0, 5)
+    val returnFiles = allFiles.slice(0, 10)
     val storageInterfaceResponse: ListResponse[FileMetadata] = ListResponse[FileMetadata](
       bucket,
       prefix.some,
@@ -102,7 +103,7 @@ class DateOrderingBatchListerTest
   }
 
   "listBatch" should "sort allFiles in order" in {
-    val returnFiles = allFiles.slice(0, 5)
+    val returnFiles = allFiles.slice(0, 10)
     val storageInterfaceResponse: ListResponse[FileMetadata] = ListResponse[FileMetadata](
       bucket,
       prefix.some,
@@ -133,7 +134,7 @@ class DateOrderingBatchListerTest
     listerFn(none).value.value should be(ListResponse[String](
       bucket,
       prefix.some,
-      allFiles.take(10).map(_.file),
+      allFiles.take(NumResults).map(_.file),
       allFiles(9),
     ))
   }
