@@ -19,7 +19,7 @@ import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.effect.unsafe.implicits.global
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcher
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcherResponse
@@ -37,7 +37,7 @@ case class ReaderManagerState(
 class ReaderManagerService(
   settings:              PartitionSearcherOptions,
   partitionSearcher:     PartitionSearcher,
-  readerManagerCreateFn: (RemoteS3RootLocation, String) => ReaderManager,
+  readerManagerCreateFn: (S3Location, String) => ReaderManager,
 ) extends LazyLogging {
 
   private val readerManagerState: Ref[IO, ReaderManagerState] =

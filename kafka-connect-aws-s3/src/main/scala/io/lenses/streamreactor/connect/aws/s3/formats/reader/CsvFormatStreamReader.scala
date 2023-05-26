@@ -16,11 +16,11 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
 import io.lenses.streamreactor.connect.aws.s3.formats.FormatWriterException
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 
 import java.io.InputStream
 
-class CsvFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: RemoteS3PathLocation, hasHeaders: Boolean)
+class CsvFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: S3Location, hasHeaders: Boolean)
     extends TextFormatStreamReader(inputStreamFn, bucketAndPath) {
 
   private var firstRun: Boolean = true

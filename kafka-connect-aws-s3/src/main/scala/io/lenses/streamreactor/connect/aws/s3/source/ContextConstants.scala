@@ -13,19 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.source.state
+package io.lenses.streamreactor.connect.aws.s3.source
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import org.apache.kafka.connect.source.SourceRecord
+object ContextConstants {
 
-import java.util
+  val ContainerKey = "container"
 
-trait S3SourceTaskState {
-  def start(
-    props:           util.Map[String, String],
-    contextOffsetFn: S3Location => Option[S3Location],
-  ):           Either[Throwable, S3SourceTaskState]
-  def close(): S3SourceTaskState
-  def poll():  Either[Throwable, Seq[SourceRecord]]
+  val PrefixKey = "prefix"
 
+  val PathKey = "path"
+
+  val LineKey = "line"
+
+  val TimeStampKey = "ts"
 }

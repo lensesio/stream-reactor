@@ -16,14 +16,15 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetFormatStreamReader
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import org.apache.kafka.connect.data.Struct
+import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class ParquetFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
-  private val bucketAndPath = RemoteS3PathLocation("my-bucket", "myPath")
+  private val bucketAndPath = mock[S3Location]
 
   "iteration" should "read parquet files" in {
     val inputStreamFn = () => getClass.getResourceAsStream("/parquet/1.parquet")

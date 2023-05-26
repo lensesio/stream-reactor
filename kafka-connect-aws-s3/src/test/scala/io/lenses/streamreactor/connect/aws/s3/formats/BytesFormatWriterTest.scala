@@ -21,11 +21,12 @@ import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesFormatWithSize
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.ByteArraySinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.BytesFormatWriter
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
 import org.apache.commons.io.IOUtils
+import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -33,9 +34,9 @@ import java.io.ByteArrayInputStream
 
 class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
-  val bytes:            Array[Byte]       = getPixelBytes
-  val byteArrayValue:   ByteArraySinkData = ByteArraySinkData(bytes, None)
-  val pixelLengthBytes: Array[Byte]       = ByteArrayUtils.longToByteArray(bytes.length.longValue())
+  private val bytes:            Array[Byte]       = getPixelBytes
+  private val byteArrayValue:   ByteArraySinkData = ByteArraySinkData(bytes, None)
+  private val pixelLengthBytes: Array[Byte]       = ByteArrayUtils.longToByteArray(bytes.length.longValue())
 
   "round trip" should "round trip" in {
     val testBytes    = "Sausages".getBytes()
@@ -47,7 +48,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val reader = new BytesFormatWithSizesStreamReader(
       () => new ByteArrayInputStream(result),
       () => result.length.toLong,
-      RemoteS3PathLocation.apply("bucket", "path"),
+      mock[S3Location],
       BytesWriteMode.ValueWithSize,
     )
     val byteArraySourceData = reader.next()

@@ -19,6 +19,7 @@ import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
+import io.lenses.streamreactor.connect.aws.s3.storage.UploadError
 
 /**
   * For java compatbility, transforms our nice Either[Throwable, A] to a thrown exception.
@@ -34,7 +35,10 @@ case class ThrowableEither[T, A](e: Either[T, A]) extends LazyLogging {
     }
     case Left(ex: SinkError) => throw new IllegalStateException(ex.message())
     case Left(ex: String) => throw new IllegalStateException(ex)
-    case Left(_)  => throw new IllegalStateException("Unexpected err type")
+    case Left(ex: UploadError) => throw new IllegalStateException(ex.message())
+    case Left(whatami) =>
+      logger.error("what am i? {} ", whatami)
+      throw new IllegalStateException("Unexpected err type")
     case Right(a) => a
     case other    => throw new IllegalStateException(s"Unexpected state we're in: $other")
   }

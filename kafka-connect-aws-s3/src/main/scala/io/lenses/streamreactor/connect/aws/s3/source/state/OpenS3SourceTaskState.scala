@@ -17,8 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.source.state
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.WrappedSourceException
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcher
@@ -41,12 +40,12 @@ class OpenS3SourceTaskState(
   override def poll(): Either[Throwable, Seq[SourceRecord]] =
     latestReaderManagersFn()
       .flatMap(_.poll())
-      .flatMap(_.toSourceRecordList)
-      .asRight[Throwable]
+      .flatMap(_.toSourceRecordList.traverse(identity))
+      .traverse(identity)
 
   override def start(
     props:           util.Map[String, String],
-    contextOffsetFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine],
+    contextOffsetFn: S3Location => Option[S3Location],
   ): Either[Throwable, S3SourceTaskState] = new ConnectException("Cannot start").asLeft
 
 }
@@ -54,7 +53,7 @@ class OpenS3SourceTaskState(
 object OpenS3SourceTaskState {
   def apply(
     props:           util.Map[String, String],
-    contextOffsetFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine],
+    contextOffsetFn: S3Location => Option[S3Location],
   ): Either[Throwable, OpenS3SourceTaskState] = {
     for {
       connectorTaskId  <- ConnectorTaskId.fromProps(props)
@@ -70,7 +69,7 @@ object OpenS3SourceTaskState {
       )
 
     } yield {
-      val readerManagerCreateFn: (RemoteS3RootLocation, String) => ReaderManager = (root, rootPath) => {
+      val readerManagerCreateFn: (S3Location, String) => ReaderManager = (root, _) => {
         val sbo = config.bucketOptions.find(sb => sb.sourceBucketAndPrefix == root).getOrElse(
           throw new ConnectException("no root found"),
         )

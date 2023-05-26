@@ -15,31 +15,40 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import cats.implicits.catsSyntaxOptionId
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.LineKey
+import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.PathKey
+import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.TimeStampKey
 import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.fromSourcePartition
 import org.apache.kafka.connect.source.SourceTaskContext
 
+import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
-import java.util
 
 object SourceContextReader {
 
-  def getProps(context: () => SourceTaskContext)(): util.Map[String, String] =
-    Try(context().configs()).getOrElse(Map().asJava)
-
   def getCurrentOffset(
     context:    () => SourceTaskContext,
-  )(sourceRoot: RemoteS3RootLocation,
-  ): Option[RemoteS3PathLocationWithLine] = {
+  )(sourceRoot: S3Location,
+  ): Option[S3Location] = {
     val key = fromSourcePartition(sourceRoot).asJava
     for {
       offsetMap <- Try(context().offsetStorageReader.offset(key).asScala).toOption.filterNot(_ == null)
-      path      <- offsetMap.get("path").collect { case value: String => value }
-      line      <- offsetMap.get("line").collect { case value: String if value forall Character.isDigit => value.toInt }
-    } yield sourceRoot.withPath(path).atLine(line)
+      path      <- offsetMap.get(PathKey).collect { case value: String => value }
+      line      <- offsetMap.get(LineKey).collect { case value: String if value forall Character.isDigit => value.toInt }
+      ts = offsetMap.get(TimeStampKey).collect {
+        case value: String if value forall Character.isDigit => Instant.ofEpochMilli(value.toLong)
+      }
+    } yield {
+      sourceRoot.copy(
+        path      = path.some,
+        line      = line.some,
+        timestamp = ts,
+      )
+    }
   }
 
 }

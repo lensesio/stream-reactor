@@ -16,13 +16,14 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.fromSourceOffset
 import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.fromSourcePartition
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaAndValue
 import org.apache.kafka.connect.source.SourceRecord
 
+import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 abstract class SourceData(lineNumber: Long) {
@@ -35,31 +36,40 @@ abstract class SourceData(lineNumber: Long) {
   def getLineNumber: Long = lineNumber
 
   def toSourceRecord(
-    bucketAndPath: RemoteS3PathLocation,
+    bucketAndPath: S3Location,
     targetTopic:   String,
     partitionFn:   String => Option[Int],
-  ): SourceRecord = representationKey match {
-    case Some(key) =>
-      new SourceRecord(
-        fromSourcePartition(bucketAndPath.root()).asJava,
-        fromSourceOffset(bucketAndPath, getLineNumber).asJava,
-        targetTopic,
-        partitionFn(bucketAndPath.path).map(Int.box).orNull,
-        null,
-        key,
-        representationSchema.orNull,
-        representationValue,
-      )
-    case None =>
-      new SourceRecord(
-        fromSourcePartition(bucketAndPath.root()).asJava,
-        fromSourceOffset(bucketAndPath, getLineNumber).asJava,
-        targetTopic,
-        partitionFn(bucketAndPath.path).map(Int.box).orNull,
-        representationSchema.orNull,
-        representationValue,
-      )
-  }
+  ): Either[Throwable, SourceRecord] =
+    bucketAndPath
+      .path
+      .toRight(new IllegalArgumentException("No path exists in S3Location"))
+      .map {
+        pth =>
+          val partition = partitionFn(pth).map(Int.box).orNull
+          representationKey match {
+            case Some(key) =>
+              new SourceRecord(
+                fromSourcePartition(bucketAndPath).asJava,
+                fromSourceOffset(bucketAndPath, getLineNumber, Instant.now()).asJava,
+                targetTopic,
+                partition,
+                null,
+                key,
+                representationSchema.orNull,
+                representationValue,
+              )
+            case None =>
+              new SourceRecord(
+                fromSourcePartition(bucketAndPath).asJava,
+                fromSourceOffset(bucketAndPath, getLineNumber, Instant.now()).asJava,
+                targetTopic,
+                partition,
+                representationSchema.orNull,
+                representationValue,
+              )
+          }
+      }
+
 }
 
 case class SchemaAndValueSourceData(

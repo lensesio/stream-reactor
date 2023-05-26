@@ -16,13 +16,13 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
 import io.lenses.streamreactor.connect.aws.s3.formats.FormatWriterException
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 
 import java.io.InputStream
 import scala.io.Source
 import scala.util.Try
 
-class TextFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: RemoteS3PathLocation)
+class TextFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: S3Location)
     extends S3FormatStreamReader[StringSourceData] {
 
   private val inputStream: InputStream = inputStreamFn()
@@ -44,7 +44,7 @@ class TextFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: Re
     StringSourceData(sourceLines.next(), lineNumber)
   }
 
-  override def getBucketAndPath: RemoteS3PathLocation = bucketAndPath
+  override def getBucketAndPath: S3Location = bucketAndPath
 
   override def getLineNumber: Long = lineNumber
 }

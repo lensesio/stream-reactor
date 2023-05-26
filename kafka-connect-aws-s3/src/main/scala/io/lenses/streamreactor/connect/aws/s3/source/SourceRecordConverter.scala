@@ -15,21 +15,28 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.ContainerKey
+import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.LineKey
+import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.PathKey
+import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.PrefixKey
+import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.TimeStampKey
+
+import java.time.Instant
 
 object SourceRecordConverter {
 
-  def fromSourcePartition(root: RemoteS3RootLocation): Map[String, String] =
+  def fromSourcePartition(root: S3Location): Map[String, String] =
     Map(
-      "container" -> root.bucket,
-      "prefix"    -> root.prefixOrDefault(),
+      ContainerKey -> root.bucket,
+      PrefixKey    -> root.prefixOrDefault(),
     )
 
-  def fromSourceOffset(bucketAndPath: RemoteS3PathLocation, offset: Long): Map[String, AnyRef] =
+  def fromSourceOffset(bucketAndPath: S3Location, offset: Long, lastModified: Instant): Map[String, AnyRef] =
     Map(
-      "path" -> bucketAndPath.path,
-      "line" -> offset.toString,
+      PathKey      -> bucketAndPath.pathOrUnknown,
+      LineKey      -> offset.toString,
+      TimeStampKey -> lastModified.toEpochMilli.toString,
     )
 
 }

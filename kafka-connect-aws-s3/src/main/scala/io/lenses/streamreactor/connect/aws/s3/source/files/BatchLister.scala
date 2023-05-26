@@ -13,19 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.source.state
+package io.lenses.streamreactor.connect.aws.s3.source.files
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import org.apache.kafka.connect.source.SourceRecord
+import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
+import io.lenses.streamreactor.connect.aws.s3.storage.FileMetadata
+import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
-import java.util
+trait BatchLister {
 
-trait S3SourceTaskState {
-  def start(
-    props:           util.Map[String, String],
-    contextOffsetFn: S3Location => Option[S3Location],
-  ):           Either[Throwable, S3SourceTaskState]
-  def close(): S3SourceTaskState
-  def poll():  Either[Throwable, Seq[SourceRecord]]
+  def listBatch(
+    storageInterface: StorageInterface,
+    bucket:           String,
+    prefix:           Option[String],
+    numResults:       Int,
+  )(lastFile:         Option[FileMetadata],
+  ): Either[FileListError, Option[ListResponse[String]]]
 
 }

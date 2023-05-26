@@ -112,6 +112,17 @@ object S3SourceConfigDef {
       ConfigDef.Width.MEDIUM,
       SOURCE_PARTITION_SEARCH_PAUSE_AFTER_MILLIS,
     )
+    .define(
+      SOURCE_ORDERING_TYPE,
+      Type.STRING,
+      SOURCE_ORDERING_TYPE_DEFAULT,
+      Importance.LOW,
+      SOURCE_ORDERING_TYPE_DOC,
+      "Source",
+      8,
+      ConfigDef.Width.MEDIUM,
+      SOURCE_ORDERING_TYPE,
+    )
 }
 
 class S3SourceConfigDef() extends ConfigDef with LazyLogging {

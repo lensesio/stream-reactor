@@ -15,10 +15,11 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.reader
 
+import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.S3FormatStreamReader
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.SourceData
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.PollResults
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
@@ -26,7 +27,7 @@ import org.scalatest.matchers.should.Matchers
 
 class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
-  private val readerBucketAndPath = RemoteS3PathLocation("bucket-and-path", Some("MyPrefix"), "prefix")
+  private val readerBucketAndPath = S3Location("bucket-and-path", "MyPrefix".some)
   private val targetTopic         = "MyTargetTopic"
   private val limit               = 10
   private val reader              = mock[S3FormatStreamReader[_ <: SourceData]]

@@ -15,13 +15,15 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import cats.implicits.catsSyntaxOptionId
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.mockito.Answers
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 class SourceContextReaderTest extends AnyFlatSpec with Matchers with MockitoSugar {
@@ -30,7 +32,7 @@ class SourceContextReaderTest extends AnyFlatSpec with Matchers with MockitoSuga
 
   private val bucketName   = "bucket"
   private val prefixName   = "prefixName"
-  private val rootLocation = RemoteS3RootLocation(s"$bucketName:$prefixName")
+  private val rootLocation = S3Location(bucketName, prefixName.some)
 
   private val filePath = "prefixName/file.json"
 
@@ -41,15 +43,25 @@ class SourceContextReaderTest extends AnyFlatSpec with Matchers with MockitoSuga
 
   val contextReaderFn = SourceContextReader.getCurrentOffset(() => sourceTaskContext) _
 
+  val nowMillis = Instant.now().toEpochMilli
+
   "getCurrentOffset" should "return offset when one has been defined" in {
     val mapValue = Map[String, AnyRef](
       "path" -> filePath,
       "line" -> "100",
+      "ts"   -> nowMillis.toString,
     ).asJava
 
     when(sourceTaskContext.offsetStorageReader().offset(mapKey)).thenReturn(mapValue)
 
-    contextReaderFn(rootLocation) should be(Some(rootLocation.withPath(filePath).atLine(100)))
+    contextReaderFn(rootLocation) should be(
+      Some(
+        rootLocation
+          .withPath(filePath)
+          .atLine(100)
+          .withTimestamp(Instant.ofEpochMilli(nowMillis)),
+      ),
+    )
   }
 
   "getCurrentOffset" should "return none when no offset has been defined" in {
@@ -65,6 +77,7 @@ class SourceContextReaderTest extends AnyFlatSpec with Matchers with MockitoSuga
     val mapValue = Map[String, AnyRef](
       "path" -> filePath,
       "line" -> "???",
+      "ts"   -> nowMillis.toString,
     ).asJava
 
     when(sourceTaskContext.offsetStorageReader().offset(mapKey)).thenReturn(mapValue)

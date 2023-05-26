@@ -31,7 +31,7 @@ object LocalStagingArea {
   )(
     implicit
     connectorTaskId: ConnectorTaskId,
-  ): Either[Exception, LocalStagingArea] =
+  ): Either[Throwable, LocalStagingArea] =
     getStringValue(confDef.getParsedValues, LOCAL_TMP_DIRECTORY)
       .fold(useTmpDir)(useConfiguredDir)
       .leftMap(
