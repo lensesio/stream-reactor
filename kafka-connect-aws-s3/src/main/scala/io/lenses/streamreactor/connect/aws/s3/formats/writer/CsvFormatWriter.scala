@@ -29,11 +29,8 @@ import java.io.OutputStreamWriter
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
-class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolean)
-    extends S3FormatWriter
-    with LazyLogging {
+class CsvFormatWriter(outputStream: S3OutputStream, writeHeaders: Boolean) extends S3FormatWriter with LazyLogging {
 
-  private val outputStream: S3OutputStream = outputStreamFn()
   private val outputStreamWriter = new OutputStreamWriter(outputStream)
   private val csvWriter          = new CSVWriter(outputStreamWriter)
 

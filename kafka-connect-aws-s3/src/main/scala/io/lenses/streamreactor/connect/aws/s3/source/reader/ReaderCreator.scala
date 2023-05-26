@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.reader
 
+import cats.implicits.toBifunctorOps
 import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
@@ -23,8 +24,7 @@ import io.lenses.streamreactor.connect.aws.s3.formats.reader.S3FormatStreamReade
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.SourceData
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
-import io.lenses.streamreactor.connect.aws.s3.utils.ThrowableEither._
-import org.apache.kafka.common.errors.OffsetOutOfRangeException
+import io.lenses.streamreactor.connect.aws.s3.utils.IteratorOps
 
 import scala.util.Try
 
@@ -39,43 +39,30 @@ class ReaderCreator(
 ) extends LazyLogging {
 
   def create(pathWithLine: S3Location): Either[Throwable, ResultReader] =
-    for {
-      reader <- createInner(pathWithLine)
-    } yield new ResultReader(reader, targetTopic, partitionFn)
+    createInner(pathWithLine).map(new ResultReader(_, targetTopic, partitionFn))
 
   private def createInner(pathWithLine: S3Location): Either[Throwable, S3FormatStreamReader[_ <: SourceData]] =
     pathWithLine.pathOrError(
       fnAction = path => {
-        Try {
-
-          val inputStreamFn = () => storageInterface.getBlob(pathWithLine.bucket, path).toThrowable
-          val fileSizeFn    = () => storageInterface.getBlobSize(pathWithLine.bucket, path).toThrowable
-          logger.info(
+        for {
+          inputStream <- storageInterface.getBlob(pathWithLine.bucket, path).leftMap(new IllegalStateException(_))
+          fileSize <- storageInterface.getBlobSize(pathWithLine.bucket, path).leftMap(new IllegalStateException(_))
+          _ <- Try(logger.info(
             s"[${connectorTaskId.show}] Reading next file: ${pathWithLine.show} from line ${pathWithLine.line}",
+          )).toEither
+
+          reader = S3FormatStreamReader(inputStream,
+            fileSize,
+            format,
+            pathWithLine,
+            () => storageInterface.getBlob(pathWithLine.bucket, path).leftMap(new IllegalStateException(_)),
           )
-
-          val reader = S3FormatStreamReader(inputStreamFn, fileSizeFn, format, pathWithLine)
-
-          (pathWithLine.line, pathWithLine.isFromStart) match {
-            case (Some(lineFrom), false) => skipLinesToStartLine(reader, lineFrom)
-            case _                       =>
-          }
-
-          reader
-        }.toEither
+          _ <- if (pathWithLine.line.isDefined && pathWithLine.isFromStart) IteratorOps.skip(reader, pathWithLine.line) else Right(())
+        } yield reader
       },
       fnErr = () => {
         new IllegalStateException("No path found")
       },
     )
-
-  private def skipLinesToStartLine(reader: S3FormatStreamReader[_ <: SourceData], lineToStartOn: Int): Unit =
-    for (_ <- 0 to lineToStartOn) {
-      if (reader.hasNext) {
-        reader.next()
-      } else {
-        throw new OffsetOutOfRangeException("Unknown file offset")
-      }
-    }
 
 }

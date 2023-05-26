@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source
 
+import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toBifunctorOps
 import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
@@ -23,23 +24,21 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkContextReader
 import io.lenses.streamreactor.connect.aws.s3.source.state.CleanS3SourceTaskState
 import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceTaskState
+import io.lenses.streamreactor.connect.aws.s3.utils.MapUtils
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask
 
 import java.util
-import scala.jdk.CollectionConverters.SeqHasAsJava
-import SinkContextReader._
+import java.util.Collections
+import scala.jdk.CollectionConverters._
 class S3SourceTask extends SourceTask with LazyLogging {
-
-  private val mergePropsFn: util.Map[String, String] => util.Map[String, String] =
-    mergeProps(() => context.configs())
 
   private val contextOffsetFn: S3Location => Option[S3Location] =
     SourceContextReader.getCurrentOffset(() => context)
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
-  private var s3SourceTaskState: S3SourceTaskState = CleanS3SourceTaskState
+  private var s3SourceTaskState: Option[S3SourceTaskState] = None
 
   override def version(): String = manifest.version()
 
@@ -52,22 +51,25 @@ class S3SourceTask extends SourceTask with LazyLogging {
 
     logger.debug(s"Received call to S3SourceTask.start with ${props.size()} properties")
 
-    s3SourceTaskState = s3SourceTaskState.start(mergePropsFn(props), contextOffsetFn).leftMap(throw _).merge
-    ()
-
+    val mergedProperties = MapUtils.mergeProps(Option(context.configs()).map(_.asScala.toMap).getOrElse(Map.empty),
+                                               props.asScala.toMap,
+    ).asJava
+    S3SourceTaskState.make(mergedProperties, contextOffsetFn).leftMap(throw _).foreach(state =>
+      s3SourceTaskState = state.some,
+    )
   }
 
   override def stop(): Unit = {
     logger.debug(s"Received call to S3SourceTask.stop")
-    s3SourceTaskState = s3SourceTaskState.close()
-    ()
+    s3SourceTaskState.foreach(_.close())
   }
 
   override def poll(): util.List[SourceRecord] =
-    s3SourceTaskState
-      .poll()
-      .leftMap(throw _)
-      .merge
-      .asJava
+    s3SourceTaskState.fold(Collections.emptyList[SourceRecord]()) { state =>
+      state.poll() match {
+        case Left(error)  => throw new RuntimeException(error)
+        case Right(value) => value.asJava
+      }
+    }
 
 }

@@ -34,10 +34,11 @@ class BytesFormatStreamFileReaderTest extends AnyFlatSpec with MockitoSugar with
   private val fileContents = "lemonOlivelemonOlive".getBytes
 
   "read" should "read entire file at once" in {
-
-    val inputStreamFn = () => new ByteArrayInputStream(fileContents)
-    val sizeFn        = () => fileContents.length.longValue()
-    val target        = new BytesFormatStreamFileReader(inputStreamFn, sizeFn, bucketAndPath, BytesWriteMode.ValueOnly)
+    val target = new BytesFormatStreamFileReader(new ByteArrayInputStream(fileContents),
+                                                 fileContents.length.toLong,
+                                                 bucketAndPath,
+                                                 BytesWriteMode.ValueOnly,
+    )
 
     checkRecord(target, BytesOutputRow(None, None, Array.empty[Byte], fileContents))
 
@@ -46,9 +47,11 @@ class BytesFormatStreamFileReaderTest extends AnyFlatSpec with MockitoSugar with
 
   "hasNext" should "return false for empty file" in {
 
-    val inputStreamFn = () => new ByteArrayInputStream(Array[Byte]())
-    val sizeFn        = () => 0L
-    val target        = new BytesFormatStreamFileReader(inputStreamFn, sizeFn, bucketAndPath, BytesWriteMode.ValueOnly)
+    val target = new BytesFormatStreamFileReader(new ByteArrayInputStream(Array[Byte]()),
+                                                 0L,
+                                                 bucketAndPath,
+                                                 BytesWriteMode.ValueOnly,
+    )
 
     target.hasNext should be(false)
   }

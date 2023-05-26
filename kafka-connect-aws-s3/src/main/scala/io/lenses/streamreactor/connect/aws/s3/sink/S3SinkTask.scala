@@ -20,16 +20,18 @@ import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
 import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
-import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
+import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.utils.ThrowableEither.toJavaThrowableConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.HeaderToStringConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ValueToSinkDataConverter
+import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.utils.MapUtils
+import io.lenses.streamreactor.connect.aws.s3.utils.TimestampUtils
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.sink.SinkRecord
@@ -40,13 +42,8 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
-import SinkContextReader._
-import io.lenses.streamreactor.connect.aws.s3.utils.TimestampUtils
 
 class S3SinkTask extends SinkTask with ErrorHandler {
-
-  private val mergePropsFn: util.Map[String, String] => util.Map[String, String] =
-    mergeProps(() => context.configs())
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
@@ -67,21 +64,22 @@ class S3SinkTask extends SinkTask with ErrorHandler {
 
     logger.debug(s"[{}] S3SinkTask.start", connectorTaskId.show)
 
-    val props = mergePropsFn(fallbackProps)
+    val props = MapUtils.mergeProps(Option(context.configs()).map(_.asScala.toMap).getOrElse(Map.empty),
+                                    fallbackProps.asScala.toMap,
+    ).asJava
     val errOrWriterMan = for {
-      config           <- S3SinkConfig.fromProps(props)
-      authResources     = new AuthResources(config.s3Config)
-      storageInterface <- config.s3Config.awsClient.createStorageInterface(authResources)
-      _                <- Try(setErrorRetryInterval(config.s3Config)).toEither
-      writerManager    <- Try(S3WriterManager.from(config)(connectorTaskId, storageInterface)).toEither
+      config          <- S3SinkConfig.fromProps(props)
+      s3Client        <- AwsS3ClientCreator.make(config.s3Config)
+      storageInterface = new AwsS3StorageInterface(connectorTaskId, s3Client)
+      _               <- Try(setErrorRetryInterval(config.s3Config)).toEither
+      writerManager   <- Try(S3WriterManager.from(config)(connectorTaskId, storageInterface)).toEither
       _ <- Try(initialize(
         config.s3Config.connectorRetryConfig.numberOfRetries,
         config.s3Config.errorPolicy,
       )).toEither
     } yield writerManager
 
-    writerManager = errOrWriterMan.toThrowable
-
+    errOrWriterMan.leftMap(throw _).foreach(writerManager = _)
   }
 
   private def setErrorRetryInterval(s3Config: S3Config): Unit =

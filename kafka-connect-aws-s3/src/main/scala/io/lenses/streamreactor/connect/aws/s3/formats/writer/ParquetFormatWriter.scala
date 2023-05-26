@@ -20,8 +20,8 @@ import io.lenses.streamreactor.connect.aws.s3.formats.writer.parquet.ParquetOutp
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
@@ -33,7 +33,7 @@ import org.apache.parquet.hadoop.metadata.{ CompressionCodecName => ParquetCompr
 
 import scala.util.Try
 
-class ParquetFormatWriter(outputStreamFn: () => S3OutputStream)(implicit compressionCodec: CompressionCodec)
+class ParquetFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: CompressionCodec)
     extends S3FormatWriter
     with LazyLogging {
 
@@ -49,8 +49,6 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream)(implicit compres
       case _            => throw new IllegalArgumentException("No or invalid compressionCodec specified")
     }
   }
-
-  private var outputStream: S3OutputStream = _
 
   private var writer: ParquetWriter[AnyRef] = _
 
@@ -71,7 +69,6 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream)(implicit compres
   private def init(connectSchema: Option[ConnectSchema]): ParquetWriter[AnyRef] = {
     val schema: Schema = ToAvroDataConverter.convertSchema(connectSchema)
 
-    outputStream = outputStreamFn()
     val outputFile = new ParquetOutputFile(outputStream)
 
     AvroParquetWriter

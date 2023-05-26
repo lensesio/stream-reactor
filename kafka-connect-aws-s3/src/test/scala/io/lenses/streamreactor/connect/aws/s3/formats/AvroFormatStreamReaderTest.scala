@@ -39,7 +39,7 @@ class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
     val byteArrayInputStream: ByteArrayInputStream = writeRecordsToOutputStream
     val avroFormatStreamReader =
-      new AvroFormatStreamReader(() => byteArrayInputStream, mock[S3Location])
+      new AvroFormatStreamReader(byteArrayInputStream, mock[S3Location])
 
     avroFormatStreamReader.hasNext should be(true)
     checkRecord(avroFormatStreamReader.next().data, "sam", Some("mr"), 100.43)
@@ -53,7 +53,7 @@ class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
   private def writeRecordsToOutputStream = {
     val outputStream     = new S3ByteArrayOutputStream()
-    val avroFormatWriter = new AvroFormatWriter(() => outputStream)
+    val avroFormatWriter = new AvroFormatWriter(outputStream)
     firstUsers.foreach(str => avroFormatWriter.write(None, StructSinkData(str), topic))
     avroFormatWriter.complete()
 

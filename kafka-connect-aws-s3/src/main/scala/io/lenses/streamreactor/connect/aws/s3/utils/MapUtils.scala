@@ -13,30 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.sink
+package io.lenses.streamreactor.connect.aws.s3.utils
 
-import java.util
-import java.util.Collections
-import scala.jdk.CollectionConverters.MapHasAsJava
-import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.util.Try
-
-object SinkContextReader {
+object MapUtils {
 
   /**
     * Kafka Connect provides properties both in the SinkTask.start as
     * well as enables reading the properties via the Connector contextProps.
     * This is a simple utility to merge the properties from both sources.
-    * @param contextPropsFn connector properties from the contextProps
-    * @param fallbackProps connector properties from the start method
-    * @return util.Map[String,String] properties from both sources merged
+    *
+    * This is done because the context properties can contain newer values for items like secret
+    * Get the Task configuration. This is the latest configuration and may differ from that passed on startup. For example, this method can be used to obtain the latest configuration if an external secret has changed, and the configuration is using variable references such as those compatible with org.apache.kafka.common.config.ConfigTransformer.
+    *
+    * @param context  connector properties from the contextProps
+    * @param properties connector properties from the start method
+    * @return Map[String,String] properties from both sources merged
     */
   def mergeProps(
-    contextPropsFn: () => util.Map[String, String],
-  )(fallbackProps:  util.Map[String, String],
-  ): util.Map[String, String] = {
-    val contextProps = Try(contextPropsFn()).toOption.getOrElse(Collections.emptyMap())
-    fallbackProps.asScala.addAll(contextProps.asScala).asJava
-  }
+    context:    Map[String, String],
+    properties: Map[String, String],
+  ): Map[String, String] = properties ++ context
 
 }

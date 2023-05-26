@@ -24,13 +24,11 @@ import org.apache.avro.generic.GenericRecord
 import java.io.InputStream
 import scala.util.Try
 
-class AvroFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: S3Location)
+class AvroFormatStreamReader(inputStream: InputStream, bucketAndPath: S3Location)
     extends S3FormatStreamReader[SchemaAndValueSourceData] {
   private val avroDataConverter = new AvroData(100)
 
   private val datumReader = new GenericDatumReader[GenericRecord]()
-
-  private val inputStream = inputStreamFn()
 
   private val stream = new DataFileStream[GenericRecord](inputStream, datumReader)
 

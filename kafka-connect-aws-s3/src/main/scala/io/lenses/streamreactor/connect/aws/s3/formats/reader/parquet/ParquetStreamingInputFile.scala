@@ -19,17 +19,16 @@ import com.typesafe.scalalogging.LazyLogging
 import org.apache.parquet.io.InputFile
 import org.apache.parquet.io.SeekableInputStream
 
-import java.io.InputStream
-
-class ParquetStreamingInputFile(inputStreamFn: () => InputStream, fileSizeFn: () => Long)
+class ParquetStreamingInputFile(fileSize: Long, newStreamF: () => SeekableInputStream)
     extends InputFile
     with LazyLogging {
 
-  private val fileSize: Long = fileSizeFn()
-
   override def getLength: Long = fileSize
 
-  override def newStream(): SeekableInputStream =
-    new ParquetSeekableInputStream(inputStreamFn)
+  override def newStream(): SeekableInputStream = {
+    val stream = newStreamF()
+    logger.debug(s"Creating new stream for file $stream")
+    stream
+  }
 
 }

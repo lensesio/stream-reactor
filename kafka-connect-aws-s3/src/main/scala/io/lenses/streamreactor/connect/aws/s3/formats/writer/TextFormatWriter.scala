@@ -16,20 +16,16 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.writer
 
 import io.lenses.streamreactor.connect.aws.s3.formats.FormatWriterException
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.LineSeparatorUtil.LineSeparatorBytes
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 
-import java.nio.charset.StandardCharsets
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter {
-
-  private val LineSeparatorBytes: Array[Byte] = System.lineSeparator.getBytes(StandardCharsets.UTF_8)
-
-  private val outputStream: S3OutputStream = outputStreamFn()
+class TextFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter {
 
   override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] =
     Try {

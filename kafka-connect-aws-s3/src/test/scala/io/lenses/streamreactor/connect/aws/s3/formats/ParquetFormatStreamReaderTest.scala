@@ -22,25 +22,37 @@ import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import scala.util.Try
+
 class ParquetFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
   private val bucketAndPath = mock[S3Location]
 
   "iteration" should "read parquet files" in {
     val inputStreamFn = () => getClass.getResourceAsStream("/parquet/1.parquet")
-    val fileSizeFn    = () => inputStreamFn().available().longValue()
-    val target        = new ParquetFormatStreamReader(inputStreamFn, fileSizeFn, bucketAndPath)
-    val list          = target.toList
-    list should have size 200
-    list(0).data.value().asInstanceOf[Struct].getString("name") should be(
-      "dbiriwtgyelferkqjmgvmakxreoPnovkObfyjSCzhsaidymngstfqgkbocypzglotuahzMojaViltqGmJpBnrIew",
-    )
-    list(1).data.value().asInstanceOf[Struct].getString("name") should be(
-      "oyiirzenfdzzujavsdawjyctxvpckyqkyhzzvmaoimnywcohhSnbquwbixpeDfxttbdhupeKZolcyAjwknobmoucvwoxxytytxg",
-    )
-    list(199).data.value().asInstanceOf[Struct].getString("name") should be(
-      "cfmfgbDpeklnFumaugcdcHokwtockrhsyflNqKbuwsAnXpxqzicbLzleviwhZaaIaylptfegvwFwe",
-    )
+    val inputStream   = inputStreamFn()
+    val sizeStream    = inputStreamFn()
+    try {
+      val target = ParquetFormatStreamReader(inputStreamFn(),
+                                             sizeStream.readAllBytes().length.toLong,
+                                             bucketAndPath,
+                                             () => Try(inputStreamFn()).toEither,
+      )
+      val list = target.toList
+      list should have size 200
+      list.head.data.value().asInstanceOf[Struct].getString("name") should be(
+        "dbiriwtgyelferkqjmgvmakxreoPnovkObfyjSCzhsaidymngstfqgkbocypzglotuahzMojaViltqGmJpBnrIew",
+      )
+      list(1).data.value().asInstanceOf[Struct].getString("name") should be(
+        "oyiirzenfdzzujavsdawjyctxvpckyqkyhzzvmaoimnywcohhSnbquwbixpeDfxttbdhupeKZolcyAjwknobmoucvwoxxytytxg",
+      )
+      list(199).data.value().asInstanceOf[Struct].getString("name") should be(
+        "cfmfgbDpeklnFumaugcdcHokwtockrhsyflNqKbuwsAnXpxqzicbLzleviwhZaaIaylptfegvwFwe",
+      )
+    } finally {
+      inputStream.close()
+      sizeStream.close()
+    }
   }
 
 }

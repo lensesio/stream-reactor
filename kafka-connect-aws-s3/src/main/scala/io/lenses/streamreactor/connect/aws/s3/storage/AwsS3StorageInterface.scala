@@ -20,6 +20,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processObjectsAsString
 import org.apache.commons.io.IOUtils
+import software.amazon.awssdk.core.ResponseInputStream
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model._
@@ -34,7 +35,7 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class AwsS3StorageInterface(implicit connectorTaskId: ConnectorTaskId, s3Client: S3Client)
+class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: S3Client)
     extends AwsS3DirectoryLister
     with StorageInterface
     with LazyLogging {
@@ -130,7 +131,7 @@ class AwsS3StorageInterface(implicit connectorTaskId: ConnectorTaskId, s3Client:
     }
   }
 
-  private def getBlobInner(bucket: String, path: String) = {
+  private def getBlobInner(bucket: String, path: String): ResponseInputStream[GetObjectResponse] = {
     val request = GetObjectRequest
       .builder()
       .bucket(bucket)
@@ -142,7 +143,7 @@ class AwsS3StorageInterface(implicit connectorTaskId: ConnectorTaskId, s3Client:
       )
   }
 
-  private def headBlobInner(bucket: String, path: String) =
+  private def headBlobInner(bucket: String, path: String): HeadObjectResponse =
     s3Client
       .headObject(
         HeadObjectRequest

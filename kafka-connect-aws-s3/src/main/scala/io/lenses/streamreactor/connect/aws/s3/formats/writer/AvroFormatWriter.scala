@@ -32,7 +32,7 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class AvroFormatWriter(outputStreamFn: () => S3OutputStream)(implicit compressionCodec: CompressionCodec)
+class AvroFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: CompressionCodec)
     extends S3FormatWriter
     with LazyLogging {
 
@@ -61,7 +61,6 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream)(implicit compressio
       avroWriterState = Some(
         avroWriterState
           .getOrElse {
-            val outputStream = outputStreamFn()
             Try(new AvroWriterState(outputStream, valueSinkData.schema())) match {
               case Failure(exception) =>
                 exception.printStackTrace(); throw exception

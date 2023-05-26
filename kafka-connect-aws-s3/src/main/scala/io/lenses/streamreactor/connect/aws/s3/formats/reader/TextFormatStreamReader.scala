@@ -22,15 +22,17 @@ import java.io.InputStream
 import scala.io.Source
 import scala.util.Try
 
-class TextFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: S3Location)
+class TextFormatStreamReader(inputStream: InputStream, bucketAndPath: S3Location)
     extends S3FormatStreamReader[StringSourceData] {
 
-  private val inputStream: InputStream = inputStreamFn()
-  private val source        = Source.fromInputStream(inputStream, "UTF-8")
-  protected val sourceLines = source.getLines()
-  protected var lineNumber: Long = -1
+  private val source = Source.fromInputStream(inputStream, "UTF-8")
+  protected val sourceLines: Iterator[String] = source.getLines()
+  protected var lineNumber:  Long             = -1
 
-  override def close(): Unit = { val _ = Try(source.close()) }
+  override def close(): Unit = {
+    Try(source.close())
+    ()
+  }
 
   override def hasNext: Boolean = sourceLines.hasNext
 

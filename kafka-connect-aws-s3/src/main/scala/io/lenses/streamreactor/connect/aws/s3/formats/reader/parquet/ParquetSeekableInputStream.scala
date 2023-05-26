@@ -22,7 +22,9 @@ import org.apache.parquet.io.SeekableInputStream
 import java.io.InputStream
 import java.nio.ByteBuffer
 
-class ParquetSeekableInputStream(inputStreamFn: () => InputStream) extends SeekableInputStream with LazyLogging {
+class ParquetSeekableInputStream(is: InputStream, recreateStreamF: () => InputStream)
+    extends SeekableInputStream
+    with LazyLogging {
 
   /**
     * The InceptionDelegatingInputStream delegates to a DelegatingInputStream for the read operations (so as to avoid
@@ -35,7 +37,8 @@ class ParquetSeekableInputStream(inputStreamFn: () => InputStream) extends Seeka
     *
     * @param inputStream the actual inputStream containing Parquet data from S3
     */
-  class InceptionDelegatingInputStream(inputStream: InputStream) extends DelegatingSeekableInputStream(inputStream) {
+  private class InceptionDelegatingInputStream(inputStream: InputStream)
+      extends DelegatingSeekableInputStream(inputStream) {
     override def getPos: Long = ParquetSeekableInputStream.this.getPos
 
     override def seek(newPos: Long): Unit = ParquetSeekableInputStream.this.seek(newPos)
@@ -43,16 +46,8 @@ class ParquetSeekableInputStream(inputStreamFn: () => InputStream) extends Seeka
 
   private var pos: Long = 0
 
-  private var inputStream:          InputStream                   = _
-  private var inceptionInputStream: DelegatingSeekableInputStream = _
-
-  createInputStream()
-
-  private def createInputStream(): Unit = {
-    logger.debug(s"Recreating input stream")
-    inputStream          = inputStreamFn()
-    inceptionInputStream = new InceptionDelegatingInputStream(inputStream)
-  }
+  private var inputStream:          InputStream                   = is
+  private var inceptionInputStream: DelegatingSeekableInputStream = new InceptionDelegatingInputStream(inputStream)
 
   override def getPos: Long = {
     logger.debug("Retrieving position: " + pos)
@@ -62,8 +57,10 @@ class ParquetSeekableInputStream(inputStreamFn: () => InputStream) extends Seeka
   override def seek(newPos: Long): Unit = {
     logger.debug(s"Seeking from $pos to position $newPos")
     if (newPos < pos) {
-      createInputStream()
-      inputStream.skip(newPos)
+      //recreate the stream
+      inputStream.close()
+      inputStream          = recreateStreamF()
+      inceptionInputStream = new InceptionDelegatingInputStream(inputStream)
     } else {
       inputStream.skip(newPos - pos)
     }

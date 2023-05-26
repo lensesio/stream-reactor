@@ -27,11 +27,11 @@ import software.amazon.awssdk.services.s3.S3Client
 
 class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
 
-  implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
+  private val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
 
   "dirLister" should "list all directories" in {
 
-    implicit val testS3Client: S3Client = new MockS3Client(
+    val s3Client: S3Client = new MockS3Client(
       S3Page(
         "prefix1/1.txt",
         "prefix1/2.txt",
@@ -39,7 +39,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
         "prefix2/4.txt",
       ),
     )
-    val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface()
+    val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface(connectorTaskId, s3Client)
     directoryLister.findDirectories(
       S3Location("bucket", "prefix1/".some),
       DirectoryFindCompletionConfig(1, none, none, Clock[IO]),
@@ -60,7 +60,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
 
   "dirLister" should "list multiple pages" in {
 
-    implicit val testS3Client: S3Client = new MockS3Client(
+    val s3Client: S3Client = new MockS3Client(
       S3Page(
         "prefix1/1.txt",
         "prefix1/2.txt",
@@ -74,7 +74,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
         "prefix4/8.txt",
       ),
     )
-    val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface()
+    val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface(connectorTaskId, s3Client)
     directoryLister.findDirectories(
       S3Location("bucket", none),
       DirectoryFindCompletionConfig(1, none, none, Clock[IO]),
@@ -87,7 +87,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
 
   "dirLister" should "exclude directories" in {
 
-    implicit val testS3Client: S3Client = new MockS3Client(
+    val s3Client: S3Client = new MockS3Client(
       S3Page(
         "prefix1/1.txt",
         "prefix1/2.txt",
@@ -101,7 +101,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
         "prefix4/8.txt",
       ),
     )
-    val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface()
+    val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface(connectorTaskId, s3Client)
     directoryLister.findDirectories(
       S3Location("bucket", none),
       DirectoryFindCompletionConfig(1, none, none, Clock[IO]),
@@ -114,7 +114,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
 
   "dirLister" should "return after first page of prefixes found" in {
 
-    implicit val testS3Client: S3Client = new MockS3Client(
+    val s3Client: S3Client = new MockS3Client(
       S3Page(
         "prefix1/1.txt",
         "prefix1/2.txt",
@@ -128,7 +128,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
         "prefix4/8.txt",
       ),
     )
-    val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface()
+    val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface(connectorTaskId, s3Client)
     directoryLister.findDirectories(
       S3Location("bucket", none),
       DirectoryFindCompletionConfig(1, 1.some, none, Clock[IO]),
