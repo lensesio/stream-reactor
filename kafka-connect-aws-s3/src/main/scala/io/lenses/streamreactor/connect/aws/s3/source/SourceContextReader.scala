@@ -17,6 +17,9 @@ package io.lenses.streamreactor.connect.aws.s3.source
 
 import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.LineKey
+import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.PathKey
+import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.TimeStampKey
 import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.fromSourcePartition
 import org.apache.kafka.connect.source.SourceTaskContext
 
@@ -34,9 +37,9 @@ object SourceContextReader {
     val key = fromSourcePartition(sourceRoot).asJava
     for {
       offsetMap <- Try(context().offsetStorageReader.offset(key).asScala).toOption.filterNot(_ == null)
-      path      <- offsetMap.get("path").collect { case value: String => value }
-      line      <- offsetMap.get("line").collect { case value: String if value forall Character.isDigit => value.toInt }
-      ts = offsetMap.get("ts").collect {
+      path      <- offsetMap.get(PathKey).collect { case value: String => value }
+      line      <- offsetMap.get(LineKey).collect { case value: String if value forall Character.isDigit => value.toInt }
+      ts = offsetMap.get(TimeStampKey).collect {
         case value: String if value forall Character.isDigit => Instant.ofEpochMilli(value.toLong)
       }
     } yield {
