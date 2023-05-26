@@ -64,7 +64,7 @@ object S3SourceTaskState {
       )
 
     } yield {
-      val readerManagerCreateFn: (S3Location, String) => ReaderManager = (root, rootPath) => {
+      val readerManagerCreateFn: (S3Location, String) => ReaderManager = (root, _) => {
         val sbo = config.bucketOptions.find(sb => sb.sourceBucketAndPrefix == root).getOrElse(
           throw new ConnectException("no root found"),
         )
@@ -73,9 +73,5 @@ object S3SourceTaskState {
       val readerManagerService =
         new ReaderManagerService(config.partitionSearcher, partitionSearcher, readerManagerCreateFn)
       new S3SourceTaskState(() => readerManagerService.getReaderManagers)
-    }
-  }
-    .leftMap {
-      case s: String => new WrappedSourceException(s)
     }
 }
