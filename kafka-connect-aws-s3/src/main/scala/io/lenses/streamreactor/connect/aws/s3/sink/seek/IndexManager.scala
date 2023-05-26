@@ -28,7 +28,7 @@ import io.lenses.streamreactor.connect.aws.s3.storage.FileDeleteError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
-import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processObjectsAsString
+import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processAsKey
 class IndexManager(
   maxIndexes: Int,
 )(
@@ -52,7 +52,7 @@ class IndexManager(
     storageInterface.listRecursive(
       bucket,
       indexFileLocation.some,
-      processObjectsAsString,
+      processAsKey,
     )
       .leftMap { e =>
         val logLine = s"Couldn't retrieve listing for (${mostRecentIndexFile}})"
@@ -146,7 +146,7 @@ class IndexManager(
     storageInterface.listRecursive(
       bucket,
       indexLocation.some,
-      processObjectsAsString,
+      processAsKey,
     )
       .leftMap { e =>
         logger.error("Error retrieving listing", e.exception)

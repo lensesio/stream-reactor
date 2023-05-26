@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.utils
 import cats.implicits.catsSyntaxOptionId
 import com.google.common.io.ByteStreams
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processObjectsAsString
+import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processAsKey
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.utils.ThrowableEither._
 
@@ -31,7 +31,7 @@ import java.time.Instant
 class RemoteFileHelper(implicit connectorTaskId: ConnectorTaskId, storageInterface: StorageInterface) {
 
   def listBucketPath(bucketName: String, prefix: String): List[String] =
-    storageInterface.listRecursive(bucketName, prefix.some, processObjectsAsString).toThrowable.map(
+    storageInterface.listRecursive(bucketName, prefix.some, processAsKey).toThrowable.map(
       _.files,
     ).toList.flatten
 

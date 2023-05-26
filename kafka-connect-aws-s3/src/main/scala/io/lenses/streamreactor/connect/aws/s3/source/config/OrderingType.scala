@@ -32,7 +32,7 @@ object OrderingType extends Enum[OrderingType] {
   case object AlphaNumeric extends OrderingType {
     override def getBatchLister: BatchLister = DefaultOrderingBatchLister
   }
-  case object LastModifiedDate extends OrderingType {
+  case object LastModified extends OrderingType {
     override def getBatchLister: BatchLister = DateOrderingBatchLister
   }
 

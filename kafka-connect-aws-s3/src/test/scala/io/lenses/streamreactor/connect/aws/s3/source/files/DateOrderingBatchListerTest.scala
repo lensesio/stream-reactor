@@ -40,12 +40,13 @@ class DateOrderingBatchListerTest
     with OptionValues
     with EitherValues {
 
-  private val bucket           = "bucket"
-  private val prefix           = "prefix"
-  private val storageInterface = mock[StorageInterface]
+  private val bucket:           String           = "bucket"
+  private val prefix:           String           = "prefix"
+  private val storageInterface: StorageInterface = mock[StorageInterface]
 
-  private val listerFn = DateOrderingBatchLister.listBatch(storageInterface, bucket, prefix.some, 10) _
-  private val instBase = Instant.now
+  private val listerFn: Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]] =
+    DateOrderingBatchLister.listBatch(storageInterface, bucket, prefix.some, 10)
+  private val instBase: Instant = Instant.now
   private def instant(no: Int): Instant = {
     require(no <= 100)
     instBase.minus((100 - no).toLong, ChronoUnit.DAYS)

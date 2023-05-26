@@ -41,7 +41,7 @@ object ResultProcessors {
 
   }
 
-  def processObjectsAsString(
+  def processAsKey(
     bucket:    String,
     prefix:    Option[String],
     objectSeq: Seq[S3Object],
