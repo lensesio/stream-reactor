@@ -21,8 +21,6 @@ import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAscii
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.sink.SinkContextReader
-import io.lenses.streamreactor.connect.aws.s3.source.state.CleanS3SourceTaskState
 import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceTaskState
 import io.lenses.streamreactor.connect.aws.s3.utils.MapUtils
 import org.apache.kafka.connect.source.SourceRecord

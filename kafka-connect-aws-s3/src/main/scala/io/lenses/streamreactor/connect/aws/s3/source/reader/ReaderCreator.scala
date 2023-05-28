@@ -45,19 +45,22 @@ class ReaderCreator(
     pathWithLine.pathOrError(
       fnAction = path => {
         for {
-          inputStream <- storageInterface.getBlob(pathWithLine.bucket, path).leftMap(new IllegalStateException(_))
-          fileSize <- storageInterface.getBlobSize(pathWithLine.bucket, path).leftMap(new IllegalStateException(_))
+          inputStream <- storageInterface.getBlob(pathWithLine.bucket, path).leftMap(_.toException)
+          fileSize    <- storageInterface.getBlobSize(pathWithLine.bucket, path).leftMap(_.toException)
           _ <- Try(logger.info(
             s"[${connectorTaskId.show}] Reading next file: ${pathWithLine.show} from line ${pathWithLine.line}",
           )).toEither
 
           reader = S3FormatStreamReader(inputStream,
-            fileSize,
-            format,
-            pathWithLine,
-            () => storageInterface.getBlob(pathWithLine.bucket, path).leftMap(new IllegalStateException(_)),
+                                        fileSize,
+                                        format,
+                                        pathWithLine,
+                                        () => storageInterface.getBlob(pathWithLine.bucket, path).leftMap(_.toException),
           )
-          _ <- if (pathWithLine.line.isDefined && pathWithLine.isFromStart) IteratorOps.skip(reader, pathWithLine.line) else Right(())
+          _ <- pathWithLine.line match {
+            case Some(value) if value >= 0 => IteratorOps.skip(reader, value)
+            case _                         => Right(())
+          }
         } yield reader
       },
       fnErr = () => {

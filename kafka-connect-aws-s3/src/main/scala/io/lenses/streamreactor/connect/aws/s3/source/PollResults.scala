@@ -26,8 +26,6 @@ case class PollResults(
   targetTopic:   String,
   partitionFn:   String => Option[Int],
 ) {
-
-  def toSourceRecordList: Either[Throwable, Seq[SourceRecord]] =
-    resultList.map(_.toSourceRecord(bucketAndPath, targetTopic, partitionFn)).toList.traverse(identity)
-
+  def toSourceRecordList: Either[Throwable, Vector[SourceRecord]] =
+    resultList.map(_.toSourceRecord(bucketAndPath, targetTopic, partitionFn)).traverse(identity)
 }

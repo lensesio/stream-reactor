@@ -18,7 +18,6 @@ import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.WrappedSourceException
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcher
 import io.lenses.streamreactor.connect.aws.s3.source.reader.ReaderManager
@@ -29,6 +28,7 @@ import org.apache.kafka.connect.source.SourceRecord
 
 import java.io.Closeable
 import java.util
+import scala.util.Try
 
 class S3SourceTaskState(
   latestReaderManagersFn: () => Seq[ReaderManager],
@@ -38,18 +38,18 @@ class S3SourceTaskState(
     latestReaderManagersFn().foreach(_.close())
 
   def poll(): Either[Throwable, Seq[SourceRecord]] =
-    latestReaderManagersFn()
-      .flatMap(_.poll())
-      .flatMap(_.toSourceRecordList)
-      .asRight[Throwable]
-
+    for {
+      readers       <- Try(latestReaderManagersFn()).toEither
+      pollResults   <- Try(readers.flatMap(_.poll())).toEither
+      sourceRecords <- pollResults.traverse(_.toSourceRecordList)
+    } yield sourceRecords.flatten
 }
 
 object S3SourceTaskState {
   def make(
     props:           util.Map[String, String],
     contextOffsetFn: S3Location => Option[S3Location],
-  ): Either[Throwable, S3SourceTaskState] = {
+  ): Either[Throwable, S3SourceTaskState] =
     for {
       connectorTaskId <- ConnectorTaskId.fromProps(props)
       config          <- S3SourceConfig.fromProps(props)

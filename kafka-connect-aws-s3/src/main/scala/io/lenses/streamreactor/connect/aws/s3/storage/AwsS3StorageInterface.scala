@@ -17,8 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processObjectsAsString
+import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processAsKey
 import org.apache.commons.io.IOUtils
 import software.amazon.awssdk.core.ResponseInputStream
 import software.amazon.awssdk.core.sync.RequestBody
