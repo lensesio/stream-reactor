@@ -255,3 +255,15 @@ verify its accuracy, it will be returned in ascending order based on that "row" 
   [Schema Registry]: https://github.com/confluentinc/schema-registry
   [Semantic Versioning]: http://semver.org
   [Zookeeper]: https://zookeeper.apache.org
+
+## Implementation details of different modes
+### Basic Mode with Storage Write API 
+Click [here](https://docs.google.com/document/d/13XSXDOKq6IR7t-EI-27hJPhXvIFKF33ctYJtAl0p70A/edit?usp=sharing) to read the implementation details of basic mode with Storage Write API
+
+### Batch Mode with Storage Write API
+Click [here](https://docs.google.com/document/d/1g3-W-Zh2m3JK4smnn0t4T7x2_z7Mx_0nRpYNX9GEagU/edit?usp=sharing) to read the implementation details of batch mode with Storage Write API
+    
+### Upsert/Delete with Legacy InsertAll API
+Click [here](https://docs.google.com/document/d/1p8_rLQqR9GIALIruB3-MjqR8EgYdaEw2rlFF1fxRJf0/edit#heading=h.lfiuaruj2s8y) to read the implementation details of upsert/delete mode with Storage Write API
+
+    
