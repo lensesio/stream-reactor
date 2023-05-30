@@ -56,15 +56,14 @@ class PartitionSearcher(
     }
 
   private def findNewPartitionsInRoot(
-    root:       S3Location,
-    settings:   PartitionSearcherOptions,
-    exclude:    Set[String],
-    resumeFrom: Option[String],
-    clock:      Clock[IO],
+    root:               S3Location,
+    settings:           PartitionSearcherOptions,
+    originalPartitions: Set[String],
+    resumeFrom:         Option[String],
+    clock:              Clock[IO],
   ): IO[PartitionSearcherResponse] =
     for {
-      originalPartitions <- IO.delay(exclude)
-      searchOpts         <- DirectoryFindCompletionConfig.fromSearchOptions(settings, clock)
+      searchOpts <- DirectoryFindCompletionConfig.fromSearchOptions(settings, clock)
       foundPartitions <-
         storageInterface.findDirectories(
           root,
@@ -82,7 +81,7 @@ class PartitionSearcher(
       Option.empty,
     )
 
-  private def resumeFrom(prevResponse: PartitionSearcherResponse) =
+  private def resumeFrom(prevResponse: PartitionSearcherResponse): Option[String] =
     prevResponse.results match {
       case PausedDirectoryFindResults(_, _, resumeFrom) => resumeFrom.some
       case CompletedDirectoryFindResults(_)             => none

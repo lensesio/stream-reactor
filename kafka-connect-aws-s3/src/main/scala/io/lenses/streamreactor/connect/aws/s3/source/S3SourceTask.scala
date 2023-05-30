@@ -15,8 +15,9 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source
 
+import cats.effect.IO
 import cats.implicits.catsSyntaxOptionId
-import cats.implicits.toBifunctorOps
+import cats.effect.unsafe.implicits.global
 import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
@@ -36,6 +37,7 @@ class S3SourceTask extends SourceTask with LazyLogging {
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
+  @volatile
   private var s3SourceTaskState: Option[S3SourceTaskState] = None
 
   override def version(): String = manifest.version()
@@ -52,9 +54,12 @@ class S3SourceTask extends SourceTask with LazyLogging {
     val mergedProperties = MapUtils.mergeProps(Option(context.configs()).map(_.asScala.toMap).getOrElse(Map.empty),
                                                props.asScala.toMap,
     ).asJava
-    S3SourceTaskState.make(mergedProperties, contextOffsetFn).leftMap(throw _).foreach(state =>
-      s3SourceTaskState = state.some,
-    )
+    (for {
+      state <- S3SourceTaskState.make(mergedProperties, contextOffsetFn)
+      _ <- IO.delay {
+        s3SourceTaskState = state.some
+      }
+    } yield ()).unsafeRunSync()
   }
 
   override def stop(): Unit = {

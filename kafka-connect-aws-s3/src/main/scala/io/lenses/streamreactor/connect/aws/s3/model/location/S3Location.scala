@@ -41,7 +41,7 @@ case class S3Location(
     copy(line = lineNum.some)
 
   def fromStart(): S3Location =
-    copy(line = -1.some)
+    copy(line = (-1).some)
 
   def isFromStart: Boolean = line.contains(-1)
 
@@ -51,15 +51,6 @@ case class S3Location(
   def pathOrUnknown: String = path.getOrElse("(Unavailable)")
 
   def prefixOrDefault(): String = prefix.getOrElse("")
-
-  def pathOrError[B, E](
-    fnAction: String => Either[E, B],
-    fnErr:    () => E,
-  ): Either[E, B] =
-    for {
-      pth   <- path.toRight(fnErr())
-      fnRes <- fnAction(pth)
-    } yield fnRes
 
   def validate(allowSlash: Boolean): Validated[Throwable, S3Location] =
     S3LocationValidator.validate(this, allowSlash)

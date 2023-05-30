@@ -38,31 +38,24 @@ class ReaderManagerService(
   settings:              PartitionSearcherOptions,
   partitionSearcher:     PartitionSearcher,
   readerManagerCreateFn: (S3Location, String) => ReaderManager,
+  readerManagerState:    Ref[IO, ReaderManagerState],
 ) extends LazyLogging {
-
-  private val readerManagerState: Ref[IO, ReaderManagerState] =
-    Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty)).unsafeRunSync()
 
   def getReaderManagers: Seq[ReaderManager] = {
     launchDiscover().unsafeRunSync()
     readerManagerState.get.map(_.readerManagers).unsafeRunSync()
   }
 
-  private def launchDiscover(): IO[Unit] = {
+  private def launchDiscover(): IO[Unit] =
     for {
-      ioState       <- readerManagerState.get
-      lastSearchTime = ioState.lastSearchTime
-      rediscoverDue <- settings.rediscoverDue(lastSearchTime)
-    } yield {
-      if (rediscoverDue && settings.blockOnSearch) {
-        rediscover()
-      } else if (rediscoverDue && !settings.blockOnSearch) {
-        rediscover().background.use_
-      } else {
-        IO.unit
-      }
-    }
-  }.flatten
+      state         <- readerManagerState.get
+      lastSearchTime = state.lastSearchTime
+      rediscoverDue <- settings.shouldRediscover(lastSearchTime)
+      u <- if (rediscoverDue) {
+        if (settings.blockOnSearch) rediscover()
+        else rediscover().background.use_
+      } else IO.unit
+    } yield u
 
   private def rediscover(): IO[Unit] =
     for {

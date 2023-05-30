@@ -30,7 +30,7 @@ case class PartitionSearcherOptions(
   clock:                       Clock[IO],
 ) {
 
-  def rediscoverDue(lastSearchTime: Option[Instant]): IO[Boolean] =
+  def shouldRediscover(lastSearchTime: Option[Instant]): IO[Boolean] =
     lastSearchTime.fold(IO(true)) {
       lst =>
         for {

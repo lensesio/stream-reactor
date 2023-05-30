@@ -106,10 +106,7 @@ class S3Writer(
       case uploadState @ Uploading(commitState, file, uncommittedOffset) =>
         for {
           finalFileName <- finalFilenameFn(uncommittedOffset)
-          path <- finalFileName.pathOrError(
-            path => path.asRight,
-            () => NonFatalS3SinkError("No path exists within S3Location"),
-          )
+          path <- finalFileName.path.toRight(NonFatalS3SinkError("No path exists within S3Location"))
           indexFileName <- indexManager.write(
             finalFileName.bucket,
             path,

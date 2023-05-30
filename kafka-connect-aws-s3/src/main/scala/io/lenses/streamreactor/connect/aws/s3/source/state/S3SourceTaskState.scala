@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.aws.s3.source.state
+import cats.effect.IO
+import cats.effect.kernel.Ref
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
@@ -22,6 +24,7 @@ import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcher
 import io.lenses.streamreactor.connect.aws.s3.source.reader.ReaderManager
 import io.lenses.streamreactor.connect.aws.s3.source.reader.ReaderManagerService
+import io.lenses.streamreactor.connect.aws.s3.source.reader.ReaderManagerState
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
@@ -49,29 +52,32 @@ object S3SourceTaskState {
   def make(
     props:           util.Map[String, String],
     contextOffsetFn: S3Location => Option[S3Location],
-  ): Either[Throwable, S3SourceTaskState] =
+  ): IO[S3SourceTaskState] =
     for {
-      connectorTaskId <- ConnectorTaskId.fromProps(props)
-      config          <- S3SourceConfig.fromProps(props)
-      s3Client        <- AwsS3ClientCreator.make(config.s3Config)
-      storageInterface = new AwsS3StorageInterface(connectorTaskId, s3Client)
-      partitionSearcher = new PartitionSearcher(
-        config.bucketOptions.map(_.sourceBucketAndPrefix),
-        config.partitionSearcher,
-      )(
-        connectorTaskId,
-        storageInterface,
+      connectorTaskId  <- IO.fromEither(ConnectorTaskId.fromProps(props))
+      config           <- IO.fromEither(S3SourceConfig.fromProps(props))
+      s3Client         <- IO.fromEither(AwsS3ClientCreator.make(config.s3Config))
+      storageInterface <- IO.delay(new AwsS3StorageInterface(connectorTaskId, s3Client))
+      partitionSearcher <- IO.delay(
+        new PartitionSearcher(
+          config.bucketOptions.map(_.sourceBucketAndPrefix),
+          config.partitionSearcher,
+        )(
+          connectorTaskId,
+          storageInterface,
+        ),
       )
 
+      readerManagerState <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
     } yield {
       val readerManagerCreateFn: (S3Location, String) => ReaderManager = (root, _) => {
         val sbo = config.bucketOptions.find(sb => sb.sourceBucketAndPrefix == root).getOrElse(
           throw new ConnectException("no root found"),
         )
-        ReaderManager(root, sbo)(connectorTaskId, storageInterface, contextOffsetFn)
+        ReaderManager(root, sbo, connectorTaskId, storageInterface, contextOffsetFn)
       }
       val readerManagerService =
-        new ReaderManagerService(config.partitionSearcher, partitionSearcher, readerManagerCreateFn)
+        new ReaderManagerService(config.partitionSearcher, partitionSearcher, readerManagerCreateFn, readerManagerState)
       new S3SourceTaskState(() => readerManagerService.getReaderManagers)
     }
 }

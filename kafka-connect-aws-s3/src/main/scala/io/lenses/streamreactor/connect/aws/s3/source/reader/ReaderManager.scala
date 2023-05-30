@@ -30,12 +30,10 @@ import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
   * Given a sourceBucketOptions, manages readers for all of the files
   */
 class ReaderManager(
-  recordsLimit:   Int,
-  startingOffset: Option[S3Location],
-  fileSource:     SourceFileQueue,
-  readerFn:       S3Location => Either[Throwable, ResultReader],
-)(
-  implicit
+  recordsLimit:    Int,
+  startingOffset:  Option[S3Location],
+  fileSource:      SourceFileQueue,
+  readerFn:        S3Location => Either[Throwable, ResultReader],
   connectorTaskId: ConnectorTaskId,
 ) extends LazyLogging
     with AutoCloseable {
@@ -164,10 +162,8 @@ class ReaderManager(
 object ReaderManager {
 
   def apply(
-    root:  S3Location,
-    bOpts: SourceBucketOptions,
-  )(
-    implicit
+    root:             S3Location,
+    bOpts:            SourceBucketOptions,
     connectorTaskId:  ConnectorTaskId,
     storageInterface: StorageInterface,
     contextOffsetFn:  S3Location => Option[S3Location],
@@ -179,6 +175,12 @@ object ReaderManager {
         bOpts.createBatchListerFn(storageInterface),
         storageInterface.getBlobModified,
       ),
-      new ReaderCreator(bOpts.format, bOpts.targetTopic, bOpts.getPartitionExtractorFn).create,
+      ResultReader.create(bOpts.format,
+                          bOpts.targetTopic,
+                          bOpts.getPartitionExtractorFn,
+                          connectorTaskId,
+                          storageInterface,
+      ),
+      connectorTaskId,
     )
 }
