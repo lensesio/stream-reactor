@@ -61,6 +61,7 @@ class ParquetSeekableInputStream(is: InputStream, recreateStreamF: () => InputSt
       inputStream.close()
       inputStream          = recreateStreamF()
       inceptionInputStream = new InceptionDelegatingInputStream(inputStream)
+      inputStream.skip(newPos)
     } else {
       inputStream.skip(newPos - pos)
     }

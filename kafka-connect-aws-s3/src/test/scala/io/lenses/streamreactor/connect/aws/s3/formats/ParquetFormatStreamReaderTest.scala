@@ -22,6 +22,7 @@ import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.io.InputStream
 import scala.util.Try
 
 class ParquetFormatStreamReaderTest extends AnyFlatSpec with Matchers {
@@ -29,11 +30,12 @@ class ParquetFormatStreamReaderTest extends AnyFlatSpec with Matchers {
   private val bucketAndPath = mock[S3Location]
 
   "iteration" should "read parquet files" in {
-    val inputStreamFn = () => getClass.getResourceAsStream("/parquet/1.parquet")
+    val inputStreamFn: () => InputStream = () => getClass.getResourceAsStream("/parquet/1.parquet")
     val streamSize = {
       val stream = inputStreamFn()
       try {
-        stream.readAllBytes().length
+        val size = stream.readAllBytes().length
+        size
       } finally {
         stream.close()
       }
