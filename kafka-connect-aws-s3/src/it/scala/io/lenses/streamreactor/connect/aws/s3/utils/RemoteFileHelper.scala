@@ -21,19 +21,19 @@ import com.google.common.io.ByteStreams
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processAsKey
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
-import io.lenses.streamreactor.connect.aws.s3.utils.ThrowableEither._
 
 import java.io.File
 import java.io.InputStream
 import java.nio.file.Files
 import java.time.Instant
 
-class RemoteFileHelper(implicit connectorTaskId: ConnectorTaskId, storageInterface: StorageInterface) {
+class RemoteFileHelper(storageInterface: StorageInterface) {
 
   def listBucketPath(bucketName: String, prefix: String): List[String] =
-    storageInterface.listRecursive(bucketName, prefix.some, processAsKey).toThrowable.map(
-      _.files,
-    ).toList.flatten
+    storageInterface.listRecursive(bucketName, prefix.some, processAsKey) match {
+      case Left(value)  => throw new RuntimeException(value.exception)
+      case Right(value) => value.map(_.files).toList.flatten
+    }
 
   def remoteFileAsBytes(bucketName: String, fileName: String): Array[Byte] =
     streamToByteArray(remoteFileAsStream(bucketName, fileName))
@@ -42,7 +42,10 @@ class RemoteFileHelper(implicit connectorTaskId: ConnectorTaskId, storageInterfa
     Files.readAllBytes(localFile.toPath)
 
   def remoteFileAsStream(bucketName: String, fileName: String): InputStream =
-    storageInterface.getBlob(bucketName, fileName).toThrowable
+    storageInterface.getBlob(bucketName, fileName) match {
+      case Left(value)  => throw new RuntimeException(value.exception)
+      case Right(value) => value
+    }
 
   def remoteFileAsString(bucketName: String, fileName: String): String =
     streamToString(remoteFileAsStream(bucketName, fileName))
@@ -54,9 +57,15 @@ class RemoteFileHelper(implicit connectorTaskId: ConnectorTaskId, storageInterfa
     ByteStreams.toByteArray(inputStream)
 
   def getFileSize(bucket: String, path: String): Long =
-    storageInterface.getBlobSize(bucket, path).toThrowable
+    storageInterface.getBlobSize(bucket, path) match {
+      case Left(value)  => throw new RuntimeException(value.exception)
+      case Right(value) => value
+    }
 
   def getModificationDate(bucket: String, path: String): Instant =
-    storageInterface.getBlobModified(bucket, path).toThrowable
+    storageInterface.getBlobModified(bucket, path) match {
+      case Left(value)  => throw new RuntimeException(value.exception)
+      case Right(value) => value
+    }
 
 }

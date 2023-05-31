@@ -3,12 +3,10 @@ package io.lenses.streamreactor.connect.aws.s3.utils
 import com.dimafeng.testcontainers.ForAllTestContainer
 import com.dimafeng.testcontainers.GenericContainer
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
+import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.AwsClient
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import ThrowableEither._
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
@@ -71,22 +69,19 @@ trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with Laz
 
   override def afterStart(): Unit = {
 
-    {
+    val (sI, sC) = {
       for {
-        authResource     <- Try(new AuthResources(s3Config)).toEither
-        awsAuthResource  <- authResource.aws
-        storageInterface <- Try(new AwsS3StorageInterface()(connectorTaskId, awsAuthResource)).toEither
-      } yield (storageInterface, awsAuthResource)
-    }
-      .toThrowable match {
-      case (sI, sC) =>
-        storageInterfaceOpt = Some(sI)
-        s3ClientOpt         = Some(sC)
-        helperOpt           = Some(new RemoteFileHelper()(connectorTaskId, sI))
-    }
+        client           <- AwsS3ClientCreator.make(s3Config)
+        storageInterface <- Try(new AwsS3StorageInterface(connectorTaskId, client)).toEither
+      } yield (storageInterface, client)
+    }.getOrElse(fail("Failed to create S3 client"))
+
+    storageInterfaceOpt = Some(sI)
+    s3ClientOpt         = Some(sC)
+    helperOpt           = Some(new RemoteFileHelper(sI))
 
     logger.debug("Creating test bucket")
-    createTestBucket().toThrowable
+    createTestBucket().getOrElse(fail("Failed to create test bucket"))
     setUpTestData()
 
     localRoot = Files.createTempDirectory("blah").toFile
@@ -97,11 +92,10 @@ trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with Laz
 
   def setUpTestData(): Unit = {}
 
-  def s3Config = S3Config(
-    region    = Some("us-east-1"),
-    accessKey = Some(Identity),
-    secretKey = Some(Credential),
-    AwsClient.Aws,
+  def s3Config: S3Config = S3Config(
+    region                   = Some("us-east-1"),
+    accessKey                = Some(Identity),
+    secretKey                = Some(Credential),
     authMode                 = AuthMode.Credentials,
     customEndpoint           = Some(uri()),
     enableVirtualHostBuckets = true,

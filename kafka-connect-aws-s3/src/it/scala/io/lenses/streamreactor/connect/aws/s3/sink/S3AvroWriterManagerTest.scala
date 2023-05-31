@@ -55,7 +55,6 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       None,
       Some(Identity),
       Some(Credential),
-      AwsClient.Aws,
       AuthMode.Credentials,
     ),
     bucketOptions = Seq(
