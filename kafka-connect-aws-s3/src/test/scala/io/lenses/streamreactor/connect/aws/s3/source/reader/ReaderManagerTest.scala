@@ -15,6 +15,9 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.reader
 
+import cats.effect.IO
+import cats.effect.Ref
+import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
@@ -42,9 +45,8 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
     val fileQueueProcessor: SourceFileQueue = mock[SourceFileQueue]
 
     var locationFnCalls = 0
-    val target = new ReaderManager(
+    val target = ReaderManager(
       recordsLimit,
-      None,
       fileQueueProcessor,
       _ =>
         Left {
@@ -52,11 +54,12 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
           new RuntimeException("ShouldNot be called")
         },
       connectorTaskId,
+      Ref[IO].of(Option.empty[ResultReader]).unsafeRunSync(),
     )
 
     when(fileQueueProcessor.next()).thenReturn(None.asRight)
 
-    target.poll() should be(empty)
+    target.poll().unsafeRunSync() should be(empty)
 
     verify(fileQueueProcessor).next()
     locationFnCalls shouldBe 0
@@ -93,20 +96,18 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
       resultReader.getLocation,
     ).thenReturn(firstFileBucketAndPath)
 
-    when(fileQueueProcessor.markFileComplete(firstFileBucketAndPath)).thenReturn(().asRight)
-
-    val target = new ReaderManager(
+    val target = ReaderManager(
       recordsLimit,
-      None,
       fileQueueProcessor,
       location => {
         calledLocation = location.some
         resultReader.asRight
       },
       connectorTaskId,
+      Ref[IO].of(Option.empty[ResultReader]).unsafeRunSync(),
     )
 
-    target.poll() should be(Seq(pollResults))
+    target.poll().unsafeRunSync() should be(Vector(pollResults))
 
     verify(fileQueueProcessor, times(2)).next()
     calledLocation shouldBe firstFileBucketAndPathAndLine.some

@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.source.reader
 
 import cats.effect.IO
 import cats.effect.kernel.Ref
-import cats.effect.unsafe.implicits.global
+import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions
@@ -37,14 +37,16 @@ case class ReaderManagerState(
 class ReaderManagerService(
   settings:              PartitionSearcherOptions,
   partitionSearcher:     PartitionSearcher,
-  readerManagerCreateFn: (S3Location, String) => ReaderManager,
+  readerManagerCreateFn: (S3Location, String) => IO[ReaderManager],
   readerManagerState:    Ref[IO, ReaderManagerState],
 ) extends LazyLogging {
 
-  def getReaderManagers: Seq[ReaderManager] = {
-    launchDiscover().unsafeRunSync()
-    readerManagerState.get.map(_.readerManagers).unsafeRunSync()
-  }
+  def getReaderManagers: IO[Seq[ReaderManager]] =
+    for {
+      //TODO: why is this requested here?. this is a get, and should be a pure function
+      _     <- launchDiscover()
+      state <- readerManagerState.get
+    } yield state.readerManagers
 
   private def launchDiscover(): IO[Unit] =
     for {
@@ -62,11 +64,9 @@ class ReaderManagerService(
       _        <- IO(logger.debug("calculating updated state"))
       oldState <- readerManagerState.get
       newParts <- partitionSearcher.findNewPartitions(oldState.partitionResponses)
-      newReaderManagers = newParts
+      newReaderManagers <- newParts
         .flatMap(part => part.results.partitions.map(part.root -> _))
-        .map {
-          case (location, res) => readerManagerCreateFn(location, res)
-        }
+        .map { case (location, res) => readerManagerCreateFn(location, res) }.traverse(identity)
       newState = oldState.copy(
         partitionResponses = newParts,
         readerManagers     = oldState.readerManagers ++ newReaderManagers,

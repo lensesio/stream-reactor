@@ -16,8 +16,8 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import cats.effect.IO
-import cats.implicits.catsSyntaxOptionId
 import cats.effect.unsafe.implicits.global
+import cats.implicits.catsSyntaxOptionId
 import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
@@ -64,15 +64,12 @@ class S3SourceTask extends SourceTask with LazyLogging {
 
   override def stop(): Unit = {
     logger.debug(s"Received call to S3SourceTask.stop")
-    s3SourceTaskState.foreach(_.close())
+    s3SourceTaskState.foreach(_.close().attempt.void.unsafeRunSync())
   }
 
   override def poll(): util.List[SourceRecord] =
     s3SourceTaskState.fold(Collections.emptyList[SourceRecord]()) { state =>
-      state.poll() match {
-        case Left(error)  => throw new RuntimeException(error)
-        case Right(value) => value.asJava
-      }
+      state.poll().unsafeRunSync().asJava
     }
 
 }
