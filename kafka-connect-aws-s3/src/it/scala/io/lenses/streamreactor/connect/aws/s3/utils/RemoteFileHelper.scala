@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.aws.s3.utils
 
 import cats.implicits.catsSyntaxOptionId
 import com.google.common.io.ByteStreams
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processAsKey
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
