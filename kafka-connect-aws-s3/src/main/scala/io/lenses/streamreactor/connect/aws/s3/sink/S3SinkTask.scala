@@ -64,9 +64,8 @@ class S3SinkTask extends SinkTask with ErrorHandler {
 
     logger.debug(s"[{}] S3SinkTask.start", connectorTaskId.show)
 
-    val props = MapUtils.mergeProps(Option(context.configs()).map(_.asScala.toMap).getOrElse(Map.empty),
-                                    fallbackProps.asScala.toMap,
-    ).asJava
+    val contextProps = Option(context).flatMap(c => Option(c.configs())).map(_.asScala.toMap).getOrElse(Map.empty)
+    val props        = MapUtils.mergeProps(contextProps, fallbackProps.asScala.toMap).asJava
     val errOrWriterMan = for {
       config          <- S3SinkConfig.fromProps(props)
       s3Client        <- AwsS3ClientCreator.make(config.s3Config)
