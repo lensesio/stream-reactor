@@ -40,18 +40,10 @@ class SequenceBasedLineReader(input: InputStream, skip: Int) {
   private val br           = new java.io.BufferedReader(new java.io.InputStreamReader(input))
   private var currentIndex = -1
   private var currentLine: Option[String] = None
+  private var skipped = skip <= 0
 
-  //skip the first n lines considering file end
-  if (skip > 0) {
-    var line      = br.readLine()
-    var remaining = skip - 1
-    while (line != null && remaining > 0) {
-      line = br.readLine()
-      remaining -= 1
-    }
-  }
-
-  def next(): Option[String] =
+  def next(): Option[String] = {
+    skipLines()
     if (currentIndex == -1) {
       readUntilFirstIndexOrNone().map { line =>
         currentIndex = 1
@@ -70,6 +62,7 @@ class SequenceBasedLineReader(input: InputStream, skip: Int) {
         case None => None
       }
     }
+  }
 
   def close(): Unit = input.close()
 
@@ -97,5 +90,11 @@ class SequenceBasedLineReader(input: InputStream, skip: Int) {
     }
     Option(line)
   }
+
+  private def skipLines(): Unit =
+    if (!skipped) {
+      LineSkipper.skipLines(br, skip)
+      skipped = true
+    }
   private case class ReadResult(nextLine: Option[String], line: String)
 }
