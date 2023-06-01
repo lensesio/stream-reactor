@@ -38,7 +38,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
   "convert" should "write byte output stream with csv for a single record" in {
 
     val outputStream = new S3ByteArrayOutputStream()
-    val formatWriter = new CsvFormatWriter(() => outputStream, true)
+    val formatWriter = new CsvFormatWriter(outputStream, true)
     formatWriter.write(None, StructSinkData(users.head), topic)
 
     val reader = new StringReader(new String(outputStream.toByteArray))
@@ -56,7 +56,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
   "convert" should "write byte output stream with csv for multiple records" in {
 
     val outputStream = new S3ByteArrayOutputStream()
-    val formatWriter = new CsvFormatWriter(() => outputStream, true)
+    val formatWriter = new CsvFormatWriter(outputStream, true)
     firstUsers.foreach(e =>
       formatWriter.write(
         None,
@@ -105,7 +105,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
       .put("myInt64", 64.toLong)
 
     val outputStream = new S3ByteArrayOutputStream()
-    val formatWriter = new CsvFormatWriter(() => outputStream, true)
+    val formatWriter = new CsvFormatWriter(outputStream, true)
     formatWriter.write(None, StructSinkData(struct), topic)
 
     val reader = new StringReader(new String(outputStream.toByteArray))
@@ -139,7 +139,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
       .put("myStringArray", List("cheese", "biscuits").asJava)
 
     val outputStream = new S3ByteArrayOutputStream()
-    val formatWriter = new CsvFormatWriter(() => outputStream, true)
+    val formatWriter = new CsvFormatWriter(outputStream, true)
 
     val caught = formatWriter.write(None, StructSinkData(struct), topic)
     formatWriter.complete()
@@ -160,7 +160,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
       )
 
     val outputStream = new S3ByteArrayOutputStream()
-    val formatWriter = new CsvFormatWriter(() => outputStream, true)
+    val formatWriter = new CsvFormatWriter(outputStream, true)
 
     val caught = formatWriter.write(None, StructSinkData(struct), topic)
     formatWriter.complete()

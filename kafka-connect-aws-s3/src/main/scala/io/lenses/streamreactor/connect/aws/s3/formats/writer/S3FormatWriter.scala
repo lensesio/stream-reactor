@@ -50,25 +50,25 @@ object S3FormatWriter {
     compressionCodec: CompressionCodec,
   ): Either[SinkError, S3FormatWriter] = {
     for {
-      outputStream <- Try(() => new BuildLocalOutputStream(toBufferedOutputStream(path), topicPartition))
+      outputStream <- Try(new BuildLocalOutputStream(toBufferedOutputStream(path), topicPartition))
       writer       <- Try(S3FormatWriter(formatSelection, outputStream))
     } yield writer
   }.toEither.leftMap(ex => NonFatalS3SinkError(ex.getMessage, ex))
 
   def apply(
-    formatInfo:     FormatSelection,
-    outputStreamFn: () => S3OutputStream,
+    formatInfo:   FormatSelection,
+    outputStream: S3OutputStream,
   )(
     implicit
     compressionCodec: CompressionCodec,
   ): S3FormatWriter =
     formatInfo.format match {
-      case Parquet => new ParquetFormatWriter(outputStreamFn)
-      case Json    => new JsonFormatWriter(outputStreamFn)
-      case Avro    => new AvroFormatWriter(outputStreamFn)
-      case Text    => new TextFormatWriter(outputStreamFn)
-      case Csv     => new CsvFormatWriter(outputStreamFn, formatInfo.formatOptions.contains(WithHeaders))
-      case Bytes   => new BytesFormatWriter(outputStreamFn, convertToBytesWriteMode(formatInfo.formatOptions))
+      case Parquet => new ParquetFormatWriter(outputStream)
+      case Json    => new JsonFormatWriter(outputStream)
+      case Avro    => new AvroFormatWriter(outputStream)
+      case Text    => new TextFormatWriter(outputStream)
+      case Csv     => new CsvFormatWriter(outputStream, formatInfo.formatOptions.contains(WithHeaders))
+      case Bytes   => new BytesFormatWriter(outputStream, convertToBytesWriteMode(formatInfo.formatOptions))
       case _       => throw FormatWriterException(s"Unsupported S3 format $formatInfo.format")
     }
 

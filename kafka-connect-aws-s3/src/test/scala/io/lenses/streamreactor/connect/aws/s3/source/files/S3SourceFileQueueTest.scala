@@ -45,61 +45,50 @@ class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar 
   )
   private val lastModified = Instant.now
 
-  private val batchListerFn = mock[Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]]]
-
-  private val blobModifiedFn: (String, String) => Either[FileLoadError, Instant] = (_, _) => Instant.now().asRight
-
-  private val sourceFileQueue = new S3SourceFileQueue(batchListerFn, blobModifiedFn)
-
-  private val order = inOrder(batchListerFn)
-
-  before {
-
-    def listBatch(lastFileMeta: Option[FileMetadata]): Either[FileListError, Option[ListResponse[String]]] = {
-      val num = lastFileMeta match {
-        case Some(lastFile) => lastFile.file.stripSuffix(".json").toInt
-        case None           => -1
-      }
-      extract(num).asRight
+  private def listBatch(lastFileMeta: Option[FileMetadata]): Either[FileListError, Option[ListResponse[String]]] = {
+    val num = lastFileMeta match {
+      case Some(lastFile) => lastFile.file.stripSuffix(".json").toInt
+      case None           => -1
     }
+    extract(num).asRight
+  }
 
-    def extract(num: Int) = {
-      val filesToRet = files.zipWithIndex.toMap.collect {
-        case (file, i) if i == num + 1 || i == num + 2 => file
-      }.toSeq
-      Option.when(filesToRet.nonEmpty)(ListResponse(bucket,
-                                                    prefix.some,
-                                                    filesToRet,
-                                                    FileMetadata(filesToRet.last, lastModified),
-      ))
-    }
+  private def extract(num: Int): Option[ListResponse[String]] = {
+    val filesToRet = files.zipWithIndex.toMap.collect {
+      case (file, i) if i == num + 1 || i == num + 2 => file
+    }.toSeq
+    Option.when(filesToRet.nonEmpty)(ListResponse(bucket,
+                                                  prefix.some,
+                                                  filesToRet,
+                                                  FileMetadata(filesToRet.last, lastModified),
+    ))
+  }
+  "list" should "cache a batch of results from the beginning" in {
+
+    val batchListerFn = mock[Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]]]
+
+    val sourceFileQueue = new S3SourceFileQueue(batchListerFn)
+
+    val order = inOrder(batchListerFn)
 
     doAnswer(x => listBatch(x)).when(batchListerFn)(
       any[Option[FileMetadata]],
     )
-  }
-
-  "list" should "cache a batch of results from the beginning" in {
-
     // file 0 = 0.json
     sourceFileQueue.next() should be(Right(Some(fileLocs(0).atLine(-1).withTimestamp(lastModified))))
     order.verify(batchListerFn)(none)
-    sourceFileQueue.markFileComplete(fileLocs(0))
 
     // file 1 = 1.json
     sourceFileQueue.next() should be(Right(Some(fileLocs(1).atLine(-1).withTimestamp(lastModified))))
     order.verifyNoMoreInteractions()
-    sourceFileQueue.markFileComplete(fileLocs(1))
 
     // file 2 = 2.json
     sourceFileQueue.next() should be(Right(Some(fileLocs(2).atLine(-1).withTimestamp(lastModified))))
     order.verify(batchListerFn)(FileMetadata(files(1), lastModified).some)
-    sourceFileQueue.markFileComplete(fileLocs(2))
 
     // file 3 = 3.json
     sourceFileQueue.next() should be(Right(Some(fileLocs(3).atLine(-1).withTimestamp(lastModified))))
     order.verifyNoMoreInteractions()
-    sourceFileQueue.markFileComplete(fileLocs(3))
 
     // No more files
     sourceFileQueue.next() should be(Right(None))
@@ -113,35 +102,52 @@ class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar 
 
   "list" should "process the init file before reading additional files" in {
 
-    sourceFileQueue.init(fileLocs(2).atLine(1000).withTimestamp(lastModified))
+    val batchListerFn = mock[Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]]]
+    val blobModifiedFn: (String, String) => Either[FileLoadError, Instant] = (_, _) => Instant.now().asRight
 
+    val sourceFileQueue =
+      S3SourceFileQueue.from(batchListerFn, blobModifiedFn, fileLocs(2).atLine(1000).withTimestamp(lastModified))
+
+    val order = inOrder(batchListerFn)
+
+    doAnswer(x => listBatch(x)).when(batchListerFn)(
+      any[Option[FileMetadata]],
+    )
     // file 2 = 2.json
     sourceFileQueue.next() should be(Right(Some(fileLocs(2).atLine(1000).withTimestamp(lastModified))))
-    sourceFileQueue.markFileComplete(fileLocs(2))
 
     // file 3 = 3.json
     sourceFileQueue.next() should be(Right(Some(fileLocs(3).atLine(-1).withTimestamp(lastModified))))
     order.verify(batchListerFn)(FileMetadata(files(2), lastModified).some)
-    sourceFileQueue.markFileComplete(fileLocs(3))
 
     // No more files
     sourceFileQueue.next() should be(Right(None))
     order.verify(batchListerFn)(FileMetadata(files(3), lastModified).some)
   }
 
-  "markFileComplete" should "return error when no files in list" in {
+  "S3SourceFileQueue" should "return none if there are no more files in the queue" in {
 
-    sourceFileQueue.markFileComplete(fileLocs(2)) should be(Left("No files in queue to mark as complete"))
-  }
+    val batchListerFn = mock[Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]]]
 
-  "markFileComplete" should "return error when file is not next file" in {
-
-    sourceFileQueue.init(fileLocs(1).atLine(100).withTimestamp(lastModified))
-
-    sourceFileQueue.markFileComplete(fileLocs(2)) should be(
-      Left("File (bucket:2.json) does not match that at head of the queue, which is (bucket:1.json)"),
+    def listBatch(lastFileMeta: Option[FileMetadata]): Either[FileListError, Option[ListResponse[String]]] = Right(None)
+    doAnswer(x => listBatch(x)).when(batchListerFn)(
+      any[Option[FileMetadata]],
     )
+    val sourceFileQueue = new S3SourceFileQueue(batchListerFn)
+    sourceFileQueue.next() shouldBe Right(None)
+  }
+  "S3SourceFileQueue" should "return the error on batch listing" in {
 
+    val batchListerFn = mock[Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]]]
+
+    val expected = Left(FileListError(null, bucket, s"$bucket/$prefix".some))
+    def listBatch(lastFileMeta: Option[FileMetadata]): Either[FileListError, Option[ListResponse[String]]] = expected
+
+    doAnswer(x => listBatch(x)).when(batchListerFn)(
+      any[Option[FileMetadata]],
+    )
+    val sourceFileQueue = new S3SourceFileQueue(batchListerFn)
+    sourceFileQueue.next() shouldBe expected
   }
 
 }

@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.parquet
 
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.parquet.ParquetSeekableInputStream
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.parquet.ParquetStreamingInputFile
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
@@ -29,8 +30,11 @@ class ParquetStreamingInputFileTest extends AnyFlatSpec with Matchers with Mocki
   "newStream" should "return a new stream ready to read" in {
 
     val byteArrayInputStream = new ByteArrayInputStream(bytes)
-    val initialSize          = byteArrayInputStream.available().longValue()
-    val target               = new ParquetStreamingInputFile(() => byteArrayInputStream, () => initialSize)
+    val target =
+      new ParquetStreamingInputFile(
+        bytes.length.toLong,
+        () => new ParquetSeekableInputStream(byteArrayInputStream, () => new ByteArrayInputStream(bytes)),
+      )
 
     target.newStream().read().toChar should be('a')
   }
@@ -38,9 +42,11 @@ class ParquetStreamingInputFileTest extends AnyFlatSpec with Matchers with Mocki
   "getLength" should "return length of the stream" in {
 
     val byteArrayInputStream = new ByteArrayInputStream(bytes)
-    val initialSize          = byteArrayInputStream.available().longValue()
-    val target               = new ParquetStreamingInputFile(() => byteArrayInputStream, () => initialSize)
-
+    val target =
+      new ParquetStreamingInputFile(
+        bytes.length.toLong,
+        () => new ParquetSeekableInputStream(byteArrayInputStream, () => new ByteArrayInputStream(bytes)),
+      )
     target.getLength should be(26)
 
   }

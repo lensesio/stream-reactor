@@ -24,17 +24,17 @@ import java.util.concurrent.atomic.AtomicLong
 import scala.util.Try
 
 class BytesFormatWithSizesStreamReader(
-  inputStreamFn:  () => InputStream,
-  fileSizeFn:     () => Long,
+  is:             InputStream,
+  fileSize:       Long,
   bucketAndPath:  S3Location,
   bytesWriteMode: BytesWriteMode,
 ) extends S3FormatStreamReader[ByteArraySourceData] {
 
-  private val inputStream = new DataInputStream(inputStreamFn())
+  private val inputStream = new DataInputStream(is)
 
   private var recordNumber: Long = -1
 
-  private val fileSizeCounter = new AtomicLong(fileSizeFn())
+  private val fileSizeCounter = new AtomicLong(fileSize)
 
   override def hasNext: Boolean = fileSizeCounter.get() > 0
 

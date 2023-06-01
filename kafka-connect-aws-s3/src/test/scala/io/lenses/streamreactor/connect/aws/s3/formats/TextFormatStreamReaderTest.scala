@@ -36,7 +36,7 @@ class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
     val byteArrayInputStream: ByteArrayInputStream = writeRecordsToOutputStream
     val avroFormatStreamReader =
-      new TextFormatStreamReader(() => byteArrayInputStream, mock[S3Location])
+      new TextFormatStreamReader(byteArrayInputStream, mock[S3Location])
 
     avroFormatStreamReader.hasNext should be(true)
     avroFormatStreamReader.next() should be(StringSourceData(TestSampleSchemaAndData.recordsAsJson(0), 0))
@@ -50,7 +50,7 @@ class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
   private def writeRecordsToOutputStream = {
     val outputStream     = new S3ByteArrayOutputStream()
-    val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
+    val jsonFormatWriter = new JsonFormatWriter(outputStream)
     firstUsers.foreach(data => jsonFormatWriter.write(None, StructSinkData(data), topic))
     jsonFormatWriter.complete()
 

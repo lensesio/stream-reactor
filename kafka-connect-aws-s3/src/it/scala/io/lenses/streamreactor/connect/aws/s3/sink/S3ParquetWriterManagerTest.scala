@@ -56,7 +56,6 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
       None,
       Some(Identity),
       Some(Credential),
-      AwsClient.Aws,
       AuthMode.Credentials,
     ),
     bucketOptions = Seq(

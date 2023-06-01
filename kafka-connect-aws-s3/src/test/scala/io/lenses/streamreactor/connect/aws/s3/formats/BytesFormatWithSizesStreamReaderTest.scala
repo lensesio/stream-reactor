@@ -16,8 +16,8 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
-import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesFormatWithSizesStreamReader
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.model.BytesOutputRowTest
@@ -40,10 +40,8 @@ class BytesFormatWithSizesStreamReaderTest extends AnyFlatSpec with MockitoSugar
 
   "next" should "return single record of key and values with sizes" in {
 
-    val inputStreamFn = () => new ByteArrayInputStream(bytesKeyAndValueWithSizes)
-    val sizeFn        = () => bytesKeyAndValueWithSizes.length.longValue()
-    val target = new BytesFormatWithSizesStreamReader(inputStreamFn,
-                                                      sizeFn,
+    val target = new BytesFormatWithSizesStreamReader(new ByteArrayInputStream(bytesKeyAndValueWithSizes),
+                                                      bytesKeyAndValueWithSizes.length.toLong,
                                                       bucketAndPath,
                                                       bytesWriteMode = BytesWriteMode.KeyAndValueWithSizes,
     )
@@ -56,11 +54,9 @@ class BytesFormatWithSizesStreamReaderTest extends AnyFlatSpec with MockitoSugar
 
   "next" should "return multiple records of key and values with sizes" in {
 
-    val allElements   = bytesKeyAndValueWithSizes ++ bytesKeyAndValueWithSizes2
-    val inputStreamFn = () => new ByteArrayInputStream(allElements)
-    val sizeFn        = () => allElements.length.longValue()
-    val target = new BytesFormatWithSizesStreamReader(inputStreamFn,
-                                                      sizeFn,
+    val allElements = bytesKeyAndValueWithSizes ++ bytesKeyAndValueWithSizes2
+    val target = new BytesFormatWithSizesStreamReader(new ByteArrayInputStream(allElements),
+                                                      allElements.length.toLong,
                                                       bucketAndPath,
                                                       bytesWriteMode = BytesWriteMode.KeyAndValueWithSizes,
     )

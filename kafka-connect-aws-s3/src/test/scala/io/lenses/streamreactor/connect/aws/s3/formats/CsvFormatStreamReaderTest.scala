@@ -89,10 +89,9 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
 
   private def setUpReader(recordsToReturn: List[String], includesHeaders: Boolean) =
     new CsvFormatStreamReader(
-      inputStreamFn = () =>
-        new ByteArrayInputStream(
-          recordsToReturn.mkString(System.lineSeparator()).getBytes(),
-        ),
+      new ByteArrayInputStream(
+        recordsToReturn.mkString(System.lineSeparator()).getBytes(),
+      ),
       bucketAndPath = bucketAndPath,
       hasHeaders    = includesHeaders,
     )

@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import cats.Show
+import cats.implicits.toBifunctorOps
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.TASK_INDEX
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionHasher
 
@@ -28,7 +29,7 @@ case class ConnectorTaskId(name: String, maxTasks: Int, taskNo: Int) {
 }
 
 object ConnectorTaskId {
-  def fromProps(props: util.Map[String, String]): Either[String, ConnectorTaskId] =
+  def fromProps(props: util.Map[String, String]): Either[Throwable, ConnectorTaskId] = {
     for {
       taskIndexString <- Option(props.get(TASK_INDEX)).toRight(s"Missing $TASK_INDEX")
       taskIndex        = taskIndexString.split(":")
@@ -45,6 +46,7 @@ object ConnectorTaskId {
       else Right(())
       maybeTaskName <- Option(props.get("name")).filter(_.trim.nonEmpty).toRight("Missing connector name")
     } yield ConnectorTaskId(maybeTaskName, maxTasks, taskNumber)
+  }.leftMap(new IllegalArgumentException(_))
 
   implicit val showConnector: Show[ConnectorTaskId] = Show.show(_.name)
 }

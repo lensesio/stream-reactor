@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.source.reader
 
 import cats.effect.IO
 import cats.effect.kernel.Ref
-import cats.effect.unsafe.implicits.global
+import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions
@@ -37,43 +37,36 @@ case class ReaderManagerState(
 class ReaderManagerService(
   settings:              PartitionSearcherOptions,
   partitionSearcher:     PartitionSearcher,
-  readerManagerCreateFn: (S3Location, String) => ReaderManager,
+  readerManagerCreateFn: (S3Location, String) => IO[ReaderManager],
+  readerManagerState:    Ref[IO, ReaderManagerState],
 ) extends LazyLogging {
 
-  private val readerManagerState: Ref[IO, ReaderManagerState] =
-    Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty)).unsafeRunSync()
-
-  def getReaderManagers: Seq[ReaderManager] = {
-    launchDiscover().unsafeRunSync()
-    readerManagerState.get.map(_.readerManagers).unsafeRunSync()
-  }
-
-  private def launchDiscover(): IO[Unit] = {
+  def getReaderManagers: IO[Seq[ReaderManager]] =
     for {
-      ioState       <- readerManagerState.get
-      lastSearchTime = ioState.lastSearchTime
-      rediscoverDue <- settings.rediscoverDue(lastSearchTime)
-    } yield {
-      if (rediscoverDue && settings.blockOnSearch) {
-        rediscover()
-      } else if (rediscoverDue && !settings.blockOnSearch) {
-        rediscover().background.use_
-      } else {
-        IO.unit
-      }
-    }
-  }.flatten
+      //TODO: why is this requested here?. this is a get, and should be a pure function
+      _     <- launchDiscover()
+      state <- readerManagerState.get
+    } yield state.readerManagers
+
+  private def launchDiscover(): IO[Unit] =
+    for {
+      state         <- readerManagerState.get
+      lastSearchTime = state.lastSearchTime
+      rediscoverDue <- settings.shouldRediscover(lastSearchTime)
+      u <- if (rediscoverDue) {
+        if (settings.blockOnSearch) rediscover()
+        else rediscover().background.use_
+      } else IO.unit
+    } yield u
 
   private def rediscover(): IO[Unit] =
     for {
       _        <- IO(logger.debug("calculating updated state"))
       oldState <- readerManagerState.get
       newParts <- partitionSearcher.findNewPartitions(oldState.partitionResponses)
-      newReaderManagers = newParts
+      newReaderManagers <- newParts
         .flatMap(part => part.results.partitions.map(part.root -> _))
-        .map {
-          case (location, res) => readerManagerCreateFn(location, res)
-        }
+        .map { case (location, res) => readerManagerCreateFn(location, res) }.traverse(identity)
       newState = oldState.copy(
         partitionResponses = newParts,
         readerManagers     = oldState.readerManagers ++ newReaderManagers,

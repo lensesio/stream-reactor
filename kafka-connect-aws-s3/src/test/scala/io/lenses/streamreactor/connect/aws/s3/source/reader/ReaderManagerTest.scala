@@ -15,15 +15,17 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.reader
 
+import cats.effect.IO
+import cats.effect.Ref
+import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.files.SourceFileQueue
 import io.lenses.streamreactor.connect.aws.s3.source.PollResults
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.source.files.SourceFileQueue
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
@@ -33,66 +35,53 @@ import java.time.Instant
 
 class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with LazyLogging with BeforeAndAfter {
 
-  private implicit val storageInterface: StorageInterface      = mock[StorageInterface]
-  private implicit val partitionFn:      String => Option[Int] = _ => Option.empty
-  private val fileQueueProcessor:        SourceFileQueue       = mock[SourceFileQueue]
-  private val readerCreator = mock[ReaderCreator]
-
-  private implicit val connectorTaskId      = ConnectorTaskId("mySource", 1, 1)
+  private val connectorTaskId               = ConnectorTaskId("mySource", 1, 1)
   private val recordsLimit                  = 10
   private val bucketAndPrefix               = S3Location("test", "ing".some)
   private val firstFileBucketAndPath        = bucketAndPrefix.withPath("test:ing/topic/9/0.json")
   private val firstFileBucketAndPathAndLine = firstFileBucketAndPath.atLine(0).withTimestamp(Instant.now)
 
   "poll" should "be empty when no results found" in {
+    val fileQueueProcessor: SourceFileQueue = mock[SourceFileQueue]
 
-    val target = new ReaderManager(
+    var locationFnCalls = 0
+    val target = ReaderManager(
       recordsLimit,
-      None,
       fileQueueProcessor,
-      readerCreator.create,
+      _ =>
+        Left {
+          locationFnCalls = locationFnCalls + 1
+          new RuntimeException("ShouldNot be called")
+        },
+      connectorTaskId,
+      Ref[IO].of(Option.empty[ResultReader]).unsafeRunSync(),
     )
 
     when(fileQueueProcessor.next()).thenReturn(None.asRight)
 
-    target.poll() should be(empty)
+    target.poll().unsafeRunSync() should be(empty)
 
     verify(fileQueueProcessor).next()
-    verifyZeroInteractions(readerCreator)
+    locationFnCalls shouldBe 0
   }
 
   "poll" should "return single record when found" in {
 
-    val target = new ReaderManager(
-      recordsLimit,
-      None,
-      fileQueueProcessor,
-      readerCreator.create,
-    )
+    val partitionFn:        String => Option[Int] = _ => Option.empty
+    val fileQueueProcessor: SourceFileQueue       = mock[SourceFileQueue]
+    var calledLocation:     Option[S3Location]    = Option.empty
 
     when(fileQueueProcessor.next()).thenReturn(
       Some(firstFileBucketAndPathAndLine).asRight,
       None.asRight,
     )
 
-    val pollResults: PollResults = mockResultReader
-
-    when(fileQueueProcessor.markFileComplete(firstFileBucketAndPath)).thenReturn(().asRight)
-
-    target.poll() should be(Seq(pollResults))
-
-    verify(fileQueueProcessor, times(2)).next()
-    verify(readerCreator).create(firstFileBucketAndPathAndLine)
-  }
-
-  private def mockResultReader = {
     val pollResults = PollResults(
       resultList    = Vector(StringSourceData("abc", 0)),
       bucketAndPath = firstFileBucketAndPath,
       targetTopic   = "target",
       partitionFn   = partitionFn,
     )
-
     val resultReader = mock[ResultReader]
 
     when(
@@ -107,14 +96,21 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
       resultReader.getLocation,
     ).thenReturn(firstFileBucketAndPath)
 
-    when(
-      readerCreator.create(firstFileBucketAndPathAndLine),
-    ).thenReturn(resultReader.asRight[Throwable])
+    val target = ReaderManager(
+      recordsLimit,
+      fileQueueProcessor,
+      location => {
+        calledLocation = location.some
+        resultReader.asRight
+      },
+      connectorTaskId,
+      Ref[IO].of(Option.empty[ResultReader]).unsafeRunSync(),
+    )
 
-    pollResults
+    target.poll().unsafeRunSync() should be(Vector(pollResults))
+
+    verify(fileQueueProcessor, times(2)).next()
+    calledLocation shouldBe firstFileBucketAndPathAndLine.some
   }
 
-  before {
-    reset(storageInterface, fileQueueProcessor, readerCreator)
-  }
 }

@@ -39,7 +39,7 @@ class AwsS3StorageInterfaceTest extends AnyFlatSpec with Matchers with S3ProxyCo
   "s3StorageInterface" should "list directories within a path" in {
 
     implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
-    val s3StorageInterface = new AwsS3StorageInterface()(connectorTaskId, s3Client)
+    val s3StorageInterface = new AwsS3StorageInterface(connectorTaskId, s3Client)
 
     val topicRoot = S3Location(BucketName, "topic-1/".some)
 
@@ -58,7 +58,7 @@ class AwsS3StorageInterfaceTest extends AnyFlatSpec with Matchers with S3ProxyCo
 
   "s3StorageInterface" should "list directories within a path recursively from bucket root" in {
 
-    val s3StorageInterface = new AwsS3StorageInterface()(ConnectorTaskId("sinkName", 1, 0), s3Client)
+    val s3StorageInterface = new AwsS3StorageInterface(ConnectorTaskId("sinkName", 1, 0), s3Client)
 
     val bucketRoot = S3Location(BucketName)
 

@@ -32,33 +32,39 @@ class ConnectorTaskIdTest extends AnyWordSpec with Matchers {
     "fail if max tasks is not valid integer" in {
       val from   = Map("a" -> "1", "b" -> "2", S3ConfigSettings.TASK_INDEX -> "0:2a", "name" -> connectorName)
       val actual = ConnectorTaskId.fromProps(from.asJava)
-      actual shouldBe Left(
-        s"Invalid $TASK_INDEX. Expecting an integer but found:2a",
-      )
+      actual match {
+        case Left(e)  => e.getMessage shouldBe s"Invalid $TASK_INDEX. Expecting an integer but found:2a"
+        case Right(_) => fail("Should have failed")
+      }
     }
     "fail if task number is not a valid integer" in {
       val from = Map("a" -> "1", "b" -> "2", S3ConfigSettings.TASK_INDEX -> "0a:2", "name" -> connectorName)
-      ConnectorTaskId.fromProps(from.asJava) shouldBe Left(
-        s"Invalid $TASK_INDEX. Expecting an integer but found:0a",
-      )
+      ConnectorTaskId.fromProps(from.asJava) match {
+        case Left(value) => value.getMessage shouldBe s"Invalid $TASK_INDEX. Expecting an integer but found:0a"
+        case Right(_)    => fail("Should have failed")
+      }
     }
     "fail if task number < 0" in {
       val from = Map("a" -> "1", "b" -> "2", S3ConfigSettings.TASK_INDEX -> "-1:2", "name" -> connectorName)
-      ConnectorTaskId.fromProps(from.asJava) shouldBe Left(
-        s"Invalid $TASK_INDEX. Expecting a positive integer but found:-1",
-      )
+      ConnectorTaskId.fromProps(from.asJava) match {
+        case Left(value)  => value.getMessage shouldBe s"Invalid $TASK_INDEX. Expecting a positive integer but found:-1"
+        case Right(value) => fail(s"Should have failed but got $value")
+      }
+
     }
     "fail if max tasks is zero" in {
       val from = Map("a" -> "1", "b" -> "2", S3ConfigSettings.TASK_INDEX -> "0:0", "name" -> connectorName)
-      ConnectorTaskId.fromProps(from.asJava) shouldBe Left(
-        s"Invalid $TASK_INDEX. Expecting a positive integer but found:0",
-      )
+      ConnectorTaskId.fromProps(from.asJava) match {
+        case Left(value)  => value.getMessage shouldBe s"Invalid $TASK_INDEX. Expecting a positive integer but found:0"
+        case Right(value) => fail(s"Should have failed but got $value")
+      }
     }
     "fail if max tasks is negative" in {
       val from = Map("a" -> "1", "b" -> "2", S3ConfigSettings.TASK_INDEX -> "0:-1", "name" -> connectorName)
-      ConnectorTaskId.fromProps(from.asJava) shouldBe Left(
-        s"Invalid $TASK_INDEX. Expecting a positive integer but found:-1",
-      )
+      ConnectorTaskId.fromProps(from.asJava) match {
+        case Left(value)  => value.getMessage shouldBe s"Invalid $TASK_INDEX. Expecting a positive integer but found:-1"
+        case Right(value) => fail(s"Should have failed but got $value")
+      }
     }
 
     "own the partitions when max task is 1" in {

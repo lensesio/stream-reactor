@@ -26,24 +26,25 @@ import java.io.InputStream
 object S3FormatStreamReader {
 
   def apply(
-    inputStreamFn: () => InputStream,
-    fileSizeFn:    () => Long,
-    format:        FormatSelection,
-    bucketAndPath: S3Location,
+    inputStream:          InputStream,
+    fileSize:             Long,
+    format:               FormatSelection,
+    bucketAndPath:        S3Location,
+    recreateInputStreamF: () => Either[Throwable, InputStream],
   ): S3FormatStreamReader[_ <: SourceData] =
     format.format match {
-      case Format.Avro    => new AvroFormatStreamReader(inputStreamFn, bucketAndPath)
-      case Format.Json    => new TextFormatStreamReader(inputStreamFn, bucketAndPath)
-      case Format.Text    => new TextFormatStreamReader(inputStreamFn, bucketAndPath)
-      case Format.Parquet => new ParquetFormatStreamReader(inputStreamFn, fileSizeFn, bucketAndPath)
+      case Format.Avro    => new AvroFormatStreamReader(inputStream, bucketAndPath)
+      case Format.Json    => new TextFormatStreamReader(inputStream, bucketAndPath)
+      case Format.Text    => new TextFormatStreamReader(inputStream, bucketAndPath)
+      case Format.Parquet => ParquetFormatStreamReader.apply(inputStream, fileSize, bucketAndPath, recreateInputStreamF)
       case Format.Csv =>
-        new CsvFormatStreamReader(inputStreamFn, bucketAndPath, hasHeaders = format.formatOptions.contains(WithHeaders))
+        new CsvFormatStreamReader(inputStream, bucketAndPath, hasHeaders = format.formatOptions.contains(WithHeaders))
       case Format.Bytes =>
         val bytesWriteMode = S3FormatWriter.convertToBytesWriteMode(format.formatOptions)
         if (bytesWriteMode.entryName.toLowerCase.contains("size")) {
-          new BytesFormatWithSizesStreamReader(inputStreamFn, fileSizeFn, bucketAndPath, bytesWriteMode)
+          new BytesFormatWithSizesStreamReader(inputStream, fileSize, bucketAndPath, bytesWriteMode)
         } else {
-          new BytesFormatStreamFileReader(inputStreamFn, fileSizeFn, bucketAndPath, bytesWriteMode)
+          new BytesFormatStreamFileReader(inputStream, fileSize, bucketAndPath, bytesWriteMode)
         }
     }
 }

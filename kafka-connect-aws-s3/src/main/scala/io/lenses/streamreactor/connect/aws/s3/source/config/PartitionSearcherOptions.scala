@@ -30,16 +30,14 @@ case class PartitionSearcherOptions(
   clock:                       Clock[IO],
 ) {
 
-  def rediscoverDue(lastSearchTime: Option[Instant]): IO[Boolean] =
-    for {
-      lst <- IO(lastSearchTime)
-      now <- clock.realTimeInstant
-    } yield {
-      lst.fold(true) {
-        st =>
-          val nextSearchTime = st.plus(searchInterval)
+  def shouldRediscover(lastSearchTime: Option[Instant]): IO[Boolean] =
+    lastSearchTime.fold(IO(true)) {
+      lst =>
+        for {
+          now <- clock.realTimeInstant
+        } yield {
+          val nextSearchTime = lst.plus(searchInterval)
           now.isAfter(nextSearchTime)
-      }
+        }
     }
-
 }

@@ -13,25 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.auth
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import software.amazon.awssdk.services.s3.S3Client
+package io.lenses.streamreactor.connect.aws.s3.formats.writer
 
-trait AuthResource[R] {
+import java.nio.charset.StandardCharsets
 
-  def create(awsConfig: S3Config): Either[String, R]
-
-}
-
-class AuthResources(awsConfig: S3Config) {
-
-  def aws: Either[String, S3Client] = AwsAuthResourceCreator.create(awsConfig)
-
-}
-
-object AwsAuthResourceCreator extends AuthResource[S3Client] {
-
-  override def create(awsConfig: S3Config): Either[String, S3Client] =
-    new AwsS3ClientCreator(awsConfig).createS3Client()
+object LineSeparatorUtil {
+  val LineSeparatorBytes: Array[Byte] = System.lineSeparator.getBytes(StandardCharsets.UTF_8)
 
 }

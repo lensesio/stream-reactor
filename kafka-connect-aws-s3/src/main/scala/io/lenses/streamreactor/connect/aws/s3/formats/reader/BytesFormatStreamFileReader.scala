@@ -23,15 +23,13 @@ import java.io.InputStream
 import scala.util.Try
 
 class BytesFormatStreamFileReader(
-  inputStreamFn:  () => InputStream,
-  fileSizeFn:     () => Long,
+  inputStream:    InputStream,
+  fileSize:       Long,
   bucketAndPath:  S3Location,
   bytesWriteMode: BytesWriteMode,
 ) extends S3FormatStreamReader[ByteArraySourceData] {
 
   private var consumed: Boolean = false
-  private val inputStream = inputStreamFn()
-  private val fileSize    = fileSizeFn()
 
   override def hasNext: Boolean = !consumed && fileSize > 0L
 

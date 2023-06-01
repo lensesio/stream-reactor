@@ -25,18 +25,18 @@ class ParquetSeekableInputStreamTest extends AnyFlatSpec with Matchers {
 
   private val bytes = "abcdefghijklmnopqrstuvwxyz".getBytes
 
-  private val byteStream = () => new ByteArrayInputStream(bytes)
+  private val byteStreamF = () => new ByteArrayInputStream(bytes)
 
   "seek" should "deliver the correct character when seeking from new stream" in {
 
-    val seekableInputStream = new ParquetSeekableInputStream(byteStream)
+    val seekableInputStream = new ParquetSeekableInputStream(byteStreamF(), byteStreamF)
     seekableInputStream.seek(5)
     seekableInputStream.read().toChar should be('f')
   }
 
   "seek" should "deliver the correct character when seeking from already read stream" in {
 
-    val seekableInputStream = new ParquetSeekableInputStream(byteStream)
+    val seekableInputStream = new ParquetSeekableInputStream(byteStreamF(), byteStreamF)
     seekableInputStream.read().toChar should be('a')
     seekableInputStream.read().toChar should be('b')
     seekableInputStream.seek(5)
@@ -45,7 +45,7 @@ class ParquetSeekableInputStreamTest extends AnyFlatSpec with Matchers {
 
   "seek" should "should enable you to go backwards" in {
 
-    val seekableInputStream = new ParquetSeekableInputStream(byteStream)
+    val seekableInputStream = new ParquetSeekableInputStream(byteStreamF(), byteStreamF)
     seekableInputStream.seek(5)
     seekableInputStream.read().toChar should be('f')
     seekableInputStream.seek(0)

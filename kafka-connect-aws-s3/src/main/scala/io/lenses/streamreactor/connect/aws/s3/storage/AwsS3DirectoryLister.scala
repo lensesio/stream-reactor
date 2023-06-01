@@ -28,11 +28,11 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-abstract class AwsS3DirectoryLister(
-  implicit
-  connectorTask: ConnectorTaskId,
-  s3Client:      S3Client,
-) extends StorageInterface {
+trait AwsS3DirectoryLister extends StorageInterface {
+
+  def connectorTaskId: ConnectorTaskId
+  def s3Client:        S3Client
+
   def findDirectories(
     bucketAndPrefix:  S3Location,
     completionConfig: DirectoryFindCompletionConfig,
@@ -112,7 +112,7 @@ abstract class AwsS3DirectoryLister(
           .commonPrefixes()
           .asScala
           .map(_.prefix())
-          .filter(connectorTask.ownsDir)
+          .filter(connectorTaskId.ownsDir)
           .filterNot(exclude.contains)
         rtn.addAll(commonPrefixesFiltered)
 

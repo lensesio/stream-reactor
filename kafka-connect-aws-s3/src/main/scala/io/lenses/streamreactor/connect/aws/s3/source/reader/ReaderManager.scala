@@ -15,168 +15,83 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.reader
 
+import cats.effect.IO
+import cats.effect.Ref
+import cats.implicits.toBifunctorOps
 import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.PollResults
-import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.source.files.S3SourceFileQueue
 import io.lenses.streamreactor.connect.aws.s3.source.files.SourceFileQueue
-import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
-import io.lenses.streamreactor.connect.aws.s3.utils.ThrowableEither.toJavaThrowableConverter
+
+import scala.util.Try
 
 /**
   * Given a sourceBucketOptions, manages readers for all of the files
   */
-class ReaderManager(
-  recordsLimit:   Int,
-  startingOffset: Option[S3Location],
-  fileSource:     SourceFileQueue,
-  readerFn:       S3Location => Either[Throwable, ResultReader],
-)(
-  implicit
+case class ReaderManager(
+  recordsLimit:    Int,
+  fileSource:      SourceFileQueue,
+  readerFn:        S3Location => Either[Throwable, ResultReader],
   connectorTaskId: ConnectorTaskId,
-) extends LazyLogging
-    with AutoCloseable {
+  readerRef:       Ref[IO, Option[ResultReader]],
+) extends LazyLogging {
 
-  sealed trait ReaderState extends AutoCloseable with LazyLogging {
+  def poll(): IO[Vector[PollResults]] = {
+    def fromNexFile(pollResults: Vector[PollResults], allLimit: Int): IO[Vector[PollResults]] =
+      for {
+        maybePrev <- readerRef.getAndSet(None)
+        _         <- IO.delay(maybePrev.foreach(r => Try(r.close())))
+        nextFile  <- IO.fromEither(fileSource.next().leftMap(_.exception))
+        results <- nextFile.fold(IO(pollResults)) {
+          value =>
+            for {
+              _ <- IO.delay(
+                logger.debug(s"[${connectorTaskId.show}] readNextFile - Next file ($nextFile) found"),
+              )
+              reader <- IO.fromEither(readerFn(value))
+              _      <- readerRef.set(Some(reader))
+              r      <- acc(pollResults, allLimit)
+            } yield r
+        }
+      } yield results
 
-    def hasReader: Boolean
+    //re-implement poll() to use the IO effect and avoid state
+    //  SourceFileQueue  provides the list of files to read from. For each file received a ResultReader is built.
+    //  Since it reads recordsLimit records at a time, the last built reader is kept until it returns no more records.
+    //  Once it returns no more records, the next file is read and a new reader is built.
+    //  This is repeated until the recordsLimit is reached or there are no more files to read from.
+    //  The results are accumulated in a Vector[PollResults] and returned.
+    def acc(pollResults: Vector[PollResults], allLimit: Int): IO[Vector[PollResults]] =
+      if (allLimit <= 0) IO.pure(pollResults)
+      else {
+        // if the reader is present, then read from it.
+        // if there are no more records, then read the next file and build a new reader
+        readerRef.get.flatMap {
+          case Some(reader) =>
+            reader.retrieveResults(allLimit) match {
+              case Some(results) =>
+                acc(pollResults :+ results, allLimit - results.resultList.size)
+              case None =>
+                fromNexFile(pollResults, allLimit)
+            }
 
-    override def close(): Unit = {}
-
-    def toExceptionState(err: Throwable): ExceptionReaderState =
-      ExceptionReaderState(err)
-
-  }
-
-  sealed trait MoreFilesAvailableState extends ReaderState {
-
-    def readNextFile: ReaderState =
-      fileSource.next() match {
-        case Left(exception: FileListError) =>
-          toExceptionState(exception.exception)
-        case Right(Some(nextFile)) =>
-          logger.debug(s"[${connectorTaskId.show}] readNextFile - Next file ($nextFile) found")
-          readerFn(nextFile) match {
-            case Right(reader)   => toInitialisedState(reader)
-            case Left(exception) => toExceptionState(exception)
-          }
-        case Right(None) =>
-          logger.debug(s"[${connectorTaskId.show}] readNextFile - No next file found")
-          toNoFurtherFilesState()
+          case None => fromNexFile(pollResults, allLimit)
+        }
       }
-
-    def toInitialisedState(reader: ResultReader): ReaderState =
-      InitialisedReaderState(reader)
-
-    def toNoFurtherFilesState(): ReaderState = NoMoreFilesReaderState()
-
+    acc(Vector.empty, recordsLimit)
   }
 
-  case class EmptyReaderState() extends MoreFilesAvailableState {
-    logger.trace(s"[${connectorTaskId.show}] state: EMPTY")
-    override def hasReader: Boolean = false
-  }
-
-  case class InitialisedReaderState(currentReader: ResultReader) extends ReaderState {
-    def retrieveResults(limit: Int): Option[PollResults] = currentReader.retrieveResults(limit)
-
-    logger.trace(s"[${connectorTaskId.show}] state: INITIALISED")
-    override def close(): Unit = currentReader.close()
-
-    override def hasReader: Boolean = true
-
-    def toCompleteState(): ReaderState = {
-      fileSource.markFileComplete(currentReader.getLocation).toThrowable
-      currentReader.close()
-      CompleteReaderState()
-    }
-  }
-
-  case class CompleteReaderState() extends MoreFilesAvailableState {
-    logger.trace(s"[${connectorTaskId.show}] state: COMPLETE")
-    override def hasReader: Boolean = false
-  }
-
-  case class NoMoreFilesReaderState() extends MoreFilesAvailableState {
-    logger.trace(s"[${connectorTaskId.show}] state: NO MORE FILES")
-    override def hasReader: Boolean = false
-  }
-
-  case class ExceptionReaderState(exception: Throwable) extends ReaderState {
-    logger.trace(s"[${connectorTaskId.show}] state: EXCEPTION")
-    override def hasReader: Boolean = false
-  }
-
-  private var state: ReaderState = EmptyReaderState()
-  startingOffset.foreach(fileSource.init)
-
-  def poll(): Vector[PollResults] = {
-    logger.debug(s"[${connectorTaskId.show}] start poll()")
-
-    var allResults: Vector[PollResults] = Vector()
-
-    var allLimit: Int = recordsLimit
-
-    var moreFiles = true
-    do {
-
-      state match {
-        case ExceptionReaderState(err) => throw err
-        case fileState: MoreFilesAvailableState => state =
-            fileState.readNextFile
-        case InitialisedReaderState(_) =>
+  def close(): IO[Unit] =
+    for {
+      currentState <- readerRef.get
+      _ <- currentState match {
+        case Some(reader) =>
+          IO.delay(Try(reader.close()))
+        case None =>
+          IO.unit
       }
+    } yield ()
 
-      state match {
-        case initState @ InitialisedReaderState(_) =>
-          initState.retrieveResults(allLimit) match {
-            case None => state = initState.toCompleteState()
-            case Some(pollResults) =>
-              allLimit -= pollResults.resultList.size
-              allResults = allResults :+ pollResults
-              if (pollResults.resultList.size < allLimit) {
-                state = initState.toCompleteState()
-              }
-          }
-        case _ =>
-      }
-
-      moreFiles = state match {
-        case NoMoreFilesReaderState() => false
-        case _                        => true
-      }
-
-    } while (allLimit > 0 && moreFiles)
-
-    logger.debug(s"[${connectorTaskId.show}] exit poll()")
-    allResults
-  }
-
-  override def close(): Unit = state.close()
-
-}
-object ReaderManager {
-
-  def apply(
-    root:  S3Location,
-    bOpts: SourceBucketOptions,
-  )(
-    implicit
-    connectorTaskId:  ConnectorTaskId,
-    storageInterface: StorageInterface,
-    contextOffsetFn:  S3Location => Option[S3Location],
-  ) =
-    new ReaderManager(
-      bOpts.recordsLimit,
-      contextOffsetFn(root),
-      new S3SourceFileQueue(
-        bOpts.createBatchListerFn(storageInterface),
-        storageInterface.getBlobModified,
-      ),
-      new ReaderCreator(bOpts.format, bOpts.targetTopic, bOpts.getPartitionExtractorFn).create,
-    )
 }

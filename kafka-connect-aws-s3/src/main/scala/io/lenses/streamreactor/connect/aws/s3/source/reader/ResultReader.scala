@@ -15,12 +15,20 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.reader
 
+import cats.implicits.toBifunctorOps
+import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.S3FormatStreamReader
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.SourceData
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.PollResults
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.utils.IteratorOps
 
 import scala.annotation.tailrec
+import scala.util.Try
 
 class ResultReader(
   reader:      S3FormatStreamReader[_ <: SourceData],
@@ -71,5 +79,36 @@ class ResultReader(
 
   override def close(): Unit = reader.close()
 
-  def getLocation = reader.getBucketAndPath
+  def getLocation: S3Location = reader.getBucketAndPath
+}
+
+object ResultReader extends LazyLogging {
+
+  def create(
+    format:           FormatSelection,
+    targetTopic:      String,
+    partitionFn:      String => Option[Int],
+    connectorTaskId:  ConnectorTaskId,
+    storageInterface: StorageInterface,
+  ): S3Location => Either[Throwable, ResultReader] = { pathWithLine =>
+    for {
+      path        <- pathWithLine.path.toRight(new IllegalStateException("No path found"))
+      inputStream <- storageInterface.getBlob(pathWithLine.bucket, path).leftMap(_.toException)
+      fileSize    <- storageInterface.getBlobSize(pathWithLine.bucket, path).leftMap(_.toException)
+      _ <- Try(logger.info(
+        s"[${connectorTaskId.show}] Reading next file: ${pathWithLine.show} from line ${pathWithLine.line}",
+      )).toEither
+
+      reader = S3FormatStreamReader(inputStream,
+                                    fileSize,
+                                    format,
+                                    pathWithLine,
+                                    () => storageInterface.getBlob(pathWithLine.bucket, path).leftMap(_.toException),
+      )
+      _ <- pathWithLine.line match {
+        case Some(value) if value >= 0 => IteratorOps.skip(reader, value)
+        case _                         => Right(())
+      }
+    } yield new ResultReader(reader, targetTopic, partitionFn)
+  }
 }

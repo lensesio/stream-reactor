@@ -17,18 +17,16 @@ package io.lenses.streamreactor.connect.aws.s3.formats.writer
 
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.formats.FormatWriterException
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.formats.FormatWriterException
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 
-class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: BytesWriteMode)
+class BytesFormatWriter(outputStream: S3OutputStream, bytesWriteMode: BytesWriteMode)
     extends S3FormatWriter
     with LazyLogging {
-
-  private val outputStream: S3OutputStream = outputStreamFn()
 
   override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] = {
 
@@ -71,7 +69,7 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
     ().asRight
   }
 
-  def convertToBytes(sinkData: SinkData): Either[Throwable, Array[Byte]] =
+  private def convertToBytes(sinkData: SinkData): Either[Throwable, Array[Byte]] =
     sinkData match {
       case ByteArraySinkData(array, _) => array.asRight
       case v =>

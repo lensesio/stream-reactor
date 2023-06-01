@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
 import io.confluent.connect.avro.AvroData
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.parquet.ParquetSeekableInputStream
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.parquet.ParquetStreamingInputFile
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import org.apache.avro.generic.GenericRecord
@@ -28,19 +29,10 @@ import java.io.InputStream
 import scala.util.Try
 
 class ParquetFormatStreamReader(
-  inputStreamFn: () => InputStream,
-  fileSizeFn:    () => Long,
-  bucketAndPath: S3Location,
+  avroParquetReader: ParquetReader[GenericRecord],
+  bucketAndPath:     S3Location,
 ) extends S3FormatStreamReader[SchemaAndValueSourceData]
     with Using {
-
-  private val inputFile = new ParquetStreamingInputFile(inputStreamFn, fileSizeFn)
-  private val avroParquetReader: ParquetReader[GenericRecord] = {
-    val conf = new Configuration
-    //allow deprecated INT96 to be read as FIXED and avoid runtime exception
-    conf.setBoolean(READ_INT96_AS_FIXED, true)
-    AvroParquetReader.builder[GenericRecord](inputFile).withConf(conf).build()
-  }
   private val parquetReaderIteratorAdaptor = new ParquetReaderIteratorAdaptor(avroParquetReader)
   private var lineNumber: Long = -1
   private val avroDataConverter = new AvroData(100)
@@ -65,4 +57,34 @@ class ParquetFormatStreamReader(
 
   }
 
+}
+
+object ParquetFormatStreamReader {
+  def apply(
+    inputStream:          InputStream,
+    fileSize:             Long,
+    bucketAndPath:        S3Location,
+    recreateInputStreamF: () => Either[Throwable, InputStream],
+  ): ParquetFormatStreamReader = {
+    val inputFile = new ParquetStreamingInputFile(
+      fileSize,
+      () =>
+        new ParquetSeekableInputStream(
+          inputStream,
+          () =>
+            recreateInputStreamF() match {
+              case Left(throwable) => throw throwable
+              case Right(value)    => value
+            },
+        ),
+    )
+    val avroParquetReader: ParquetReader[GenericRecord] = {
+      val conf = new Configuration
+      //allow deprecated INT96 to be read as FIXED and avoid runtime exception
+      conf.setBoolean(READ_INT96_AS_FIXED, true)
+      AvroParquetReader.builder[GenericRecord](inputFile).withConf(conf).build()
+    }
+
+    new ParquetFormatStreamReader(avroParquetReader, bucketAndPath)
+  }
 }

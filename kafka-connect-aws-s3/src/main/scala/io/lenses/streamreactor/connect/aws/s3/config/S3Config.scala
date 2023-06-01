@@ -15,51 +15,19 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import cats.implicits.catsSyntaxEitherId
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import enumeratum.Enum
 import enumeratum.EnumEntry
-import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
-import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.apache.kafka.common.config.types.Password
 
 import scala.collection.immutable
-
-sealed trait AwsClient extends EnumEntry {
-  def createStorageInterface(
-    authResources: AuthResources,
-  )(
-    implicit
-    connectorTaskId: ConnectorTaskId,
-  ): Either[String, StorageInterface]
-}
-
-object AwsClient extends Enum[AwsClient] {
-
-  override val values: immutable.IndexedSeq[AwsClient] = findValues
-
-  case object Aws extends AwsClient {
-    override def createStorageInterface(
-      authResources: AuthResources,
-    )(
-      implicit
-      connectorTaskId: ConnectorTaskId,
-    ): Either[String, StorageInterface] =
-      for {
-        s3Client <- authResources.aws
-        si       <- { new AwsS3StorageInterface()(connectorTaskId, s3Client) }.asRight
-      } yield si
-  }
-
-}
 
 sealed trait AuthMode extends EnumEntry
 
@@ -224,7 +192,6 @@ object S3Config {
     getString(props, AWS_REGION),
     getPassword(props, AWS_ACCESS_KEY),
     getPassword(props, AWS_SECRET_KEY),
-    AwsClient.Aws,
     AuthMode.withNameInsensitive(
       getString(props, AUTH_MODE).getOrElse(AuthMode.Default.toString),
     ),
@@ -269,7 +236,6 @@ case class S3Config(
   region:                   Option[String],
   accessKey:                Option[String],
   secretKey:                Option[String],
-  awsClient:                AwsClient,
   authMode:                 AuthMode,
   customEndpoint:           Option[String]               = None,
   enableVirtualHostBuckets: Boolean                      = false,
