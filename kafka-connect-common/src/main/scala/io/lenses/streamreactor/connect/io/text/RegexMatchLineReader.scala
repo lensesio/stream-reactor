@@ -15,9 +15,9 @@
  */
 package io.lenses.streamreactor.connect.io.text
 
-import java.io.BufferedReader
 import java.io.InputStream
-import java.io.InputStreamReader
+import scala.io.BufferedSource
+import scala.io.Source
 
 /**
   * Reads the lines from the input stream if the line starts with a given prefix
@@ -25,25 +25,24 @@ import java.io.InputStreamReader
   * @param input
   * @param prefix
   */
-class RegexMatchLineReader(input: InputStream, regex: String, skip: Int) {
+class RegexMatchLineReader(input: InputStream, regex: String, skip: Int) extends AutoCloseable {
   if (skip < 0) throw new IllegalArgumentException("skip must be >= 0")
-  private val br      = new BufferedReader(new InputStreamReader(input))
-  private val pattern = regex.r.pattern
-  private var skipped = skip <= 0
+  private val source: BufferedSource = Source.fromInputStream(input)
+  private val iterator = source.getLines()
+  private val pattern  = regex.r.pattern
+  private var skipped  = skip <= 0
 
   //Returns the next line if the prefix matches regex. If there are no more lines, returns None
   def next(): Option[String] = {
     skipLines()
-    var line = br.readLine()
-    while (line != null && !pattern.matcher(line).matches()) {
-      line = br.readLine()
-    }
-    Option(line)
+    iterator.find(line => pattern.matcher(line).matches())
   }
 
   private def skipLines(): Unit =
     if (!skipped) {
-      LineSkipper.skipLines(br, skip)
+      LineSkipper.skipLines(source.bufferedReader(), skip)
       skipped = true
     }
+
+  override def close(): Unit = source.close()
 }
