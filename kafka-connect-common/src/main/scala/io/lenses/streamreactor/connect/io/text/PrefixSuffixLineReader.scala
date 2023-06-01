@@ -26,14 +26,19 @@ import java.io.InputStreamReader
   * @param prefix
   * @param suffix
   */
-class PrefixSuffixLineReader(input: InputStream, prefix: String, suffix: String, linesSkip: Int = 0) {
+class PrefixSuffixLineReader(input: InputStream, prefix: String, suffix: String, skip: Int = 0) {
+  if (skip < 0) throw new IllegalArgumentException("skip must be >= 0")
   private val br         = new BufferedReader(new InputStreamReader(input))
   private val suffixSize = suffix.length
   private var currentLine: String = ""
 
-  if (linesSkip > 0) {
-    for (_ <- 0 until linesSkip) {
-      br.readLine()
+  if (skip > 0) {
+    //skip the first n lines considering file end
+    var line      = br.readLine()
+    var remaining = skip - 1
+    while (line != null && remaining > 0) {
+      line = br.readLine()
+      remaining -= 1
     }
   }
 
