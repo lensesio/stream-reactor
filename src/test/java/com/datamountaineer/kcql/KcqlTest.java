@@ -745,7 +745,7 @@ public class KcqlTest {
 
   @Test
   public void handleKeyDelimeter() {
-    String syntax = "INSERT INTO %s SELECT @col1, col2,col3 FROM %s KEYDELIMITER ='|'";
+    String syntax = "INSERT INTO abc SELECT @col1, col2,col3 FROM %s KEYDELIMITER ='|'";
     Kcql kcql = Kcql.parse(syntax);
     assertEquals("|", kcql.getKeyDelimeter());
   }
@@ -761,7 +761,7 @@ public class KcqlTest {
   public void handleWithKey() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
-    String syntax = "INSERT INTO %s SELECT @col1, col2,col3 FROM %s WITHKEY(col1, col2, col3)";
+    String syntax = String.format("INSERT INTO %s SELECT @col1, col2,col3 FROM %s WITHKEY(col1, col2, col3)", topic, table);
     Kcql kcql = Kcql.parse(syntax);
     List<String> withKeys = kcql.getWithKeys();
     assertEquals("col1", withKeys.get(0));

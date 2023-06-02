@@ -245,6 +245,10 @@ WITH_LOCK_TIME
     : 'with_lock_time' | 'WITH_LOCK_TIME'
     ;
 
+ PROPERTIES
+    : 'properties' | 'PROPERTIES'
+    ;
+
 EQUAL
    : '='
    ;
@@ -284,7 +288,7 @@ TOPICNAME
    ;
 
 KEYDELIMVALUE
-   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' | '-' | '+' | '/' |'{'|'}'|':'|'|'|'#'|'@'|'`'|'^'|'['|']'|'*'|'?'|'$' )+ | ESCAPED_TOPIC
+   : '\'' ('a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' | '-' | '+' | '/' |'{'|'}'|':'|'|'|'#'|'@'|'`'|'^'|'['|']'|'*'|'?'|'$') '\''
    ;
 
 
@@ -292,6 +296,8 @@ KEYDELIMVALUE
 fragment ESCAPED_TOPIC
     : ( '`' (~'`')+ '`')
     ;
+
+STRING: '\'' ~('\'' | '\r' | '\n')* '\'';
 
 NEWLINE
    : '\r'? '\n' -> skip

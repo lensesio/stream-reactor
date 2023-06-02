@@ -272,6 +272,32 @@ public class KcqlSelectOnlyTest {
     }
 
     @Test
+    public void parseASelectWithAMixOfAliasingAndUsingQuotation() {
+        String topic = "TOPIC.A";
+        String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM '%s' withformat text", topic);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertNull(kcql.getTarget());
+        List<Field> fa = Lists.newArrayList(kcql.getFields());
+        Map<String, Field> map = new HashMap<>();
+        for (Field alias : fa) {
+            map.put(alias.getName(), alias);
+        }
+        assertEquals(4, fa.size());
+        assertTrue(map.containsKey("f1"));
+        assertEquals("col1", map.get("f1").getAlias());
+        assertTrue(map.containsKey("f2"));
+        assertEquals("col2", map.get("f2").getAlias());
+        assertTrue(map.containsKey("f3"));
+        assertEquals("f3", map.get("f3").getAlias());
+        assertTrue(map.containsKey("f4"));
+        assertEquals("f4", map.get("f4").getAlias());
+        assertNull(kcql.getSampleCount());
+        assertNull(kcql.getSampleRate());
+        assertFalse(kcql.hasRetainStructure());
+    }
+
+    @Test
     public void parseASelectWithAMixOfAliasingAndRetainStructure() {
         String topic = "TOPIC.A";
         String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM `%s` withstructure withformat text", topic);

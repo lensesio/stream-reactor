@@ -47,6 +47,7 @@ insert_from_clause
     (with_subscription_clause)? (with_compression_clause)? (with_delay_clause)? (with_regex_clause)? (with_flush_size_clause)?
     (with_flush_interval_clause)? (with_flush_records_clause)? (with_schema_evolution_clause)? (with_table_location_clause)? (with_overwrite_clause)?
     (with_partitioning_clause)? (limit_clause)? (with_session_clause)? (with_ack_clause)? (with_encode_base64)? (with_lock_time_clause)?
+    (properties_clause)?
    ;
 
 select_clause
@@ -58,11 +59,11 @@ select_clause_basic
    ;
 
 topic_name
-   : ( FIELD | TOPICNAME | DOT )+
+   : ( FIELD | TOPICNAME | DOT )+ | STRING
    ;
 
 table_name
-   : ( FIELD | TOPICNAME | DOT )+
+   : ( FIELD | TOPICNAME | DOT )+ | STRING
    ;
 
 column_name
@@ -70,11 +71,11 @@ column_name
    ;
 
 column
-   : FIELD ( DOT FIELD )* (DOT ASTERISK)?
+   : FIELD ( DOT FIELD )* (DOT ASTERISK)? | STRING
    ;
 
 column_name_alias
-   : FIELD
+   : FIELD | STRING
    ;
 
 column_list
@@ -86,7 +87,7 @@ from_clause
    ;
 
 ignored_name
-   : FIELD | TOPICNAME
+   : FIELD | TOPICNAME | STRING
    ;
 
 with_ignore
@@ -191,7 +192,7 @@ with_consumer_group
     ;
 
 with_consumer_group_value
-    :  INT|FIELD| TOPICNAME
+    :  INT|FIELD| TOPICNAME | STRING
     ;
 
 
@@ -253,6 +254,28 @@ project_to
 
 version_number
     : INT
+    ;
+
+
+properties_clause
+    : PROPERTIES LEFT_PARAN ()properties_list RIGHT_PARAN
+    ;
+
+// allow empty or list of key=value pairs
+properties_list
+    : (property (COMMA property)*)?
+    ;
+
+ property
+    : property_name EQUAL property_value
+    ;
+
+property_name
+    : FIELD | ( DOT | TOPICNAME )+ | STRING
+    ;
+
+property_value
+    : FIELD | (DOT|TOPICNAME)+ | INT | STRING
     ;
 
 storeas_clause
