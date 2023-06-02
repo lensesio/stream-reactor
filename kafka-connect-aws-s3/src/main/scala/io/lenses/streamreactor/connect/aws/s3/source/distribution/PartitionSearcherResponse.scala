@@ -18,12 +18,9 @@ package io.lenses.streamreactor.connect.aws.s3.source.distribution
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindResults
 
-import java.time.Instant
-
 case class PartitionSearcherResponse(
-  root:           S3Location,
-  lastSearchTime: Instant,
-  allPartitions:  Set[String],
-  results:        DirectoryFindResults,
-  error:          Option[Exception],
+  root:          S3Location,
+  allPartitions: Set[String],
+  results:       DirectoryFindResults,
+  error:         Option[Exception],
 )

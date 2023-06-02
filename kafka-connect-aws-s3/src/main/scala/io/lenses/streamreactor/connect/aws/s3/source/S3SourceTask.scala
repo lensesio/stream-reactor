@@ -15,13 +15,16 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source
 
+import cats.effect.FiberIO
 import cats.effect.IO
+import cats.effect.Ref
 import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxOptionId
 import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceState
 import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceTaskState
 import io.lenses.streamreactor.connect.aws.s3.utils.MapUtils
 import org.apache.kafka.connect.source.SourceRecord
@@ -40,6 +43,11 @@ class S3SourceTask extends SourceTask with LazyLogging {
   @volatile
   private var s3SourceTaskState: Option[S3SourceTaskState] = None
 
+  @volatile
+  private var cancelledRef: Option[Ref[IO, Boolean]] = None
+
+  private var partitionDiscoveryLoop: Option[FiberIO[Unit]] = None
+
   override def version(): String = manifest.version()
 
   /**
@@ -54,16 +62,22 @@ class S3SourceTask extends SourceTask with LazyLogging {
     val contextProperties = Option(context).flatMap(c => Option(c.configs()).map(_.asScala.toMap)).getOrElse(Map.empty)
     val mergedProperties  = MapUtils.mergeProps(contextProperties, props.asScala.toMap).asJava
     (for {
-      state <- S3SourceTaskState.make(mergedProperties, contextOffsetFn)
-      _ <- IO.delay {
-        s3SourceTaskState = state.some
-      }
-    } yield ()).unsafeRunSync()
+      result <- S3SourceState.make(mergedProperties, contextOffsetFn)
+      fiber  <- result.partitionDiscoveryLoop.start
+    } yield {
+      s3SourceTaskState      = result.state.some
+      cancelledRef           = result.cancelledRef.some
+      partitionDiscoveryLoop = fiber.some
+    }).unsafeRunSync()
   }
 
   override def stop(): Unit = {
-    logger.debug(s"Received call to S3SourceTask.stop")
-    s3SourceTaskState.foreach(_.close().attempt.void.unsafeRunSync())
+    logger.info(s"Stopping S3 source task")
+    (s3SourceTaskState, cancelledRef, partitionDiscoveryLoop) match {
+      case (Some(state), Some(signal), Some(fiber)) => stopInternal(state, signal, fiber)
+      case _                                        => logger.info("There is no state to stop.")
+    }
+    logger.info(s"Stopped S3 source task")
   }
 
   override def poll(): util.List[SourceRecord] =
@@ -71,4 +85,16 @@ class S3SourceTask extends SourceTask with LazyLogging {
       state.poll().unsafeRunSync().asJava
     }
 
+  private def stopInternal(state: S3SourceTaskState, signal: Ref[IO, Boolean], fiber: FiberIO[Unit]): Unit = {
+    (for {
+      _ <- signal.set(true)
+      _ <- state.close()
+      // Don't join the fiber if it's already been cancelled. It will take potentially the interval time to complete
+      // and this can create issues on Connect. The task will be terminated and the resource cleaned up by the GC.
+      //_ <- fiber.join.timeout(1.minute).attempt.void
+    } yield ()).unsafeRunSync()
+    cancelledRef           = None
+    partitionDiscoveryLoop = None
+    s3SourceTaskState      = None
+  }
 }

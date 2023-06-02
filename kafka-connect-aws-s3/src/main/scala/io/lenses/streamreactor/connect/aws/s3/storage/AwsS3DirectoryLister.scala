@@ -16,119 +16,88 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import cats.effect.IO
-import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model._
-import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable
 
-import scala.collection.mutable
 import scala.jdk.CollectionConverters.IteratorHasAsScala
-import scala.jdk.CollectionConverters.ListHasAsScala
 
-trait AwsS3DirectoryLister extends StorageInterface {
-
-  def connectorTaskId: ConnectorTaskId
-  def s3Client:        S3Client
-
+object AwsS3DirectoryLister {
   def findDirectories(
     bucketAndPrefix:  S3Location,
     completionConfig: DirectoryFindCompletionConfig,
     exclude:          Set[String],
-    continueFrom:     Option[String],
+    listObjectsF:     ListObjectsV2Request => Iterator[ListObjectsV2Response],
+    connectorTaskId:  ConnectorTaskId,
   ): IO[DirectoryFindResults] =
     for {
-      listObjsReq <- createListObjectsRequest(bucketAndPrefix, continueFrom)
-      paginator   <- IO(s3Client.listObjectsV2Paginator(listObjsReq))
-      prefixInfo  <- extractPrefixesFromResponse(paginator, exclude, completionConfig)
-      flattened   <- flattenPrefixes(bucketAndPrefix, prefixInfo.partitions, completionConfig, exclude)
-    } yield {
-      prefixInfo match {
-        case CompletedDirectoryFindResults(_)        => CompletedDirectoryFindResults(flattened)
-        case a @ PausedDirectoryFindResults(_, _, _) => a.copy(flattened)
-      }
-    }
+      iterator   <- IO(listObjectsF(createListObjectsRequest(bucketAndPrefix)))
+      prefixInfo <- extractPrefixesFromResponse(iterator, exclude, connectorTaskId)
+      flattened <- flattenPrefixes(bucketAndPrefix,
+                                   prefixInfo.partitions,
+                                   completionConfig,
+                                   exclude,
+                                   listObjectsF,
+                                   connectorTaskId,
+      )
+    } yield DirectoryFindResults(flattened)
 
   private def flattenPrefixes(
     bucketAndPrefix:  S3Location,
     prefixes:         Set[String],
     completionConfig: DirectoryFindCompletionConfig,
     exclude:          Set[String],
+    listObjectsF:     ListObjectsV2Request => Iterator[ListObjectsV2Response],
+    connectorTaskId:  ConnectorTaskId,
   ): IO[Set[String]] =
-    if (completionConfig.levelsToRecurse == 0) IO.delay(prefixes)
-    else
-      for {
-        ioPrefixes <- IO.delay(prefixes)
-        bap        <- IO.delay(ioPrefixes.map(bucketAndPrefix.fromRoot))
-        recursiveResult <- bap.toList
-          .traverse(
-            findDirectories(
-              _,
-              completionConfig.copy(levelsToRecurse = completionConfig.levelsToRecurse - 1),
-              exclude,
-              Option.empty,
-            ).map(_.partitions),
-          ).map {
-            listSetString: List[Set[String]] =>
-              listSetString.toSet.flatten
-          }
-      } yield {
-        recursiveResult.headOption.fold(ioPrefixes)(_ => recursiveResult)
-      }
+    if (completionConfig.levelsToRecurse <= 0) IO.delay(prefixes)
+    else {
+      prefixes.map(bucketAndPrefix.fromRoot).toList
+        .traverse(
+          findDirectories(_,
+                          completionConfig.copy(levelsToRecurse = completionConfig.levelsToRecurse - 1),
+                          exclude,
+                          listObjectsF,
+                          connectorTaskId,
+          ).map(_.partitions),
+        )
+        .map { result =>
+          prefixes ++ result.foldLeft(Set.empty[String])(_ ++ _)
+        }
+    }
 
   private def createListObjectsRequest(
     bucketAndPrefix: S3Location,
-    lastFound:       Option[String],
-  ): IO[ListObjectsV2Request] =
-    IO.delay {
-      val builder = ListObjectsV2Request
-        .builder()
-        .maxKeys(1000)
-        .bucket(bucketAndPrefix.bucket)
-        .delimiter("/")
-        .startAfter(lastFound.orNull)
-      bucketAndPrefix.prefix.map(addTrailingSlash).foreach(builder.prefix)
-      builder.build()
-    }
+  ): ListObjectsV2Request = {
+
+    val builder = ListObjectsV2Request
+      .builder()
+      .maxKeys(1000)
+      .bucket(bucketAndPrefix.bucket)
+      .delimiter("/")
+    bucketAndPrefix.prefix.map(addTrailingSlash).foreach(builder.prefix)
+    builder.build()
+  }
 
   private def extractPrefixesFromResponse(
-    listObjectsV2Response: ListObjectsV2Iterable,
-    exclude:               Set[String],
-    completionConfig:      DirectoryFindCompletionConfig,
+    iterator:        Iterator[ListObjectsV2Response],
+    exclude:         Set[String],
+    connectorTaskId: ConnectorTaskId,
   ): IO[DirectoryFindResults] =
     IO {
-      val rtn: mutable.Set[String] = mutable.Set()
-      val resp = listObjectsV2Response
-        .iterator()
-        .asScala
-
-      var partialResultInfo: Option[(String, String)] = none
-
-      while (resp.hasNext && partialResultInfo.isEmpty) {
-        val listResp: ListObjectsV2Response = resp.next()
-        val commonPrefixesFiltered = listResp
-          .commonPrefixes()
-          .asScala
-          .map(_.prefix())
-          .filter(connectorTaskId.ownsDir)
-          .filterNot(exclude.contains)
-        rtn.addAll(commonPrefixesFiltered)
-
-        partialResultInfo = {
-          for {
-            stopReason <- completionConfig.stopReason(rtn.size)
-          } yield {
-            stopReason.map(sr => (sr, listResp.contents().get(listResp.contents().size() - 1).key()))
-          }
-        }.unsafeRunSync()
-
+      val paths = iterator.foldLeft(Set.empty[String]) {
+        case (acc, listResp) =>
+          val commonPrefixesFiltered =
+            Option(listResp.commonPrefixes()).map(_.iterator().asScala).getOrElse(Iterator.empty)
+              .foldLeft(Set.empty[String]) { (acc, item) =>
+                val prefix = item.prefix()
+                if (connectorTaskId.ownsDir(prefix) && !exclude.contains(prefix)) acc + prefix
+                else acc
+              }
+          acc ++ commonPrefixesFiltered
       }
-
-      partialResultInfo.map {
-        case (sr, lf) => PausedDirectoryFindResults(rtn.toSet, sr, lf)
-      }.getOrElse(CompletedDirectoryFindResults(rtn.toSet))
+      DirectoryFindResults(paths)
     }
 
   private def addTrailingSlash(in: String): String =

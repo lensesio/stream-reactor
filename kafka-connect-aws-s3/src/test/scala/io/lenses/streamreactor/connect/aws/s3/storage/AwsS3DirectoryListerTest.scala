@@ -15,8 +15,6 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import cats.effect.Clock
-import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
@@ -25,11 +23,13 @@ import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import software.amazon.awssdk.services.s3.S3Client
 
+import scala.jdk.CollectionConverters.IteratorHasAsScala
+
 class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
 
   private val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
 
-  "dirLister" should "list all directories" in {
+  "lister" should "list all directories" in {
 
     val s3Client: S3Client = new MockS3Client(
       S3Page(
@@ -39,26 +39,15 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
         "prefix2/4.txt",
       ),
     )
-    val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface(connectorTaskId, s3Client)
-    directoryLister.findDirectories(
-      S3Location("bucket", "prefix1/".some),
-      DirectoryFindCompletionConfig(1, none, none, Clock[IO]),
-      Set.empty,
-      Option.empty,
-    ).unsafeRunSync() should be(CompletedDirectoryFindResults(
-      Set("prefix1/"),
-    ))
-    directoryLister.findDirectories(
-      S3Location("bucket"),
-      DirectoryFindCompletionConfig(1, none, none, Clock[IO]),
-      Set.empty,
-      Option.empty,
-    ).unsafeRunSync() should be(CompletedDirectoryFindResults(
-      Set("prefix1/", "prefix2/"),
-    ))
+
+    check(S3Location("bucket", "prefix1/".some), Set.empty, Set("prefix1/"), s3Client)
+
+    check(S3Location("bucket", "prefix2/".some), Set.empty, Set("prefix2/"), s3Client)
+    check(S3Location("bucket", "prefix3/".some), Set.empty, Set.empty, s3Client)
+    check(S3Location("bucket", None), Set.empty, Set("prefix1/", "prefix2/"), s3Client)
   }
 
-  "dirLister" should "list multiple pages" in {
+  "lister" should "list multiple pages" in {
 
     val s3Client: S3Client = new MockS3Client(
       S3Page(
@@ -74,18 +63,19 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
         "prefix4/8.txt",
       ),
     )
-    val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface(connectorTaskId, s3Client)
-    directoryLister.findDirectories(
+
+    AwsS3DirectoryLister.findDirectories(
       S3Location("bucket", none),
-      DirectoryFindCompletionConfig(1, none, none, Clock[IO]),
+      DirectoryFindCompletionConfig(1),
       Set.empty,
-      Option.empty,
-    ).unsafeRunSync() should be(CompletedDirectoryFindResults(
+      s3Client.listObjectsV2Paginator(_).iterator().asScala,
+      connectorTaskId,
+    ).unsafeRunSync() should be(DirectoryFindResults(
       Set("prefix1/", "prefix2/", "prefix3/", "prefix4/"),
     ))
   }
 
-  "dirLister" should "exclude directories" in {
+  "lister" should "exclude directories" in {
 
     val s3Client: S3Client = new MockS3Client(
       S3Page(
@@ -101,18 +91,19 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
         "prefix4/8.txt",
       ),
     )
-    val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface(connectorTaskId, s3Client)
-    directoryLister.findDirectories(
+
+    check(
       S3Location("bucket", none),
-      DirectoryFindCompletionConfig(1, none, none, Clock[IO]),
       Set("prefix1/", "prefix4/"),
-      Option.empty,
-    ).unsafeRunSync() should be(CompletedDirectoryFindResults(
       Set("prefix2/", "prefix3/"),
-    ))
+      s3Client,
+      0,
+    )
   }
 
-  "dirLister" should "return after first page of prefixes found" in {
+  "lister" should "consider the connector task owning the partition" in {
+    val taskId1 = ConnectorTaskId("sinkName", 2, 1)
+    val taskId2 = ConnectorTaskId("sinkName", 2, 0)
 
     val s3Client: S3Client = new MockS3Client(
       S3Page(
@@ -128,17 +119,78 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
         "prefix4/8.txt",
       ),
     )
-    val directoryLister: AwsS3DirectoryLister = new AwsS3StorageInterface(connectorTaskId, s3Client)
-    directoryLister.findDirectories(
+
+    check(
       S3Location("bucket", none),
-      DirectoryFindCompletionConfig(1, 1.some, none, Clock[IO]),
       Set.empty,
-      Option.empty,
-    ).unsafeRunSync() should be(PausedDirectoryFindResults(
-      Set("prefix1/", "prefix2/"),
-      "p",
-      "prefix2/4.txt",
-    ))
+      Set("prefix2/", "prefix4/"),
+      s3Client,
+      1,
+      taskId1,
+    )
+
+    check(
+      S3Location("bucket", none),
+      Set.empty,
+      Set("prefix1/", "prefix3/"),
+      s3Client,
+      1,
+      taskId2,
+    )
+
+    check(
+      S3Location("bucket", none),
+      Set("prefix2/", "prefix4/"),
+      Set.empty,
+      s3Client,
+      0,
+      taskId1,
+    )
+
+    check(
+      S3Location("bucket", none),
+      Set("prefix1/", "prefix3/"),
+      Set.empty,
+      s3Client,
+      0,
+      taskId2,
+    )
+
+    check(
+      S3Location("bucket", none),
+      Set("prefix2/"),
+      Set("prefix4/"),
+      s3Client,
+      1,
+      taskId1,
+    )
+
+    check(
+      S3Location("bucket", none),
+      Set("prefix1/"),
+      Set("prefix3/"),
+      s3Client,
+      1,
+      taskId2,
+    )
   }
 
+  private def check(
+    location:        S3Location,
+    exclude:         Set[String],
+    expected:        Set[String],
+    s3Client:        S3Client,
+    recursiveLevel:  Int             = 1,
+    connectorTaskId: ConnectorTaskId = connectorTaskId,
+  ): Unit = {
+    val actual = AwsS3DirectoryLister.findDirectories(
+      location,
+      DirectoryFindCompletionConfig(recursiveLevel),
+      exclude,
+      s3Client.listObjectsV2Paginator(_).iterator().asScala,
+      connectorTaskId,
+    ).unsafeRunSync()
+    actual should be(DirectoryFindResults(expected))
+    ()
+  }
 }

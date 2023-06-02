@@ -41,7 +41,7 @@ case class S3Location(
     copy(line = lineNum.some)
 
   def fromStart(): S3Location =
-    copy(line = -1.some)
+    copy(line = (-1).some)
 
   def isFromStart: Boolean = line.contains(-1)
 
@@ -52,9 +52,22 @@ case class S3Location(
 
   def prefixOrDefault(): String = prefix.getOrElse("")
 
-  def validate(allowSlash: Boolean): Validated[Throwable, S3Location] =
+  private def validate(allowSlash: Boolean): Validated[Throwable, S3Location] =
     S3LocationValidator.validate(this, allowSlash)
 
+  override def toString: String = {
+    val prefixStr    = prefix.map(p => s"$p/").getOrElse("")
+    val pathStr      = path.map(p => s"$p/").getOrElse("")
+    val lineStr      = line.map(l => s"#$l").getOrElse("")
+    val timestampStr = timestamp.map(t => s"@${t.toString}").getOrElse("")
+    s"$bucket:$prefixStr$pathStr$lineStr$timestampStr"
+  }
+
+  def toPath: String = {
+    val prefixStr = prefix.map(p => s"$p/").getOrElse("")
+    val pathStr   = path.map(p => s"$p/").getOrElse("")
+    s"$bucket:$prefixStr$pathStr"
+  }
 }
 
 case object S3Location {
@@ -68,6 +81,6 @@ case object S3Location {
     }
 
   implicit val showLocation: Show[S3Location] =
-    Show.show(loc => s"${loc.bucket}|${loc.prefix}|${loc.path}|${loc.line}|${loc.timestamp}")
+    Show.show(loc => s"${loc.bucket}//:${loc.prefix.map(s => s"$s/").getOrElse("")}|${loc.path.getOrElse("")}")
 
 }
