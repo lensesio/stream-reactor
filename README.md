@@ -61,6 +61,8 @@ FROM   $TOPIC_NAME
        [ WITHTIMESTAMP cola|sys_time() ]
        [ STOREAS $YOUR_TYPE([key=value, .....]) ]
        [ WITHFORMAT TEXT|AVRO|JSON|BINARY|OBJECT|MAP ]
+       [ PROPERTIES(key=value, ...) ]
+     
 ```
 
 * To view how a sink connector (i.e. Cassandra) manage configuration options, refer to
