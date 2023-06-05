@@ -8,7 +8,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:5.0.0'
-        classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.11.0'
+        classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.30.0'
         classpath 'net.researchgate:gradle-release:2.6.0'
     }
 }
@@ -101,8 +101,8 @@ allprojects {
     }
 
     nexusStaging {
-        numberOfRetries = 50
-        delayBetweenRetriesInMillis = 3000
+        numberOfRetries = 100
+        delayBetweenRetriesInMillis = 6000
     }
 
     // OSSRH publication
