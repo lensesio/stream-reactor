@@ -41,7 +41,7 @@ case class S3Location(
     copy(line = lineNum.some)
 
   def fromStart(): S3Location =
-    copy(line = (-1).some)
+    copy(line = -1.some)
 
   def isFromStart: Boolean = line.contains(-1)
 

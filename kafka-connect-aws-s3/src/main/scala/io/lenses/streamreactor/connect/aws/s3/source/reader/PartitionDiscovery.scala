@@ -51,7 +51,6 @@ object PartitionDiscovery extends LazyLogging {
       oldState <- readerManagerState.get
       newParts <- partitionSearcher.findNewPartitions(oldState.partitionResponses)
       tuples    = newParts.flatMap(part => part.results.partitions.map(part.root -> _))
-      _        <- IO(logger.info(s"Found ${tuples.map(_._2).mkString(",")} new partitions"))
       newReaderManagers <- tuples
         .map { case (location, path) => readerManagerCreateFn(location, path) }.traverse(identity)
       newState = oldState.copy(

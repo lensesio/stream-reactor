@@ -35,7 +35,7 @@ class PartitionSearcher(
 
   def findNewPartitions(
     lastFound: Seq[PartitionSearcherResponse],
-  ): IO[Seq[PartitionSearcherResponse]] = {
+  ): IO[Seq[PartitionSearcherResponse]] =
     if (lastFound.isEmpty && roots.nonEmpty) {
       roots.traverse(findNewPartitionsInRoot(_, settings, Set.empty))
     } else {
@@ -48,7 +48,6 @@ class PartitionSearcher(
           )
       }
     }
-  }
 
   private def findNewPartitionsInRoot(
     root:               S3Location,
@@ -64,13 +63,16 @@ class PartitionSearcher(
         listS3ObjF,
         connectorTaskId,
       )
-      _ <- IO(
-        logger.info("[{}] Found new partitions {} under {}",
-                    connectorTaskId.show,
-                    foundPartitions.partitions.mkString(","),
-                    root.toPath,
-        ),
-      )
+      _ <- IO {
+        if (foundPartitions.partitions.nonEmpty)
+          logger.info("[{}] Found new partitions {} for: {}",
+                      connectorTaskId.show,
+                      foundPartitions.partitions.mkString(","),
+                      root.toPath,
+          )
+        else
+          logger.info("[{}] No new partitions found for:{}", connectorTaskId.show, root.toPath)
+      }
 
     } yield PartitionSearcherResponse(
       root,

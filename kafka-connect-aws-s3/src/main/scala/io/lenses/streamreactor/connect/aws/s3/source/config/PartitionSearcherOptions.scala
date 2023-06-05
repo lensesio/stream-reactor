@@ -18,6 +18,6 @@ package io.lenses.streamreactor.connect.aws.s3.source.config
 import scala.concurrent.duration.FiniteDuration
 
 case class PartitionSearcherOptions(
-  recurseLevels:  Int,
-  interval: FiniteDuration,
+  recurseLevels: Int,
+  interval:      FiniteDuration,
 )

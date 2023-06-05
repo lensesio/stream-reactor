@@ -100,12 +100,12 @@ object S3ConfigSettings {
   val POOL_MAX_CONNECTIONS_DOC = "Max connections in pool.  -1: Use default according to underlying client."
   val POOL_MAX_CONNECTIONS_DEFAULT: Int = -1
 
-  val COMPRESSION_CODEC         = s"$CONNECTOR_PREFIX.compression.codec"
-  val COMPRESSION_CODEC_DOC     = "Compression codec to use for Avro or Parquet."
+  val COMPRESSION_CODEC     = s"$CONNECTOR_PREFIX.compression.codec"
+  val COMPRESSION_CODEC_DOC = "Compression codec to use for Avro or Parquet."
   val COMPRESSION_CODEC_DEFAULT: String = UNCOMPRESSED.entryName
 
-  val COMPRESSION_LEVEL         = s"$CONNECTOR_PREFIX.compression.level"
-  val COMPRESSION_LEVEL_DOC     = "Certain compression codecs require a level specified."
+  val COMPRESSION_LEVEL     = s"$CONNECTOR_PREFIX.compression.level"
+  val COMPRESSION_LEVEL_DOC = "Certain compression codecs require a level specified."
   val COMPRESSION_LEVEL_DEFAULT: Int = -1
 
   val PADDING_STRATEGY = s"$CONNECTOR_PREFIX.padding.strategy"

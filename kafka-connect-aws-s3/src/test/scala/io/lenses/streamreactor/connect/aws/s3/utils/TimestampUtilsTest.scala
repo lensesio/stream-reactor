@@ -15,24 +15,21 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.utils
 
-import cats.effect.IO
-import cats.effect.Ref
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.duration.FiniteDuration
+import java.time.Instant
 
-object PollLoop {
+class TimestampUtilsTest extends AnyFunSuite with Matchers {
+  test("test parseTime") {
+    TimestampUtils.parseTime(Some(1609459200000L))(_ => fail("Should not be called")) match {
+      case Some(value) =>
+        value.compareTo(Instant.from(java.time.ZonedDateTime.parse("2021-01-01T00:00:00Z"))) shouldBe 0
+      case None => fail("Should not be None")
+    }
+  }
+  test("test parseTime with None as input") {
+    TimestampUtils.parseTime(None)(_ => fail("Should not be called")) shouldBe None
+  }
 
-  //Calls fn every interval until cancelledRef is set to true
-  def run(interval: FiniteDuration, cancelledRef: Ref[IO, Boolean])(fn: () => IO[Unit]): IO[Unit] =
-    for {
-      _ <- fn()
-      _ <- IO.sleep(interval)
-      _ <- cancelledRef.get.flatMap { cancelled =>
-        if (cancelled) {
-          IO.unit
-        } else {
-          run(interval, cancelledRef)(fn)
-        }
-      }
-    } yield ()
 }
