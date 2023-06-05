@@ -22,8 +22,9 @@ import com.datamountaineer.streamreactor.connect.influx.NanoClock
 import com.datamountaineer.streamreactor.connect.influx.ValidateStringParameterFn
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
-import org.influxdb.InfluxDBFactory
+import com.influxdb.client.InfluxDBClientFactory
 
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Try
 
 class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLogging with ErrorHandler {
@@ -33,8 +34,13 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
 
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
-  private val influxDB = InfluxDBFactory.connect(settings.connectionUrl, settings.user, settings.password)
-  private val builder  = new InfluxBatchPointsBuilder(settings, new NanoClock())
+  private val influxDB = InfluxDBClientFactory.createV1(settings.connectionUrl,
+                                                        settings.user,
+                                                        settings.password.toCharArray,
+                                                        settings.database,
+                                                        settings.retentionPolicy,
+  )
+  private val builder = new InfluxBatchPointsBuilder(settings, new NanoClock())
 
   override def write(records: Seq[SinkRecord]): Unit =
     if (records.isEmpty) {
@@ -44,8 +50,11 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
         builder
           .build(records)
           .flatMap { batchPoints =>
-            logger.debug(s"Writing ${batchPoints.getPoints.size()} points to the database...")
-            Try(influxDB.write(batchPoints))
+            logger.debug(s"Writing ${batchPoints.length} points to the database...")
+            for {
+              writer   <- Try(influxDB.makeWriteApi())
+              writeRes <- Try(writer.writePoints(batchPoints.asJava))
+            } yield writeRes
           }.map(_ => logger.debug("Writing complete")),
       )
     }

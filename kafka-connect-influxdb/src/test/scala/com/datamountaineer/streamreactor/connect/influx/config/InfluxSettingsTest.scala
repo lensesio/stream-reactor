@@ -17,8 +17,8 @@ package com.datamountaineer.streamreactor.connect.influx.config
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
+import com.influxdb.client.domain.WriteConsistency
 import org.apache.kafka.common.config.ConfigException
-import org.influxdb.InfluxDB.ConsistencyLevel
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -112,7 +112,7 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
       InfluxConfigConstants.INFLUX_DATABASE_CONFIG        -> database,
       InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG -> user,
       InfluxConfigConstants.KCQL_CONFIG                   -> QUERY_ALL,
-      InfluxConfigConstants.CONSISTENCY_CONFIG            -> ConsistencyLevel.QUORUM.toString,
+      InfluxConfigConstants.CONSISTENCY_CONFIG            -> WriteConsistency.QUORUM.toString,
     ).asJava
 
     val config = InfluxConfig(props)
@@ -139,7 +139,7 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
       InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG     -> user,
       InfluxConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG -> pass,
       InfluxConfigConstants.KCQL_CONFIG                       -> QUERY_SELECT,
-      InfluxConfigConstants.CONSISTENCY_CONFIG                -> ConsistencyLevel.ANY.toString,
+      InfluxConfigConstants.CONSISTENCY_CONFIG                -> WriteConsistency.ANY.toString,
     ).asJava
 
     val config = InfluxConfig(props)
@@ -167,7 +167,7 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
       InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG     -> user,
       InfluxConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG -> pass,
       InfluxConfigConstants.KCQL_CONFIG                       -> QUERY_SELECT_AND_TIMESTAMP,
-      InfluxConfigConstants.CONSISTENCY_CONFIG                -> ConsistencyLevel.ONE.toString,
+      InfluxConfigConstants.CONSISTENCY_CONFIG                -> WriteConsistency.ONE.toString,
     ).asJava
 
     val config = InfluxConfig(props)
@@ -181,7 +181,7 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
     settings.kcqls.size shouldBe 1
     settings.kcqls.head.getFields.asScala.exists(_.getName == "*") shouldBe true
     settings.kcqls.head.getTimestamp shouldBe "ts"
-    settings.consistencyLevel shouldBe ConsistencyLevel.ONE
+    settings.consistencyLevel shouldBe WriteConsistency.ONE
   }
 
   "create a settings with selected fields with timestamp set to a sys_timestamp" in {
@@ -196,7 +196,7 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
       InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG     -> user,
       InfluxConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG -> pass,
       InfluxConfigConstants.KCQL_CONFIG                       -> QUERY_SELECT_AND_TIMESTAMP_SYSTEM,
-      InfluxConfigConstants.CONSISTENCY_CONFIG                -> ConsistencyLevel.ONE.toString,
+      InfluxConfigConstants.CONSISTENCY_CONFIG                -> WriteConsistency.ONE.toString,
     ).asJava
 
     val config = InfluxConfig(props)

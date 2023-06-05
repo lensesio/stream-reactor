@@ -19,7 +19,7 @@ import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
 import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import org.apache.kafka.common.config.ConfigException
-import org.influxdb.InfluxDB.ConsistencyLevel
+import com.influxdb.client.domain.WriteConsistency
 
 case class InfluxSettings(
   connectionUrl:    String,
@@ -27,7 +27,7 @@ case class InfluxSettings(
   password:         String,
   database:         String,
   retentionPolicy:  String,
-  consistencyLevel: ConsistencyLevel,
+  consistencyLevel: WriteConsistency,
   /*topicToMeasurementMap: Map[String, String],
                           fieldsExtractorMap: Map[String, StructFieldsExtractor],
                           topicToTagsMap: Map[String, Seq[Tag]]*/

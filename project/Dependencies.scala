@@ -118,7 +118,7 @@ object Dependencies {
 
     val javaxCacheVersion = "1.1.1"
 
-    val influxVersion = "2.23"
+    val influxVersion = "6.8.0"
 
     val jmsApiVersion                 = "2.0.1"
     val activeMqVersion               = "5.17.4"
@@ -379,8 +379,8 @@ object Dependencies {
 
   lazy val hazelCastAll = "com.hazelcast" % "hazelcast-all" % hazelCastVersion
 
-  lazy val javaxCache = "javax.cache"  % "cache-api"     % javaxCacheVersion
-  lazy val influx     = "org.influxdb" % "influxdb-java" % influxVersion
+  lazy val javaxCache = "javax.cache"  % "cache-api"            % javaxCacheVersion
+  lazy val influx     = "com.influxdb" % "influxdb-client-java" % influxVersion
 
   lazy val jmsApi         = "javax.jms"           % "javax.jms-api"   % jmsApiVersion
   lazy val activeMq       = "org.apache.activemq" % "activemq-client" % activeMqVersion
