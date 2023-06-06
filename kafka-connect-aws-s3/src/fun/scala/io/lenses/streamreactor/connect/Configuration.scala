@@ -1,7 +1,7 @@
 package io.lenses.streamreactor.connect
 
-import io.debezium.testing.testcontainers.ConnectorConfiguration
-import io.lenses.streamreactor.connect.testcontainers.S3Authentication
+import _root_.io.debezium.testing.testcontainers.ConnectorConfiguration
+import _root_.io.lenses.streamreactor.connect.testcontainers.S3Authentication
 
 object Configuration {
 
