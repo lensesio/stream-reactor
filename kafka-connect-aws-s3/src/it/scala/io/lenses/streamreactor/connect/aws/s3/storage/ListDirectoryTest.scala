@@ -55,7 +55,29 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
 
   }
 
-  "s3StorageInterface" should "list directories within a path recursively from bucket root" in {
+  "s3StorageInterface" should "list directories within a path 2 levels deep from bucket root" in {
+
+    val taskId = ConnectorTaskId("sinkName", 1, 0)
+
+    val bucketRoot = S3Location(BucketName)
+
+    val dirs = AwsS3DirectoryLister.findDirectories(
+      bucketRoot,
+      DirectoryFindCompletionConfig(2),
+      Set.empty,
+      s3Client.listObjectsV2Paginator(_).iterator().asScala,
+      taskId,
+    ).unsafeRunSync()
+
+    val allValues  = (1 to 10).map(x => s"topic-1/$x/")
+    val allValues2 = (1 to 10).map(x => s"topic-2/$x/")
+
+    val partitionResults = DirectoryFindResults((allValues ++ allValues2).toSet)
+    dirs should be(partitionResults)
+
+  }
+
+  "s3StorageInterface" should "list directories within a path 3 levels deep from bucket root" in {
 
     val taskId = ConnectorTaskId("sinkName", 1, 0)
 
@@ -73,6 +95,24 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
     val allValues2 = (1 to 10).map(x => s"topic-2/$x/")
 
     val partitionResults = DirectoryFindResults((allValues ++ allValues2).toSet)
+    dirs should be(partitionResults)
+
+  }
+  "s3StorageInterface" should "list directories within a path 1 levels deep from bucket root" in {
+
+    val taskId = ConnectorTaskId("sinkName", 1, 0)
+
+    val bucketRoot = S3Location(BucketName)
+
+    val dirs = AwsS3DirectoryLister.findDirectories(
+      bucketRoot,
+      DirectoryFindCompletionConfig(1),
+      Set.empty,
+      s3Client.listObjectsV2Paginator(_).iterator().asScala,
+      taskId,
+    ).unsafeRunSync()
+
+    val partitionResults = DirectoryFindResults(Set("topic-1/", "topic-2/"))
     dirs should be(partitionResults)
 
   }

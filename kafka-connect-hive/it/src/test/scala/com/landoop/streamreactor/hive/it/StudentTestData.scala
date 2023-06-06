@@ -47,7 +47,6 @@ class StudentTestData {
       deptAssigner.increaseOrReset,
       names(Random.nextInt(names.length))
     )
-    println("STUDENT: " + stud)
     stud
   }
 

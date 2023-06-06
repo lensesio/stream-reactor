@@ -81,7 +81,12 @@ trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with Laz
     helperOpt           = Some(new RemoteFileHelper(sI))
 
     logger.debug("Creating test bucket")
-    createTestBucket().getOrElse(fail("Failed to create test bucket"))
+    createTestBucket() match {
+      case Left(err) =>
+        logger.error("Failed to create test bucket.", err)
+        fail("Failed to create test bucket.", err)
+      case Right(_) =>
+    }
     setUpTestData()
 
     localRoot = Files.createTempDirectory("blah").toFile

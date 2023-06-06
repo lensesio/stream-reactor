@@ -34,12 +34,13 @@ object AwsS3DirectoryLister {
     for {
       iterator   <- IO(listObjectsF(createListObjectsRequest(bucketAndPrefix)))
       prefixInfo <- extractPrefixesFromResponse(iterator, exclude, connectorTaskId)
-      flattened <- flattenPrefixes(bucketAndPrefix,
-                                   prefixInfo.partitions,
-                                   completionConfig,
-                                   exclude,
-                                   listObjectsF,
-                                   connectorTaskId,
+      flattened <- flattenPrefixes(
+        bucketAndPrefix,
+        prefixInfo.partitions,
+        completionConfig.copy(levelsToRecurse = completionConfig.levelsToRecurse - 1),
+        exclude,
+        listObjectsF,
+        connectorTaskId,
       )
     } yield DirectoryFindResults(flattened)
 
@@ -63,7 +64,7 @@ object AwsS3DirectoryLister {
           ).map(_.partitions),
         )
         .map { result =>
-          prefixes ++ result.foldLeft(Set.empty[String])(_ ++ _)
+          result.foldLeft(Set.empty[String])(_ ++ _)
         }
     }
 
