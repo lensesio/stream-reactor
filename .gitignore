@@ -1,6 +1,7 @@
 .bsp
 stageman
 cass-test
+/bin
 /*/*.iml
 /*/build
 /build

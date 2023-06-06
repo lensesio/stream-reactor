@@ -117,7 +117,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
         sb.append(" DEFAULT UNSET")
       if (ttl > 0L)
         sb.append(s" USING TTL $ttl")
-
+      logger.info(s"== =Query ${sb.mkString} .")
       val statement = session.prepare(sb.mkString)
       settings.consistencyLevel.foreach(statement.setConsistencyLevel)
       statement

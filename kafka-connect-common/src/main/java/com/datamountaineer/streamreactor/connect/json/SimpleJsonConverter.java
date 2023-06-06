@@ -104,8 +104,9 @@ public class SimpleJsonConverter {
         return null;
       if (schema.defaultValue() != null)
         return convertToJson(schema, schema.defaultValue());
-      if (schema.isOptional())
-        return JsonNodeFactory.instance.nullNode();
+      if (schema.isOptional()){
+    	  return null;
+      }
       throw new DataException("Conversion error: null value for field that is required and has no default value");
     }
 
@@ -169,7 +170,9 @@ public class SimpleJsonConverter {
           for (Object elem : collection) {
             Schema valueSchema = schema == null ? null : schema.valueSchema();
             JsonNode fieldValue = convertToJson(valueSchema, elem);
-            list.add(fieldValue);
+            if(fieldValue != null) {
+            	list.add(fieldValue);
+            }
           }
           return list;
         }
@@ -199,11 +202,17 @@ public class SimpleJsonConverter {
             Schema valueSchema = schema == null ? null : schema.valueSchema();
             JsonNode mapKey = convertToJson(keySchema, entry.getKey());
             JsonNode mapValue = convertToJson(valueSchema, entry.getValue());
-
-            if (objectMode)
+            if(mapKey != null) {
+            	if(mapValue !=null) {
+            if (objectMode) {
               obj.set(mapKey.asText(), mapValue);
+            }
             else
+            {
               list.add(JsonNodeFactory.instance.arrayNode().add(mapKey).add(mapValue));
+            }
+            }
+            }
           }
           return objectMode ? obj : list;
         }
@@ -213,8 +222,10 @@ public class SimpleJsonConverter {
             throw new DataException("Mismatching schema.");
           ObjectNode obj = JsonNodeFactory.instance.objectNode();
           for (Field field : schema.fields()) {
-            obj.set(field.name(), convertToJson(field.schema(), struct.get(field)));
-          }
+            if(convertToJson(field.schema(), struct.get(field)) != null) {
+          	  obj.set(field.name(), convertToJson(field.schema(), struct.get(field)));
+            }
+            }
           return obj;
         }
       }
