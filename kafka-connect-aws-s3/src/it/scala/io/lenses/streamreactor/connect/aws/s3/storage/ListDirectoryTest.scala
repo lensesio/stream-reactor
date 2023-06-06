@@ -1,10 +1,7 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import cats.effect.Clock
-import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxOptionId
-import cats.implicits.none
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
@@ -14,7 +11,9 @@ import org.scalatest.matchers.should.Matchers
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 
-class AwsS3StorageInterfaceTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with LazyLogging {
+import scala.jdk.CollectionConverters.IteratorHasAsScala
+
+class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with LazyLogging {
 
   override def cleanUpEnabled: Boolean = false
 
@@ -38,41 +37,42 @@ class AwsS3StorageInterfaceTest extends AnyFlatSpec with Matchers with S3ProxyCo
 
   "s3StorageInterface" should "list directories within a path" in {
 
-    implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
-    val s3StorageInterface = new AwsS3StorageInterface(connectorTaskId, s3Client)
+    val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
 
     val topicRoot = S3Location(BucketName, "topic-1/".some)
 
-    val dirs = s3StorageInterface.findDirectories(
+    val dirs = AwsS3DirectoryLister.findDirectories(
       topicRoot,
-      DirectoryFindCompletionConfig(0, none, none, Clock[IO]),
+      DirectoryFindCompletionConfig(0),
       Set.empty,
-      Option.empty,
+      s3Client.listObjectsV2Paginator(_).iterator().asScala,
+      connectorTaskId,
     ).unsafeRunSync()
 
     val allValues        = (1 to 10).map(x => s"topic-1/$x/")
-    val partitionResults = CompletedDirectoryFindResults(allValues.toSet)
+    val partitionResults = DirectoryFindResults(allValues.toSet)
     dirs should be(partitionResults)
 
   }
 
   "s3StorageInterface" should "list directories within a path recursively from bucket root" in {
 
-    val s3StorageInterface = new AwsS3StorageInterface(ConnectorTaskId("sinkName", 1, 0), s3Client)
+    val taskId = ConnectorTaskId("sinkName", 1, 0)
 
     val bucketRoot = S3Location(BucketName)
 
-    val dirs = s3StorageInterface.findDirectories(
+    val dirs = AwsS3DirectoryLister.findDirectories(
       bucketRoot,
-      DirectoryFindCompletionConfig(3, none, none, Clock[IO]),
+      DirectoryFindCompletionConfig(3),
       Set.empty,
-      Option.empty,
+      s3Client.listObjectsV2Paginator(_).iterator().asScala,
+      taskId,
     ).unsafeRunSync()
 
     val allValues  = (1 to 10).map(x => s"topic-1/$x/")
     val allValues2 = (1 to 10).map(x => s"topic-2/$x/")
 
-    val partitionResults = CompletedDirectoryFindResults((allValues ++ allValues2).toSet)
+    val partitionResults = DirectoryFindResults((allValues ++ allValues2).toSet)
     dirs should be(partitionResults)
 
   }

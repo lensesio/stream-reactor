@@ -1,20 +1,20 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import cats.effect.IO
-import cats.effect.kernel.Clock
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Bytes
-import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
-import io.lenses.streamreactor.connect.aws.s3.config.Format
-import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.KeyAndValueWithSizes
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.ValueOnly
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.aws.s3.config.Format
+import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.storage.CompletedDirectoryFindResults
+import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
 import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindCompletionConfig
+import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindResults
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
@@ -24,6 +24,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
 import java.util
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 
@@ -74,8 +75,14 @@ class S3SourceTaskTest
   "task" should "retrieve subdirectories correctly" in {
     val root = S3Location(BucketName, s"${bucketSetup.PrefixName}/avro/myTopic/".some)
     val dirs =
-      storageInterface.findDirectories(root, DirectoryFindCompletionConfig(3, none, none, Clock[IO]), Set.empty, none)
-    dirs.unsafeRunSync() should be(CompletedDirectoryFindResults(Set("streamReactorBackups/avro/myTopic/0/")))
+      AwsS3DirectoryLister.findDirectories(
+        root,
+        DirectoryFindCompletionConfig(3),
+        Set.empty,
+        s3Client.listObjectsV2Paginator(_).iterator().asScala,
+        ConnectorTaskId("name", 1, 1),
+      )
+    dirs.unsafeRunSync() should be(DirectoryFindResults(Set("streamReactorBackups/avro/myTopic/0/")))
   }
 
   "task" should "read stored files continuously" in {
