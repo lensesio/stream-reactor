@@ -26,19 +26,16 @@ import java.io.InputStreamReader
   * @param prefix
   * @param suffix
   */
-class PrefixSuffixLineReader(input: InputStream, prefix: String, suffix: String, linesSkip: Int = 0) {
+class PrefixSuffixLineReader(input: InputStream, prefix: String, suffix: String, skip: Int, trim: Boolean) {
+  if (skip < 0) throw new IllegalArgumentException("skip must be >= 0")
   private val br         = new BufferedReader(new InputStreamReader(input))
   private val suffixSize = suffix.length
   private var currentLine: String = ""
-
-  if (linesSkip > 0) {
-    for (_ <- 0 until linesSkip) {
-      br.readLine()
-    }
-  }
+  private var skipped = skip <= 0
 
   //Returns the next record or None if there are no more
-  def next(): Option[String] =
+  def next(): Option[String] = {
+    skipLines()
     //read until we find the prefix. If we don't find it, return None
     readUntilPrefixOrNone()
       .flatMap {
@@ -48,7 +45,11 @@ class PrefixSuffixLineReader(input: InputStream, prefix: String, suffix: String,
           val suffixIndex = line.indexOf(suffix, index)
           if (suffixIndex > 0) {
             currentLine = line.substring(suffixIndex + suffixSize)
-            Some(line.substring(index, suffixIndex + suffixSize))
+            if (trim) {
+              Some(line.substring(index + prefix.length, suffixIndex).trim)
+            } else {
+              Some(line.substring(index, suffixIndex + suffixSize))
+            }
           } else {
             // No suffix so "clear" the current line
             currentLine = ""
@@ -56,11 +57,16 @@ class PrefixSuffixLineReader(input: InputStream, prefix: String, suffix: String,
             readUntilSuffixOrNone(value).flatMap {
               case SuffixReadResult(line, index, builder) =>
                 currentLine = line.substring(index + suffixSize)
-                builder.append(line.substring(0, index + suffixSize))
+                if (trim) {
+                  builder.append(line.substring(0, index + suffixSize).trim)
+                } else {
+                  builder.append(line.substring(0, index + suffixSize))
+                }
                 Some(builder.toString())
             }
           }
       }
+  }
 
   def close(): Unit =
     input.close()
@@ -86,16 +92,29 @@ class PrefixSuffixLineReader(input: InputStream, prefix: String, suffix: String,
     val sb    = new StringBuilder(initial)
     var index = Option(line).map(_.indexOf(suffix)).getOrElse(-1)
     while (line != null && index < 0) {
-      sb.append(System.lineSeparator())
-      sb.append(line)
+
+      if (trim) {
+        sb.append(line.trim)
+      } else {
+        sb.append(System.lineSeparator())
+        sb.append(line)
+      }
       line  = br.readLine()
       index = Option(line).map(_.indexOf(suffix)).getOrElse(-1)
     }
     Option(line).map { l =>
-      sb.append(System.lineSeparator())
+      if (!trim) {
+        sb.append(System.lineSeparator())
+      }
       SuffixReadResult(l, index, sb)
     }
   }
+
+  private def skipLines(): Unit =
+    if (!skipped) {
+      LineSkipper.skipLines(br, skip)
+      skipped = true
+    }
 
   private case class PrefixReadResult(line: String, index: Int)
   private case class SuffixReadResult(line: String, index: Int, builder: StringBuilder)
