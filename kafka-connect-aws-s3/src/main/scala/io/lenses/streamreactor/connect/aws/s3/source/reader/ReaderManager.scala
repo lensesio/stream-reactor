@@ -42,13 +42,15 @@ case class ReaderManager(
     def fromNexFile(pollResults: Vector[PollResults], allLimit: Int): IO[Vector[PollResults]] =
       for {
         maybePrev <- readerRef.getAndSet(None)
-        _         <- IO.delay(maybePrev.foreach(r => Try(r.close())))
-        nextFile  <- IO.fromEither(fileSource.next().leftMap(_.exception))
+        _ <-
+          closeAndLog(maybePrev)
+
+        nextFile <- IO.fromEither(fileSource.next().leftMap(_.exception))
         results <- nextFile.fold(IO(pollResults)) {
           value =>
             for {
               _ <- IO.delay(
-                logger.debug(s"[${connectorTaskId.show}] readNextFile - Next file ($nextFile) found"),
+                logger.debug(s"[${connectorTaskId.show}] Start reading from ${value.toString}"),
               )
               reader <- IO.fromEither(readerFn(value))
               _      <- readerRef.set(Some(reader))
@@ -68,30 +70,47 @@ case class ReaderManager(
       else {
         // if the reader is present, then read from it.
         // if there are no more records, then read the next file and build a new reader
-        readerRef.get.flatMap {
-          case Some(reader) =>
-            reader.retrieveResults(allLimit) match {
-              case Some(results) =>
-                acc(pollResults :+ results, allLimit - results.resultList.size)
-              case None =>
-                fromNexFile(pollResults, allLimit)
-            }
+        for {
+          reader <- readerRef.get
+          data <- reader match {
+            case Some(value) =>
+              val before = value.getLineNumber
+              value.retrieveResults(allLimit) match {
+                case Some(results) =>
+                  val accumulated = acc(pollResults :+ results, allLimit - results.resultList.size)
+                  val after       = value.getLineNumber
+                  logger.info("[{}] Read {} record(-s) from file {}",
+                              connectorTaskId.show,
+                              after - before,
+                              value.getLocation.toString,
+                  )
+                  accumulated
+                case None =>
+                  logger.info("[{}] Read 0 records from file {}", connectorTaskId.show, value.getLocation.toString)
+                  fromNexFile(pollResults, allLimit)
+              }
 
-          case None => fromNexFile(pollResults, allLimit)
-        }
+            case None => fromNexFile(pollResults, allLimit)
+          }
+        } yield data
       }
     acc(Vector.empty, recordsLimit)
+  }
+
+  private def closeAndLog(maybePrev: Option[ResultReader]): IO[Unit] = IO.delay {
+    maybePrev.foreach { prev =>
+      logger.info(s"[${connectorTaskId.show}] Read {} records from file {}",
+                  prev.getLineNumber,
+                  prev.getLocation.toString,
+      )
+      Try(prev.close())
+    }
   }
 
   def close(): IO[Unit] =
     for {
       currentState <- readerRef.get
-      _ <- currentState match {
-        case Some(reader) =>
-          IO.delay(Try(reader.close()))
-        case None =>
-          IO.unit
-      }
+      _            <- closeAndLog(currentState)
     } yield ()
 
 }

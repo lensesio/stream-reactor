@@ -80,6 +80,8 @@ class ResultReader(
   override def close(): Unit = reader.close()
 
   def getLocation: S3Location = reader.getBucketAndPath
+
+  def getLineNumber: Long = reader.getLineNumber
 }
 
 object ResultReader extends LazyLogging {
