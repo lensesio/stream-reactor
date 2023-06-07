@@ -15,8 +15,6 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import cats.effect.IO
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import software.amazon.awssdk.services.s3.model.S3Object
 
 import java.io.File
@@ -66,12 +64,4 @@ trait StorageInterface {
   def writeStringToFile(bucket: String, path: String, data: String): Either[UploadError, Unit]
 
   def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit]
-
-  def findDirectories(
-    bucketAndPrefix:  S3Location,
-    completionConfig: DirectoryFindCompletionConfig,
-    exclude:          Set[String],
-    continueFrom:     Option[String],
-  ): IO[DirectoryFindResults]
-
 }

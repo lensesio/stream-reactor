@@ -34,6 +34,6 @@ object IteratorOps {
         new NoSuchElementException(s"No more items at index $index").asLeft[Unit]
       }
 
-    (0 to skip).foldLeft(().asRight[NoSuchElementException])((acc, i) => acc.flatMap(_ => nextOrError(i)))
+    (0 until skip).foldLeft(().asRight[NoSuchElementException])((acc, i) => acc.flatMap(_ => nextOrError(i)))
   }
 }

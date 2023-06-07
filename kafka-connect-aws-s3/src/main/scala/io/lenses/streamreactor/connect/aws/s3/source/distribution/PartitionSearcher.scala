@@ -21,27 +21,23 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions
-import io.lenses.streamreactor.connect.aws.s3.storage.CompletedDirectoryFindResults
+import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
 import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindCompletionConfig
-import io.lenses.streamreactor.connect.aws.s3.storage.PausedDirectoryFindResults
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
-
-import cats.effect.Clock
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response
 
 class PartitionSearcher(
-  roots:    Seq[S3Location],
-  settings: PartitionSearcherOptions,
-)(
-  implicit
-  connectorTaskId:  ConnectorTaskId,
-  storageInterface: StorageInterface,
+  roots:           Seq[S3Location],
+  settings:        PartitionSearcherOptions,
+  connectorTaskId: ConnectorTaskId,
+  listS3ObjF:      ListObjectsV2Request => Iterator[ListObjectsV2Response],
 ) extends LazyLogging {
 
   def findNewPartitions(
     lastFound: Seq[PartitionSearcherResponse],
   ): IO[Seq[PartitionSearcherResponse]] =
     if (lastFound.isEmpty && roots.nonEmpty) {
-      roots.traverse(findNewPartitionsInRoot(_, settings, Set.empty, Option.empty, settings.clock))
+      roots.traverse(findNewPartitionsInRoot(_, settings, Set.empty))
     } else {
       lastFound.traverse {
         prevResponse =>
@@ -49,8 +45,6 @@ class PartitionSearcher(
             prevResponse.root,
             settings,
             prevResponse.allPartitions,
-            resumeFrom(prevResponse),
-            settings.clock,
           )
       }
     }
@@ -59,32 +53,32 @@ class PartitionSearcher(
     root:               S3Location,
     settings:           PartitionSearcherOptions,
     originalPartitions: Set[String],
-    resumeFrom:         Option[String],
-    clock:              Clock[IO],
-  ): IO[PartitionSearcherResponse] =
+  ): IO[PartitionSearcherResponse] = {
+    val config = DirectoryFindCompletionConfig.fromSearchOptions(settings)
     for {
-      searchOpts <- DirectoryFindCompletionConfig.fromSearchOptions(settings, clock)
-      foundPartitions <-
-        storageInterface.findDirectories(
-          root,
-          searchOpts,
-          originalPartitions,
-          resumeFrom,
-        )
-      _       <- IO(logger.debug("[{}] Found new partitions {} under {}", connectorTaskId.show, foundPartitions, root))
-      instant <- clock.realTimeInstant
+      foundPartitions <- AwsS3DirectoryLister.findDirectories(
+        root,
+        config,
+        originalPartitions,
+        listS3ObjF,
+        connectorTaskId,
+      )
+      _ <- IO {
+        if (foundPartitions.partitions.nonEmpty)
+          logger.info("[{}] Found new partitions {} for: {}",
+                      connectorTaskId.show,
+                      foundPartitions.partitions.mkString(","),
+                      root.toPath,
+          )
+        else
+          logger.info("[{}] No new partitions found for:{}", connectorTaskId.show, root.toPath)
+      }
+
     } yield PartitionSearcherResponse(
       root,
-      instant,
       originalPartitions ++ foundPartitions.partitions,
       foundPartitions,
       Option.empty,
     )
-
-  private def resumeFrom(prevResponse: PartitionSearcherResponse): Option[String] =
-    prevResponse.results match {
-      case PausedDirectoryFindResults(_, _, resumeFrom) => resumeFrom.some
-      case CompletedDirectoryFindResults(_)             => none
-      case _                                            => none
-    }
+  }
 }

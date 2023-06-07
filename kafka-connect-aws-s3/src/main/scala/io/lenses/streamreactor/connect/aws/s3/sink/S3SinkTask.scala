@@ -153,7 +153,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
                   headers       = HeaderToStringConverter(record),
                   TimestampUtils.parseTime(Option(record.timestamp()).map(_.toLong))(_ =>
                     logger.debug(
-                      s"Record timestampt is invalid ${record.timestamp()}",
+                      s"Record timestamp is invalid ${record.timestamp()}",
                     ),
                   ),
                 ),

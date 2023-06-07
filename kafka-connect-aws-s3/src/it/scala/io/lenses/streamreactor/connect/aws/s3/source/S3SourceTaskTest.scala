@@ -1,20 +1,20 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import cats.effect.IO
-import cats.effect.kernel.Clock
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Bytes
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.KeyAndValueWithSizes
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.ValueOnly
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.storage.CompletedDirectoryFindResults
+import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
 import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindCompletionConfig
+import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindResults
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
@@ -24,6 +24,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
 import java.util
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 
@@ -38,14 +39,15 @@ class S3SourceTaskTest
   def bucketSetup:            BucketSetup         = bucketSetupOpt.getOrElse(throw new IllegalStateException("Not initialised"))
 
   def DefaultProps: Map[String, String] = Map(
-    AWS_ACCESS_KEY              -> Identity,
-    AWS_SECRET_KEY              -> Credential,
-    AWS_REGION                  -> "eu-west-1",
-    AUTH_MODE                   -> AuthMode.Credentials.toString,
-    CUSTOM_ENDPOINT             -> uri(),
-    ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
-    TASK_INDEX                  -> "1:1",
-    "name"                      -> "s3-source",
+    AWS_ACCESS_KEY                          -> Identity,
+    AWS_SECRET_KEY                          -> Credential,
+    AWS_REGION                              -> "eu-west-1",
+    AUTH_MODE                               -> AuthMode.Credentials.toString,
+    CUSTOM_ENDPOINT                         -> uri(),
+    ENABLE_VIRTUAL_HOST_BUCKETS             -> "true",
+    TASK_INDEX                              -> "1:1",
+    "name"                                  -> "s3-source",
+    SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
   )
 
   private val formats = Table(
@@ -74,56 +76,67 @@ class S3SourceTaskTest
   "task" should "retrieve subdirectories correctly" in {
     val root = S3Location(BucketName, s"${bucketSetup.PrefixName}/avro/myTopic/".some)
     val dirs =
-      storageInterface.findDirectories(root, DirectoryFindCompletionConfig(3, none, none, Clock[IO]), Set.empty, none)
-    dirs.unsafeRunSync() should be(CompletedDirectoryFindResults(Set("streamReactorBackups/avro/myTopic/0/")))
+      AwsS3DirectoryLister.findDirectories(
+        root,
+        DirectoryFindCompletionConfig(1),
+        Set.empty,
+        s3Client.listObjectsV2Paginator(_).iterator().asScala,
+        ConnectorTaskId("name", 1, 1),
+      )
+    dirs.unsafeRunSync() should be(DirectoryFindResults(Set("streamReactorBackups/avro/myTopic/0/")))
   }
 
   "task" should "read stored files continuously" in {
     forAll(formats) {
       (format, formatOptions, dir) =>
-        val t1 = System.currentTimeMillis()
+        withClue(s"Format:$format") {
+          val t1 = System.currentTimeMillis()
 
-        val task = new S3SourceTask()
+          val task = new S3SourceTask()
 
-        val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
+          val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
 
-        val props = DefaultProps
-          .combine(
-            Map(
-              "connect.s3.kcql" -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir/ STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
-            ),
-          ).asJava
+          val props = DefaultProps
+            .combine(
+              Map(
+                "connect.s3.kcql" -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir/ STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
+              ),
+            ).asJava
 
-        task.start(props)
-        val sourceRecords1 = task.poll()
-        val sourceRecords2 = task.poll()
-        val sourceRecords3 = task.poll()
-        val sourceRecords4 = task.poll()
-        val sourceRecords5 = task.poll()
-        val sourceRecords6 = task.poll()
-        val sourceRecords7 = task.poll()
+          task.start(props)
+          //Let the partitions scan do its work
+          Thread.sleep(4000)
 
-        task.stop()
+          val sourceRecords1 = task.poll()
+          val sourceRecords2 = task.poll()
+          val sourceRecords3 = task.poll()
+          val sourceRecords4 = task.poll()
+          val sourceRecords5 = task.poll()
+          val sourceRecords6 = task.poll()
+          val sourceRecords7 = task.poll()
 
-        sourceRecords1 should have size 190
-        sourceRecords2 should have size 190
-        sourceRecords3 should have size 190
-        sourceRecords4 should have size 190
-        sourceRecords5 should have size 190
-        sourceRecords6 should have size 50
-        sourceRecords7 should have size 0
+          task.stop()
 
-        sourceRecords1.asScala
-          .concat(sourceRecords2.asScala)
-          .concat(sourceRecords3.asScala)
-          .concat(sourceRecords4.asScala)
-          .concat(sourceRecords5.asScala)
-          .concat(sourceRecords6.asScala)
-          .toSet should have size 1000
+          sourceRecords1 should have size 190
+          sourceRecords2 should have size 190
+          sourceRecords3 should have size 190
+          sourceRecords4 should have size 190
+          sourceRecords5 should have size 190
+          sourceRecords6 should have size 50
+          sourceRecords7 should have size 0
 
-        val t2  = System.currentTimeMillis()
-        val dur = t2 - t1
-        logger.info(s"$format DUR: $dur ms")
+          sourceRecords1.asScala
+            .concat(sourceRecords2.asScala)
+            .concat(sourceRecords3.asScala)
+            .concat(sourceRecords4.asScala)
+            .concat(sourceRecords5.asScala)
+            .concat(sourceRecords6.asScala)
+            .toSet should have size 1000
+
+          val t2  = System.currentTimeMillis()
+          val dur = t2 - t1
+          logger.info(s"$format DUR: $dur ms")
+        }
     }
   }
 
@@ -159,6 +172,9 @@ class S3SourceTaskTest
           ).asJava
 
         task.start(props)
+        //Let the partitions scan do its work
+        Thread.sleep(4000)
+
         val sourceRecords1 = task.poll()
         val sourceRecords2 = task.poll()
         val sourceRecords3 = task.poll()
@@ -173,7 +189,7 @@ class S3SourceTaskTest
         sourceRecords2 should have size 190
         sourceRecords3 should have size 190
         sourceRecords4 should have size 190
-        sourceRecords5 should have size 30
+        sourceRecords5 should have size 31
         sourceRecords6 should have size 0
         sourceRecords7 should have size 0
 
@@ -183,7 +199,7 @@ class S3SourceTaskTest
           .concat(sourceRecords4.asScala)
           .concat(sourceRecords5.asScala)
           .concat(sourceRecords6.asScala)
-          .toSet should have size 790
+          .toSet should have size 791
     }
   }
 
@@ -203,6 +219,8 @@ class S3SourceTaskTest
       ).asJava
 
     task.start(props)
+    //Let the partitions scan do its work
+    Thread.sleep(4000)
     val sourceRecords1 = task.poll()
     val sourceRecords2 = task.poll()
 
@@ -234,6 +252,8 @@ class S3SourceTaskTest
       ).asJava
 
     task.start(props)
+    //Let the partitions scan do its work
+    Thread.sleep(4000)
     val sourceRecords1 = task.poll()
     val sourceRecords2 = task.poll()
     val sourceRecords3 = task.poll()
@@ -280,6 +300,8 @@ class S3SourceTaskTest
       ).asJava
 
     task.start(props)
+    //Let the partitions scan do its work
+    Thread.sleep(4000)
     val sourceRecords1 = task.poll()
     val sourceRecords2 = task.poll()
     val sourceRecords3 = task.poll()

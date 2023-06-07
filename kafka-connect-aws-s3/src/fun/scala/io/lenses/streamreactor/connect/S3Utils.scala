@@ -1,9 +1,9 @@
 package io.lenses.streamreactor.connect
 
 import com.jayway.jsonpath.internal.Utils.unescape
-import io.circe.parser._
-import io.lenses.streamreactor.connect.model.Order
-import io.lenses.streamreactor.connect.testcontainers.S3Authentication
+import _root_.io.circe.parser._
+import _root_.io.lenses.streamreactor.connect.model.Order
+import _root_.io.lenses.streamreactor.connect.testcontainers.S3Authentication
 import org.apache.commons.io.IOUtils
 import org.scalatest.EitherValues
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials

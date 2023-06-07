@@ -13,14 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.source.distribution
+package io.lenses.streamreactor.connect.aws.s3.source.reader
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindResults
+import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcherResponse
 
-case class PartitionSearcherResponse(
-  root:          S3Location,
-  allPartitions: Set[String],
-  results:       DirectoryFindResults,
-  error:         Option[Exception],
+case class ReaderManagerState(
+  partitionResponses: Seq[PartitionSearcherResponse],
+  readerManagers:     Seq[ReaderManager],
 )

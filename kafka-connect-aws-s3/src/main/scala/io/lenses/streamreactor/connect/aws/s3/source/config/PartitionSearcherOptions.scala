@@ -15,29 +15,9 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
-import cats.effect.Clock
-import cats.effect.IO
-
-import java.time.Duration
-import java.time.Instant
+import scala.concurrent.duration.FiniteDuration
 
 case class PartitionSearcherOptions(
-  recurseLevels:               Int,
-  blockOnSearch:               Boolean,
-  searchInterval:              Duration, // searches again or resumes search in partial mode
-  pauseSearchOnPartitionCount: Option[Int], // this is per root
-  pauseSearchAfterTime:        Option[Duration], // this is per root
-  clock:                       Clock[IO],
-) {
-
-  def shouldRediscover(lastSearchTime: Option[Instant]): IO[Boolean] =
-    lastSearchTime.fold(IO(true)) {
-      lst =>
-        for {
-          now <- clock.realTimeInstant
-        } yield {
-          val nextSearchTime = lst.plus(searchInterval)
-          now.isAfter(nextSearchTime)
-        }
-    }
-}
+  recurseLevels: Int,
+  interval:      FiniteDuration,
+)

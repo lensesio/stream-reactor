@@ -35,8 +35,7 @@ import scala.util.Success
 import scala.util.Try
 
 class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: S3Client)
-    extends AwsS3DirectoryLister
-    with StorageInterface
+    extends StorageInterface
     with LazyLogging {
 
   override def list(

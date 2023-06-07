@@ -13,14 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.source.distribution
+package io.lenses.streamreactor.connect.aws.s3.utils
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindResults
+import cats.effect.IO
+import cats.effect.Ref
 
-case class PartitionSearcherResponse(
-  root:          S3Location,
-  allPartitions: Set[String],
-  results:       DirectoryFindResults,
-  error:         Option[Exception],
-)
+import scala.concurrent.duration.FiniteDuration
+
+object PollLoop {
+
+  //Calls fn every interval until cancelledRef is set to true
+  def run(interval: FiniteDuration, cancelledRef: Ref[IO, Boolean])(fn: () => IO[Unit]): IO[Unit] =
+    for {
+      _ <- fn()
+      _ <- IO.sleep(interval)
+      _ <- cancelledRef.get.flatMap { cancelled =>
+        if (cancelled) {
+          IO.unit
+        } else {
+          run(interval, cancelledRef)(fn)
+        }
+      }
+    } yield ()
+}

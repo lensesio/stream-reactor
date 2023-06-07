@@ -45,15 +45,9 @@ object S3ConfigSettings {
   val KCQL_CONFIG  = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_DOC =
     "Contains the Kafka Connect Query Language describing the flow from Apache Kafka topics to Apache Hive tables."
-  val KCQL_DISPLAY = "KCQL commands"
-
-  val PROGRESS_COUNTER_ENABLED: String = PROGRESS_ENABLED_CONST
-  val PROGRESS_COUNTER_ENABLED_DOC     = "Enables the output for how many records have been processed"
-  val PROGRESS_COUNTER_ENABLED_DEFAULT = false
-  val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 
   val ERROR_POLICY = s"$CONNECTOR_PREFIX.$ERROR_POLICY_PROP_SUFFIX"
-  val ERROR_POLICY_DOC =
+  val ERROR_POLICY_DOC: String =
     """
       |Specifies the action to be taken if an error occurs while inserting the data.
       | There are three available options:
@@ -106,13 +100,13 @@ object S3ConfigSettings {
   val POOL_MAX_CONNECTIONS_DOC = "Max connections in pool.  -1: Use default according to underlying client."
   val POOL_MAX_CONNECTIONS_DEFAULT: Int = -1
 
-  val COMPRESSION_CODEC         = s"$CONNECTOR_PREFIX.compression.codec"
-  val COMPRESSION_CODEC_DOC     = "Compression codec to use for Avro or Parquet."
-  val COMPRESSION_CODEC_DEFAULT = UNCOMPRESSED.entryName
+  val COMPRESSION_CODEC     = s"$CONNECTOR_PREFIX.compression.codec"
+  val COMPRESSION_CODEC_DOC = "Compression codec to use for Avro or Parquet."
+  val COMPRESSION_CODEC_DEFAULT: String = UNCOMPRESSED.entryName
 
-  val COMPRESSION_LEVEL         = s"$CONNECTOR_PREFIX.compression.level"
-  val COMPRESSION_LEVEL_DOC     = "Certain compression codecs require a level specified."
-  val COMPRESSION_LEVEL_DEFAULT = -1
+  val COMPRESSION_LEVEL     = s"$CONNECTOR_PREFIX.compression.level"
+  val COMPRESSION_LEVEL_DOC = "Certain compression codecs require a level specified."
+  val COMPRESSION_LEVEL_DEFAULT: Int = -1
 
   val PADDING_STRATEGY = s"$CONNECTOR_PREFIX.padding.strategy"
   val PADDING_STRATEGY_DOC =
@@ -132,25 +126,10 @@ object S3ConfigSettings {
     "When searching for new partitions on the S3 filesystem, how many levels deep to recurse."
   val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DEFAULT: Int = 3
 
-  val SOURCE_PARTITION_SEARCH_BLOCK: String = s"$CONNECTOR_PREFIX.partition.search.block"
-  val SOURCE_PARTITION_SEARCH_BLOCK_DOC: String =
-    "'true' will block the thread, 'false' will search for new partitions in the background."
-  val SOURCE_PARTITION_SEARCH_BLOCK_DEFAULT: Boolean = true
-
   val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS: String = s"$CONNECTOR_PREFIX.partition.search.interval"
   val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DOC: String =
     "The interval in milliseconds between searching for new partitions.  Defaults to 5 minutes."
   val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DEFAULT: Long = 300000L
-
-  val SOURCE_PARTITION_SEARCH_PAUSE_AFTER_COUNT: String = s"$CONNECTOR_PREFIX.partition.search.pause.after.count"
-  val SOURCE_PARTITION_SEARCH_PAUSE_AFTER_COUNT_DOC: String =
-    "When searching for new partitions, how many partitions to find before pausing.  Defaults to -1 (completes the search - no pause)."
-  val SOURCE_PARTITION_SEARCH_PAUSE_AFTER_COUNT_DEFAULT: Int = -1
-
-  val SOURCE_PARTITION_SEARCH_PAUSE_AFTER_MILLIS: String = s"$CONNECTOR_PREFIX.partition.search.pause.after.time"
-  val SOURCE_PARTITION_SEARCH_PAUSE_AFTER_MILLIS_DOC: String =
-    "When searching for new partitions, how long to run the search for before pausing.  Defaults to -1 (completes the search - no pause)."
-  val SOURCE_PARTITION_SEARCH_PAUSE_AFTER_MILLIS_DEFAULT: Long = -1L
 
   val SOURCE_ORDERING_TYPE:         String = s"$CONNECTOR_PREFIX.ordering.type"
   val SOURCE_ORDERING_TYPE_DOC:     String = "AlphaNumeric (the default)"
