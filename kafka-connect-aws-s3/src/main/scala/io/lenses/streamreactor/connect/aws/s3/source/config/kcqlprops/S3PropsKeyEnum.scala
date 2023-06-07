@@ -22,13 +22,13 @@ sealed abstract class S3PropsKeyEntry(override val entryName: String) extends En
 
 object S3PropsKeyEnum extends Enum[S3PropsKeyEntry] {
 
-  val values = findValues
+  override val values: IndexedSeq[S3PropsKeyEntry] = findValues
 
   case object ReadTextMode extends S3PropsKeyEntry("read.text.mode")
 
-  case object ReadRegex extends S3PropsKeyEntry("read.regex")
+  case object ReadRegex extends S3PropsKeyEntry("read.text.regex")
 
-  case object ReadStartTag extends S3PropsKeyEntry("read.start.tag")
+  case object ReadStartTag extends S3PropsKeyEntry("read.text.start.tag")
 
-  case object ReadEndTag extends S3PropsKeyEntry("read.end.tag")
+  case object ReadEndTag extends S3PropsKeyEntry("read.text.end.tag")
 }

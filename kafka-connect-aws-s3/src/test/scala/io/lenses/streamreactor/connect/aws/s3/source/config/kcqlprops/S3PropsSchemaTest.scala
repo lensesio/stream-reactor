@@ -27,10 +27,10 @@ class S3PropsSchemaTest extends AnyFlatSpec with Matchers {
 
   "S3PropsSchema" should "parse expected configs" in {
     val config = Map[String, String](
-      "read.text.mode" -> "regex",
-      "read.regex"     -> "blah",
-      "read.start.tag" -> "<employer>",
-      "read.end.tag"   -> "</employer>",
+      "read.text.mode"      -> "regex",
+      "read.text.regex"     -> "blah",
+      "read.text.start.tag" -> "<employer>",
+      "read.text.end.tag"   -> "</employer>",
     )
     val props = S3PropsSchema.schema.readProps(config)
     props.getEnumValue[ReadTextModeEntry, ReadTextModeEnum.type](ReadTextModeEnum,
