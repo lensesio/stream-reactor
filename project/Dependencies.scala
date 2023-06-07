@@ -308,7 +308,6 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "org.apache.zookeeper"))
     .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
 
-
   lazy val s3Sdk     = "software.amazon.awssdk" % "s3"       % awsSdkVersion
   lazy val stsSdk    = "software.amazon.awssdk" % "sts"      % awsSdkVersion
   lazy val javaxBind = "javax.xml.bind"         % "jaxb-api" % javaxBindVersion
