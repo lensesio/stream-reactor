@@ -240,13 +240,6 @@ object Dependencies {
   val confluentProtobufConverter: ModuleID =
     confluentExcludes("io.confluent" % "kafka-connect-protobuf-converter" % confluentVersion)
 
-  val http4sDsl         = "org.http4s" %% "http4s-dsl"               % http4sVersion
-  val http4sAsyncClient = "org.http4s" %% "http4s-async-http-client" % http4sVersion
-  val http4sBlazeServer = "org.http4s" %% "http4s-blaze-server"      % http4sVersion
-  val http4sBlazeClient = "org.http4s" %% "http4s-blaze-client"      % http4sVersion
-  val http4sCirce       = "org.http4s" %% "http4s-circe"             % http4sVersion
-  val http4s            = Seq(http4sDsl, http4sAsyncClient, http4sBlazeServer, http4sCirce)
-
   val bouncyProv   = "org.bouncycastle" % "bcprov-jdk15on" % bouncyCastleVersion
   val bouncyUtil   = "org.bouncycastle" % "bcutil-jdk15on" % bouncyCastleVersion
   val bouncyPkix   = "org.bouncycastle" % "bcpkix-jdk15on" % bouncyCastleVersion
@@ -315,7 +308,6 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "org.apache.zookeeper"))
     .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
 
-  lazy val calciteLinq4J = "org.apache.calcite" % "calcite-linq4j" % calciteVersion
 
   lazy val s3Sdk     = "software.amazon.awssdk" % "s3"       % awsSdkVersion
   lazy val stsSdk    = "software.amazon.awssdk" % "sts"      % awsSdkVersion
@@ -489,7 +481,7 @@ trait Dependencies {
     avro4s,
     kafkaClients,
     junit,
-  ) ++ enumeratum ++ circe ++ http4s
+  ) ++ enumeratum ++ circe
 
   //Specific modules dependencies
   val baseDeps: Seq[ModuleID] = loggingDeps ++ Seq(
@@ -497,9 +489,9 @@ trait Dependencies {
     catsEffectStd,
     catsEffect,
     urlValidator,
-    guava,
+    //guava,
     snakeYaml,
-    commonsBeanUtils,
+    //commonsBeanUtils,
     httpClient,
     json4sNative,
     json4sJackson,
@@ -510,12 +502,11 @@ trait Dependencies {
     avro4s,
     kcql,
     calciteCore,
-    calciteLinq4J,
     kafkaConnectJson,
     confluentAvroConverter,
     confluentAvroData,
     confluentJsonSchemaSerializer,
-  ) ++ enumeratum ++ circe ++ http4s
+  ) ++ enumeratum ++ circe
 
   //Specific modules dependencies
 
@@ -525,13 +516,13 @@ trait Dependencies {
     parquetAvro,
     parquetHadoop,
     hadoopCommon,
-    hadoopMapReduce,
-    hadoopMapReduceClient,
-    hadoopMapReduceClientCore,
-    javaxBind,
+    //hadoopMapReduce,
+    //hadoopMapReduceClient,
+    //hadoopMapReduceClientCore,
+    //javaxBind,
     openCsv,
-    guice,
-    guiceAssistedInject,
+    //guice,
+    //guiceAssistedInject,
   )
 
   val compressionCodecDeps: Seq[ModuleID] = Seq(xz, lzo, lz4)
