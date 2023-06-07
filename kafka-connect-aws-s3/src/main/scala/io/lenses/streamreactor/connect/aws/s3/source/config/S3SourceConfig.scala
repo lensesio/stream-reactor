@@ -25,12 +25,17 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PAR
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_TYPE
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEntry
+import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEnum
+import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsSchema
 import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileMetadata
 import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 
 import java.util
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 
 object S3SourceConfig {
@@ -75,6 +80,7 @@ case class SourceBucketOptions(
   filesLimit:            Int,
   partitionExtractor:    Option[PartitionExtractor],
   orderingType:          OrderingType,
+  readTextMode:          Option[ReadTextMode],
 ) {
   def createBatchListerFn(
     storageInterface: StorageInterface,
@@ -98,12 +104,16 @@ object SourceBucketOptions {
   private val DEFAULT_RECORDS_LIMIT = 1024
   private val DEFAULT_FILES_LIMIT   = 1000
 
+  private val schema = S3PropsSchema.schema
+
   def apply(
     config:             S3SourceConfigDefBuilder,
     partitionExtractor: Option[PartitionExtractor],
   ): Either[Throwable, Seq[SourceBucketOptions]] =
     config.getKCQL.map {
       kcql: Kcql =>
+        val kcqlProps: KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type] =
+          schema.readProps(kcql.getProperties.asScala.toMap)
         for {
           source <- S3Location.splitAndValidate(kcql.getSource, allowSlash = true)
         } yield SourceBucketOptions(
@@ -116,6 +126,7 @@ object SourceBucketOptions {
           orderingType = Try(config.getString(SOURCE_ORDERING_TYPE)).toOption.flatMap(
             OrderingType.withNameInsensitiveOption,
           ).getOrElse(OrderingType.AlphaNumeric),
+          readTextMode = ReadTextMode(kcqlProps),
         )
     }.toSeq.traverse(identity)
 

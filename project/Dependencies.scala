@@ -85,7 +85,7 @@ object Dependencies {
     val guiceVersion     = "5.1.0"
     val javaxBindVersion = "2.3.1"
 
-    val kcqlVersion         = "2.9.1"
+    val kcqlVersion         = "3.0.0"
     val jacksonVersion      = "2.14.2"
     val json4sVersion       = "4.0.6"
     val mockitoScalaVersion = "1.17.12"
