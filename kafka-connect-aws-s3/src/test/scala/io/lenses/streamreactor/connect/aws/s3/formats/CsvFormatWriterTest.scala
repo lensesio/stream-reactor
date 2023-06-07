@@ -33,7 +33,7 @@ import org.scalatest.matchers.should.Matchers
 import java.io.StringReader
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-class CsvFormatSelectionFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
+class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
   "convert" should "write byte output stream with csv for a single record" in {
 

@@ -25,7 +25,7 @@ import org.scalatest.matchers.should.Matchers
 import java.io.InputStream
 import scala.util.Try
 
-class ParquetFormatSelectionFormatStreamReaderTest extends AnyFlatSpec with Matchers {
+class ParquetFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
   private val bucketAndPath = mock[S3Location]
 

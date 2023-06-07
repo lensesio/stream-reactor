@@ -32,7 +32,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
 
-class BytesFormatSelectionFormatWriterTest extends AnyFlatSpec with Matchers {
+class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
   private val bytes:            Array[Byte]       = getPixelBytes
   private val byteArrayValue:   ByteArraySinkData = ByteArraySinkData(bytes, None)

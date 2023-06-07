@@ -38,7 +38,7 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class S3AvroWriterManagerTestFormatSelection extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
+class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
   import helper._
   private val compressionCodec = UNCOMPRESSED.toCodec()

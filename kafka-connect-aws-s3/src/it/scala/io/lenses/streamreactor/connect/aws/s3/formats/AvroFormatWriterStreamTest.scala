@@ -30,7 +30,7 @@ import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class AvroFormatSelectionFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
+class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
   import helper._
 
   val avroFormatReader = new AvroFormatReader()

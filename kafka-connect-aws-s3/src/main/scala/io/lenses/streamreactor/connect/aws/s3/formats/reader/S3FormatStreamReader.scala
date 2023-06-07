@@ -15,22 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
-import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-
-import java.io.InputStream
-
-object S3FormatStreamReader {
-
-  def apply(
-    inputStream:          InputStream,
-    fileSize:             Long,
-    formatSelection:      FormatSelection,
-    bucketAndPath:        S3Location,
-    recreateInputStreamF: () => Either[Throwable, InputStream],
-  ): S3FormatStreamReader[_ <: SourceData] =
-    formatSelection.toStreamReader(inputStream, fileSize, bucketAndPath, recreateInputStreamF)
-}
 
 trait S3FormatStreamReader[R <: SourceData] extends AutoCloseable with Iterator[R] {
 

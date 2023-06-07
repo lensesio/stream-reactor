@@ -31,7 +31,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.nio.ByteBuffer
 
-class AvroFormatSelectionFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
+class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
   private implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
 
   private val arraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA)

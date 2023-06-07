@@ -15,13 +15,14 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.TextFormatStreamReader
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.JsonFormatWriter
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroFormatStreamReader
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.AvroFormatWriter
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData
+import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.checkRecord
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.topic
 import org.mockito.MockitoSugar.mock
@@ -30,31 +31,32 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
 
-class TextFormatSelectionFormatStreamReaderTest extends AnyFlatSpec with Matchers {
+class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
-  "read" should "take read through all records" in {
+  private implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
+
+  "read" should "read through all records" in {
 
     val byteArrayInputStream: ByteArrayInputStream = writeRecordsToOutputStream
     val avroFormatStreamReader =
-      new TextFormatStreamReader(byteArrayInputStream, mock[S3Location])
+      new AvroFormatStreamReader(byteArrayInputStream, mock[S3Location])
 
     avroFormatStreamReader.hasNext should be(true)
-    avroFormatStreamReader.next() should be(StringSourceData(TestSampleSchemaAndData.recordsAsJson(0), 0))
+    checkRecord(avroFormatStreamReader.next().data, "sam", Some("mr"), 100.43)
     avroFormatStreamReader.hasNext should be(true)
-    avroFormatStreamReader.next() should be(StringSourceData(TestSampleSchemaAndData.recordsAsJson(1), 1))
+    checkRecord(avroFormatStreamReader.next().data, "laura", Some("ms"), 429.06)
     avroFormatStreamReader.hasNext should be(true)
-    avroFormatStreamReader.next() should be(StringSourceData(TestSampleSchemaAndData.recordsAsJson(2), 2))
+    checkRecord(avroFormatStreamReader.next().data, "tom", None, 395.44)
     avroFormatStreamReader.hasNext should be(false)
 
   }
 
   private def writeRecordsToOutputStream = {
     val outputStream     = new S3ByteArrayOutputStream()
-    val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    firstUsers.foreach(data => jsonFormatWriter.write(None, StructSinkData(data), topic))
-    jsonFormatWriter.complete()
+    val avroFormatWriter = new AvroFormatWriter(outputStream)
+    firstUsers.foreach(str => avroFormatWriter.write(None, StructSinkData(str), topic))
+    avroFormatWriter.complete()
 
-    val byteArrayInputStream = new ByteArrayInputStream(outputStream.toByteArray)
-    byteArrayInputStream
+    new ByteArrayInputStream(outputStream.toByteArray)
   }
 }

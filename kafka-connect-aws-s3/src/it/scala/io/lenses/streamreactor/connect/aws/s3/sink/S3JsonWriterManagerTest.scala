@@ -33,7 +33,7 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class S3JsonWriterManagerTestFormatSelection extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
+class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
   import helper._
   import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._

@@ -34,11 +34,7 @@ import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class ParquetFormatSelectionFormatWriterStreamTest
-    extends AnyFlatSpec
-    with Matchers
-    with S3ProxyContainerTest
-    with EitherValues {
+class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with EitherValues {
   import helper._
 
   implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()

@@ -38,7 +38,7 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class S3ParquetWriterManagerTestFormatSelection extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
+class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
   import helper._
 

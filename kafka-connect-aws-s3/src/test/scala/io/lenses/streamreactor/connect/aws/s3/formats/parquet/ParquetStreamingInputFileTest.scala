@@ -23,7 +23,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
 
-class ParquetFormatSelectionStreamingInputFileTest extends AnyFlatSpec with Matchers with MockitoSugar {
+class ParquetStreamingInputFileTest extends AnyFlatSpec with Matchers with MockitoSugar {
 
   private val bytes = "abcdefghijklmnopqrstuvwxyz".getBytes
 
