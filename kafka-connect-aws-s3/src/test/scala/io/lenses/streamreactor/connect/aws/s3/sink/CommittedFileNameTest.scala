@@ -15,10 +15,10 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import io.lenses.streamreactor.connect.aws.s3.config.Format.Avro
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Csv
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
+import io.lenses.streamreactor.connect.aws.s3.config.AvroFormatSelection
+import io.lenses.streamreactor.connect.aws.s3.config.JsonFormatSelection
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection
@@ -37,10 +37,10 @@ class CommittedFileNameTest extends AnyFlatSpecLike with Matchers {
   ))
 
   class HierarchicalJsonTestContext
-      extends TestContext(new HierarchicalS3FileNamingStrategy(FormatSelection(Json), NoOpPaddingStrategy))
+      extends TestContext(new HierarchicalS3FileNamingStrategy(JsonFormatSelection, NoOpPaddingStrategy))
 
   class PartitionedAvroTestContext
-      extends TestContext(new PartitionedS3FileNamingStrategy(FormatSelection(Avro), NoOpPaddingStrategy, partitions))
+      extends TestContext(new PartitionedS3FileNamingStrategy(AvroFormatSelection, NoOpPaddingStrategy, partitions))
 
   "unapply" should "recognise hierarchical filenames in prefix/topic/927/77.json format" in new HierarchicalJsonTestContext {
     CommittedFileName.unapply("prefix/topic/927/77.json") should be(Some((Topic("topic"), 927, Offset(77), Json)))

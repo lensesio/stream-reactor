@@ -24,7 +24,7 @@ import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
+class JsonFormatSelectionFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write byte output stream with json for a single record" in {
 

@@ -25,7 +25,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
 
-class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSugar {
+class CsvFormatSelectionFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSugar {
 
   private val bucketAndPath = mock[S3Location]
 

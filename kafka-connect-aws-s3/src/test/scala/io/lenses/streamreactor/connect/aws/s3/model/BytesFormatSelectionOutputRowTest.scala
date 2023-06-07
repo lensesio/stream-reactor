@@ -26,7 +26,7 @@ import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 import java.util
 
-object BytesOutputRowTest extends Matchers {
+object BytesFormatSelectionOutputRowTest extends Matchers {
 
   val outputKeyAndValueWithSizes: BytesOutputRow = BytesOutputRow(Some(4L), Some(5L), "fish".getBytes, "chips".getBytes)
   private val outputKeyWithSize   = BytesOutputRow(Some(4L), None, "fish".getBytes, Array())
@@ -59,9 +59,9 @@ object BytesOutputRowTest extends Matchers {
   }
 }
 
-class BytesOutputRowTest extends AnyFlatSpec with Matchers {
+class BytesFormatSelectionOutputRowTest extends AnyFlatSpec with Matchers {
 
-  import BytesOutputRowTest._
+  import BytesFormatSelectionOutputRowTest._
 
   private val testDataWithSize = Table(
     ("byteArray", "expectedOutputRow", "bytesWriteMode"),

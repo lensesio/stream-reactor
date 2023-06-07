@@ -21,7 +21,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
 
-class ParquetSeekableInputStreamTest extends AnyFlatSpec with Matchers {
+class ParquetFormatSelectionSeekableInputStreamTest extends AnyFlatSpec with Matchers {
 
   private val bytes = "abcdefghijklmnopqrstuvwxyz".getBytes
 

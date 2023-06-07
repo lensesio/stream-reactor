@@ -24,7 +24,7 @@ import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
+class TextFormatSelectionFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "write byte output stream with text format for a single record" in {
 

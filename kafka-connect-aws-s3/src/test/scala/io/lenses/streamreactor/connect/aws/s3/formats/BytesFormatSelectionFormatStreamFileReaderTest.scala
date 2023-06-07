@@ -19,16 +19,16 @@ import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesFormatStreamFileReader
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.model.BytesOutputRowTest
+import io.lenses.streamreactor.connect.aws.s3.model.BytesFormatSelectionOutputRowTest
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
 
-class BytesFormatStreamFileReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
+class BytesFormatSelectionFormatStreamFileReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
-  import BytesOutputRowTest._
+  import BytesFormatSelectionOutputRowTest._
 
   private val bucketAndPath: S3Location = mock[S3Location]
   private val fileContents = "lemonOlivelemonOlive".getBytes

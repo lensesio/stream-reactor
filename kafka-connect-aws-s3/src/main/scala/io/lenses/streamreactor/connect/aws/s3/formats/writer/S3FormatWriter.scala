@@ -16,10 +16,8 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.writer
 
 import cats.implicits._
-import io.lenses.streamreactor.connect.aws.s3.config.Format._
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
-import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
+import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.formats.FormatWriterException
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.model._
@@ -62,14 +60,15 @@ object S3FormatWriter {
     implicit
     compressionCodec: CompressionCodec,
   ): S3FormatWriter =
-    formatInfo.format match {
-      case Parquet => new ParquetFormatWriter(outputStream)
-      case Json    => new JsonFormatWriter(outputStream)
-      case Avro    => new AvroFormatWriter(outputStream)
-      case Text    => new TextFormatWriter(outputStream)
-      case Csv     => new CsvFormatWriter(outputStream, formatInfo.formatOptions.contains(WithHeaders))
-      case Bytes   => new BytesFormatWriter(outputStream, convertToBytesWriteMode(formatInfo.formatOptions))
-      case _       => throw FormatWriterException(s"Unsupported S3 format $formatInfo.format")
+    formatInfo match {
+      case ParquetFormatSelection            => new ParquetFormatWriter(outputStream)
+      case JsonFormatSelection               => new JsonFormatWriter(outputStream)
+      case AvroFormatSelection               => new AvroFormatWriter(outputStream)
+      case TextFormatSelection(_)            => new TextFormatWriter(outputStream)
+      case CsvFormatSelection(formatOptions) => new CsvFormatWriter(outputStream, formatOptions.contains(WithHeaders))
+      case BytesFormatSelection(formatOptions) =>
+        new BytesFormatWriter(outputStream, convertToBytesWriteMode(formatOptions))
+      case _ => throw FormatWriterException(s"Unsupported S3 format $formatInfo.format")
     }
 
 }

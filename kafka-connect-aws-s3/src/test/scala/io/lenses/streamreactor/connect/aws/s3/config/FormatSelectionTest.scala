@@ -26,10 +26,10 @@ class FormatSelectionTest extends AnyFlatSpec with Matchers {
   implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
 
   "formatSelection.fromString" should "format for CSV with headers" in {
-    FormatSelection.fromString("`CSV_WITHHEADERS`") should be(FormatSelection(Format.Csv, Set(WithHeaders)))
+    FormatSelection.fromString("`CSV_WITHHEADERS`", () => Option.empty) should be(CsvFormatSelection(Set(WithHeaders)))
   }
 
   "formatSelection.fromString" should "format for CSV without headers" in {
-    FormatSelection.fromString("`CSV`") should be(FormatSelection(Format.Csv, Set.empty))
+    FormatSelection.fromString("`CSV`", () => Option.empty) should be(CsvFormatSelection(Set.empty))
   }
 }

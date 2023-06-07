@@ -17,7 +17,6 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxOptionId
-import io.lenses.streamreactor.connect.aws.s3.config.Format.Avro
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
@@ -39,7 +38,7 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
+class S3AvroWriterManagerTestFormatSelection extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
   import helper._
   private val compressionCodec = UNCOMPRESSED.toCodec()
@@ -62,8 +61,8 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         TopicName.some,
         bucketAndPrefix,
         commitPolicy       = DefaultCommitPolicy(None, None, Some(2)),
-        formatSelection    = FormatSelection(Avro),
-        fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Avro), NoOpPaddingStrategy),
+        formatSelection    = AvroFormatSelection,
+        fileNamingStrategy = new HierarchicalS3FileNamingStrategy(AvroFormatSelection, NoOpPaddingStrategy),
         localStagingArea   = LocalStagingArea(localRoot),
       ),
     ),

@@ -16,7 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.config.Format.Parquet
+import io.lenses.streamreactor.connect.aws.s3.config.ParquetFormatSelection
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetFormatReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.BROTLI
@@ -34,7 +34,11 @@ import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with EitherValues {
+class ParquetFormatSelectionFormatWriterStreamTest
+    extends AnyFlatSpec
+    with Matchers
+    with S3ProxyContainerTest
+    with EitherValues {
   import helper._
 
   implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
@@ -112,7 +116,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
 
   // LZ4 and LZO need some extra native libs available on the environment and is out of scope
   // for getting this working.
-  Parquet.availableCompressionCodecs.removedAll(Set(UNCOMPRESSED, LZ4, LZO, BROTLI)).keys.foreach {
+  ParquetFormatSelection.availableCompressionCodecs.removedAll(Set(UNCOMPRESSED, LZ4, LZO, BROTLI)).keys.foreach {
     codec =>
       "convert" should s"compress output stream with $codec" in {
         val uncompressedBytes = {

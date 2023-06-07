@@ -17,7 +17,6 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxOptionId
-import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
@@ -34,7 +33,7 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
+class S3JsonWriterManagerTestFormatSelection extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
   import helper._
   import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
@@ -60,8 +59,8 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           TopicName.some,
           bucketAndPrefix,
           commitPolicy       = DefaultCommitPolicy(None, None, Some(1)),
-          formatSelection    = FormatSelection(Json),
-          fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json), NoOpPaddingStrategy),
+          formatSelection    = JsonFormatSelection,
+          fileNamingStrategy = new HierarchicalS3FileNamingStrategy(JsonFormatSelection, NoOpPaddingStrategy),
           localStagingArea   = LocalStagingArea(localRoot),
         ), // JsonS3Format
       ),
@@ -98,9 +97,9 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           TopicName.some,
           bucketAndPrefix,
           commitPolicy    = DefaultCommitPolicy(None, None, Some(3)),
-          formatSelection = FormatSelection(Json),
+          formatSelection = JsonFormatSelection,
           fileNamingStrategy =
-            new HierarchicalS3FileNamingStrategy(FormatSelection(Json), NoOpPaddingStrategy), // JsonS3Format
+            new HierarchicalS3FileNamingStrategy(JsonFormatSelection, NoOpPaddingStrategy), // JsonS3Format
           localStagingArea = LocalStagingArea(localRoot),
         ),
       ),
