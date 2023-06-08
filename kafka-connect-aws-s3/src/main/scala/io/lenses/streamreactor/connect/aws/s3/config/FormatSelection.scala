@@ -142,10 +142,13 @@ case class TextFormatSelection(readTextMode: Option[ReadTextMode]) extends Forma
     bucketAndPath:        S3Location,
     recreateInputStreamF: () => Either[Throwable, InputStream],
   ): S3FormatStreamReader[StringSourceData] =
-    readTextMode.map(rtm => rtm.createStreamReader(inputStream, bucketAndPath)).getOrElse(new TextFormatStreamReader(
-      inputStream,
-      bucketAndPath,
-    ))
+    readTextMode.map(_.createStreamReader(inputStream, bucketAndPath))
+      .getOrElse(
+        new TextFormatStreamReader(
+          inputStream,
+          bucketAndPath,
+        ),
+      )
 
   override def extension: String = "text"
 }

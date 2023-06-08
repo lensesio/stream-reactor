@@ -18,17 +18,19 @@ package io.lenses.streamreactor.connect.io.text
 class OptionIteratorAdaptor(optional: () => Option[String]) extends Iterator[String] {
 
   private var lineNumber: Long           = 0L
-  private var nextVal:    Option[String] = Option.empty
+  private var nextVal:    Option[String] = optional()
 
-  override def hasNext: Boolean = {
-    nextVal = optional()
-    nextVal.nonEmpty
-  }
+  override def hasNext: Boolean = nextVal.isDefined
 
-  override def next(): String = {
-    lineNumber += 1
-    nextVal.getOrElse(throw new IllegalStateException("Next called but no next value"))
-  }
+  def next(): String = nextVal
+    .map {
+      element =>
+        val currentElement = element
+        nextVal = optional()
+        lineNumber += 1
+        currentElement
+    }
+    .getOrElse(throw new IllegalStateException("Next called but no next value"))
 
   def getLine(): Long = lineNumber
 

@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxEitherId
+import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
@@ -256,6 +257,8 @@ class PartitionedS3FileNamingStrategy(
 
 object CommittedFileName {
 
+  private val supportedExtensions: Set[String] = Format.values.toSet.map { f: Format => f.entryName.toLowerCase() }
+
   def unapply(
     filename: String,
   )(
@@ -263,7 +266,8 @@ object CommittedFileName {
     s3FileNamingStrategy: S3FileNamingStrategy,
   ): Option[(Topic, Int, Offset, String)] =
     filename match {
-      case s3FileNamingStrategy.committedFilenameRegex(topic, partition, end, extension) =>
+      case s3FileNamingStrategy.committedFilenameRegex(topic, partition, end, extension)
+          if supportedExtensions.contains(extension) =>
         Some((Topic(topic), partition.toInt, Offset(end.toLong), extension))
       case _ => None
     }
