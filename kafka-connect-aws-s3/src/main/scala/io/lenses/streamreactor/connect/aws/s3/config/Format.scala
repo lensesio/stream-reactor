@@ -13,14 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.formats.reader
+package io.lenses.streamreactor.connect.aws.s3.config
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import enumeratum.Enum
+import enumeratum.EnumEntry
 
-trait S3FormatStreamReader[R <: SourceData] extends AutoCloseable with Iterator[R] {
+import scala.collection.immutable
 
-  def getBucketAndPath: S3Location
+sealed trait Format extends EnumEntry
 
-  def getLineNumber: Long
-
+object Format extends Enum[Format] {
+  override val values: immutable.IndexedSeq[Format] = findValues
+  case object Json    extends Format
+  case object Avro    extends Format
+  case object Parquet extends Format
+  case object Text    extends Format
+  case object Csv     extends Format
+  case object Bytes   extends Format
 }

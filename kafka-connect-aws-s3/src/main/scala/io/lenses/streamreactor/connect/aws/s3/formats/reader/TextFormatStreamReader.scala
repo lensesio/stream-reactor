@@ -17,10 +17,26 @@ package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
 import io.lenses.streamreactor.connect.aws.s3.formats.FormatWriterException
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.source.config.ReadTextMode
 
 import java.io.InputStream
 import scala.io.Source
 import scala.util.Try
+
+object TextFormatStreamReader {
+  def apply(
+    readTextMode:  Option[ReadTextMode],
+    inputStream:   InputStream,
+    bucketAndPath: S3Location,
+  ): S3FormatStreamReader[StringSourceData] =
+    readTextMode.map(_.createStreamReader(inputStream, bucketAndPath))
+      .getOrElse(
+        new TextFormatStreamReader(
+          inputStream,
+          bucketAndPath,
+        ),
+      )
+}
 
 class TextFormatStreamReader(inputStream: InputStream, bucketAndPath: S3Location)
     extends S3FormatStreamReader[StringSourceData] {

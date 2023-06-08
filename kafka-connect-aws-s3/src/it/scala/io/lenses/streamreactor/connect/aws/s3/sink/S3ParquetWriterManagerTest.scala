@@ -17,7 +17,6 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxOptionId
-import io.lenses.streamreactor.connect.aws.s3.config.Format.Parquet
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetFormatReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
@@ -63,8 +62,8 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         TopicName.some,
         bucketAndPrefix,
         commitPolicy       = DefaultCommitPolicy(None, None, Some(2)),
-        fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Parquet), NoOpPaddingStrategy),
-        formatSelection    = FormatSelection(Parquet),
+        fileNamingStrategy = new HierarchicalS3FileNamingStrategy(ParquetFormatSelection, NoOpPaddingStrategy),
+        formatSelection    = ParquetFormatSelection,
         localStagingArea   = LocalStagingArea(localRoot),
       ),
     ),

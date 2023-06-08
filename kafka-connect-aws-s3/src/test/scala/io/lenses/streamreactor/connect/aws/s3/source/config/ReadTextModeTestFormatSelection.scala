@@ -21,7 +21,7 @@ import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsSch
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class ReadTextModeTest extends AnyFlatSpec with Matchers {
+class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
 
   "ReadTextMode" should "be configured with start and end tag for StartEndTag" in {
     ReadTextMode(

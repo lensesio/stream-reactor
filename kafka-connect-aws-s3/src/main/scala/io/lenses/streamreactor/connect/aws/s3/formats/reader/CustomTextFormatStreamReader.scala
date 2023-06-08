@@ -16,11 +16,23 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.io.text.OptionIteratorAdaptor
 
-trait S3FormatStreamReader[R <: SourceData] extends AutoCloseable with Iterator[R] {
+class CustomTextFormatStreamReader(
+  bucketAndPath: S3Location,
+  lineReaderFn:  () => Option[String],
+  closeFn:       () => Unit,
+) extends S3FormatStreamReader[StringSourceData] {
 
-  def getBucketAndPath: S3Location
+  private val adaptor = new OptionIteratorAdaptor(() => lineReaderFn())
 
-  def getLineNumber: Long
+  override def getBucketAndPath: S3Location = bucketAndPath
 
+  override def getLineNumber: Long = adaptor.getLine()
+
+  override def hasNext: Boolean = adaptor.hasNext
+
+  override def next(): StringSourceData = StringSourceData(adaptor.next(), adaptor.getLine())
+
+  override def close(): Unit = closeFn()
 }

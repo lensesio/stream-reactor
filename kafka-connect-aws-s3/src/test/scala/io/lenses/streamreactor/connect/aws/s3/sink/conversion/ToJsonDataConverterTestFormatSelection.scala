@@ -25,7 +25,7 @@ import org.scalatest.matchers.should.Matchers
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-class ToJsonDataConverterTest extends AnyFlatSpec with Matchers {
+class ToJsonDataConverterTestFormatSelection extends AnyFlatSpec with Matchers {
 
   "convertMap" should "be able to handle a map of arrays" in {
 

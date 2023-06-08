@@ -15,16 +15,12 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import enumeratum.Enum
 import enumeratum.EnumEntry
-import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
 import org.apache.kafka.common.config.types.Password
 
 import scala.collection.immutable
@@ -39,114 +35,6 @@ object AuthMode extends Enum[AuthMode] {
 
   case object Default extends AuthMode
 
-}
-
-sealed trait FormatOptions extends EnumEntry
-
-object FormatOptions extends Enum[FormatOptions] {
-
-  override val values: immutable.IndexedSeq[FormatOptions] = findValues
-
-  /** CSV Options */
-  case object WithHeaders extends FormatOptions
-
-  /** Byte Options */
-  case object KeyAndValueWithSizes extends FormatOptions
-
-  case object KeyWithSize extends FormatOptions
-
-  case object ValueWithSize extends FormatOptions
-
-  case object KeyOnly extends FormatOptions
-
-  case object ValueOnly extends FormatOptions
-
-}
-
-case object FormatSelection {
-
-  def fromKcql(
-    kcql: Kcql,
-  ): FormatSelection =
-    Option(kcql.getStoredAs).map(FormatSelection.fromString).getOrElse(FormatSelection(Json, Set.empty))
-
-  def fromString(
-    formatAsString: String,
-  ): FormatSelection = {
-    val withoutTicks = formatAsString.replace("`", "")
-    val split        = withoutTicks.split("_")
-
-    val formatOptions: Set[FormatOptions] = if (split.size > 1) {
-      split.splitAt(1)._2.flatMap(FormatOptions.withNameInsensitiveOption).toSet
-    } else {
-      Set.empty
-    }
-
-    FormatSelection(
-      Format
-        .withNameInsensitiveOption(split(0))
-        .getOrElse(throw new IllegalArgumentException(s"Unsupported format - $formatAsString")),
-      formatOptions,
-    )
-  }
-
-}
-
-case class FormatSelection(
-  format:        Format,
-  formatOptions: Set[FormatOptions] = Set.empty,
-)
-
-sealed trait Format extends EnumEntry {
-  def availableCompressionCodecs: Map[CompressionCodecName, Boolean] = Map(UNCOMPRESSED -> false)
-}
-
-object Format extends Enum[Format] {
-
-  override val values: immutable.IndexedSeq[Format] = findValues
-
-  case object Json extends Format
-
-  case object Avro extends Format {
-
-    override def availableCompressionCodecs: Map[CompressionCodecName, Boolean] = Map(
-      UNCOMPRESSED -> false,
-      DEFLATE      -> true,
-      BZIP2        -> false,
-      SNAPPY       -> false,
-      XZ           -> true,
-      ZSTD         -> true,
-    )
-  }
-
-  case object Parquet extends Format {
-
-    override def availableCompressionCodecs: Map[CompressionCodecName, Boolean] = Set(
-      UNCOMPRESSED,
-      SNAPPY,
-      GZIP,
-      LZO,
-      BROTLI,
-      LZ4,
-      ZSTD,
-    ).map(_ -> false).toMap
-
-  }
-
-  case object Text extends Format
-
-  case object Csv extends Format
-
-  case object Bytes extends Format
-
-  def apply(format: String): Format =
-    Option(format) match {
-      case Some(format: String) =>
-        Format
-          .withNameInsensitiveOption(format.replace("`", ""))
-          .getOrElse(throw new IllegalArgumentException(s"Unsupported format - $format"))
-      case None => Json
-    }
 }
 
 object S3Config {

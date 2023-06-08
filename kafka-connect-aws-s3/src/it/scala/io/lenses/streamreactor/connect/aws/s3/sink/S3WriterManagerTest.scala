@@ -2,7 +2,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
+import io.lenses.streamreactor.connect.aws.s3.config.CsvFormatSelection
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
@@ -27,7 +27,7 @@ class S3WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContaine
       commitPolicyFn    = _ => DefaultCommitPolicy(Some(5L), Some(FiniteDuration(5, SECONDS)), Some(5L)).asRight,
       bucketAndPrefixFn = _ => S3Location("bucketAndPath:location").asRight,
       fileNamingStrategyFn =
-        _ => new HierarchicalS3FileNamingStrategy(FormatSelection.fromString("csv"), NoOpPaddingStrategy).asRight,
+        _ => new HierarchicalS3FileNamingStrategy(CsvFormatSelection(Set.empty), NoOpPaddingStrategy).asRight,
       stagingFilenameFn = (_, _) => new File("blah.csv").asRight,
       finalFilenameFn   = (_, _, _) => mock[S3Location].asRight,
       formatWriterFn    = (_, _) => mock[S3FormatWriter].asRight,

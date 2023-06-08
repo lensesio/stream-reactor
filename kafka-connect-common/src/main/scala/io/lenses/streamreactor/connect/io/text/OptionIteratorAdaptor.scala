@@ -13,14 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.formats.reader
+package io.lenses.streamreactor.connect.io.text
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+class OptionIteratorAdaptor(optional: () => Option[String]) extends Iterator[String] {
 
-trait S3FormatStreamReader[R <: SourceData] extends AutoCloseable with Iterator[R] {
+  private var lineNumber: Long           = 0L
+  private var nextVal:    Option[String] = optional()
 
-  def getBucketAndPath: S3Location
+  override def hasNext: Boolean = nextVal.isDefined
 
-  def getLineNumber: Long
+  def next(): String = nextVal
+    .map {
+      element =>
+        val currentElement = element
+        nextVal = optional()
+        lineNumber += 1
+        currentElement
+    }
+    .getOrElse(throw new IllegalStateException("Next called but no next value"))
+
+  def getLine(): Long = lineNumber
 
 }

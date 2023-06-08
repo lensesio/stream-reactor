@@ -16,7 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.config.Format.Avro
+import io.lenses.streamreactor.connect.aws.s3.config.AvroFormatSelection
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.AvroFormatWriter
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
@@ -64,7 +64,7 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyC
 
   }
 
-  Avro.availableCompressionCodecs.removed(UNCOMPRESSED).foreach {
+  AvroFormatSelection.availableCompressionCodecs.removed(UNCOMPRESSED).foreach {
     case (codec, requiresLevel) =>
       "convert" should s"compress output stream with $codec" in {
         val uncompressedBytes = {

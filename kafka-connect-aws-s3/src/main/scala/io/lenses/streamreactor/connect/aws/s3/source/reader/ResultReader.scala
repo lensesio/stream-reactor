@@ -101,11 +101,10 @@ object ResultReader extends LazyLogging {
         s"[${connectorTaskId.show}] Reading next file: ${pathWithLine.show} from line ${pathWithLine.line}",
       )).toEither
 
-      reader = S3FormatStreamReader(inputStream,
-                                    fileSize,
-                                    format,
-                                    pathWithLine,
-                                    () => storageInterface.getBlob(pathWithLine.bucket, path).leftMap(_.toException),
+      reader = format.toStreamReader(inputStream,
+                                     fileSize,
+                                     pathWithLine,
+                                     () => storageInterface.getBlob(pathWithLine.bucket, path).leftMap(_.toException),
       )
       _ <- pathWithLine.line match {
         case Some(value) if value >= 0 => IteratorOps.skip(reader, value)
