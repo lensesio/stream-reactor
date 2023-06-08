@@ -308,6 +308,8 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "org.apache.zookeeper"))
     .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
 
+  lazy val calciteLinq4J = "org.apache.calcite" % "calcite-linq4j" % calciteVersion
+
   lazy val s3Sdk     = "software.amazon.awssdk" % "s3"       % awsSdkVersion
   lazy val stsSdk    = "software.amazon.awssdk" % "sts"      % awsSdkVersion
   lazy val javaxBind = "javax.xml.bind"         % "jaxb-api" % javaxBindVersion
@@ -501,6 +503,7 @@ trait Dependencies {
     avro4s,
     kcql,
     calciteCore,
+    calciteLinq4J,
     kafkaConnectJson,
     confluentAvroConverter,
     confluentAvroData,
@@ -509,7 +512,15 @@ trait Dependencies {
 
   //Specific modules dependencies
 
-  val kafkaConnectS3Deps: Seq[ModuleID] = Seq(
+  val kafkaConnectS3Deps: Seq[ModuleID] = loggingDeps ++ Seq(
+    catsEffectKernel,
+    catsEffectStd,
+    catsEffect,
+    httpClient,
+    kcql,
+    calciteCore,
+    calciteLinq4J,
+  ) ++ enumeratum ++ circe ++ Seq(
     s3Sdk,
     stsSdk,
     parquetAvro,

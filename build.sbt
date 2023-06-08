@@ -59,13 +59,13 @@ lazy val common = (project in file("kafka-connect-common"))
 
 lazy val `aws-s3` = (project in file("kafka-connect-aws-s3"))
   .dependsOn(common)
-  .dependsOn(`test-common` % "fun->compile")
+  //.dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
       Seq(
         name := "kafka-connect-aws-s3",
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= baseDeps ++ kafkaConnectS3Deps,
+        libraryDependencies ++= kafkaConnectS3Deps,
         publish / skip := true,
         packExcludeJars := Seq(
           "scala-.*\\.jar",
