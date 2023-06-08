@@ -37,7 +37,6 @@ object ToJsonWithProjections extends StrictLogging {
 
   def apply(
     fields:        Seq[Field],
-    ignoredFields: Seq[Field],
     schema:        Schema,
     value:         Any,
     withStructure: Boolean,

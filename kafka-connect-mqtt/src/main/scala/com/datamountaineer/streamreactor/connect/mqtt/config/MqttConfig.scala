@@ -300,10 +300,6 @@ case class MqttSinkConfig(props: util.Map[String, String])
     extends BaseConfig(MqttConfigConstants.CONNECTOR_PREFIX, MqttSinkConfig.config, props)
     with MqttConfigBase
 
-case class MqttConfig(props: util.Map[String, String])
-    extends BaseConfig(MqttConfigConstants.CONNECTOR_PREFIX, MqttConfig.config, props)
-    with MqttConfigBase
-
 trait MqttConfigBase
     extends KcqlSettings
     with NumberRetriesSettings

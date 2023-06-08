@@ -207,15 +207,6 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
   override def version: String = manifest.version()
 
   /**
-    * Check if the reader for a table is querying.
-    *
-    * @param table The table to check if a query is active against.
-    * @return A boolean indicating if querying is in progress.
-    */
-  private[datamountaineer] def isReaderQuerying(table: String): Boolean =
-    readers(table).isQuerying
-
-  /**
     * Check the queue size of a table.
     *
     * @param table The table to check the queue size for.

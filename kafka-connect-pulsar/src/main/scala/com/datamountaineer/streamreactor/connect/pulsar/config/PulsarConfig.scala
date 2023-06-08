@@ -195,10 +195,6 @@ case class PulsarSinkConfig(props: util.Map[String, String])
     extends BaseConfig(PulsarConfigConstants.CONNECTOR_PREFIX, PulsarSinkConfig.config, props)
     with PulsarConfigBase
 
-case class PulsarConfig(props: util.Map[String, String])
-    extends BaseConfig(PulsarConfigConstants.CONNECTOR_PREFIX, PulsarConfig.config, props)
-    with PulsarConfigBase
-
 trait PulsarConfigBase
     extends KcqlSettings
     with NumberRetriesSettings

@@ -24,11 +24,9 @@ object SinkConfigSettings extends KerberosSettings with HadoopConfigurationConst
 
   val CONNECTOR_PREFIX = "connect.hive"
 
-  val KcqlKey     = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
-  val KCQL_CONFIG = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
+  val KcqlKey = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_DOC =
     "Contains the Kafka Connect Query Language describing the flow from Apache Kafka topics to Apache Hive tables."
-  val KCQL_DISPLAY = "KCQL commands"
 
   val PROGRESS_COUNTER_ENABLED         = PROGRESS_ENABLED_CONST
   val PROGRESS_COUNTER_ENABLED_DOC     = "Enables the output for how many records have been processed"

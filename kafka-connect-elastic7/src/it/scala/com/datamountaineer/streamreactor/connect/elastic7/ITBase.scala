@@ -237,7 +237,6 @@ trait ITBase extends AnyWordSpec with Matchers with BeforeAndAfter {
     ).asJava
 
   def getElasticSinkConfigPropsHTTPClient(
-    autoCreate:  Boolean,
     auth:        Boolean = false,
     clusterName: String  = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
   ): util.Map[String, String] =

@@ -31,7 +31,6 @@ object HazelCastSinkConfigConstants {
       |The client uses this list to find an alive node. Although it may be enough to give only one
       |address of a node in the cluster (since all nodes communicate with each other),
       |it is recommended that you give the addresses for all the nodes.""".stripMargin
-  val CLUSTER_MEMBERS_DEFAULT = "localhost"
 
   val CLUSTER_NAME        = s"$HAZELCAST_CONNECTOR_PREFIX.cluster.name"
   val SINK_GROUP_NAME_DOC = "The group name of the connector in the target Hazelcast cluster."
@@ -79,8 +78,7 @@ object HazelCastSinkConfigConstants {
       |The default value is 32.""".stripMargin
   val BUFFER_SIZE_DEFAULT = 32
 
-  val KCQL     = s"$HAZELCAST_CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
-  val KCQL_DOC = "KCQL expression describing field selection and routes."
+  val KCQL = s"$HAZELCAST_CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
 
   val ERROR_POLICY = s"$HAZELCAST_CONNECTOR_PREFIX.$ERROR_POLICY_PROP_SUFFIX"
   val ERROR_POLICY_DOC: String =

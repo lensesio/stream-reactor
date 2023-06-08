@@ -24,11 +24,9 @@ object HiveSourceConfigConstants extends KerberosSettings with HadoopConfigurati
 
   val CONNECTOR_PREFIX = "connect.hive"
 
-  val KcqlKey     = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
-  val KCQL_CONFIG = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
+  val KcqlKey = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_DOC =
     "Contains the Kafka Connect Query Language describing the flow from Apache Hive tables to Apache Kafka topics"
-  val KCQL_DISPLAY = "KCQL commands"
 
   val PROGRESS_COUNTER_ENABLED = PROGRESS_ENABLED_CONST
   val PROGRESS_COUNTER_ENABLED_DOC =

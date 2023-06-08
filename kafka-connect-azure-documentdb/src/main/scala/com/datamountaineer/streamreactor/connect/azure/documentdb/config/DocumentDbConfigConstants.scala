@@ -37,9 +37,8 @@ object DocumentDbConfigConstants {
   val CONNECTION_CONFIG_DOC = "The Azure DocumentDb end point."
   val CONNECTION_DISPLAY    = "Connection endpoint."
 
-  val MASTER_KEY_CONFIG  = s"$CONNECTOR_PREFIX.master.key"
-  val MASTER_KEY_DOC     = "The connection master key"
-  val MASTER_KEY_DISPLAY = "Master Key"
+  val MASTER_KEY_CONFIG = s"$CONNECTOR_PREFIX.master.key"
+  val MASTER_KEY_DOC    = "The connection master key"
 
   val ERROR_POLICY_CONFIG = s"$CONNECTOR_PREFIX.${ERROR_POLICY_PROP_SUFFIX}"
   val ERROR_POLICY_DOC: String =

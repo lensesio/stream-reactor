@@ -15,25 +15,22 @@
  */
 package com.datamountaineer.streamreactor.common.schemas
 
+import com.datamountaineer.streamreactor.common.schemas.StructHelper._
+import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import com.fasterxml.jackson.databind.JsonNode
 import io.confluent.connect.avro.AvroConverter
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.connector.ConnectRecord
 import org.apache.kafka.connect.data._
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.json.JsonDeserializer
 import org.apache.kafka.connect.sink.SinkRecord
-import org.apache.kafka.connect.storage.Converter
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
-import StructHelper._
-import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
-import org.apache.kafka.connect.errors.ConnectException
 
-import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SetHasAsScala
 import scala.util.Failure
 import scala.util.Success
@@ -276,31 +273,6 @@ trait ConverterUtil {
     simpleJsonConverter.fromConnectData(record.keySchema(), record.key())
 
   /**
-    * Deserialize Byte array for a topic to json
-    *
-    * @param topic   Topic name for the byte array
-    * @param payload Byte Array payload
-    * @return A JsonNode representing the byte array
-    */
-  def deserializeToJson(topic: String, payload: Array[Byte]): JsonNode = {
-    val json = deserializer.deserialize(topic, payload).get("payload")
-    json
-  }
-
-  /**
-    * Configure the converter
-    *
-    * @param converter The Converter to configure
-    * @param props     The props to configure with
-    */
-  def configureConverter(
-    converter: Converter,
-    props: HashMap[String, String] =
-      new HashMap[String, String],
-  ): Unit =
-    converter.configure(props.asJava, false)
-
-  /**
     * Convert SinkRecord to GenericRecord
     *
     * @param record ConnectRecord to convert
@@ -313,6 +285,4 @@ trait ConverterUtil {
     avro.asInstanceOf[GenericRecord]
   }
 
-  def convertAvroToConnect(topic: String, obj: Array[Byte]): SchemaAndValue =
-    avroConverter.toConnectData(topic, obj)
 }

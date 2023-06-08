@@ -637,7 +637,6 @@ class MongoWriterTest extends MongoDBContainer with AnyWordSpecLike with Matcher
     recordToSinkRecordFn: (String, Int) => SinkRecord, // (json, recordNum)
     settings:             MongoSettings,
     expectedKeys:         KeyInfo,
-    markIt:               Boolean                     = false,
   ) = {
 
     implicit val jsonFormats = org.json4s.DefaultFormats

@@ -193,7 +193,6 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
       case (table, (statement, kcql)) =>
         val json = ToJsonWithProjections(
           kcql.getFields.asScala.map(FieldConverter.apply).toSeq,
-          kcql.getIgnoredFields.asScala.map(FieldConverter.apply).toSeq,
           record.valueSchema(),
           record.value(),
           kcql.hasRetainStructure(),

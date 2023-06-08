@@ -42,13 +42,8 @@ object MqttConfigConstants {
       |1 = At least once; 2 = Exactly once
     """.stripMargin
 
-  val RM_CONFIG = s"${CONNECTOR_PREFIX}.retained.messages"
-  val RM_DOC    = "Specifies the Mqtt retained flag."
-  val RM_DISPLAY =
-    """
-      | A retained message is a normal MQTT message with the retained flag set to true. The broker stores
-      | the last retained message and the corresponding Quality of Service (QoS) for that topic.
-    """.stripMargin
+  val RM_CONFIG  = s"${CONNECTOR_PREFIX}.retained.messages"
+  val RM_DOC     = "Specifies the Mqtt retained flag."
   val RM_DEFAULT = false
 
   val USER_CONFIG  = s"$CONNECTOR_PREFIX.$USERNAME_SUFFIX"

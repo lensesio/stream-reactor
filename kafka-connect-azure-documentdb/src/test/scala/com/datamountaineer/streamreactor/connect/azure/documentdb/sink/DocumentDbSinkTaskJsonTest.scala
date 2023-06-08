@@ -45,7 +45,7 @@ class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoS
       val dbResource: ResourceResponse[Database] = mock[ResourceResponse[Database]]
       when(dbResource.getResource).thenReturn(mock[Database])
 
-      Seq("dbs/database1/colls/coll1", "dbs/database1/colls/coll2").foreach { c =>
+      Seq("dbs/database1/colls/coll1", "dbs/database1/colls/coll2").foreach { _ =>
         val resource = mock[ResourceResponse[DocumentCollection]]
         when(resource.getResource).thenReturn(mock[DocumentCollection])
 

@@ -27,7 +27,7 @@ import scala.jdk.CollectionConverters.ListHasAsScala
   * including the file attributes.
   */
 class SimpleFileConverter(props: util.Map[String, String], offsetStorageReader: OffsetStorageReader)
-    extends FileConverter(props, offsetStorageReader) {
+    extends FileConverter() {
 
   val cfg       = new FtpSourceConfig(props)
   val metaStore = new ConnectFileMetaDataStore(offsetStorageReader)

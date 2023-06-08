@@ -36,7 +36,7 @@ class TransformTests extends AnyWordSpec with Matchers {
   "Transform" should {
     "throw exception on null value" in {
       intercept[IllegalArgumentException] {
-        Transform(Sql.parse("SELECT * FROM A"), null, null, true, "topic", 1)
+        Transform(Sql.parse("SELECT * FROM A"), null, null, "topic", 1)
       }
     }
 
@@ -52,7 +52,6 @@ class TransformTests extends AnyWordSpec with Matchers {
           sql,
           Schema.BYTES_SCHEMA,
           bytes,
-          true,
           "topic",
           1,
         )
@@ -69,7 +68,6 @@ class TransformTests extends AnyWordSpec with Matchers {
         sql,
         Schema.BYTES_SCHEMA,
         bytes,
-        true,
         "topic",
         1,
       )
@@ -107,7 +105,6 @@ class TransformTests extends AnyWordSpec with Matchers {
         sql,
         Schema.BYTES_SCHEMA,
         ByteBuffer.wrap(bytes),
-        true,
         "topic",
         1,
       )
@@ -147,7 +144,6 @@ class TransformTests extends AnyWordSpec with Matchers {
           sql,
           null,
           bytes,
-          true,
           "topic",
           1,
         )
@@ -164,7 +160,6 @@ class TransformTests extends AnyWordSpec with Matchers {
         sql,
         null,
         bytes,
-        true,
         "topic",
         1,
       )
@@ -203,7 +198,6 @@ class TransformTests extends AnyWordSpec with Matchers {
           sql,
           Schema.STRING_SCHEMA,
           json,
-          true,
           "topic",
           1,
         )
@@ -220,7 +214,6 @@ class TransformTests extends AnyWordSpec with Matchers {
         sql,
         Schema.STRING_SCHEMA,
         json,
-        true,
         "topic",
         1,
       )
@@ -258,7 +251,6 @@ class TransformTests extends AnyWordSpec with Matchers {
           sql,
           null,
           json,
-          true,
           "topic",
           1,
         )
@@ -275,7 +267,6 @@ class TransformTests extends AnyWordSpec with Matchers {
         sql,
         null,
         json,
-        true,
         "topic",
         1,
       )
@@ -313,7 +304,6 @@ class TransformTests extends AnyWordSpec with Matchers {
         sql,
         null,
         map,
-        true,
         "topic",
         1,
       )
@@ -349,7 +339,7 @@ class TransformTests extends AnyWordSpec with Matchers {
 
     "throw exception if schmea is not not Struct" in {
       intercept[IllegalArgumentException] {
-        Transform(Sql.parse("SELECT * FROM A"), Schema.FLOAT64_SCHEMA, 12.5, true, "topic", 1)
+        Transform(Sql.parse("SELECT * FROM A"), Schema.FLOAT64_SCHEMA, 12.5, "topic", 1)
       }
     }
 
@@ -366,7 +356,6 @@ class TransformTests extends AnyWordSpec with Matchers {
         sql,
         struct.schema(),
         struct,
-        true,
         "topic",
         1,
       )
