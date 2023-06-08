@@ -15,33 +15,39 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import cats.implicits.catsSyntaxOptionId
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.time.Instant
+
 class SourceRecordConverterTest extends AnyFlatSpec with Matchers {
 
-  "fromSourcePartition" should "convert RemoteS3RootLocation to Map" in {
-    SourceRecordConverter.fromSourcePartition(RemoteS3RootLocation("test-bucket:test-prefix")) should contain allOf (
+  "fromSourcePartition" should "convert S3Location to Map" in {
+    SourceRecordConverter.fromSourcePartition(S3Location("test-bucket", "test-prefix".some)) should contain allOf (
       "container" -> "test-bucket",
       "prefix"    -> "test-prefix"
     )
   }
 
-  "fromSourcePartition" should "convert RemoteS3RootLocation without prefix to Map" in {
-    SourceRecordConverter.fromSourcePartition(RemoteS3RootLocation("test-bucket")) should contain allOf (
+  "fromSourcePartition" should "convert S3Location without prefix to Map" in {
+    SourceRecordConverter.fromSourcePartition(S3Location("test-bucket")) should contain allOf (
       "container" -> "test-bucket",
       "prefix"    -> ""
     )
   }
 
-  "fromSourceOffset" should "convert RemoteS3RootLocation to Map" in {
+  "fromSourceOffset" should "convert S3Location to Map" in {
+    val nowInst = Instant.now
     SourceRecordConverter.fromSourceOffset(
-      RemoteS3RootLocation("test-bucket:test-prefix").withPath("test-path"),
+      S3Location("test-bucket", "test-prefix".some).withPath("test-path"),
       100L,
+      nowInst,
     ) should contain allOf (
       "path" -> "test-path",
-      "line" -> "100"
+      "line" -> "100",
+      "ts"   -> nowInst.toEpochMilli.toString,
     )
   }
 

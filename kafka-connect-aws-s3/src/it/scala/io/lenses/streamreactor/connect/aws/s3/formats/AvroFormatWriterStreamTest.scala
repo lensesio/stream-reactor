@@ -16,12 +16,14 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.config.Format.Avro
+import io.lenses.streamreactor.connect.aws.s3.config.AvroFormatSelection
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroFormatReader
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.AvroFormatWriter
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
-import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
-import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
+import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
 import io.lenses.streamreactor.connect.aws.s3.stream.BuildLocalOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
@@ -39,7 +41,7 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyC
 
     val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
 
-    val avroFormatWriter = new AvroFormatWriter(() => blobStream)
+    val avroFormatWriter = new AvroFormatWriter(blobStream)
     avroFormatWriter.write(None, StructSinkData(users.head), topic)
     avroFormatWriter.complete() should be(Right(()))
     val bytes = localFileAsBytes(localFile)
@@ -52,7 +54,7 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyC
 
   "convert" should "write byte output stream with json for multiple records" in {
 
-    implicit val compressionCodec = UNCOMPRESSED.toCodec()
+    implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
 
     writeToAvroFile
 
@@ -62,7 +64,7 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyC
 
   }
 
-  Avro.availableCompressionCodecs.removed(UNCOMPRESSED).foreach {
+  AvroFormatSelection.availableCompressionCodecs.removed(UNCOMPRESSED).foreach {
     case (codec, requiresLevel) =>
       "convert" should s"compress output stream with $codec" in {
         val uncompressedBytes = {
@@ -92,7 +94,7 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyC
   private def writeToAvroFile(implicit compressionCodec: CompressionCodec) = {
     val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
 
-    val avroFormatWriter = new AvroFormatWriter(() => blobStream)
+    val avroFormatWriter = new AvroFormatWriter(blobStream)
     firstUsers.foreach(u => avroFormatWriter.write(None, StructSinkData(u), topic) should be(Right(())))
     avroFormatWriter.complete() should be(Right(()))
   }

@@ -17,9 +17,11 @@ package io.lenses.streamreactor.connect.aws.s3.sink.writer
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink._
 import io.lenses.streamreactor.connect.aws.s3.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.aws.s3.storage.NonExistingFileError
@@ -33,16 +35,16 @@ import scala.math.Ordered.orderingToOrdered
 import scala.util.Try
 
 class S3Writer(
-  sinkName:          String,
   topicPartition:    TopicPartition,
   commitPolicy:      CommitPolicy,
   indexManager:      IndexManager,
   stagingFilenameFn: () => Either[SinkError, File],
-  finalFilenameFn:   Offset => Either[SinkError, RemoteS3PathLocation],
+  finalFilenameFn:   Offset => Either[SinkError, S3Location],
   formatWriterFn:    File => Either[SinkError, S3FormatWriter],
   lastSeekedOffset:  Option[Offset],
 )(
   implicit
+  connectorTaskId:  ConnectorTaskId,
   storageInterface: StorageInterface,
 ) extends LazyLogging {
 
@@ -104,19 +106,26 @@ class S3Writer(
       case uploadState @ Uploading(commitState, file, uncommittedOffset) =>
         for {
           finalFileName <- finalFilenameFn(uncommittedOffset)
-          indexFileName <- indexManager.write(topicPartition.withOffset(uncommittedOffset), finalFileName)
-          _ <- storageInterface.uploadFile(file, finalFileName).recover {
-            case _: NonExistingFileError => ()
-            case _: ZeroByteFileError    => ()
-          }.leftMap {
-            case UploadFailedError(exception, _) => NonFatalS3SinkError(exception.getMessage, exception)
-          }
-          clean <- indexManager.clean(indexFileName, topicPartition)
+          path          <- finalFileName.path.toRight(NonFatalS3SinkError("No path exists within S3Location"))
+          indexFileName <- indexManager.write(
+            finalFileName.bucket,
+            path,
+            topicPartition.withOffset(uncommittedOffset),
+          )
+          _ <- storageInterface.uploadFile(file, finalFileName.bucket, path)
+            .recover {
+              case _: NonExistingFileError => ()
+              case _: ZeroByteFileError    => ()
+            }
+            .leftMap {
+              case UploadFailedError(exception, _) => NonFatalS3SinkError(exception.getMessage, exception)
+            }
+          _ <- indexManager.clean(finalFileName.bucket, indexFileName, topicPartition)
           stateReset <- Try {
-            logger.debug(s"[{}] S3Writer.resetState: Resetting state $writeState", sinkName)
+            logger.debug(s"[{}] S3Writer.resetState: Resetting state $writeState", connectorTaskId.show)
             writeState = uploadState.toNoWriter()
             file.delete()
-            logger.debug(s"[{}] S3Writer.resetState: New state $writeState", sinkName)
+            logger.debug(s"[{}] S3Writer.resetState: New state $writeState", connectorTaskId.show)
           }.toEither.leftMap(e => FatalS3SinkError(e.getMessage, commitState.topicPartition))
         } yield stateReset
       case other =>
@@ -164,7 +173,7 @@ class S3Writer(
 
     def largestOffset(maybeCommittedOffset: Option[Offset], uncommittedOffset: Offset): Offset = {
       logger.trace(s"[{}] maybeCommittedOffset: {}, uncommittedOffset: {}",
-                   sinkName,
+                   connectorTaskId.show,
                    maybeCommittedOffset,
                    uncommittedOffset,
       )
@@ -176,7 +185,7 @@ class S3Writer(
       def logSkipOutcome(currentOffset: Offset, latestOffset: Option[Offset], skipRecord: Boolean): Unit = {
         val skipping = if (skipRecord) "SKIPPING" else "PROCESSING"
         logger.debug(
-          s"[$sinkName] lastSeeked=${lastSeekedOffset} current=${currentOffset.value} latest=$latestOffset - $skipping",
+          s"[${connectorTaskId.show}] lastSeeked=${lastSeekedOffset} current=${currentOffset.value} latest=$latestOffset - $skipping",
         )
       }
 

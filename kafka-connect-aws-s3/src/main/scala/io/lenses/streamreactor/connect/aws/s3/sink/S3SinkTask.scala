@@ -18,21 +18,25 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import cats.implicits._
 import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
+import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
-import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
+import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither.toJavaThrowableConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.HeaderToStringConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ValueToSinkDataConverter
+import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.utils.MapUtils
+import io.lenses.streamreactor.connect.aws.s3.utils.TimestampUtils
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
-import java.time.Instant
 import java.util
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -45,39 +49,37 @@ class S3SinkTask extends SinkTask with ErrorHandler {
 
   private var writerManager: S3WriterManager = _
 
-  private var sinkName: String = _
+  private implicit var connectorTaskId: ConnectorTaskId = _
 
   override def version(): String = manifest.version()
 
-  override def start(props: util.Map[String, String]): Unit = {
-    sinkName = getSinkName(props).getOrElse("MissingSinkName")
+  override def start(fallbackProps: util.Map[String, String]): Unit = {
 
-    logger.debug(s"[{}] S3SinkTask.start", sinkName)
+    printAsciiHeader(manifest, "/aws-s3-sink-ascii.txt")
 
+    ConnectorTaskId.fromProps(fallbackProps) match {
+      case Left(value)  => throw new IllegalArgumentException(value)
+      case Right(value) => connectorTaskId = value
+    }
+
+    logger.debug(s"[{}] S3SinkTask.start", connectorTaskId.show)
+
+    val contextProps = Option(context).flatMap(c => Option(c.configs())).map(_.asScala.toMap).getOrElse(Map.empty)
+    val props        = MapUtils.mergeProps(contextProps, fallbackProps.asScala.toMap).asJava
     val errOrWriterMan = for {
-      config           <- S3SinkConfig(S3ConfigDefBuilder(getSinkName(props), propsFromContext(props)))
-      authResources     = new AuthResources(config.s3Config)
-      storageInterface <- config.s3Config.awsClient.createStorageInterface(sinkName, authResources)
-      _                <- Try(setErrorRetryInterval(config.s3Config)).toEither
-      writerManager    <- Try(S3WriterManager.from(config, sinkName)(storageInterface)).toEither
+      config          <- S3SinkConfig.fromProps(props)
+      s3Client        <- AwsS3ClientCreator.make(config.s3Config)
+      storageInterface = new AwsS3StorageInterface(connectorTaskId, s3Client)
+      _               <- Try(setErrorRetryInterval(config.s3Config)).toEither
+      writerManager   <- Try(S3WriterManager.from(config)(connectorTaskId, storageInterface)).toEither
       _ <- Try(initialize(
         config.s3Config.connectorRetryConfig.numberOfRetries,
         config.s3Config.errorPolicy,
       )).toEither
     } yield writerManager
 
-    writerManager = errOrWriterMan.toThrowable(sinkName)
-
+    errOrWriterMan.leftMap(throw _).foreach(writerManager = _)
   }
-
-  private def getSinkName(props: util.Map[String, String]) =
-    Option(props.get("name")).filter(_.trim.nonEmpty)
-
-  private def propsFromContext(props: util.Map[String, String]): util.Map[String, String] =
-    Option(context)
-      .flatMap(c => Option(c.configs()))
-      .filter(_.isEmpty == false)
-      .getOrElse(props)
 
   private def setErrorRetryInterval(s3Config: S3Config): Unit =
     //if error policy is retry set retry interval
@@ -90,7 +92,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
     override def toString: String = s"$topic-$partition"
   }
 
-  object TopicAndPartition {
+  private object TopicAndPartition {
     implicit val ordering: Ordering[TopicAndPartition] = (x: TopicAndPartition, y: TopicAndPartition) => {
       val c = x.topic.compareTo(y.topic)
       if (c == 0) x.partition.compareTo(y.partition)
@@ -98,11 +100,11 @@ class S3SinkTask extends SinkTask with ErrorHandler {
     }
   }
 
-  case class Bounds(start: Long, end: Long) {
+  private case class Bounds(start: Long, end: Long) {
     override def toString: String = s"$start->$end"
   }
 
-  def buildLogForRecords(records: Iterable[SinkRecord]): Map[TopicAndPartition, Bounds] =
+  private def buildLogForRecords(records: Iterable[SinkRecord]): Map[TopicAndPartition, Bounds] =
     records.foldLeft(Map.empty[TopicAndPartition, Bounds]) {
       case (map, record) =>
         val topicAndPartition = TopicAndPartition(record.topic(), record.kafkaPartition())
@@ -113,10 +115,10 @@ class S3SinkTask extends SinkTask with ErrorHandler {
         }
     }
 
-  def rollback(topicPartitions: Set[TopicPartition]): Unit =
+  private def rollback(topicPartitions: Set[TopicPartition]): Unit =
     topicPartitions.foreach(writerManager.cleanUp)
 
-  def handleErrors(value: Either[SinkError, Unit]) =
+  private def handleErrors(value: Either[SinkError, Unit]): Unit =
     value match {
       case Left(error: SinkError) =>
         if (error.rollBack()) {
@@ -126,16 +128,6 @@ class S3SinkTask extends SinkTask with ErrorHandler {
       case Right(_) =>
     }
 
-  def parseTime(timestamp: Option[Long]): Option[Instant] =
-    Try(timestamp.map(Instant.ofEpochMilli))
-      .toEither
-      .leftMap {
-        throwable: Throwable =>
-          logger.error("Error parsing time:", throwable)
-          None
-      }
-      .merge
-
   override def put(records: util.Collection[SinkRecord]): Unit = {
 
     val _ = handleTry {
@@ -143,7 +135,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
         val recordsStats = buildLogForRecords(records.asScala)
           .toList.sortBy(_._1).map { case (k, v) => s"$k=$v" }.mkString(";")
 
-        logger.debug(s"[$sinkName] put records=${records.size()} stats=$recordsStats")
+        logger.debug(s"[${connectorTaskId.show}] put records=${records.size()} stats=$recordsStats")
 
         // a failure in recommitPending will prevent the processing of further records
         handleErrors(writerManager.recommitPending())
@@ -159,7 +151,11 @@ class S3SinkTask extends SinkTask with ErrorHandler {
                   ),
                   valueSinkData = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
                   headers       = HeaderToStringConverter(record),
-                  parseTime(Option(record.timestamp().toLong)),
+                  TimestampUtils.parseTime(Option(record.timestamp()).map(_.toLong))(_ =>
+                    logger.debug(
+                      s"Record timestamp is invalid ${record.timestamp()}",
+                    ),
+                  ),
                 ),
               ),
             )
@@ -181,7 +177,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
         e.getKey.topic() + "-" + e.getKey.partition() + ":" + e.getValue.offset(),
       ).mkString(";")
 
-    logger.debug(s"[{}] preCommit with offsets={}", sinkName, getDebugInfo(currentOffsets): Any)
+    logger.debug(s"[{}] preCommit with offsets={}", connectorTaskId.show, getDebugInfo(currentOffsets): Any)
 
     val topicPartitionOffsetTransformed: Map[TopicPartition, OffsetAndMetadata] =
       Option(currentOffsets).getOrElse(new util.HashMap())
@@ -202,13 +198,13 @@ class S3SinkTask extends SinkTask with ErrorHandler {
           (topicPartition.toKafka, offsetAndMetadata)
       }.asJava
 
-    logger.debug(s"[{}] Returning latest written offsets={}", sinkName: Any, getDebugInfo(actualOffsets): Any)
+    logger.debug(s"[{}] Returning latest written offsets={}", connectorTaskId.show, getDebugInfo(actualOffsets): Any)
     actualOffsets
   }
 
   override def open(partitions: util.Collection[KafkaTopicPartition]): Unit = {
     val partitionsDebug = partitions.asScala.map(tp => s"${tp.topic()}-${tp.partition()}").mkString(",")
-    logger.debug(s"[{}] Open partitions", sinkName: Any, partitionsDebug: Any)
+    logger.debug(s"[{}] Open partitions", connectorTaskId.show, partitionsDebug: Any)
 
     val topicPartitions = partitions.asScala
       .map(tp => TopicPartition(Topic(tp.topic), tp.partition))
@@ -221,7 +217,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
         tpoMap.foreach {
           case (topicPartition, offset) =>
             logger.debug(
-              s"[$sinkName] Seeking to ${topicPartition.topic.value}-${topicPartition.partition}:${offset.value}",
+              s"[${connectorTaskId.show}] Seeking to ${topicPartition.topic.value}-${topicPartition.partition}:${offset.value}",
             )
             context.offset(topicPartition.toKafka, offset.value)
         }
@@ -236,13 +232,16 @@ class S3SinkTask extends SinkTask with ErrorHandler {
     * for those (topic,partitions) to ensure no records are lost.
     */
   override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
-    logger.debug("[{}] S3SinkTask.close with {} partitions", sinkName, partitions.size())
+    logger.debug("[{}] S3SinkTask.close with {} partitions",
+                 Option(connectorTaskId).map(_.show).getOrElse("Unnamed"),
+                 partitions.size(),
+    )
 
     Option(writerManager).foreach(_.close())
   }
 
   override def stop(): Unit = {
-    logger.debug("[{}] Stop", sinkName)
+    logger.debug("[{}] Stop", Option(connectorTaskId).map(_.show).getOrElse("Unnamed"))
 
     Option(writerManager).foreach(_.close())
     writerManager = null

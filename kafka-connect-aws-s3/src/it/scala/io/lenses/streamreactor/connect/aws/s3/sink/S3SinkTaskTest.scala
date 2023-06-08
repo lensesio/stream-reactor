@@ -21,9 +21,9 @@ import com.opencsv.CSVReader
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
-import io.lenses.streamreactor.connect.aws.s3.formats.BytesFormatWriter
-import io.lenses.streamreactor.connect.aws.s3.formats.ParquetFormatReader
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroFormatReader
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetFormatReader
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.BytesFormatWriter
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
@@ -75,7 +75,8 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     DEP_CUSTOM_ENDPOINT             -> uri(),
     DEP_ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
     "name"                          -> "s3SinkTaskBuildLocalTest",
-    AWS_CLIENT                      -> "jclouds",
+    AWS_REGION                      -> "eu-west-1",
+    TASK_INDEX                      -> "1:1",
   )
 
   private def DefaultProps = Map(
@@ -86,6 +87,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
     "name"                      -> "s3SinkTaskBuildLocalTest",
     AWS_REGION                  -> "eu-west-1",
+    TASK_INDEX                  -> "1:1",
   )
 
   private val partitionedData: List[Struct] = List(
@@ -1888,6 +1890,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       "name"                       -> "sinkName",
       "connect.s3.custom.endpoint" -> uri(),
       PROFILES                     -> s"$profileDir/inttest1.yaml,$profileDir/inttest2.yaml",
+      TASK_INDEX                   -> "1:1",
     ).asJava
 
     task.start(props)

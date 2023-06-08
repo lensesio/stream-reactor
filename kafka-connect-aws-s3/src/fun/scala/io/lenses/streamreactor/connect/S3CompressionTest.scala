@@ -3,13 +3,13 @@ package io.lenses.streamreactor.connect
 import cats.implicits._
 import com.datastax.driver.core.utils.UUIDs
 import com.typesafe.scalalogging.LazyLogging
-import io.confluent.kafka.serializers.KafkaAvroSerializer
-import io.lenses.streamreactor.connect.Configuration.sinkConfig
-import io.lenses.streamreactor.connect.S3Utils.{createBucket, createS3ClientResource}
-import io.lenses.streamreactor.connect.model.Order
-import io.lenses.streamreactor.connect.testcontainers.S3Container
-import io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
-import io.lenses.streamreactor.connect.testcontainers.scalatest.fixtures.connect.withConnector
+import _root_.io.confluent.kafka.serializers.KafkaAvroSerializer
+import _root_.io.lenses.streamreactor.connect.Configuration.sinkConfig
+import _root_.io.lenses.streamreactor.connect.S3Utils.{createBucket, createS3ClientResource}
+import _root_.io.lenses.streamreactor.connect.model.Order
+import _root_.io.lenses.streamreactor.connect.testcontainers.S3Container
+import _root_.io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
+import _root_.io.lenses.streamreactor.connect.testcontainers.scalatest.fixtures.connect.withConnector
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringSerializer

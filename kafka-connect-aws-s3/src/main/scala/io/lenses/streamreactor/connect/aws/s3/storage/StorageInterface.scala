@@ -15,31 +15,53 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import software.amazon.awssdk.services.s3.model.S3Object
 
 import java.io.File
 import java.io.InputStream
 import java.time.Instant
 
+case class FileMetadata(
+  file:         String,
+  lastModified: Instant,
+)
+
+case class ListResponse[T](
+  bucket:             String,
+  prefix:             Option[String],
+  files:              Seq[T],
+  latestFileMetadata: FileMetadata,
+)
 trait StorageInterface {
 
-  def uploadFile(source: File, target: RemoteS3PathLocation): Either[UploadError, Unit]
+  def uploadFile(source: File, bucket: String, path: String): Either[UploadError, Unit]
 
   def close(): Unit
 
-  def pathExists(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, Boolean]
+  def pathExists(bucket: String, path: String): Either[FileLoadError, Boolean]
 
-  def list(bucketAndPrefix: RemoteS3PathLocation): Either[FileListError, List[String]]
+  def list(
+    bucket:     String,
+    prefix:     Option[String],
+    lastFile:   Option[FileMetadata],
+    numResults: Int,
+  ): Either[FileListError, Option[ListResponse[String]]]
 
-  def getBlob(bucketAndPath: RemoteS3PathLocation): Either[String, InputStream]
+  def listRecursive[T](
+    bucket:    String,
+    prefix:    Option[String],
+    processFn: (String, Option[String], Seq[S3Object]) => Option[ListResponse[T]],
+  ): Either[FileListError, Option[ListResponse[T]]]
 
-  def getBlobAsString(bucketAndPath: RemoteS3PathLocation): Either[FileLoadError, String]
+  def getBlob(bucket: String, path: String): Either[FileLoadError, InputStream]
 
-  def getBlobSize(bucketAndPath: RemoteS3PathLocation): Either[String, Long]
+  def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String]
 
-  def getBlobModified(location: RemoteS3PathLocation): Either[String, Instant]
+  def getBlobSize(bucket: String, path: String): Either[FileLoadError, Long]
 
-  def writeStringToFile(target: RemoteS3PathLocation, data: String): Either[UploadError, Unit]
+  def getBlobModified(bucket: String, path: String): Either[FileLoadError, Instant]
+
+  def writeStringToFile(bucket: String, path: String, data: String): Either[UploadError, Unit]
 
   def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit]
 }

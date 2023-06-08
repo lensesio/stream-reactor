@@ -29,7 +29,7 @@ import scala.util.Try
   * stream-reactor-maven
   */
 trait ErrorHandler extends StrictLogging {
-  var errorTracker: Option[ErrorTracker] = None
+  private var errorTracker: Option[ErrorTracker] = None
   private val dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'")
 
   def initialize(maxRetries: Int, errorPolicy: ErrorPolicy): Unit =

@@ -17,7 +17,7 @@ class MongoDBTest extends AnyFlatSpec with StreamReactorContainerPerSuite with M
 
   lazy val container: MongoDBContainer = MongoDBContainer().withNetwork(network)
 
-  override def schemaRegistryContainer(): Option[SchemaRegistryContainer] = None
+  override val schemaRegistryContainer: Option[SchemaRegistryContainer] = None
 
   override val connectorModule: String = "mongodb"
 

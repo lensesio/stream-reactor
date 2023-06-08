@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
-import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.ConnectException

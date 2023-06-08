@@ -15,56 +15,15 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import cats.implicits.catsSyntaxEitherId
-import cats.implicits.toBifunctorOps
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import enumeratum.Enum
 import enumeratum.EnumEntry
-import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
-import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
-import io.lenses.streamreactor.connect.aws.s3.storage.JCloudsStorageInterface
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.apache.kafka.common.config.types.Password
 
 import scala.collection.immutable
-import scala.util.Try
-
-sealed trait AwsClient extends EnumEntry {
-  def createStorageInterface(connectorName: String, authResources: AuthResources): Either[String, StorageInterface]
-}
-
-object AwsClient extends Enum[AwsClient] {
-
-  override val values: immutable.IndexedSeq[AwsClient] = findValues
-
-  case object Aws extends AwsClient {
-    override def createStorageInterface(
-      connectorName: String,
-      authResources: AuthResources,
-    ): Either[String, StorageInterface] =
-      for {
-        s3Client <- authResources.aws
-        si       <- { new AwsS3StorageInterface(connectorName, s3Client) }.asRight
-      } yield si
-  }
-
-  case object JClouds extends AwsClient {
-    override def createStorageInterface(
-      connectorName: String,
-      authResources: AuthResources,
-    ): Either[String, StorageInterface] =
-      for {
-        blobStore <- authResources.jClouds
-        si        <- Try(new JCloudsStorageInterface(connectorName, blobStore)).toEither.leftMap(_.getMessage)
-      } yield si
-  }
-
-}
 
 sealed trait AuthMode extends EnumEntry
 
@@ -76,109 +35,6 @@ object AuthMode extends Enum[AuthMode] {
 
   case object Default extends AuthMode
 
-}
-
-sealed trait FormatOptions extends EnumEntry
-
-object FormatOptions extends Enum[FormatOptions] {
-
-  override val values: immutable.IndexedSeq[FormatOptions] = findValues
-
-  /** CSV Options */
-  case object WithHeaders extends FormatOptions
-
-  /** Byte Options */
-  case object KeyAndValueWithSizes extends FormatOptions
-
-  case object KeyWithSize extends FormatOptions
-
-  case object ValueWithSize extends FormatOptions
-
-  case object KeyOnly extends FormatOptions
-
-  case object ValueOnly extends FormatOptions
-
-}
-
-case object FormatSelection {
-
-  def fromString(
-    formatAsString: String,
-  ): FormatSelection = {
-    val withoutTicks = formatAsString.replace("`", "")
-    val split        = withoutTicks.split("_")
-
-    val formatOptions: Set[FormatOptions] = if (split.size > 1) {
-      split.splitAt(1)._2.flatMap(FormatOptions.withNameInsensitiveOption).toSet
-    } else {
-      Set.empty
-    }
-
-    FormatSelection(
-      Format
-        .withNameInsensitiveOption(split(0))
-        .getOrElse(throw new IllegalArgumentException(s"Unsupported format - $formatAsString")),
-      formatOptions,
-    )
-  }
-
-}
-
-case class FormatSelection(
-  format:        Format,
-  formatOptions: Set[FormatOptions] = Set.empty,
-)
-
-sealed trait Format extends EnumEntry {
-  def availableCompressionCodecs: Map[CompressionCodecName, Boolean] = Map(UNCOMPRESSED -> false)
-}
-
-object Format extends Enum[Format] {
-
-  override val values: immutable.IndexedSeq[Format] = findValues
-
-  case object Json extends Format
-
-  case object Avro extends Format {
-
-    override def availableCompressionCodecs: Map[CompressionCodecName, Boolean] = Map(
-      UNCOMPRESSED -> false,
-      DEFLATE      -> true,
-      BZIP2        -> false,
-      SNAPPY       -> false,
-      XZ           -> true,
-      ZSTD         -> true,
-    )
-  }
-
-  case object Parquet extends Format {
-
-    override def availableCompressionCodecs: Map[CompressionCodecName, Boolean] = Set(
-      UNCOMPRESSED,
-      SNAPPY,
-      GZIP,
-      LZO,
-      BROTLI,
-      LZ4,
-      ZSTD,
-    ).map(_ -> false).toMap
-
-  }
-
-  case object Text extends Format
-
-  case object Csv extends Format
-
-  case object Bytes extends Format
-
-  def apply(format: String): Format =
-    Option(format) match {
-      case Some(format: String) =>
-        Format
-          .withNameInsensitiveOption(format.replace("`", ""))
-          .getOrElse(throw new IllegalArgumentException(s"Unsupported format - $format"))
-      case None => Json
-    }
 }
 
 object S3Config {
@@ -224,9 +80,6 @@ object S3Config {
     getString(props, AWS_REGION),
     getPassword(props, AWS_ACCESS_KEY),
     getPassword(props, AWS_SECRET_KEY),
-    AwsClient.withNameInsensitive(
-      getString(props, AWS_CLIENT).getOrElse(AwsClient.Aws.toString),
-    ),
     AuthMode.withNameInsensitive(
       getString(props, AUTH_MODE).getOrElse(AuthMode.Default.toString),
     ),
@@ -271,7 +124,6 @@ case class S3Config(
   region:                   Option[String],
   accessKey:                Option[String],
   secretKey:                Option[String],
-  awsClient:                AwsClient,
   authMode:                 AuthMode,
   customEndpoint:           Option[String]               = None,
   enableVirtualHostBuckets: Boolean                      = false,

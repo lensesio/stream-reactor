@@ -15,21 +15,21 @@
  */
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
-import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.datamountaineer.streamreactor.common.utils.ProgressCounter
-
-import java.io.File
-import java.util
+import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceConfig
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
+import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask
 
+import java.io.File
+import java.util
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Failure
@@ -43,11 +43,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
-
-    logger.info(scala.io.Source.fromInputStream(
-      this.getClass.getResourceAsStream("/mqtt-source-ascii.txt"),
-    ).mkString + s" $version")
-    logger.info(manifest.printManifest())
+    printAsciiHeader(manifest, "/mqtt-source-ascii.txt")
 
     val conf = if (context.configs().isEmpty) props else context.configs()
 

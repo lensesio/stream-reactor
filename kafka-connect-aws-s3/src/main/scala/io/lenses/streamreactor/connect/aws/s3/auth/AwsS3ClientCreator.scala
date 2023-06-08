@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.auth
 
 import cats.implicits.catsSyntaxEitherId
+import cats.implicits.toBifunctorOps
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
@@ -32,71 +33,66 @@ import software.amazon.awssdk.services.s3.S3Configuration
 
 import java.net.URI
 import java.time.Duration
-import scala.util.Failure
-import scala.util.Success
 import scala.util.Try
 
-class AwsS3ClientCreator(config: S3Config) {
+object AwsS3ClientCreator {
 
   private val missingCredentialsError =
     "Configured to use credentials however one or both of `AWS_ACCESS_KEY` or `AWS_SECRET_KEY` are missing."
 
-  val defaultCredentialsProvider: AwsCredentialsProvider = DefaultCredentialsProvider.create()
+  private val defaultCredentialsProvider: AwsCredentialsProvider = DefaultCredentialsProvider.create()
 
-  def createS3Client(): Either[String, S3Client] =
-    Try {
+  def make(config: S3Config): Either[Throwable, S3Client] =
+    for {
+      retryPolicy <- Try {
+        RetryPolicy
+          .builder()
+          .numRetries(config.httpRetryConfig.numberOfRetries)
+          .backoffStrategy(
+            FixedDelayBackoffStrategy.create(Duration.ofMillis(config.httpRetryConfig.errorRetryInterval)),
+          )
+          .build()
+      }.toEither
 
-      val retryPolicy = RetryPolicy
-        .builder()
-        .numRetries(config.httpRetryConfig.numberOfRetries)
-        .backoffStrategy(
-          FixedDelayBackoffStrategy.create(Duration.ofMillis(config.httpRetryConfig.errorRetryInterval)),
-        )
-        .build()
+      overrideConfig <- Try(ClientOverrideConfiguration.builder().retryPolicy(retryPolicy).build()).toEither
 
-      val overrideConfig = ClientOverrideConfiguration.builder().retryPolicy(retryPolicy).build()
+      s3Config <- Try {
+        S3Configuration
+          .builder
+          .pathStyleAccessEnabled(config.enableVirtualHostBuckets)
+          .build
+      }.toEither
 
-      val s3Config = S3Configuration
-        .builder
-        .pathStyleAccessEnabled(config.enableVirtualHostBuckets)
-        .build
-
-      val apacheHttpClientBuilder = ApacheHttpClient.builder()
-      config.timeouts.socketTimeout.foreach(t => apacheHttpClientBuilder.socketTimeout(Duration.ofMillis(t.toLong)))
-      config.timeouts.connectionTimeout.foreach(t =>
-        apacheHttpClientBuilder.connectionTimeout(Duration.ofMillis(t.toLong)),
-      )
-      config.connectionPoolConfig.foreach(t => apacheHttpClientBuilder.maxConnections(t.maxConnections))
-
-      val s3ClientBuilder = credentialsProvider match {
-        case Left(err) => return err.asLeft
-        case Right(credsProv) => S3Client
+      httpClient <- Try {
+        val apacheHttpClientBuilder = ApacheHttpClient.builder()
+        config.timeouts.socketTimeout.foreach(t => apacheHttpClientBuilder.socketTimeout(Duration.ofMillis(t.toLong)))
+        config.timeouts.connectionTimeout.foreach(t => apacheHttpClientBuilder.connectionTimeout(Duration.ofMillis(t)))
+        config.connectionPoolConfig.foreach(t => apacheHttpClientBuilder.maxConnections(t.maxConnections))
+        apacheHttpClientBuilder.build()
+      }.toEither
+      s3Client <- credentialsProvider(config).leftMap(new IllegalArgumentException(_)).flatMap { credsProv =>
+        Try(
+          S3Client
             .builder()
             .overrideConfiguration(overrideConfig)
             .serviceConfiguration(s3Config)
             .credentialsProvider(credsProv)
-            .httpClient(apacheHttpClientBuilder.build())
+            .httpClient(httpClient),
+        ).toEither
 
+      }.map { builder =>
+        config
+          .region
+          .fold(builder)(reg => builder.region(Region.of(reg)))
+      }.map { builder =>
+        config.customEndpoint.fold(builder)(cE => builder.endpointOverride(URI.create(cE)))
+      }.flatMap { builder =>
+        Try(builder.build()).toEither
       }
-
-      config
-        .region
-        .foreach(reg => s3ClientBuilder.region(Region.of(reg)))
-
-      config
-        .customEndpoint
-        .foreach(cE => s3ClientBuilder.endpointOverride(URI.create(cE)))
-
-      s3ClientBuilder
-        .build()
-
-    } match {
-      case Failure(exception) => exception.getMessage.asLeft
-      case Success(value)     => value.asRight
-    }
+    } yield s3Client
 
   private def credentialsFromConfig(awsConfig: S3Config): Either[String, AwsCredentialsProvider] =
-    awsConfig.accessKey.zip(awsConfig.secretKey).headOption match {
+    awsConfig.accessKey.zip(awsConfig.secretKey) match {
       case Some((access, secret)) =>
         new AwsCredentialsProvider {
           override def resolveCredentials(): AwsCredentials = AwsBasicCredentials.create(access, secret)
@@ -104,7 +100,7 @@ class AwsS3ClientCreator(config: S3Config) {
       case None => missingCredentialsError.asLeft
     }
 
-  private def credentialsProvider: Either[String, AwsCredentialsProvider] =
+  private def credentialsProvider(config: S3Config): Either[String, AwsCredentialsProvider] =
     config.authMode match {
       case AuthMode.Credentials => credentialsFromConfig(config)
       case AuthMode.Default     => defaultCredentialsProvider.asRight[String]

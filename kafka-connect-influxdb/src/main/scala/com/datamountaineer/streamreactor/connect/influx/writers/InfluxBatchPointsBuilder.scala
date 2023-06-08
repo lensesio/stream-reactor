@@ -25,11 +25,10 @@ import com.datamountaineer.streamreactor.connect.influx.converters.InfluxPoint
 import com.datamountaineer.streamreactor.connect.influx.converters.SinkRecordParser
 import com.datamountaineer.streamreactor.connect.influx.helpers.Util
 import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails._
+import com.influxdb.client.write.Point
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkRecord
-import org.influxdb.dto.BatchPoints
-import org.influxdb.dto.Point
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Failure
@@ -109,13 +108,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
         )
     }
 
-  def build(records: Iterable[SinkRecord]): Try[BatchPoints] = {
-    val batchPoints = BatchPoints
-      .database(settings.database)
-      .retentionPolicy(settings.retentionPolicy)
-      .consistency(settings.consistencyLevel)
-      .build()
-
+  def build(records: Iterable[SinkRecord]): Try[Seq[Point]] =
     records
       .map { record =>
         SinkRecordParser
@@ -131,11 +124,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
       }
       .foldLeft(Try(Seq.empty[Seq[Point]]))(Util.shortCircuitOnFailure)
       .map(_.flatten)
-      .map { points =>
-        points.foreach(batchPoints.point)
-        batchPoints
-      }
-  }
+
 }
 
 /**

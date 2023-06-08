@@ -15,6 +15,7 @@
  */
 package com.datamountaineer.streamreactor.connect.ftp.source
 
+import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.connector.Task
@@ -44,9 +45,9 @@ class FtpSourceConnector extends SourceConnector with StrictLogging {
     logger.info("stop")
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(
-      scala.io.Source.fromInputStream(getClass.getResourceAsStream("/ftp-source-ascii.txt")).mkString + s" $version",
-    )
+
+    printAsciiHeader(manifest, "/ftp-source-ascii.txt")
+
     logger.info(s"start FtpSourceConnector")
 
     configProps = Some(props)

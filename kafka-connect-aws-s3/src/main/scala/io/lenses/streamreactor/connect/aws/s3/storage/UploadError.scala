@@ -46,9 +46,11 @@ case class FileDeleteError(exception: Throwable, fileName: String) extends Uploa
 }
 
 case class FileLoadError(exception: Throwable, fileName: String) extends UploadError {
-  override def message() = s"error loading file (${fileName}) ${exception.getMessage}"
+  override def message() = s"error loading file ($fileName) ${exception.getMessage}"
+
+  def toException = new RuntimeException(message(), exception)
 }
 
-case class FileListError(exception: Throwable, path: String) extends UploadError {
+case class FileListError(exception: Throwable, bucket: String, path: Option[String]) extends UploadError {
   override def message() = s"error listing files (${path}) ${exception.getMessage}"
 }

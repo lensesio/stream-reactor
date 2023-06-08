@@ -17,20 +17,20 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxOptionId
-import io.lenses.streamreactor.connect.aws.s3.config.Format.Avro
-import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
-import io.lenses.streamreactor.connect.aws.s3.config.AwsClient
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
+import io.lenses.streamreactor.connect.aws.s3.config._
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroFormatReader
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.sink.config.LocalStagingArea
 import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
+import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
@@ -47,31 +47,31 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   private val PathPrefix       = "streamReactorBackups"
   private val avroFormatReader = new AvroFormatReader
 
-  private val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix), false)
+  private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
+  private val bucketAndPrefix = S3Location(BucketName, PathPrefix.some)
   private def avroConfig = S3SinkConfig(
     S3Config(
       None,
       Some(Identity),
       Some(Credential),
-      AwsClient.Aws,
       AuthMode.Credentials,
     ),
-    bucketOptions = Set(
+    bucketOptions = Seq(
       SinkBucketOptions(
         TopicName.some,
         bucketAndPrefix,
         commitPolicy       = DefaultCommitPolicy(None, None, Some(2)),
-        formatSelection    = FormatSelection(Avro),
-        fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Avro), NoOpPaddingStrategy),
+        formatSelection    = AvroFormatSelection,
+        fileNamingStrategy = new HierarchicalS3FileNamingStrategy(AvroFormatSelection, NoOpPaddingStrategy),
         localStagingArea   = LocalStagingArea(localRoot),
       ),
     ),
-    offsetSeekerOptions = OffsetSeekerOptions(5, true),
+    offsetSeekerOptions = OffsetSeekerOptions(5),
     compressionCodec    = compressionCodec,
   )
 
   "avro sink" should "write 2 records to avro format in s3" in {
-    val sink = S3WriterManager.from(avroConfig, "sinkName")
+    val sink = S3WriterManager.from(avroConfig)
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         val writeRes = sink.write(
@@ -108,7 +108,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       new Struct(secondSchema).put("name", "coco").put("designation", null).put("salary", 395.44),
     )
 
-    val sink = S3WriterManager.from(avroConfig, "sinkName")
+    val sink = S3WriterManager.from(avroConfig)
     firstUsers.concat(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
         sink.write(

@@ -23,7 +23,7 @@ class CassandraTest extends AnyFlatSpec with StreamReactorContainerPerSuite with
   lazy val container: CassandraContainer = new CassandraContainer(DockerImageName.parse("cassandra:4.1"))
     .withNetwork(network)
 
-  override def schemaRegistryContainer(): Option[SchemaRegistryContainer] = None
+  override val schemaRegistryContainer: Option[SchemaRegistryContainer] = None
 
   override val connectorModule: String = "cassandra"
 

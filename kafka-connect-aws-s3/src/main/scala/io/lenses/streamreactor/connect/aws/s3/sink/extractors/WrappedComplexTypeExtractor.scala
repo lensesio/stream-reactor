@@ -17,7 +17,11 @@ package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.ArraySinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.MapSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.WrappedMapExtractor.extractPathFromMap
 
 object WrappedComplexTypeExtractor extends LazyLogging {

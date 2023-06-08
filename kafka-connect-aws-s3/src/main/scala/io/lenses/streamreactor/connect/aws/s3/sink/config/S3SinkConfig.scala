@@ -18,29 +18,39 @@ package io.lenses.streamreactor.connect.aws.s3.sink.config
 import cats.syntax.all._
 import com.datamountaineer.kcql.Kcql
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MAX_INDEX_FILES
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MIGRATION
-import io.lenses.streamreactor.connect.aws.s3.config.S3FlushSettings.defaultFlushCount
-import io.lenses.streamreactor.connect.aws.s3.config.S3FlushSettings.defaultFlushInterval
-import io.lenses.streamreactor.connect.aws.s3.config.S3FlushSettings.defaultFlushSize
+import S3FlushSettings.defaultFlushCount
+import S3FlushSettings.defaultFlushInterval
+import S3FlushSettings.defaultFlushSize
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
-import io.lenses.streamreactor.connect.aws.s3.model.LocalStagingArea
-import io.lenses.streamreactor.connect.aws.s3.model.PartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink._
+
+import java.util
 
 object S3SinkConfig {
 
-  def apply(s3ConfigDefBuilder: S3ConfigDefBuilder): Either[Throwable, S3SinkConfig] =
+  def fromProps(
+    props: util.Map[String, String],
+  )(
+    implicit
+    connectorTaskId: ConnectorTaskId,
+  ): Either[Throwable, S3SinkConfig] =
+    S3SinkConfig(S3SinkConfigDefBuilder(props))
+
+  def apply(
+    s3ConfigDefBuilder: S3SinkConfigDefBuilder,
+  )(
+    implicit
+    connectorTaskId: ConnectorTaskId,
+  ): Either[Throwable, S3SinkConfig] =
     for {
       sinkBucketOptions <- SinkBucketOptions(s3ConfigDefBuilder)
       offsetSeekerOptions = OffsetSeekerOptions(
         s3ConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
-        s3ConfigDefBuilder.getBoolean(SEEK_MIGRATION),
       )
     } yield S3SinkConfig(
       S3Config(s3ConfigDefBuilder.getParsedValues),
@@ -53,19 +63,21 @@ object S3SinkConfig {
 
 case class S3SinkConfig(
   s3Config:            S3Config,
-  bucketOptions:       Set[SinkBucketOptions] = Set.empty,
+  bucketOptions:       Seq[SinkBucketOptions] = Seq.empty,
   offsetSeekerOptions: OffsetSeekerOptions,
   compressionCodec:    CompressionCodec,
 )
 
 object SinkBucketOptions extends LazyLogging {
 
-  def apply(config: S3ConfigDefBuilder): Either[Throwable, Set[SinkBucketOptions]] =
+  def apply(
+    config: S3SinkConfigDefBuilder,
+  )(
+    implicit
+    connectorTaskId: ConnectorTaskId,
+  ): Either[Throwable, Seq[SinkBucketOptions]] =
     config.getKCQL.map { kcql: Kcql =>
-      val formatSelection: FormatSelection = Option(kcql.getStoredAs) match {
-        case Some(format: String) => FormatSelection.fromString(format)
-        case None => FormatSelection(Json, Set.empty)
-      }
+      val formatSelection: FormatSelection = FormatSelection.fromKcql(kcql)
 
       val partitionSelection = PartitionSelection(kcql)
       val namingStrategy = partitionSelection match {
@@ -73,26 +85,27 @@ object SinkBucketOptions extends LazyLogging {
         case None          => new HierarchicalS3FileNamingStrategy(formatSelection, config.getPaddingStrategy())
       }
 
-      val stagingArea = LocalStagingArea(config)
-      stagingArea match {
-        case Right(value) => SinkBucketOptions(
-            Option(kcql.getSource).filterNot(Set("*", "`*`").contains(_)),
-            RemoteS3RootLocation(kcql.getTarget),
-            formatSelection    = formatSelection,
-            fileNamingStrategy = namingStrategy,
-            partitionSelection = partitionSelection,
-            commitPolicy       = config.commitPolicy(kcql),
-            localStagingArea   = value,
-          )
-        case Left(exception) => return exception.asLeft[Set[SinkBucketOptions]]
+      for {
+        stagingArea <- LocalStagingArea(config)
+        target      <- S3Location.splitAndValidate(kcql.getTarget, allowSlash = false)
+      } yield {
+        SinkBucketOptions(
+          Option(kcql.getSource).filterNot(Set("*", "`*`").contains(_)),
+          target,
+          formatSelection    = formatSelection,
+          fileNamingStrategy = namingStrategy,
+          partitionSelection = partitionSelection,
+          commitPolicy       = config.commitPolicy(kcql),
+          localStagingArea   = stagingArea,
+        )
       }
-    }.asRight
+    }.toSeq.traverse(identity)
 
 }
 
 case class SinkBucketOptions(
   sourceTopic:        Option[String],
-  bucketAndPrefix:    RemoteS3RootLocation,
+  bucketAndPrefix:    S3Location,
   formatSelection:    FormatSelection,
   fileNamingStrategy: S3FileNamingStrategy,
   partitionSelection: Option[PartitionSelection] = None,
@@ -103,5 +116,4 @@ case class SinkBucketOptions(
 
 case class OffsetSeekerOptions(
   maxIndexFiles: Int,
-  migrate:       Boolean,
 )

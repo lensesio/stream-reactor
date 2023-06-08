@@ -15,95 +15,86 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source
 
+import cats.effect.FiberIO
+import cats.effect.IO
+import cats.effect.Ref
+import cats.effect.unsafe.implicits.global
+import cats.implicits.catsSyntaxOptionId
+import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
-import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither.toJavaThrowableConverter
-import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
-import io.lenses.streamreactor.connect.aws.s3.source.files.S3SourceFileQueue
-import io.lenses.streamreactor.connect.aws.s3.source.files.S3SourceLister
-import io.lenses.streamreactor.connect.aws.s3.source.reader.ReaderCreator
-import io.lenses.streamreactor.connect.aws.s3.source.reader.S3ReaderManager
-import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceState
+import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceTaskState
+import io.lenses.streamreactor.connect.aws.s3.utils.MapUtils
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask
 
 import java.util
-import scala.jdk.CollectionConverters.SeqHasAsJava
-import scala.util.Try
-
+import java.util.Collections
+import scala.jdk.CollectionConverters._
 class S3SourceTask extends SourceTask with LazyLogging {
+
+  private val contextOffsetFn: S3Location => Option[S3Location] =
+    SourceContextReader.getCurrentOffset(() => context)
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
-  private var readerManagers: Seq[S3ReaderManager] = _
+  @volatile
+  private var s3SourceTaskState: Option[S3SourceTaskState] = None
 
-  private var sourceName: String = _
+  @volatile
+  private var cancelledRef: Option[Ref[IO, Boolean]] = None
+
+  private var partitionDiscoveryLoop: Option[FiberIO[Unit]] = None
 
   override def version(): String = manifest.version()
-
-  private def propsFromContext(props: util.Map[String, String]): util.Map[String, String] =
-    Option(context)
-      .flatMap(c => Option(c.configs()))
-      .filter(!_.isEmpty)
-      .getOrElse(props)
 
   /**
     * Start sets up readers for every configured connection in the properties
     */
   override def start(props: util.Map[String, String]): Unit = {
-    sourceName = getSourceName(props).getOrElse("MissingSourceName")
+
+    printAsciiHeader(manifest, "/aws-s3-source-ascii.txt")
 
     logger.debug(s"Received call to S3SourceTask.start with ${props.size()} properties")
 
-    val contextFn: RemoteS3RootLocation => Option[RemoteS3PathLocationWithLine] = new ContextReader(() =>
-      context,
-    ).getCurrentOffset
-
-    val eitherErrOrReaderMan = for {
-      config                 <- Try(S3SourceConfig(S3ConfigDefBuilder(getSourceName(props), propsFromContext(props)))).toEither
-      authResources           = new AuthResources(config.s3Config)
-      awsAuth                <- authResources.aws
-      storageInterface       <- config.s3Config.awsClient.createStorageInterface(sourceName, authResources)
-      sourceStorageInterface <- Try(new AwsS3StorageInterface(getConnectorName(props), awsAuth)).toEither
-      readerManagers = config.bucketOptions.map(bOpts =>
-        new S3ReaderManager(
-          sourceName,
-          bOpts.recordsLimit,
-          contextFn(bOpts.sourceBucketAndPrefix),
-          new S3SourceFileQueue(
-            bOpts.sourceBucketAndPrefix,
-            bOpts.filesLimit,
-            new S3SourceLister(bOpts.format.format)(sourceStorageInterface),
-          ),
-          new ReaderCreator(sourceName, bOpts.format, bOpts.targetTopic)(storageInterface,
-                                                                         bOpts.getPartitionExtractorFn,
-          ).create,
-        ),
-      )
-    } yield readerManagers
-
-    readerManagers = eitherErrOrReaderMan.toThrowable(sourceName)
+    val contextProperties = Option(context).flatMap(c => Option(c.configs()).map(_.asScala.toMap)).getOrElse(Map.empty)
+    val mergedProperties  = MapUtils.mergeProps(contextProperties, props.asScala.toMap).asJava
+    (for {
+      result <- S3SourceState.make(mergedProperties, contextOffsetFn)
+      fiber  <- result.partitionDiscoveryLoop.start
+    } yield {
+      s3SourceTaskState      = result.state.some
+      cancelledRef           = result.cancelledRef.some
+      partitionDiscoveryLoop = fiber.some
+    }).unsafeRunSync()
   }
 
-  private def getConnectorName(props: util.Map[String, String]) =
-    getSourceName(props).getOrElse("EmptySourceName")
-
   override def stop(): Unit = {
-    logger.debug(s"Received call to S3SinkTask.stop")
-
-    readerManagers.foreach(_.close())
+    logger.info(s"Stopping S3 source task")
+    (s3SourceTaskState, cancelledRef, partitionDiscoveryLoop) match {
+      case (Some(state), Some(signal), Some(fiber)) => stopInternal(state, signal, fiber)
+      case _                                        => logger.info("There is no state to stop.")
+    }
+    logger.info(s"Stopped S3 source task")
   }
 
   override def poll(): util.List[SourceRecord] =
-    readerManagers
-      .flatMap(_.poll())
-      .flatMap(_.toSourceRecordList)
-      .asJava
+    s3SourceTaskState.fold(Collections.emptyList[SourceRecord]()) { state =>
+      state.poll().unsafeRunSync().asJava
+    }
 
-  private def getSourceName(props: util.Map[String, String]) =
-    Option(props.get("name")).filter(_.trim.nonEmpty)
+  private def stopInternal(state: S3SourceTaskState, signal: Ref[IO, Boolean], fiber: FiberIO[Unit]): Unit = {
+    (for {
+      _ <- signal.set(true)
+      _ <- state.close()
+      // Don't join the fiber if it's already been cancelled. It will take potentially the interval time to complete
+      // and this can create issues on Connect. The task will be terminated and the resource cleaned up by the GC.
+      //_ <- fiber.join.timeout(1.minute).attempt.void
+    } yield ()).unsafeRunSync()
+    cancelledRef           = None
+    partitionDiscoveryLoop = None
+    s3SourceTaskState      = None
+  }
 }

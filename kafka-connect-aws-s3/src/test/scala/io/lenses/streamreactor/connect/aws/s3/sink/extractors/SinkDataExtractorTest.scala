@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
-import io.lenses.streamreactor.connect.aws.s3.model.PartitionNamePath
-import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ArraySinkDataConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.MapSinkDataConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.MissingValue

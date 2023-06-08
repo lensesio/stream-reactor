@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
-import io.lenses.streamreactor.connect.aws.s3.model.PartitionNamePath
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

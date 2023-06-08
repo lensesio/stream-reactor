@@ -1,7 +1,7 @@
 package io.lenses.streamreactor.connect
 
-import io.debezium.testing.testcontainers.ConnectorConfiguration
-import io.lenses.streamreactor.connect.testcontainers.S3Authentication
+import _root_.io.debezium.testing.testcontainers.ConnectorConfiguration
+import _root_.io.lenses.streamreactor.connect.testcontainers.S3Authentication
 
 object Configuration {
 
@@ -17,7 +17,6 @@ object Configuration {
       .`with`("connect.s3.aws.auth.mode", "Credentials")
       .`with`("connect.s3.custom.endpoint", networkAliasUrl)
       .`with`("connect.s3.vhost.bucket", "true")
-      .`with`("connect.s3.aws.client", "aws")
       .`with`("connect.s3.aws.region", "eu-west-1")
       .`with`("connect.s3.kcql", s"INSERT INTO `$bucketName:$prefix` SELECT * FROM `$topicName` STOREAS `$storeAs` WITH_FLUSH_COUNT=1")
 

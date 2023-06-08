@@ -41,14 +41,13 @@ class S3ConfigSettingsTest extends AnyFlatSpec with Matchers with LazyLogging {
       }
       .filterNot {
         case (k, _) => ignorePropertiesWithSuffix.exists(k.contains(_))
-      }
+      }.toList
 
-    docs should have size 36
+    docs.size shouldBe 36
     docs.foreach {
-      case (k, v) => {
+      case (k, v) =>
         logger.info("method: {}, value: {}", k, v)
         v.toLowerCase should be(v)
-      }
     }
   }
 

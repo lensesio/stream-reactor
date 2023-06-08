@@ -15,13 +15,17 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroFormatStreamReader
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.AvroFormatWriter
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
-import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.checkRecord
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.topic
-import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
+import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -29,13 +33,13 @@ import java.io.ByteArrayInputStream
 
 class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
-  private implicit val compressionCodec = UNCOMPRESSED.toCodec()
+  private implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
 
   "read" should "read through all records" in {
 
     val byteArrayInputStream: ByteArrayInputStream = writeRecordsToOutputStream
     val avroFormatStreamReader =
-      new AvroFormatStreamReader(() => byteArrayInputStream, RemoteS3PathLocation("test-bucket", "test-path"))
+      new AvroFormatStreamReader(byteArrayInputStream, mock[S3Location])
 
     avroFormatStreamReader.hasNext should be(true)
     checkRecord(avroFormatStreamReader.next().data, "sam", Some("mr"), 100.43)
@@ -49,7 +53,7 @@ class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
   private def writeRecordsToOutputStream = {
     val outputStream     = new S3ByteArrayOutputStream()
-    val avroFormatWriter = new AvroFormatWriter(() => outputStream)
+    val avroFormatWriter = new AvroFormatWriter(outputStream)
     firstUsers.foreach(str => avroFormatWriter.write(None, StructSinkData(str), topic))
     avroFormatWriter.complete()
 

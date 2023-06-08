@@ -15,10 +15,11 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.model.BytesOutputRow
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesFormatStreamFileReader
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.model.BytesOutputRowTest
-import io.lenses.streamreactor.connect.aws.s3.model.BytesWriteMode
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -29,14 +30,15 @@ class BytesFormatStreamFileReaderTest extends AnyFlatSpec with MockitoSugar with
 
   import BytesOutputRowTest._
 
-  val bucketAndPath: RemoteS3PathLocation = mock[RemoteS3PathLocation]
-  val fileContents = "lemonOlivelemonOlive".getBytes
+  private val bucketAndPath: S3Location = mock[S3Location]
+  private val fileContents = "lemonOlivelemonOlive".getBytes
 
   "read" should "read entire file at once" in {
-
-    val inputStreamFn = () => new ByteArrayInputStream(fileContents)
-    val sizeFn        = () => fileContents.length.longValue()
-    val target        = new BytesFormatStreamFileReader(inputStreamFn, sizeFn, bucketAndPath, BytesWriteMode.ValueOnly)
+    val target = new BytesFormatStreamFileReader(new ByteArrayInputStream(fileContents),
+                                                 fileContents.length.toLong,
+                                                 bucketAndPath,
+                                                 BytesWriteMode.ValueOnly,
+    )
 
     checkRecord(target, BytesOutputRow(None, None, Array.empty[Byte], fileContents))
 
@@ -45,9 +47,11 @@ class BytesFormatStreamFileReaderTest extends AnyFlatSpec with MockitoSugar with
 
   "hasNext" should "return false for empty file" in {
 
-    val inputStreamFn = () => new ByteArrayInputStream(Array[Byte]())
-    val sizeFn        = () => 0L
-    val target        = new BytesFormatStreamFileReader(inputStreamFn, sizeFn, bucketAndPath, BytesWriteMode.ValueOnly)
+    val target = new BytesFormatStreamFileReader(new ByteArrayInputStream(Array[Byte]()),
+                                                 0L,
+                                                 bucketAndPath,
+                                                 BytesWriteMode.ValueOnly,
+    )
 
     target.hasNext should be(false)
   }

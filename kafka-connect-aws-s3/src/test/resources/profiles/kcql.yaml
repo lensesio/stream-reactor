@@ -1,7 +1,0 @@
----
-connect.s3.kcql.builder:
-  partitions: name,title,salary
-  partitioner: Values
-  flush_size: 1
-  flush_interval: 2
-  flush_count: 3

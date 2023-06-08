@@ -16,15 +16,14 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.formats._
-import io.lenses.streamreactor.connect.aws.s3.model.BytesWriteMode.KeyAndValueWithSizes
-import io.lenses.streamreactor.connect.aws.s3.model.ByteArraySinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode.KeyAndValueWithSizes
+import io.lenses.streamreactor.connect.aws.s3.formats.writer._
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
-import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.schema
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.topic
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
+import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.schema
+import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.topic
 import org.apache.commons.io.FileUtils
 import org.apache.kafka.connect.data.Struct
 import org.scalacheck.Gen
@@ -36,25 +35,19 @@ import java.io.File
 import java.util.UUID
 
 class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
-  private implicit val compressionCodec = UNCOMPRESSED.toCodec()
+  private implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
 
   private val temporaryDirName: String = UUID.randomUUID().toString
 
   private val numberOfFiles   = 5
   private val numberOfRecords = 200
 
-  private val avroWriterFn: (() => S3OutputStream) => S3FormatWriter = outputStreamFn =>
-    new AvroFormatWriter(outputStreamFn)
-  private val jsonWriterFn: (() => S3OutputStream) => S3FormatWriter = outputStreamFn =>
-    new JsonFormatWriter(outputStreamFn)
-  private val parquetWriterFn: (() => S3OutputStream) => S3FormatWriter = outputStreamFn =>
-    new ParquetFormatWriter(outputStreamFn)
-  private val csvHeadersWriterFn: (() => S3OutputStream) => S3FormatWriter = outputStreamFn =>
-    new CsvFormatWriter(outputStreamFn, true)
-  private val csvNoHeadersWriterFn: (() => S3OutputStream) => S3FormatWriter = outputStreamFn =>
-    new CsvFormatWriter(outputStreamFn, false)
-  private val bytesKeyValueFn: (() => S3OutputStream) => S3FormatWriter = outputStreamFn =>
-    new BytesFormatWriter(outputStreamFn, KeyAndValueWithSizes)
+  private val avroWriterFn:         S3OutputStream => S3FormatWriter = new AvroFormatWriter(_)
+  private val jsonWriterFn:         S3OutputStream => S3FormatWriter = new JsonFormatWriter(_)
+  private val parquetWriterFn:      S3OutputStream => S3FormatWriter = new ParquetFormatWriter(_)
+  private val csvHeadersWriterFn:   S3OutputStream => S3FormatWriter = new CsvFormatWriter(_, true)
+  private val csvNoHeadersWriterFn: S3OutputStream => S3FormatWriter = new CsvFormatWriter(_, false)
+  private val bytesKeyValueFn:      S3OutputStream => S3FormatWriter = new BytesFormatWriter(_, KeyAndValueWithSizes)
 
   private val writerClasses = Map(
     "avro"            -> avroWriterFn,
@@ -91,10 +84,8 @@ class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
         case (format, writerClass) =>
           1 to numberOfFiles foreach {
             fileNum =>
-              val outputStream   = new S3ByteArrayOutputStream
-              val outputStreamFn = () => outputStream
-
-              val writer: S3FormatWriter = writerClass(outputStreamFn)
+              val outputStream = new S3ByteArrayOutputStream
+              val writer: S3FormatWriter = writerClass(outputStream)
               1 to numberOfRecords foreach { _ => writer.write(None, StructSinkData(userGen.sample.get), topic) }
               writer.complete() // TODO: FIX
 
@@ -122,10 +113,8 @@ class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
         case (format, writerClass) =>
           1 to numberOfFiles foreach {
             fileNum =>
-              val outputStream   = new S3ByteArrayOutputStream
-              val outputStreamFn = () => outputStream
-
-              val writer: S3FormatWriter = writerClass(outputStreamFn)
+              val outputStream = new S3ByteArrayOutputStream
+              val writer: S3FormatWriter = writerClass(outputStream)
               1 to numberOfRecords foreach { _ =>
                 writer.write(Some(ByteArraySinkData("myKey".getBytes)), ByteArraySinkData("somestring".getBytes), topic)
               }

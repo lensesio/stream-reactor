@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.stream
 
-import io.lenses.streamreactor.connect.aws.s3.formats.Using
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.Using
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
 import org.scalatest.BeforeAndAfter

@@ -22,7 +22,8 @@ import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
 object S3StoredFile extends LazyLogging {
   def apply(path: String)(implicit fileNamingStrategy: S3FileNamingStrategy): Option[S3StoredFile] =
     path match {
-      case originalValue @ CommittedFileName(topic, partition, end, format) if format == fileNamingStrategy.getFormat =>
+      case originalValue @ CommittedFileName(topic, partition, end, format)
+          if format.toLowerCase == fileNamingStrategy.getFormat.extension =>
         Some(S3StoredFile(
           originalValue,
           TopicPartitionOffset(topic, partition, end),

@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
-import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 
 import java.nio.ByteBuffer
 import scala.jdk.CollectionConverters.MapHasAsJava
