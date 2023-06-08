@@ -59,7 +59,7 @@ lazy val common = (project in file("kafka-connect-common"))
 
 lazy val `aws-s3` = (project in file("kafka-connect-aws-s3"))
   .dependsOn(common)
-  //.dependsOn(`test-common` % "fun->compile")
+  .dependsOn(`test-common` % "fun->fun")
   .settings(
     settings ++
       Seq(
