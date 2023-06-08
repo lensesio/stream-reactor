@@ -131,7 +131,8 @@ case object ParquetFormatSelection extends FormatSelection {
     fileSize:             Long,
     bucketAndPath:        S3Location,
     recreateInputStreamF: () => Either[Throwable, InputStream],
-  ) = ParquetFormatStreamReader.apply(inputStream, fileSize, bucketAndPath, recreateInputStreamF)
+  ): ParquetFormatStreamReader =
+    ParquetFormatStreamReader.apply(inputStream, fileSize, bucketAndPath, recreateInputStreamF)
 
   override def extension: String = "parquet"
 }
@@ -142,13 +143,7 @@ case class TextFormatSelection(readTextMode: Option[ReadTextMode]) extends Forma
     bucketAndPath:        S3Location,
     recreateInputStreamF: () => Either[Throwable, InputStream],
   ): S3FormatStreamReader[StringSourceData] =
-    readTextMode.map(_.createStreamReader(inputStream, bucketAndPath))
-      .getOrElse(
-        new TextFormatStreamReader(
-          inputStream,
-          bucketAndPath,
-        ),
-      )
+    TextFormatStreamReader(readTextMode, inputStream, bucketAndPath)
 
   override def extension: String = "text"
 }
@@ -168,7 +163,7 @@ case class BytesFormatSelection(formatOptions: Set[FormatOptions]) extends Forma
     fileSize:             Long,
     bucketAndPath:        S3Location,
     recreateInputStreamF: () => Either[Throwable, InputStream],
-  ) = {
+  ): S3FormatStreamReader[ByteArraySourceData] = {
 
     val bytesWriteMode = S3FormatWriter.convertToBytesWriteMode(formatOptions)
     if (bytesWriteMode.entryName.toLowerCase.contains("size")) {
