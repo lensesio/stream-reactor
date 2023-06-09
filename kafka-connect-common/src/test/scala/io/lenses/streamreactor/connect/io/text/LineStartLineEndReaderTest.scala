@@ -8,7 +8,7 @@ import java.io.InputStream
 
 class LineStartLineEndReaderTest extends AnyFunSuite with Matchers {
   test("handle empty input") {
-    val reader = new PrefixSuffixReader(createInputStream(""), "start", "end", false)
+    val reader = new PrefixSuffixReader(createInputStream(""), "start", "end")
     reader.next() shouldBe None
   }
   test("return none if there is no matching line = start and a following one = end") {

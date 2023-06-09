@@ -22,3 +22,5 @@ trait PropsSchema {}
 case class EnumPropsSchema[T <: Enum[_]](t: T) extends PropsSchema
 
 object StringPropsSchema extends PropsSchema
+
+object IntPropsSchema extends PropsSchema

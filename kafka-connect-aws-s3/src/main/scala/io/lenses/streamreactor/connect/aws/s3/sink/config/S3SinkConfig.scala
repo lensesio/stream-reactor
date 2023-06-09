@@ -18,16 +18,16 @@ package io.lenses.streamreactor.connect.aws.s3.sink.config
 import cats.syntax.all._
 import com.datamountaineer.kcql.Kcql
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MAX_INDEX_FILES
-import S3FlushSettings.defaultFlushCount
-import S3FlushSettings.defaultFlushInterval
-import S3FlushSettings.defaultFlushSize
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MAX_INDEX_FILES
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink._
+import io.lenses.streamreactor.connect.aws.s3.sink.config.S3FlushSettings.defaultFlushCount
+import io.lenses.streamreactor.connect.aws.s3.sink.config.S3FlushSettings.defaultFlushInterval
+import io.lenses.streamreactor.connect.aws.s3.sink.config.S3FlushSettings.defaultFlushSize
 
 import java.util
 
@@ -77,15 +77,14 @@ object SinkBucketOptions extends LazyLogging {
     connectorTaskId: ConnectorTaskId,
   ): Either[Throwable, Seq[SinkBucketOptions]] =
     config.getKCQL.map { kcql: Kcql =>
-      val formatSelection: FormatSelection = FormatSelection.fromKcql(kcql)
-
-      val partitionSelection = PartitionSelection(kcql)
-      val namingStrategy = partitionSelection match {
-        case Some(partSel) => new PartitionedS3FileNamingStrategy(formatSelection, config.getPaddingStrategy(), partSel)
-        case None          => new HierarchicalS3FileNamingStrategy(formatSelection, config.getPaddingStrategy())
-      }
-
       for {
+        formatSelection   <- FormatSelection.fromKcql(kcql)
+        partitionSelection = PartitionSelection(kcql)
+        namingStrategy = partitionSelection match {
+          case Some(partSel) =>
+            new PartitionedS3FileNamingStrategy(formatSelection, config.getPaddingStrategy(), partSel)
+          case None => new HierarchicalS3FileNamingStrategy(formatSelection, config.getPaddingStrategy())
+        }
         stagingArea <- LocalStagingArea(config)
         target      <- S3Location.splitAndValidate(kcql.getTarget, allowSlash = false)
       } yield {

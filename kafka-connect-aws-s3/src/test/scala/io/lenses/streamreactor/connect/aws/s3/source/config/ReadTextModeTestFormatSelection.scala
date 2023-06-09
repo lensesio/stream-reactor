@@ -34,7 +34,20 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
           S3PropsKeyEnum.ReadEndTag.entryName   -> "</p>",
         ),
       ),
-    ) should be(Some(StartEndTagReadTextMode("<p>", "</p>")))
+    ) should be(Some(StartEndTagReadTextMode("<p>", "</p>", 1024)))
+  }
+
+  "ReadTextMode" should "be configured with start and end tag and buffer size for StartEndTag" in {
+    ReadTextMode(
+      readProps(
+        Map(
+          S3PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.StartEndTag.entryName,
+          S3PropsKeyEnum.ReadStartTag.entryName -> "<p>",
+          S3PropsKeyEnum.ReadEndTag.entryName   -> "</p>",
+          S3PropsKeyEnum.BufferSize.entryName   -> "2048",
+        ),
+      ),
+    ) should be(Some(StartEndTagReadTextMode("<p>", "</p>", 2048)))
   }
 
   "ReadTextMode" should "return none when no start or end tag is configured" in {

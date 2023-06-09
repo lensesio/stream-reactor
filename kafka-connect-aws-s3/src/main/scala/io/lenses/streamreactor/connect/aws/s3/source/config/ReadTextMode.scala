@@ -47,7 +47,8 @@ object ReadTextMode {
         for {
           startTag <- props.getString(S3PropsKeyEnum.ReadStartTag)
           endTag   <- props.getString(S3PropsKeyEnum.ReadEndTag)
-        } yield StartEndTagReadTextMode(startTag, endTag)
+          buffer   <- props.getOptionalInt(S3PropsKeyEnum.BufferSize).orElse(Some(1024))
+        } yield StartEndTagReadTextMode(startTag, endTag, buffer)
 
       case Some(ReadTextModeEnum.StartEndLine) =>
         for {
@@ -59,16 +60,16 @@ object ReadTextMode {
   }
 }
 
-case class StartEndTagReadTextMode(startTag: String, endTag: String) extends ReadTextMode {
+case class StartEndTagReadTextMode(startTag: String, endTag: String, buffer: Int) extends ReadTextMode {
   override def createStreamReader(
     inputStream:   InputStream,
     bucketAndPath: S3Location,
   ): S3FormatStreamReader[StringSourceData] = {
     val lineReader = new PrefixSuffixReader(
-      input  = inputStream,
-      prefix = startTag,
-      suffix = endTag,
-      trim   = true,
+      input      = inputStream,
+      prefix     = startTag,
+      suffix     = endTag,
+      bufferSize = buffer,
     )
     new CustomTextFormatStreamReader(bucketAndPath, () => lineReader.next(), () => lineReader.close())
   }
