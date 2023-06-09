@@ -24,7 +24,8 @@ import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.ReadTextMo
 import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEntry
 import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEnum
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
-import io.lenses.streamreactor.connect.io.text.PrefixSuffixLineReader
+import io.lenses.streamreactor.connect.io.text.LineStartLineEndReader
+import io.lenses.streamreactor.connect.io.text.PrefixSuffixReader
 import io.lenses.streamreactor.connect.io.text.RegexMatchLineReader
 
 import java.io.InputStream
@@ -34,8 +35,10 @@ trait ReadTextMode {
 }
 
 object ReadTextMode {
-  def apply(props: KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type]): Option[ReadTextMode] =
-    props.getEnumValue[ReadTextModeEntry, ReadTextModeEnum.type](ReadTextModeEnum, S3PropsKeyEnum.ReadTextMode) match {
+  def apply(props: KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type]): Option[ReadTextMode] = {
+    val mode =
+      props.getEnumValue[ReadTextModeEntry, ReadTextModeEnum.type](ReadTextModeEnum, S3PropsKeyEnum.ReadTextMode)
+    mode match {
       case Some(ReadTextModeEnum.Regex) =>
         for {
           readRegex <- props.getString(S3PropsKeyEnum.ReadRegex)
@@ -45,8 +48,15 @@ object ReadTextMode {
           startTag <- props.getString(S3PropsKeyEnum.ReadStartTag)
           endTag   <- props.getString(S3PropsKeyEnum.ReadEndTag)
         } yield StartEndTagReadTextMode(startTag, endTag)
+
+      case Some(ReadTextModeEnum.StartEndLine) =>
+        for {
+          startLine <- props.getString(S3PropsKeyEnum.ReadStartLine)
+          endLine   <- props.getString(S3PropsKeyEnum.ReadEndLine)
+        } yield StartEndLineReadTextMode(startLine, endLine)
       case None => Option.empty
     }
+  }
 }
 
 case class StartEndTagReadTextMode(startTag: String, endTag: String) extends ReadTextMode {
@@ -54,12 +64,25 @@ case class StartEndTagReadTextMode(startTag: String, endTag: String) extends Rea
     inputStream:   InputStream,
     bucketAndPath: S3Location,
   ): S3FormatStreamReader[StringSourceData] = {
-    val lineReader = new PrefixSuffixLineReader(
+    val lineReader = new PrefixSuffixReader(
       input  = inputStream,
       prefix = startTag,
       suffix = endTag,
-      skip   = 0,
       trim   = true,
+    )
+    new CustomTextFormatStreamReader(bucketAndPath, () => lineReader.next(), () => lineReader.close())
+  }
+}
+
+case class StartEndLineReadTextMode(startLine: String, endLine: String) extends ReadTextMode {
+  override def createStreamReader(
+    inputStream:   InputStream,
+    bucketAndPath: S3Location,
+  ): S3FormatStreamReader[StringSourceData] = {
+    val lineReader = new LineStartLineEndReader(
+      inputStream,
+      startLine,
+      endLine,
     )
     new CustomTextFormatStreamReader(bucketAndPath, () => lineReader.next(), () => lineReader.close())
   }
@@ -72,7 +95,6 @@ case class RegexReadTextMode(regex: String) extends ReadTextMode {
     val lineReader = new RegexMatchLineReader(
       input = inputStream,
       regex = regex,
-      skip  = 0,
     )
     new CustomTextFormatStreamReader(bucketAndPath, () => lineReader.next(), () => lineReader.close())
   }

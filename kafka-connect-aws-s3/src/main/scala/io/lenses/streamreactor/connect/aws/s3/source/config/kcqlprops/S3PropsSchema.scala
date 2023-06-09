@@ -15,10 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops
 
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEnum.ReadEndTag
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEnum.ReadRegex
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEnum.ReadStartTag
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEnum.ReadTextMode
+import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEnum._
 import io.lenses.streamreactor.connect.config.kcqlprops.EnumPropsSchema
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlPropsSchema
 import io.lenses.streamreactor.connect.config.kcqlprops.PropsSchema
@@ -27,10 +24,12 @@ import io.lenses.streamreactor.connect.config.kcqlprops.StringPropsSchema
 object S3PropsSchema {
 
   private val keys = Map[S3PropsKeyEntry, PropsSchema](
-    ReadTextMode -> EnumPropsSchema(ReadTextModeEnum),
-    ReadRegex    -> StringPropsSchema,
-    ReadStartTag -> StringPropsSchema,
-    ReadEndTag   -> StringPropsSchema,
+    ReadTextMode  -> EnumPropsSchema(ReadTextModeEnum),
+    ReadRegex     -> StringPropsSchema,
+    ReadStartTag  -> StringPropsSchema,
+    ReadEndTag    -> StringPropsSchema,
+    ReadStartLine -> StringPropsSchema,
+    ReadEndLine   -> StringPropsSchema,
   )
 
   val schema = KcqlPropsSchema(S3PropsKeyEnum, keys)

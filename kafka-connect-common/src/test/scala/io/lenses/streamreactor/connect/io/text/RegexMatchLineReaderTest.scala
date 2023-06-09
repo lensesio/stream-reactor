@@ -23,38 +23,29 @@ import java.io.InputStream
 
 class RegexMatchLineReaderTest extends AnyFunSuite with Matchers {
   test("empty input stream returns None") {
-    val reader = new RegexMatchLineReader(createInputStream(""), ".*", 0)
+    val reader = new RegexMatchLineReader(createInputStream(""), ".*")
     reader.next() should be(None)
   }
-  test("skip value is positive integer") {
-    intercept[IllegalArgumentException] {
-      new RegexMatchLineReader(createInputStream(""), ".*", -1)
-    }
-  }
   test("match all the lines") {
-    val reader = new RegexMatchLineReader(createInputStream("value1\nvalue2\nvalue3"), ".*", 0)
+    val reader = new RegexMatchLineReader(createInputStream("value1\nvalue2\nvalue3"), ".*")
     reader.next() should be(Some("value1"))
     reader.next() should be(Some("value2"))
     reader.next() should be(Some("value3"))
     reader.next() should be(None)
   }
   test("match in the input returns the line") {
-    val reader = new RegexMatchLineReader(createInputStream("1value1\nvalue2\nvalue3"), "1.*", 0)
+    val reader = new RegexMatchLineReader(createInputStream("1value1\nvalue2\nvalue3"), "1.*")
     reader.next() should be(Some("1value1"))
     reader.next() should be(None)
   }
-  test("skip one line containing the match and then no other match in the input returns None") {
-    val reader = new RegexMatchLineReader(createInputStream("1value1\nvalue2\nvalue3"), "1.*", 1)
-    reader.next() should be(None)
-  }
   test("lines start matches a regex pattern of any digits 0-9") {
-    val reader = new RegexMatchLineReader(createInputStream("1value1\nvalue2\nvalue3"), "[0-9].*", 0)
+    val reader = new RegexMatchLineReader(createInputStream("1value1\nvalue2\nvalue3"), "[0-9].*")
     reader.next() should be(Some("1value1"))
     reader.next() should be(None)
     reader.next() should be(None)
   }
   test("multiple lines returned") {
-    val reader = new RegexMatchLineReader(createInputStream("1value1\n2value2\n3value3"), "[0-9].*", 0)
+    val reader = new RegexMatchLineReader(createInputStream("1value1\n2value2\n3value3"), "[0-9].*")
     reader.next() shouldBe Some("1value1")
     reader.next() shouldBe Some("2value2")
     reader.next() shouldBe Some("3value3")
@@ -95,7 +86,6 @@ class RegexMatchLineReaderTest extends AnyFunSuite with Matchers {
           |""".stripMargin,
       ),
       "3.*",
-      0,
     )
     reader.next() shouldBe Some("3 UU 002 2000003")
     reader.next() shouldBe Some("3 BB 78P 02000004")

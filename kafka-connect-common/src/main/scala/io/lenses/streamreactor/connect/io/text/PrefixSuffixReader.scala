@@ -26,30 +26,24 @@ import java.io.InputStreamReader
   * @param prefix
   * @param suffix
   */
-class PrefixSuffixLineReader(input: InputStream, prefix: String, suffix: String, skip: Int, trim: Boolean) {
-  if (skip < 0) throw new IllegalArgumentException("skip must be >= 0")
+class PrefixSuffixReader(input: InputStream, prefix: String, suffix: String,  trim: Boolean) extends LineReader {
   private val br         = new BufferedReader(new InputStreamReader(input))
   private val suffixSize = suffix.length
   private var currentLine: String = ""
-  private var skipped = skip <= 0
 
   //Returns the next record or None if there are no more
   def next(): Option[String] = {
-    skipLines()
     //read until we find the prefix. If we don't find it, return None
     readUntilPrefixOrNone()
       .flatMap {
         case PrefixReadResult(line, index) =>
+          currentLine = line.substring(index + prefix.length)
           //check if the suffix is on the same line as the prefix. Grab the content between suffix and prefix as the value
           // and keep the remaining content for the next time next() is called. Else read until the suffix is found
           val suffixIndex = line.indexOf(suffix, index)
           if (suffixIndex > 0) {
             currentLine = line.substring(suffixIndex + suffixSize)
-            if (trim) {
-              Some(line.substring(index + prefix.length, suffixIndex).trim)
-            } else {
-              Some(line.substring(index, suffixIndex + suffixSize))
-            }
+            Some(line.substring(index, suffixIndex + suffixSize))
           } else {
             // No suffix so "clear" the current line
             currentLine = ""
@@ -109,12 +103,6 @@ class PrefixSuffixLineReader(input: InputStream, prefix: String, suffix: String,
       SuffixReadResult(l, index, sb)
     }
   }
-
-  private def skipLines(): Unit =
-    if (!skipped) {
-      LineSkipper.skipLines(br, skip)
-      skipped = true
-    }
 
   private case class PrefixReadResult(line: String, index: Int)
   private case class SuffixReadResult(line: String, index: Int, builder: StringBuilder)

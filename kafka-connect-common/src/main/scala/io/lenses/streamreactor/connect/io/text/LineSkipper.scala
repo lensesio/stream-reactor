@@ -15,16 +15,15 @@
  */
 package io.lenses.streamreactor.connect.io.text
 
-import java.io.BufferedReader
-
 object LineSkipper {
 
-  def skipLines(reader: BufferedReader, skip: Int): Unit = {
-    var line      = reader.readLine()
-    var remaining = skip - 1
-    while (line != null && remaining > 0) {
-      line = reader.readLine()
-      remaining -= 1
+  def apply(reader: LineReader, skip: Int): Unit =
+    if (skip > 0) {
+      var line      = reader.next()
+      var remaining = skip - 1
+      while (line.isDefined && remaining > 0) {
+        line = reader.next()
+        remaining -= 1
+      }
     }
-  }
 }
