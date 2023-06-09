@@ -10,10 +10,10 @@ class TextUtilsTest extends AnyFunSuite with Matchers {
     TextUtils.partiallyEndsWith("aaab", "bc") should be(Some("bc"))
     TextUtils.partiallyEndsWith("aaa\n b", "bc") should be(Some("b"))
   }
-  test("Handle empty target") {
+  test("partiallyEndsWith handles empty target") {
     TextUtils.partiallyEndsWith("", "cde") should be(None)
   }
-  test("handle empty source") {
+  test("partiallyEndsWith handles empty source") {
     TextUtils.partiallyEndsWith("abcde", "") should be(None)
   }
 }
