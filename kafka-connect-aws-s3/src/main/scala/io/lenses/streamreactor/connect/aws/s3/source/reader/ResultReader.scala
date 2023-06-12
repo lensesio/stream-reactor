@@ -98,7 +98,7 @@ object ResultReader extends LazyLogging {
       inputStream <- storageInterface.getBlob(pathWithLine.bucket, path).leftMap(_.toException)
       fileSize    <- storageInterface.getBlobSize(pathWithLine.bucket, path).leftMap(_.toException)
       _ <- Try(logger.info(
-        s"[${connectorTaskId.show}] Reading next file: ${pathWithLine.toPath} from line ${pathWithLine.line}",
+        s"[${connectorTaskId.show}] Reading next file: ${pathWithLine.show} from line ${pathWithLine.line}",
       )).toEither
 
       reader = format.toStreamReader(inputStream,

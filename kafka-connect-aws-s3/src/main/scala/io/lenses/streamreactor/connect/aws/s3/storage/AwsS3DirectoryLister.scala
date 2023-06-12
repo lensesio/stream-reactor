@@ -79,8 +79,7 @@ object AwsS3DirectoryLister extends LazyLogging {
       .bucket(bucketAndPrefix.bucket)
       .delimiter("/")
     bucketAndPrefix.prefix.foreach(builder.prefix)
-    val request = builder.build()
-    request
+    builder.build()
   }
 
   private def extractPrefixesFromResponse(

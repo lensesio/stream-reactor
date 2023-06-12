@@ -35,6 +35,7 @@ trait ReadTextMode {
 }
 
 object ReadTextMode {
+  private val DEFAULT_TEXT_STREAM_BUFFER = 1024
   def apply(props: KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type]): Option[ReadTextMode] = {
     val mode =
       props.getEnumValue[ReadTextModeEntry, ReadTextModeEnum.type](ReadTextModeEnum, S3PropsKeyEnum.ReadTextMode)
@@ -47,7 +48,7 @@ object ReadTextMode {
         for {
           startTag <- props.getString(S3PropsKeyEnum.ReadStartTag)
           endTag   <- props.getString(S3PropsKeyEnum.ReadEndTag)
-          buffer   <- props.getOptionalInt(S3PropsKeyEnum.BufferSize).orElse(Some(1024))
+          buffer   <- props.getOptionalInt(S3PropsKeyEnum.BufferSize).orElse(Some(DEFAULT_TEXT_STREAM_BUFFER))
         } yield StartEndTagReadTextMode(startTag, endTag, buffer)
 
       case Some(ReadTextModeEnum.StartEndLine) =>

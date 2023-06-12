@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import cats.implicits.catsSyntaxEitherId
 import com.datamountaineer.kcql.Kcql
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.aws.s3.formats.reader._
@@ -68,21 +67,15 @@ case object FormatSelection {
       Set.empty
     }
 
-    Format.withNameInsensitiveOption(split(0)) match {
-      case Some(format) =>
-        val result = format match {
-          case Format.Json    => JsonFormatSelection
-          case Format.Avro    => AvroFormatSelection
-          case Format.Parquet => ParquetFormatSelection
-          case Format.Text    => TextFormatSelection(readTextMode())
-          case Format.Csv     => CsvFormatSelection(formatOptions)
-          case Format.Bytes   => BytesFormatSelection(formatOptions)
-        }
-        result.asRight
-      case None => Left(new IllegalArgumentException(s"Unsupported format - $formatAsString"))
-    }
+    Format.withNameInsensitiveOption(split(0)).map {
+      case Format.Json    => JsonFormatSelection
+      case Format.Avro    => AvroFormatSelection
+      case Format.Parquet => ParquetFormatSelection
+      case Format.Text    => TextFormatSelection(readTextMode())
+      case Format.Csv     => CsvFormatSelection(formatOptions)
+      case Format.Bytes   => BytesFormatSelection(formatOptions)
+    }.toRight(new IllegalArgumentException(s"Unsupported format - $formatAsString"))
   }
-
 }
 
 case object JsonFormatSelection extends FormatSelection {

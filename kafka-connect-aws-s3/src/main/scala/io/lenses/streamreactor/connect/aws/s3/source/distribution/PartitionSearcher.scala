@@ -68,10 +68,10 @@ class PartitionSearcher(
           logger.info("[{}] Found new partitions {} for: {}",
                       connectorTaskId.show,
                       foundPartitions.partitions.mkString(","),
-                      root.toPath,
+                      root.show,
           )
         else
-          logger.info("[{}] No new partitions found for:{}", connectorTaskId.show, root.toPath)
+          logger.info("[{}] No new partitions found for:{}", connectorTaskId.show, root.show)
       }
 
     } yield PartitionSearcherResponse(
