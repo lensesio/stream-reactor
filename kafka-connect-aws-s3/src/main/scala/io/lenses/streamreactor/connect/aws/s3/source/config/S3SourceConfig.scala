@@ -94,7 +94,6 @@ case class SourceBucketOptions(
 }
 
 object SourceBucketOptions {
-
   private val DEFAULT_RECORDS_LIMIT = 1024
   private val DEFAULT_FILES_LIMIT   = 1000
 
@@ -106,10 +105,11 @@ object SourceBucketOptions {
       kcql: Kcql =>
         for {
           source <- S3Location.splitAndValidate(kcql.getSource, allowSlash = true)
+          format <- FormatSelection.fromKcql(kcql)
         } yield SourceBucketOptions(
           source,
           kcql.getTarget,
-          format             = FormatSelection.fromKcql(kcql),
+          format             = format,
           recordsLimit       = if (kcql.getLimit < 1) DEFAULT_RECORDS_LIMIT else kcql.getLimit,
           filesLimit         = if (kcql.getBatchSize < 1) DEFAULT_FILES_LIMIT else kcql.getBatchSize,
           partitionExtractor = partitionExtractor,

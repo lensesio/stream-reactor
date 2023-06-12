@@ -17,13 +17,14 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 
 import cats.effect.IO
 import cats.implicits._
+import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import software.amazon.awssdk.services.s3.model._
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
-object AwsS3DirectoryLister {
+object AwsS3DirectoryLister extends LazyLogging {
   def findDirectories(
     bucketAndPrefix:  S3Location,
     completionConfig: DirectoryFindCompletionConfig,
@@ -37,7 +38,7 @@ object AwsS3DirectoryLister {
       flattened <- flattenPrefixes(
         bucketAndPrefix,
         prefixInfo.partitions,
-        completionConfig.copy(levelsToRecurse = completionConfig.levelsToRecurse - 1),
+        completionConfig,
         exclude,
         listObjectsF,
         connectorTaskId,
@@ -77,7 +78,7 @@ object AwsS3DirectoryLister {
       .maxKeys(1000)
       .bucket(bucketAndPrefix.bucket)
       .delimiter("/")
-    bucketAndPrefix.prefix.map(addTrailingSlash).foreach(builder.prefix)
+    bucketAndPrefix.prefix.foreach(builder.prefix)
     builder.build()
   }
 
@@ -100,8 +101,4 @@ object AwsS3DirectoryLister {
       }
       DirectoryFindResults(paths)
     }
-
-  private def addTrailingSlash(in: String): String =
-    if (!in.endsWith("/")) in + "/" else in
-
 }

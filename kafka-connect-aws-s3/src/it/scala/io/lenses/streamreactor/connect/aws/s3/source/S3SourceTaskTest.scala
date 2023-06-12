@@ -48,6 +48,7 @@ class S3SourceTaskTest
     TASK_INDEX                              -> "1:1",
     "name"                                  -> "s3-source",
     SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
+    SOURCE_PARTITION_SEARCH_RECURSE_LEVELS  -> "0",
   )
 
   private val formats = Table(
@@ -78,7 +79,7 @@ class S3SourceTaskTest
     val dirs =
       AwsS3DirectoryLister.findDirectories(
         root,
-        DirectoryFindCompletionConfig(1),
+        DirectoryFindCompletionConfig(0),
         Set.empty,
         s3Client.listObjectsV2Paginator(_).iterator().asScala,
         ConnectorTaskId("name", 1, 1),

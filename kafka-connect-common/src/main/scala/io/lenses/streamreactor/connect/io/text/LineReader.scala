@@ -15,15 +15,6 @@
  */
 package io.lenses.streamreactor.connect.io.text
 
-object LineSkipper {
-
-  def apply(reader: LineReader, skip: Int): Unit =
-    if (skip > 0) {
-      var line      = reader.next()
-      var remaining = skip - 1
-      while (line.isDefined && remaining > 0) {
-        line = reader.next()
-        remaining -= 1
-      }
-    }
+trait LineReader extends AutoCloseable {
+  def next(): Option[String]
 }

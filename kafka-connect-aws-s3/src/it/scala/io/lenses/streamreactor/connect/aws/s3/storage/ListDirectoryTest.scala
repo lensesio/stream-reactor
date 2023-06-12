@@ -55,7 +55,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
 
   }
 
-  "s3StorageInterface" should "list directories within a path 2 levels deep from bucket root" in {
+  "s3StorageInterface" should "return empty on directories within a path 2 levels deep from bucket root" in {
 
     val taskId = ConnectorTaskId("sinkName", 1, 0)
 
@@ -69,15 +69,12 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
       taskId,
     ).unsafeRunSync()
 
-    val allValues  = (1 to 10).map(x => s"topic-1/$x/")
-    val allValues2 = (1 to 10).map(x => s"topic-2/$x/")
-
-    val partitionResults = DirectoryFindResults((allValues ++ allValues2).toSet)
+    val partitionResults = DirectoryFindResults(Set.empty)
     dirs should be(partitionResults)
 
   }
 
-  "s3StorageInterface" should "list directories within a path 3 levels deep from bucket root" in {
+  "s3StorageInterface" should "return empty on listing directories within a path 3 levels deep from bucket root" in {
 
     val taskId = ConnectorTaskId("sinkName", 1, 0)
 
@@ -91,10 +88,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
       taskId,
     ).unsafeRunSync()
 
-    val allValues  = (1 to 10).map(x => s"topic-1/$x/")
-    val allValues2 = (1 to 10).map(x => s"topic-2/$x/")
-
-    val partitionResults = DirectoryFindResults((allValues ++ allValues2).toSet)
+    val partitionResults = DirectoryFindResults(Set.empty)
     dirs should be(partitionResults)
 
   }
@@ -112,7 +106,9 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
       taskId,
     ).unsafeRunSync()
 
-    val partitionResults = DirectoryFindResults(Set("topic-1/", "topic-2/"))
+    val allValues = (1 to 10).flatMap(x => List(s"topic-1/$x/", s"topic-2/$x/"))
+
+    val partitionResults = DirectoryFindResults(allValues.toSet)
     dirs should be(partitionResults)
 
   }

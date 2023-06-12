@@ -16,8 +16,8 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -26,10 +26,12 @@ class FormatSelectionTest extends AnyFlatSpec with Matchers {
   implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
 
   "formatSelection.fromString" should "format for CSV with headers" in {
-    FormatSelection.fromString("`CSV_WITHHEADERS`", () => Option.empty) should be(CsvFormatSelection(Set(WithHeaders)))
+    FormatSelection.fromString("`CSV_WITHHEADERS`", () => Option.empty) should be(
+      Right(CsvFormatSelection(Set(WithHeaders))),
+    )
   }
 
   "formatSelection.fromString" should "format for CSV without headers" in {
-    FormatSelection.fromString("`CSV`", () => Option.empty) should be(CsvFormatSelection(Set.empty))
+    FormatSelection.fromString("`CSV`", () => Option.empty) should be(Right(CsvFormatSelection(Set.empty)))
   }
 }

@@ -63,11 +63,6 @@ case class S3Location(
     s"$bucket:$prefixStr$pathStr$lineStr$timestampStr"
   }
 
-  def toPath: String = {
-    val prefixStr = prefix.map(p => s"$p/").getOrElse("")
-    val pathStr   = path.map(p => s"$p/").getOrElse("")
-    s"$bucket:$prefixStr$pathStr"
-  }
 }
 
 case object S3Location {
@@ -80,7 +75,12 @@ case object S3Location {
       case _ => new IllegalArgumentException("Invalid number of arguments provided to create BucketAndPrefix").asLeft
     }
 
-  implicit val showLocation: Show[S3Location] =
-    Show.show(loc => s"${loc.bucket}//:${loc.prefix.map(s => s"$s/").getOrElse("")}|${loc.path.getOrElse("")}")
+  implicit val showLocation: Show[S3Location] = {
+    Show.show { loc =>
+      val prefixStr = loc.prefix.map(p => s"$p/").getOrElse("")
+      val pathStr   = loc.path.map(p => s"$p/").getOrElse("")
+      s"${loc.bucket}:$prefixStr$pathStr"
+    }
+  }
 
 }

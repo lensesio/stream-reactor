@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.source.files
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
@@ -33,6 +34,7 @@ import java.time.Instant
 
 class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar with BeforeAndAfter {
 
+  private val taskId = ConnectorTaskId("topic", 1, 0)
   private val bucket = "bucket"
   private val prefix = "prefix"
   private val files: Seq[String] = (0 to 3).map(file => file.toString + ".json")
@@ -67,7 +69,7 @@ class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar 
 
     val batchListerFn = mock[Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]]]
 
-    val sourceFileQueue = new S3SourceFileQueue(batchListerFn)
+    val sourceFileQueue = new S3SourceFileQueue(taskId, batchListerFn)
 
     val order = inOrder(batchListerFn)
 
@@ -106,7 +108,11 @@ class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar 
     val blobModifiedFn: (String, String) => Either[FileLoadError, Instant] = (_, _) => Instant.now().asRight
 
     val sourceFileQueue =
-      S3SourceFileQueue.from(batchListerFn, blobModifiedFn, fileLocs(2).atLine(1000).withTimestamp(lastModified))
+      S3SourceFileQueue.from(batchListerFn,
+                             blobModifiedFn,
+                             fileLocs(2).atLine(1000).withTimestamp(lastModified),
+                             taskId,
+      )
 
     val order = inOrder(batchListerFn)
 
@@ -133,7 +139,7 @@ class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar 
     doAnswer(x => listBatch(x)).when(batchListerFn)(
       any[Option[FileMetadata]],
     )
-    val sourceFileQueue = new S3SourceFileQueue(batchListerFn)
+    val sourceFileQueue = new S3SourceFileQueue(taskId, batchListerFn)
     sourceFileQueue.next() shouldBe Right(None)
   }
   "S3SourceFileQueue" should "return the error on batch listing" in {
@@ -146,7 +152,7 @@ class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar 
     doAnswer(x => listBatch(x)).when(batchListerFn)(
       any[Option[FileMetadata]],
     )
-    val sourceFileQueue = new S3SourceFileQueue(batchListerFn)
+    val sourceFileQueue = new S3SourceFileQueue(taskId, batchListerFn)
     sourceFileQueue.next() shouldBe expected
   }
 

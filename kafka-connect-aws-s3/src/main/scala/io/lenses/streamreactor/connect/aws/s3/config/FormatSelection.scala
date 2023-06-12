@@ -46,19 +46,18 @@ case object FormatSelection {
 
   def fromKcql(
     kcql: Kcql,
-  ): FormatSelection = {
-
-    val readTextModeFn = () => ReadTextMode(schema.readProps(kcql.getProperties.asScala.toMap))
-
-    Option(kcql.getStoredAs)
-      .map(FormatSelection.fromString(_, readTextModeFn))
-      .getOrElse(JsonFormatSelection)
-  }
+  ): Either[Throwable, FormatSelection] =
+    Option(kcql.getStoredAs) match {
+      case Some(storedAs) =>
+        fromString(storedAs, () => ReadTextMode(schema.readProps(kcql.getProperties.asScala.toMap)))
+      case None =>
+        Right(JsonFormatSelection)
+    }
 
   def fromString(
     formatAsString: String,
     readTextMode:   () => Option[ReadTextMode],
-  ): FormatSelection = {
+  ): Either[Throwable, FormatSelection] = {
     val withoutTicks = formatAsString.replace("`", "")
     val split        = withoutTicks.split("_")
 
@@ -68,18 +67,15 @@ case object FormatSelection {
       Set.empty
     }
 
-    val format = Format
-      .withNameInsensitiveOption(split(0))
-    format.getOrElse(throw new IllegalArgumentException(s"Unsupported format - $formatAsString")) match {
+    Format.withNameInsensitiveOption(split(0)).map {
       case Format.Json    => JsonFormatSelection
       case Format.Avro    => AvroFormatSelection
       case Format.Parquet => ParquetFormatSelection
       case Format.Text    => TextFormatSelection(readTextMode())
       case Format.Csv     => CsvFormatSelection(formatOptions)
       case Format.Bytes   => BytesFormatSelection(formatOptions)
-    }
+    }.toRight(new IllegalArgumentException(s"Unsupported format - $formatAsString"))
   }
-
 }
 
 case object JsonFormatSelection extends FormatSelection {

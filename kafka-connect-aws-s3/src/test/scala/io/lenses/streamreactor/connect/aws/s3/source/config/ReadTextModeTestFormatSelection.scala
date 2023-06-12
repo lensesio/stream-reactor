@@ -16,8 +16,10 @@
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.ReadTextModeEnum
+import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEntry
 import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEnum
 import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsSchema
+import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -32,7 +34,20 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
           S3PropsKeyEnum.ReadEndTag.entryName   -> "</p>",
         ),
       ),
-    ) should be(Some(StartEndTagReadTextMode("<p>", "</p>")))
+    ) should be(Some(StartEndTagReadTextMode("<p>", "</p>", 1024)))
+  }
+
+  "ReadTextMode" should "be configured with start and end tag and buffer size for StartEndTag" in {
+    ReadTextMode(
+      readProps(
+        Map(
+          S3PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.StartEndTag.entryName,
+          S3PropsKeyEnum.ReadStartTag.entryName -> "<p>",
+          S3PropsKeyEnum.ReadEndTag.entryName   -> "</p>",
+          S3PropsKeyEnum.BufferSize.entryName   -> "2048",
+        ),
+      ),
+    ) should be(Some(StartEndTagReadTextMode("<p>", "</p>", 2048)))
   }
 
   "ReadTextMode" should "return none when no start or end tag is configured" in {
@@ -76,7 +91,39 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
     ReadTextMode(readProps(Map.empty)) should be(Option.empty)
   }
 
-  private def readProps(propsMap: Map[String, String]) =
+  "ReadTextMode" should "return start and end line when configured" in {
+    ReadTextMode(
+      readProps(
+        Map(
+          S3PropsKeyEnum.ReadTextMode.entryName  -> ReadTextModeEnum.StartEndLine.entryName,
+          S3PropsKeyEnum.ReadStartLine.entryName -> "SSM",
+          S3PropsKeyEnum.ReadEndLine.entryName   -> "",
+        ),
+      ),
+    ) should be(Some(StartEndLineReadTextMode("SSM", "")))
+  }
+
+  "ReadTextMode" should "return none when no start or end line is configured" in {
+    ReadTextMode(
+      readProps(
+        Map(
+          S3PropsKeyEnum.ReadTextMode.entryName  -> ReadTextModeEnum.StartEndLine.entryName,
+          S3PropsKeyEnum.ReadStartLine.entryName -> "SSM",
+        ),
+      ),
+    ) should be(Option.empty)
+
+    ReadTextMode(
+      readProps(
+        Map(
+          S3PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.StartEndLine.entryName,
+          S3PropsKeyEnum.ReadEndLine.entryName  -> "",
+        ),
+      ),
+    ) should be(Option.empty)
+  }
+
+  private def readProps(propsMap: Map[String, String]): KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type] =
     S3PropsSchema.schema.readProps(propsMap)
 
 }

@@ -23,7 +23,7 @@ object ReadTextModeEnum extends Enum[ReadTextModeEntry] {
 
   override val values = findValues
 
-  case object Regex       extends ReadTextModeEntry
-  case object StartEndTag extends ReadTextModeEntry
-
+  case object Regex        extends ReadTextModeEntry
+  case object StartEndTag  extends ReadTextModeEntry
+  case object StartEndLine extends ReadTextModeEntry
 }

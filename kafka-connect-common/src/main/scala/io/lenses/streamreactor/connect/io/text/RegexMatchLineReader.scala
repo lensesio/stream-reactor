@@ -25,24 +25,14 @@ import scala.io.Source
   * @param input
   * @param prefix
   */
-class RegexMatchLineReader(input: InputStream, regex: String, skip: Int) extends AutoCloseable {
-  if (skip < 0) throw new IllegalArgumentException("skip must be >= 0")
+class RegexMatchLineReader(input: InputStream, regex: String) extends LineReader {
   private val source: BufferedSource = Source.fromInputStream(input)
   private val iterator = source.getLines()
   private val pattern  = regex.r.pattern
-  private var skipped  = skip <= 0
 
   //Returns the next line if the prefix matches regex. If there are no more lines, returns None
-  def next(): Option[String] = {
-    skipLines()
+  def next(): Option[String] =
     iterator.find(line => pattern.matcher(line).matches())
-  }
-
-  private def skipLines(): Unit =
-    if (!skipped) {
-      LineSkipper.skipLines(source.bufferedReader(), skip)
-      skipped = true
-    }
 
   override def close(): Unit = source.close()
 }

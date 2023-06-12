@@ -18,6 +18,8 @@ package io.lenses.streamreactor.connect.config.kcqlprops
 import cats.implicits.catsSyntaxOptionId
 import enumeratum._
 
+import scala.util.Try
+
 object KcqlProperties {
   def fromStringMap[U <: EnumEntry, T <: Enum[U]](
     schema: KcqlPropsSchema[U, T],
@@ -36,6 +38,16 @@ case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
   schema: KcqlPropsSchema[U, T],
   map:    Map[U, String],
 ) {
+  def getOptionalInt(key: U): Option[Int] =
+    for {
+      value:  String <- map.get(key)
+      schema: PropsSchema <- schema.schema.get(key)
+      _ <- schema match {
+        case IntPropsSchema => value.some
+        case _              => Option.empty[String]
+      }
+      i <- Try(value.toInt).toOption
+    } yield i
 
   /*
   PKE - props enum (contains the prop keys)
