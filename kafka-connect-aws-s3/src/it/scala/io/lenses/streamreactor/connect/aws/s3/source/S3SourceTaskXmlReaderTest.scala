@@ -25,7 +25,7 @@ class S3SourceTaskXmlReaderTest extends S3ProxyContainerTest with AnyFlatSpecLik
     AUTH_MODE                               -> AuthMode.Credentials.toString,
     CUSTOM_ENDPOINT                         -> uri(),
     ENABLE_VIRTUAL_HOST_BUCKETS             -> "true",
-    TASK_INDEX                              -> "1:1",
+    TASK_INDEX                              -> "0:1",
     "name"                                  -> "s3-source",
     SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
   )
