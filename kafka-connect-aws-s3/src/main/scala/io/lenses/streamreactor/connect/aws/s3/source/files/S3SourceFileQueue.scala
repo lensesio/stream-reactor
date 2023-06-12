@@ -17,7 +17,9 @@ package io.lenses.streamreactor.connect.aws.s3.source.files
 
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
+import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
@@ -35,6 +37,7 @@ trait SourceFileQueue {
   * Will block any further writes by the current file until the remote has caught up.
   */
 class S3SourceFileQueue private (
+  private val taskId:        ConnectorTaskId,
   private val batchListerFn: Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]],
   private var files:         Seq[S3Location],
   private var lastSeenFile:  Option[FileMetadata],
@@ -42,15 +45,24 @@ class S3SourceFileQueue private (
     with LazyLogging {
 
   def this(
+    taskId:        ConnectorTaskId,
     batchListerFn: Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]],
-  ) = this(batchListerFn, Seq.empty, None)
+  ) = this(taskId, batchListerFn, Seq.empty, None)
 
   override def next(): Either[FileListError, Option[S3Location]] =
     files match {
       case ::(head, next) =>
         files = next
+        logger.debug(
+          s"[${taskId.show}] Next file to read ${head.show}. ${if (files.isEmpty) ""
+          else s"The one after next is ${files.head.show}"}",
+        )
         head.some.asRight
-      case Nil => retrieveNextFile()
+      case Nil =>
+        logger.debug(s"[${taskId.show}] Retrieving next batch of files")
+        val result = retrieveNextFile()
+        logger.debug(s"[${taskId.show}]Retrieved ${files.size} files")
+        result
     }
 
   private def retrieveNextFile(
@@ -83,6 +95,7 @@ object S3SourceFileQueue {
     batchListerFn:     Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]],
     getLastModifiedFn: (String, String) => Either[FileLoadError, Instant],
     startingFile:      S3Location,
+    taskId:            ConnectorTaskId,
   ): S3SourceFileQueue = {
     val lastSeen: Option[FileMetadata] = (startingFile.path, startingFile.timestamp) match {
       case (Some(filePath), None) =>
@@ -95,7 +108,7 @@ object S3SourceFileQueue {
       case _ =>
         None
     }
-    new S3SourceFileQueue(batchListerFn, Seq(startingFile), lastSeen)
+    new S3SourceFileQueue(taskId, batchListerFn, Seq(startingFile), lastSeen)
   }
 
 }

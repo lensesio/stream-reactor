@@ -64,11 +64,12 @@ object S3SourceState {
           )
           ref      <- Ref[IO].of(Option.empty[ResultReader])
           listingFn = sbo.createBatchListerFn(storageInterface)
-          source = contextOffsetFn(root).fold(new S3SourceFileQueue(listingFn))(
+          source = contextOffsetFn(root).fold(new S3SourceFileQueue(connectorTaskId, listingFn))(
             S3SourceFileQueue.from(
               listingFn,
               storageInterface.getBlobModified,
               _,
+              connectorTaskId,
             ),
           )
         } yield ReaderManager(
