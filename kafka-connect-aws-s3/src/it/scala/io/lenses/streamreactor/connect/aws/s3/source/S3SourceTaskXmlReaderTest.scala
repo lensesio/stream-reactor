@@ -5,6 +5,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.kafka.connect.source.SourceRecord
+import org.scalatest.EitherValues
 import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
@@ -12,8 +13,10 @@ import org.scalatest.matchers.should.Matchers
 import java.io.File
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.util.Try
+import scala.xml.XML
 
-class S3SourceTaskXmlReaderTest extends S3ProxyContainerTest with AnyFlatSpecLike with Matchers {
+class S3SourceTaskXmlReaderTest extends S3ProxyContainerTest with AnyFlatSpecLike with Matchers with EitherValues {
 
   def DefaultProps: Map[String, String] = Map(
     AWS_ACCESS_KEY                          -> Identity,
@@ -66,6 +69,47 @@ class S3SourceTaskXmlReaderTest extends S3ProxyContainerTest with AnyFlatSpecLik
 
     task.stop()
 
+    val firstEmployee = Employee.fromSourceRecord(sourceRecords.head)
+    firstEmployee.value should be(
+      Employee(
+        "1",
+        "3-1991",
+        "B1",
+        "Fairly Paid",
+        "Skydiving Instructor Extraordinaire",
+      ),
+    )
+
+    val lastEmployee = Employee.fromSourceRecord(sourceRecords.last)
+    lastEmployee.value should be(
+      Employee(
+        "20,000",
+        "1-2011",
+        "C1",
+        "Massively Underpaid",
+        "Skydiving Instructor for Schools",
+      ),
+    )
+  }
+
+  case class Employee(number: String, startMonth: String, bracket: String, bracketDescription: String, category: String)
+
+  object Employee {
+
+    def fromSourceRecord(sourceRecord: SourceRecord): Either[Throwable, Employee] =
+      sourceRecord.value() match {
+        case empXml: String =>
+          Try {
+            val xml = XML.loadString(empXml)
+            Employee(
+              (xml \ "Number").text,
+              (xml \ "StartMonth").text,
+              (xml \ "Bracket").text,
+              (xml \ "BracketDescription").text,
+              (xml \ "Category").text,
+            )
+          }.toEither
+      }
   }
 
 }
