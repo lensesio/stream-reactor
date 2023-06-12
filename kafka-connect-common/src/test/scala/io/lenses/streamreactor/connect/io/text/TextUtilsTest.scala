@@ -22,7 +22,7 @@ class TextUtilsTest extends AnyFunSuite with Matchers {
   test("partiallyEndsWith") {
     TextUtils.partiallyEndsWith("abcde", "cde") should be(Some("cde"))
     TextUtils.partiallyEndsWith("abc", "bcde") should be(Some("bc"))
-    TextUtils.partiallyEndsWith("aaab", "bc") should be(Some("bc"))
+    TextUtils.partiallyEndsWith("aaabc", "bc") should be(Some("bc"))
     TextUtils.partiallyEndsWith("aaa\n b", "bc") should be(Some("b"))
   }
   test("partiallyEndsWith handles empty target") {
