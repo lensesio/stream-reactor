@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops
 
 import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEnum._
 import io.lenses.streamreactor.connect.config.kcqlprops.EnumPropsSchema
+import io.lenses.streamreactor.connect.config.kcqlprops.IntPropsSchema
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlPropsSchema
 import io.lenses.streamreactor.connect.config.kcqlprops.PropsSchema
 import io.lenses.streamreactor.connect.config.kcqlprops.StringPropsSchema
@@ -30,6 +31,7 @@ object S3PropsSchema {
     ReadEndTag    -> StringPropsSchema,
     ReadStartLine -> StringPropsSchema,
     ReadEndLine   -> StringPropsSchema,
+    BufferSize    -> IntPropsSchema,
   )
 
   val schema = KcqlPropsSchema(S3PropsKeyEnum, keys)
