@@ -161,28 +161,25 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
 
   override def close(): Unit = s3Client.close()
 
-  override def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = Try {
+  override def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = {
     if (files.isEmpty) {
       return ().asRight
     }
-    s3Client.deleteObjects(
-      DeleteObjectsRequest
-        .builder()
-        .bucket(bucket)
-        .delete(
-          Delete
+
+    Try {
+      for (f <- files) {
+        s3Client.deleteObject(
+          DeleteObjectRequest
             .builder()
-            .objects(
-              files
-                .map(f => ObjectIdentifier.builder().key(f).build()).toArray: _*,
-            )
-            .build(),
+            .bucket(bucket)
+            .key(f)
+            .build()
         )
-        .build(),
-    )
-  } match {
-    case Failure(ex) => FileDeleteError(ex, files.mkString(" - ")).asLeft
-    case Success(_)  => ().asRight
+      }
+    } match {
+      case Failure(ex) => FileDeleteError(ex, files.mkString(" - ")).asLeft
+      case Success(_) => ().asRight
+    }
   }
 
   override def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String] =
