@@ -15,7 +15,8 @@
  */
 package io.lenses.streamreactor.connect.io.text
 
-import cats.implicits.{catsSyntaxOptionId, none}
+import cats.implicits.catsSyntaxOptionId
+import cats.implicits.none
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
