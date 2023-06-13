@@ -19,9 +19,13 @@ import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
 import org.scalatest.BeforeAndAfter
+import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
+import org.scalatest.time.Milliseconds
+import org.scalatest.time.Seconds
+import org.scalatest.time.Span
 
 import java.util
 import scala.jdk.CollectionConverters.IteratorHasAsScala
@@ -33,7 +37,11 @@ class S3SourceTaskTest
     with Matchers
     with S3ProxyContainerTest
     with LazyLogging
-    with BeforeAndAfter {
+    with BeforeAndAfter
+    with Eventually {
+
+  override implicit def patienceConfig: PatienceConfig =
+    PatienceConfig(timeout = Span(10, Seconds), interval = Span(500, Milliseconds))
 
   private var bucketSetupOpt: Option[BucketSetup] = None
   def bucketSetup:            BucketSetup         = bucketSetupOpt.getOrElse(throw new IllegalStateException("Not initialised"))
@@ -106,9 +114,11 @@ class S3SourceTaskTest
 
           task.start(props)
           //Let the partitions scan do its work
-          Thread.sleep(4000)
-
-          val sourceRecords1 = task.poll()
+          val sourceRecords1 = eventually {
+            val records = task.poll()
+            records.size() shouldBe 190
+            records
+          }
           val sourceRecords2 = task.poll()
           val sourceRecords3 = task.poll()
           val sourceRecords4 = task.poll()
@@ -229,9 +239,12 @@ class S3SourceTaskTest
 
         task.start(props)
         //Let the partitions scan do its work
-        Thread.sleep(4000)
+        val sourceRecords1 = eventually {
+          val records = task.poll()
+          records.size() shouldBe 190
+          records
+        }
 
-        val sourceRecords1 = task.poll()
         val sourceRecords2 = task.poll()
         val sourceRecords3 = task.poll()
         val sourceRecords4 = task.poll()
@@ -276,8 +289,11 @@ class S3SourceTaskTest
 
     task.start(props)
     //Let the partitions scan do its work
-    Thread.sleep(4000)
-    val sourceRecords1 = task.poll()
+    val sourceRecords1 = eventually {
+      val records = task.poll()
+      records.size() shouldBe 190
+      records
+    }
     val sourceRecords2 = task.poll()
 
     task.stop()
@@ -309,8 +325,11 @@ class S3SourceTaskTest
 
     task.start(props)
     //Let the partitions scan do its work
-    Thread.sleep(4000)
-    val sourceRecords1 = task.poll()
+    val sourceRecords1 = eventually {
+      val records = task.poll()
+      records.size() shouldBe 190
+      records
+    }
     val sourceRecords2 = task.poll()
     val sourceRecords3 = task.poll()
     val sourceRecords4 = task.poll()
@@ -357,8 +376,11 @@ class S3SourceTaskTest
 
     task.start(props)
     //Let the partitions scan do its work
-    Thread.sleep(4000)
-    val sourceRecords1 = task.poll()
+    val sourceRecords1 = eventually {
+      val records = task.poll()
+      records.size() shouldBe 190
+      records
+    }
     val sourceRecords2 = task.poll()
     val sourceRecords3 = task.poll()
     val sourceRecords4 = task.poll()
