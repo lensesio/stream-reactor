@@ -39,7 +39,11 @@ object PartitionDiscovery extends LazyLogging {
       _ <- IO(logger.info("Finished the partition discovery task"))
     } yield ()
 
-    PollLoop.run(settings.interval, cancelledRef)(() => task)
+    PollLoop.run(settings.interval, cancelledRef)(() =>
+      task.handleErrorWith { err =>
+        IO(logger.error("Error in partition discovery task. Partition discovery will resume.", err))
+      },
+    )
   }
 
   private def discover(
@@ -49,7 +53,7 @@ object PartitionDiscovery extends LazyLogging {
   ): IO[Unit] =
     for {
       oldState <- readerManagerState.get
-      newParts <- partitionSearcher.findNewPartitions(oldState.partitionResponses)
+      newParts <- partitionSearcher.find(oldState.partitionResponses)
       tuples    = newParts.flatMap(part => part.results.partitions.map(part.root -> _))
       newReaderManagers <- tuples
         .map {
