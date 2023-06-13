@@ -90,7 +90,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         PartitionSearcherResponse(
           S3Location("bucket", None),
           Set("prefix1/", "prefix2/"),
-          DirectoryFindResults(Set.empty),
+          DirectoryFindResults(Set("prefix1/", "prefix2/")),
           None,
         ),
       ),
