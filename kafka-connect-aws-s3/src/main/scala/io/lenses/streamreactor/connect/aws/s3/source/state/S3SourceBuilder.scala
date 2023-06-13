@@ -21,7 +21,7 @@ import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
-import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcherImpl
+import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcher
 import io.lenses.streamreactor.connect.aws.s3.source.files.S3SourceFileQueue
 import io.lenses.streamreactor.connect.aws.s3.source.reader.PartitionDiscovery
 import io.lenses.streamreactor.connect.aws.s3.source.reader.ReaderManager
@@ -44,7 +44,7 @@ object S3SourceState {
       s3Client         <- IO.fromEither(AwsS3ClientCreator.make(config.s3Config))
       storageInterface <- IO.delay(new AwsS3StorageInterface(connectorTaskId, s3Client))
       partitionSearcher <- IO.delay(
-        new PartitionSearcherImpl(
+        new PartitionSearcher(
           config.bucketOptions.map(_.sourceBucketAndPrefix),
           config.partitionSearcher,
           connectorTaskId,
@@ -86,7 +86,7 @@ object S3SourceState {
         )
       }
       val partitionDiscoveryLoop = PartitionDiscovery.run(config.partitionSearcher,
-                                                          partitionSearcher,
+                                                          partitionSearcher.find,
                                                           readerManagerCreateFn,
                                                           readerManagerState,
                                                           cancelledRef,

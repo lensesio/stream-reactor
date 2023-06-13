@@ -23,7 +23,6 @@ import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcher
-import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcherImpl
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcherResponse
 import io.lenses.streamreactor.connect.aws.s3.source.files.SourceFileQueue
 import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindResults
@@ -45,8 +44,12 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
 
     trait Count {
       def getCount: IO[Int]
+
+      def find(
+        lastFound: Seq[PartitionSearcherResponse],
+      ): IO[Seq[PartitionSearcherResponse]]
     }
-    val searcherMock = new PartitionSearcher with Count {
+    val searcherMock = new Count {
       private val count = Ref[IO].of(0).unsafeRunSync()
       def getCount: IO[Int] = count.get
 
@@ -71,7 +74,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
       state        <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
       fiber <- PartitionDiscovery.run(
         options,
-        searcherMock,
+        searcherMock.find,
         (_, _) =>
           IO(ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
         state,
@@ -115,13 +118,13 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
       state        <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
       fiber <- PartitionDiscovery.run(
         options,
-        new PartitionSearcherImpl(List(
-                                    S3Location("bucket", None),
-                                  ),
-                                  options,
-                                  connectorTaskId,
-                                  s3Client.listObjectsV2Paginator(_).iterator().asScala,
-        ),
+        new PartitionSearcher(List(
+                                S3Location("bucket", None),
+                              ),
+                              options,
+                              connectorTaskId,
+                              s3Client.listObjectsV2Paginator(_).iterator().asScala,
+        ).find,
         (_, _) =>
           IO(ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
         state,
@@ -174,13 +177,13 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
       )
       fiber <- PartitionDiscovery.run(
         options,
-        new PartitionSearcherImpl(List(
-                                    S3Location("bucket", None),
-                                  ),
-                                  options,
-                                  connectorTaskId,
-                                  s3Client.listObjectsV2Paginator(_).iterator().asScala,
-        ),
+        new PartitionSearcher(List(
+                                S3Location("bucket", None),
+                              ),
+                              options,
+                              connectorTaskId,
+                              s3Client.listObjectsV2Paginator(_).iterator().asScala,
+        ).find,
         (_, _) =>
           IO(ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
         state,
@@ -225,13 +228,13 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
       state        <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
       fiber <- PartitionDiscovery.run(
         options,
-        new PartitionSearcherImpl(List(
-                                    S3Location("bucket", "prefix1/".some),
-                                  ),
-                                  options,
-                                  connectorTaskId,
-                                  s3Client.listObjectsV2Paginator(_).iterator().asScala,
-        ),
+        new PartitionSearcher(List(
+                                S3Location("bucket", "prefix1/".some),
+                              ),
+                              options,
+                              connectorTaskId,
+                              s3Client.listObjectsV2Paginator(_).iterator().asScala,
+        ).find,
         (_, _) =>
           IO(ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
         state,

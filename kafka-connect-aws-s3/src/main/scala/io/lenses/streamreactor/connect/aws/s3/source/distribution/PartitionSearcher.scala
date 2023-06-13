@@ -26,19 +26,12 @@ import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindCompletionCon
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response
 
-trait PartitionSearcher {
-  def find(
-    lastFound: Seq[PartitionSearcherResponse],
-  ): IO[Seq[PartitionSearcherResponse]]
-}
-
-class PartitionSearcherImpl(
+class PartitionSearcher(
   roots:           Seq[S3Location],
   settings:        PartitionSearcherOptions,
   connectorTaskId: ConnectorTaskId,
   listS3ObjF:      ListObjectsV2Request => Iterator[ListObjectsV2Response],
-) extends PartitionSearcher
-    with LazyLogging {
+) extends LazyLogging {
 
   def find(
     lastFound: Seq[PartitionSearcherResponse],
