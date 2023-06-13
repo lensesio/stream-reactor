@@ -86,7 +86,7 @@ object S3SourceState {
         )
       }
       val partitionDiscoveryLoop = PartitionDiscovery.run(config.partitionSearcher,
-                                                          partitionSearcher,
+                                                          partitionSearcher.find,
                                                           readerManagerCreateFn,
                                                           readerManagerState,
                                                           cancelledRef,

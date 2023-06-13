@@ -21,14 +21,16 @@ import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions
-import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcher
+import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcherResponse
 import io.lenses.streamreactor.connect.aws.s3.utils.PollLoop
 
 object PartitionDiscovery extends LazyLogging {
 
+  type PartitionSearcherF = Seq[PartitionSearcherResponse] => IO[Seq[PartitionSearcherResponse]]
+
   def run(
     settings:              PartitionSearcherOptions,
-    partitionSearcher:     PartitionSearcher,
+    partitionSearcher:     PartitionSearcherF,
     readerManagerCreateFn: (S3Location, String) => IO[ReaderManager],
     readerManagerState:    Ref[IO, ReaderManagerState],
     cancelledRef:          Ref[IO, Boolean],
@@ -39,17 +41,21 @@ object PartitionDiscovery extends LazyLogging {
       _ <- IO(logger.info("Finished the partition discovery task"))
     } yield ()
 
-    PollLoop.run(settings.interval, cancelledRef)(() => task)
+    PollLoop.run(settings.interval, cancelledRef)(() =>
+      task.handleErrorWith { err =>
+        IO(logger.error("Error in partition discovery task. Partition discovery will resume.", err))
+      },
+    )
   }
 
   private def discover(
-    partitionSearcher:     PartitionSearcher,
+    partitionSearcher:     PartitionSearcherF,
     readerManagerCreateFn: (S3Location, String) => IO[ReaderManager],
     readerManagerState:    Ref[IO, ReaderManagerState],
   ): IO[Unit] =
     for {
       oldState <- readerManagerState.get
-      newParts <- partitionSearcher.findNewPartitions(oldState.partitionResponses)
+      newParts <- partitionSearcher(oldState.partitionResponses)
       tuples    = newParts.flatMap(part => part.results.partitions.map(part.root -> _))
       newReaderManagers <- tuples
         .map {

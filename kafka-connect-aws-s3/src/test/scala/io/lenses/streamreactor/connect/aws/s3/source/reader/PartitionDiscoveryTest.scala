@@ -37,6 +37,69 @@ import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoSugar {
   private val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
+  "PartitionDiscovery" should "handle failure on PartitionSearcher and resume" in {
+    val fileQueueProcessor: SourceFileQueue = mock[SourceFileQueue]
+    val limit   = 10
+    val options = PartitionSearcherOptions(1, 100.millis)
+
+    trait Count {
+      def getCount: IO[Int]
+
+      def find(
+        lastFound: Seq[PartitionSearcherResponse],
+      ): IO[Seq[PartitionSearcherResponse]]
+    }
+    val searcherMock = new Count {
+      private val count = Ref[IO].of(0).unsafeRunSync()
+      def getCount: IO[Int] = count.get
+
+      def find(
+        lastFound: Seq[PartitionSearcherResponse],
+      ): IO[Seq[PartitionSearcherResponse]] =
+        for {
+          c <- count.getAndUpdate(_ + 1)
+          _ <- if (c == 0) IO.raiseError(new RuntimeException("error")) else IO.unit
+        } yield List(
+          PartitionSearcherResponse(S3Location("bucket", None),
+                                    Set("prefix1/", "prefix2/"),
+                                    DirectoryFindResults(Set("prefix1/", "prefix2/")),
+                                    None,
+          ),
+        )
+    }
+
+    val io = for {
+      cancelledRef <- Ref[IO].of(false)
+      readerRef    <- Ref[IO].of(Option.empty[ResultReader])
+      state        <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
+      fiber <- PartitionDiscovery.run(
+        options,
+        searcherMock.find,
+        (_, _) =>
+          IO(ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
+        state,
+        cancelledRef,
+      ).start
+      _              <- IO.sleep(400.millis)
+      _              <- cancelledRef.set(true)
+      _              <- fiber.join
+      readerMgrState <- state.get
+      callsMade      <- searcherMock.getCount
+    } yield readerMgrState -> callsMade
+
+    val (state, callsMade) = io.unsafeRunSync()
+    assert(
+      state.partitionResponses == List(
+        PartitionSearcherResponse(
+          S3Location("bucket", None),
+          Set("prefix1/", "prefix2/"),
+          DirectoryFindResults(Set("prefix1/", "prefix2/")),
+          None,
+        ),
+      ),
+    )
+    callsMade >= 1
+  }
   "PartitionDiscovery" should "discover all partitions" in {
     val fileQueueProcessor: SourceFileQueue = mock[SourceFileQueue]
     val limit = 10
@@ -61,7 +124,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
                               options,
                               connectorTaskId,
                               s3Client.listObjectsV2Paginator(_).iterator().asScala,
-        ),
+        ).find,
         (_, _) =>
           IO(ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
         state,
@@ -120,7 +183,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
                               options,
                               connectorTaskId,
                               s3Client.listObjectsV2Paginator(_).iterator().asScala,
-        ),
+        ).find,
         (_, _) =>
           IO(ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
         state,
@@ -171,7 +234,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
                               options,
                               connectorTaskId,
                               s3Client.listObjectsV2Paginator(_).iterator().asScala,
-        ),
+        ).find,
         (_, _) =>
           IO(ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
         state,

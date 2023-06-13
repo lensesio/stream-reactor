@@ -33,7 +33,7 @@ class PartitionSearcher(
   listS3ObjF:      ListObjectsV2Request => Iterator[ListObjectsV2Response],
 ) extends LazyLogging {
 
-  def findNewPartitions(
+  def find(
     lastFound: Seq[PartitionSearcherResponse],
   ): IO[Seq[PartitionSearcherResponse]] =
     if (lastFound.isEmpty && roots.nonEmpty) {
