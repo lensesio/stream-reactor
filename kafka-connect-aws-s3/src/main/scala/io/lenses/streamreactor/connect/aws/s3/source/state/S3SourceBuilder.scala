@@ -90,7 +90,6 @@ object S3SourceState {
                                                           readerManagerCreateFn,
                                                           readerManagerState,
                                                           cancelledRef,
-                                                          Some(_ => IO.unit),
       )
       BuilderResult(new S3SourceTaskState(() => readerManagerState.get.map(_.readerManagers)),
                     cancelledRef,
