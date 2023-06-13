@@ -113,40 +113,42 @@ class S3SourceTaskTest
             ).asJava
 
           task.start(props)
-          //Let the partitions scan do its work
-          val sourceRecords1 = eventually {
-            val records = task.poll()
-            records.size() shouldBe 190
-            records
+          withCleanup(task.stop()) {
+            //Let the partitions scan do its work
+            val sourceRecords1 = eventually {
+              val records = task.poll()
+              records.size() shouldBe 190
+              records
+            }
+            val sourceRecords2 = task.poll()
+            val sourceRecords3 = task.poll()
+            val sourceRecords4 = task.poll()
+            val sourceRecords5 = task.poll()
+            val sourceRecords6 = task.poll()
+            val sourceRecords7 = task.poll()
+
+            task.stop()
+
+            sourceRecords1 should have size 190
+            sourceRecords2 should have size 190
+            sourceRecords3 should have size 190
+            sourceRecords4 should have size 190
+            sourceRecords5 should have size 190
+            sourceRecords6 should have size 50
+            sourceRecords7 should have size 0
+
+            sourceRecords1.asScala
+              .concat(sourceRecords2.asScala)
+              .concat(sourceRecords3.asScala)
+              .concat(sourceRecords4.asScala)
+              .concat(sourceRecords5.asScala)
+              .concat(sourceRecords6.asScala)
+              .toSet should have size 1000
+
+            val t2  = System.currentTimeMillis()
+            val dur = t2 - t1
+            logger.info(s"$format DUR: $dur ms")
           }
-          val sourceRecords2 = task.poll()
-          val sourceRecords3 = task.poll()
-          val sourceRecords4 = task.poll()
-          val sourceRecords5 = task.poll()
-          val sourceRecords6 = task.poll()
-          val sourceRecords7 = task.poll()
-
-          task.stop()
-
-          sourceRecords1 should have size 190
-          sourceRecords2 should have size 190
-          sourceRecords3 should have size 190
-          sourceRecords4 should have size 190
-          sourceRecords5 should have size 190
-          sourceRecords6 should have size 50
-          sourceRecords7 should have size 0
-
-          sourceRecords1.asScala
-            .concat(sourceRecords2.asScala)
-            .concat(sourceRecords3.asScala)
-            .concat(sourceRecords4.asScala)
-            .concat(sourceRecords5.asScala)
-            .concat(sourceRecords6.asScala)
-            .toSet should have size 1000
-
-          val t2  = System.currentTimeMillis()
-          val dur = t2 - t1
-          logger.info(s"$format DUR: $dur ms")
         }
     }
   }
@@ -169,38 +171,42 @@ class S3SourceTaskTest
             ).asJava
 
           task.start(props)
-          //Let the partitions scan do its work
-          Thread.sleep(4000)
 
-          val sourceRecords1 = task.poll()
-          val sourceRecords2 = task.poll()
-          val sourceRecords3 = task.poll()
-          val sourceRecords4 = task.poll()
-          val sourceRecords5 = task.poll()
-          val sourceRecords6 = task.poll()
-          val sourceRecords7 = task.poll()
+          withCleanup(task.stop()) {
+            val sourceRecords1 = eventually {
+              val records = task.poll()
+              records.size() shouldBe 190
+              records
+            }
 
-          task.stop()
+            val sourceRecords2 = task.poll()
+            val sourceRecords3 = task.poll()
+            val sourceRecords4 = task.poll()
+            val sourceRecords5 = task.poll()
+            val sourceRecords6 = task.poll()
+            val sourceRecords7 = task.poll()
 
-          sourceRecords1 should have size 190
-          sourceRecords2 should have size 190
-          sourceRecords3 should have size 190
-          sourceRecords4 should have size 190
-          sourceRecords5 should have size 190
-          sourceRecords6 should have size 50
-          sourceRecords7 should have size 0
+            task.stop()
 
-          sourceRecords1.asScala
-            .concat(sourceRecords2.asScala)
-            .concat(sourceRecords3.asScala)
-            .concat(sourceRecords4.asScala)
-            .concat(sourceRecords5.asScala)
-            .concat(sourceRecords6.asScala)
-            .toSet should have size 1000
+            sourceRecords2 should have size 190
+            sourceRecords3 should have size 190
+            sourceRecords4 should have size 190
+            sourceRecords5 should have size 190
+            sourceRecords6 should have size 50
+            sourceRecords7 should have size 0
 
-          val t2  = System.currentTimeMillis()
-          val dur = t2 - t1
-          logger.info(s"$format DUR: $dur ms")
+            sourceRecords1.asScala
+              .concat(sourceRecords2.asScala)
+              .concat(sourceRecords3.asScala)
+              .concat(sourceRecords4.asScala)
+              .concat(sourceRecords5.asScala)
+              .concat(sourceRecords6.asScala)
+              .toSet should have size 1000
+
+            val t2  = System.currentTimeMillis()
+            val dur = t2 - t1
+            logger.info(s"$format DUR: $dur ms")
+          }
         }
     }
   }
@@ -238,37 +244,39 @@ class S3SourceTaskTest
           ).asJava
 
         task.start(props)
-        //Let the partitions scan do its work
-        val sourceRecords1 = eventually {
-          val records = task.poll()
-          records.size() shouldBe 190
-          records
+        withCleanup(task.stop()) {
+          //Let the partitions scan do its work
+          val sourceRecords1 = eventually {
+            val records = task.poll()
+            records.size() shouldBe 190
+            records
+          }
+
+          val sourceRecords2 = task.poll()
+          val sourceRecords3 = task.poll()
+          val sourceRecords4 = task.poll()
+          val sourceRecords5 = task.poll()
+          val sourceRecords6 = task.poll()
+          val sourceRecords7 = task.poll()
+
+          task.stop()
+
+          sourceRecords1 should have size 190
+          sourceRecords2 should have size 190
+          sourceRecords3 should have size 190
+          sourceRecords4 should have size 190
+          sourceRecords5 should have size 31
+          sourceRecords6 should have size 0
+          sourceRecords7 should have size 0
+
+          sourceRecords1.asScala
+            .concat(sourceRecords2.asScala)
+            .concat(sourceRecords3.asScala)
+            .concat(sourceRecords4.asScala)
+            .concat(sourceRecords5.asScala)
+            .concat(sourceRecords6.asScala)
+            .toSet should have size 791
         }
-
-        val sourceRecords2 = task.poll()
-        val sourceRecords3 = task.poll()
-        val sourceRecords4 = task.poll()
-        val sourceRecords5 = task.poll()
-        val sourceRecords6 = task.poll()
-        val sourceRecords7 = task.poll()
-
-        task.stop()
-
-        sourceRecords1 should have size 190
-        sourceRecords2 should have size 190
-        sourceRecords3 should have size 190
-        sourceRecords4 should have size 190
-        sourceRecords5 should have size 31
-        sourceRecords6 should have size 0
-        sourceRecords7 should have size 0
-
-        sourceRecords1.asScala
-          .concat(sourceRecords2.asScala)
-          .concat(sourceRecords3.asScala)
-          .concat(sourceRecords4.asScala)
-          .concat(sourceRecords5.asScala)
-          .concat(sourceRecords6.asScala)
-          .toSet should have size 791
     }
   }
 
@@ -288,24 +296,25 @@ class S3SourceTaskTest
       ).asJava
 
     task.start(props)
-    //Let the partitions scan do its work
-    val sourceRecords1 = eventually {
-      val records = task.poll()
-      records.size() shouldBe 190
-      records
+    withCleanup(task.stop()) {
+      //Let the partitions scan do its work
+      val sourceRecords1 = eventually {
+        val records = task.poll()
+        records.size() shouldBe 5
+        records
+      }
+      val sourceRecords2 = task.poll()
+
+      task.stop()
+
+      sourceRecords1 should have size 5
+      sourceRecords2 should have size 0
+
+      val expectedLength = bucketSetup.totalFileLengthBytes(format, formatOptions)
+      val allLength      = sourceRecords1.asScala.map(_.value().asInstanceOf[Array[Byte]].length).sum
+
+      allLength should be(expectedLength)
     }
-    val sourceRecords2 = task.poll()
-
-    task.stop()
-
-    sourceRecords1 should have size 5
-    sourceRecords2 should have size 0
-
-    val expectedLength = bucketSetup.totalFileLengthBytes(format, formatOptions)
-    val allLength      = sourceRecords1.asScala.map(_.value().asInstanceOf[Array[Byte]].length).sum
-
-    allLength should be(expectedLength)
-
   }
 
   "task" should "read stored bytes key/value files continuously" in {
@@ -324,39 +333,41 @@ class S3SourceTaskTest
       ).asJava
 
     task.start(props)
-    //Let the partitions scan do its work
-    val sourceRecords1 = eventually {
-      val records = task.poll()
-      records.size() shouldBe 190
-      records
+    withCleanup(task.stop()) {
+      //Let the partitions scan do its work
+      val sourceRecords1 = eventually {
+        val records = task.poll()
+        records.size() shouldBe 190
+        records
+      }
+      val sourceRecords2 = task.poll()
+      val sourceRecords3 = task.poll()
+      val sourceRecords4 = task.poll()
+      val sourceRecords5 = task.poll()
+      val sourceRecords6 = task.poll()
+      val sourceRecords7 = task.poll()
+
+      task.stop()
+
+      sourceRecords1 should have size 190
+      sourceRecords2 should have size 190
+      sourceRecords3 should have size 190
+      sourceRecords4 should have size 190
+      sourceRecords5 should have size 190
+      sourceRecords6 should have size 50
+      sourceRecords7 should have size 0
+
+      sourceRecords1.asScala
+        .concat(sourceRecords2.asScala)
+        .concat(sourceRecords3.asScala)
+        .concat(sourceRecords4.asScala)
+        .concat(sourceRecords5.asScala)
+        .concat(sourceRecords6.asScala)
+        .toSet should have size 1000
+
+      sourceRecords1.get(0).key should be("myKey".getBytes)
+      sourceRecords1.get(0).value() should be("somestring".getBytes)
     }
-    val sourceRecords2 = task.poll()
-    val sourceRecords3 = task.poll()
-    val sourceRecords4 = task.poll()
-    val sourceRecords5 = task.poll()
-    val sourceRecords6 = task.poll()
-    val sourceRecords7 = task.poll()
-
-    task.stop()
-
-    sourceRecords1 should have size 190
-    sourceRecords2 should have size 190
-    sourceRecords3 should have size 190
-    sourceRecords4 should have size 190
-    sourceRecords5 should have size 190
-    sourceRecords6 should have size 50
-    sourceRecords7 should have size 0
-
-    sourceRecords1.asScala
-      .concat(sourceRecords2.asScala)
-      .concat(sourceRecords3.asScala)
-      .concat(sourceRecords4.asScala)
-      .concat(sourceRecords5.asScala)
-      .concat(sourceRecords6.asScala)
-      .toSet should have size 1000
-
-    sourceRecords1.get(0).key should be("myKey".getBytes)
-    sourceRecords1.get(0).value() should be("somestring".getBytes)
   }
 
   "task" should "read stored nested bytes key/value files continuously" in {
@@ -375,39 +386,41 @@ class S3SourceTaskTest
       ).asJava
 
     task.start(props)
-    //Let the partitions scan do its work
-    val sourceRecords1 = eventually {
-      val records = task.poll()
-      records.size() shouldBe 190
-      records
+    withCleanup(task.stop()) {
+      //Let the partitions scan do its work
+      val sourceRecords1 = eventually {
+        val records = task.poll()
+        records.size() shouldBe 190
+        records
+      }
+      val sourceRecords2 = task.poll()
+      val sourceRecords3 = task.poll()
+      val sourceRecords4 = task.poll()
+      val sourceRecords5 = task.poll()
+      val sourceRecords6 = task.poll()
+      val sourceRecords7 = task.poll()
+
+      task.stop()
+
+      sourceRecords1 should have size 190
+      sourceRecords2 should have size 190
+      sourceRecords3 should have size 190
+      sourceRecords4 should have size 190
+      sourceRecords5 should have size 190
+      sourceRecords6 should have size 50
+      sourceRecords7 should have size 0
+
+      sourceRecords1.asScala
+        .concat(sourceRecords2.asScala)
+        .concat(sourceRecords3.asScala)
+        .concat(sourceRecords4.asScala)
+        .concat(sourceRecords5.asScala)
+        .concat(sourceRecords6.asScala)
+        .toSet should have size 1000
+
+      sourceRecords1.get(0).key should be("myKey".getBytes)
+      sourceRecords1.get(0).value() should be("somestring".getBytes)
     }
-    val sourceRecords2 = task.poll()
-    val sourceRecords3 = task.poll()
-    val sourceRecords4 = task.poll()
-    val sourceRecords5 = task.poll()
-    val sourceRecords6 = task.poll()
-    val sourceRecords7 = task.poll()
-
-    task.stop()
-
-    sourceRecords1 should have size 190
-    sourceRecords2 should have size 190
-    sourceRecords3 should have size 190
-    sourceRecords4 should have size 190
-    sourceRecords5 should have size 190
-    sourceRecords6 should have size 50
-    sourceRecords7 should have size 0
-
-    sourceRecords1.asScala
-      .concat(sourceRecords2.asScala)
-      .concat(sourceRecords3.asScala)
-      .concat(sourceRecords4.asScala)
-      .concat(sourceRecords5.asScala)
-      .concat(sourceRecords6.asScala)
-      .toSet should have size 1000
-
-    sourceRecords1.get(0).key should be("myKey".getBytes)
-    sourceRecords1.get(0).value() should be("somestring".getBytes)
   }
 
   override def cleanUpEnabled: Boolean = false
@@ -425,4 +438,12 @@ class S3SourceTaskTest
     bucketSetup.setUpBucketData(BucketName, Bytes, Some(ValueOnly), "bytesval")
     bucketSetup.setUpBucketData(BucketName, Bytes, Some(KeyAndValueWithSizes), "nested/byteskv")
   }
+
+  private def withCleanup[T](cleanup: => Unit)(fn: => T): Unit =
+    try {
+      fn
+      ()
+    } finally {
+      cleanup
+    }
 }
