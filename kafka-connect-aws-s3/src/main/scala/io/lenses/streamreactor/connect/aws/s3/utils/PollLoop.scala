@@ -19,6 +19,7 @@ import cats.effect.IO
 import cats.effect.Ref
 
 import scala.concurrent.duration.FiniteDuration
+import scala.util.Try
 
 object PollLoop {
 
@@ -32,6 +33,26 @@ object PollLoop {
           IO.unit
         } else {
           run(interval, cancelledRef)(fn)
+        }
+      }
+    } yield ()
+
+  //executes fn once unless it fails in which case attempts it with a delay until it succeeds or cancelledRef is set
+  def oneOfIgnoreError(
+    interval:     FiniteDuration,
+    cancelledRef: Ref[IO, Boolean],
+    errorF:       Throwable => Unit,
+  )(fn:           () => IO[Unit],
+  ): IO[Unit] =
+    for {
+      _ <- fn().handleErrorWith { err =>
+        IO(Try(errorF(err))) >> IO.sleep(interval) >> cancelledRef.get.flatMap {
+          cancelled =>
+            if (cancelled) {
+              IO.unit
+            } else {
+              oneOfIgnoreError(interval, cancelledRef, errorF)(fn)
+            }
         }
       }
     } yield ()

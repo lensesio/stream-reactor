@@ -40,7 +40,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
   "PartitionDiscovery" should "handle failure on PartitionSearcher and resume" in {
     val fileQueueProcessor: SourceFileQueue = mock[SourceFileQueue]
     val limit   = 10
-    val options = PartitionSearcherOptions(1, 100.millis)
+    val options = PartitionSearcherOptions(1, true, 100.millis)
 
     trait Count {
       def getCount: IO[Int]
@@ -111,7 +111,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         "prefix2/4.txt",
       ),
     )
-    val options = PartitionSearcherOptions(1, 100.millis)
+    val options = PartitionSearcherOptions(1, true, 100.millis)
     val io = for {
       cancelledRef <- Ref[IO].of(false)
       readerRef    <- Ref[IO].of(Option.empty[ResultReader])
@@ -160,7 +160,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         "prefix2/4.txt",
       ),
     )
-    val options = PartitionSearcherOptions(1, 100.millis)
+    val options = PartitionSearcherOptions(1, true, 100.millis)
     val io = for {
       cancelledRef <- Ref[IO].of(false)
       readerRef    <- Ref[IO].of(Option.empty[ResultReader])
@@ -221,7 +221,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         "prefix1/three/2.txt",
       ),
     )
-    val options = PartitionSearcherOptions(1, 100.millis)
+    val options = PartitionSearcherOptions(1, true, 100.millis)
     val io = for {
       cancelledRef <- Ref[IO].of(false)
       readerRef    <- Ref[IO].of(Option.empty[ResultReader])

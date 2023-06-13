@@ -69,6 +69,17 @@ object S3SourceConfigDef {
       SOURCE_PARTITION_SEARCH_RECURSE_LEVELS,
     )
     .define(
+      SOURCE_PARTITION_SEARCH_MODE,
+      Type.BOOLEAN,
+      true,
+      Importance.LOW,
+      SOURCE_PARTITION_SEARCH_MODE_DOC,
+      "Source",
+      4,
+      ConfigDef.Width.MEDIUM,
+      SOURCE_PARTITION_SEARCH_MODE,
+    )
+    .define(
       SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS,
       Type.LONG,
       SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DEFAULT,
@@ -86,7 +97,7 @@ object S3SourceConfigDef {
       Importance.LOW,
       SOURCE_ORDERING_TYPE_DOC,
       "Source",
-      8,
+      6,
       ConfigDef.Width.MEDIUM,
       SOURCE_ORDERING_TYPE,
     )

@@ -100,7 +100,61 @@ class S3SourceTaskTest
           val props = DefaultProps
             .combine(
               Map(
-                "connect.s3.kcql" -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir/ STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
+                KCQL_CONFIG -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir/ STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
+              ),
+            ).asJava
+
+          task.start(props)
+          //Let the partitions scan do its work
+          Thread.sleep(4000)
+
+          val sourceRecords1 = task.poll()
+          val sourceRecords2 = task.poll()
+          val sourceRecords3 = task.poll()
+          val sourceRecords4 = task.poll()
+          val sourceRecords5 = task.poll()
+          val sourceRecords6 = task.poll()
+          val sourceRecords7 = task.poll()
+
+          task.stop()
+
+          sourceRecords1 should have size 190
+          sourceRecords2 should have size 190
+          sourceRecords3 should have size 190
+          sourceRecords4 should have size 190
+          sourceRecords5 should have size 190
+          sourceRecords6 should have size 50
+          sourceRecords7 should have size 0
+
+          sourceRecords1.asScala
+            .concat(sourceRecords2.asScala)
+            .concat(sourceRecords3.asScala)
+            .concat(sourceRecords4.asScala)
+            .concat(sourceRecords5.asScala)
+            .concat(sourceRecords6.asScala)
+            .toSet should have size 1000
+
+          val t2  = System.currentTimeMillis()
+          val dur = t2 - t1
+          logger.info(s"$format DUR: $dur ms")
+        }
+    }
+  }
+
+  "task" should "read stored files continuously when partitions discovery is set to one of" in {
+    forAll(formats) {
+      (format, formatOptions, dir) =>
+        withClue(s"Format:$format") {
+          val t1 = System.currentTimeMillis()
+
+          val task = new S3SourceTask()
+
+          val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
+
+          val props = DefaultProps
+            .combine(
+              Map(
+                KCQL_CONFIG -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir/ STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
               ),
             ).asJava
 
@@ -168,7 +222,8 @@ class S3SourceTaskTest
         val props = DefaultProps
           .combine(
             Map(
-              "connect.s3.kcql" -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
+              KCQL_CONFIG                  -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
+              SOURCE_PARTITION_SEARCH_MODE -> "false",
             ),
           ).asJava
 
@@ -215,7 +270,7 @@ class S3SourceTaskTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
+          KCQL_CONFIG -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
         ),
       ).asJava
 
@@ -248,7 +303,7 @@ class S3SourceTaskTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
+          KCQL_CONFIG -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
         ),
       ).asJava
 
@@ -296,7 +351,7 @@ class S3SourceTaskTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
+          KCQL_CONFIG -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
         ),
       ).asJava
 
