@@ -118,7 +118,7 @@ class S3CompressionTest
             }
         }.asserting {
           file =>
-            file.key() should be(s"$prefix/$topic/0/0.avro")
+            file.key() should be(s"$prefix/$topic/0/0.$format")
         }
       }
   }
