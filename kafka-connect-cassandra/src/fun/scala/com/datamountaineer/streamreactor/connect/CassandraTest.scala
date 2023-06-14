@@ -3,15 +3,16 @@ package com.datamountaineer.streamreactor.connect
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.testing.scalatest.AsyncIOSpec
+import com.datastax.driver.core.Session
 import com.datastax.driver.core.utils.UUIDs
 import com.jayway.jsonpath.JsonPath
 import io.confluent.kafka.serializers.KafkaJsonSerializer
 import io.lenses.streamreactor.connect.model.Order
+import io.lenses.streamreactor.connect.testcontainers.CassandraContainer
+import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer
 import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient.createConnector
 import io.lenses.streamreactor.connect.testcontainers.connect._
 import io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
-import io.lenses.streamreactor.connect.testcontainers.CassandraContainer
-import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringSerializer
@@ -44,31 +45,24 @@ class CassandraTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorCon
 
   it should "source records" in {
     val resources = for {
-      session   <- Resource.fromAutoCloseable(IO(container.cluster.connect()))
-      consumer  <- Resource.fromAutoCloseable(IO(createConsumer()))
-      connector <- createConnector(sourceConfig())
+      session  <- Resource.fromAutoCloseable(IO(container.cluster.connect()))
+      consumer <- Resource.fromAutoCloseable(IO(createConsumer()))
+      _        <- createConnector(sourceConfig())
     } yield {
-      (session, consumer, connector)
+      (session, consumer)
     }
 
     resources.use {
-      case (cassandraSession, consumer, _) =>
+      case (cassandraSession, consumer) =>
         IO {
-          // Create keyspace and table
-          cassandraSession.execute(
+
+          // create table and insert data
+          executeQueries(
+            cassandraSession,
             "CREATE KEYSPACE source WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
-          )
-          cassandraSession.execute(
             "CREATE TABLE source.orders (id int, created timeuuid, product text, qty int, price float, PRIMARY KEY (id, created)) WITH CLUSTERING ORDER BY (created asc);",
-          )
-          // Insert data
-          cassandraSession.execute(
             "INSERT INTO source.orders (id, created, product, qty, price) VALUES (1, now(), 'OP-DAX-P-20150201-95.7', 100, 94.2);",
-          )
-          cassandraSession.execute(
             "INSERT INTO source.orders (id, created, product, qty, price) VALUES (2, now(), 'OP-DAX-C-20150201-100', 100, 99.5);",
-          )
-          cassandraSession.execute(
             "INSERT INTO source.orders (id, created, product, qty, price) VALUES (3, now(), 'FU-KOSPI-C-20150201-100', 200, 150);",
           )
 
@@ -79,34 +73,22 @@ class CassandraTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorCon
           changeEvents
         }
     }.asserting {
-      (changeEvents: List[ConsumerRecord[String, String]]) =>
-        val changeEvent: ConsumerRecord[String, String] = changeEvents.head
-        JsonPath.read[Int](changeEvent.value(), "$.id") should be(1)
-        JsonPath.read[String](changeEvent.value(), "$.product") should be("OP-DAX-P-20150201-95.7")
-        JsonPath.read[Int](changeEvent.value(), "$.qty") should be(100)
-        JsonPath.read[Double](changeEvent.value(), "$.price") should be(94.2)
-    }
-
-    {
-      val changeEvent: ConsumerRecord[String, String] = changeEvents(1)
-      JsonPath.read[Int](changeEvent.value(), "$.id") should be(2)
-      JsonPath.read[String](changeEvent.value(), "$.product") should be("OP-DAX-C-20150201-100")
-      JsonPath.read[Int](changeEvent.value(), "$.qty") should be(100)
-      JsonPath.read[Double](changeEvent.value(), "$.price") should be(99.5)
-    }
-
-    {
-      val changeEvent: ConsumerRecord[String, String] = changeEvents(2)
-      JsonPath.read[Int](changeEvent.value(), "$.id") should be(3)
-      JsonPath.read[String](changeEvent.value(), "$.product") should be("FU-KOSPI-C-20150201-100")
-      JsonPath.read[Int](changeEvent.value(), "$.qty") should be(200)
-      JsonPath.read[Double](changeEvent.value(), "$.price") should be(150)
+      changeEvents: List[ConsumerRecord[String, String]] =>
+        validateChangeEvent(changeEvents.head, 1, "OP-DAX-P-20150201-95.7", 100, 94.2)
+        validateChangeEvent(changeEvents(1), 2, "OP-DAX-C-20150201-100", 100, 99.5)
+        validateChangeEvent(changeEvents(2), 3, "FU-KOSPI-C-20150201-100", 200, 150)
     }
   }
 
   it should "sink records" in {
     val resources = for {
-      session  <- Resource.fromAutoCloseable(IO(container.cluster.connect()))
+      session <- Resource.fromAutoCloseable(IO(container.cluster.connect()))
+      _ = // Create keyspace and table
+      executeQueries(
+        session,
+        "CREATE KEYSPACE sink WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
+        "CREATE TABLE sink.orders (id int, created timeuuid, product text, qty int, price float, PRIMARY KEY (id, created)) WITH CLUSTERING ORDER BY (created asc);",
+      )
       producer <- createProducer[String, Order](classOf[StringSerializer], classOf[KafkaJsonSerializer[Order]])
       _        <- createConnector(sinkConfig())
     } yield {
@@ -116,13 +98,6 @@ class CassandraTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorCon
     resources.use {
       case (cassandraSession, producer) =>
         IO {
-          // Create keyspace and table
-          cassandraSession.execute(
-            "CREATE KEYSPACE sink WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1};",
-          )
-          cassandraSession.execute(
-            "CREATE TABLE sink.orders (id int, created timeuuid, product text, qty int, price float, PRIMARY KEY (id, created)) WITH CLUSTERING ORDER BY (created asc);",
-          )
 
           // Write records to topic
           val order = Order(1, "OP-DAX-P-20150201-95.7", 94.2, 100, UUIDs.timeBased.toString)
@@ -144,7 +119,6 @@ class CassandraTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorCon
         one.get("price", classOf[Float]) should be(94.2f)
         one.get("qty", classOf[Integer]) should be(100)
     }
-
   }
 
   private def sourceConfig(): ConnectorConfiguration =
@@ -181,4 +155,22 @@ class CassandraTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorCon
         "connect.cassandra.contact.points" -> StringCnfVal("cassandra"),
       ),
     )
+
+  private def executeQueries(cassandraSession: Session, queries: String*): Unit =
+    queries.foreach(
+      cassandraSession.execute,
+    )
+
+  private def validateChangeEvent(
+    record:  ConsumerRecord[String, String],
+    id:      Int,
+    product: String,
+    qty:     Int,
+    price:   Double,
+  ) = {
+    JsonPath.read[Int](record.value(), "$.id") should be(id)
+    JsonPath.read[String](record.value(), "$.product") should be(product)
+    JsonPath.read[Int](record.value(), "$.qty") should be(qty)
+    JsonPath.read[Double](record.value(), "$.price") should be(price)
+  }
 }
