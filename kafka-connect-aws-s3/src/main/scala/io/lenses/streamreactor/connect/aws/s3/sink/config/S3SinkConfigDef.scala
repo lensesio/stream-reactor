@@ -74,6 +74,13 @@ object S3SinkConfigDef {
       Importance.LOW,
       PADDING_LENGTH_DOC,
     )
+    .define(
+      SOURCE_DELETE_MODE,
+      Type.STRING,
+      SOURCE_DELETE_MODE_DEFAULT,
+      Importance.LOW,
+      SOURCE_DELETE_MODE_DOC,
+    )
 }
 
 class S3SinkConfigDef() extends ConfigDef with LazyLogging {
@@ -131,7 +138,8 @@ case class S3SinkConfigDefBuilder(props: util.Map[String, String])
     with ConnectionSettings
     with S3FlushSettings
     with CompressionCodecSettings
-    with PaddingStrategySettings {
+    with PaddingStrategySettings
+    with DeleteModeSettings {
 
   def getParsedValues: Map[String, _] = values().asScala.toMap
 

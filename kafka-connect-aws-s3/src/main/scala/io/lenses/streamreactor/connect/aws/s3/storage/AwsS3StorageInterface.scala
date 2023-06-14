@@ -34,7 +34,7 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: S3Client)
+class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: S3Client, val batchDelete: Boolean)
     extends StorageInterface
     with LazyLogging {
 
@@ -161,25 +161,52 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
 
   override def close(): Unit = s3Client.close()
 
+  private def batchedDeleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = Try {
+    s3Client.deleteObjects(
+      DeleteObjectsRequest
+        .builder()
+        .bucket(bucket)
+        .delete(
+          Delete
+            .builder()
+            .objects(
+              files
+                .map(f => ObjectIdentifier.builder().key(f).build()).toArray: _*,
+            )
+            .build(),
+        )
+        .build(),
+    )
+  } match {
+    case Failure(ex) => FileDeleteError(ex, files.mkString(" - ")).asLeft
+    case Success(_)  => ().asRight
+  }
+
+  private def loopedDeleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = Try {
+    for (f <- files) {
+      s3Client.deleteObject(
+        DeleteObjectRequest
+          .builder()
+          .bucket(bucket)
+          .key(f)
+          .build(),
+      )
+    }
+  } match {
+    case Failure(ex) => FileDeleteError(ex, files.mkString(" - ")).asLeft
+    case Success(_)  => ().asRight
+  }
+
   override def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = {
     if (files.isEmpty) {
       return ().asRight
     }
 
-    Try {
-      for (f <- files) {
-        s3Client.deleteObject(
-          DeleteObjectRequest
-            .builder()
-            .bucket(bucket)
-            .key(f)
-            .build()
-        )
-      }
-    } match {
-      case Failure(ex) => FileDeleteError(ex, files.mkString(" - ")).asLeft
-      case Success(_) => ().asRight
+    if (!batchDelete) {
+      return loopedDeleteFiles(bucket, files)
     }
+
+    batchedDeleteFiles(bucket, files)
   }
 
   override def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String] =

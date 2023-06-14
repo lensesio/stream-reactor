@@ -69,6 +69,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
     ),
     offsetSeekerOptions = OffsetSeekerOptions(5),
     compressionCodec,
+    batchDelete = true,
   )
 
   "parquet sink" should "write 2 records to parquet format in s3" in {

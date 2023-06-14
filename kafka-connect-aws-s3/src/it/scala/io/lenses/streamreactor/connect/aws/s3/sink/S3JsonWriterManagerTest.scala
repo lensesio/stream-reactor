@@ -66,6 +66,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       offsetSeekerOptions = OffsetSeekerOptions(5),
       compressionCodec,
+      batchDelete = true,
     )
 
     val sink = S3WriterManager.from(config)
@@ -105,6 +106,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       offsetSeekerOptions = OffsetSeekerOptions(5),
       compressionCodec,
+      batchDelete = true,
     )
 
     val sink = S3WriterManager.from(config)

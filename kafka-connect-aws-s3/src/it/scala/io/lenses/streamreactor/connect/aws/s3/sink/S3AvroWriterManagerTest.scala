@@ -68,6 +68,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     ),
     offsetSeekerOptions = OffsetSeekerOptions(5),
     compressionCodec    = compressionCodec,
+    batchDelete         = true,
   )
 
   "avro sink" should "write 2 records to avro format in s3" in {
