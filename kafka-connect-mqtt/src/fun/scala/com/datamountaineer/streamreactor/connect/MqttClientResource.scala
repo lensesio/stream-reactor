@@ -27,34 +27,32 @@ object MqttClientResource {
     def latestPayloadAsString: Option[String] =
       queue.headOption.map(q => new String(q.getPayload))
   }
-  def apply(url: String, user: String, password: String, topic: String): Resource[IO, (() => Option[String])] = {
 
-    def createMqttConnectOptions(): MqttConnectOptions = {
-      val conOpt = new MqttConnectOptions
-      conOpt.setCleanSession(true)
-      conOpt.setUserName(user)
-      conOpt.setPassword(password.toCharArray)
-      conOpt
-    }
-
-    def createMqttClient(
-      conOpt:    MqttConnectOptions,
-      dataStore: MqttClientPersistence,
-      callback:  MqttCallback,
-    ) = {
-      val client = new MqttClient(url, UUID.randomUUID().toString, dataStore)
-      client.setCallback(callback)
-      client.connect(conOpt)
-      client.subscribe(topic)
-      client
-    }
-
+  def apply(url: String, user: String, password: String, topic: String): Resource[IO, () => Option[String]] =
     for {
-      dataStore         <- Resource.fromAutoCloseable(IO(new MemoryPersistence()))
-      mqttConnectOptions = createMqttConnectOptions()
-      messageCache       = new MqttMessageCache()
-      _                 <- Resource.fromAutoCloseable(IO(createMqttClient(mqttConnectOptions, dataStore, messageCache)))
-    } yield (() => messageCache.latestPayloadAsString)
-  }
+      dataStore <- Resource.fromAutoCloseable(IO(new MemoryPersistence()))
+      mqttConnectOptions = {
+        val conOpt = new MqttConnectOptions
+        conOpt.setCleanSession(true)
+        conOpt.setUserName(user)
+        conOpt.setPassword(password.toCharArray)
+        conOpt
+      }
+      messageCache = new MqttMessageCache()
+      _ <- Resource.make(
+        IO {
+          val client = new MqttClient(url, UUID.randomUUID().toString, dataStore)
+          client.setCallback(messageCache)
+          client.connect(mqttConnectOptions)
+          client.subscribe(topic)
+          client
+        },
+      )(client =>
+        IO {
+          client.disconnect()
+          client.close(true)
+        },
+      )
+    } yield () => messageCache.latestPayloadAsString
 
 }

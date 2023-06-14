@@ -55,12 +55,12 @@ class MqttTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorContaine
         IO {
           writeRecordToTopic(producer)
           eventually {
-            fnLatestPayload().getOrElse(fail("not yet")) should be(
-              """{"id":1,"product":"OP-DAX-P-20150201-95.7","price":94.2,"qty":100,"created":null}""",
-            )
+            fnLatestPayload().getOrElse(fail("not yet"))
           }
         }
-    }
+    }.asserting(_ should be(
+      """{"id":1,"product":"OP-DAX-P-20150201-95.7","price":94.2,"qty":100,"created":null}""",
+    ))
   }
 
   private def writeRecordToTopic(producer: KafkaProducer[String, Order]): Unit = {
