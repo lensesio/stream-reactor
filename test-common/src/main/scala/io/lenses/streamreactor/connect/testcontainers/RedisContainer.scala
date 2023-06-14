@@ -1,5 +1,6 @@
 package io.lenses.streamreactor.connect.testcontainers
 
+import cats.effect.{IO, Resource}
 import io.lenses.streamreactor.connect.testcontainers.RedisContainer.defaultNetworkAlias
 import io.lenses.streamreactor.connect.testcontainers.RedisContainer.defaultPort
 import io.lenses.streamreactor.connect.testcontainers.RedisContainer.defaultTag
@@ -20,7 +21,7 @@ class RedisContainer(
   lazy val hostNetwork = new HostNetwork()
 
   class HostNetwork {
-    val jedisClient = new Jedis(getHost, getMappedPort(port))
+    val jedisClient: Resource[IO, Jedis] = Resource.fromAutoCloseable(IO(new Jedis(getHost, getMappedPort(port))))
   }
 }
 

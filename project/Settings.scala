@@ -246,7 +246,8 @@ object Settings extends Dependencies {
               testFrameworks := Seq(sbt.TestFrameworks.ScalaTest),
               classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
               javaOptions += "-Dartifact.dir=" + (project.base / "target" / "libs").getAbsolutePath,
-            )
+            ) ++ org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings
+
           },
         )
 

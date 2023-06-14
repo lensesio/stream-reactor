@@ -1,19 +1,22 @@
 package com.datamountaineer.streamreactor.connect
-
+import cats.effect.IO
+import cats.effect.testing.scalatest.AsyncIOSpec
 import io.confluent.kafka.serializers.KafkaJsonSerializer
-import io.debezium.testing.testcontainers.ConnectorConfiguration
 import io.lenses.streamreactor.connect.model.Order
-import io.lenses.streamreactor.connect.testcontainers.{MongoDBContainer, SchemaRegistryContainer}
+import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient._
+import io.lenses.streamreactor.connect.testcontainers.connect.CnfVal
+import io.lenses.streamreactor.connect.testcontainers.connect.ConnectorConfiguration
+import io.lenses.streamreactor.connect.testcontainers.connect.IntCnfVal
+import io.lenses.streamreactor.connect.testcontainers.connect.StringCnfVal
 import io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
-import io.lenses.streamreactor.connect.testcontainers.scalatest.fixtures.connect.withConnector
+import io.lenses.streamreactor.connect.testcontainers.MongoDBContainer
+import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringSerializer
-import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.util.Using
-
-class MongoDBTest extends AnyFlatSpec with StreamReactorContainerPerSuite with Matchers {
+class MongoDBTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorContainerPerSuite with Matchers {
 
   lazy val container: MongoDBContainer = MongoDBContainer().withNetwork(network)
 
@@ -34,12 +37,14 @@ class MongoDBTest extends AnyFlatSpec with StreamReactorContainerPerSuite with M
   behavior of "MongoDB connector"
 
   it should "sink records" in {
-    Using.resources(
-      container.hostNetwork.mongoClient,
-      createProducer[String, Order](classOf[StringSerializer], classOf[KafkaJsonSerializer[Order]]),
-    ) {
-      (client, producer) =>
-        withConnector("mongo-sink", sinkConfig()) {
+    val resources = for {
+      client    <- container.hostNetwork.mongoClient
+      producer  <- createProducer[String, Order](classOf[StringSerializer], classOf[KafkaJsonSerializer[Order]])
+      connector <- createConnector(sinkConfig())
+    } yield (client, producer, connector)
+    resources.use {
+      case (client, producer, _) =>
+        IO {
           // Write records to topic
           val order = Order(1, "OP-DAX-P-20150201-95.7", 94.2, 100)
           producer.send(new ProducerRecord[String, Order]("orders", order)).get
@@ -53,22 +58,24 @@ class MongoDBTest extends AnyFlatSpec with StreamReactorContainerPerSuite with M
             val ordersCount = orders.countDocuments
             assert(ordersCount == 1)
           }
-
-          val one = orders.find.iterator.next
-          one.get("id", classOf[java.lang.Long]) should be(1)
-          one.get("product", classOf[String]) should be("OP-DAX-P-20150201-95.7")
+          orders.find.iterator().next
         }
+    }.asserting {
+      one =>
+        one.get("id", classOf[java.lang.Long]) should be(1)
+        one.get("product", classOf[String]) should be("OP-DAX-P-20150201-95.7")
     }
   }
 
-  private def sinkConfig(): ConnectorConfiguration = {
-    val config = ConnectorConfiguration.create
-    config.`with`("connector.class", "com.datamountaineer.streamreactor.connect.mongodb.sink.MongoSinkConnector")
-    config.`with`("tasks.max", "1")
-    config.`with`("topics", "orders")
-    config.`with`("connect.mongo.kcql", "INSERT INTO orders SELECT * FROM orders")
-    config.`with`("connect.mongo.db", "connect")
-    config.`with`("connect.mongo.connection", s"mongodb://mongo:${container.port}")
-    config
-  }
+  private def sinkConfig(): ConnectorConfiguration = ConnectorConfiguration(
+    "mongo-sink",
+    Map[String, CnfVal[_]](
+      "connector.class"          -> StringCnfVal("com.datamountaineer.streamreactor.connect.mongodb.sink.MongoSinkConnector"),
+      "tasks.max"                -> IntCnfVal(1),
+      "topics"                   -> StringCnfVal("orders"),
+      "connect.mongo.kcql"       -> StringCnfVal("INSERT INTO orders SELECT * FROM orders"),
+      "connect.mongo.db"         -> StringCnfVal("connect"),
+      "connect.mongo.connection" -> StringCnfVal(s"mongodb://mongo:${container.port}"),
+    ),
+  )
 }

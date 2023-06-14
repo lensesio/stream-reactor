@@ -366,9 +366,7 @@ object Dependencies {
     "com.dimafeng" %% "testcontainers-scala-toxiproxy" % testcontainersScalaVersion
   lazy val testContainersScalaElasticsearch =
     "com.dimafeng" %% "testcontainers-scala-elasticsearch" % testcontainersScalaVersion
-  lazy val testContainersDebezium = ("io.debezium" % "debezium-testing-testcontainers" % "1.4.2.Final").excludeAll(
-    ExclusionRule(organization = "com.google.inject"),
-  )
+
   lazy val testcontainersCore          = "org.testcontainers" % "testcontainers" % testcontainersVersion
   lazy val testcontainersKafka         = "org.testcontainers" % "kafka"          % testcontainersVersion
   lazy val testcontainersCassandra     = "org.testcontainers" % "cassandra"      % testcontainersVersion
@@ -661,7 +659,6 @@ trait Dependencies {
     json4sJackson,
     json4sNative,
     testcontainersCore,
-    testContainersDebezium,
     testcontainersKafka,
     testcontainersCassandra,
     testcontainersElasticsearch,
