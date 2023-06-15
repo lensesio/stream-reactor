@@ -125,18 +125,18 @@ class CassandraTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorCon
     ConnectorConfiguration(
       "cassandra-source",
       Map(
-        "connector.class" -> StringCnfVal(
+        "connector.class" -> ConfigValue(
           "com.datamountaineer.streamreactor.connect.cassandra.source.CassandraSourceConnector",
         ),
-        "connect.cassandra.key.space" -> StringCnfVal("source"),
-        "connect.cassandra.kcql" -> StringCnfVal(
+        "connect.cassandra.key.space" -> ConfigValue("source"),
+        "connect.cassandra.kcql" -> ConfigValue(
           "INSERT INTO orders-topic SELECT * FROM orders PK created INCREMENTALMODE=TIMEUUID",
         ),
-        "connect.cassandra.contact.points" -> StringCnfVal("cassandra"),
-        "key.converter"                    -> StringCnfVal("org.apache.kafka.connect.json.JsonConverter"),
-        "key.converter.schemas.enable"     -> BooleanCnfVal(false),
-        "value.converter"                  -> StringCnfVal("org.apache.kafka.connect.json.JsonConverter"),
-        "value.converter.schemas.enable"   -> BooleanCnfVal(false),
+        "connect.cassandra.contact.points" -> ConfigValue("cassandra"),
+        "key.converter"                    -> ConfigValue("org.apache.kafka.connect.json.JsonConverter"),
+        "key.converter.schemas.enable"     -> ConfigValue(false),
+        "value.converter"                  -> ConfigValue("org.apache.kafka.connect.json.JsonConverter"),
+        "value.converter.schemas.enable"   -> ConfigValue(false),
       ),
     )
 
@@ -144,15 +144,15 @@ class CassandraTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorCon
     ConnectorConfiguration(
       "cassandra-sink",
       Map(
-        "connector.class" -> StringCnfVal(
+        "connector.class" -> ConfigValue(
           "com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector",
         ),
-        "tasks.max"                        -> IntCnfVal(1),
-        "topics"                           -> StringCnfVal("orders"),
-        "connect.cassandra.key.space"      -> StringCnfVal("sink"),
-        "connect.cassandra.port"           -> IntCnfVal(9042),
-        "connect.cassandra.kcql"           -> StringCnfVal("INSERT INTO orders SELECT * FROM orders"),
-        "connect.cassandra.contact.points" -> StringCnfVal("cassandra"),
+        "tasks.max"                        -> ConfigValue(1),
+        "topics"                           -> ConfigValue("orders"),
+        "connect.cassandra.key.space"      -> ConfigValue("sink"),
+        "connect.cassandra.port"           -> ConfigValue(9042),
+        "connect.cassandra.kcql"           -> ConfigValue("INSERT INTO orders SELECT * FROM orders"),
+        "connect.cassandra.contact.points" -> ConfigValue("cassandra"),
       ),
     )
 

@@ -3,14 +3,12 @@ import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
 import io.confluent.kafka.serializers.KafkaJsonSerializer
 import io.lenses.streamreactor.connect.model.Order
-import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient._
-import io.lenses.streamreactor.connect.testcontainers.connect.CnfVal
-import io.lenses.streamreactor.connect.testcontainers.connect.ConnectorConfiguration
-import io.lenses.streamreactor.connect.testcontainers.connect.IntCnfVal
-import io.lenses.streamreactor.connect.testcontainers.connect.StringCnfVal
-import io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
 import io.lenses.streamreactor.connect.testcontainers.MongoDBContainer
 import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer
+import io.lenses.streamreactor.connect.testcontainers.connect.ConfigValue
+import io.lenses.streamreactor.connect.testcontainers.connect.ConnectorConfiguration
+import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient._
+import io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringSerializer
 import org.scalatest.flatspec.AsyncFlatSpec
@@ -69,13 +67,13 @@ class MongoDBTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorConta
 
   private def sinkConfig(): ConnectorConfiguration = ConnectorConfiguration(
     "mongo-sink",
-    Map[String, CnfVal[_]](
-      "connector.class"          -> StringCnfVal("com.datamountaineer.streamreactor.connect.mongodb.sink.MongoSinkConnector"),
-      "tasks.max"                -> IntCnfVal(1),
-      "topics"                   -> StringCnfVal("orders"),
-      "connect.mongo.kcql"       -> StringCnfVal("INSERT INTO orders SELECT * FROM orders"),
-      "connect.mongo.db"         -> StringCnfVal("connect"),
-      "connect.mongo.connection" -> StringCnfVal(s"mongodb://mongo:${container.port}"),
+    Map[String, ConfigValue[_]](
+      "connector.class"          -> ConfigValue("com.datamountaineer.streamreactor.connect.mongodb.sink.MongoSinkConnector"),
+      "tasks.max"                -> ConfigValue(1),
+      "topics"                   -> ConfigValue("orders"),
+      "connect.mongo.kcql"       -> ConfigValue("INSERT INTO orders SELECT * FROM orders"),
+      "connect.mongo.db"         -> ConfigValue("connect"),
+      "connect.mongo.connection" -> ConfigValue(s"mongodb://mongo:${container.port}"),
     ),
   )
 }

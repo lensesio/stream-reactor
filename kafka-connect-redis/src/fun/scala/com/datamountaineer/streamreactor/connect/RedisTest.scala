@@ -4,10 +4,9 @@ import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
 import io.confluent.kafka.serializers.KafkaAvroSerializer
 import io.lenses.streamreactor.connect.testcontainers.RedisContainer
-import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient.createConnector
+import io.lenses.streamreactor.connect.testcontainers.connect.ConfigValue
 import io.lenses.streamreactor.connect.testcontainers.connect.ConnectorConfiguration
-import io.lenses.streamreactor.connect.testcontainers.connect.IntCnfVal
-import io.lenses.streamreactor.connect.testcontainers.connect.StringCnfVal
+import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient.createConnector
 import io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericData
@@ -76,15 +75,15 @@ class RedisTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorContain
   private def sinkConfig(): ConnectorConfiguration = ConnectorConfiguration(
     "redis-sink",
     Map(
-      "connector.class"                     -> StringCnfVal("com.datamountaineer.streamreactor.connect.redis.sink.RedisSinkConnector"),
-      "tasks.max"                           -> IntCnfVal(1),
-      "topics"                              -> StringCnfVal("redis"),
-      "connect.redis.host"                  -> StringCnfVal(container.networkAlias),
-      "connect.redis.port"                  -> IntCnfVal(Integer.valueOf(container.port)),
-      "connect.redis.kcql"                  -> StringCnfVal("INSERT INTO lenses SELECT * FROM redis STOREAS STREAM"),
-      "key.converter"                       -> StringCnfVal("org.apache.kafka.connect.storage.StringConverter"),
-      "value.converter"                     -> StringCnfVal("io.confluent.connect.avro.AvroConverter"),
-      "value.converter.schema.registry.url" -> StringCnfVal("http://schema-registry:8081"),
+      "connector.class"                     -> ConfigValue("com.datamountaineer.streamreactor.connect.redis.sink.RedisSinkConnector"),
+      "tasks.max"                           -> ConfigValue(1),
+      "topics"                              -> ConfigValue("redis"),
+      "connect.redis.host"                  -> ConfigValue(container.networkAlias),
+      "connect.redis.port"                  -> ConfigValue(Integer.valueOf(container.port)),
+      "connect.redis.kcql"                  -> ConfigValue("INSERT INTO lenses SELECT * FROM redis STOREAS STREAM"),
+      "key.converter"                       -> ConfigValue("org.apache.kafka.connect.storage.StringConverter"),
+      "value.converter"                     -> ConfigValue("io.confluent.connect.avro.AvroConverter"),
+      "value.converter.schema.registry.url" -> ConfigValue("http://schema-registry:8081"),
     ),
   )
 }

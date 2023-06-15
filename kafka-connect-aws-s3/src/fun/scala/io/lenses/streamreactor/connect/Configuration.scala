@@ -19,22 +19,22 @@ object Configuration {
     ConnectorConfiguration(
       "connector" + randomTestId,
       Map(
-        "connector.class"            -> StringCnfVal("io.lenses.streamreactor.connect.aws.s3.sink.S3SinkConnector"),
-        "tasks.max"                  -> IntCnfVal(1),
-        "topics"                     -> StringCnfVal(topicName),
-        "connect.s3.aws.access.key"  -> StringCnfVal(auth.identity),
-        "connect.s3.aws.secret.key"  -> StringCnfVal(auth.credential),
-        "connect.s3.aws.auth.mode"   -> StringCnfVal("Credentials"),
-        "connect.s3.custom.endpoint" -> StringCnfVal(networkAliasUrl),
-        "connect.s3.vhost.bucket"    -> BooleanCnfVal(true),
-        "connect.s3.aws.region"      -> StringCnfVal("eu-west-1"),
-        "connect.s3.kcql" -> StringCnfVal(
+        "connector.class"            -> ConfigValue("io.lenses.streamreactor.connect.aws.s3.sink.S3SinkConnector"),
+        "tasks.max"                  -> ConfigValue(1),
+        "topics"                     -> ConfigValue(topicName),
+        "connect.s3.aws.access.key"  -> ConfigValue(auth.identity),
+        "connect.s3.aws.secret.key"  -> ConfigValue(auth.credential),
+        "connect.s3.aws.auth.mode"   -> ConfigValue("Credentials"),
+        "connect.s3.custom.endpoint" -> ConfigValue(networkAliasUrl),
+        "connect.s3.vhost.bucket"    -> ConfigValue(true),
+        "connect.s3.aws.region"      -> ConfigValue("eu-west-1"),
+        "connect.s3.kcql" -> ConfigValue(
           s"INSERT INTO `$bucketName:$prefix` SELECT * FROM `$topicName` STOREAS `$storeAs` WITH_FLUSH_COUNT=1",
         ),
       ) ++ Seq(
-        compressionCodec.map { s: String => ("connect.s3.compression.codec", StringCnfVal(s)) },
+        compressionCodec.map { s: String => ("connect.s3.compression.codec", ConfigValue(s)) },
         compressionLevel.map { i: Int =>
-          ("connect.s3.compression.level", IntCnfVal(Integer.valueOf(i)))
+          ("connect.s3.compression.level", ConfigValue(Integer.valueOf(i)))
         },
       ).flatten.toMap,
     )

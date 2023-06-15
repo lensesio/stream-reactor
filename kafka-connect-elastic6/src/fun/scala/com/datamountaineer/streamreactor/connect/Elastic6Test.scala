@@ -4,22 +4,21 @@ import cats.effect.testing.scalatest.AsyncIOSpec
 import com.jayway.jsonpath.JsonPath
 import io.confluent.kafka.serializers.KafkaJsonSerializer
 import io.lenses.streamreactor.connect.model.Order
-import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient.createConnector
-import io.lenses.streamreactor.connect.testcontainers.connect.ConnectorConfiguration
-import io.lenses.streamreactor.connect.testcontainers.connect.IntCnfVal
-import io.lenses.streamreactor.connect.testcontainers.connect.StringCnfVal
-import io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
 import io.lenses.streamreactor.connect.testcontainers.ElasticsearchContainer
 import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer
+import io.lenses.streamreactor.connect.testcontainers.connect.ConfigValue
+import io.lenses.streamreactor.connect.testcontainers.connect.ConnectorConfiguration
+import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient.createConnector
+import io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringSerializer
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.net.URI
-import java.net.http.HttpResponse.BodyHandlers
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
+import java.net.http.HttpResponse.BodyHandlers
 
 class Elastic6Test extends AsyncFlatSpec with AsyncIOSpec with StreamReactorContainerPerSuite with Matchers {
 
@@ -90,15 +89,15 @@ class Elastic6Test extends AsyncFlatSpec with AsyncIOSpec with StreamReactorCont
     ConnectorConfiguration(
       "elastic-sink",
       Map(
-        "connector.class"              -> StringCnfVal("com.datamountaineer.streamreactor.connect.elastic6.ElasticSinkConnector"),
-        "tasks.max"                    -> IntCnfVal(1),
-        "topics"                       -> StringCnfVal("orders"),
-        "connect.elastic.protocol"     -> StringCnfVal("http"),
-        "connect.elastic.hosts"        -> StringCnfVal(container.networkAlias),
-        "connect.elastic.port"         -> IntCnfVal(Integer.valueOf(container.port)),
-        "connect.elastic.cluster.name" -> StringCnfVal("elasticsearch"),
-        "connect.elastic.kcql"         -> StringCnfVal("INSERT INTO orders SELECT * FROM orders"),
-        "connect.progress.enabled"     -> StringCnfVal("true"),
+        "connector.class"              -> ConfigValue("com.datamountaineer.streamreactor.connect.elastic6.ElasticSinkConnector"),
+        "tasks.max"                    -> ConfigValue(1),
+        "topics"                       -> ConfigValue("orders"),
+        "connect.elastic.protocol"     -> ConfigValue("http"),
+        "connect.elastic.hosts"        -> ConfigValue(container.networkAlias),
+        "connect.elastic.port"         -> ConfigValue(Integer.valueOf(container.port)),
+        "connect.elastic.cluster.name" -> ConfigValue("elasticsearch"),
+        "connect.elastic.kcql"         -> ConfigValue("INSERT INTO orders SELECT * FROM orders"),
+        "connect.progress.enabled"     -> ConfigValue("true"),
       ),
     )
 }
