@@ -1,9 +1,11 @@
 package io.lenses.streamreactor.connect.testcontainers
 
+import cats.effect.IO
+import cats.effect.kernel.Resource
 import com.mongodb.MongoClient
 import io.lenses.streamreactor.connect.testcontainers.MongoDBContainer.defaultNetworkAlias
 import io.lenses.streamreactor.connect.testcontainers.MongoDBContainer.defaultTag
-import org.testcontainers.containers.{ MongoDBContainer => JavaMongoDBContainer }
+import org.testcontainers.containers.{MongoDBContainer => JavaMongoDBContainer}
 import org.testcontainers.utility.DockerImageName
 
 class MongoDBContainer(
@@ -21,7 +23,7 @@ class MongoDBContainer(
   lazy val hostNetwork = new HostNetwork()
 
   class HostNetwork {
-    val mongoClient = new MongoClient(container.getHost, container.getMappedPort(port))
+    val mongoClient = Resource.fromAutoCloseable(IO(new MongoClient(container.getHost, container.getMappedPort(port))))
   }
 }
 
