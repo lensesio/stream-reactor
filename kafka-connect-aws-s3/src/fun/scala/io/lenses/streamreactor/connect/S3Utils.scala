@@ -1,29 +1,25 @@
 package io.lenses.streamreactor.connect
 
-import com.jayway.jsonpath.internal.Utils.unescape
 import _root_.io.circe.parser._
 import _root_.io.lenses.streamreactor.connect.model.Order
 import _root_.io.lenses.streamreactor.connect.testcontainers.S3Authentication
 import cats.effect.IO
 import cats.effect.Resource
+import com.jayway.jsonpath.internal.Utils.unescape
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.IOUtils
 import org.scalatest.EitherValues
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.regions.Region
-import software.amazon.awssdk.services.s3.model.BucketLocationConstraint
-import software.amazon.awssdk.services.s3.model.CreateBucketConfiguration
-import software.amazon.awssdk.services.s3.model.CreateBucketRequest
-import software.amazon.awssdk.services.s3.model.CreateBucketResponse
-import software.amazon.awssdk.services.s3.model.DeleteBucketRequest
-import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.S3Configuration
+import software.amazon.awssdk.services.s3.model._
 
 import java.io.InputStream
 import java.net.URI
 import scala.util.Try
 
-object S3Utils extends EitherValues {
+object S3Utils extends EitherValues with LazyLogging {
 
   def createBucket(s3Client: S3Client, bucketName: String): Resource[IO, CreateBucketResponse] =
     Resource.make(
@@ -41,16 +37,20 @@ object S3Utils extends EitherValues {
         )
       },
     ) { _ =>
-      IO {
-        Try(
+      IO.fromTry {
+        Try {
           s3Client.deleteBucket(
             DeleteBucketRequest
               .builder()
               .bucket(bucketName)
               .build(),
-          ),
-        )
-        ()
+          )
+          ()
+        }
+      }.recoverWith {
+        case ex: Throwable =>
+          logger.error("Error deleting bucket", ex)
+          IO.unit
       }
     }
 
