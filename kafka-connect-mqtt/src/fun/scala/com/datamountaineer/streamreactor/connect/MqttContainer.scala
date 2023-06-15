@@ -1,7 +1,10 @@
 package com.datamountaineer.streamreactor.connect
 
-import com.datamountaineer.streamreactor.connect.MqttContainer.{defaultNetworkAlias, defaultPort, defaultTag}
-import io.lenses.streamreactor.connect.testcontainers.{RandomAuthentication, S3Authentication}
+import com.datamountaineer.streamreactor.connect.MqttContainer.defaultNetworkAlias
+import com.datamountaineer.streamreactor.connect.MqttContainer.defaultPort
+import com.datamountaineer.streamreactor.connect.MqttContainer.defaultTag
+import io.lenses.streamreactor.connect.testcontainers.RandomAuthentication
+import io.lenses.streamreactor.connect.testcontainers.S3Authentication
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
@@ -20,9 +23,9 @@ class MqttContainer(
   waitingFor(Wait.forListeningPort())
 
   def getExtMqttConnectionUrl: String = s"tcp://$getHost:${getMappedPort(port)}"
-  def getMqttConnectionUrl: String =  s"tcp://$defaultNetworkAlias:$defaultPort"
+  def getMqttConnectionUrl:    String = s"tcp://$defaultNetworkAlias:$defaultPort"
 
-  val mqttUser = "user"
+  val mqttUser     = "user"
   val mqttPassword = "passwd"
 
 }

@@ -1,25 +1,34 @@
 package io.lenses.streamreactor.connect
-
+import _root_.io.confluent.kafka.serializers.KafkaJsonSerializer
 import _root_.io.lenses.streamreactor.connect.Configuration.sinkConfig
-import _root_.io.lenses.streamreactor.connect.S3Utils.{createBucket, createS3ClientResource, readKeyToOrder}
+import _root_.io.lenses.streamreactor.connect.S3Utils.createBucket
+import _root_.io.lenses.streamreactor.connect.S3Utils.createS3ClientResource
+import _root_.io.lenses.streamreactor.connect.S3Utils.readKeyToOrder
+import _root_.io.lenses.streamreactor.connect.model.Order
+import _root_.io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient.createConnector
+import _root_.io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
+import _root_.io.lenses.streamreactor.connect.testcontainers.S3Container
+import _root_.io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer
+import cats.effect.IO
+import cats.effect.testing.scalatest.AsyncIOSpec
 import com.datastax.driver.core.utils.UUIDs
 import com.typesafe.scalalogging.LazyLogging
-import _root_.io.confluent.kafka.serializers.KafkaJsonSerializer
-import _root_.io.lenses.streamreactor.connect.model.Order
-import _root_.io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
-import _root_.io.lenses.streamreactor.connect.testcontainers.scalatest.fixtures.connect.withConnector
-import _root_.io.lenses.streamreactor.connect.testcontainers.{S3Container, SchemaRegistryContainer}
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringSerializer
 import org.scalatest.EitherValues
-import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 import software.amazon.awssdk.services.s3.model._
 
-import scala.util.Using
-
-class S3Test extends AnyFlatSpec with StreamReactorContainerPerSuite with Matchers with LazyLogging with EitherValues with TableDrivenPropertyChecks {
+class S3Test
+    extends AsyncFlatSpec
+    with AsyncIOSpec
+    with StreamReactorContainerPerSuite
+    with Matchers
+    with LazyLogging
+    with EitherValues
+    with TableDrivenPropertyChecks {
 
   private lazy val container: S3Container = S3Container()
     .withNetwork(network)
@@ -42,27 +51,45 @@ class S3Test extends AnyFlatSpec with StreamReactorContainerPerSuite with Matche
   behavior of "AWS S3 connector"
 
   it should "sink records" in {
-    Using.resources(
-      createS3ClientResource(container.identity, container.getEndpointUrl),
-      createProducer[String, Order](classOf[StringSerializer], classOf[KafkaJsonSerializer[Order]]),
-    ) { (s3Client, producer) =>
 
-      createBucket(s3Client, bucketName)
-      withConnector("aws-s3-sink", sinkConfig(container.identity, container.getNetworkAliasUrl.toString, bucketName, "myfiles", topicName = "orders")) {
-        // Write records to topic
-        val order = Order(1, "OP-DAX-P-20150201-95.7", 94.2, 100, UUIDs.timeBased.toString)
+    val order = Order(1, "OP-DAX-P-20150201-95.7", 94.2, 100, UUIDs.timeBased.toString)
 
-        producer.send(new ProducerRecord[String, Order]("orders", order)).get
-        producer.flush()
+    val resources = for {
+      s3Client <- createS3ClientResource(container.identity, container.getEndpointUrl)
+      producer <- createProducer[String, Order](classOf[StringSerializer], classOf[KafkaJsonSerializer[Order]])
+      _        <- createBucket(s3Client, bucketName)
+      _ <- createConnector(
+        sinkConfig("aws-s3-sink",
+                   container.identity,
+                   container.getNetworkAliasUrl.toString,
+                   bucketName,
+                   "myfiles",
+                   topicName = "orders",
+        ),
+      )
+    } yield {
+      (s3Client, producer)
+    }
+    resources.use {
+      case (s3Client, producer) =>
+        IO {
+          // Write records to topic
 
-        eventually {
-          val files = s3Client.listObjectsV2(ListObjectsV2Request.builder().bucket(bucketName).prefix("myfiles").build())
-          logger.debug("files: {}", files)
-          assert(files.contents().size() == 1)
+          producer.send(new ProducerRecord[String, Order]("orders", order)).get
+          producer.flush()
+
+          eventually {
+            val files =
+              s3Client.listObjectsV2(ListObjectsV2Request.builder().bucket(bucketName).prefix("myfiles").build())
+            logger.debug("files: {}", files)
+            assert(files.contents().size() == 1)
+          }
+
+          readKeyToOrder(s3Client, bucketName, "myfiles/orders/0/0.json")
+        }.asserting {
+          key: Order =>
+            key should be(order)
         }
-
-        readKeyToOrder(s3Client, bucketName, "myfiles/orders/0/0.json") should be (order)
-      }
     }
   }
 

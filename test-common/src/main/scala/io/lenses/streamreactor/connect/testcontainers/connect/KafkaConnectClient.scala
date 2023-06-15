@@ -1,99 +1,155 @@
 package io.lenses.streamreactor.connect.testcontainers.connect
 
+import cats.effect.{IO, Resource}
 import com.typesafe.scalalogging.StrictLogging
-import io.debezium.testing.testcontainers.Connector
-import io.debezium.testing.testcontainers.ConnectorConfiguration
 import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer
 import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient.ConnectorStatus
-import org.apache.http.HttpHeaders
-import org.apache.http.HttpResponse
-import org.apache.http.client.HttpClient
-import org.apache.http.client.methods.HttpDelete
-import org.apache.http.client.methods.HttpGet
-import org.apache.http.client.methods.HttpPost
-import org.apache.http.entity.StringEntity
-import org.apache.http.impl.client.HttpClientBuilder
-import org.apache.http.message.BasicHeader
-import org.apache.http.util.EntityUtils
-import org.json4s._
-import org.json4s.native.JsonMethods._
 import org.scalatest.concurrent.Eventually
 import org.testcontainers.shaded.org.awaitility.Awaitility.await
 
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 import java.util.concurrent.TimeUnit
-import scala.jdk.CollectionConverters._
 
 class KafkaConnectClient(kafkaConnectContainer: KafkaConnectContainer) extends StrictLogging with Eventually {
 
-  implicit val formats: DefaultFormats.type = DefaultFormats
+  val httpClient: HttpClient = HttpClient.newHttpClient()
 
-  val httpClient: HttpClient = {
-    val acceptHeader  = new BasicHeader(HttpHeaders.ACCEPT, "application/json")
-    val contentHeader = new BasicHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-    HttpClientBuilder.create
-      .setDefaultHeaders(List(acceptHeader, contentHeader).asJava)
+  def configureLogging(loggerFQCN: String, loggerLevel: String): Unit = {
+    val httpPut = HttpRequest.newBuilder()
+      .PUT(HttpRequest.BodyPublishers.ofString(s"""{ "level": "${loggerLevel.toUpperCase}" }"""))
+      .uri(URI.create(s"${kafkaConnectContainer.hostNetwork.restEndpointUrl}/admin/loggers/$loggerFQCN"))
+      .header("Accept", "application/json")
+      .header("Content-Type", "application/json")
       .build()
+
+    val response = httpClient.send(httpPut, HttpResponse.BodyHandlers.ofString())
+    checkRequestSuccessful(response)
   }
 
   def registerConnector(
-    name:                   String,
-    connectorConfiguration: ConnectorConfiguration,
-    timeoutSeconds:         Long = 10L,
-  ): Unit = {
-    val connector = Connector.from(name, connectorConfiguration)
-    val httpPost  = new HttpPost(s"${kafkaConnectContainer.hostNetwork.restEndpointUrl}/connectors")
-    val entity    = new StringEntity(connector.toJson)
-    httpPost.setEntity(entity)
-    val response = httpClient.execute(httpPost)
+                         connector: ConnectorConfiguration,
+                         timeoutSeconds:         Long = 10L,
+                       ): Unit = {
+    val httpPost  = HttpRequest.newBuilder()
+      .POST(HttpRequest.BodyPublishers.ofString(connector.toJson()))
+      .uri(URI.create(s"${kafkaConnectContainer.hostNetwork.restEndpointUrl}/connectors"))
+      .header("Accept", "application/json")
+      .header("Content-Type", "application/json")
+      .build()
+
+    val response = httpClient.send(httpPost, HttpResponse.BodyHandlers.ofString())
     checkRequestSuccessful(response)
-    EntityUtils.consume(response.getEntity)
-    await.atMost(timeoutSeconds, TimeUnit.SECONDS).until(() => this.isConnectorConfigured(connector.getName))
+    response.body()
+    awaitConnectorConfigured(connector.name, timeoutSeconds)
   }
 
   def deleteConnector(connectorName: String, timeoutSeconds: Long = 10L): Unit = {
-    val httpDelete =
-      new HttpDelete(s"${kafkaConnectContainer.hostNetwork.restEndpointUrl}/connectors/$connectorName")
-    val response = httpClient.execute(httpDelete)
+    val httpDelete = HttpRequest.newBuilder()
+      .DELETE()
+      .uri(URI.create(s"${kafkaConnectContainer.hostNetwork.restEndpointUrl}/connectors/$connectorName"))
+      .header("Accept", "application/json")
+      .build()
+
+    val response = httpClient.send(httpDelete, HttpResponse.BodyHandlers.ofString())
     checkRequestSuccessful(response)
-    EntityUtils.consume(response.getEntity)
-    await.atMost(timeoutSeconds, TimeUnit.SECONDS).until(() => !this.isConnectorConfigured(connectorName))
+    response.body()
+    awaitConnectorNotConfigured(connectorName, timeoutSeconds)
   }
 
   def getConnectorStatus(connectorName: String): ConnectorStatus = {
-    val httpGet  = new HttpGet(s"${kafkaConnectContainer.hostNetwork.restEndpointUrl}/connectors/$connectorName/status")
-    val response = httpClient.execute(httpGet)
+    val httpGet  = HttpRequest.newBuilder()
+      .GET()
+      .uri(URI.create(s"${kafkaConnectContainer.hostNetwork.restEndpointUrl}/connectors/$connectorName/status"))
+      .header("Accept", "application/json")
+      .build()
+
+    val response = httpClient.send(httpGet, HttpResponse.BodyHandlers.ofString())
     checkRequestSuccessful(response)
-    val strResponse = EntityUtils.toString(response.getEntity)
-    parse(strResponse).extract[ConnectorStatus]
+    parseConnectorStatus(response.body())
   }
 
   def isConnectorConfigured(connectorName: String): Boolean = {
-    val httpGet  = new HttpGet(s"${kafkaConnectContainer.hostNetwork.restEndpointUrl}/connectors/$connectorName")
-    val response = httpClient.execute(httpGet)
-    EntityUtils.consume(response.getEntity)
-    response.getStatusLine.getStatusCode == 200
+    val httpGet  = HttpRequest.newBuilder()
+      .uri(URI.create(s"${kafkaConnectContainer.hostNetwork.restEndpointUrl}/connectors/$connectorName"))
+      .header("Accept", "application/json")
+      .GET()
+      .build()
+
+    val response = httpClient.send(httpGet, HttpResponse.BodyHandlers.ofString())
+    response.body()
+    response.statusCode() == 200
   }
 
-  def waitConnectorInRunningState(connectorName: String, timeoutSeconds: Long = 10L): Unit =
-    await.atMost(timeoutSeconds, TimeUnit.SECONDS)
-      .until { () =>
-        try {
-          getConnectorStatus(connectorName).connector.state.equals("RUNNING")
-        } catch {
-          case _: Throwable => false
-        }
+  def awaitConnectorInRunningState(connectorName: String, timeoutSeconds: Long = 10L): Unit = {
+    await().atMost(timeoutSeconds, TimeUnit.SECONDS).until { () =>
+      try {
+        val connectorState: String =
+          getConnectorStatus(connectorName).connector.state
+        logger.info("Connector State: {}", connectorState)
+        connectorState.equals("RUNNING")
+      } catch {
+        case _: Throwable => false
       }
+    }
+  }
 
-  def checkRequestSuccessful(response: HttpResponse): Unit =
-    if (!isSuccess(response.getStatusLine.getStatusCode)) {
-      throw new IllegalStateException(s"Http request failed with response: ${EntityUtils.toString(response.getEntity)}")
+  private def checkRequestSuccessful(response: HttpResponse[String]): Unit =
+    if (!isSuccess(response.statusCode())) {
+      throw new IllegalStateException(s"HTTP request failed with response: ${response.body()}")
     }
 
-  def isSuccess(code: Int): Boolean = code / 100 == 2
+  private def isSuccess(code: Int): Boolean = code / 100 == 2
+
+  private def awaitConnectorConfigured(connectorName: String, timeoutSeconds: Long): Unit =
+    await().atMost(timeoutSeconds, TimeUnit.SECONDS).until(() => isConnectorConfigured(connectorName))
+
+  private def awaitConnectorNotConfigured(connectorName: String, timeoutSeconds: Long): Unit =
+    await().atMost(timeoutSeconds, TimeUnit.SECONDS).until(() => !isConnectorConfigured(connectorName))
+
+  private def parseConnectorStatus(json: String): ConnectorStatus = {
+    import org.json4s._
+    import org.json4s.native.JsonMethods._
+    implicit val formats: DefaultFormats.type = DefaultFormats
+    parse(json).extract[ConnectorStatus]
+  }
 }
 
 object KafkaConnectClient {
-  case class ConnectorStatus(name: String, connector: Connector, tasks: Seq[Tasks], `type`: String)
+  case class ConnectorStatus(
+    name:      String,
+    connector: Connector,
+    tasks:     Seq[Tasks],
+    `type`:    String,
+  )
   case class Connector(state: String, worker_id: String)
-  case class Tasks(id: Int, state: String, worker_id: String, trace: Option[String])
+  case class Tasks(
+    id:        Int,
+    state:     String,
+    worker_id: String,
+    trace:     Option[String],
+  )
+
+  def createConnector(
+                             connectorConfig: ConnectorConfiguration,
+                             timeoutSeconds: Long = 10L,
+                           )(
+                             implicit
+                             kafkaConnectClient: KafkaConnectClient,
+                           ): Resource[IO, String] =
+    Resource.make(
+      IO {
+        val connectorName = connectorConfig.name
+        kafkaConnectClient.registerConnector(connectorConfig)
+        kafkaConnectClient.configureLogging("org.apache.kafka.connect.runtime.WorkerConfigTransformer", "DEBUG")
+        kafkaConnectClient.awaitConnectorInRunningState(
+          connectorName,
+          timeoutSeconds,
+        )
+        connectorName
+      },
+    )(connectorName => IO(kafkaConnectClient.deleteConnector(connectorName)))
+
 }
