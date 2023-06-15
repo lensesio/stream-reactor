@@ -20,7 +20,7 @@ import org.scalatest.EitherValues
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
-import org.scalatest.prop.TableFor4
+import org.scalatest.prop.TableFor3
 import software.amazon.awssdk.services.s3.model._
 
 import scala.jdk.CollectionConverters.ListHasAsScala
@@ -52,26 +52,23 @@ class S3CompressionTest
 
   behavior of "AWS S3 connector"
 
-  val compressionCodecTestCases: TableFor4[String, String, Boolean, Seq[String]] = Table(
-    ("format", "codec", "configure", "extraCommands"),
-    ("avro", "uncompressed", false, Seq.empty[String]),
-    ("avro", "deflate", true, Seq.empty[String]),
-    ("avro", "bzip2", false, Seq.empty[String]),
-    ("avro", "snappy", false, Seq.empty[String]),
-    ("avro", "xz", true, Seq.empty[String]),
-    ("avro", "zstd", true, Seq.empty[String]),
-    ("parquet", "uncompressed", false, Seq.empty[String]),
-    ("parquet", "snappy", false, Seq.empty[String]),
-    ("parquet", "gzip", false, Seq.empty[String]),
-    // ("parquet", "lzo", false, Seq("lzo")),
-    // brotli lib is madly out of date and I do not believe we can support it
-    // ("parquet", "brotli", false, Seq.empty[String]),
-    // ("parquet", "lz4", false, Seq.empty[String]),
-    ("parquet", "zstd", false, Seq.empty[String]),
+  val compressionCodecTestCases: TableFor3[String, String, Boolean] = Table(
+    ("format", "codec", "configure"),
+    ("avro", "uncompressed", false),
+    ("avro", "deflate", true),
+    ("avro", "bzip2", false),
+    ("avro", "snappy", false),
+    ("avro", "xz", true),
+    ("avro", "zstd", true),
+    ("parquet", "uncompressed", false),
+    ("parquet", "snappy", false),
+    ("parquet", "gzip", false),
+    ("parquet", "lz4", false),
+    ("parquet", "zstd", false),
   )
 
   forAll(compressionCodecTestCases) {
-    case (format: String, codec: String, configureLevel: Boolean, extraPackages: Seq[String]) =>
+    case (format: String, codec: String, configureLevel: Boolean) =>
       it should s"support $format with $codec compression codec" in {
         val randomTestId = Random.alphanumeric.take(10).mkString.toLowerCase
         val bucketName   = "bucket" + randomTestId
@@ -100,8 +97,6 @@ class S3CompressionTest
         resources.use {
           case (s3Client, producer) =>
             IO {
-              installExtraPackages(extraPackages)
-
               // Write records to
               val order  = Order(1, "OP-DAX-P-20150201-95.7", 94.2, 100, UUIDs.timeBased.toString)
               val record = order.toRecord(order)
@@ -126,14 +121,6 @@ class S3CompressionTest
         }
       }
   }
-
-  private def installExtraPackages(extraPackages: Seq[String]): Unit =
-    extraPackages.foreach { pkg =>
-      val res = kafkaConnectContainer.installPackage(pkg)
-      if (res.exitCode != 1) {
-        throw new IllegalStateException("Installation of packages not successful")
-      }
-    }
 
   override def providedJars(): Seq[String] = ProvidedJars.providedJars
 }
