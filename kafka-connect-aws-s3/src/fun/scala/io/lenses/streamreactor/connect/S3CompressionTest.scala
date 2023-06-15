@@ -20,6 +20,7 @@ import org.scalatest.EitherValues
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
+import org.scalatest.prop.TableFor4
 import software.amazon.awssdk.services.s3.model._
 
 import scala.jdk.CollectionConverters.ListHasAsScala
@@ -51,7 +52,7 @@ class S3CompressionTest
 
   behavior of "AWS S3 connector"
 
-  val compressionCodecTestCases = Table(
+  val compressionCodecTestCases: TableFor4[String, String, Boolean, Seq[String]] = Table(
     ("format", "codec", "configure", "extraCommands"),
     ("avro", "uncompressed", false, Seq.empty[String]),
     ("avro", "deflate", true, Seq.empty[String]),
@@ -113,7 +114,10 @@ class S3CompressionTest
                   s3Client.listObjectsV2(ListObjectsV2Request.builder().bucket(bucketName).prefix(prefix).build())
                 logger.debug("files: {}", files)
                 assert(files.contents().size() == 1)
-                files.contents().asScala.head
+                val firstFormatFile = files.contents().asScala.head
+                // avoid temporary files
+                firstFormatFile.key() should endWith(s".$format")
+                firstFormatFile
               }
             }
         }.asserting {
