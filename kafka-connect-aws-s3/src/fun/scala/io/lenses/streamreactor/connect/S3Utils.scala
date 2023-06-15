@@ -11,18 +11,19 @@ import org.apache.commons.io.IOUtils
 import org.scalatest.EitherValues
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.s3.model._
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.S3Configuration
-import software.amazon.awssdk.services.s3.model._
 
 import java.io.InputStream
 import java.net.URI
-import scala.util.Try
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 object S3Utils extends EitherValues with LazyLogging {
 
   def createBucket(s3Client: S3Client, bucketName: String): Resource[IO, CreateBucketResponse] =
-    Resource.make(
+    Resource.make {
       IO {
         s3Client.createBucket(
           CreateBucketRequest
@@ -35,24 +36,48 @@ object S3Utils extends EitherValues with LazyLogging {
             )
             .build(),
         )
-      },
-    ) { _ =>
-      IO.fromTry {
-        Try {
-          s3Client.deleteBucket(
-            DeleteBucketRequest
-              .builder()
-              .bucket(bucketName)
-              .build(),
-          )
-          ()
-        }
+      }
+    } { _ =>
+      IO {
+        emptyBucket(s3Client, bucketName)
+        deleteBucket(s3Client, bucketName)
+        ()
       }.recoverWith {
         case ex: Throwable =>
           logger.error("Error deleting bucket", ex)
           IO.unit
       }
     }
+
+  private def deleteBucket(s3Client: S3Client, bucketName: String): DeleteBucketResponse =
+    s3Client.deleteBucket(
+      DeleteBucketRequest
+        .builder()
+        .bucket(bucketName)
+        .build(),
+    )
+
+  private def emptyBucket(s3Client: S3Client, bucketName: String): Unit =
+    s3Client
+      .listObjectsV2Paginator(
+        ListObjectsV2Request.builder().bucket(bucketName).build(),
+      )
+      .iterator()
+      .forEachRemaining {
+        o =>
+          val deleteObjectsRequest = DeleteObjectsRequest
+            .builder()
+            .bucket(bucketName)
+            .delete {
+              val objects = o.contents().asScala.map(k => ObjectIdentifier.builder().key(k.key()).build())
+              Delete
+                .builder()
+                .objects(objects.asJava).build()
+            }
+            .build()
+          s3Client.deleteObjects(deleteObjectsRequest)
+          ()
+      }
 
   def createS3ClientResource(identity: S3Authentication, endpoint: URI): Resource[IO, S3Client] =
     Resource.fromAutoCloseable(
@@ -76,7 +101,7 @@ object S3Utils extends EitherValues with LazyLogging {
     decodeEscapedJson(new String(fileBytes))
   }
 
-  def decodeEscapedJson(input: String): Order = {
+  private def decodeEscapedJson(input: String): Order = {
     val a1 = unescape(input.trim)
     // remove the quotes from around the json
     val a2 = a1.substring(1, a1.length - 1)
