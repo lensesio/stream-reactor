@@ -131,6 +131,10 @@ object S3ConfigSettings {
     "The interval in milliseconds between searching for new partitions.  Defaults to 5 minutes."
   val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DEFAULT: Long = 300000L
 
+  val SOURCE_PARTITION_SEARCH_MODE: String = s"$CONNECTOR_PREFIX.partition.search.continuous"
+  val SOURCE_PARTITION_SEARCH_MODE_DOC: String =
+    "If set to true, it will be continuously search for new partitions. Otherwise it is a one-off operation. Defaults to true."
+
   val SOURCE_ORDERING_TYPE:         String = s"$CONNECTOR_PREFIX.ordering.type"
   val SOURCE_ORDERING_TYPE_DOC:     String = "AlphaNumeric (the default)"
   val SOURCE_ORDERING_TYPE_DEFAULT: String = "AlphaNumeric"

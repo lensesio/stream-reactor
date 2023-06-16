@@ -19,5 +19,6 @@ import scala.concurrent.duration.FiniteDuration
 
 case class PartitionSearcherOptions(
   recurseLevels: Int,
+  continuous:    Boolean,
   interval:      FiniteDuration,
 )

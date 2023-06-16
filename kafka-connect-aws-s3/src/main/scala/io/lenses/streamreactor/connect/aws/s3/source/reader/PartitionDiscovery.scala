@@ -36,24 +36,7 @@ object PartitionDiscovery extends LazyLogging {
     cancelledRef:          Ref[IO, Boolean],
   ): IO[Unit] = {
     val task = for {
-      _ <- IO(logger.info("Starting the partition discovery task"))
-      _ <- discover(partitionSearcher, readerManagerCreateFn, readerManagerState)
-      _ <- IO(logger.info("Finished the partition discovery task"))
-    } yield ()
-
-    PollLoop.run(settings.interval, cancelledRef)(() =>
-      task.handleErrorWith { err =>
-        IO(logger.error("Error in partition discovery task. Partition discovery will resume.", err))
-      },
-    )
-  }
-
-  private def discover(
-    partitionSearcher:     PartitionSearcherF,
-    readerManagerCreateFn: (S3Location, String) => IO[ReaderManager],
-    readerManagerState:    Ref[IO, ReaderManagerState],
-  ): IO[Unit] =
-    for {
+      _        <- IO(logger.info("Starting the partition discovery task"))
       oldState <- readerManagerState.get
       newParts <- partitionSearcher(oldState.partitionResponses)
       tuples    = newParts.flatMap(part => part.results.partitions.map(part.root -> _))
@@ -68,6 +51,23 @@ object PartitionDiscovery extends LazyLogging {
         readerManagers     = oldState.readerManagers ++ newReaderManagers,
       )
       _ <- readerManagerState.set(newState)
+      _ <- IO(logger.info("Finished the partition discovery task"))
     } yield ()
 
+    if (!settings.continuous) {
+      IO.delay(logger.info("Partition discovery task will only run once")) >>
+        PollLoop.oneOfIgnoreError(
+          settings.interval,
+          cancelledRef,
+          err => logger.error("Error in partition discovery task. Partition discovery will resume.", err),
+        )(() => task)
+    } else {
+      IO.delay(logger.info("Partition discovery task will run continuously")) >>
+        PollLoop.run(settings.interval, cancelledRef)(() =>
+          task.handleErrorWith { err =>
+            IO(logger.error("Error in partition discovery task. Partition discovery will resume.", err))
+          },
+        )
+    }
+  }
 }

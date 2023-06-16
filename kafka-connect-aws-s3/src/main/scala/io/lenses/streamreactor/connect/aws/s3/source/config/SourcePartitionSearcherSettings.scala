@@ -26,6 +26,7 @@ trait SourcePartitionSearcherSettings extends BaseSettings {
   def getPartitionSearcherOptions(props: Map[String, _]): PartitionSearcherOptions =
     PartitionSearcherOptions(
       recurseLevels = getInt(SOURCE_PARTITION_SEARCH_RECURSE_LEVELS),
+      continuous    = getBoolean(SOURCE_PARTITION_SEARCH_MODE),
       interval = S3Config.getLong(props, SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS).getOrElse(
         SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DEFAULT,
       ).millis,

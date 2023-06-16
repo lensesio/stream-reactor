@@ -58,4 +58,53 @@ class PollLoopTests extends AnyFlatSpecLike with Matchers {
     fibre.join.unsafeRunSync()
     count.get() should be(3)
   }
+
+  "PollLoop" should "run the task once if it does not fail" in {
+    val count        = new AtomicReference[Int](0)
+    val interval     = 100.millis
+    val cancelledRef = Ref.unsafe[IO, Boolean](false)
+    val fn = () =>
+      IO {
+        val t = count.accumulateAndGet(1, (a, b) => a + b)
+        if (t == 3) {
+          cancelledRef.set(true).unsafeRunSync()
+        }
+      }
+    val pollLoop = PollLoop.oneOfIgnoreError(interval, cancelledRef, _ => ())(fn)
+    val fibre    = pollLoop.start.unsafeRunSync()
+    fibre.join.unsafeRunSync()
+    count.get() should be(1)
+  }
+  "PollLoop" should "handle 3 failure and one success of oneOfIgnoreError" in {
+    val count        = new AtomicReference[Int](0)
+    val interval     = 100.millis
+    val cancelledRef = Ref.unsafe[IO, Boolean](false)
+    val fn = () =>
+      IO {
+        val t = count.accumulateAndGet(1, (a, b) => a + b)
+        if (t <= 3) {
+          throw new RuntimeException("error")
+        } else ()
+      }
+    val pollLoop = PollLoop.oneOfIgnoreError(interval, cancelledRef, _ => ())(fn)
+    val fibre    = pollLoop.start.unsafeRunSync()
+    fibre.join.unsafeRunSync()
+    count.get() should be(4)
+  }
+  "PollLoop" should "terminate when it is cancelled, if the fn keeps failing" in {
+    val count        = new AtomicReference[Int](0)
+    val interval     = 100.millis
+    val cancelledRef = Ref.unsafe[IO, Boolean](false)
+    val fn = () =>
+      IO {
+        count.accumulateAndGet(1, (a, b) => a + b)
+        throw new RuntimeException("error")
+      }
+    val pollLoop = PollLoop.run(interval, cancelledRef)(fn)
+    val fibre    = pollLoop.start.unsafeRunSync()
+    Thread.sleep(1000)
+    cancelledRef.set(true).unsafeRunSync()
+    fibre.join.unsafeRunSync()
+    count.get() should be >= 1
+  }
 }

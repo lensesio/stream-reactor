@@ -59,15 +59,17 @@ class S3SourceTaskXmlReaderTest extends S3ProxyContainerTest with AnyFlatSpecLik
     task.start(props)
 
     var sourceRecords: Seq[SourceRecord] = List.empty
-    eventually {
-      do {
-        sourceRecords = sourceRecords ++ task.poll().asScala
-      } while (sourceRecords.size != 20000)
-      val sourceRecordsMopUp = task.poll()
-      sourceRecordsMopUp should be(empty)
+    try {
+      eventually {
+        do {
+          sourceRecords = sourceRecords ++ task.poll().asScala
+        } while (sourceRecords.size != 20000)
+        val sourceRecordsMopUp = task.poll()
+        sourceRecordsMopUp should be(empty)
+      }
+    } finally {
+      task.stop()
     }
-
-    task.stop()
 
     val firstEmployee = Employee.fromSourceRecord(sourceRecords.head)
     firstEmployee.value should be(
