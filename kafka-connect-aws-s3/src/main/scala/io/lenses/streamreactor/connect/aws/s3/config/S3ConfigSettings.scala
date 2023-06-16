@@ -115,7 +115,7 @@ object S3ConfigSettings {
 
   val PADDING_LENGTH         = s"$CONNECTOR_PREFIX.padding.length"
   val PADDING_LENGTH_DOC     = s"Length to pad the string up to if $PADDING_STRATEGY is set."
-  val PADDING_LENGTH_DEFAULT = 8
+  val PADDING_LENGTH_DEFAULT = 12
 
   // TASK_INDEX isn't exposed as a connector property.  It is provided to the task from the connector in order
   // to distribute partitions between the different tasks.
