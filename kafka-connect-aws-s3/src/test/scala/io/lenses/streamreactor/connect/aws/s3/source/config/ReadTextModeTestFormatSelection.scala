@@ -100,7 +100,20 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
           S3PropsKeyEnum.ReadEndLine.entryName   -> "",
         ),
       ),
-    ) should be(Some(StartEndLineReadTextMode("SSM", "")))
+    ) should be(Some(StartEndLineReadTextMode("SSM", "", false)))
+  }
+
+  "ReadTextMode" should "return start and end line when configured with trim enabled" in {
+    ReadTextMode(
+      readProps(
+        Map(
+          S3PropsKeyEnum.ReadTextMode.entryName  -> ReadTextModeEnum.StartEndLine.entryName,
+          S3PropsKeyEnum.ReadStartLine.entryName -> "SSM",
+          S3PropsKeyEnum.ReadEndLine.entryName   -> "",
+          S3PropsKeyEnum.ReadTrimLine.entryName  -> "true",
+        ),
+      ),
+    ) should be(Some(StartEndLineReadTextMode("SSM", "", true)))
   }
 
   "ReadTextMode" should "return none when no start or end line is configured" in {

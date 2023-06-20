@@ -49,6 +49,17 @@ case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
       i <- Try(value.toInt).toOption
     } yield i
 
+  def getOptionalBoolean(key: U): Option[Boolean] =
+    for {
+      value:  String <- map.get(key)
+      schema: PropsSchema <- schema.schema.get(key)
+      _ <- schema match {
+        case BooleanPropsSchema => value.some
+        case _                  => Option.empty[String]
+      }
+      b <- Try(value.toBoolean).toOption
+    } yield b
+
   /*
   PKE - props enum (contains the prop keys)
   VE - target enum

@@ -55,7 +55,8 @@ object ReadTextMode {
         for {
           startLine <- props.getString(S3PropsKeyEnum.ReadStartLine)
           endLine   <- props.getString(S3PropsKeyEnum.ReadEndLine)
-        } yield StartEndLineReadTextMode(startLine, endLine)
+          trim      <- props.getOptionalBoolean(S3PropsKeyEnum.ReadTrimLine).orElse(Some(false))
+        } yield StartEndLineReadTextMode(startLine, endLine, trim)
       case None => Option.empty
     }
   }
@@ -76,7 +77,7 @@ case class StartEndTagReadTextMode(startTag: String, endTag: String, buffer: Int
   }
 }
 
-case class StartEndLineReadTextMode(startLine: String, endLine: String) extends ReadTextMode {
+case class StartEndLineReadTextMode(startLine: String, endLine: String, trim: Boolean) extends ReadTextMode {
   override def createStreamReader(
     inputStream:   InputStream,
     bucketAndPath: S3Location,
@@ -85,6 +86,7 @@ case class StartEndLineReadTextMode(startLine: String, endLine: String) extends 
       inputStream,
       startLine,
       endLine,
+      trim,
     )
     new CustomTextFormatStreamReader(bucketAndPath, () => lineReader.next(), () => lineReader.close())
   }
