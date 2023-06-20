@@ -206,5 +206,33 @@ class LineStartLineEndReaderTest extends AnyFunSuite with Matchers {
         |end""".stripMargin,
     )
   }
+  test("handle trim=true") {
+    val reader = new LineStartLineEndReader(createInputStream(
+                                              """
+                                                |start
+                                                |a
+                                                |b
+                                                |c
+                                                |
+                                                |start
+                                                |x
+                                                |
+                                                |""".stripMargin,
+                                            ),
+                                            "start",
+                                            "",
+                                            trim = true,
+    )
+    reader.next() shouldBe Some(
+      """start
+        |a
+        |b
+        |c""".stripMargin,
+    )
+    reader.next() shouldBe Some(
+      """start
+        |x""".stripMargin,
+    )
+  }
   private def createInputStream(data: String): InputStream = new ByteArrayInputStream(data.getBytes)
 }

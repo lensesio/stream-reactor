@@ -28,13 +28,16 @@ import java.io.InputStreamReader
   * @param start
   * @param end
   */
-class LineStartLineEndReader(input: InputStream, start: String, end: String) extends LineReader {
+class LineStartLineEndReader(input: InputStream, start: String, end: String, trim: Boolean = false) extends LineReader {
   private val br = new BufferedReader(new InputStreamReader(input))
 
   //Returns the next record or None if there are no more
   def next(): Option[String] =
     if (readUntilStart()) {
-      readUntilEndOrNone()
+      if (trim) {
+        readUntilEndOrNone().map(_.trim())
+      } else
+        readUntilEndOrNone()
     } else None
 
   def close(): Unit =

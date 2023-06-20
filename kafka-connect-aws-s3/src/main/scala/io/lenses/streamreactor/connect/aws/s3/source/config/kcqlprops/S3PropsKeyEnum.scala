@@ -35,4 +35,6 @@ object S3PropsKeyEnum extends Enum[S3PropsKeyEntry] {
 
   case object ReadStartLine extends S3PropsKeyEntry("read.text.start.line")
   case object ReadEndLine   extends S3PropsKeyEntry("read.text.end.line")
+
+  case object ReadTrimLine extends S3PropsKeyEntry("read.text.trim")
 }
