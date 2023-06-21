@@ -29,4 +29,6 @@ case class CommitContext(
   createdTimestamp:     Long,
   lastFlushedTimestamp: Option[Long],
   partitionFile:        String,
-)
+) {
+  def lastModified = lastFlushedTimestamp.getOrElse(createdTimestamp)
+}

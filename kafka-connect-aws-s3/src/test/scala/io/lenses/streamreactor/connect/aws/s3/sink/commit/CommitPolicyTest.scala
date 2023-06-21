@@ -13,18 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.commit
+package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
+import com.typesafe.scalalogging.Logger
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
-import io.lenses.streamreactor.connect.aws.s3.sink.commit._
+import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.slf4j.{ Logger => Slf4jLogger }
 
 import scala.concurrent.duration._
 
-class CommitPolicyTest extends AnyWordSpec with Matchers {
+class CommitPolicyTest extends AnyWordSpec with Matchers with MockitoSugar {
 
   private def shouldFlush(
     policy:                    CommitPolicy,
@@ -87,5 +89,16 @@ class CommitPolicyTest extends AnyWordSpec with Matchers {
 
       shouldFlush(policy, 7, 10) shouldBe true
     }
+
+    "should be resilient to logger failure" in {
+      val underlyingLogger = mock[Slf4jLogger]
+      when(underlyingLogger.isDebugEnabled)
+        .thenThrow(new ClassNotFoundException("Turn back while you can"))
+        .andThenAnswer(false)
+
+      val policy = CommitPolicy(Logger(underlyingLogger), Count(100))
+      shouldFlush(policy, 100, 10) shouldBe true
+    }
   }
+
 }

@@ -16,6 +16,9 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
 import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.Logger
+
+import scala.util.Try
 
 /**
   * The [[CommitPolicy]] is responsible for determining when
@@ -26,7 +29,7 @@ import com.typesafe.scalalogging.LazyLogging
   *
   * @param conditions the conditions to evaluate for flushing the partition
   */
-case class CommitPolicy(conditions: CommitPolicyCondition*) extends LazyLogging {
+case class CommitPolicy(logger: Logger, conditions: CommitPolicyCondition*) {
 
   /**
     * Checks if the output file should be flushed based on the provided `CommitContext`.
@@ -36,22 +39,29 @@ case class CommitPolicy(conditions: CommitPolicyCondition*) extends LazyLogging 
     */
   def shouldFlush(context: CommitContext): Boolean = {
 
-    val res = conditions.map(_.eval(context, logger.underlying.isDebugEnabled))
+    val debugEnabled: Boolean = Try(logger.underlying.isDebugEnabled).getOrElse(false)
+    val res = conditions.map(_.eval(context, debugEnabled))
     val flush = res.exists {
-      case (true, _) => true
-      case _         => false
+      case ConditionCommitResult(true, _) => true
+      case _                              => false
     }
     val flushingOrNot = if (flush) "" else "Not "
 
-    logger.debug(
-      "{}Flushing '{}' for {topic:'{}', partition:{}, offset:{}, {}}",
-      flushingOrNot,
-      context.partitionFile,
-      context.tpo.topic.value,
-      context.tpo.partition,
-      context.tpo.offset.value,
-      res.map(_._2).mkString(", "),
-    )
+    if (debugEnabled)
+      logger.debug(
+        "{}Flushing '{}' for {topic:'{}', partition:{}, offset:{}, {}}",
+        flushingOrNot,
+        context.partitionFile,
+        context.tpo.topic.value,
+        context.tpo.partition,
+        context.tpo.offset.value,
+        res.flatMap(_.logLine).mkString(", "),
+      )
     flush
   }
+}
+
+object CommitPolicy extends LazyLogging {
+  def apply(conditions: CommitPolicyCondition*): CommitPolicy =
+    CommitPolicy(logger, conditions: _*)
 }

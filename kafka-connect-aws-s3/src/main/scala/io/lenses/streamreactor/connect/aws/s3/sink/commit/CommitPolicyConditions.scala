@@ -22,57 +22,63 @@ import java.time.Duration
 import java.time.Instant
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.DurationConverters.ScalaDurationOps
+
+case class ConditionCommitResult(commitTriggered: Boolean, logLine: Option[String])
+
 trait CommitPolicyCondition {
-  def eval(context: CommitContext, debugEnabled: Boolean): (Boolean, String)
+  def eval(context: CommitContext, debugEnabled: Boolean): ConditionCommitResult
 }
 
 case class FileSize(maxFileSize: Long) extends CommitPolicyCondition with LazyLogging {
-  override def eval(context: CommitContext, debugEnabled: Boolean): (Boolean, String) = {
+  override def eval(context: CommitContext, debugEnabled: Boolean): ConditionCommitResult = {
     val cond = context.fileSize >= maxFileSize
-    val logLine = if (debugEnabled) {
+    val logLine = Option.when(debugEnabled) {
       val flushing = if (cond) "*" else ""
       s"fileSize$flushing: '${context.fileSize}/$maxFileSize'"
-    } else ""
-    (cond, logLine)
+    }
+    ConditionCommitResult(cond, logLine)
   }
 }
 
 object Interval {
+
   def apply(scalaInterval: FiniteDuration): Interval = {
     val interval = scalaInterval.toJava
-    Interval(interval)
+    val clock    = Clock.systemDefaultZone()
+    Interval(interval, clock)
   }
 }
 
-case class Interval(interval: Duration) extends CommitPolicyCondition {
+case class Interval(interval: Duration, clock: Clock) extends CommitPolicyCondition {
 
-  private val clock = Clock.systemDefaultZone()
-
-  override def eval(context: CommitContext, debugEnabled: Boolean): (Boolean, String) = {
+  override def eval(context: CommitContext, debugEnabled: Boolean): ConditionCommitResult = {
     val nowInstant = clock.instant()
 
-    val lastWriteTimestamp: Long = context.lastFlushedTimestamp.getOrElse(context.createdTimestamp)
-    val lastWriteInstant = Instant.ofEpochMilli(lastWriteTimestamp)
+    val lastWriteInstant = Instant.ofEpochMilli(context.lastModified)
     val nextFlushTime    = lastWriteInstant.plus(interval)
-    val nextFlushDue     = nextFlushTime.isBefore(nowInstant)
+    val nextFlushDue     = nowInstant.isAfter(nextFlushTime) || nowInstant.equals(nextFlushTime)
 
-    val logLine = if (debugEnabled) {
-      val flushing = if (nextFlushDue) "*" else ""
-
-      s"interval$flushing: {every ${interval.toSeconds}s, lastFlush:${lastWriteInstant.toString.substring(0, 19)}, nextFlush:${nextFlushTime.toString.substring(0, 19)}}"
-    } else ""
-    (nextFlushDue, logLine)
+    val logLine = Option.when(debugEnabled) {
+      val flushing      = if (nextFlushDue) "*" else ""
+      val timeRemaining = nextFlushTime.getEpochSecond - nowInstant.getEpochSecond
+      s"interval$flushing: {frequency:${interval.toSeconds}s, in:${timeRemaining}s, lastFlush:${lastWriteInstant.toString.substring(0,
+                                                                                                                                    19,
+      )}, nextFlush:${nextFlushTime.toString.substring(0, 19)}}"
+    }
+    ConditionCommitResult(nextFlushDue, logLine)
   }
 }
 
 case class Count(maxCount: Long) extends CommitPolicyCondition {
-  override def eval(commitContext: CommitContext, debugEnabled: Boolean): (Boolean, String) = {
+  override def eval(commitContext: CommitContext, debugEnabled: Boolean): ConditionCommitResult = {
 
     val cond     = commitContext.count >= maxCount
     val flushing = if (cond) "*" else ""
 
-    val log = s"count$flushing: '${commitContext.count}/$maxCount'"
+    val log = Option.when(debugEnabled) {
+      s"count$flushing: '${commitContext.count}/$maxCount'"
+    }
 
-    (cond, log)
+    ConditionCommitResult(cond, log)
   }
 }
