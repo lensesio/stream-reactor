@@ -29,7 +29,7 @@ import java.time._
 class IntervalTest extends AnyFlatSpec with Matchers with EitherValues with MockitoSugar with BeforeAndAfter {
 
   private val lastModifiedDate =
-    ZonedDateTime.of(LocalDate.of(1939, 5, 1), LocalTime.of(12, 0, 1), ZoneId.systemDefault()).toInstant
+    ZonedDateTime.of(LocalDate.of(1939, 5, 1), LocalTime.of(12, 0, 1), ZoneId.of("GMT+1")).toInstant
 
   private val clock    = mock[Clock]
   private val interval = Interval(Duration.ofMinutes(10), clock)
