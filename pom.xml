@@ -348,6 +348,7 @@ under the License.
                             <id>embedded-integration-test</id>
                             <goals>
                                 <goal>integration-test</goal>
+                                <goal>verify</goal>
                             </goals>
                             <configuration>
                                 <groups>org.apache.kafka.test.IntegrationTest</groups>
