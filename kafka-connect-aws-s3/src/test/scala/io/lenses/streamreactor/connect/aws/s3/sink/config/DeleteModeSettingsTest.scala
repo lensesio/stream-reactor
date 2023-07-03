@@ -25,8 +25,8 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 class DeleteModeSettingsTest extends AnyFlatSpec with Matchers with LazyLogging {
   private val deleteModeMap = Table[String, String, Boolean](
     ("testName", "value", "expected"),
-    ("all-at-once", "AllAtOnce", true),
-    ("individual", "Individual", false),
+    ("batch-delete", "BatchDelete", true),
+    ("separate-delete", "SeparateDelete", false),
   )
 
   it should "respect the delete mode setting" in {
