@@ -139,8 +139,8 @@ object S3ConfigSettings {
   val SOURCE_ORDERING_TYPE_DOC:     String = "AlphaNumeric (the default)"
   val SOURCE_ORDERING_TYPE_DEFAULT: String = "AlphaNumeric"
 
-  val SOURCE_DELETE_MODE         = s"$CONNECTOR_PREFIX.source.delete.mode"
-  val SOURCE_DELETE_MODE_DOC     =
-    "Cleaning index files for GCP Cloud Storage via the compatible S3 APIs requires individual delete requests. Options are `AllAtOnce` or `Individual`. Defaults to `AllAtOnce`."
-  val SOURCE_DELETE_MODE_DEFAULT = "AllAtOnce"
+  val SOURCE_DELETE_MODE: String = s"$CONNECTOR_PREFIX.source.delete.mode"
+  val SOURCE_DELETE_MODE_DOC: String =
+    "Cleaning index files for GCP Cloud Storage via the compatible S3 APIs requires individual delete requests. Options are `BatchDelete` or `SeparateDelete`. Defaults to `BatchDelete`."
+  val SOURCE_DELETE_MODE_DEFAULT: String = "BatchDelete"
 }

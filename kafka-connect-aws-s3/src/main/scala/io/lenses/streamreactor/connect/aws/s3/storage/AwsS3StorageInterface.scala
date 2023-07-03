@@ -161,7 +161,7 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
 
   override def close(): Unit = s3Client.close()
 
-  private def batchedDeleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = Try {
+  private def batchDeleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = Try {
     s3Client.deleteObjects(
       DeleteObjectsRequest
         .builder()
@@ -182,7 +182,7 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
     case Success(_)  => ().asRight
   }
 
-  private def loopedDeleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = Try {
+  private def loopDeleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = Try {
     for (f <- files) {
       s3Client.deleteObject(
         DeleteObjectRequest
@@ -197,17 +197,14 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
     case Success(_)  => ().asRight
   }
 
-  override def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = {
+  override def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] =
     if (files.isEmpty) {
-      return ().asRight
+      ().asRight
+    } else if (!batchDelete) {
+      loopDeleteFiles(bucket, files)
+    } else {
+      batchDeleteFiles(bucket, files)
     }
-
-    if (!batchDelete) {
-      return loopedDeleteFiles(bucket, files)
-    }
-
-    batchedDeleteFiles(bucket, files)
-  }
 
   override def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String] =
     for {
