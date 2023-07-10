@@ -72,7 +72,7 @@ trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with Laz
     val (sI, sC) = {
       for {
         client           <- AwsS3ClientCreator.make(s3Config)
-        storageInterface <- Try(new AwsS3StorageInterface(connectorTaskId, client)).toEither
+        storageInterface <- Try(new AwsS3StorageInterface(connectorTaskId, client, true)).toEither
       } yield (storageInterface, client)
     }.getOrElse(fail("Failed to create S3 client"))
 

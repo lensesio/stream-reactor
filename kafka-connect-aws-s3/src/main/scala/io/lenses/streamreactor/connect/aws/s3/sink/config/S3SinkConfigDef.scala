@@ -131,7 +131,8 @@ case class S3SinkConfigDefBuilder(props: util.Map[String, String])
     with ConnectionSettings
     with S3FlushSettings
     with CompressionCodecSettings
-    with PaddingStrategySettings {
+    with PaddingStrategySettings
+    with DeleteModeSettings {
 
   def getParsedValues: Map[String, _] = values().asScala.toMap
 

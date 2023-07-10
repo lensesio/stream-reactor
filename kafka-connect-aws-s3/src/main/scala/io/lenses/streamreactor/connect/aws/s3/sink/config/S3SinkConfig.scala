@@ -57,6 +57,7 @@ object S3SinkConfig {
       sinkBucketOptions,
       offsetSeekerOptions,
       s3ConfigDefBuilder.getCompressionCodec(),
+      s3ConfigDefBuilder.batchDelete(),
     )
 
 }
@@ -66,6 +67,7 @@ case class S3SinkConfig(
   bucketOptions:       Seq[SinkBucketOptions] = Seq.empty,
   offsetSeekerOptions: OffsetSeekerOptions,
   compressionCodec:    CompressionCodec,
+  batchDelete:         Boolean,
 )
 
 object SinkBucketOptions extends LazyLogging {
