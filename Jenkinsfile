@@ -27,7 +27,7 @@ def getVaultSecretsList() {
 
 common {
   slackChannel = '#connect-warn'
-  nodeLabel = 'docker-oraclejdk8'
+  nodeLabel = 'docker-debian-jdk8'
   publish = false
   downStreamValidate = false
   secret_file_list = getVaultSecretsList()
