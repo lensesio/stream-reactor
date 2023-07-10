@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.sink.config
+package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.flatspec.AnyFlatSpec
@@ -33,7 +33,7 @@ class DeleteModeSettingsTest extends AnyFlatSpec with Matchers with LazyLogging 
     forAll(deleteModeMap) {
       (name: String, value: String, expected: Boolean) =>
         logger.debug("Executing {}", name)
-        S3SinkConfigDefBuilder(Map(
+        S3SourceConfigDefBuilder(Map(
           "connect.s3.kcql"        -> "abc",
           "connect.s3.delete.mode" -> value,
         ).asJava).batchDelete() should be(expected)

@@ -42,7 +42,7 @@ object S3SourceState {
       connectorTaskId  <- IO.fromEither(ConnectorTaskId.fromProps(props))
       config           <- IO.fromEither(S3SourceConfig.fromProps(props))
       s3Client         <- IO.fromEither(AwsS3ClientCreator.make(config.s3Config))
-      storageInterface <- IO.delay(new AwsS3StorageInterface(connectorTaskId, s3Client, true))
+      storageInterface <- IO.delay(new AwsS3StorageInterface(connectorTaskId, s3Client, config.batchDelete))
       partitionSearcher <- IO.delay(
         new PartitionSearcher(
           config.bucketOptions.map(_.sourceBucketAndPrefix),

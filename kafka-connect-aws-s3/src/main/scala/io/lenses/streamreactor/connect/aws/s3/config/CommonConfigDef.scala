@@ -150,4 +150,11 @@ object CommonConfigDef {
       Importance.LOW,
       COMPRESSION_LEVEL_DOC,
     )
+    .define(
+      DELETE_MODE,
+      Type.STRING,
+      DELETE_MODE_DEFAULT,
+      Importance.LOW,
+      DELETE_MODE_DOC,
+    )
 }

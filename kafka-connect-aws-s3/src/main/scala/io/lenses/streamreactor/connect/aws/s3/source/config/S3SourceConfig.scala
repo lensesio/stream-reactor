@@ -55,6 +55,7 @@ object S3SourceConfig {
       sbo,
       s3ConfigDefBuilder.getCompressionCodec(),
       s3ConfigDefBuilder.getPartitionSearcherOptions(parsedValues),
+      s3ConfigDefBuilder.batchDelete(),
     )
 
   }
@@ -65,6 +66,7 @@ case class S3SourceConfig(
   bucketOptions:     Seq[SourceBucketOptions] = Seq.empty,
   compressionCodec:  CompressionCodec,
   partitionSearcher: PartitionSearcherOptions,
+  batchDelete:       Boolean,
 )
 
 case class SourceBucketOptions(

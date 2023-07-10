@@ -74,13 +74,6 @@ object S3SinkConfigDef {
       Importance.LOW,
       PADDING_LENGTH_DOC,
     )
-    .define(
-      SOURCE_DELETE_MODE,
-      Type.STRING,
-      SOURCE_DELETE_MODE_DEFAULT,
-      Importance.LOW,
-      SOURCE_DELETE_MODE_DOC,
-    )
 }
 
 class S3SinkConfigDef() extends ConfigDef with LazyLogging {

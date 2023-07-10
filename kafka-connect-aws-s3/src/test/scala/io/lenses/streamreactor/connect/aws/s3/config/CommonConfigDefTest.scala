@@ -46,7 +46,7 @@ class CommonConfigDefTest extends AnyFlatSpec with Matchers {
 
   "CommonConfigDef" should "parse original properties" in {
     val resultMap = CommonConfigDef.config.parse(DefaultProps.asJava).asScala
-    resultMap should have size 17
+    resultMap should have size 18
     DeprecatedProps.filterNot { case (k, _) => k == KCQL_CONFIG }.foreach {
       case (k, _) => resultMap.get(k) should be(None)
     }
@@ -55,7 +55,7 @@ class CommonConfigDefTest extends AnyFlatSpec with Matchers {
 
   "CommonConfigDef" should "parse deprecated properties" in {
     val resultMap = CommonConfigDef.config.parse(DeprecatedProps.asJava).asScala
-    resultMap should have size 17
+    resultMap should have size 18
     DeprecatedProps.filterNot { case (k, _) => k == KCQL_CONFIG }.foreach {
       case (k, _) => resultMap.get(k) should be(None)
     }
