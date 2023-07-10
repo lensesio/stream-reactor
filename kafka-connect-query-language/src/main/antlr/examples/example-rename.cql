@@ -1,0 +1,1 @@
+INSERT into TARGET_SQL_TABLE SELECT *, field1 AS newName from SOURCE_TOPIC
