@@ -15,3 +15,5 @@ addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 addSbtPlugin("com.typesafe.sbt" % "sbt-license-report" % "1.2.0")
 
 //addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2")
+
+addSbtPlugin("com.simplytyped" % "sbt-antlr4" % "0.8.3")

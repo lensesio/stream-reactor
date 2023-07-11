@@ -7,13 +7,19 @@ import Dependencies.nettyCodecSocks
 import Dependencies.nettyHandlerProxy
 import Dependencies.woodstoxCore
 import com.eed3si9n.jarjarabrams.ShadeRule
-import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
-import sbt.Keys._
+import com.simplytyped.Antlr4Plugin
+import com.simplytyped.Antlr4Plugin.autoImport.Antlr4
+import com.simplytyped.Antlr4Plugin.autoImport.antlr4GenVisitor
+import com.simplytyped.Antlr4Plugin.autoImport.antlr4PackageName
+import com.simplytyped.Antlr4Plugin.autoImport.antlr4TreatWarningsAsErrors
+import com.simplytyped.Antlr4Plugin.autoImport.antlr4Version
+import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.*
+import sbt.Keys.*
 import sbt.Package.ManifestAttributes
 import sbt.Compile
 import sbt.Def
-import sbt._
-import sbtassembly.AssemblyKeys._
+import sbt.*
+import sbtassembly.AssemblyKeys.*
 import sbtassembly.MergeStrategy
 import sbtassembly.PathList
 
@@ -22,7 +28,7 @@ import java.nio.file.Paths
 import java.time.Year
 import java.util.Calendar
 import scala.collection.Seq
-import scala.sys.process._
+import scala.sys.process.*
 
 object Settings extends Dependencies {
 
@@ -282,6 +288,18 @@ object Settings extends Dependencies {
 
     }
 
+  }
+
+  implicit final class AntlrConfigurator(project: Project) {
+
+    def configureAntlr(): Project =
+      project
+        .enablePlugins(Antlr4Plugin)
+        .settings(
+          settings ++ Seq(
+            Antlr4 / antlr4PackageName := Some("com.datamountaineer.kcql.antlr4"),
+          ),
+        )
   }
 
 }
