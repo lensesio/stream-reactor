@@ -74,8 +74,7 @@ lazy val common = (project in file("kafka-connect-common"))
   .configureTests(baseTestDeps)
 
 lazy val `aws-s3` = (project in file("kafka-connect-aws-s3"))
-  .  dependsOn(common)
-
+  .dependsOn(common)
   .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
@@ -97,8 +96,7 @@ lazy val `aws-s3` = (project in file("kafka-connect-aws-s3"))
   .enablePlugins(PackPlugin)
 
 lazy val `azure-documentdb` = (project in file("kafka-connect-azure-documentdb"))
-  .  dependsOn(common)
-
+  .dependsOn(common)
   .settings(
     settings ++
       Seq(
@@ -117,8 +115,7 @@ lazy val `azure-documentdb` = (project in file("kafka-connect-azure-documentdb")
   .enablePlugins(PackPlugin)
 
 lazy val cassandra = (project in file("kafka-connect-cassandra"))
-  .  dependsOn(common)
-
+  .dependsOn(common)
   .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
@@ -141,8 +138,7 @@ lazy val cassandra = (project in file("kafka-connect-cassandra"))
   .enablePlugins(PackPlugin)
 
 lazy val elastic6 = (project in file("kafka-connect-elastic6"))
-  .  dependsOn(common)
-
+  .dependsOn(common)
   .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
@@ -165,8 +161,7 @@ lazy val elastic6 = (project in file("kafka-connect-elastic6"))
   .enablePlugins(PackPlugin)
 
 lazy val elastic7 = (project in file("kafka-connect-elastic7"))
-  .  dependsOn(common)
-
+  .dependsOn(common)
   .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
@@ -254,8 +249,7 @@ lazy val jms = (project in file("kafka-connect-jms"))
   .enablePlugins(PackPlugin, ProtocPlugin)
 
 lazy val kudu = (project in file("kafka-connect-kudu"))
-  .  dependsOn(common)
-
+  .dependsOn(common)
   .settings(
     settings ++
       Seq(
@@ -297,8 +291,7 @@ lazy val mqtt = (project in file("kafka-connect-mqtt"))
   .enablePlugins(PackPlugin)
 
 lazy val pulsar = (project in file("kafka-connect-pulsar"))
-  .  dependsOn(common)
-
+  .dependsOn(common)
   .settings(
     settings ++
       Seq(
@@ -317,8 +310,7 @@ lazy val pulsar = (project in file("kafka-connect-pulsar"))
   .enablePlugins(PackPlugin)
 
 lazy val ftp = (project in file("kafka-connect-ftp"))
-  .  dependsOn(common)
-
+  .dependsOn(common)
   .settings(
     settings ++
       Seq(
@@ -338,8 +330,7 @@ lazy val ftp = (project in file("kafka-connect-ftp"))
   .enablePlugins(PackPlugin)
 
 lazy val hbase = (project in file("kafka-connect-hbase"))
-  .  dependsOn(common)
-
+  .dependsOn(common)
   .settings(
     settings ++
       Seq(
@@ -358,8 +349,7 @@ lazy val hbase = (project in file("kafka-connect-hbase"))
   .enablePlugins(PackPlugin)
 
 lazy val hive = (project in file("kafka-connect-hive"))
-  .  dependsOn(common)
-
+  .dependsOn(common)
   .settings(
     settings ++
       Seq(
@@ -378,8 +368,7 @@ lazy val hive = (project in file("kafka-connect-hive"))
   .enablePlugins(PackPlugin)
 
 lazy val mongodb = (project in file("kafka-connect-mongodb"))
-  .  dependsOn(common)
-
+  .dependsOn(common)
   .dependsOn(`test-common` % "test->compile;it->compile;fun->compile")
   .settings(
     settings ++
@@ -402,8 +391,7 @@ lazy val mongodb = (project in file("kafka-connect-mongodb"))
   .enablePlugins(PackPlugin)
 
 lazy val redis = (project in file("kafka-connect-redis"))
-  .  dependsOn(common)
-
+  .dependsOn(common)
   .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
