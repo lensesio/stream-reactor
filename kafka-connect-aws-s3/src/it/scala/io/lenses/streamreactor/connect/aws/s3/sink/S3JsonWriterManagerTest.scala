@@ -24,6 +24,8 @@ import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
 import io.lenses.streamreactor.connect.aws.s3.sink.config.LocalStagingArea
 import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
@@ -58,7 +60,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         SinkBucketOptions(
           TopicName.some,
           bucketAndPrefix,
-          commitPolicy       = DefaultCommitPolicy(None, None, Some(1)),
+          commitPolicy       = CommitPolicy(Count(1)),
           formatSelection    = JsonFormatSelection,
           fileNamingStrategy = new HierarchicalS3FileNamingStrategy(JsonFormatSelection, NoOpPaddingStrategy),
           localStagingArea   = LocalStagingArea(localRoot),
@@ -97,7 +99,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         SinkBucketOptions(
           TopicName.some,
           bucketAndPrefix,
-          commitPolicy    = DefaultCommitPolicy(None, None, Some(3)),
+          commitPolicy    = CommitPolicy(Count(3)),
           formatSelection = JsonFormatSelection,
           fileNamingStrategy =
             new HierarchicalS3FileNamingStrategy(JsonFormatSelection, NoOpPaddingStrategy), // JsonS3Format

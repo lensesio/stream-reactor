@@ -23,6 +23,8 @@ import io.lenses.streamreactor.connect.aws.s3.formats.writer.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink._
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitContext
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.aws.s3.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.aws.s3.storage.NonExistingFileError
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
@@ -150,13 +152,14 @@ class S3Writer(
 
   def shouldFlush: Boolean =
     writeState match {
-      case Writing(commitState, _, _, uncommittedOffset) => commitPolicy.shouldFlush(
+      case Writing(commitState, _, file, uncommittedOffset) => commitPolicy.shouldFlush(
           CommitContext(
             topicPartition.withOffset(uncommittedOffset),
             commitState.recordCount,
             commitState.lastKnownFileSize,
             commitState.createdTimestamp,
             commitState.lastFlushedTime,
+            file.getName,
           ),
         )
       case NoWriter(_)        => false

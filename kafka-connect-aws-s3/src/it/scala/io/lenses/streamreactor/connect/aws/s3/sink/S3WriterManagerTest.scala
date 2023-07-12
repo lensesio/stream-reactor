@@ -6,6 +6,10 @@ import io.lenses.streamreactor.connect.aws.s3.config.CsvFormatSelection
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.FileSize
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Interval
 import io.lenses.streamreactor.connect.aws.s3.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -14,8 +18,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.File
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.SECONDS
+import scala.concurrent.duration.DurationInt
 
 class S3WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with MockitoSugar {
   private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
@@ -24,7 +27,7 @@ class S3WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContaine
 
   "S3WriterManager" should "return empty map when no offset or metadata writers can be found" in {
     val wm = new S3WriterManager(
-      commitPolicyFn    = _ => DefaultCommitPolicy(Some(5L), Some(FiniteDuration(5, SECONDS)), Some(5L)).asRight,
+      commitPolicyFn    = _ => CommitPolicy(FileSize(5L), Interval(5.seconds), Count(5L)).asRight,
       bucketAndPrefixFn = _ => S3Location("bucketAndPath:location").asRight,
       fileNamingStrategyFn =
         _ => new HierarchicalS3FileNamingStrategy(CsvFormatSelection(Set.empty), NoOpPaddingStrategy).asRight,
