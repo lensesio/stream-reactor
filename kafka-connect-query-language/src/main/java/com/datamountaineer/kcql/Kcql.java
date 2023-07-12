@@ -452,7 +452,7 @@ public class Kcql {
     }
 
     public static Kcql parse(final String syntax) {
-        final ConnectorLexer lexer = new ConnectorLexer(new ANTLRInputStream(syntax));
+        final ConnectorLexer lexer = new ConnectorLexer(CharStreams.fromString(syntax));
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
         final ConnectorParser parser = new ConnectorParser(tokens);
         final ArrayList<String> bucketNames = new ArrayList<>();
