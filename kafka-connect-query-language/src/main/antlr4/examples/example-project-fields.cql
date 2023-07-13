@@ -1,0 +1,1 @@
+INSERT into TARGET_SQL_TABLE SELECT field1,field2,field3 from SOURCE_TOPIC

@@ -12,6 +12,7 @@ import java.io.File
 ThisBuild / scalaVersion := Dependencies.scalaVersion
 
 lazy val subProjects: Seq[Project] = Seq(
+  `query-language`,
   common,
   `aws-s3`,
   `azure-documentdb`,
@@ -44,7 +45,22 @@ lazy val root = (project in file("."))
   )
   .disablePlugins(AssemblyPlugin, HeaderPlugin)
 
+lazy val `query-language` = (project in file("kafka-connect-query-language"))
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-query-language",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps,
+        publish / skip := true,
+      ),
+  )
+  .configureAssembly()
+  .configureTests(baseTestDeps)
+  .configureAntlr()
+
 lazy val common = (project in file("kafka-connect-common"))
+  .dependsOn(`query-language`)
   .settings(
     settings ++
       Seq(
