@@ -17,7 +17,6 @@ package io.lenses.streamreactor.connect.aws.s3.formats.writer
 
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.JsonFormatWriter._
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.LineSeparatorUtil.LineSeparatorBytes
-import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink._
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToJsonDataConverter
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
@@ -27,10 +26,12 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
 class JsonFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter {
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] =
+  override def write(messageDetail: MessageDetail): Either[Throwable, Unit] = {
+    val topic         = messageDetail.topic
+    val valueSinkData = messageDetail.valueSinkData
     Try {
 
-      val dataBytes = valueSinkData match {
+      val dataBytes = messageDetail.valueSinkData match {
         case data: PrimitiveSinkData =>
           Converter.fromConnectData(topic.value, valueSinkData.schema().orNull, data.safeVal())
         case StructSinkData(structVal) =>
@@ -47,6 +48,7 @@ class JsonFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter {
       outputStream.write(LineSeparatorBytes)
       outputStream.flush()
     }.toEither
+  }
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 

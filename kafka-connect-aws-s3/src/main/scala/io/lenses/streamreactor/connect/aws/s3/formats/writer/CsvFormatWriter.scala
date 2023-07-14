@@ -17,7 +17,6 @@ package io.lenses.streamreactor.connect.aws.s3.formats.writer
 
 import com.opencsv.CSVWriter
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
@@ -38,13 +37,15 @@ class CsvFormatWriter(outputStream: S3OutputStream, writeHeaders: Boolean) exten
 
   private var fields: Array[String] = _
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] =
+  override def write(messageDetail: MessageDetail): Either[Throwable, Unit] =
     Try {
       if (!fieldsWritten) {
-        writeFields(valueSinkData.schema().orNull)
+        writeFields(messageDetail.valueSinkData.schema().orNull)
       }
       val nextRow = fields.map(PartitionNamePath(_))
-        .map(path => adaptErrorResponse(SinkDataExtractor.extractPathFromSinkData(valueSinkData)(Some(path))).orNull)
+        .map(path =>
+          adaptErrorResponse(SinkDataExtractor.extractPathFromSinkData(messageDetail.valueSinkData)(Some(path))).orNull,
+        )
       csvWriter.writeNext(nextRow)
       csvWriter.flush()
     }.toEither

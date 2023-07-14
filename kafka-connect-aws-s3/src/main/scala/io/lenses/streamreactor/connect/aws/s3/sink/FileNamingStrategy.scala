@@ -232,7 +232,7 @@ class PartitionedS3FileNamingStrategy(
 
   }
 
-  val reservedCharacters = Set("/", "\\")
+  val reservedCharacters: Set[String] = Set("/", "\\")
 
   private def getFieldStringValue(struct: SinkData, partitionName: Option[PartitionNamePath]) =
     adaptErrorResponse(SinkDataExtractor.extractPathFromSinkData(struct)(partitionName)).fold(Option.empty[String])(
@@ -242,7 +242,7 @@ class PartitionedS3FileNamingStrategy(
           .replace("\\", "-")),
     )
 
-  def getPartitionValueFromSinkData(sinkData: SinkData, partitionName: PartitionNamePath): String =
+  private def getPartitionValueFromSinkData(sinkData: SinkData, partitionName: PartitionNamePath): String =
     getFieldStringValue(sinkData, Option(partitionName)).getOrElse("[missing]")
 
   override def shouldProcessPartitionValues: Boolean = true

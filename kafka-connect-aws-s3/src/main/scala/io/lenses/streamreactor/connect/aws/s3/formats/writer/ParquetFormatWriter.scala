@@ -19,7 +19,6 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.parquet.ParquetOutputFile
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
@@ -52,14 +51,14 @@ class ParquetFormatWriter(outputStream: S3OutputStream)(implicit compressionCode
 
   private var writer: ParquetWriter[AnyRef] = _
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] =
+  override def write(messageDetail: MessageDetail): Either[Throwable, Unit] =
     Try {
 
       logger.debug("ParquetFormatWriter - write")
 
-      val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(valueSinkData)
+      val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(messageDetail.valueSinkData)
       if (writer == null) {
-        writer = init(valueSinkData.schema())
+        writer = init(messageDetail.valueSinkData.schema())
       }
 
       writer.write(genericRecord)

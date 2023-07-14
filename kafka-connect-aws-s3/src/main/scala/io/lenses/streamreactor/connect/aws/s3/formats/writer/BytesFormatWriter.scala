@@ -20,7 +20,6 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.FormatWriterException
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 
@@ -28,7 +27,7 @@ class BytesFormatWriter(outputStream: S3OutputStream, bytesWriteMode: BytesWrite
     extends S3FormatWriter
     with LazyLogging {
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] = {
+  override def write(messageDetail: MessageDetail): Either[Throwable, Unit] = {
 
     val writeKeys   = bytesWriteMode.entryName.contains("Key")
     val writeValues = bytesWriteMode.entryName.contains("Value")
@@ -42,19 +41,20 @@ class BytesFormatWriter(outputStream: S3OutputStream, bytesWriteMode: BytesWrite
     )
 
     if (writeKeys) {
-      keySinkData.fold(throw FormatWriterException("No key supplied however requested to write key.")) { keyStruct =>
-        convertToBytes(keyStruct) match {
-          case Left(exception) => return exception.asLeft
-          case Right(keyDataBytes) => byteOutputRow = byteOutputRow.copy(
-              keySize = if (writeSizes) Some(keyDataBytes.length.longValue()) else None,
-              key     = keyDataBytes,
-            )
-        }
+      messageDetail.keySinkData.fold(throw FormatWriterException("No key supplied however requested to write key.")) {
+        keyStruct =>
+          convertToBytes(keyStruct) match {
+            case Left(exception) => return exception.asLeft
+            case Right(keyDataBytes) => byteOutputRow = byteOutputRow.copy(
+                keySize = if (writeSizes) Some(keyDataBytes.length.longValue()) else None,
+                key     = keyDataBytes,
+              )
+          }
       }
     }
 
     if (writeValues) {
-      convertToBytes(valueSinkData) match {
+      convertToBytes(messageDetail.valueSinkData) match {
         case Left(exception) => return exception.asLeft
         case Right(valueDataBytes) => byteOutputRow = byteOutputRow.copy(
             valueSize = if (writeSizes) Some(valueDataBytes.length.longValue()) else None,

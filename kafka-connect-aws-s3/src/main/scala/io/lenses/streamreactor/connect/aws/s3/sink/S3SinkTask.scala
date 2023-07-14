@@ -142,23 +142,25 @@ class S3SinkTask extends SinkTask with ErrorHandler {
 
         records.asScala.foreach {
           record =>
-            handleErrors(
-              writerManager.write(
-                Topic(record.topic).withPartition(record.kafkaPartition.intValue).withOffset(record.kafkaOffset),
-                MessageDetail(
-                  keySinkData = Option(record.key()).fold(Option.empty[SinkData])(key =>
-                    Option(ValueToSinkDataConverter(key, Option(record.keySchema()))),
-                  ),
-                  valueSinkData = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
-                  headers       = HeaderToStringConverter(record),
-                  TimestampUtils.parseTime(Option(record.timestamp()).map(_.toLong))(_ =>
-                    logger.debug(
-                      s"Record timestamp is invalid ${record.timestamp()}",
-                    ),
-                  ),
+            val topicPartitionOffset =
+              Topic(record.topic).withPartition(record.kafkaPartition.intValue).withOffset(record.kafkaOffset)
+            val msgDetails = MessageDetail(
+              keySinkData = Option(record.key()).fold(Option.empty[SinkData])(key =>
+                Option(ValueToSinkDataConverter(key, Option(record.keySchema()))),
+              ),
+              valueSinkData = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
+              headers       = HeaderToStringConverter(record),
+              TimestampUtils.parseTime(Option(record.timestamp()).map(_.toLong))(_ =>
+                logger.debug(
+                  s"Record timestamp is invalid ${record.timestamp()}",
                 ),
               ),
+              Topic(record.topic()),
+              record.kafkaPartition(),
             )
+            handleErrors {
+              writerManager.write(topicPartitionOffset, msgDetails)
+            }
         }
 
         if (records.isEmpty) {

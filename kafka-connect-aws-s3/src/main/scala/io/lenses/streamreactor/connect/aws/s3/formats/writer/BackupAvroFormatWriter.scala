@@ -19,8 +19,8 @@ import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.avro.Schema
 import org.apache.avro.file.CodecFactory
@@ -30,7 +30,30 @@ import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 
 import scala.util.Try
 
-class AvroFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: CompressionCodec)
+/**
+  * As a Kafka backup it will store the key, value, headers and timestamp in the Avro file.
+  * As a JSON representation it will look like:
+  * {{{
+  *   {
+  *     "key": ...,
+  *     "value": ...,
+  *     "headers": {
+  *       "header1": "value1",
+  *       "header2": "value2"
+  *     },
+  *     metadata: {
+  *       "timestamp": 123456789,
+  *       "topic": "topic1",
+  *       "partition": 0,
+  *       "offset": 1
+  *
+  *     }
+  *   }
+  * }}}
+  * @param outputStream - the output stream to write to
+  * @param compressionCodec - the compression codec to use
+  */
+class BackupAvroFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: CompressionCodec)
     extends S3FormatWriter
     with LazyLogging {
 
@@ -47,7 +70,7 @@ class AvroFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: 
     }
   }
 
-  private var avroWriterState: Option[AvroWriterState] = None
+  private var avroWriterState: Option[BackupAvroWriterState] = None
 
   override def rolloverFileOnSchemaChange() = true
 
@@ -56,7 +79,7 @@ class AvroFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: 
       val writerState = avroWriterState match {
         case Some(state) => state
         case None =>
-          val state = new AvroWriterState(outputStream, messageDetail.valueSinkData.schema())
+          val state = new BackupAvroWriterState(outputStream, messageDetail.valueSinkData.schema())
           avroWriterState = Some(state)
           state
       }
@@ -71,16 +94,19 @@ class AvroFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: 
 
   override def getPointer: Long = avroWriterState.fold(0L)(_.pointer)
 
-  private class AvroWriterState(outputStream: S3OutputStream, connectSchema: Option[ConnectSchema]) {
+  private class BackupAvroWriterState(outputStream: S3OutputStream, connectSchema: Option[ConnectSchema]) {
     private val schema: Schema                     = ToAvroDataConverter.convertSchema(connectSchema)
     private val writer: GenericDatumWriter[AnyRef] = new GenericDatumWriter[AnyRef](schema)
     private val fileWriter: DataFileWriter[AnyRef] =
       new DataFileWriter[AnyRef](writer).setCodec(avroCompressionCodec).create(schema, outputStream)
 
     def write(valueStruct: SinkData): Unit = {
+
       val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(valueStruct)
+
       fileWriter.append(genericRecord)
       fileWriter.flush()
+
     }
 
     def close(): Either[SinkError, Unit] =

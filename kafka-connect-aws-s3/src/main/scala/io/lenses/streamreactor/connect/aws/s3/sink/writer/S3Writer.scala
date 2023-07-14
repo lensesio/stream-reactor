@@ -55,10 +55,7 @@ class S3Writer(
   def write(messageDetail: MessageDetail, o: Offset): Either[SinkError, Unit] = {
 
     def innerMessageWrite(writingState: Writing): Either[NonFatalS3SinkError, Unit] =
-      writingState.s3FormatWriter.write(messageDetail.keySinkData,
-                                        messageDetail.valueSinkData,
-                                        topicPartition.topic,
-      ) match {
+      writingState.s3FormatWriter.write(messageDetail) match {
         case Left(err: Throwable) =>
           logger.error(err.getMessage)
           NonFatalS3SinkError(err.getMessage, err).asLeft

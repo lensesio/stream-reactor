@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StringSinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.TextFormatWriter
@@ -24,13 +25,15 @@ import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.time.Instant
+
 class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "write byte output stream with text format for a single record" in {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new TextFormatWriter(outputStream)
-    jsonFormatWriter.write(None, StringSinkData("Sausages"), topic)
+    jsonFormatWriter.write(MessageDetail(None, StringSinkData("Sausages"), Map.empty, Some(Instant.now()), topic, 0))
 
     outputStream.toString should be("Sausages\n")
     outputStream.getPointer should be(9L)
@@ -41,9 +44,9 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new TextFormatWriter(outputStream)
-    jsonFormatWriter.write(None, StringSinkData("Sausages"), topic)
-    jsonFormatWriter.write(None, StringSinkData("Mash"), topic)
-    jsonFormatWriter.write(None, StringSinkData("Peas"), topic)
+    jsonFormatWriter.write(MessageDetail(None, StringSinkData("Sausages"), Map.empty, Some(Instant.now()), topic, 0))
+    jsonFormatWriter.write(MessageDetail(None, StringSinkData("Mash"), Map.empty, Some(Instant.now()), topic, 0))
+    jsonFormatWriter.write(MessageDetail(None, StringSinkData("Peas"), Map.empty, Some(Instant.now()), topic, 0))
 
     outputStream.toString should be("Sausages\nMash\nPeas\n")
 
@@ -53,7 +56,8 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val textFormatWriter = new TextFormatWriter(outputStream)
-    val caught           = textFormatWriter.write(None, StructSinkData(users.head), topic)
+    val caught =
+      textFormatWriter.write(MessageDetail(None, StructSinkData(users.head), Map.empty, Some(Instant.now()), topic, 0))
     caught.left.value shouldBe a[FormatWriterException]
   }
 }

@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.TextFormatStreamReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.JsonFormatWriter
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
@@ -29,6 +30,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
+import java.time.Instant
 
 class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
@@ -51,7 +53,9 @@ class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
   private def writeRecordsToOutputStream = {
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    firstUsers.foreach(data => jsonFormatWriter.write(None, StructSinkData(data), topic))
+    firstUsers.foreach(data =>
+      jsonFormatWriter.write(MessageDetail(None, StructSinkData(data), Map.empty, Some(Instant.now()), topic, 0)),
+    )
     jsonFormatWriter.complete()
 
     val byteArrayInputStream = new ByteArrayInputStream(outputStream.toByteArray)

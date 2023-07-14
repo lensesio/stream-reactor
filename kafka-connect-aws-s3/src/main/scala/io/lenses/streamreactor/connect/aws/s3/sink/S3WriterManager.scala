@@ -214,13 +214,18 @@ class S3WriterManager(
       bucketAndPrefix    <- bucketAndPrefixFn(topicPartition)
       fileNamingStrategy <- fileNamingStrategyFn(topicPartition)
       partitionValues    <- processPartitionValues(messageDetail, fileNamingStrategy, topicPartition)
-    } yield writers.getOrElseUpdate(
-      MapKey(topicPartition, partitionValues),
-      createWriter(bucketAndPrefix, topicPartition, partitionValues) match {
-        case Left(ex)     => return ex.asLeft[S3Writer]
-        case Right(value) => value
-      },
-    )
+      key                 = MapKey(topicPartition, partitionValues)
+      maybeWriter         = writers.get(key)
+      writer <- maybeWriter match {
+        case Some(w) => w.asRight
+        case None =>
+          createWriter(bucketAndPrefix, topicPartition, partitionValues)
+            .map { w =>
+              writers.put(key, w)
+              w
+            }
+      }
+    } yield writer
 
   private def createWriter(
     bucketAndPrefix: S3Location,

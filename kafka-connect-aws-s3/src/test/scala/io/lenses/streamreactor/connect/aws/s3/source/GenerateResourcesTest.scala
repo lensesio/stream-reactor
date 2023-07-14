@@ -32,6 +32,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.File
+import java.time.Instant
 import java.util.UUID
 
 class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
@@ -86,7 +87,15 @@ class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
             fileNum =>
               val outputStream = new S3ByteArrayOutputStream
               val writer: S3FormatWriter = writerClass(outputStream)
-              1 to numberOfRecords foreach { _ => writer.write(None, StructSinkData(userGen.sample.get), topic) }
+              1 to numberOfRecords foreach { _ =>
+                writer.write(MessageDetail(None,
+                                           StructSinkData(userGen.sample.get),
+                                           Map.empty,
+                                           Some(Instant.now()),
+                                           topic,
+                                           0,
+                ))
+              }
               writer.complete() // TODO: FIX
 
               val dataFile = new File(s"$dir/$format/$fileNum.$format")
@@ -116,7 +125,16 @@ class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
               val outputStream = new S3ByteArrayOutputStream
               val writer: S3FormatWriter = writerClass(outputStream)
               1 to numberOfRecords foreach { _ =>
-                writer.write(Some(ByteArraySinkData("myKey".getBytes)), ByteArraySinkData("somestring".getBytes), topic)
+                writer.write(
+                  MessageDetail(
+                    Some(ByteArraySinkData("myKey".getBytes)),
+                    ByteArraySinkData("somestring".getBytes),
+                    Map.empty,
+                    Some(Instant.now()),
+                    topic,
+                    0,
+                  ),
+                )
               }
               writer.complete() // TODO: FIX
 

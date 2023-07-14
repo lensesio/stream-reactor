@@ -15,17 +15,11 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.writer
 
+import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 
 import java.time.Instant
-
-case class MessageDetail(
-  keySinkData:   Option[SinkData],
-  valueSinkData: SinkData,
-  headers:       Map[String, SinkData],
-  time:          Option[Instant],
-)
 
 sealed trait SinkData {
   def schema(): Option[Schema]

@@ -17,7 +17,6 @@ package io.lenses.streamreactor.connect.aws.s3.formats.writer
 
 import io.lenses.streamreactor.connect.aws.s3.formats.FormatWriterException
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.LineSeparatorUtil.LineSeparatorBytes
-import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 
@@ -27,11 +26,11 @@ import scala.util.Try
 
 class TextFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter {
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] =
+  override def write(messageDetail: MessageDetail): Either[Throwable, Unit] =
     Try {
 
       val dataBytes: Array[Byte] = Try {
-        valueSinkData match {
+        messageDetail.valueSinkData match {
           case data: PrimitiveSinkData => data.safeVal().toString.getBytes
           case _ => throw FormatWriterException("Not a string")
         }
