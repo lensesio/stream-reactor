@@ -56,9 +56,9 @@ class ParquetFormatWriter(outputStream: S3OutputStream)(implicit compressionCode
 
       logger.debug("ParquetFormatWriter - write")
 
-      val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(messageDetail.valueSinkData)
+      val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(messageDetail.value)
       if (writer == null) {
-        writer = init(messageDetail.valueSinkData.schema())
+        writer = init(messageDetail.value.schema())
       }
 
       writer.write(genericRecord)

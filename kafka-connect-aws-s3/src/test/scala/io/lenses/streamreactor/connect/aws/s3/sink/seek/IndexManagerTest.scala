@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink.seek
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.NonFatalS3SinkError
@@ -64,7 +65,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     val res = indexManager.write(
       bucketName,
       targetPath,
-      Topic("myTopic").withPartition(5).withOffset(100),
+      Topic("myTopic").withPartition(5).withOffset(Offset(100)),
     )
 
     res.value should be(indexPath)
@@ -81,7 +82,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     val res = indexManager.write(
       bucketName,
       targetPath,
-      Topic("myTopic").withPartition(5).withOffset(100),
+      Topic("myTopic").withPartition(5).withOffset(Offset(100)),
     )
 
     res.left.value shouldBe a[NonFatalS3SinkError]
@@ -252,7 +253,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     )
     when(storageInterface.deleteFiles(eqTo(bucketName), any[List[String]])).thenReturn(().asRight)
     val seekRes = indexManager.seek(topicPartition, fileNamingStrategy, bucketName)
-    seekRes.value should be(Some(topicPartition.withOffset(70)))
+    seekRes.value should be(Some(topicPartition.withOffset(Offset(70))))
 
     val seekInOrder = inOrder(storageInterface)
     seekInOrder.verify(storageInterface).listRecursive[String](

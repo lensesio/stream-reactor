@@ -65,6 +65,6 @@ class ValueToSinkDataConverterTest extends AnyFlatSpec with Matchers {
     val short: java.lang.Short = 123.toShort
     val sinkData = ValueToSinkDataConverter.apply(short, Option.empty)
 
-    sinkData should be(ShortSinkData(123))
+    sinkData should be(ShortSinkData(short))
   }
 }

@@ -25,7 +25,7 @@ case class PartitionSelection(
 case object PartitionSelection {
 
   def apply(kcql: Kcql): Option[PartitionSelection] = {
-    val partitions = PartitionField(kcql)
+    val partitions: Seq[PartitionField] = PartitionField(kcql)
     if (partitions.isEmpty) None
     else
       Some(

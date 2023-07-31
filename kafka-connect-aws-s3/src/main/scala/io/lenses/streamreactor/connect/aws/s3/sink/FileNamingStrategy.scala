@@ -69,6 +69,11 @@ trait S3FileNamingStrategy {
 
 }
 
+/** *
+  * Stores the data in {{{$bucket:[$prefix]/$topic/$partition}}}, mirroring the Kafka topic partitions.
+  * @param formatSelection
+  * @param paddingStrategy
+  */
 class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection, paddingStrategy: PaddingStrategy)
     extends S3FileNamingStrategy {
 
@@ -199,13 +204,13 @@ class PartitionedS3FileNamingStrategy(
             }
           case partition @ KeyPartitionField(name) => partition -> {
               val sinkData =
-                messageDetail.keySinkData.getOrElse(throw new IllegalArgumentException(s"No key data found"))
+                messageDetail.key.getOrElse(throw new IllegalArgumentException(s"No key data found"))
               getPartitionValueFromSinkData(sinkData, name)
             }
           case partition @ ValuePartitionField(name) =>
-            partition -> getPartitionValueFromSinkData(messageDetail.valueSinkData, name)
+            partition -> getPartitionValueFromSinkData(messageDetail.value, name)
           case partition @ WholeKeyPartitionField() =>
-            partition -> getPartitionByWholeKeyValue(messageDetail.keySinkData)
+            partition -> getPartitionByWholeKeyValue(messageDetail.key)
           case partition @ TopicPartitionField()     => partition -> topicPartition.topic.value
           case partition @ PartitionPartitionField() => partition -> padString(topicPartition.partition.toString)
           case partition @ DatePartitionField(_) => partition ->

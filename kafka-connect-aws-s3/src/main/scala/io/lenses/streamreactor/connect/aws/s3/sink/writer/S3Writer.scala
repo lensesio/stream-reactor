@@ -52,7 +52,7 @@ class S3Writer(
 
   private var writeState: WriteState = NoWriter(CommitState(topicPartition, lastSeekedOffset))
 
-  def write(messageDetail: MessageDetail, o: Offset): Either[SinkError, Unit] = {
+  def write(messageDetail: MessageDetail): Either[SinkError, Unit] = {
 
     def innerMessageWrite(writingState: Writing): Either[NonFatalS3SinkError, Unit] =
       writingState.s3FormatWriter.write(messageDetail) match {
@@ -60,7 +60,7 @@ class S3Writer(
           logger.error(err.getMessage)
           NonFatalS3SinkError(err.getMessage, err).asLeft
         case Right(_) =>
-          writeState = writingState.updateOffset(o, messageDetail.valueSinkData.schema())
+          writeState = writingState.updateOffset(messageDetail.offset, messageDetail.value.schema())
           ().asRight
       }
 
@@ -72,7 +72,7 @@ class S3Writer(
         val writingStateEither = for {
           file         <- stagingFilenameFn()
           formatWriter <- formatWriterFn(file)
-          writingState <- noWriter.toWriting(formatWriter, file, o).asRight
+          writingState <- noWriter.toWriting(formatWriter, file, messageDetail.offset).asRight
         } yield writingState
         writingStateEither.flatMap { writingState =>
           writeState = writingState

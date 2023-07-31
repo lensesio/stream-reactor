@@ -39,13 +39,13 @@ object ToAvroDataConverter {
       case MapSinkData(map, _)         => convertMap(map)
       case ArraySinkData(array, _)     => convertArray(array)
       case ByteArraySinkData(array, _) => ByteBuffer.wrap(array)
-      case primitive: PrimitiveSinkData => primitive.primVal().asInstanceOf[AnyRef]
+      case primitive: PrimitiveSinkData => primitive.value
       case _:         NullSinkData      => null
       case other => throw new IllegalArgumentException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
     }
 
-  def convertArray(array: Seq[SinkData]): java.util.List[Any] = array.map {
-    case data: PrimitiveSinkData => data.primVal()
+  def convertArray(array: Seq[SinkData]): java.util.List[AnyRef] = array.map {
+    case data: PrimitiveSinkData => data.value
     case StructSinkData(structVal)    => structVal
     case MapSinkData(map, _)          => convertMap(map)
     case ArraySinkData(iArray, _)     => convertArray(iArray)

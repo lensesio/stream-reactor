@@ -79,7 +79,14 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       case (struct: Struct, index: Int) =>
         val writeRes = sink.write(
           TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)),
-          MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData], None),
+          MessageDetail(None,
+                        StructSinkData(struct),
+                        Map.empty[String, SinkData],
+                        None,
+                        Topic(TopicName),
+                        1,
+                        Offset((index + 1).toLong),
+          ),
         )
         writeRes.isRight should be(true)
     }
@@ -116,7 +123,14 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       case (user, index) =>
         sink.write(
           TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)),
-          MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData], None),
+          MessageDetail(None,
+                        StructSinkData(user),
+                        Map.empty[String, SinkData],
+                        None,
+                        Topic(TopicName),
+                        1,
+                        Offset((index + 1).toLong),
+          ),
         )
     }
     sink.close()

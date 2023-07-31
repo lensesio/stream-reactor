@@ -132,10 +132,11 @@ class S3SinkTask extends SinkTask with ErrorHandler {
 
     val _ = handleTry {
       Try {
-        val recordsStats = buildLogForRecords(records.asScala)
-          .toList.sortBy(_._1).map { case (k, v) => s"$k=$v" }.mkString(";")
 
-        logger.debug(s"[${connectorTaskId.show}] put records=${records.size()} stats=$recordsStats")
+        logger.debug(
+          s"[${connectorTaskId.show}] put records=${records.size()} stats=${buildLogForRecords(records.asScala)
+            .toList.sortBy(_._1).map { case (k, v) => s"$k=$v" }.mkString(";")}",
+        )
 
         // a failure in recommitPending will prevent the processing of further records
         handleErrors(writerManager.recommitPending())
@@ -143,13 +144,13 @@ class S3SinkTask extends SinkTask with ErrorHandler {
         records.asScala.foreach {
           record =>
             val topicPartitionOffset =
-              Topic(record.topic).withPartition(record.kafkaPartition.intValue).withOffset(record.kafkaOffset)
+              Topic(record.topic).withPartition(record.kafkaPartition.intValue).withOffset(Offset(record.kafkaOffset))
             val msgDetails = MessageDetail(
-              keySinkData = Option(record.key()).fold(Option.empty[SinkData])(key =>
+              key = Option(record.key()).fold(Option.empty[SinkData])(key =>
                 Option(ValueToSinkDataConverter(key, Option(record.keySchema()))),
               ),
-              valueSinkData = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
-              headers       = HeaderToStringConverter(record),
+              value   = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
+              headers = HeaderToStringConverter(record),
               TimestampUtils.parseTime(Option(record.timestamp()).map(_.toLong))(_ =>
                 logger.debug(
                   s"Record timestamp is invalid ${record.timestamp()}",
@@ -157,6 +158,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
               ),
               Topic(record.topic()),
               record.kafkaPartition(),
+              Offset(record.kafkaOffset()),
             )
             handleErrors {
               writerManager.write(topicPartitionOffset, msgDetails)

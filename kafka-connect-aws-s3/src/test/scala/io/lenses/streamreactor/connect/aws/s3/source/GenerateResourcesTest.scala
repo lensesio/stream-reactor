@@ -19,6 +19,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode.KeyAndValueWithSizes
 import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
@@ -94,6 +95,7 @@ class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
                                            Some(Instant.now()),
                                            topic,
                                            0,
+                                           Offset(0),
                 ))
               }
               writer.complete() // TODO: FIX
@@ -133,6 +135,7 @@ class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
                     Some(Instant.now()),
                     topic,
                     0,
+                    Offset(0),
                   ),
                 )
               }

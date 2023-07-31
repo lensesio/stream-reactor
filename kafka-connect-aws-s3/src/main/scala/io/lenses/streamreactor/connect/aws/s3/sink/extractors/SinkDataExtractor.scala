@@ -33,7 +33,7 @@ object SinkDataExtractor extends LazyLogging {
   )(fieldNameOpt: Option[PartitionNamePath],
   ): Either[ExtractorError, String] =
     sinkData match {
-      case data: PrimitiveSinkData => data.safeVal().toString.asRight[ExtractorError]
+      case data: PrimitiveSinkData => data.safeValue.toString.asRight[ExtractorError]
       case ByteArraySinkData(array, _) => new String(array).asRight[ExtractorError]
       case other =>
         fieldNameOpt.fold(ExtractorError(ExtractorErrorType.FieldNameNotSpecified).asLeft[String])(fieldName =>

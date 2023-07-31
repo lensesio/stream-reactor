@@ -20,6 +20,7 @@ import io.lenses.streamreactor.connect.aws.s3.formats.writer.AvroFormatWriter
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
@@ -57,7 +58,14 @@ class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
     val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
     firstUsers.foreach(str =>
-      avroFormatWriter.write(MessageDetail(None, StructSinkData(str), Map.empty, Some(Instant.now()), topic, 0)),
+      avroFormatWriter.write(MessageDetail(None,
+                                           StructSinkData(str),
+                                           Map.empty,
+                                           Some(Instant.now()),
+                                           topic,
+                                           0,
+                                           Offset(0),
+      )),
     )
     avroFormatWriter.complete()
 

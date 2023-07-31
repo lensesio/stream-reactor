@@ -18,6 +18,7 @@ import cats.syntax.all._
 import com.datamountaineer.kcql.Kcql
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MAX_INDEX_FILES
@@ -25,14 +26,9 @@ import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink._
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.FileSize
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.Interval
-import io.lenses.streamreactor.connect.aws.s3.sink.config.S3FlushSettings.defaultFlushCount
-import io.lenses.streamreactor.connect.aws.s3.sink.config.S3FlushSettings.defaultFlushInterval
-import io.lenses.streamreactor.connect.aws.s3.sink.config.S3FlushSettings.defaultFlushSize
 
 import java.util
+import scala.jdk.CollectionConverters._
 
 object S3SinkConfig {
 
@@ -92,6 +88,9 @@ object SinkBucketOptions extends LazyLogging {
         }
         stagingArea <- LocalStagingArea(config)
         target      <- S3Location.splitAndValidate(kcql.getTarget, allowSlash = false)
+        storageSettings <- DataStorageSettings.from(
+          Option(kcql.getProperties).map(_.asScala.toMap).getOrElse(Map.empty),
+        )
       } yield {
         SinkBucketOptions(
           Option(kcql.getSource).filterNot(Set("*", "`*`").contains(_)),
@@ -101,6 +100,7 @@ object SinkBucketOptions extends LazyLogging {
           partitionSelection = partitionSelection,
           commitPolicy       = config.commitPolicy(kcql),
           localStagingArea   = stagingArea,
+          dataStorage        = storageSettings,
         )
       }
     }.toSeq.traverse(identity)
@@ -113,9 +113,9 @@ case class SinkBucketOptions(
   formatSelection:    FormatSelection,
   fileNamingStrategy: S3FileNamingStrategy,
   partitionSelection: Option[PartitionSelection] = None,
-  commitPolicy: CommitPolicy = CommitPolicy(FileSize(defaultFlushSize), Interval(defaultFlushInterval),
-    Count(defaultFlushCount)),
-  localStagingArea: LocalStagingArea,
+  commitPolicy:       CommitPolicy               = CommitPolicy.Default,
+  localStagingArea:   LocalStagingArea,
+  dataStorage:        DataStorageSettings,
 )
 
 case class OffsetSeekerOptions(

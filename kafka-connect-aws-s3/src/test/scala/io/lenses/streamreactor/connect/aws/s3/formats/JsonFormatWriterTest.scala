@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.NullNode
 import io.lenses.streamreactor.connect.aws.s3.formats.writer._
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
 import org.apache.kafka.connect.data.SchemaBuilder
@@ -32,7 +33,14 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    jsonFormatWriter.write(MessageDetail(None, StructSinkData(users.head), Map.empty, Some(Instant.now()), topic, 0))
+    jsonFormatWriter.write(MessageDetail(None,
+                                         StructSinkData(users.head),
+                                         Map.empty,
+                                         Some(Instant.now()),
+                                         topic,
+                                         0,
+                                         Offset(0),
+    ))
 
     outputStream.toString should be(recordsAsJson.head + "\n")
 
@@ -44,7 +52,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     firstUsers.foreach(e =>
       jsonFormatWriter.write(
-        MessageDetail(None, StructSinkData(e), Map.empty, Some(Instant.now()), topic, 0),
+        MessageDetail(None, StructSinkData(e), Map.empty, Some(Instant.now()), topic, 0, Offset(0)),
       ),
     )
 
@@ -56,7 +64,14 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    jsonFormatWriter.write(MessageDetail(None, StringSinkData("bees", None), Map.empty, Some(Instant.now()), topic, 0))
+    jsonFormatWriter.write(MessageDetail(None,
+                                         StringSinkData("bees", None),
+                                         Map.empty,
+                                         Some(Instant.now()),
+                                         topic,
+                                         0,
+                                         Offset(0),
+    ))
 
     val objectMapper = new ObjectMapper()
     val tree         = objectMapper.readTree(outputStream.toString())
@@ -74,6 +89,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
                                          Some(Instant.now()),
                                          topic,
                                          0,
+                                         Offset(0),
     ))
 
     val objectMapper = new ObjectMapper()
@@ -86,13 +102,16 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    jsonFormatWriter.write(MessageDetail(None,
-                                         StringSinkData("bees", Some(SchemaBuilder.string().build())),
-                                         Map.empty,
-                                         Some(Instant.now()),
-                                         topic,
-                                         0,
-    ))
+    jsonFormatWriter.write(
+      MessageDetail(None,
+                    StringSinkData("bees", Some(SchemaBuilder.string().build())),
+                    Map.empty,
+                    Some(Instant.now()),
+                    topic,
+                    0,
+                    Offset(0),
+      ),
+    )
 
     val objectMapper = new ObjectMapper()
     val tree         = objectMapper.readTree(outputStream.toString())
@@ -104,20 +123,26 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    jsonFormatWriter.write(MessageDetail(None,
-                                         StringSinkData("bees", Some(SchemaBuilder.string().build())),
-                                         Map.empty,
-                                         Some(Instant.now()),
-                                         topic,
-                                         0,
-    ))
-    jsonFormatWriter.write(MessageDetail(None,
-                                         StringSinkData("wasps", Some(SchemaBuilder.string().build())),
-                                         Map.empty,
-                                         Some(Instant.now()),
-                                         topic,
-                                         0,
-    ))
+    jsonFormatWriter.write(
+      MessageDetail(None,
+                    StringSinkData("bees", Some(SchemaBuilder.string().build())),
+                    Map.empty,
+                    Some(Instant.now()),
+                    topic,
+                    0,
+                    Offset(1),
+      ),
+    )
+    jsonFormatWriter.write(
+      MessageDetail(None,
+                    StringSinkData("wasps", Some(SchemaBuilder.string().build())),
+                    Map.empty,
+                    Some(Instant.now()),
+                    topic,
+                    0,
+                    Offset(2),
+      ),
+    )
 
     val lines     = outputStream.toString().split(System.lineSeparator())
     val treeLine1 = new ObjectMapper().readTree(lines(0))
@@ -143,6 +168,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
                     Some(Instant.now()),
                     topic,
                     0,
+                    Offset(0),
       ),
     )
 
@@ -169,6 +195,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
         Some(Instant.now()),
         topic,
         0,
+        Offset(0),
       ),
     )
 
@@ -196,6 +223,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
         Some(Instant.now()),
         topic,
         0,
+        Offset(0),
       ),
     )
 

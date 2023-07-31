@@ -40,11 +40,11 @@ class CsvFormatWriter(outputStream: S3OutputStream, writeHeaders: Boolean) exten
   override def write(messageDetail: MessageDetail): Either[Throwable, Unit] =
     Try {
       if (!fieldsWritten) {
-        writeFields(messageDetail.valueSinkData.schema().orNull)
+        writeFields(messageDetail.value.schema().orNull)
       }
       val nextRow = fields.map(PartitionNamePath(_))
         .map(path =>
-          adaptErrorResponse(SinkDataExtractor.extractPathFromSinkData(messageDetail.valueSinkData)(Some(path))).orNull,
+          adaptErrorResponse(SinkDataExtractor.extractPathFromSinkData(messageDetail.value)(Some(path))).orNull,
         )
       csvWriter.writeNext(nextRow)
       csvWriter.flush()

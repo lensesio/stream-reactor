@@ -28,12 +28,12 @@ class JsonFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter {
 
   override def write(messageDetail: MessageDetail): Either[Throwable, Unit] = {
     val topic         = messageDetail.topic
-    val valueSinkData = messageDetail.valueSinkData
+    val valueSinkData = messageDetail.value
     Try {
 
-      val dataBytes = messageDetail.valueSinkData match {
+      val dataBytes = messageDetail.value match {
         case data: PrimitiveSinkData =>
-          Converter.fromConnectData(topic.value, valueSinkData.schema().orNull, data.safeVal())
+          Converter.fromConnectData(topic.value, valueSinkData.schema().orNull, data.safeValue)
         case StructSinkData(structVal) =>
           Converter.fromConnectData(topic.value, valueSinkData.schema().orNull, structVal)
         case MapSinkData(map, schema) =>

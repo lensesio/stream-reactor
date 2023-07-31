@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 public class Kcql {
 
     public final static String TIMESTAMP = "sys_time()";
+    private String query;
     private boolean autoCreate;
     private boolean autoEvolve;
     private boolean enableCapitalize;
@@ -88,6 +89,14 @@ public class Kcql {
     private long withLockTime = -1;
 
     private final Map<String, String> properties = new HashMap<>();
+
+    public String getQuery() {
+        return query;
+    }
+
+    public void setQuery(String query){
+        this.query = query;
+    }
 
     public boolean getWithEncodeBase64() {
         return this.withEncodeBase64;
@@ -853,7 +862,7 @@ public class Kcql {
                         sb.append(",");
                         sb.append(units[i].toString());
                     }
-                    throw new IllegalArgumentException(("Invalid 'TIMESTAMPUNIT'. Available values are : " + sb.toString()));
+                    throw new IllegalArgumentException(("Invalid 'TIMESTAMPUNIT'. Available values are : " + sb));
                 }
             }
 

@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
@@ -43,7 +44,14 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
-    avroFormatWriter.write(MessageDetail(None, StructSinkData(users.head), Map.empty, Some(Instant.now()), topic, 0))
+    avroFormatWriter.write(MessageDetail(None,
+                                         StructSinkData(users.head),
+                                         Map.empty,
+                                         Some(Instant.now()),
+                                         topic,
+                                         0,
+                                         Offset(0),
+    ))
     avroFormatWriter.complete()
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
@@ -57,7 +65,14 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
     val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
     firstUsers.foreach(u =>
-      avroFormatWriter.write(MessageDetail(None, StructSinkData(u), Map.empty, Some(Instant.now()), topic, 0)),
+      avroFormatWriter.write(MessageDetail(None,
+                                           StructSinkData(u),
+                                           Map.empty,
+                                           Some(Instant.now()),
+                                           topic,
+                                           0,
+                                           Offset(0),
+      )),
     )
     avroFormatWriter.complete()
 
@@ -75,6 +90,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
                                          Some(Instant.now()),
                                          topic,
                                          0,
+                                         Offset(0),
     ))
     avroFormatWriter.complete()
 
@@ -94,6 +110,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
                                          Some(Instant.now()),
                                          topic,
                                          0,
+                                         Offset(0),
     ))
     avroFormatWriter.write(MessageDetail(None,
                                          IntSinkData(200, Some(Schema.OPTIONAL_INT32_SCHEMA)),
@@ -101,6 +118,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
                                          Some(Instant.now()),
                                          topic,
                                          0,
+                                         Offset(0),
     ))
     avroFormatWriter.complete()
 
@@ -130,6 +148,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
         Some(Instant.now()),
         topic,
         0,
+        Offset(0),
       ),
     )
     avroFormatWriter.complete()
@@ -160,6 +179,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
         Some(Instant.now()),
         topic,
         0,
+        Offset(0),
       ),
     )
     avroFormatWriter.write(
@@ -176,6 +196,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
         Some(Instant.now()),
         topic,
         0,
+        Offset(0),
       ),
     )
     avroFormatWriter.complete()
@@ -206,6 +227,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
         Some(Instant.now()),
         topic,
         0,
+        Offset(0),
       ),
     )
 
@@ -232,6 +254,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
         Some(Instant.now()),
         topic,
         0,
+        Offset(0),
       ),
     )
     avroFormatWriter.write(
@@ -248,6 +271,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
         Some(Instant.now()),
         topic,
         0,
+        Offset(0),
       ),
     )
     avroFormatWriter.complete()
@@ -273,20 +297,26 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
-    avroFormatWriter.write(MessageDetail(None,
-                                         ByteArraySinkData("Sausages".getBytes(), Some(byteSchema)),
-                                         Map.empty,
-                                         Some(Instant.now()),
-                                         topic,
-                                         0,
-    ))
-    avroFormatWriter.write(MessageDetail(None,
-                                         ByteArraySinkData("Mash".getBytes(), Some(byteSchema)),
-                                         Map.empty,
-                                         Some(Instant.now()),
-                                         topic,
-                                         0,
-    ))
+    avroFormatWriter.write(
+      MessageDetail(None,
+                    ByteArraySinkData("Sausages".getBytes(), Some(byteSchema)),
+                    Map.empty,
+                    Some(Instant.now()),
+                    topic,
+                    0,
+                    Offset(0),
+      ),
+    )
+    avroFormatWriter.write(
+      MessageDetail(None,
+                    ByteArraySinkData("Mash".getBytes(), Some(byteSchema)),
+                    Map.empty,
+                    Some(Instant.now()),
+                    topic,
+                    0,
+                    Offset(0),
+      ),
+    )
     avroFormatWriter.complete()
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)

@@ -51,16 +51,16 @@ class AvroFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: 
 
   override def rolloverFileOnSchemaChange() = true
 
-  override def write(messageDetail: MessageDetail): Either[Throwable, Unit] =
+  override def write(message: MessageDetail): Either[Throwable, Unit] =
     Try {
       val writerState = avroWriterState match {
         case Some(state) => state
         case None =>
-          val state = new AvroWriterState(outputStream, messageDetail.valueSinkData.schema())
+          val state = new AvroWriterState(outputStream, message.value.schema())
           avroWriterState = Some(state)
           state
       }
-      writerState.write(messageDetail.valueSinkData)
+      writerState.write(message.value)
     }.toEither
 
   override def complete(): Either[SinkError, Unit] =

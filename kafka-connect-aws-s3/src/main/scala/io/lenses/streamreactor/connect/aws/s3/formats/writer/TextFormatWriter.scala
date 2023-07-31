@@ -30,8 +30,8 @@ class TextFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter {
     Try {
 
       val dataBytes: Array[Byte] = Try {
-        messageDetail.valueSinkData match {
-          case data: PrimitiveSinkData => data.safeVal().toString.getBytes
+        messageDetail.value match {
+          case data: PrimitiveSinkData => data.safeValue.toString.getBytes
           case _ => throw FormatWriterException("Not a string")
         }
       } match {

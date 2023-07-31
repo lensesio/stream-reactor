@@ -36,7 +36,7 @@ class S3StoredFileTest extends AnyFlatSpec with Matchers {
 
     S3StoredFile("dragon-test/myTopicName/1/1.json") should be(Some(S3StoredFile(
       "dragon-test/myTopicName/1/1.json",
-      Topic("myTopicName").withPartition(1).withOffset(1),
+      Topic("myTopicName").withPartition(1).withOffset(Offset(1)),
     )))
   }
 
@@ -50,7 +50,7 @@ class S3StoredFileTest extends AnyFlatSpec with Matchers {
 
     S3StoredFile("dragon-test/myTopicName(1_2).json") should be(Some(S3StoredFile(
       "dragon-test/myTopicName(1_2).json",
-      Topic("myTopicName").withPartition(1).withOffset(2),
+      Topic("myTopicName").withPartition(1).withOffset(Offset(2)),
     )))
   }
 }

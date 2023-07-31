@@ -41,7 +41,7 @@ class BytesFormatWriter(outputStream: S3OutputStream, bytesWriteMode: BytesWrite
     )
 
     if (writeKeys) {
-      messageDetail.keySinkData.fold(throw FormatWriterException("No key supplied however requested to write key.")) {
+      messageDetail.key.fold(throw FormatWriterException("No key supplied however requested to write key.")) {
         keyStruct =>
           convertToBytes(keyStruct) match {
             case Left(exception) => return exception.asLeft
@@ -54,7 +54,7 @@ class BytesFormatWriter(outputStream: S3OutputStream, bytesWriteMode: BytesWrite
     }
 
     if (writeValues) {
-      convertToBytes(messageDetail.valueSinkData) match {
+      convertToBytes(messageDetail.value) match {
         case Left(exception) => return exception.asLeft
         case Right(valueDataBytes) => byteOutputRow = byteOutputRow.copy(
             valueSize = if (writeSizes) Some(valueDataBytes.length.longValue()) else None,

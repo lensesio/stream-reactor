@@ -131,18 +131,10 @@ class S3SourceConfigDef() extends ConfigDef with LazyLogging {
   def processStringKeyedProperties(stringProps: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
     var remappedProps: Map[String, Any] = stringProps
     for (proc <- processorChain) {
-      logger.info("START: Executing ConfigDef processor {} with props {}",
-                  proc.getClass.getSimpleName,
-                  writeInOrder(remappedProps),
-      )
       proc.process(remappedProps) match {
         case Left(exception)   => return exception.asLeft[Map[String, AnyRef]]
         case Right(properties) => remappedProps = properties
       }
-      logger.info("END: Executing ConfigDef processor {} with props {}",
-                  proc.getClass.getSimpleName,
-                  writeInOrder(remappedProps),
-      )
     }
     remappedProps.asRight
   }
