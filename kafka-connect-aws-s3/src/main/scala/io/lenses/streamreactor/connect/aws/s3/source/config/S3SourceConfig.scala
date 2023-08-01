@@ -96,7 +96,7 @@ case class SourceBucketOptions(
 }
 
 object SourceBucketOptions {
-  private val DEFAULT_RECORDS_LIMIT = 1024
+  private val DEFAULT_RECORDS_LIMIT = 10000
   private val DEFAULT_FILES_LIMIT   = 1000
 
   def apply(
