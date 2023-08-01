@@ -19,7 +19,6 @@ import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxOptionId
-import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions
@@ -36,7 +35,7 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
-class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoSugar with StrictLogging {
+class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoSugar {
   private val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
   "PartitionDiscovery" should "handle failure on PartitionSearcher and resume" in {
     val fileQueueProcessor: SourceFileQueue = mock[SourceFileQueue]

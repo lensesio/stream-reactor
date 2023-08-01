@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.state
 
-import cats.effect.unsafe.implicits.global
+import cats.effect.testing.scalatest.AsyncIOSpec
 import io.lenses.streamreactor.connect.aws.s3.config.AvroFormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
@@ -23,11 +23,11 @@ import io.lenses.streamreactor.connect.aws.s3.source.config.OrderingType
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.mockito.MockitoSugar.mock
-import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class ReaderManagerBuilderTest extends AnyFunSuite with Matchers {
-  test("Adapts the root to contain the path and calls the offsets with the adapter root") {
+class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Matchers {
+  "ReaderManagerBuilder" should "create a reader manager" in {
     val si = mock[StorageInterface]
     val root = S3Location(
       "bucket",
@@ -44,8 +44,8 @@ class ReaderManagerBuilderTest extends AnyFunSuite with Matchers {
     }
     val sbo    = SourceBucketOptions(root, "topic", AvroFormatSelection, 100, 100, None, OrderingType.LastModified)
     val taskId = ConnectorTaskId("test", 3, 1)
-    val io     = ReaderManagerBuilder(root, path, si, taskId, contextF, _ => Some(sbo))
-    io.unsafeRunSync()
-    rootValue shouldBe Some(root.copy(prefix = Some(path)))
+    ReaderManagerBuilder(root, path, si, taskId, contextF, _ => Some(sbo))
+      .asserting(_ => rootValue shouldBe Some(root.copy(prefix = Some(path))))
   }
+
 }
