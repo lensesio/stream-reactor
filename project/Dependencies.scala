@@ -85,7 +85,6 @@ object Dependencies {
     val guiceVersion     = "5.1.0"
     val javaxBindVersion = "2.3.1"
 
-    val kcqlVersion         = "3.0.0"
     val jacksonVersion      = "2.14.2"
     val json4sVersion       = "4.0.6"
     val mockitoScalaVersion = "1.17.12"
@@ -303,9 +302,6 @@ object Dependencies {
   lazy val hadoopHdfs:       ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-hdfs" % hadoopVersion)
   lazy val hadoopHdfsClient: ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-hdfs-client" % hadoopVersion)
 
-  lazy val kcql = ("com.datamountaineer" % "kcql" % kcqlVersion)
-    .exclude("com.google.guava", "guava")
-
   lazy val calciteCore = hiveExcludes("org.apache.calcite" % "calcite-core" % calciteVersion)
     .excludeAll(ExclusionRule(organization = "io.swagger"))
     .excludeAll(ExclusionRule(organization = "io.netty"))
@@ -506,7 +502,6 @@ trait Dependencies {
     jacksonModuleScala,
     jacksonDataformatCbor,
     avro4s,
-    kcql,
     calciteCore,
     calciteLinq4J,
     kafkaConnectJson,

@@ -27,6 +27,11 @@ A collection of components to build a real time ingestion pipeline.
 
 ## DEPRECATION NOTICE
 
+The following connectors have been deprecated and are no longer included in future releases:
+
+* Kudu
+* Hive
+
 The following connectors have been deprecated and are no longer included in any release from 3.0.
 
 * Blockchain

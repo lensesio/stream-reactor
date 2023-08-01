@@ -34,7 +34,7 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: S3Client)
+class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: S3Client, val batchDelete: Boolean)
     extends StorageInterface
     with LazyLogging {
 
@@ -161,10 +161,7 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
 
   override def close(): Unit = s3Client.close()
 
-  override def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = Try {
-    if (files.isEmpty) {
-      return ().asRight
-    }
+  private def batchDeleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = Try {
     s3Client.deleteObjects(
       DeleteObjectsRequest
         .builder()
@@ -184,6 +181,30 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
     case Failure(ex) => FileDeleteError(ex, files.mkString(" - ")).asLeft
     case Success(_)  => ().asRight
   }
+
+  private def loopDeleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] = Try {
+    for (f <- files) {
+      s3Client.deleteObject(
+        DeleteObjectRequest
+          .builder()
+          .bucket(bucket)
+          .key(f)
+          .build(),
+      )
+    }
+  } match {
+    case Failure(ex) => FileDeleteError(ex, files.mkString(" - ")).asLeft
+    case Success(_)  => ().asRight
+  }
+
+  override def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit] =
+    if (files.isEmpty) {
+      ().asRight
+    } else if (!batchDelete) {
+      loopDeleteFiles(bucket, files)
+    } else {
+      batchDeleteFiles(bucket, files)
+    }
 
   override def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String] =
     for {

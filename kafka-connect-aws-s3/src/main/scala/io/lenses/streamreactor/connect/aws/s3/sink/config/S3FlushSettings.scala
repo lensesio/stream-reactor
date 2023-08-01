@@ -18,7 +18,11 @@ package io.lenses.streamreactor.connect.aws.s3.sink.config
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.DISABLE_FLUSH_COUNT
-import io.lenses.streamreactor.connect.aws.s3.sink.DefaultCommitPolicy
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicyCondition
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.FileSize
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Interval
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.DurationLong
@@ -26,9 +30,9 @@ import scala.concurrent.duration.FiniteDuration
 
 object S3FlushSettings {
 
-  val defaultFlushSize     = 500000000
-  val defaultFlushInterval = 3600.seconds
-  val defaultFlushCount    = 50000L
+  val defaultFlushSize:     Long           = 500000000L
+  val defaultFlushInterval: FiniteDuration = 3600.seconds
+  val defaultFlushCount:    Long           = 50000L
 
 }
 
@@ -42,17 +46,20 @@ trait S3FlushSettings extends BaseSettings {
   private def isFlushCountEnabled: Boolean =
     !isFlushCountDisabled
 
-  def commitPolicy(kcql: Kcql) = DefaultCommitPolicy(
-    fileSize    = flushSize(kcql),
-    interval    = Option(flushInterval(kcql)),
-    recordCount = flushCount(kcql),
-  )
+  def commitPolicy(kcql: Kcql): CommitPolicy = {
+    val conditions: Seq[CommitPolicyCondition] = Seq(
+      FileSize(flushSize(kcql)),
+      Interval(flushInterval(kcql)),
+    ) ++
+      flushCount(kcql).fold(Seq.empty[CommitPolicyCondition])(c => Seq(Count(c)))
+    CommitPolicy(conditions: _*)
+  }
 
   private def flushInterval(kcql: Kcql): FiniteDuration =
     Option(kcql.getWithFlushInterval).filter(_ > 0).map(_.seconds).getOrElse(defaultFlushInterval)
 
-  private def flushSize(kcql: Kcql): Option[Long] =
-    Option(kcql.getWithFlushSize).filter(_ > 0).orElse(Some(defaultFlushSize.toLong))
+  private def flushSize(kcql: Kcql): Long =
+    Option(kcql.getWithFlushSize).filter(_ > 0).getOrElse(defaultFlushSize)
 
   private def flushCount(kcql: Kcql): Option[Long] =
     if (isFlushCountEnabled) {
@@ -60,4 +67,5 @@ trait S3FlushSettings extends BaseSettings {
     } else {
       None
     }
+
 }

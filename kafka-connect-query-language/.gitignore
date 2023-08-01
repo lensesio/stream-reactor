@@ -1,0 +1,28 @@
+/docs/build
+/*.iml
+/*/sample.db
+/.idea
+/.gradle
+/build
+/configs
+/*/build
+*.class
+*.log
+temp
+
+# sbt specific
+.cache
+.history
+.lib/
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# Scala-IDE specific
+.scala_dependencies
+.worksheet
+src/main/java/com/datamountaineer/connector/config/antlr4/
+/src/main/java/com/datamountaineer/kcql/antlr4/

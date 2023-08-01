@@ -25,6 +25,8 @@ import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
 import io.lenses.streamreactor.connect.aws.s3.sink.config.LocalStagingArea
 import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
@@ -60,7 +62,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       SinkBucketOptions(
         TopicName.some,
         bucketAndPrefix,
-        commitPolicy       = DefaultCommitPolicy(None, None, Some(2)),
+        commitPolicy       = CommitPolicy(Count(2)),
         formatSelection    = AvroFormatSelection,
         fileNamingStrategy = new HierarchicalS3FileNamingStrategy(AvroFormatSelection, NoOpPaddingStrategy),
         localStagingArea   = LocalStagingArea(localRoot),
@@ -68,6 +70,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     ),
     offsetSeekerOptions = OffsetSeekerOptions(5),
     compressionCodec    = compressionCodec,
+    batchDelete         = true,
   )
 
   "avro sink" should "write 2 records to avro format in s3" in {

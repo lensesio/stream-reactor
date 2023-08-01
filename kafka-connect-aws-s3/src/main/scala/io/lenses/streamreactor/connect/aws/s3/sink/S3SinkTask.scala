@@ -69,7 +69,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
     val errOrWriterMan = for {
       config          <- S3SinkConfig.fromProps(props)
       s3Client        <- AwsS3ClientCreator.make(config.s3Config)
-      storageInterface = new AwsS3StorageInterface(connectorTaskId, s3Client)
+      storageInterface = new AwsS3StorageInterface(connectorTaskId, s3Client, config.batchDelete)
       _               <- Try(setErrorRetryInterval(config.s3Config)).toEither
       writerManager   <- Try(S3WriterManager.from(config)(connectorTaskId, storageInterface)).toEither
       _ <- Try(initialize(

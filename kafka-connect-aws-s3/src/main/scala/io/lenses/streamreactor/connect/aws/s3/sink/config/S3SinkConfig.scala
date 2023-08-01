@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.config
-
 import cats.syntax.all._
 import com.datamountaineer.kcql.Kcql
 import com.typesafe.scalalogging.LazyLogging
@@ -25,6 +24,10 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MAX_I
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink._
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.FileSize
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Interval
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3FlushSettings.defaultFlushCount
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3FlushSettings.defaultFlushInterval
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3FlushSettings.defaultFlushSize
@@ -57,6 +60,7 @@ object S3SinkConfig {
       sinkBucketOptions,
       offsetSeekerOptions,
       s3ConfigDefBuilder.getCompressionCodec(),
+      s3ConfigDefBuilder.batchDelete(),
     )
 
 }
@@ -66,6 +70,7 @@ case class S3SinkConfig(
   bucketOptions:       Seq[SinkBucketOptions] = Seq.empty,
   offsetSeekerOptions: OffsetSeekerOptions,
   compressionCodec:    CompressionCodec,
+  batchDelete:         Boolean,
 )
 
 object SinkBucketOptions extends LazyLogging {
@@ -108,8 +113,8 @@ case class SinkBucketOptions(
   formatSelection:    FormatSelection,
   fileNamingStrategy: S3FileNamingStrategy,
   partitionSelection: Option[PartitionSelection] = None,
-  commitPolicy: CommitPolicy = DefaultCommitPolicy(Some(defaultFlushSize.toLong), Some(defaultFlushInterval),
-    Some(defaultFlushCount)),
+  commitPolicy: CommitPolicy = CommitPolicy(FileSize(defaultFlushSize), Interval(defaultFlushInterval),
+    Count(defaultFlushCount)),
   localStagingArea: LocalStagingArea,
 )
 

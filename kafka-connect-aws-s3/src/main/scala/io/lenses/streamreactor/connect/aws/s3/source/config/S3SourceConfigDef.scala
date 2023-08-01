@@ -157,7 +157,8 @@ case class S3SourceConfigDefBuilder(props: util.Map[String, String])
     with UserSettings
     with ConnectionSettings
     with CompressionCodecSettings
-    with SourcePartitionSearcherSettings {
+    with SourcePartitionSearcherSettings
+    with DeleteModeSettings {
 
   def getParsedValues: Map[String, _] = values().asScala.toMap
 
