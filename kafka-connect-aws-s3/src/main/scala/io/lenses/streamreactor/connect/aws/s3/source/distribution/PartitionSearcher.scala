@@ -36,7 +36,7 @@ class PartitionSearcher(
   def find(
     lastFound: Seq[PartitionSearcherResponse],
   ): IO[Seq[PartitionSearcherResponse]] =
-    if (lastFound.isEmpty && roots.nonEmpty) {
+    if (lastFound.isEmpty) {
       roots.traverse(findNewPartitionsInRoot(_, settings, Set.empty))
     } else {
       lastFound.traverse {
