@@ -39,14 +39,14 @@ object PartitionDiscovery extends LazyLogging {
     cancelledRef:          Ref[IO, Boolean],
   ): IO[Unit] = {
     val task = for {
-      _        <- IO(logger.info(s"[${connectorTaskId.show}] Starting the partition discovery task"))
+      _        <- IO(logger.info(s"[${connectorTaskId.show}] Starting the partition discovery task."))
       oldState <- readerManagerState.get
       newParts <- partitionSearcher(oldState.partitionResponses)
       tuples    = newParts.flatMap(part => part.results.partitions.map(part.root -> _))
       newReaderManagers <- tuples
         .map {
           case (location, path) =>
-            logger.info(s"[${connectorTaskId.show}] Creating a new reader manager for ${location.toString} $path")
+            logger.info(s"[${connectorTaskId.show}] Creating a new reader manager for [$path].")
             readerManagerCreateFn(location, path)
         }.traverse(identity)
       newState = oldState.copy(
@@ -54,30 +54,24 @@ object PartitionDiscovery extends LazyLogging {
         readerManagers     = oldState.readerManagers ++ newReaderManagers,
       )
       _ <- readerManagerState.set(newState)
-      _ <- IO(logger.info(s"[${connectorTaskId.show}] Finished the partition discovery task"))
+      _ <- IO(logger.info(s"[${connectorTaskId.show}] Finished the partition discovery task."))
     } yield ()
 
     if (!settings.continuous) {
-      IO.delay(logger.info(s"[${connectorTaskId.show}] Partition discovery task will only run once")) >>
+      IO.delay(logger.info(s"[${connectorTaskId.show}] Partition discovery task will only run once.")) >>
         PollLoop.oneOfIgnoreError(
           settings.interval,
           cancelledRef,
-          err =>
-            logger.error(
-              s"[${connectorTaskId.show}] Error in partition discovery task. Partition discovery will resume.",
-              err,
-            ),
+          logError(_, connectorTaskId),
         )(() => task)
     } else {
-      IO.delay(logger.info(s"[${connectorTaskId.show}] Partition discovery task will run continuously")) >>
-        PollLoop.run(settings.interval, cancelledRef)(() =>
-          task.handleErrorWith { err =>
-            IO(logger.error(
-              s"[${connectorTaskId.show}] Error in partition discovery task. Partition discovery will resume.",
-              err,
-            ))
-          },
-        )
+      IO.delay(logger.info(s"[${connectorTaskId.show}] Partition discovery task will run continuously.")) >>
+        PollLoop.run(settings.interval, cancelledRef)(() => task.handleErrorWith(logError(_, connectorTaskId)))
     }
   }
+
+  private def logError(err: Throwable, connectorTaskId: ConnectorTaskId): IO[Unit] = IO(logger.error(
+    s"[${connectorTaskId.show}] Error in partition discovery task. Partition discovery will resume.",
+    err,
+  ))
 }
