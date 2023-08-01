@@ -19,6 +19,7 @@ import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxOptionId
+import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions
@@ -35,7 +36,7 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
-class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoSugar {
+class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoSugar with StrictLogging {
   private val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
   "PartitionDiscovery" should "handle failure on PartitionSearcher and resume" in {
     val fileQueueProcessor: SourceFileQueue = mock[SourceFileQueue]
@@ -59,13 +60,15 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         for {
           c <- count.getAndUpdate(_ + 1)
           _ <- if (c == 0) IO.raiseError(new RuntimeException("error")) else IO.unit
-        } yield List(
-          PartitionSearcherResponse(S3Location("bucket", None),
-                                    Set("prefix1/", "prefix2/"),
-                                    DirectoryFindResults(Set("prefix1/", "prefix2/")),
-                                    None,
-          ),
-        )
+        } yield {
+          List(
+            PartitionSearcherResponse(S3Location("bucket", None),
+                                      Set("prefix1/", "prefix2/"),
+                                      DirectoryFindResults(Set("prefix1/", "prefix2/")),
+                                      None,
+            ),
+          )
+        }
     }
 
     val io = for {
@@ -73,6 +76,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
       readerRef    <- Ref[IO].of(Option.empty[ResultReader])
       state        <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
       fiber <- PartitionDiscovery.run(
+        connectorTaskId,
         options,
         searcherMock.find,
         (_, _) =>
@@ -80,7 +84,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         state,
         cancelledRef,
       ).start
-      _              <- IO.sleep(400.millis)
+      _              <- IO.sleep(1000.millis)
       _              <- cancelledRef.set(true)
       _              <- fiber.join
       readerMgrState <- state.get
@@ -117,6 +121,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
       readerRef    <- Ref[IO].of(Option.empty[ResultReader])
       state        <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
       fiber <- PartitionDiscovery.run(
+        connectorTaskId,
         options,
         new PartitionSearcher(List(
                                 S3Location("bucket", None),
@@ -130,7 +135,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         state,
         cancelledRef,
       ).start
-      _              <- IO.sleep(400.millis)
+      _              <- IO.sleep(1000.millis)
       _              <- cancelledRef.set(true)
       _              <- fiber.join
       readerMgrState <- state.get
@@ -176,6 +181,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         ),
       )
       fiber <- PartitionDiscovery.run(
+        connectorTaskId,
         options,
         new PartitionSearcher(List(
                                 S3Location("bucket", None),
@@ -189,7 +195,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         state,
         cancelledRef,
       ).start
-      _              <- IO.sleep(400.millis)
+      _              <- IO.sleep(1000.millis)
       _              <- cancelledRef.set(true)
       _              <- fiber.join
       readerMgrState <- state.get
@@ -227,6 +233,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
       readerRef    <- Ref[IO].of(Option.empty[ResultReader])
       state        <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
       fiber <- PartitionDiscovery.run(
+        connectorTaskId,
         options,
         new PartitionSearcher(List(
                                 S3Location("bucket", "prefix1/".some),
@@ -240,7 +247,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         state,
         cancelledRef,
       ).start
-      _              <- IO.sleep(400.millis)
+      _              <- IO.sleep(1000.millis)
       _              <- cancelledRef.set(true)
       _              <- fiber.join
       readerMgrState <- state.get
@@ -257,5 +264,61 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         ),
       ),
     )
+  }
+
+  "PartitionDiscovery" should "discover all partitions when prefix is used and apply the distribution across tasks" in {
+    val fileQueueProcessor: SourceFileQueue = mock[SourceFileQueue]
+    val limit = 10
+
+    val s3Client = new MockS3Client(
+      S3Page(
+        "prefix1/subprefix_abc/1.txt",
+        "prefix1/subprefix_xyz01/2.txt",
+        "prefix1/subprefix_untitled/3.txt",
+      ),
+    )
+    val options = PartitionSearcherOptions(1, true, 100.millis)
+    List(0 -> "prefix1/subprefix_abc/", 1 -> "prefix1/subprefix_untitled/", 2 -> "prefix1/subprefix_xyz01/").foreach {
+      case (i, partition) =>
+        val taskId = ConnectorTaskId("sinkName", 3, i)
+        val io = for {
+          cancelledRef <- Ref[IO].of(false)
+          readerRef    <- Ref[IO].of(Option.empty[ResultReader])
+          state        <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
+          fiber <- PartitionDiscovery.run(
+            taskId,
+            options,
+            new PartitionSearcher(List(
+                                    S3Location("bucket", "prefix1/".some),
+                                  ),
+                                  options,
+                                  taskId,
+                                  s3Client.listObjectsV2Paginator(_).iterator().asScala,
+            ).find,
+            (
+              _,
+              _,
+            ) => IO(ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), taskId, readerRef)),
+            state,
+            cancelledRef,
+          ).start
+          _              <- IO.sleep(1000.millis)
+          _              <- cancelledRef.set(true)
+          _              <- fiber.join
+          readerMgrState <- state.get
+        } yield readerMgrState
+
+        val state = io.unsafeRunSync()
+        assert(
+          state.partitionResponses == List(
+            PartitionSearcherResponse(
+              S3Location("bucket", "prefix1/".some),
+              Set(partition),
+              DirectoryFindResults(Set.empty),
+              None,
+            ),
+          ),
+        )
+    }
   }
 }

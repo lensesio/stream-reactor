@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.seek
 
-import cats.implicits.toShow
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
 
@@ -33,7 +32,7 @@ object IndexFilenames {
     * Generate the directory of the index for a given topic and partition
     */
   def indexForTopicPartition(topic: String, partition: Int)(implicit connectorTaskId: ConnectorTaskId): String =
-    f".indexes/${connectorTaskId.show}/$topic/$partition%05d/"
+    f".indexes/${connectorTaskId.name}/$topic/$partition%05d/"
 
   /**
     * Parses an index filename and returns an offset
