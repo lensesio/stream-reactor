@@ -66,12 +66,14 @@ object PartitionDiscovery extends LazyLogging {
         )(() => task)
     } else {
       IO.delay(logger.info(s"[${connectorTaskId.show}] Partition discovery task will run continuously.")) >>
-        PollLoop.run(settings.interval, cancelledRef)(() => task.handleErrorWith(logError(_, connectorTaskId)))
+        PollLoop.run(settings.interval, cancelledRef)(() =>
+          task.handleErrorWith(err => IO.delay(logError(err, connectorTaskId))),
+        )
     }
   }
 
-  private def logError(err: Throwable, connectorTaskId: ConnectorTaskId): IO[Unit] = IO(logger.error(
+  private def logError(err: Throwable, connectorTaskId: ConnectorTaskId): Unit = logger.error(
     s"[${connectorTaskId.show}] Error in partition discovery task. Partition discovery will resume.",
     err,
-  ))
+  )
 }
