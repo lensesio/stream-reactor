@@ -34,7 +34,7 @@
 
     <properties>
         <java.version>8</java.version>
-
+        <com.google.guava.version>32.0.1-jre</com.google.guava.version>
         <confluent.version>6.0.10</confluent.version>
         <debezium.version>0.6.2</debezium.version>
         <google.auth.version>0.21.1</google.auth.version>
@@ -177,6 +177,11 @@
                 <groupId>io.debezium</groupId>
                 <artifactId>debezium-core</artifactId>
                 <version>${debezium.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${com.google.guava.version}</version>
             </dependency>
 
             <!--
