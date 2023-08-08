@@ -35,6 +35,7 @@
     <properties>
         <java.version>8</java.version>
         <com.google.guava.version>32.0.1-jre</com.google.guava.version>
+        <com.google.auto.value.version>1.10.2</com.google.auto.value.version>
         <confluent.version>6.0.10</confluent.version>
         <debezium.version>0.6.2</debezium.version>
         <jackson.version>2.10.2</jackson.version>
@@ -127,6 +128,12 @@
                 <version>${google.cloud.bom.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.auto.value</groupId>
+                        <artifactId>auto-value</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <!-- Child projects -->
             <dependency>
@@ -173,6 +180,11 @@
                 <artifactId>jackson-core</artifactId>
                 <version>${jackson.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+            <groupId>com.google.auto.value</groupId>
+            <artifactId>auto-value</artifactId>
+            <version>${com.google.auto.value.version}</version>
             </dependency>
             <dependency>
                 <groupId>junit</groupId>
