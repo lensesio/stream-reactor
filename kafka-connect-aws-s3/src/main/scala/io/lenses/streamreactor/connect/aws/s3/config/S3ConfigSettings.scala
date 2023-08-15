@@ -124,7 +124,7 @@ object S3ConfigSettings {
   val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS: String = s"$CONNECTOR_PREFIX.partition.search.recurse.levels"
   val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DOC: String =
     "When searching for new partitions on the S3 filesystem, how many levels deep to recurse."
-  val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DEFAULT: Int = 3
+  val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DEFAULT: Int = 0
 
   val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS: String = s"$CONNECTOR_PREFIX.partition.search.interval"
   val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DOC: String =
