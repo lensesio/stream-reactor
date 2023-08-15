@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
-import com.typesafe.scalalogging.Logger
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
@@ -23,7 +22,6 @@ import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.slf4j.{ Logger => Slf4jLogger }
 
 import scala.concurrent.duration._
 

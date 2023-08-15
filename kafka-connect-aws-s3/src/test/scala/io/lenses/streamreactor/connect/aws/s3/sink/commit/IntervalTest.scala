@@ -15,16 +15,14 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
-import cats.implicits.catsSyntaxOptionId
-import cats.implicits.none
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import java.time.temporal.ChronoUnit
 import java.time._
+import java.time.temporal.ChronoUnit
 
 class IntervalTest extends AnyFlatSpec with Matchers with EitherValues with MockitoSugar with BeforeAndAfter {
 

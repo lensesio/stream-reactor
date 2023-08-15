@@ -15,8 +15,6 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
-import cats.implicits.catsSyntaxOptionId
-import cats.implicits.none
 import org.mockito.MockitoSugar
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
