@@ -34,29 +34,29 @@ class CountTest extends AnyFlatSpec with Matchers with EitherValues with Mockito
 
   "count" should "return false when count not reached yet" in {
     count
-      .eval(commitContext(99), debugEnabled = true) should
-      be(ConditionCommitResult(commitTriggered = false, "count: '99/100'".some))
+      .eval(commitContext(99)) should
+      be(ConditionCommitResult(false))
     count
-      .eval(commitContext(99), debugEnabled = false) should
-      be(ConditionCommitResult(commitTriggered = false, none))
+      .eval(commitContext(99)) should
+      be(ConditionCommitResult(false))
   }
 
   "count" should "return true when count reached" in {
     count
-      .eval(commitContext(100), debugEnabled = true) should
-      be(ConditionCommitResult(commitTriggered = true, "count*: '100/100'".some))
+      .eval(commitContext(100)) should
+      be(ConditionCommitResult(true))
     count
-      .eval(commitContext(100), debugEnabled = false) should
-      be(ConditionCommitResult(commitTriggered = true, none))
+      .eval(commitContext(100)) should
+      be(ConditionCommitResult(true))
   }
 
   "count" should "return true when count exceeded" in {
     count
-      .eval(commitContext(101), debugEnabled = true) should
-      be(ConditionCommitResult(commitTriggered = true, "count*: '101/100'".some))
+      .eval(commitContext(101)) should
+      be(ConditionCommitResult(true))
     count
-      .eval(commitContext(101), debugEnabled = false) should
-      be(ConditionCommitResult(commitTriggered = true, none))
+      .eval(commitContext(101)) should
+      be(ConditionCommitResult(true))
   }
 
 }

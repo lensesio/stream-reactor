@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
 import com.typesafe.scalalogging.Logger
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
@@ -41,13 +42,16 @@ class CommitPolicyTest extends AnyWordSpec with Matchers with MockitoSugar {
     val lastFlushTimeAdjusted: Option[Long] = lastFlushTimestampAdjust.fold(Option.empty[Long])(e => Some(nowTime + e))
     val tpo = TopicPartitionOffset(Topic("myTopic"), 1, Offset(100))
 
-    policy.shouldFlush(CommitContext(tpo,
-                                     count,
-                                     fileSize,
-                                     creationTimeAdjusted,
-                                     lastFlushTimeAdjusted,
-                                     "my/filename.txt",
-    ))
+    policy.shouldFlush(
+      CommitContext(tpo,
+                    count,
+                    fileSize,
+                    creationTimeAdjusted,
+                    lastFlushTimeAdjusted,
+                    "my/filename.txt",
+                    ConnectorTaskId("connector", 1, 0),
+      ),
+    )
   }
 
   "CommitPolicy" should {
@@ -88,16 +92,6 @@ class CommitPolicyTest extends AnyWordSpec with Matchers with MockitoSugar {
       val policy = CommitPolicy(Interval(1.seconds), Count(100), FileSize(10))
 
       shouldFlush(policy, 7, 10) shouldBe true
-    }
-
-    "should be resilient to logger failure" in {
-      val underlyingLogger = mock[Slf4jLogger]
-      when(underlyingLogger.isDebugEnabled)
-        .thenThrow(new ClassNotFoundException("Turn back while you can"))
-        .andThenAnswer(false)
-
-      val policy = CommitPolicy(Logger(underlyingLogger), Count(100))
-      shouldFlush(policy, 100, 10) shouldBe true
     }
   }
 

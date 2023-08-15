@@ -40,61 +40,57 @@ class IntervalTest extends AnyFlatSpec with Matchers with EitherValues with Mock
   "interval" should "return false when still on last modified date" in {
 
     when(clock.instant()).thenReturn(lastModifiedDate)
-    interval.eval(commitContext(lastModifiedDate.toEpochMilli), debugEnabled = true) should
+    interval.eval(commitContext(lastModifiedDate.toEpochMilli)) should
       be(
         ConditionCommitResult(
           commitTriggered = false,
-          "interval: {frequency:600s, in:600s, lastFlush:1939-05-01T11:00:01, nextFlush:1939-05-01T11:10:01}".some,
         ),
       )
     interval
-      .eval(commitContext(lastModifiedDate.toEpochMilli), debugEnabled = false) should
-      be(ConditionCommitResult(commitTriggered = false, none))
+      .eval(commitContext(lastModifiedDate.toEpochMilli)) should
+      be(ConditionCommitResult(commitTriggered = false))
   }
 
   "interval" should "return false when interval not reached yet" in {
     val lastModifiedPlus9 = lastModifiedDate.plus(9, ChronoUnit.MINUTES)
 
     when(clock.instant()).thenReturn(lastModifiedPlus9)
-    interval.eval(commitContext(lastModifiedDate.toEpochMilli), debugEnabled = true) should
+    interval.eval(commitContext(lastModifiedDate.toEpochMilli)) should
       be(
         ConditionCommitResult(
           commitTriggered = false,
-          "interval: {frequency:600s, in:60s, lastFlush:1939-05-01T11:00:01, nextFlush:1939-05-01T11:10:01}".some,
         ),
       )
-    interval.eval(commitContext(lastModifiedDate.toEpochMilli), debugEnabled = false) should
-      be(ConditionCommitResult(commitTriggered = false, none))
+    interval.eval(commitContext(lastModifiedDate.toEpochMilli)) should
+      be(ConditionCommitResult(commitTriggered = false))
   }
 
   "interval" should "return true when interval reached" in {
     val lastModifiedPlus10 = lastModifiedDate.plus(10, ChronoUnit.MINUTES)
 
     when(clock.instant()).thenReturn(lastModifiedPlus10)
-    interval.eval(commitContext(lastModifiedDate.toEpochMilli), debugEnabled = true) should
+    interval.eval(commitContext(lastModifiedDate.toEpochMilli)) should
       be(
         ConditionCommitResult(
           commitTriggered = true,
-          "interval*: {frequency:600s, in:0s, lastFlush:1939-05-01T11:00:01, nextFlush:1939-05-01T11:10:01}".some,
         ),
       )
-    interval.eval(commitContext(lastModifiedDate.toEpochMilli), debugEnabled = false) should
-      be(ConditionCommitResult(commitTriggered = true, none))
+    interval.eval(commitContext(lastModifiedDate.toEpochMilli)) should
+      be(ConditionCommitResult(commitTriggered = true))
   }
 
   "interval" should "return true when interval exceeded" in {
     val lastModifiedPlus11 = lastModifiedDate.plus(10, ChronoUnit.MINUTES)
     when(clock.instant()).thenReturn(lastModifiedPlus11)
 
-    interval.eval(commitContext(lastModifiedDate.toEpochMilli), debugEnabled = true) should
+    interval.eval(commitContext(lastModifiedDate.toEpochMilli)) should
       be(
         ConditionCommitResult(
           commitTriggered = true,
-          "interval*: {frequency:600s, in:0s, lastFlush:1939-05-01T11:00:01, nextFlush:1939-05-01T11:10:01}".some,
         ),
       )
-    interval.eval(commitContext(lastModifiedDate.toEpochMilli), debugEnabled = false) should
-      be(ConditionCommitResult(commitTriggered = true, none))
+    interval.eval(commitContext(lastModifiedDate.toEpochMilli)) should
+      be(ConditionCommitResult(commitTriggered = true))
   }
 
   private def commitContext(lastModified: Long): CommitContext = {

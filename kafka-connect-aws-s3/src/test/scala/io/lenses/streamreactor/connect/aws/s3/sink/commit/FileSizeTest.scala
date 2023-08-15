@@ -34,29 +34,29 @@ class FileSizeTest extends AnyFlatSpec with Matchers with EitherValues with Mock
 
   "fileSize" should "return false when fileSize not reached yet" in {
     fileSize
-      .eval(commitContext(99), debugEnabled = true) should
-      be(ConditionCommitResult(commitTriggered = false, "fileSize: '99/100'".some))
+      .eval(commitContext(99)) should
+      be(ConditionCommitResult(false))
     fileSize
-      .eval(commitContext(99), debugEnabled = false) should
-      be(ConditionCommitResult(commitTriggered = false, none))
+      .eval(commitContext(99)) should
+      be(ConditionCommitResult(false))
   }
 
   "fileSize" should "return true when fileSize reached" in {
     fileSize
-      .eval(commitContext(100), debugEnabled = true) should
-      be(ConditionCommitResult(commitTriggered = true, "fileSize*: '100/100'".some))
+      .eval(commitContext(100)) should
+      be(ConditionCommitResult(true))
     fileSize
-      .eval(commitContext(100), debugEnabled = false) should
-      be(ConditionCommitResult(commitTriggered = true, none))
+      .eval(commitContext(100)) should
+      be(ConditionCommitResult(true))
   }
 
   "fileSize" should "return true when fileSize exceeded" in {
     fileSize
-      .eval(commitContext(101), debugEnabled = true) should
-      be(ConditionCommitResult(commitTriggered = true, "fileSize*: '101/100'".some))
+      .eval(commitContext(101)) should
+      be(ConditionCommitResult(true))
     fileSize
-      .eval(commitContext(101), debugEnabled = false) should
-      be(ConditionCommitResult(commitTriggered = true, none))
+      .eval(commitContext(101)) should
+      be(ConditionCommitResult(true))
   }
 
 }
