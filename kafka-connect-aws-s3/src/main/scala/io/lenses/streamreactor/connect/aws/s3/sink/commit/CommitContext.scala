@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
 
 /**
@@ -29,6 +30,7 @@ case class CommitContext(
   createdTimestamp:     Long,
   lastFlushedTimestamp: Option[Long],
   partitionFile:        String,
+  connectorTaskId:      ConnectorTaskId,
 ) {
   def lastModified = lastFlushedTimestamp.getOrElse(createdTimestamp)
 }

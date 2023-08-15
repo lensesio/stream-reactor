@@ -59,7 +59,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
   }
 
   "Values with Size" should "round trip" in {
-    val data= List(
+    val data = List(
       "record 1 value".some,
       "record 2 value".some,
       "record 3 value".some,
@@ -69,8 +69,10 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val writer       = new BytesFormatWriter(outputStream, BytesWriteMode.ValueWithSize)
     val topic        = Topic("myTopic")
     data.foreach {
-      case   value =>
-        val v: SinkData         = value.fold(NullSinkData(None).asInstanceOf[SinkData])(v => ByteArraySinkData(v.getBytes(), None).asInstanceOf[SinkData])
+      case value =>
+        val v: SinkData = value.fold(NullSinkData(None).asInstanceOf[SinkData])(v =>
+          ByteArraySinkData(v.getBytes(), None).asInstanceOf[SinkData],
+        )
         writer.write(None, v, topic)
     }
 
@@ -87,7 +89,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
         withClue(s"value: $value") {
           val byteArraySourceData = reader.next()
           Option(byteArraySourceData.data.key).filter(_.nonEmpty) shouldBe None
-          Option(byteArraySourceData.data.value).filter(_.nonEmpty).map(new String(_))  shouldBe value
+          Option(byteArraySourceData.data.value).filter(_.nonEmpty).map(new String(_)) shouldBe value
         }
     }
   }
@@ -100,11 +102,13 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
       None,
     )
     val outputStream = new S3ByteArrayOutputStream()
-    val writer = new BytesFormatWriter(outputStream, BytesWriteMode.KeyWithSize)
-    val topic = Topic("myTopic")
+    val writer       = new BytesFormatWriter(outputStream, BytesWriteMode.KeyWithSize)
+    val topic        = Topic("myTopic")
     data.foreach {
       case value =>
-        val v: SinkData = value.fold(NullSinkData(None).asInstanceOf[SinkData])(v => ByteArraySinkData(v.getBytes(), None).asInstanceOf[SinkData])
+        val v: SinkData = value.fold(NullSinkData(None).asInstanceOf[SinkData])(v =>
+          ByteArraySinkData(v.getBytes(), None).asInstanceOf[SinkData],
+        )
         writer.write(v.some, NullSinkData(None), topic)
     }
 
@@ -129,17 +133,19 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
   "Values and Keys" should "round trip" in {
     val data: List[(Option[String], Option[String])] = List(
       Option.empty[String] -> "record 1 value".some,
-      "record 2 key".some -> "record 2 value".some,
-      None -> "record 3 value".some,
-      "record 4 key".some -> None,
+      "record 2 key".some  -> "record 2 value".some,
+      None                 -> "record 3 value".some,
+      "record 4 key".some  -> None,
     )
     val outputStream = new S3ByteArrayOutputStream()
-    val writer = new BytesFormatWriter(outputStream, BytesWriteMode.KeyAndValueWithSizes)
-    val topic = Topic("myTopic")
+    val writer       = new BytesFormatWriter(outputStream, BytesWriteMode.KeyAndValueWithSizes)
+    val topic        = Topic("myTopic")
     data.foreach {
       case (key, value) =>
         val k: Option[SinkData] = key.map(v => ByteArraySinkData(v.getBytes()))
-        val v: SinkData = value.fold(NullSinkData(None).asInstanceOf[SinkData])(v => ByteArraySinkData(v.getBytes(), None).asInstanceOf[SinkData])
+        val v: SinkData = value.fold(NullSinkData(None).asInstanceOf[SinkData])(v =>
+          ByteArraySinkData(v.getBytes(), None).asInstanceOf[SinkData],
+        )
         writer.write(k, v, topic)
     }
 

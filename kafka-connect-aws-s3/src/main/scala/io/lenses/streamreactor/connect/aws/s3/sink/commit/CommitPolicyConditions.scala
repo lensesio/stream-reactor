@@ -15,28 +15,31 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
+import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Interval.formatter
 
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.DurationConverters.ScalaDurationOps
 
-case class ConditionCommitResult(commitTriggered: Boolean, logLine: Option[String])
+case class ConditionCommitResult(commitTriggered: Boolean)
 
-trait CommitPolicyCondition {
-  def eval(context: CommitContext, debugEnabled: Boolean): ConditionCommitResult
+trait CommitPolicyCondition extends LazyLogging {
+  def eval(context: CommitContext): ConditionCommitResult
 }
 
 case class FileSize(maxFileSize: Long) extends CommitPolicyCondition with LazyLogging {
-  override def eval(context: CommitContext, debugEnabled: Boolean): ConditionCommitResult = {
+
+  override def eval(context: CommitContext): ConditionCommitResult = {
     val cond = context.fileSize >= maxFileSize
-    val logLine = Option.when(debugEnabled) {
-      val flushing = if (cond) "*" else ""
-      s"fileSize$flushing: '${context.fileSize}/$maxFileSize'"
-    }
-    ConditionCommitResult(cond, logLine)
+    logger.debug(s"[${context.connectorTaskId.show}] File Size Policy:${context.fileSize}/$maxFileSize.")
+    ConditionCommitResult(cond)
   }
 }
 
@@ -47,38 +50,32 @@ object Interval {
     val clock    = Clock.systemDefaultZone()
     Interval(interval, clock)
   }
+
+  private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")
 }
 
 case class Interval(interval: Duration, clock: Clock) extends CommitPolicyCondition {
 
-  override def eval(context: CommitContext, debugEnabled: Boolean): ConditionCommitResult = {
+  override def eval(context: CommitContext): ConditionCommitResult = {
     val nowInstant = clock.instant()
 
     val lastWriteInstant = Instant.ofEpochMilli(context.lastModified)
     val nextFlushTime    = lastWriteInstant.plus(interval)
-    val nextFlushDue     = nowInstant.isAfter(nextFlushTime) || nowInstant.equals(nextFlushTime)
+    val nextFlushDue     = nextFlushTime.toEpochMilli <= nowInstant.toEpochMilli
 
-    val logLine = Option.when(debugEnabled) {
-      val flushing      = if (nextFlushDue) "*" else ""
-      val timeRemaining = nextFlushTime.getEpochSecond - nowInstant.getEpochSecond
-      s"interval$flushing: {frequency:${interval.toSeconds}s, in:${timeRemaining}s, lastFlush:${lastWriteInstant.toString.substring(0,
-                                                                                                                                    19,
-      )}, nextFlush:${nextFlushTime.toString.substring(0, 19)}}"
-    }
-    ConditionCommitResult(nextFlushDue, logLine)
+    logger.debug(
+      s"[${context.connectorTaskId.show}] Interval Policy: next flush time ${formatter.format(
+        LocalDateTime.ofInstant(nextFlushTime, ZoneOffset.UTC),
+      )} ; last flush time=${formatter.format(LocalDateTime.ofInstant(lastWriteInstant, ZoneOffset.UTC))}",
+    )
+    ConditionCommitResult(nextFlushDue)
   }
 }
 
 case class Count(maxCount: Long) extends CommitPolicyCondition {
-  override def eval(commitContext: CommitContext, debugEnabled: Boolean): ConditionCommitResult = {
-
-    val cond     = commitContext.count >= maxCount
-    val flushing = if (cond) "*" else ""
-
-    val log = Option.when(debugEnabled) {
-      s"count$flushing: '${commitContext.count}/$maxCount'"
-    }
-
-    ConditionCommitResult(cond, log)
+  override def eval(context: CommitContext): ConditionCommitResult = {
+    val cond = context.count >= maxCount
+    logger.debug(s"[${context.connectorTaskId.show}] Count Policy: ${context.count}/$maxCount.")
+    ConditionCommitResult(cond)
   }
 }

@@ -31,7 +31,7 @@ import scala.concurrent.duration.FiniteDuration
 object S3FlushSettings {
 
   val defaultFlushSize:     Long           = 500000000L
-  val defaultFlushInterval: FiniteDuration = 3600.seconds
+  val defaultFlushInterval: FiniteDuration = 300.seconds
   val defaultFlushCount:    Long           = 50000L
 
 }

@@ -160,6 +160,7 @@ class S3Writer(
             commitState.createdTimestamp,
             commitState.lastFlushedTime,
             file.getName,
+            connectorTaskId,
           ),
         )
       case NoWriter(_)        => false
