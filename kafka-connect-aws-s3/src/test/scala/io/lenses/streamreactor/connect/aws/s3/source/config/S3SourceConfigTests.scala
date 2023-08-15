@@ -23,6 +23,19 @@ import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
 class S3SourceConfigTests extends AnyFunSuite with Matchers {
+  test("default recursive levels is 0") {
+    S3SourceConfig.fromProps(
+      Map(
+        SOURCE_PARTITION_SEARCH_MODE            -> "false",
+        SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
+        TASK_INDEX                              -> "1:0",
+        KCQL_CONFIG                             -> "INSERT INTO topic SELECT * FROM bucket:/a/b/c",
+      ).asJava,
+    ) match {
+      case Left(value)  => fail(value.toString)
+      case Right(value) => value.partitionSearcher shouldBe PartitionSearcherOptions(0, false, 1.seconds)
+    }
+  }
   test("partition search options disables the continuous search") {
     S3SourceConfig.fromProps(
       Map(
