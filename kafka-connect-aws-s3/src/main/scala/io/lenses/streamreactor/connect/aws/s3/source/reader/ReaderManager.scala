@@ -79,14 +79,14 @@ case class ReaderManager(
                 case Some(results) =>
                   val accumulated = acc(pollResults :+ results, allLimit - results.resultList.size)
                   val after       = value.getLineNumber
-                  logger.info("[{}] Read {} record(-s) from file {}",
-                              connectorTaskId.show,
-                              after - before,
-                              value.getLocation.toString,
+                  logger.debug("[{}] Read {} record(-s) from file {}",
+                               connectorTaskId.show,
+                               after - before,
+                               value.getLocation.toString,
                   )
                   accumulated
                 case None =>
-                  logger.info("[{}] Read 0 records from file {}", connectorTaskId.show, value.getLocation.toString)
+                  logger.debug("[{}] Read 0 records from file {}", connectorTaskId.show, value.getLocation.toString)
                   fromNexFile(pollResults, allLimit)
               }
 
