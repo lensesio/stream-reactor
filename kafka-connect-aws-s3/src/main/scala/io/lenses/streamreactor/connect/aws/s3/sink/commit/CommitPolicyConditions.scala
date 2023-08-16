@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
-import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.Interval.formatter
 
@@ -28,18 +27,18 @@ import java.time.format.DateTimeFormatter
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.DurationConverters.ScalaDurationOps
 
-case class ConditionCommitResult(commitTriggered: Boolean)
+case class ConditionCommitResult(commitTriggered: Boolean, state: String)
 
-trait CommitPolicyCondition extends LazyLogging {
+trait CommitPolicyCondition {
   def eval(context: CommitContext): ConditionCommitResult
 }
 
 case class FileSize(maxFileSize: Long) extends CommitPolicyCondition with LazyLogging {
 
   override def eval(context: CommitContext): ConditionCommitResult = {
-    val cond = context.fileSize >= maxFileSize
-    logger.debug(s"[${context.connectorTaskId.show}] File Size Policy:${context.fileSize}/$maxFileSize.")
-    ConditionCommitResult(cond)
+    val cond  = context.fileSize >= maxFileSize
+    val state = s"File Size Policy: ${context.fileSize}/$maxFileSize."
+    ConditionCommitResult(cond, state)
   }
 }
 
@@ -63,19 +62,18 @@ case class Interval(interval: Duration, clock: Clock) extends CommitPolicyCondit
     val nextFlushTime    = lastWriteInstant.plus(interval)
     val nextFlushDue     = nextFlushTime.toEpochMilli <= nowInstant.toEpochMilli
 
-    logger.debug(
-      s"[${context.connectorTaskId.show}] Interval Policy: next flush time ${formatter.format(
+    val state =
+      s"Interval Policy: next flush ${formatter.format(
         LocalDateTime.ofInstant(nextFlushTime, ZoneOffset.UTC),
-      )} ; last flush time=${formatter.format(LocalDateTime.ofInstant(lastWriteInstant, ZoneOffset.UTC))}",
-    )
-    ConditionCommitResult(nextFlushDue)
+      )},last flush ${formatter.format(LocalDateTime.ofInstant(lastWriteInstant, ZoneOffset.UTC))}."
+    ConditionCommitResult(nextFlushDue, state)
   }
 }
 
 case class Count(maxCount: Long) extends CommitPolicyCondition {
   override def eval(context: CommitContext): ConditionCommitResult = {
-    val cond = context.count >= maxCount
-    logger.debug(s"[${context.connectorTaskId.show}] Count Policy: ${context.count}/$maxCount.")
-    ConditionCommitResult(cond)
+    val cond  = context.count >= maxCount
+    val state = s"Count Policy: ${context.count}/$maxCount."
+    ConditionCommitResult(cond, state)
   }
 }

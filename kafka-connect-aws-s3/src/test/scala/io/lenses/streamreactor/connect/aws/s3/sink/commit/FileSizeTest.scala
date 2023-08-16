@@ -35,28 +35,20 @@ class FileSizeTest extends AnyFlatSpec with Matchers with EitherValues with Mock
   "fileSize" should "return false when fileSize not reached yet" in {
     fileSize
       .eval(commitContext(99)) should
-      be(ConditionCommitResult(false))
-    fileSize
-      .eval(commitContext(99)) should
-      be(ConditionCommitResult(false))
+      be(ConditionCommitResult(false, "File Size Policy: 99/100."))
   }
 
   "fileSize" should "return true when fileSize reached" in {
     fileSize
       .eval(commitContext(100)) should
-      be(ConditionCommitResult(true))
-    fileSize
-      .eval(commitContext(100)) should
-      be(ConditionCommitResult(true))
+      be(ConditionCommitResult(true, "File Size Policy: 100/100."))
+
   }
 
   "fileSize" should "return true when fileSize exceeded" in {
     fileSize
       .eval(commitContext(101)) should
-      be(ConditionCommitResult(true))
-    fileSize
-      .eval(commitContext(101)) should
-      be(ConditionCommitResult(true))
+      be(ConditionCommitResult(true, "File Size Policy: 101/100."))
   }
 
 }

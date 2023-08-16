@@ -43,11 +43,9 @@ class IntervalTest extends AnyFlatSpec with Matchers with EitherValues with Mock
       be(
         ConditionCommitResult(
           commitTriggered = false,
+          "Interval Policy: next flush 1939-05-01 11:10:01.000000,last flush 1939-05-01 11:00:01.000000.",
         ),
       )
-    interval
-      .eval(commitContext(lastModifiedDate.toEpochMilli)) should
-      be(ConditionCommitResult(commitTriggered = false))
   }
 
   "interval" should "return false when interval not reached yet" in {
@@ -58,10 +56,9 @@ class IntervalTest extends AnyFlatSpec with Matchers with EitherValues with Mock
       be(
         ConditionCommitResult(
           commitTriggered = false,
+          "Interval Policy: next flush 1939-05-01 11:10:01.000000,last flush 1939-05-01 11:00:01.000000.",
         ),
       )
-    interval.eval(commitContext(lastModifiedDate.toEpochMilli)) should
-      be(ConditionCommitResult(commitTriggered = false))
   }
 
   "interval" should "return true when interval reached" in {
@@ -72,10 +69,9 @@ class IntervalTest extends AnyFlatSpec with Matchers with EitherValues with Mock
       be(
         ConditionCommitResult(
           commitTriggered = true,
+          "Interval Policy: next flush 1939-05-01 11:10:01.000000,last flush 1939-05-01 11:00:01.000000.",
         ),
       )
-    interval.eval(commitContext(lastModifiedDate.toEpochMilli)) should
-      be(ConditionCommitResult(commitTriggered = true))
   }
 
   "interval" should "return true when interval exceeded" in {
@@ -86,10 +82,9 @@ class IntervalTest extends AnyFlatSpec with Matchers with EitherValues with Mock
       be(
         ConditionCommitResult(
           commitTriggered = true,
+          "Interval Policy: next flush 1939-05-01 11:10:01.000000,last flush 1939-05-01 11:00:01.000000.",
         ),
       )
-    interval.eval(commitContext(lastModifiedDate.toEpochMilli)) should
-      be(ConditionCommitResult(commitTriggered = true))
   }
 
   private def commitContext(lastModified: Long): CommitContext = {

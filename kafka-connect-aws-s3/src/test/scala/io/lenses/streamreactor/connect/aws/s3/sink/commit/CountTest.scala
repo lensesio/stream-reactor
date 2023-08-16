@@ -35,28 +35,20 @@ class CountTest extends AnyFlatSpec with Matchers with EitherValues with Mockito
   "count" should "return false when count not reached yet" in {
     count
       .eval(commitContext(99)) should
-      be(ConditionCommitResult(false))
-    count
-      .eval(commitContext(99)) should
-      be(ConditionCommitResult(false))
+      be(ConditionCommitResult(false, "Count Policy: 99/100."))
   }
 
   "count" should "return true when count reached" in {
     count
       .eval(commitContext(100)) should
-      be(ConditionCommitResult(true))
-    count
-      .eval(commitContext(100)) should
-      be(ConditionCommitResult(true))
+      be(ConditionCommitResult(true, "Count Policy: 100/100."))
   }
 
   "count" should "return true when count exceeded" in {
     count
       .eval(commitContext(101)) should
-      be(ConditionCommitResult(true))
-    count
-      .eval(commitContext(101)) should
-      be(ConditionCommitResult(true))
+      be(ConditionCommitResult(true, "Count Policy: 101/100."))
+
   }
 
 }

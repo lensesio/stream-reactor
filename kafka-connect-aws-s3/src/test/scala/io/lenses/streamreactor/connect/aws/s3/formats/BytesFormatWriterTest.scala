@@ -18,18 +18,16 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.ByteArraySourceData
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesFormatWithSizesStreamReader
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.ByteArraySinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.BytesFormatWriter
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
 import org.apache.commons.io.IOUtils
 import org.mockito.MockitoSugar.mock
+import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -41,130 +39,86 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
   private val byteArrayValue:   ByteArraySinkData = ByteArraySinkData(bytes, None)
   private val pixelLengthBytes: Array[Byte]       = ByteArrayUtils.longToByteArray(bytes.length.longValue())
 
-  "round trip" should "round trip" in {
-    val testBytes    = "Sausages".getBytes()
-    val outputStream = new S3ByteArrayOutputStream()
-    val writer       = new BytesFormatWriter(outputStream, BytesWriteMode.ValueWithSize)
-    writer.write(Option.empty, ByteArraySinkData(testBytes), Topic("myTopic"))
-    val result = outputStream.toByteArray
-
-    val reader = new BytesFormatWithSizesStreamReader(
-      new ByteArrayInputStream(result),
-      result.length.toLong,
-      mock[S3Location],
-      BytesWriteMode.ValueWithSize,
-    )
-    val byteArraySourceData = reader.next()
-    byteArraySourceData.representationValue should be(testBytes)
+  "Value with size" should "round trip" in {
+    val test = new TestFixture[String] {
+      override protected val mode: BytesWriteMode = BytesWriteMode.ValueWithSize
+      override protected val data: List[String]   = List("Sausages")
+      override protected def getRecord(value: String): (Option[SinkData], SinkData) =
+        None -> ByteArraySinkData(value.getBytes, None)
+      override protected def assertResult(result: ByteArraySourceData, expected: String): Assertion =
+        result.data.value shouldBe expected.getBytes()
+    }
+    test.run()
   }
 
   "Values with Size" should "round trip" in {
-    val data = List(
-      "record 1 value".some,
-      "record 2 value".some,
-      "record 3 value".some,
-      None,
-    )
-    val outputStream = new S3ByteArrayOutputStream()
-    val writer       = new BytesFormatWriter(outputStream, BytesWriteMode.ValueWithSize)
-    val topic        = Topic("myTopic")
-    data.foreach {
-      case value =>
-        val v: SinkData = value.fold(NullSinkData(None).asInstanceOf[SinkData])(v =>
-          ByteArraySinkData(v.getBytes(), None).asInstanceOf[SinkData],
-        )
-        writer.write(None, v, topic)
-    }
+    val test = new TestFixture[Option[String]] {
+      override protected val mode: BytesWriteMode = BytesWriteMode.ValueWithSize
+      override protected val data: List[Option[String]] = List(
+        "record 1 value".some,
+        "record 2 value".some,
+        "record 3 value".some,
+        None,
+      )
 
-    val result = outputStream.toByteArray
+      override protected def getRecord(value: Option[String]): (Option[SinkData], SinkData) =
+        None -> toSinkData(value)
 
-    val reader = new BytesFormatWithSizesStreamReader(
-      new ByteArrayInputStream(result),
-      result.length.toLong,
-      mock[S3Location],
-      BytesWriteMode.ValueWithSize,
-    )
-    data.foreach {
-      case value =>
-        withClue(s"value: $value") {
-          val byteArraySourceData = reader.next()
-          Option(byteArraySourceData.data.key).filter(_.nonEmpty) shouldBe None
-          Option(byteArraySourceData.data.value).filter(_.nonEmpty).map(new String(_)) shouldBe value
-        }
+      override protected def assertResult(result: ByteArraySourceData, expected: Option[String]): Assertion = {
+        convertToString(result.data.key) shouldBe None
+        convertToString(result.data.value) shouldBe expected
+      }
     }
+    test.run()
   }
 
   "Keys with Size" should "round trip" in {
-    val data = List(
-      "record 1 value".some,
-      "record 2 value".some,
-      "record 3 value".some,
-      None,
-    )
-    val outputStream = new S3ByteArrayOutputStream()
-    val writer       = new BytesFormatWriter(outputStream, BytesWriteMode.KeyWithSize)
-    val topic        = Topic("myTopic")
-    data.foreach {
-      case value =>
-        val v: SinkData = value.fold(NullSinkData(None).asInstanceOf[SinkData])(v =>
-          ByteArraySinkData(v.getBytes(), None).asInstanceOf[SinkData],
-        )
-        writer.write(v.some, NullSinkData(None), topic)
-    }
+    val test = new TestFixture[Option[String]] {
+      override protected val mode: BytesWriteMode = BytesWriteMode.KeyWithSize
+      override protected val data: List[Option[String]] = List(
+        "record 1 value".some,
+        "record 2 value".some,
+        "record 3 value".some,
+        None,
+      )
 
-    val result = outputStream.toByteArray
+      override protected def getRecord(value: Option[String]): (Option[SinkData], SinkData) =
+        toSinkData(value).some -> NullSinkData(None)
 
-    val reader = new BytesFormatWithSizesStreamReader(
-      new ByteArrayInputStream(result),
-      result.length.toLong,
-      mock[S3Location],
-      BytesWriteMode.KeyWithSize,
-    )
-    data.foreach {
-      case value =>
-        withClue(s"key: $value") {
-          val byteArraySourceData = reader.next()
-          Option(byteArraySourceData.data.value).filter(_.nonEmpty) shouldBe None
-          Option(byteArraySourceData.data.key).filter(_.nonEmpty).map(new String(_)) shouldBe value
-        }
+      override protected def assertResult(result: ByteArraySourceData, expected: Option[String]): Assertion = {
+        convertToString(result.data.key) shouldBe expected
+        convertToString(result.data.value) shouldBe None
+      }
     }
+    test.run()
   }
 
   "Values and Keys" should "round trip" in {
-    val data: List[(Option[String], Option[String])] = List(
-      Option.empty[String] -> "record 1 value".some,
-      "record 2 key".some  -> "record 2 value".some,
-      None                 -> "record 3 value".some,
-      "record 4 key".some  -> None,
-    )
-    val outputStream = new S3ByteArrayOutputStream()
-    val writer       = new BytesFormatWriter(outputStream, BytesWriteMode.KeyAndValueWithSizes)
-    val topic        = Topic("myTopic")
-    data.foreach {
-      case (key, value) =>
-        val k: Option[SinkData] = key.map(v => ByteArraySinkData(v.getBytes()))
-        val v: SinkData = value.fold(NullSinkData(None).asInstanceOf[SinkData])(v =>
-          ByteArraySinkData(v.getBytes(), None).asInstanceOf[SinkData],
-        )
-        writer.write(k, v, topic)
-    }
+    val test = new TestFixture[(Option[String], Option[String])] {
+      override protected val mode: BytesWriteMode = BytesWriteMode.KeyAndValueWithSizes
+      override protected val data: List[(Option[String], Option[String])] = List(
+        Option.empty[String] -> "record 1 value".some,
+        "record 2 key".some  -> "record 2 value".some,
+        None                 -> "record 3 value".some,
+        "record 4 key".some  -> None,
+      )
 
-    val result = outputStream.toByteArray
+      override protected def getRecord(value: (Option[String], Option[String])): (Option[SinkData], SinkData) = {
+        val (kv, vv) = value
+        val k: Option[SinkData] = kv.map(v => ByteArraySinkData(v.getBytes(), None).asInstanceOf[SinkData])
+        val v: SinkData         = toSinkData(vv)
+        k -> v
+      }
 
-    val reader = new BytesFormatWithSizesStreamReader(
-      new ByteArrayInputStream(result),
-      result.length.toLong,
-      mock[S3Location],
-      BytesWriteMode.KeyAndValueWithSizes,
-    )
-    data.foreach {
-      case (key, value) =>
-        withClue(s"key: $key, value: $value") {
-          val byteArraySourceData = reader.next()
-          Option(byteArraySourceData.data.key).filter(_.nonEmpty).map(new String(_)) shouldBe key
-          Option(byteArraySourceData.data.value).filter(_.nonEmpty).map(new String(_)) shouldBe value
-        }
+      override protected def assertResult(
+        result:   ByteArraySourceData,
+        expected: (Option[String], Option[String]),
+      ): Assertion = {
+        convertToString(result.data.key) shouldBe expected._1
+        convertToString(result.data.value) shouldBe expected._2
+      }
     }
+    test.run()
   }
 
   "convert" should "write a string to byte stream" in {
@@ -271,4 +225,39 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     bytes
   }
 
+  private sealed trait TestFixture[T] {
+    protected val mode: BytesWriteMode
+    protected val data: List[T]
+    protected def getRecord(value:     T): (Option[SinkData], SinkData)
+    protected def assertResult(result: ByteArraySourceData, expected: T): Assertion
+    def run(): Unit = {
+      val outputStream = new S3ByteArrayOutputStream()
+      val writer       = new BytesFormatWriter(outputStream, mode)
+      val topic        = Topic("myTopic")
+      data.foreach { value =>
+        val (k, v) = getRecord(value)
+        writer.write(k, v, topic)
+      }
+
+      val result = outputStream.toByteArray
+
+      val reader = new BytesFormatWithSizesStreamReader(
+        new ByteArrayInputStream(result),
+        result.length.toLong,
+        mock[S3Location],
+        mode,
+      )
+      data.foreach { value =>
+        withClue(s"value: $value") {
+          val byteArraySourceData = reader.next()
+          assertResult(byteArraySourceData, value)
+        }
+      }
+    }
+  }
+
+  private def toSinkData(maybe: Option[String]): SinkData =
+    maybe.fold(NullSinkData(None).asInstanceOf[SinkData])(v => ByteArraySinkData(v.getBytes, None))
+
+  private def convertToString(array: Array[Byte]): Option[String] = Option(array).filter(_.nonEmpty).map(new String(_))
 }

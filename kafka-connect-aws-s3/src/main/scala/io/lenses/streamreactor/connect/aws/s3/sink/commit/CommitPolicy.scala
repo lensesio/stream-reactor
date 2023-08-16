@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
+import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
 
 /**
@@ -37,10 +38,31 @@ case class CommitPolicy(conditions: CommitPolicyCondition*) extends LazyLogging 
   def shouldFlush(context: CommitContext): Boolean = {
     val res = conditions.map(_.eval(context))
     val flush = res.exists {
-      case ConditionCommitResult(true) => true
-      case _                           => false
+      case ConditionCommitResult(true, _) => true
+      case _                              => false
     }
 
+    if (flush) {
+      logger.info(
+        "[{}]Flushing '{}' for {topic:'{}', partition:{}, offset:{}, {}}",
+        context.connectorTaskId.show,
+        context.partitionFile,
+        context.tpo.topic.value,
+        context.tpo.partition,
+        context.tpo.offset.value,
+        res.flatMap(_.state).mkString(","),
+      )
+    } else {
+      logger.debug(
+        "[{}]Not Flushing '{}' for {topic:'{}', partition:{}, offset:{}, {}}",
+        context.connectorTaskId.show,
+        context.partitionFile,
+        context.tpo.topic.value,
+        context.tpo.partition,
+        context.tpo.offset.value,
+        res.flatMap(_.state).mkString(","),
+      )
+    }
     flush
   }
 }
