@@ -61,9 +61,10 @@ case class Interval(interval: Duration, clock: Clock) extends CommitPolicyCondit
     val lastWriteInstant = Instant.ofEpochMilli(context.lastModified)
     val nextFlushTime    = lastWriteInstant.plus(interval)
     val nextFlushDue     = nextFlushTime.toEpochMilli <= nowInstant.toEpochMilli
+    val timeRemaining    = nextFlushTime.getEpochSecond - nowInstant.getEpochSecond
 
     val state =
-      s"Interval Policy: next flush ${formatter.format(
+      s"Interval Policy: next flush in $timeRemaining second(s) at ${formatter.format(
         LocalDateTime.ofInstant(nextFlushTime, ZoneOffset.UTC),
       )},last flush ${formatter.format(LocalDateTime.ofInstant(lastWriteInstant, ZoneOffset.UTC))}."
     ConditionCommitResult(nextFlushDue, state)
