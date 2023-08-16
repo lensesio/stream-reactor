@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.EitherValues
@@ -94,6 +95,7 @@ class IntervalTest extends AnyFlatSpec with Matchers with EitherValues with Mock
   private def commitContext(lastModified: Long): CommitContext = {
     val commitContext = mock[CommitContext]
     when(commitContext.lastModified).thenReturn(lastModified)
+    when(commitContext.connectorTaskId).thenReturn(ConnectorTaskId("connector", 1, 0))
     commitContext
   }
 

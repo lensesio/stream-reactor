@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import org.mockito.MockitoSugar
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
@@ -27,6 +28,7 @@ class CountTest extends AnyFlatSpec with Matchers with EitherValues with Mockito
   private def commitContext(currentCount: Long): CommitContext = {
     val cc = mock[CommitContext]
     when(cc.count).thenReturn(currentCount)
+    when(cc.connectorTaskId).thenReturn(ConnectorTaskId("connector", 1, 0))
     cc
   }
 
