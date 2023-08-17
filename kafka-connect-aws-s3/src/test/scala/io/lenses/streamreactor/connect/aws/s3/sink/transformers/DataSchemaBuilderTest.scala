@@ -29,7 +29,8 @@ import java.time.Instant
 
 class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
   test("create envelope schema containing Key, Values, Headers, and Metadata") {
-    val storageSettings = DataStorageSettings(keys = true, metadata = true, headers = true)
+    val storageSettings =
+      DataStorageSettings(envelope = true, value = true, key = true, metadata = true, headers = true)
 
     val ts = Instant.now()
     val message = MessageDetail(
@@ -71,8 +72,9 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
   }
 
   test("create envelope schema containing Key, Values and Metadata") {
-    val storageSettings = DataStorageSettings(keys = true, metadata = true, headers = false)
-    val ts              = Instant.now()
+    val storageSettings =
+      DataStorageSettings(envelope = true, value = true, key = true, metadata = true, headers = false)
+    val ts = Instant.now()
     val message = MessageDetail(
       Some(StringSinkData("key", Some(Schema.STRING_SCHEMA))),
       StructSinkData(TestSampleSchemaAndData.users.head),
@@ -104,8 +106,9 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
   }
 
   test("no envelope returns the value schema") {
-    val storageSettings = DataStorageSettings(keys = false, metadata = false, headers = false)
-    val ts              = Instant.now()
+    val storageSettings =
+      DataStorageSettings(envelope = false, key = true, metadata = true, headers = true, value = true)
+    val ts = Instant.now()
     val message = MessageDetail(
       Some(StringSinkData("key", Some(Schema.STRING_SCHEMA))),
       StructSinkData(TestSampleSchemaAndData.users.head),
@@ -125,8 +128,9 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
     actual shouldBe expected
   }
   test("create envelope schema containing  Values and Metadata") {
-    val storageSettings = DataStorageSettings(keys = false, metadata = true, headers = false)
-    val ts              = Instant.now()
+    val storageSettings =
+      DataStorageSettings(key = false, metadata = true, headers = false, envelope = true, value = true)
+    val ts = Instant.now()
     val message = MessageDetail(
       Some(StringSinkData("key", Some(Schema.STRING_SCHEMA))),
       StructSinkData(TestSampleSchemaAndData.users.head),

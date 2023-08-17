@@ -19,24 +19,16 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetFormatReader
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.{MessageDetail, SinkData, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
-import io.lenses.streamreactor.connect.aws.s3.sink.config.LocalStagingArea
-import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
-import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
-import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.{CommitPolicy, Count}
+import io.lenses.streamreactor.connect.aws.s3.sink.config.{LocalStagingArea, OffsetSeekerOptions, S3SinkConfig, SinkBucketOptions}
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.avro.generic.GenericRecord
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.SchemaBuilder
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -67,6 +59,8 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         fileNamingStrategy = new HierarchicalS3FileNamingStrategy(ParquetFormatSelection, NoOpPaddingStrategy),
         formatSelection    = ParquetFormatSelection,
         localStagingArea   = LocalStagingArea(localRoot),
+        partitionSelection = None,
+        dataStorage        = DataStorageSettings.disabled,
       ),
     ),
     offsetSeekerOptions = OffsetSeekerOptions(5),
@@ -79,9 +73,11 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
     val sink = S3WriterManager.from(parquetConfig)
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
+        val topic  = Topic(TopicName)
+        val offset = Offset(index.toLong + 1)
         sink.write(
-          TopicPartitionOffset(Topic(TopicName), 1, Offset(index.toLong + 1)),
-          MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData], None),
+          TopicPartitionOffset(topic, 1, offset),
+          MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData], None, topic, 1, offset),
         )
     }
 
@@ -115,14 +111,14 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
     val sink = S3WriterManager.from(parquetConfig)
     firstUsers.concat(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
+        val topic  = Topic(TopicName)
+        val offset = Offset(index.toLong + 1)
         sink.write(
-          TopicPartitionOffset(Topic(TopicName), 1, Offset(index.toLong + 1)),
-          MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData], None),
+          TopicPartitionOffset(topic, 1, offset),
+          MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData], None, topic, 1, offset),
         )
     }
     sink.close()
-
-    //val list1 = listBucketPath(BucketName, "streamReactorBackups/myTopic/1/"))
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 

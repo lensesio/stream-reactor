@@ -73,7 +73,7 @@ object MessageTransformer {
     val envelope = new Struct(schema)
     envelope.put("value", message.value.value)
     if (settings.metadata) envelope.put("metadata", metadataData(message))
-    if (settings.keys) message.key.foreach(k => envelope.put("key", k.value))
+    if (settings.key) message.key.foreach(k => envelope.put("key", k.value))
     if (settings.headers) {
       Option(schema.field("headers")).foreach { field =>
         envelope.put("headers", headersData(message, field.schema()))
@@ -94,7 +94,7 @@ object MessageTransformer {
     var builder: SchemaBuilder = SchemaBuilder.struct()
 
     builder =
-      if (settings.keys) message.key.flatMap(_.schema()).fold(builder)(builder.field("key", _).optional())
+      if (settings.key) message.key.flatMap(_.schema()).fold(builder)(builder.field("key", _).optional())
       else builder
     //set the value schema optional to handle delete records
     builder = message.value.schema().fold(builder)(builder.field("value", _).optional())
@@ -105,7 +105,7 @@ object MessageTransformer {
     builder.build()
   }
 
-  def headersSchema(headers: Map[String, SinkData]): Option[Schema] = {
+  private def headersSchema(headers: Map[String, SinkData]): Option[Schema] = {
     val headersList = headers.filter(_._2.schema().isDefined).toList.sortBy(_._1)
     headersList.headOption.map { _ =>
       val builder = headersList.foldLeft(SchemaBuilder.struct()) {
@@ -116,7 +116,7 @@ object MessageTransformer {
     }
   }
 
-  def headersData(message: MessageDetail, schema: Schema): Struct = {
+  private def headersData(message: MessageDetail, schema: Schema): Struct = {
     val struct = new Struct(schema)
     message.headers.foreach {
       case (key, data) =>

@@ -15,6 +15,9 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
+import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings.AllFields
+import org.apache.kafka.common.config.ConfigException
+import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -22,60 +25,157 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
 
   test("empty properties return defaults") {
     val properties      = Map.empty[String, String]
-    val storageSettings = DataStorageSettings.from(properties).getOrElse(fail("Should have returned defaults"))
-    storageSettings.keys should be(false)
-    storageSettings.metadata should be(false)
-    storageSettings.headers should be(false)
+    val storageSettings = DataStorageSettings.from(properties).getOrElse(fail("Should not have failed"))
+    storageSettings shouldBe DataStorageSettings.Default
   }
 
-  test("keys enabled") {
-    val properties      = Map("store.keys" -> "true")
-    val storageSettings = DataStorageSettings.from(properties).getOrElse(fail("Should have returned defaults"))
-    storageSettings.keys should be(true)
-    storageSettings.metadata should be(false)
-    storageSettings.headers should be(false)
+  test("only envelope set to true returns all true") {
+    val properties      = Map(DataStorageSettings.StoreEnvelopeKey -> "true")
+    val storageSettings = DataStorageSettings.from(properties)
+    storageSettings shouldBe Right(DataStorageSettings(
+      envelope = true,
+      key      = true,
+      value    = true,
+      metadata = true,
+      headers  = true,
+    ))
   }
+
+  test("only envelope set to true but not all fields set returns error") {
+    val properties = Map(DataStorageSettings.StoreEnvelopeKey -> "true", DataStorageSettings.StoreKeyKey -> "false")
+    assertOnError(
+      DataStorageSettings.from(properties),
+      s"If ${DataStorageSettings.StoreEnvelopeKey} is set to true, then setting selective fields is not allowed. Either set them all or leave them out, they default to true.",
+    )
+  }
+
+  test("envelope set to true but all fields false returns error") {
+    val properties = Map(
+      DataStorageSettings.StoreEnvelopeKey -> "true",
+      DataStorageSettings.StoreKeyKey      -> "false",
+      DataStorageSettings.StoreValueKey    -> "false",
+      DataStorageSettings.StoreMetadataKey -> "false",
+      DataStorageSettings.StoreHeadersKey  -> "false",
+    )
+
+    assertOnError(
+      DataStorageSettings.from(properties),
+      s"If ${DataStorageSettings.StoreEnvelopeKey} is set to true then at least one of ${AllFields.mkString("[", ",", "]")} must be set to true.",
+    )
+  }
+
+  test("only keys enabled") {
+    val properties = Map(
+      DataStorageSettings.StoreEnvelopeKey -> "true",
+      DataStorageSettings.StoreKeyKey      -> "true",
+      DataStorageSettings.StoreValueKey    -> "false",
+      DataStorageSettings.StoreMetadataKey -> "false",
+      DataStorageSettings.StoreHeadersKey  -> "false",
+    )
+    val storageSettings = DataStorageSettings.from(properties)
+    storageSettings shouldBe Right(DataStorageSettings(
+      envelope = true,
+      key      = true,
+      value    = false,
+      metadata = false,
+      headers  = false,
+    ))
+  }
+
   test("metadata enabled") {
-    val properties      = Map("store.metadata" -> "true")
-    val storageSettings = DataStorageSettings.from(properties).getOrElse(fail("Should have returned defaults"))
-    storageSettings.keys should be(false)
-    storageSettings.metadata should be(true)
-    storageSettings.headers should be(false)
+    val properties = Map(
+      DataStorageSettings.StoreEnvelopeKey -> "true",
+      DataStorageSettings.StoreKeyKey      -> "false",
+      DataStorageSettings.StoreValueKey    -> "false",
+      DataStorageSettings.StoreMetadataKey -> "true",
+      DataStorageSettings.StoreHeadersKey  -> "false",
+    )
+    val storageSettings = DataStorageSettings.from(properties)
+    storageSettings shouldBe Right(DataStorageSettings(
+      envelope = true,
+      key      = false,
+      value    = false,
+      metadata = true,
+      headers  = false,
+    ))
   }
   test("headers enabled") {
-    val properties      = Map("store.headers" -> "true")
-    val storageSettings = DataStorageSettings.from(properties).getOrElse(fail("Should have returned defaults"))
-    storageSettings.keys should be(false)
-    storageSettings.metadata should be(false)
-    storageSettings.headers should be(true)
+    val properties = Map(
+      DataStorageSettings.StoreEnvelopeKey -> "true",
+      DataStorageSettings.StoreKeyKey      -> "false",
+      DataStorageSettings.StoreValueKey    -> "false",
+      DataStorageSettings.StoreMetadataKey -> "false",
+      DataStorageSettings.StoreHeadersKey  -> "true",
+    )
+    val storageSettings = DataStorageSettings.from(properties)
+    storageSettings shouldBe Right(DataStorageSettings(
+      envelope = true,
+      key      = false,
+      value    = false,
+      metadata = false,
+      headers  = true,
+    ))
   }
   test("all enabled") {
-    val properties      = Map("store.keys" -> "true", "store.metadata" -> "true", "store.headers" -> "true")
-    val storageSettings = DataStorageSettings.from(properties).getOrElse(fail("Should have returned defaults"))
-    storageSettings.keys should be(true)
-    storageSettings.metadata should be(true)
-    storageSettings.headers should be(true)
-  }
-  test("all disabled") {
-    val properties      = Map("store.keys" -> "false", "store.metadata" -> "false", "store.headers" -> "false")
-    val storageSettings = DataStorageSettings.from(properties).getOrElse(fail("Should have returned defaults"))
-    storageSettings.keys should be(false)
-    storageSettings.metadata should be(false)
-    storageSettings.headers should be(false)
-  }
-  test("invalid keys value") {
-    val properties      = Map("store.keys" -> "invalid")
+    val properties = Map(
+      DataStorageSettings.StoreEnvelopeKey -> "true",
+      DataStorageSettings.StoreKeyKey      -> "true",
+      DataStorageSettings.StoreValueKey    -> "true",
+      DataStorageSettings.StoreMetadataKey -> "true",
+      DataStorageSettings.StoreHeadersKey  -> "true",
+    )
     val storageSettings = DataStorageSettings.from(properties)
-    storageSettings.isLeft should be(true)
+    storageSettings shouldBe Right(DataStorageSettings(
+      envelope = true,
+      key      = true,
+      value    = true,
+      metadata = true,
+      headers  = true,
+    ))
+  }
+  test("invalid envelope value") {
+    val properties = Map(DataStorageSettings.StoreEnvelopeKey -> "invalid")
+    assertOnError(
+      DataStorageSettings.from(properties),
+      s"Invalid value for configuration [${DataStorageSettings.StoreEnvelopeKey}]. The value must be one of: true, false.",
+    )
+  }
+  test("invalid key value") {
+    val properties = Map(DataStorageSettings.StoreEnvelopeKey -> "true", DataStorageSettings.StoreKeyKey -> "invalid")
+    assertOnError(
+      DataStorageSettings.from(properties),
+      s"Invalid value for configuration [${DataStorageSettings.StoreKeyKey}]. The value must be one of: true, false.",
+    )
   }
   test("invalid metadata value") {
-    val properties      = Map("store.metadata" -> "invalid")
-    val storageSettings = DataStorageSettings.from(properties)
-    storageSettings.isLeft should be(true)
+    val properties =
+      Map(DataStorageSettings.StoreEnvelopeKey -> "true", DataStorageSettings.StoreMetadataKey -> "invalid")
+    assertOnError(
+      DataStorageSettings.from(properties),
+      s"Invalid value for configuration [${DataStorageSettings.StoreMetadataKey}]. The value must be one of: true, false.",
+    )
   }
   test("invalid headers value") {
-    val properties      = Map("store.headers" -> "invalid")
-    val storageSettings = DataStorageSettings.from(properties)
-    storageSettings.isLeft should be(true)
+    val properties =
+      Map(DataStorageSettings.StoreEnvelopeKey -> "true", DataStorageSettings.StoreHeadersKey -> "invalid")
+    assertOnError(
+      DataStorageSettings.from(properties),
+      s"Invalid value for configuration [${DataStorageSettings.StoreHeadersKey}]. The value must be one of: true, false.",
+    )
   }
+  test("invalid value value") {
+    val properties = Map(DataStorageSettings.StoreEnvelopeKey -> "true", DataStorageSettings.StoreValueKey -> "invalid")
+
+    assertOnError(
+      DataStorageSettings.from(properties),
+      s"Invalid value for configuration [${DataStorageSettings.StoreValueKey}]. The value must be one of: true, false.",
+    )
+  }
+
+  private def assertOnError(actual: Either[ConfigException, DataStorageSettings], msg: String): Assertion =
+    actual match {
+      case Left(value) =>
+        value.getMessage shouldBe msg
+      case Right(_) => fail("Should  have failed.")
+    }
 }

@@ -15,16 +15,14 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.FileSize
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.Interval
+import io.lenses.streamreactor.connect.aws.s3.config.{ConnectorTaskId, DataStorageSettings}
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.{Count, FileSize, Interval}
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters.IteratorHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.{IteratorHasAsScala, MapHasAsJava}
 
 class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
@@ -32,7 +30,9 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
   val TopicName  = "myTopic"
   val BucketName = "myBucket"
 
-  "apply" should "respect defined properties" in {
+  private implicit val connectorTaskId = ConnectorTaskId("connector", 1, 0)
+
+  "S3SinkConfigDefBuilder" should "respect defined properties" in {
     val props = Map(
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
     )
@@ -49,7 +49,71 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
 
   }
 
-  "apply" should "respect default flush settings" in {
+  "S3SinkConfigDefBuilder" should "defaults data storage settings if not provided" in {
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
+    )
+
+    SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
+      case Left(value)  => fail(value.toString)
+      case Right(value) => value.map(_.dataStorage) should be(List(DataStorageSettings.Default))
+    }
+  }
+
+  "S3SinkConfigDefBuilder" should "default all fields to true when envelope is set" in {
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
+    )
+
+    SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
+      case Left(value)  => fail(value.toString)
+      case Right(value) => value.map(_.dataStorage) should be(List(DataStorageSettings.enabled))
+    }
+  }
+
+  "S3SinkConfigDefBuilder" should "enable Value and Key only" in {
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false)",
+    )
+
+    SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
+      case Left(value)  => fail(value.toString)
+      case Right(value) => value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false)))
+    }
+  }
+
+  "S3SinkConfigDefBuilder" should "data storage for each SQL statement" in {
+    val props = Map(
+      "connect.s3.kcql" ->
+        s"""
+           |insert into mybucket:myprefix 
+           |select * from $TopicName 
+           |PARTITIONBY _key 
+           |STOREAS `CSV` 
+           |WITHPARTITIONER=Values 
+           |WITH_FLUSH_COUNT = 1 
+           |PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false);
+           |
+           |insert into mybucket:myprefix 
+           |select * from $TopicName 
+           |PARTITIONBY _key 
+           |STOREAS `CSV` 
+           |WITHPARTITIONER=Values 
+           |WITH_FLUSH_COUNT = 1 
+           |PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=true)
+           |""".stripMargin,
+    )
+
+    SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
+      case Left(value) => fail(value.toString)
+      case Right(value) =>
+        value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false),
+                                                DataStorageSettings(true, true, true, false, true),
+        ))
+    }
+
+  }
+  "S3SinkConfigDefBuilder" should "respect default flush settings" in {
     val props = Map(
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values",
     )
@@ -66,7 +130,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     )
   }
 
-  "apply" should "respect disabled flush count" in {
+  "S3SinkConfigDefBuilder" should "respect disabled flush count" in {
     val props = Map(
       "connect.s3.disable.flush.count" -> true.toString,
       "connect.s3.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values",
@@ -83,7 +147,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     )
   }
 
-  "apply" should "respect custom flush settings" in {
+  "S3SinkConfigDefBuilder" should "respect custom flush settings" in {
     val props = Map(
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITH_FLUSH_SIZE = 3 WITH_FLUSH_INTERVAL = 2 WITH_FLUSH_COUNT = 1",
     )
@@ -100,7 +164,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     )
   }
 
-  "apply" should "respect custom batch size and limit" in {
+  "S3SinkConfigDefBuilder" should "respect custom batch size and limit" in {
     val props = Map(
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName BATCH = 150 STOREAS `CSV` LIMIT 550",
     )
