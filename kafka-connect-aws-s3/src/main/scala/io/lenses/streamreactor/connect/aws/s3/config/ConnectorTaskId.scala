@@ -48,5 +48,7 @@ object ConnectorTaskId {
     } yield ConnectorTaskId(maybeTaskName, maxTasks, taskNumber)
   }.leftMap(new IllegalArgumentException(_))
 
-  implicit val showConnector: Show[ConnectorTaskId] = Show.show(_.name)
+  implicit val showConnector: Show[ConnectorTaskId] = Show.show { c =>
+    s"${c.name} - ${c.taskNo + 1} of ${c.maxTasks}"
+  }
 }

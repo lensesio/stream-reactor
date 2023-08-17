@@ -81,7 +81,7 @@ class S3WriterManager(
   }
 
   def recommitPending(): Either[SinkError, Unit] = {
-    logger.trace(s"[{}] Retry Pending", connectorTaskId.show)
+    logger.debug(s"[{}] Retry Pending", connectorTaskId.show)
     val result = commitWritersWithFilter(_._2.hasPendingUpload())
     logger.debug(s"[{}] Retry Pending Complete", connectorTaskId.show)
     result
