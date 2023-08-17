@@ -23,12 +23,10 @@ import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.schema
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.topic
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.topic
 import org.apache.commons.io.FileUtils
-import org.apache.kafka.connect.data.Struct
-import org.scalacheck.Gen
-import org.scalacheck.Gen.Choose.chooseDouble
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -63,14 +61,6 @@ class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
     "bytes_keyandvaluewithsizes" -> bytesKeyValueFn,
   )
 
-  def userGen: Gen[Struct] =
-    for {
-      name   <- Gen.alphaStr
-      title  <- Gen.alphaStr
-      salary <- Gen.choose(0.00, 1000.00)(chooseDouble)
-
-    } yield new Struct(schema).put("name", name).put("title", title).put("salary", salary)
-
   /**
     * For AVRO, Parquet and Json writes 5 files, each with 200 records to a temporary directory
     */
@@ -90,7 +80,7 @@ class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
               val writer: S3FormatWriter = writerClass(outputStream)
               1 to numberOfRecords foreach { _ =>
                 writer.write(MessageDetail(None,
-                                           StructSinkData(userGen.sample.get),
+                                           StructSinkData(SampleData.generateUser.sample.get),
                                            Map.empty,
                                            Some(Instant.now()),
                                            topic,

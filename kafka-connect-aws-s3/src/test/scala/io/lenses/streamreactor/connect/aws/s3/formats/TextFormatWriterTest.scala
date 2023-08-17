@@ -21,7 +21,8 @@ import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.TextFormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData._
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -87,7 +88,7 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
     val textFormatWriter = new TextFormatWriter(outputStream)
     val caught =
       textFormatWriter.write(MessageDetail(None,
-                                           StructSinkData(users.head),
+                                           StructSinkData(SampleData.Users.head),
                                            Map.empty,
                                            Some(Instant.now()),
                                            topic,

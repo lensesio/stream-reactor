@@ -67,7 +67,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         fileNamingStrategy = new HierarchicalS3FileNamingStrategy(AvroFormatSelection, NoOpPaddingStrategy),
         localStagingArea   = LocalStagingArea(localRoot),
         partitionSelection = None,
-        dataStorage = DataStorageSettings.disabled
+        dataStorage        = DataStorageSettings.disabled,
       ),
     ),
     offsetSeekerOptions = OffsetSeekerOptions(5),

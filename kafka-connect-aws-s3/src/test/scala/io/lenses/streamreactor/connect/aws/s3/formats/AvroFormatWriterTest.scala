@@ -21,7 +21,8 @@ import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData._
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
 import org.apache.kafka.connect.data.Schema
@@ -45,7 +46,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
     val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
     avroFormatWriter.write(MessageDetail(None,
-                                         StructSinkData(users.head),
+                                         StructSinkData(SampleData.Users.head),
                                          Map.empty,
                                          Some(Instant.now()),
                                          topic,
@@ -64,7 +65,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
-    firstUsers.foreach(u =>
+    SampleData.Users.take(3).foreach(u =>
       avroFormatWriter.write(MessageDetail(None,
                                            StructSinkData(u),
                                            Map.empty,

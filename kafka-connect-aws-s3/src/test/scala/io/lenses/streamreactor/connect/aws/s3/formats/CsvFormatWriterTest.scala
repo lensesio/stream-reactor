@@ -22,8 +22,9 @@ import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorError
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.UnexpectedType
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData._
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
 import org.apache.kafka.connect.data.Schema.STRING_SCHEMA
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
@@ -43,7 +44,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(outputStream, true)
     formatWriter.write(MessageDetail(None,
-                                     StructSinkData(users.head),
+                                     StructSinkData(SampleData.Users.head),
                                      Map.empty,
                                      Some(Instant.now()),
                                      topic,
@@ -67,7 +68,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(outputStream, true)
-    firstUsers.foreach(e =>
+    SampleData.Users.take(3).foreach(e =>
       formatWriter.write(
         MessageDetail(
           None,

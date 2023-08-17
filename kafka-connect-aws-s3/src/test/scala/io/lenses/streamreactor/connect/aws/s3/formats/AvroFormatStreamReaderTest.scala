@@ -24,9 +24,9 @@ import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.checkRecord
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.firstUsers
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.topic
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.checkRecord
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.topic
 import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -57,7 +57,7 @@ class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
   private def writeRecordsToOutputStream = {
     val outputStream     = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
-    firstUsers.foreach(str =>
+    SampleData.Users.take(3).foreach(str =>
       avroFormatWriter.write(MessageDetail(None,
                                            StructSinkData(str),
                                            Map.empty,

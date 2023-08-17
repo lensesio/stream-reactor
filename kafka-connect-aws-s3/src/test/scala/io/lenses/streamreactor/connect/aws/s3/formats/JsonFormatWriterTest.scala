@@ -20,7 +20,8 @@ import com.fasterxml.jackson.databind.node.NullNode
 import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData._
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -34,7 +35,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(MessageDetail(None,
-                                         StructSinkData(users.head),
+                                         StructSinkData(SampleData.Users.head),
                                          Map.empty,
                                          Some(Instant.now()),
                                          topic,
@@ -50,7 +51,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    firstUsers.foreach(e =>
+    SampleData.Users.take(3).foreach(e =>
       jsonFormatWriter.write(
         MessageDetail(None, StructSinkData(e), Map.empty, Some(Instant.now()), topic, 0, Offset(0)),
       ),

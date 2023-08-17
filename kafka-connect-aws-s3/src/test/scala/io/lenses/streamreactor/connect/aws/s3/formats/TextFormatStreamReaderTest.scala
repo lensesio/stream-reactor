@@ -23,9 +23,8 @@ import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.firstUsers
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.topic
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.topic
 import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -42,11 +41,11 @@ class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
       new TextFormatStreamReader(byteArrayInputStream, mock[S3Location])
 
     avroFormatStreamReader.hasNext should be(true)
-    avroFormatStreamReader.next() should be(StringSourceData(TestSampleSchemaAndData.recordsAsJson(0), 0))
+    avroFormatStreamReader.next() should be(StringSourceData(SampleData.recordsAsJson(0), 0))
     avroFormatStreamReader.hasNext should be(true)
-    avroFormatStreamReader.next() should be(StringSourceData(TestSampleSchemaAndData.recordsAsJson(1), 1))
+    avroFormatStreamReader.next() should be(StringSourceData(SampleData.recordsAsJson(1), 1))
     avroFormatStreamReader.hasNext should be(true)
-    avroFormatStreamReader.next() should be(StringSourceData(TestSampleSchemaAndData.recordsAsJson(2), 2))
+    avroFormatStreamReader.next() should be(StringSourceData(SampleData.recordsAsJson(2), 2))
     avroFormatStreamReader.hasNext should be(false)
 
   }
@@ -54,7 +53,7 @@ class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
   private def writeRecordsToOutputStream = {
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    firstUsers.foreach(data =>
+    SampleData.Users.take(3).foreach(data =>
       jsonFormatWriter.write(MessageDetail(None,
                                            StructSinkData(data),
                                            Map.empty,

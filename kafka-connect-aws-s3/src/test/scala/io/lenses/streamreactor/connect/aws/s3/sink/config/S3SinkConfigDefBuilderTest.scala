@@ -15,14 +15,18 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
-import io.lenses.streamreactor.connect.aws.s3.config.{ConnectorTaskId, DataStorageSettings}
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.{Count, FileSize, Interval}
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.FileSize
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Interval
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters.{IteratorHasAsScala, MapHasAsJava}
+import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 

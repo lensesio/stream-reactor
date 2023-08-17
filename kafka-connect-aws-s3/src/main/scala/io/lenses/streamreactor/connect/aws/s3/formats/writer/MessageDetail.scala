@@ -24,7 +24,7 @@ case class MessageDetail(
   key:       Option[SinkData],
   value:     SinkData,
   headers:   Map[String, SinkData],
-  time:      Option[Instant],
+  timestamp: Option[Instant],
   topic:     Topic,
   partition: Int,
   offset:    Offset,

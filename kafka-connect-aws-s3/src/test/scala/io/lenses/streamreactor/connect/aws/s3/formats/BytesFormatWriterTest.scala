@@ -26,7 +26,8 @@ import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData._
 import org.apache.commons.io.IOUtils
 import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AnyFlatSpec
@@ -214,7 +215,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val bytesFormatWriter = new BytesFormatWriter(outputStream, BytesWriteMode.ValueOnly)
     val caught =
       bytesFormatWriter.write(MessageDetail(None,
-                                            StructSinkData(users.head),
+                                            StructSinkData(SampleData.Users.head),
                                             Map.empty,
                                             Some(Instant.now()),
                                             topic,

@@ -21,11 +21,11 @@ import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.sink.transformers.MessageTransformer.envelope
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.SchemaBuilder
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data._
 
-class MessageTransformer(storageSettingsMap: Map[Topic, DataStorageSettings]) {
+import scala.jdk.CollectionConverters.CollectionHasAsScala
+
+case class MessageTransformer(storageSettingsMap: Map[Topic, DataStorageSettings]) {
   def transform(message: MessageDetail): MessageDetail =
     storageSettingsMap.get(message.topic).fold(message) { settings =>
       if (settings.isDataStored) {
@@ -69,11 +69,12 @@ object MessageTransformer {
     * @return
     */
   private def envelope(message: MessageDetail, settings: DataStorageSettings): MessageDetail = {
-    val schema   = envelopeSchema(message, settings)
+    val schema = envelopeSchema(message, settings)
+
     val envelope = new Struct(schema)
-    envelope.put("value", message.value.value)
+    if (settings.key) message.key.foreach(k => putWithOptional(envelope, "key", k))
+    if (settings.value) putWithOptional(envelope, "value", message.value)
     if (settings.metadata) envelope.put("metadata", metadataData(message))
-    if (settings.key) message.key.foreach(k => envelope.put("key", k.value))
     if (settings.headers) {
       Option(schema.field("headers")).foreach { field =>
         envelope.put("headers", headersData(message, field.schema()))
@@ -82,22 +83,50 @@ object MessageTransformer {
     message.copy(value = StructSinkData(envelope))
   }
 
+  /**
+    * Converts a SinkData to an optional value. This is used to handle tombstones and null key entries.
+    * Since the envelope Key and Value are optional, Connect framework does not allow setting a Struct field when the schema is optional
+    * @param value The value to convert
+    * @return The value as an optional
+    */
+  def toOptional(value: SinkData): AnyRef =
+    value match {
+      case StructSinkData(value) if !value.schema().isOptional =>
+        val newStruct = new Struct(toOptional(value.schema()))
+        value.schema().fields().asScala.foreach { field =>
+          newStruct.put(field.name(), value.get(field))
+        }
+        newStruct
+      case _ => value.safeValue
+    }
+
+  private def putWithOptional(envelope: Struct, key: String, value: SinkData) =
+    envelope.put(key, toOptional(value))
+
   private def metadataData(message: MessageDetail): Struct = {
     val metadata = new Struct(MetadataSchema)
-    metadata.put("timestamp", message.time.orNull)
-    metadata.put("topic", message.topic)
+    message.timestamp.map(_.toEpochMilli).foreach(metadata.put("timestamp", _))
+    metadata.put("topic", message.topic.value)
     metadata.put("partition", message.partition)
-    metadata.put("offset", message.offset)
+    metadata.put("offset", message.offset.value)
     metadata
   }
   def envelopeSchema(message: MessageDetail, settings: DataStorageSettings): Schema = {
     var builder: SchemaBuilder = SchemaBuilder.struct()
 
+    //both key and value are optional to handle tombstones and null key entries
+
     builder =
-      if (settings.key) message.key.flatMap(_.schema()).fold(builder)(builder.field("key", _).optional())
+      if (settings.key) message.key.flatMap(_.schema()).fold(builder) { schema =>
+        builder.field("key", toOptional(schema))
+      }
       else builder
     //set the value schema optional to handle delete records
-    builder = message.value.schema().fold(builder)(builder.field("value", _).optional())
+    builder =
+      if (settings.value) message.value.schema().fold(builder) { schema =>
+        builder.field("value", toOptional(schema))
+      }
+      else builder
     builder =
       if (settings.headers) headersSchema(message.headers).fold(builder)(builder.field("headers", _))
       else builder
@@ -110,7 +139,7 @@ object MessageTransformer {
     headersList.headOption.map { _ =>
       val builder = headersList.foldLeft(SchemaBuilder.struct()) {
         case (builder, (key, data)) =>
-          builder.field(key, data.schema().get)
+          builder.field(key, toOptional(data.schema().get))
       }
       builder.build()
     }
@@ -125,4 +154,60 @@ object MessageTransformer {
     struct
   }
 
+  /**
+    * Converts a schema to optional if it is not already optional without creating a wrapper around it
+    * @param schema The schema to convert
+    * @return The schema as optional
+    */
+  def toOptional(schema: Schema): Schema =
+    if (schema.isOptional) schema
+    else {
+      schema.`type`() match {
+        case Schema.Type.BOOLEAN => Schema.OPTIONAL_BOOLEAN_SCHEMA
+        case Schema.Type.BYTES =>
+          if (schema.name() == Decimal.LOGICAL_NAME) {
+            val scale = schema.parameters().get(Decimal.SCALE_FIELD).toInt
+            Decimal.builder(scale).optional().name(schema.name()).version(1)
+              .defaultValue(schema.defaultValue())
+              .doc(schema.doc()).build()
+          } else Schema.OPTIONAL_BYTES_SCHEMA
+
+        case Schema.Type.FLOAT32 => Schema.OPTIONAL_FLOAT32_SCHEMA
+        case Schema.Type.FLOAT64 => Schema.OPTIONAL_FLOAT64_SCHEMA
+        case Schema.Type.INT8    => Schema.OPTIONAL_INT8_SCHEMA
+        case Schema.Type.INT16   => Schema.OPTIONAL_INT16_SCHEMA
+        case Schema.Type.INT32 =>
+          if (schema.name() == Date.LOGICAL_NAME) {
+            var builder = Date.builder().optional()
+            builder = builder.doc(schema.doc())
+            builder = builder.defaultValue(schema.defaultValue())
+            builder.build()
+          } else if (schema.name() == Time.LOGICAL_NAME) {
+            var builder = Time.builder().optional()
+            builder = builder.doc(schema.doc())
+            builder = builder.defaultValue(schema.defaultValue())
+            builder.build()
+          } else Schema.OPTIONAL_INT32_SCHEMA
+        case Schema.Type.INT64 =>
+          if (schema.name() == "org.apache.kafka.connect.data.Timestamp") {
+            var builder = Timestamp.builder().optional()
+            builder = builder.doc(schema.doc())
+            builder = builder.defaultValue(schema.defaultValue())
+            builder.build()
+          } else
+            Schema.OPTIONAL_INT64_SCHEMA
+          Schema.OPTIONAL_INT64_SCHEMA
+        case Schema.Type.STRING => Schema.OPTIONAL_STRING_SCHEMA
+
+        case Schema.Type.ARRAY => SchemaBuilder.array(schema.valueSchema()).optional().build()
+        case Schema.Type.MAP   => SchemaBuilder.map(schema.keySchema(), schema.valueSchema()).optional().build()
+        case Schema.Type.STRUCT =>
+          val builder = SchemaBuilder.struct().optional()
+          schema.fields().asScala.foldLeft(builder) {
+            case (b, field) =>
+              b.field(field.name(), field.schema())
+          }.build()
+
+      }
+    }
 }

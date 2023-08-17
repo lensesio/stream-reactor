@@ -19,7 +19,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings
 import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.funsuite.AnyFunSuite
@@ -35,7 +35,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
     val ts = Instant.now()
     val message = MessageDetail(
       Some(StringSinkData("key", Some(Schema.STRING_SCHEMA))),
-      StructSinkData(TestSampleSchemaAndData.users.head),
+      StructSinkData(SampleData.Users.head),
       Map(
         "headerKey"  -> StringSinkData("headerValue", Some(Schema.STRING_SCHEMA)),
         "headerKey2" -> BooleanSinkData(true, Some(Schema.BOOLEAN_SCHEMA)),
@@ -49,7 +49,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
     val actual = MessageTransformer.envelopeSchema(message, storageSettings)
     val expected = SchemaBuilder.struct()
       .field("key", Schema.STRING_SCHEMA).optional()
-      .field("value", TestSampleSchemaAndData.users.head.schema).optional()
+      .field("value", SampleData.Users.head.schema).optional()
       .field(
         "headers",
         SchemaBuilder.struct()
@@ -77,7 +77,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
     val ts = Instant.now()
     val message = MessageDetail(
       Some(StringSinkData("key", Some(Schema.STRING_SCHEMA))),
-      StructSinkData(TestSampleSchemaAndData.users.head),
+      StructSinkData(SampleData.Users.head),
       Map(
         "headerKey"  -> StringSinkData("headerValue", Some(Schema.STRING_SCHEMA)),
         "headerKey2" -> BooleanSinkData(true, Some(Schema.BOOLEAN_SCHEMA)),
@@ -91,7 +91,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
     val actual = MessageTransformer.envelopeSchema(message, storageSettings)
     val expected = SchemaBuilder.struct()
       .field("key", Schema.STRING_SCHEMA).optional()
-      .field("value", TestSampleSchemaAndData.users.head.schema).optional()
+      .field("value", SampleData.Users.head.schema).optional()
       .field(
         "metadata",
         SchemaBuilder.struct()
@@ -111,7 +111,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
     val ts = Instant.now()
     val message = MessageDetail(
       Some(StringSinkData("key", Some(Schema.STRING_SCHEMA))),
-      StructSinkData(TestSampleSchemaAndData.users.head),
+      StructSinkData(SampleData.Users.head),
       Map(
         "headerKey"  -> StringSinkData("headerValue", Some(Schema.STRING_SCHEMA)),
         "headerKey2" -> BooleanSinkData(true, Some(Schema.BOOLEAN_SCHEMA)),
@@ -123,7 +123,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
       Offset(2),
     )
     val actual   = MessageTransformer.envelopeSchema(message, storageSettings)
-    val expected = TestSampleSchemaAndData.users.head.schema
+    val expected = SampleData.Users.head.schema
 
     actual shouldBe expected
   }
@@ -133,7 +133,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
     val ts = Instant.now()
     val message = MessageDetail(
       Some(StringSinkData("key", Some(Schema.STRING_SCHEMA))),
-      StructSinkData(TestSampleSchemaAndData.users.head),
+      StructSinkData(SampleData.Users.head),
       Map(
         "headerKey"  -> StringSinkData("headerValue", Some(Schema.STRING_SCHEMA)),
         "headerKey2" -> BooleanSinkData(true, Some(Schema.BOOLEAN_SCHEMA)),
@@ -146,7 +146,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
     )
     val actual = MessageTransformer.envelopeSchema(message, storageSettings)
     val expected = SchemaBuilder.struct()
-      .field("value", TestSampleSchemaAndData.users.head.schema).optional()
+      .field("value", SampleData.Users.head.schema).optional()
       .field(
         "metadata",
         SchemaBuilder.struct()

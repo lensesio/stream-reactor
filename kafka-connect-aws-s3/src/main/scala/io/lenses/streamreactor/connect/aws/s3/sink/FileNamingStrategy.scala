@@ -214,7 +214,7 @@ class PartitionedS3FileNamingStrategy(
           case partition @ TopicPartitionField()     => partition -> topicPartition.topic.value
           case partition @ PartitionPartitionField() => partition -> padString(topicPartition.partition.toString)
           case partition @ DatePartitionField(_) => partition ->
-              messageDetail.time.fold(
+              messageDetail.timestamp.fold(
                 throw new IllegalArgumentException(
                   "No valid timestamp parsed from kafka connect message, however date partitioning was requested",
                 ),

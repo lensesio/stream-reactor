@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.CsvFormatStreamReader
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -48,7 +48,7 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
   }
 
   "next" should "throw error when you call next incorrectly when headers are configured" in {
-    val reader = setUpReader(List(TestSampleSchemaAndData.csvHeader), includesHeaders = true)
+    val reader = setUpReader(List(SampleData.csvHeader), includesHeaders = true)
     intercept[FormatWriterException] {
       reader.next()
     }.getMessage should be(
@@ -59,7 +59,7 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
 
   "next" should "read multiple rows from a CSV file with headers" in {
 
-    val reader = setUpReader(TestSampleSchemaAndData.recordsAsCsvWithHeaders, includesHeaders = true)
+    val reader = setUpReader(SampleData.recordsAsCsvWithHeaders, includesHeaders = true)
     val results: Seq[StringSourceData] = reader.toList
 
     results.size should be(3)
@@ -71,7 +71,7 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
 
   "next" should "read multiple rows from a CSV file without headers" in {
 
-    val reader = setUpReader(TestSampleSchemaAndData.recordsAsCsv, includesHeaders = false)
+    val reader = setUpReader(SampleData.recordsAsCsv, includesHeaders = false)
     val results: Seq[StringSourceData] = reader.toList
 
     results.size should be(3)
@@ -83,7 +83,7 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
   }
 
   "getBucketAndPath" should "retain bucket and path from setup" in {
-    val reader = setUpReader(TestSampleSchemaAndData.recordsAsCsv, includesHeaders = false)
+    val reader = setUpReader(SampleData.recordsAsCsv, includesHeaders = false)
     reader.getBucketAndPath should be(bucketAndPath)
   }
 
