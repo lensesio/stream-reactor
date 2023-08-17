@@ -35,6 +35,7 @@
     <properties>
         <java.version>8</java.version>
         <com.google.guava.version>32.0.1-jre</com.google.guava.version>
+        <com.google.re2j.version>1.7</com.google.re2j.version>
         <confluent.version>6.0.10</confluent.version>
         <debezium.version>0.6.2</debezium.version>
         <google.auth.version>0.21.1</google.auth.version>
@@ -278,6 +279,11 @@
                 <artifactId>kafka-avro-serializer</artifactId>
                 <version>${confluent.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.re2j</groupId>
+                <artifactId>re2j</artifactId>
+                <version>${com.google.re2j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
