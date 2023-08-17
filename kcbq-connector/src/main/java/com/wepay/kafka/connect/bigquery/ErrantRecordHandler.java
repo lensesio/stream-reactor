@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class ErrantRecordHandler {
@@ -27,6 +28,18 @@ public class ErrantRecordHandler {
             for (SinkRecord r : rows) {
                 // Reporting records in async mode
                 errantRecordReporter.report(r, e);
+            }
+        } else {
+            logger.warn("Cannot send Records to DLQ as ErrantRecordReporter is null");
+        }
+    }
+
+    public void sendRecordsToDLQ(Map<SinkRecord, Throwable> rowToError) {
+        if(errantRecordReporter != null) {
+            logger.debug("Sending {} records to DLQ", rowToError.size());
+            for (Map.Entry<SinkRecord, Throwable> rowToErrorEntry : rowToError.entrySet()) {
+                // Reporting records in async mode
+                errantRecordReporter.report(rowToErrorEntry.getKey(), rowToErrorEntry.getValue());
             }
         } else {
             logger.warn("Cannot send Records to DLQ as ErrantRecordReporter is null");

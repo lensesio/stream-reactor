@@ -293,7 +293,7 @@ public class BigQuerySinkConnectorIT {
     result.put(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG, "true");
     result.put(BigQuerySinkConfig.ENABLE_BATCH_CONFIG, testBase.suffixedAndSanitizedTable("kcbq_test_gcs-load"));
     result.put(BigQuerySinkConfig.BATCH_LOAD_INTERVAL_SEC_CONFIG, "10");
-    result.put(BigQuerySinkConfig.GCS_BUCKET_NAME_CONFIG, testBase.gcsBucket());
+    result.put(BigQuerySinkConfig.GCS_BUCKET_NAME_CONFIG, testBase.gcsBucket() + System.nanoTime());
     result.put(BigQuerySinkConfig.GCS_FOLDER_NAME_CONFIG, testBase.gcsFolder());
     result.put(BigQuerySinkConfig.SCHEMA_RETRIEVER_CONFIG, IdentitySchemaRetriever.class.getName());
 

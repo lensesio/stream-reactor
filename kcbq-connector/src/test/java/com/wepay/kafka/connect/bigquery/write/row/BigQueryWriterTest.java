@@ -46,6 +46,9 @@ import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
+import com.wepay.kafka.connect.bigquery.write.storageApi.StorageApiBatchModeHandler;
+
+import com.wepay.kafka.connect.bigquery.write.storageApi.StorageWriteApiDefaultStream;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -68,6 +71,8 @@ import java.util.Set;
 @SuppressWarnings("unchecked")
 public class BigQueryWriterTest {
   private static SinkPropertiesFactory propertiesFactory;
+  private static StorageWriteApiDefaultStream mockedStorageWriteApiDefaultStream = mock(StorageWriteApiDefaultStream.class);
+  private static StorageApiBatchModeHandler mockedBatchHandler = mock(StorageApiBatchModeHandler.class);
 
   @BeforeClass
   public static void initializePropertiesFactory() {
@@ -100,7 +105,8 @@ public class BigQueryWriterTest {
     Storage storage = mock(Storage.class);
     Map<TableId, Table> cache = new HashMap<>();
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(
+            bigQuery, schemaRetriever, storage, schemaManager, cache, mockedStorageWriteApiDefaultStream, mockedBatchHandler);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(
@@ -136,7 +142,8 @@ public class BigQueryWriterTest {
     SchemaManager schemaManager = mock(SchemaManager.class);
     Map<TableId, Table> cache = new HashMap<>();
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(
+            bigQuery, schemaRetriever, storage, schemaManager, cache, mockedStorageWriteApiDefaultStream, mockedBatchHandler);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(
@@ -172,7 +179,8 @@ public class BigQueryWriterTest {
     SchemaManager schemaManager = mock(SchemaManager.class);
     Map<TableId, Table> cache = new HashMap<>();
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(
+            bigQuery, schemaRetriever, storage, schemaManager, cache, mockedStorageWriteApiDefaultStream, mockedBatchHandler);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(
@@ -216,7 +224,8 @@ public class BigQueryWriterTest {
     Map<TableId, Table> cache = new HashMap<>();
     Storage storage = mock(Storage.class);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(
+            bigQuery, schemaRetriever, storage, schemaManager, cache, mockedStorageWriteApiDefaultStream, mockedBatchHandler);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(sinkRecordList);
@@ -269,7 +278,8 @@ public class BigQueryWriterTest {
     Map<TableId, Table> cache = new HashMap<>();
     Storage storage = mock(Storage.class);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(
+            bigQuery, schemaRetriever, storage, schemaManager, cache, mockedStorageWriteApiDefaultStream, mockedBatchHandler);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(sinkRecordList);

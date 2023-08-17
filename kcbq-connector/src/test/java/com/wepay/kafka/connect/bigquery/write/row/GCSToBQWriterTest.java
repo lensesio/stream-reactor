@@ -31,6 +31,9 @@ import com.wepay.kafka.connect.bigquery.SinkPropertiesFactory;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
+import com.wepay.kafka.connect.bigquery.write.storageApi.StorageApiBatchModeHandler;
+
+import com.wepay.kafka.connect.bigquery.write.storageApi.StorageWriteApiDefaultStream;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -55,6 +58,10 @@ public class GCSToBQWriterTest {
 
   private static SinkPropertiesFactory propertiesFactory;
 
+  private static StorageWriteApiDefaultStream mockedStorageWriteApiDefaultStream = mock(StorageWriteApiDefaultStream.class);
+  private static StorageApiBatchModeHandler mockedBatchHandler = mock(StorageApiBatchModeHandler.class);
+
+
   @BeforeClass
   public static void initializePropertiesFactory() {
     propertiesFactory = new SinkPropertiesFactory();
@@ -76,7 +83,8 @@ public class GCSToBQWriterTest {
     SchemaManager schemaManager = mock(SchemaManager.class);
     Map<TableId, Table> cache = new HashMap<>();
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(
+            bigQuery, schemaRetriever, storage, schemaManager, cache, mockedStorageWriteApiDefaultStream, mockedBatchHandler);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(
@@ -106,7 +114,8 @@ public class GCSToBQWriterTest {
         .thenThrow(new StorageException(500, "internal server error")) // throw first time
         .thenReturn(null); // return second time. (we don't care about the result.)
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(
+            bigQuery, schemaRetriever, storage, schemaManager, cache, mockedStorageWriteApiDefaultStream, mockedBatchHandler);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(
@@ -135,7 +144,8 @@ public class GCSToBQWriterTest {
     when(storage.create((BlobInfo)anyObject(), (byte[])anyObject()))
         .thenThrow(new StorageException(500, "internal server error"));
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager, cache);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(
+            bigQuery, schemaRetriever, storage, schemaManager, cache, mockedStorageWriteApiDefaultStream, mockedBatchHandler);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(
