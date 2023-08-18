@@ -20,6 +20,7 @@ import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
@@ -81,7 +82,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       case (struct: Struct, index: Int) =>
         val writeRes = sink.write(
           TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)),
-          MessageDetail(None,
+          MessageDetail(NullSinkData(None),
                         StructSinkData(struct),
                         Map.empty[String, SinkData],
                         None,
@@ -125,7 +126,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       case (user, index) =>
         sink.write(
           TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)),
-          MessageDetail(None,
+          MessageDetail(NullSinkData(None),
                         StructSinkData(user),
                         Map.empty[String, SinkData],
                         None,

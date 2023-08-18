@@ -21,7 +21,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import java.time.Instant
 
 case class MessageDetail(
-  key:       Option[SinkData],
+  key:       SinkData,
   value:     SinkData,
   headers:   Map[String, SinkData],
   timestamp: Option[Instant],

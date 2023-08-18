@@ -79,14 +79,16 @@ class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
               val outputStream = new S3ByteArrayOutputStream
               val writer: S3FormatWriter = writerClass(outputStream)
               1 to numberOfRecords foreach { _ =>
-                writer.write(MessageDetail(None,
-                                           StructSinkData(SampleData.generateUser.sample.get),
-                                           Map.empty,
-                                           Some(Instant.now()),
-                                           topic,
-                                           0,
-                                           Offset(0),
-                ))
+                writer.write(
+                  MessageDetail(NullSinkData(None),
+                                StructSinkData(SampleData.generateUser.sample.get),
+                                Map.empty,
+                                Some(Instant.now()),
+                                topic,
+                                0,
+                                Offset(0),
+                  ),
+                )
               }
               writer.complete() // TODO: FIX
 
@@ -119,7 +121,7 @@ class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
               1 to numberOfRecords foreach { _ =>
                 writer.write(
                   MessageDetail(
-                    Some(ByteArraySinkData("myKey".getBytes)),
+                    ByteArraySinkData("myKey".getBytes),
                     ByteArraySinkData("somestring".getBytes),
                     Map.empty,
                     Some(Instant.now()),

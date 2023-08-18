@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StringSinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.TextFormatWriter
@@ -35,7 +36,7 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new TextFormatWriter(outputStream)
-    jsonFormatWriter.write(MessageDetail(None,
+    jsonFormatWriter.write(MessageDetail(NullSinkData(None),
                                          StringSinkData("Sausages"),
                                          Map.empty,
                                          Some(Instant.now()),
@@ -53,7 +54,7 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new TextFormatWriter(outputStream)
-    jsonFormatWriter.write(MessageDetail(None,
+    jsonFormatWriter.write(MessageDetail(NullSinkData(None),
                                          StringSinkData("Sausages"),
                                          Map.empty,
                                          Some(Instant.now()),
@@ -61,7 +62,7 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
                                          0,
                                          Offset(0),
     ))
-    jsonFormatWriter.write(MessageDetail(None,
+    jsonFormatWriter.write(MessageDetail(NullSinkData(None),
                                          StringSinkData("Mash"),
                                          Map.empty,
                                          Some(Instant.now()),
@@ -69,7 +70,7 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
                                          0,
                                          Offset(1),
     ))
-    jsonFormatWriter.write(MessageDetail(None,
+    jsonFormatWriter.write(MessageDetail(NullSinkData(None),
                                          StringSinkData("Peas"),
                                          Map.empty,
                                          Some(Instant.now()),
@@ -87,7 +88,7 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
     val outputStream     = new S3ByteArrayOutputStream()
     val textFormatWriter = new TextFormatWriter(outputStream)
     val caught =
-      textFormatWriter.write(MessageDetail(None,
+      textFormatWriter.write(MessageDetail(NullSinkData(None),
                                            StructSinkData(SampleData.Users.head),
                                            Map.empty,
                                            Some(Instant.now()),

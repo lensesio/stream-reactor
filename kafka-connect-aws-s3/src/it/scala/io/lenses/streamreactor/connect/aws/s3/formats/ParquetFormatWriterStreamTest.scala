@@ -50,11 +50,32 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
 
     val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
-    parquetFormatWriter.write(MessageDetail(None, StructSinkData(users.head), Map.empty, None, topic, 1, Offset(1)))
+    parquetFormatWriter.write(MessageDetail(NullSinkData(None),
+                                            StructSinkData(users.head),
+                                            Map.empty,
+                                            None,
+                                            topic,
+                                            1,
+                                            Offset(1),
+    ))
     parquetFormatWriter.getPointer should be(21)
-    parquetFormatWriter.write(MessageDetail(None, StructSinkData(users(1)), Map.empty, None, topic, 1, Offset(2)))
+    parquetFormatWriter.write(MessageDetail(NullSinkData(None),
+                                            StructSinkData(users(1)),
+                                            Map.empty,
+                                            None,
+                                            topic,
+                                            1,
+                                            Offset(2),
+    ))
     parquetFormatWriter.getPointer should be(44)
-    parquetFormatWriter.write(MessageDetail(None, StructSinkData(users(2)), Map.empty, None, topic, 1, Offset(3)))
+    parquetFormatWriter.write(MessageDetail(NullSinkData(None),
+                                            StructSinkData(users(2)),
+                                            Map.empty,
+                                            None,
+                                            topic,
+                                            1,
+                                            Offset(3),
+    ))
     parquetFormatWriter.getPointer should be(59)
     parquetFormatWriter.complete() should be(Right(()))
 
@@ -81,7 +102,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
     parquetFormatWriter.write(
       MessageDetail(
-        None,
+        NullSinkData(None),
         ArraySinkData(
           Seq(
             "batman",
@@ -106,7 +127,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
     parquetFormatWriter.write(
       MessageDetail(
-        None,
+        NullSinkData(None),
         MapSinkData(
           Map(
             "batman" -> 1,
@@ -158,7 +179,14 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
 
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
     firstUsers.foreach(u =>
-      parquetFormatWriter.write(MessageDetail(None, StructSinkData(u), Map.empty, None, topic, 1, Offset(1))) should be(
+      parquetFormatWriter.write(MessageDetail(NullSinkData(None),
+                                              StructSinkData(u),
+                                              Map.empty,
+                                              None,
+                                              topic,
+                                              1,
+                                              Offset(1),
+      )) should be(
         Right(()),
       ),
     )

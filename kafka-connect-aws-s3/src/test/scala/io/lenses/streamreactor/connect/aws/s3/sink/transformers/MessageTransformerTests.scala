@@ -35,7 +35,7 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
   test("returns the message when there is no  setting for the topic") {
     val transformer = MessageTransformer(Map.empty)
     val expected = MessageDetail(
-      Some(StringSinkData("key")),
+      StringSinkData("key"),
       StructSinkData(SampleData.Users.head),
       Map("header1" -> StringSinkData("value1"), "header2" -> ByteArraySinkData("value2".getBytes())),
       Some(Instant.now()),
@@ -49,7 +49,7 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
   test("returns the message when the envelope settings is disabled") {
     val transformer = MessageTransformer(Map(Topic("topic1") -> DataStorageSettings.disabled))
     val expected = MessageDetail(
-      Some(StringSinkData("key")),
+      StringSinkData("key"),
       StructSinkData(SampleData.Users.head),
       Map("header1" -> StringSinkData("value1"), "header2" -> ByteArraySinkData("value2".getBytes())),
       Some(Instant.now()),
@@ -62,7 +62,7 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
 
   test("full envelope") {
     val expected = MessageDetail(
-      Some(StringSinkData("key", Some(Schema.STRING_SCHEMA))),
+      StringSinkData("key", Some(Schema.STRING_SCHEMA)),
       StructSinkData(SampleData.Users.head),
       Map(
         "header1" -> StringSinkData("value1", Some(Schema.STRING_SCHEMA)),
@@ -78,7 +78,7 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
   test("envelope without metadata") {
     val settings = DataStorageSettings.enabled.copy(metadata = false)
     val expected = MessageDetail(
-      Some(StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA))),
+      StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA)),
       StructSinkData(SampleData.Users.head),
       Map(
         "header1" -> StringSinkData("value1", Some(Schema.STRING_SCHEMA)),
@@ -95,7 +95,7 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
   test("envelope without headers") {
     val settings = DataStorageSettings.enabled.copy(headers = false)
     val expected = MessageDetail(
-      Some(StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA))),
+      StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA)),
       StructSinkData(SampleData.Users.head),
       Map(
         "header1" -> StringSinkData("value1", Some(Schema.STRING_SCHEMA)),
@@ -112,7 +112,7 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
   test("envelope without key") {
     val settings = DataStorageSettings.enabled.copy(key = false)
     val expected = MessageDetail(
-      Some(StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA))),
+      StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA)),
       StructSinkData(SampleData.Users.head),
       Map(
         "header1" -> StringSinkData("value1", Some(Schema.STRING_SCHEMA)),
@@ -129,7 +129,7 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
     val settings = DataStorageSettings.enabled.copy(value = false)
 
     val expected = MessageDetail(
-      Some(StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA))),
+      StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA)),
       StructSinkData(SampleData.Users.head),
       Map(
         "header1" -> StringSinkData("value1", Some(Schema.STRING_SCHEMA)),
@@ -146,7 +146,7 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
     val settings = DataStorageSettings.enabled
 
     val expected = MessageDetail(
-      Some(StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA))),
+      StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA)),
       ArraySinkData(SampleData.Users.asJava, Some(SchemaBuilder.array(SampleData.UsersSchema).build())),
       Map(
         "header1" -> StringSinkData("value1", Some(Schema.STRING_SCHEMA)),
@@ -163,7 +163,7 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
     val settings = DataStorageSettings.enabled
 
     val expected = MessageDetail(
-      Some(StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA))),
+      StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA)),
       MapSinkData(
         Map(
           "key1" -> SampleData.Users.head,
@@ -198,8 +198,8 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
       if (settings.key) {
         val keyS = struct.schema().field("key").schema()
         keyS.isOptional shouldBe true
-        keyS.schema() shouldBe MessageTransformer.toOptional(expected.key.get.schema().get)
-        struct.get("key") shouldBe MessageTransformer.toOptionalConnectData(expected.key.get)
+        keyS.schema() shouldBe MessageTransformer.toOptional(expected.key.schema().get)
+        struct.get("key") shouldBe MessageTransformer.toOptionalConnectData(expected.key)
       } else {
         struct.schema().field("key") shouldBe null
       }

@@ -24,7 +24,7 @@ import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.HeaderToStringConverter
@@ -145,10 +145,13 @@ class S3SinkTask extends SinkTask with ErrorHandler {
           record =>
             val topicPartitionOffset =
               Topic(record.topic).withPartition(record.kafkaPartition.intValue).withOffset(Offset(record.kafkaOffset))
+
+            val key = Option(record.key()) match {
+              case Some(k) => ValueToSinkDataConverter(k, Option(record.keySchema()))
+              case None    => NullSinkData(Option(record.keySchema()))
+            }
             val msgDetails = MessageDetail(
-              key = Option(record.key()).fold(Option.empty[SinkData])(key =>
-                Option(ValueToSinkDataConverter(key, Option(record.keySchema()))),
-              ),
+              key     = key,
               value   = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
               headers = HeaderToStringConverter(record),
               TimestampUtils.parseTime(Option(record.timestamp()).map(_.toLong))(_ =>

@@ -70,7 +70,7 @@ object MessageTransformer {
     val schema = envelopeSchema(message, settings)
 
     val envelope = new Struct(schema)
-    if (settings.key) message.key.foreach(k => putWithOptional(envelope, "key", k))
+    if (settings.key) putWithOptional(envelope, "key", message.key)
     if (settings.value) putWithOptional(envelope, "value", message.value)
     if (settings.metadata) envelope.put("metadata", metadataData(message))
     if (settings.headers) {
@@ -116,7 +116,7 @@ object MessageTransformer {
     //both key and value are optional to handle tombstones and null key entries
 
     builder =
-      if (settings.key) message.key.flatMap(_.schema()).fold(builder) { schema =>
+      if (settings.key) message.key.schema().fold(builder) { schema =>
         builder.field("key", toOptional(schema))
       }
       else builder

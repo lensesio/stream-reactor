@@ -34,7 +34,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
 
     val ts = Instant.now()
     val message = MessageDetail(
-      Some(StringSinkData("key", Some(Schema.STRING_SCHEMA))),
+      StringSinkData("key", Some(Schema.STRING_SCHEMA)),
       StructSinkData(SampleData.Users.head),
       Map(
         "headerKey"  -> StringSinkData("headerValue", Some(Schema.STRING_SCHEMA)),
@@ -76,7 +76,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
       DataStorageSettings(envelope = true, value = true, key = true, metadata = true, headers = false)
     val ts = Instant.now()
     val message = MessageDetail(
-      Some(StringSinkData("key", Some(Schema.STRING_SCHEMA))),
+      StringSinkData("key", Some(Schema.STRING_SCHEMA)),
       StructSinkData(SampleData.Users.head),
       Map(
         "headerKey"  -> StringSinkData("headerValue", Some(Schema.STRING_SCHEMA)),
@@ -110,7 +110,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
       DataStorageSettings(envelope = false, key = true, metadata = true, headers = true, value = true)
     val ts = Instant.now()
     val message = MessageDetail(
-      Some(StringSinkData("key", Some(Schema.STRING_SCHEMA))),
+      StringSinkData("key", Some(Schema.STRING_SCHEMA)),
       StructSinkData(SampleData.Users.head),
       Map(
         "headerKey"  -> StringSinkData("headerValue", Some(Schema.STRING_SCHEMA)),
@@ -132,7 +132,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
       DataStorageSettings(key = false, metadata = true, headers = false, envelope = true, value = true)
     val ts = Instant.now()
     val message = MessageDetail(
-      Some(StringSinkData("key", Some(Schema.STRING_SCHEMA))),
+      StringSinkData("key", Some(Schema.STRING_SCHEMA)),
       StructSinkData(SampleData.Users.head),
       Map(
         "headerKey"  -> StringSinkData("headerValue", Some(Schema.STRING_SCHEMA)),

@@ -36,7 +36,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    jsonFormatWriter.write(MessageDetail(None,
+    jsonFormatWriter.write(MessageDetail(NullSinkData(None),
                                          StructSinkData(SampleData.Users.head),
                                          Map.empty,
                                          Some(Instant.now()),
@@ -55,7 +55,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     SampleData.Users.take(3).foreach(e =>
       jsonFormatWriter.write(
-        MessageDetail(None, StructSinkData(e), Map.empty, Some(Instant.now()), topic, 0, Offset(0)),
+        MessageDetail(NullSinkData(None), StructSinkData(e), Map.empty, Some(Instant.now()), topic, 0, Offset(0)),
       ),
     )
 
@@ -67,7 +67,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    jsonFormatWriter.write(MessageDetail(None,
+    jsonFormatWriter.write(MessageDetail(NullSinkData(None),
                                          StringSinkData("bees", None),
                                          Map.empty,
                                          Some(Instant.now()),
@@ -86,7 +86,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    jsonFormatWriter.write(MessageDetail(None,
+    jsonFormatWriter.write(MessageDetail(NullSinkData(None),
                                          StringSinkData("apple\nbucket", None),
                                          Map.empty,
                                          Some(Instant.now()),
@@ -106,13 +106,14 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(
-      MessageDetail(None,
-                    StringSinkData("bees", Some(SchemaBuilder.string().build())),
-                    Map.empty,
-                    Some(Instant.now()),
-                    topic,
-                    0,
-                    Offset(0),
+      MessageDetail(
+        NullSinkData(None),
+        StringSinkData("bees", Some(SchemaBuilder.string().build())),
+        Map.empty,
+        Some(Instant.now()),
+        topic,
+        0,
+        Offset(0),
       ),
     )
 
@@ -127,23 +128,25 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(
-      MessageDetail(None,
-                    StringSinkData("bees", Some(SchemaBuilder.string().build())),
-                    Map.empty,
-                    Some(Instant.now()),
-                    topic,
-                    0,
-                    Offset(1),
+      MessageDetail(
+        NullSinkData(None),
+        StringSinkData("bees", Some(SchemaBuilder.string().build())),
+        Map.empty,
+        Some(Instant.now()),
+        topic,
+        0,
+        Offset(1),
       ),
     )
     jsonFormatWriter.write(
-      MessageDetail(None,
-                    StringSinkData("wasps", Some(SchemaBuilder.string().build())),
-                    Map.empty,
-                    Some(Instant.now()),
-                    topic,
-                    0,
-                    Offset(2),
+      MessageDetail(
+        NullSinkData(None),
+        StringSinkData("wasps", Some(SchemaBuilder.string().build())),
+        Map.empty,
+        Some(Instant.now()),
+        topic,
+        0,
+        Offset(2),
       ),
     )
 
@@ -160,7 +163,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(
-      MessageDetail(None,
+      MessageDetail(NullSinkData(None),
                     ArraySinkData(
                       Seq(
                         "bees",
@@ -187,7 +190,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(
       MessageDetail(
-        None,
+        NullSinkData(None),
         MapSinkData(
           Map(
             "bees"  -> "sting when scared",
@@ -214,7 +217,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(
       MessageDetail(
-        None,
+        NullSinkData(None),
         MapSinkData(
           Map(
             "bees"  -> "sting when scared",

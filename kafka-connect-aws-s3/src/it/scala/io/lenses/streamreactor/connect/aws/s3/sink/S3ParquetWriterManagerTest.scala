@@ -20,6 +20,7 @@ import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetFormatReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
@@ -85,7 +86,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         val offset = Offset(index.toLong + 1)
         sink.write(
           TopicPartitionOffset(topic, 1, offset),
-          MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData], None, topic, 1, offset),
+          MessageDetail(NullSinkData(None), StructSinkData(struct), Map.empty[String, SinkData], None, topic, 1, offset),
         )
     }
 
@@ -123,7 +124,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         val offset = Offset(index.toLong + 1)
         sink.write(
           TopicPartitionOffset(topic, 1, offset),
-          MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData], None, topic, 1, offset),
+          MessageDetail(NullSinkData(None), StructSinkData(user), Map.empty[String, SinkData], None, topic, 1, offset),
         )
     }
     sink.close()

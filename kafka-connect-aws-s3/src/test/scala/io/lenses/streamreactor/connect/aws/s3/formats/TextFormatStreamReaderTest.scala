@@ -19,6 +19,7 @@ import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.TextFormatStreamReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.JsonFormatWriter
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
@@ -54,7 +55,7 @@ class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     SampleData.Users.take(3).foreach(data =>
-      jsonFormatWriter.write(MessageDetail(None,
+      jsonFormatWriter.write(MessageDetail(NullSinkData(None),
                                            StructSinkData(data),
                                            Map.empty,
                                            Some(Instant.now()),
