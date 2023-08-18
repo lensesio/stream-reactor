@@ -39,6 +39,8 @@ sealed trait FormatSelection {
   def availableCompressionCodecs: Map[CompressionCodecName, Boolean] = Map(UNCOMPRESSED -> false)
 
   def extension: String
+
+  def supportsEnvelope: Boolean
 }
 case object FormatSelection {
 
@@ -88,6 +90,8 @@ case object JsonFormatSelection extends FormatSelection {
     new TextFormatStreamReader(inputStream, bucketAndPath)
 
   override def extension: String = "json"
+
+  override def supportsEnvelope: Boolean = true
 }
 
 case object AvroFormatSelection extends FormatSelection {
@@ -109,6 +113,8 @@ case object AvroFormatSelection extends FormatSelection {
     new AvroFormatStreamReader(inputStream, bucketAndPath)
 
   override def extension: String = "avro"
+
+  override def supportsEnvelope: Boolean = true
 }
 
 case object ParquetFormatSelection extends FormatSelection {
@@ -131,6 +137,8 @@ case object ParquetFormatSelection extends FormatSelection {
     ParquetFormatStreamReader.apply(inputStream, fileSize, bucketAndPath, recreateInputStreamF)
 
   override def extension: String = "parquet"
+
+  override def supportsEnvelope: Boolean = true
 }
 case class TextFormatSelection(readTextMode: Option[ReadTextMode]) extends FormatSelection {
   override def toStreamReader(
@@ -142,6 +150,8 @@ case class TextFormatSelection(readTextMode: Option[ReadTextMode]) extends Forma
     TextFormatStreamReader(readTextMode, inputStream, bucketAndPath)
 
   override def extension: String = "text"
+
+  override def supportsEnvelope: Boolean = false
 }
 case class CsvFormatSelection(formatOptions: Set[FormatOptions]) extends FormatSelection {
   override def toStreamReader(
@@ -152,6 +162,8 @@ case class CsvFormatSelection(formatOptions: Set[FormatOptions]) extends FormatS
   ) = new CsvFormatStreamReader(inputStream, bucketAndPath, hasHeaders = formatOptions.contains(WithHeaders))
 
   override def extension: String = "csv"
+
+  override def supportsEnvelope: Boolean = false
 }
 case class BytesFormatSelection(formatOptions: Set[FormatOptions]) extends FormatSelection {
   override def toStreamReader(
@@ -170,4 +182,6 @@ case class BytesFormatSelection(formatOptions: Set[FormatOptions]) extends Forma
   }
 
   override def extension: String = "bytes"
+
+  override def supportsEnvelope: Boolean = false
 }

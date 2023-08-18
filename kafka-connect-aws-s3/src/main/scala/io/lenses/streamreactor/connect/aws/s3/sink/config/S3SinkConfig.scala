@@ -91,6 +91,7 @@ object SinkBucketOptions extends LazyLogging {
         storageSettings <- DataStorageSettings.from(
           Option(kcql.getProperties).map(_.asScala.toMap).getOrElse(Map.empty),
         )
+        _ <- validateEnvelopeAndFormat(formatSelection, storageSettings)
       } yield {
         SinkBucketOptions(
           Option(kcql.getSource).filterNot(Set("*", "`*`").contains(_)),
@@ -105,6 +106,16 @@ object SinkBucketOptions extends LazyLogging {
       }
     }.toSeq.traverse(identity)
 
+  private def validateEnvelopeAndFormat(
+    format:   FormatSelection,
+    settings: DataStorageSettings,
+  ): Either[Throwable, Unit] =
+    if (!settings.envelope) ().asRight
+    else {
+      if (format.supportsEnvelope) ().asRight
+      else
+        new IllegalArgumentException(s"Envelope is not supported for format ${format.extension.toUpperCase()}.").asLeft
+    }
 }
 
 case class SinkBucketOptions(
