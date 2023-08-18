@@ -49,14 +49,14 @@ class ParquetFormatWriter(outputStream: S3OutputStream)(implicit compressionCode
     }
   }
 
-  private var writer: ParquetWriter[AnyRef] = _
+  private var writer: ParquetWriter[Any] = _
 
   override def write(messageDetail: MessageDetail): Either[Throwable, Unit] =
     Try {
 
       logger.debug("ParquetFormatWriter - write")
 
-      val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(messageDetail.value)
+      val genericRecord = ToAvroDataConverter.convertToGenericRecord(messageDetail.value)
       if (writer == null) {
         writer = init(messageDetail.value.schema())
       }
@@ -65,13 +65,13 @@ class ParquetFormatWriter(outputStream: S3OutputStream)(implicit compressionCode
       outputStream.flush()
     }.toEither
 
-  private def init(connectSchema: Option[ConnectSchema]): ParquetWriter[AnyRef] = {
+  private def init(connectSchema: Option[ConnectSchema]): ParquetWriter[Any] = {
     val schema: Schema = ToAvroDataConverter.convertSchema(connectSchema)
 
     val outputFile = new ParquetOutputFile(outputStream)
 
     AvroParquetWriter
-      .builder[AnyRef](outputFile)
+      .builder[Any](outputFile)
       .withRowGroupSize(DEFAULT_BLOCK_SIZE.toLong)
       .withPageSize(DEFAULT_PAGE_SIZE)
       .withSchema(schema)

@@ -28,6 +28,8 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import java.time.Instant
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class MessageTransformerTests extends AnyFunSuite with Matchers {
   test("returns the message when there is no  setting for the topic") {
@@ -145,9 +147,7 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
 
     val expected = MessageDetail(
       Some(StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA))),
-      ArraySinkData(SampleData.Users.map(StructSinkData.apply),
-                    Some(SchemaBuilder.array(SampleData.UsersSchema).build()),
-      ),
+      ArraySinkData(SampleData.Users.asJava, Some(SchemaBuilder.array(SampleData.UsersSchema).build())),
       Map(
         "header1" -> StringSinkData("value1", Some(Schema.STRING_SCHEMA)),
         "header2" -> ByteArraySinkData("value2".getBytes(), Some(Schema.BYTES_SCHEMA)),
@@ -166,9 +166,9 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
       Some(StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA))),
       MapSinkData(
         Map(
-          StringSinkData("key1") -> StructSinkData(SampleData.Users.head),
-          StringSinkData("key2") -> StructSinkData(SampleData.Users.tail.head),
-        ),
+          "key1" -> SampleData.Users.head,
+          "key2" -> SampleData.Users.tail.head,
+        ).asJava,
         Some(SchemaBuilder.map(Schema.STRING_SCHEMA, SampleData.UsersSchema).build()),
       ),
       Map(

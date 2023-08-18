@@ -20,14 +20,14 @@ import org.apache.kafka.connect.data.Struct
 
 sealed trait SinkData {
   def schema(): Option[Schema]
-  def value:    AnyRef
+  def value:    Any
 
-  def safeValue: AnyRef = value
+  def safeValue: Any = value
 }
 
 sealed trait PrimitiveSinkData extends SinkData
 
-case class BooleanSinkData(value: java.lang.Boolean, schema: Option[Schema] = None) extends PrimitiveSinkData
+case class BooleanSinkData(value: Boolean, schema: Option[Schema] = None) extends PrimitiveSinkData
 
 case class StringSinkData(value: String, schema: Option[Schema] = None) extends PrimitiveSinkData {
 
@@ -35,31 +35,31 @@ case class StringSinkData(value: String, schema: Option[Schema] = None) extends 
     * Escapes new line characters so that they don't cause line breaks in the output.  In the case of text or json mode,
     * which is line delimited, these breaks could cause the file to be read incorrectly.
     */
-  override def safeValue: AnyRef = Option(value).map(_.replace("\n", "\\n")).orNull
+  override def safeValue: Any = Option(value).map(_.replace("\n", "\\n")).orNull
 }
 
-case class LongSinkData(value: java.lang.Long, schema: Option[Schema] = None) extends PrimitiveSinkData
+case class LongSinkData(value: Long, schema: Option[Schema] = None) extends PrimitiveSinkData
 
-case class IntSinkData(value: java.lang.Integer, schema: Option[Schema] = None) extends PrimitiveSinkData
+case class IntSinkData(value: Int, schema: Option[Schema] = None) extends PrimitiveSinkData
 
-case class ShortSinkData(value: java.lang.Short, schema: Option[Schema] = None) extends PrimitiveSinkData
+case class ShortSinkData(value: Short, schema: Option[Schema] = None) extends PrimitiveSinkData
 
-case class ByteSinkData(value: java.lang.Byte, schema: Option[Schema] = None) extends PrimitiveSinkData
+case class ByteSinkData(value: Byte, schema: Option[Schema] = None) extends PrimitiveSinkData
 
-case class DoubleSinkData(value: java.lang.Double, schema: Option[Schema] = None) extends PrimitiveSinkData
+case class DoubleSinkData(value: Double, schema: Option[Schema] = None) extends PrimitiveSinkData
 
-case class FloatSinkData(value: java.lang.Float, schema: Option[Schema] = None) extends PrimitiveSinkData
+case class FloatSinkData(value: Float, schema: Option[Schema] = None) extends PrimitiveSinkData
 
 case class StructSinkData(value: Struct) extends SinkData {
   override def schema(): Option[Schema] = Option(value.schema())
 }
 
-case class MapSinkData(value: Map[SinkData, SinkData], schema: Option[Schema] = None) extends SinkData
+case class MapSinkData(value: java.util.Map[_, _], schema: Option[Schema] = None) extends SinkData
 
-case class ArraySinkData(value: Seq[SinkData], schema: Option[Schema] = None) extends SinkData
+case class ArraySinkData(value: java.util.List[_], schema: Option[Schema] = None) extends SinkData
 
 case class ByteArraySinkData(value: Array[Byte], schema: Option[Schema] = None) extends SinkData
 
 case class NullSinkData(schema: Option[Schema] = None) extends SinkData {
-  override def value: AnyRef = null
+  override def value: Any = null
 }

@@ -16,33 +16,21 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
 import cats.implicits._
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ArrayIndexUtil.getArrayIndex
 
 object WrappedArrayExtractor {
 
   private[extractors] def extractPathFromArray(
-    arrs:      Seq[SinkData],
+    arrs:      java.util.List[_],
     fieldName: PartitionNamePath,
   ): Either[ExtractorError, String] =
-    if (fieldName.hasTail) extractComplexType(arrs, fieldName) else extractPrimitive(arrs, fieldName.head)
-
-  private def extractComplexType(arrs: Seq[SinkData], fieldName: PartitionNamePath): Either[ExtractorError, String] =
     getArrayIndex(fieldName.head) match {
       case Left(error) => error.asLeft[String]
       case Right(index) =>
-        arrs.lift(index).fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String])(
-          WrappedComplexTypeExtractor.extractFromComplexType(_, fieldName.tail),
-        )
-    }
-
-  private def extractPrimitive(arrs: Seq[SinkData], head: String): Either[ExtractorError, String] =
-    getArrayIndex(head) match {
-      case Left(error) => error.asLeft[String]
-      case Right(index) => arrs.lift(index).fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
-          wrappedPrimitive => WrappedPrimitiveExtractor.extractFromPrimitive(wrappedPrimitive)
+        Option(arrs.get(index)).fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) { value =>
+          if (fieldName.hasTail) WrappedComplexTypeExtractor.extractFromComplexType(value, fieldName.tail)
+          else WrappedPrimitiveExtractor.extractFromPrimitive(value)
         }
     }
-
 }

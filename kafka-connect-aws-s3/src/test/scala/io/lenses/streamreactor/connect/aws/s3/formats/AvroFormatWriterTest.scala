@@ -33,6 +33,8 @@ import org.scalatest.matchers.should.Matchers
 
 import java.nio.ByteBuffer
 import java.time.Instant
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
   private implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
@@ -139,10 +141,10 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
         None,
         ArraySinkData(
           Seq(
-            StringSinkData("batman"),
-            StringSinkData("robin"),
-            StringSinkData("alfred"),
-          ),
+            "batman",
+            "robin",
+            "alfred",
+          ).asJava,
           Some(arraySchema),
         ),
         Map.empty,
@@ -170,10 +172,10 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
         None,
         ArraySinkData(
           Seq(
-            StringSinkData("batman"),
-            StringSinkData("robin"),
-            StringSinkData("alfred"),
-          ),
+            "batman",
+            "robin",
+            "alfred",
+          ).asJava,
           Some(arraySchema),
         ),
         Map.empty,
@@ -188,9 +190,9 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
         None,
         ArraySinkData(
           Seq(
-            StringSinkData("superman"),
-            StringSinkData("lois lane"),
-          ),
+            "superman",
+            "lois lane",
+          ).asJava,
           Some(arraySchema),
         ),
         Map.empty,
@@ -219,10 +221,10 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
         None,
         ArraySinkData(
           Seq(
-            StringSinkData("batman"),
-            StringSinkData("robin"),
-            StringSinkData("alfred"),
-          ),
+            "batman",
+            "robin",
+            "alfred",
+          ).asJava,
         ),
         Map.empty,
         Some(Instant.now()),
@@ -245,10 +247,10 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
         None,
         MapSinkData(
           Map(
-            StringSinkData("batman") -> IntSinkData(1),
-            StringSinkData("robin")  -> IntSinkData(2),
-            StringSinkData("alfred") -> IntSinkData(3),
-          ),
+            "batman" -> 1,
+            "robin"  -> 2,
+            "alfred" -> 3,
+          ).asJava,
           Some(mapSchema),
         ),
         Map.empty,
@@ -263,9 +265,9 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
         None,
         MapSinkData(
           Map(
-            StringSinkData("superman")  -> IntSinkData(4),
-            StringSinkData("lois lane") -> IntSinkData(5),
-          ),
+            "superman"  -> 4,
+            "lois lane" -> 5,
+          ).asJava,
           Some(mapSchema),
         ),
         Map.empty,

@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.aws.s3.formats.writer
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.JsonFormatWriter._
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.LineSeparatorUtil.LineSeparatorBytes
 import io.lenses.streamreactor.connect.aws.s3.sink._
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToJsonDataConverter
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.kafka.connect.json.JsonConverter
 
@@ -37,9 +36,9 @@ class JsonFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter {
         case StructSinkData(structVal) =>
           Converter.fromConnectData(topic.value, valueSinkData.schema().orNull, structVal)
         case MapSinkData(map, schema) =>
-          Converter.fromConnectData(topic.value, schema.orNull, ToJsonDataConverter.convertMap(map))
+          Converter.fromConnectData(topic.value, schema.orNull, map)
         case ArraySinkData(array, schema) =>
-          Converter.fromConnectData(topic.value, schema.orNull, ToJsonDataConverter.convertArray(array))
+          Converter.fromConnectData(topic.value, schema.orNull, array)
         case ByteArraySinkData(_, _) => throw new IllegalStateException("Cannot currently write byte array as json")
         case NullSinkData(schema)    => Converter.fromConnectData(topic.value, schema.orNull, null)
       }

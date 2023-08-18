@@ -22,7 +22,8 @@ import org.apache.kafka.connect.errors.ConnectException
 
 import java.nio.ByteBuffer
 import java.util
-import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 object ValueToSinkDataConverter {
 
@@ -36,31 +37,13 @@ object ValueToSinkDataConverter {
     case doubleVal: Double         => DoubleSinkData(doubleVal, schema)
     case floatVal:  Float          => FloatSinkData(floatVal, schema)
     case structVal: Struct         => StructSinkData(structVal)
-    case mapVal:    Map[_, _]      => MapSinkDataConverter(mapVal, schema)
-    case mapVal:    util.Map[_, _] => MapSinkDataConverter(mapVal.asScala.toMap, schema)
+    case mapVal:    Map[_, _]      => MapSinkData(mapVal.asJava, schema)
+    case mapVal:    util.Map[_, _] => MapSinkData(mapVal, schema)
     case bytesVal:  Array[Byte]    => ByteArraySinkData(bytesVal, schema)
     case bytesVal:  ByteBuffer     => ByteArraySinkData(bytesVal.array(), schema)
-    case arrayVal:  Array[_]       => ArraySinkDataConverter(arrayVal, schema)
-    case listVal:   util.List[_]   => ArraySinkDataConverter(listVal.toArray, schema)
+    case arrayVal:  Array[_]       => ArraySinkData(arrayVal.toList.asJava, schema)
+    case listVal:   util.List[_]   => ArraySinkData(listVal, schema)
     case null     => NullSinkData(schema)
     case otherVal => throw new ConnectException(s"Unsupported record $otherVal:${otherVal.getClass.getCanonicalName}")
   }
-}
-
-object ArraySinkDataConverter {
-  def apply(array: Array[_], schema: Option[Schema]): SinkData =
-    ArraySinkData(array.map(e => ValueToSinkDataConverter(e, None)).toIndexedSeq, schema)
-}
-
-object MapSinkDataConverter {
-  def apply(map: Map[_, _], schema: Option[Schema]): SinkData =
-    MapSinkData(
-      map.map {
-        case (k: String, v) => StringSinkData(k, None) -> ValueToSinkDataConverter(v, None)
-        case (k, _) => throw new ConnectException(
-            s"Non-string map values including (${k.getClass.getCanonicalName}) are not currently supported",
-          )
-      },
-      schema,
-    )
 }

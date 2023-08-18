@@ -72,13 +72,13 @@ class AvroFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: 
   override def getPointer: Long = avroWriterState.fold(0L)(_.pointer)
 
   private class AvroWriterState(outputStream: S3OutputStream, connectSchema: Option[ConnectSchema]) {
-    private val schema: Schema                     = ToAvroDataConverter.convertSchema(connectSchema)
-    private val writer: GenericDatumWriter[AnyRef] = new GenericDatumWriter[AnyRef](schema)
-    private val fileWriter: DataFileWriter[AnyRef] =
-      new DataFileWriter[AnyRef](writer).setCodec(avroCompressionCodec).create(schema, outputStream)
+    private val schema: Schema                  = ToAvroDataConverter.convertSchema(connectSchema)
+    private val writer: GenericDatumWriter[Any] = new GenericDatumWriter[Any](schema)
+    private val fileWriter: DataFileWriter[Any] =
+      new DataFileWriter[Any](writer).setCodec(avroCompressionCodec).create(schema, outputStream)
 
     def write(valueStruct: SinkData): Unit = {
-      val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(valueStruct)
+      val genericRecord: Any = ToAvroDataConverter.convertToGenericRecord(valueStruct)
       fileWriter.append(genericRecord)
       fileWriter.flush()
     }

@@ -16,8 +16,6 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
 import cats.implicits._
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.StringSinkData
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
 
 /**
@@ -26,23 +24,23 @@ import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
 object WrappedMapExtractor {
 
   private[extractors] def extractPathFromMap(
-    map:       Map[SinkData, SinkData],
+    map:       java.util.Map[_, _],
     fieldName: PartitionNamePath,
   ): Either[ExtractorError, String] =
     if (fieldName.hasTail) extractComplexType(map, fieldName) else extractPrimitive(map, fieldName.head)
 
   private def extractComplexType(
-    map:       Map[SinkData, SinkData],
+    map:       java.util.Map[_, _],
     fieldName: PartitionNamePath,
   ): Either[ExtractorError, String] =
-    map
-      .get(StringSinkData(fieldName.head, None))
+    Option(map.asInstanceOf[java.util.Map[Any, Any]]
+      .get(fieldName.head))
       .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String])(
         WrappedComplexTypeExtractor.extractFromComplexType(_, fieldName.tail),
       )
 
-  private def extractPrimitive(map: Map[SinkData, SinkData], head: String): Either[ExtractorError, String] =
-    map.get(StringSinkData(head, None)).fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
+  private def extractPrimitive(map: java.util.Map[_, _], head: String): Either[ExtractorError, String] =
+    Option(map.get(head)).fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
       wrappedPrimitive => WrappedPrimitiveExtractor.extractFromPrimitive(wrappedPrimitive)
     }
 

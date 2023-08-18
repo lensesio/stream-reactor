@@ -73,10 +73,12 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       batchDelete = true,
     )
 
-    val sink = S3WriterManager.from(config)
+    val sink   = S3WriterManager.from(config)
+    val topic  = Topic(TopicName)
+    val offset = Offset(1)
     sink.write(
-      TopicPartitionOffset(Topic(TopicName), 1, Offset(1)),
-      MessageDetail(None, StructSinkData(users.head), Map.empty[String, SinkData], None),
+      TopicPartitionOffset(topic, 1, offset),
+      MessageDetail(None, StructSinkData(users.head), Map.empty[String, SinkData], None, topic, 1, offset),
     )
     sink.close()
 
@@ -105,7 +107,9 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           formatSelection = JsonFormatSelection,
           fileNamingStrategy =
             new HierarchicalS3FileNamingStrategy(JsonFormatSelection, NoOpPaddingStrategy), // JsonS3Format
-          localStagingArea = LocalStagingArea(localRoot),
+          localStagingArea   = LocalStagingArea(localRoot),
+          partitionSelection = None,
+          dataStorage        = DataStorageSettings.disabled,
         ),
       ),
       offsetSeekerOptions = OffsetSeekerOptions(5),
@@ -115,9 +119,12 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     val sink = S3WriterManager.from(config)
     firstUsers.zipWithIndex.foreach {
-      case (struct: Struct, index: Int) => sink.write(
-          TopicPartitionOffset(Topic(TopicName), 1, Offset(index.toLong + 1)),
-          MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData], None),
+      case (struct: Struct, index: Int) =>
+        val topic  = Topic(TopicName)
+        val offset = Offset(index.toLong + 1)
+        sink.write(
+          TopicPartitionOffset(topic, 1, offset),
+          MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData], None, topic, 0, offset),
         )
     }
 

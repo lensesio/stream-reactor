@@ -21,9 +21,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.sink.transformers.MessageTransformer.envelope
 import org.apache.kafka.connect.data._
 
-import java.util
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.jdk.CollectionConverters.SeqHasAsJava
 
 case class MessageTransformer(storageSettingsMap: Map[Topic, DataStorageSettings]) {
   def transform(message: MessageDetail): MessageDetail =
@@ -89,7 +87,7 @@ object MessageTransformer {
     * @param value The value to convert
     * @return The value as an optional
     */
-  def toOptionalConnectData(value: SinkData): AnyRef =
+  def toOptionalConnectData(value: SinkData): Any =
     value match {
       case StructSinkData(value) if !value.schema().isOptional =>
         val newStruct = new Struct(toOptional(value.schema()))
@@ -97,11 +95,7 @@ object MessageTransformer {
           newStruct.put(field.name(), value.get(field))
         }
         newStruct
-      case ArraySinkData(value, _) => value.map(_.value).asJava
-      case MapSinkData(value, _) => value.foldLeft(new util.HashMap[AnyRef, AnyRef]()) {
-          case (map, (k, v)) => map.put(k.value, v.value)
-            map
-        }
+
       case _ => value.value
     }
 

@@ -27,6 +27,8 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.time.Instant
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
@@ -161,9 +163,9 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
       MessageDetail(None,
                     ArraySinkData(
                       Seq(
-                        StringSinkData("bees"),
-                        StringSinkData("wasps"),
-                      ),
+                        "bees",
+                        "wasps",
+                      ).asJava,
                     ),
                     Map.empty,
                     Some(Instant.now()),
@@ -188,9 +190,9 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
         None,
         MapSinkData(
           Map(
-            StringSinkData("bees")  -> StringSinkData("sting when scared"),
-            StringSinkData("wasps") -> StringSinkData("sting for fun"),
-          ),
+            "bees"  -> "sting when scared",
+            "wasps" -> "sting for fun",
+          ).asJava,
         ),
         Map.empty,
         Some(Instant.now()),
@@ -215,9 +217,9 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
         None,
         MapSinkData(
           Map(
-            StringSinkData("bees")  -> StringSinkData("sting when scared"),
-            StringSinkData("wasps") -> NullSinkData(),
-          ),
+            "bees"  -> "sting when scared",
+            "wasps" -> null,
+          ).asJava,
           Some(SchemaBuilder.map(SchemaBuilder.string().build(), SchemaBuilder.string().optional().build()).build()),
         ),
         Map.empty,
