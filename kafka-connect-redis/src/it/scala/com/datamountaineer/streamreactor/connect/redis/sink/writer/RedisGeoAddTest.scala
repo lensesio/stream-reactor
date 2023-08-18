@@ -32,7 +32,7 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with MockitoSugar with F
 
       val TOPIC = "address_topic"
       val KCQL  = s"SELECT town from $TOPIC PK country STOREAS GeoAdd"
-      println("Testing KCQL : " + KCQL)
+
       val props = Map(
         RedisConfigConstants.REDIS_HOST  -> "localhost",
         RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,
@@ -76,7 +76,7 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with MockitoSugar with F
 
       val TOPIC = "address_topic"
       val KCQL  = s"INSERT INTO cities: SELECT town from $TOPIC PK country STOREAS GeoAdd"
-      println("Testing KCQL : " + KCQL)
+
       val props = Map(
         RedisConfigConstants.REDIS_HOST  -> "localhost",
         RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,
@@ -122,7 +122,7 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with MockitoSugar with F
       val TOPIC = "address_topic"
       val KCQL =
         s"INSERT INTO cities: SELECT town from $TOPIC PK country STOREAS GeoAdd (longitudeField=lng,latitudeField=lat)"
-      println("Testing KCQL : " + KCQL)
+
       val props = Map(
         RedisConfigConstants.REDIS_HOST  -> "localhost",
         RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,

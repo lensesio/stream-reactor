@@ -67,15 +67,11 @@ trait TestCassandraSourceUtil {
          |PRIMARY KEY (id, timeuuid_field)) WITH CLUSTERING ORDER BY (timeuuid_field asc)""".stripMargin,
     )
 
-    println(s"creating table $keySpace.$table")
-
     table
   }
 
   def truncateTable(session: Session, keySpace: String, table: String) = {
     session.execute(s"TRUNCATE TABLE $keySpace.$table".stripMargin)
-
-    println(s"truncate table $keySpace.$table")
   }
 
   def insertIntoTimeuuidTable(

@@ -47,7 +47,7 @@ class RedisInsertSortedSetTest extends AnyWordSpec with Matchers with MockitoSug
 
       val TOPIC = "cpuTopic"
       val KCQL  = s"INSERT INTO cpu_stats SELECT * from $TOPIC STOREAS SortedSet(score=ts)"
-      println("Testing KCQL : " + KCQL)
+
       val props = Map(
         RedisConfigConstants.REDIS_HOST  -> "localhost",
         RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,

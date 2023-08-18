@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
 import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
@@ -139,6 +140,48 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
     )
     run(settings, expected)
   }
+  test("envelope value is an array") {
+    val settings = DataStorageSettings.enabled
+
+    val expected = MessageDetail(
+      Some(StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA))),
+      ArraySinkData(SampleData.Users.map(StructSinkData.apply),
+                    Some(SchemaBuilder.array(SampleData.UsersSchema).build()),
+      ),
+      Map(
+        "header1" -> StringSinkData("value1", Some(Schema.STRING_SCHEMA)),
+        "header2" -> ByteArraySinkData("value2".getBytes(), Some(Schema.BYTES_SCHEMA)),
+      ),
+      Some(Instant.now()),
+      Topic("topic1"),
+      0,
+      Offset(12),
+    )
+    run(settings, expected)
+  }
+  test("envelope value is a map") {
+    val settings = DataStorageSettings.enabled
+
+    val expected = MessageDetail(
+      Some(StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA))),
+      MapSinkData(
+        Map(
+          StringSinkData("key1") -> StructSinkData(SampleData.Users.head),
+          StringSinkData("key2") -> StructSinkData(SampleData.Users.tail.head),
+        ),
+        Some(SchemaBuilder.map(Schema.STRING_SCHEMA, SampleData.UsersSchema).build()),
+      ),
+      Map(
+        "header1" -> StringSinkData("value1", Some(Schema.STRING_SCHEMA)),
+        "header2" -> ByteArraySinkData("value2".getBytes(), Some(Schema.BYTES_SCHEMA)),
+      ),
+      Some(Instant.now()),
+      Topic("topic1"),
+      0,
+      Offset(12),
+    )
+    run(settings, expected)
+  }
 
   private def run(settings: DataStorageSettings, expected: MessageDetail): Assertion = {
     val transformer = MessageTransformer(Map(Topic("topic1") -> settings))
@@ -156,13 +199,13 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
         val keyS = struct.schema().field("key").schema()
         keyS.isOptional shouldBe true
         keyS.schema() shouldBe MessageTransformer.toOptional(expected.key.get.schema().get)
-        struct.get("key") shouldBe MessageTransformer.toOptional(expected.key.get)
+        struct.get("key") shouldBe MessageTransformer.toOptionalConnectData(expected.key.get)
       } else {
         struct.schema().field("key") shouldBe null
       }
 
       if (settings.value) {
-        struct.get("value") shouldBe MessageTransformer.toOptional(expected.value)
+        struct.get("value") shouldBe MessageTransformer.toOptionalConnectData(expected.value)
       } else {
         struct.schema().field("value") shouldBe null
       }
@@ -171,7 +214,7 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
         expected.headers.foreach {
           case (k, v) =>
             headersS.field(k).schema() shouldBe MessageTransformer.toOptional(v.schema().get)
-            struct.get("headers").asInstanceOf[Struct].get(k) shouldBe MessageTransformer.toOptional(v)
+            struct.get("headers").asInstanceOf[Struct].get(k) shouldBe MessageTransformer.toOptionalConnectData(v)
         }
       } else {
         struct.schema().field("headers") shouldBe null

@@ -332,7 +332,6 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
           )).asJava),
       )
 
-      println(s"doc is ${doc.toString}")
       //map is {A=0, subList=[Document{{X=100, Y=101}}, Document{{Y=102}}],
       // subDoc=Document{{M=1, N=2}}, timestamp=2009-12-25T05:59:59.999+00:00}
 
@@ -385,7 +384,6 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
       map.put("subList", subList)
 
       map.put("timestamp", "2009-12-25T05:59:59.999+00:00")
-      println(s"map is $map")
 
       val doc = new Document(map)
       testDocumentConversion(doc)
@@ -416,7 +414,6 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
       map.put("subList", subList)
 
       map.put("timestamp", "2009-12-25T05:59:59.999+00:00")
-      println(s"map is $map")
 
       val doc = new Document(map)
       testDocumentConversion(doc)

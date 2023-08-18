@@ -50,7 +50,7 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with MockitoSugar with L
 
       val TOPIC = "cpuTopic"
       val KCQL  = s"SELECT * from $TOPIC STOREAS PubSub (channel=type)"
-      println("Testing KCQL : " + KCQL)
+
       val props = Map(
         RedisConfigConstants.REDIS_HOST  -> "localhost",
         RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,

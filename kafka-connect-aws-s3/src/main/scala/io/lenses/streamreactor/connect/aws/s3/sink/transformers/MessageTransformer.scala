@@ -16,14 +16,14 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.transformers
 
 import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.sink.transformers.MessageTransformer.envelope
 import org.apache.kafka.connect.data._
 
+import java.util
 import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 case class MessageTransformer(storageSettingsMap: Map[Topic, DataStorageSettings]) {
   def transform(message: MessageDetail): MessageDetail =
@@ -89,7 +89,7 @@ object MessageTransformer {
     * @param value The value to convert
     * @return The value as an optional
     */
-  def toOptional(value: SinkData): AnyRef =
+  def toOptionalConnectData(value: SinkData): AnyRef =
     value match {
       case StructSinkData(value) if !value.schema().isOptional =>
         val newStruct = new Struct(toOptional(value.schema()))
@@ -97,11 +97,16 @@ object MessageTransformer {
           newStruct.put(field.name(), value.get(field))
         }
         newStruct
-      case _ => value.safeValue
+      case ArraySinkData(value, _) => value.map(_.value).asJava
+      case MapSinkData(value, _) => value.foldLeft(new util.HashMap[AnyRef, AnyRef]()) {
+          case (map, (k, v)) => map.put(k.value, v.value)
+            map
+        }
+      case _ => value.value
     }
 
-  private def putWithOptional(envelope: Struct, key: String, value: SinkData) =
-    envelope.put(key, toOptional(value))
+  private def putWithOptional(envelope: Struct, key: String, value: SinkData): Struct =
+    envelope.put(key, toOptionalConnectData(value))
 
   private def metadataData(message: MessageDetail): Struct = {
     val metadata = new Struct(MetadataSchema)
@@ -198,9 +203,8 @@ object MessageTransformer {
             Schema.OPTIONAL_INT64_SCHEMA
           Schema.OPTIONAL_INT64_SCHEMA
         case Schema.Type.STRING => Schema.OPTIONAL_STRING_SCHEMA
-
-        case Schema.Type.ARRAY => SchemaBuilder.array(schema.valueSchema()).optional().build()
-        case Schema.Type.MAP   => SchemaBuilder.map(schema.keySchema(), schema.valueSchema()).optional().build()
+        case Schema.Type.ARRAY  => SchemaBuilder.array(schema.valueSchema()).optional().build()
+        case Schema.Type.MAP    => SchemaBuilder.map(schema.keySchema(), schema.valueSchema()).optional().build()
         case Schema.Type.STRUCT =>
           val builder = SchemaBuilder.struct().optional()
           schema.fields().asScala.foldLeft(builder) {
