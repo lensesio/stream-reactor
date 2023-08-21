@@ -15,27 +15,36 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.transformers
 
+import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings
 import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.sink.transformers.MessageTransformer.envelope
+import io.lenses.streamreactor.connect.aws.s3.sink.transformers.EnvelopeWithSchemaTransformer.envelope
 import org.apache.kafka.connect.data._
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-case class MessageTransformer(storageSettingsMap: Map[Topic, DataStorageSettings]) {
-  def transform(message: MessageDetail): MessageDetail =
-    storageSettingsMap.get(message.topic).fold(message) { settings =>
-      if (settings.isDataStored) {
-        envelope(message, settings)
-      } else {
-        message
-      }
-
+/**
+  * Creates an envelope for the message detail. It is expected the Key and/or Value, if used to have a Connect schema attached.
+  * @param settings The settings for the data storage for the topic
+  */
+case class EnvelopeWithSchemaTransformer(topic: Topic, settings: DataStorageSettings) extends Transformer {
+  def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] =
+    if (message.topic != topic) {
+      Left(
+        new RuntimeException(
+          s"Invalid state reached. Envelope transformer topic [$topic] does not match incoming message topic [${message.topic}].",
+        ),
+      )
+    } else if (settings.isDataStored) {
+      envelope(message, settings).asRight
+    } else {
+      message.asRight
     }
+
 }
 
-object MessageTransformer {
+object EnvelopeWithSchemaTransformer {
   private val MetadataSchema: Schema = SchemaBuilder.struct()
     .field("timestamp", Schema.INT64_SCHEMA).optional()
     .field("topic", Schema.STRING_SCHEMA)

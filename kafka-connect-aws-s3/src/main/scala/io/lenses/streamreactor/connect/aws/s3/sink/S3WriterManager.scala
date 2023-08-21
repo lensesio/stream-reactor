@@ -29,7 +29,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionField
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
 import io.lenses.streamreactor.connect.aws.s3.sink.seek._
-import io.lenses.streamreactor.connect.aws.s3.sink.transformers.MessageTransformer
+import io.lenses.streamreactor.connect.aws.s3.sink.transformers.TopicsTransformers
 import io.lenses.streamreactor.connect.aws.s3.sink.writer.S3Writer
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -59,7 +59,7 @@ class S3WriterManager(
   finalFilenameFn:      (TopicPartition, Map[PartitionField, String], Offset) => Either[SinkError, S3Location],
   formatWriterFn:       (TopicPartition, File) => Either[SinkError, S3FormatWriter],
   indexManager:         IndexManager,
-  transformerF:         MessageDetail => MessageDetail,
+  transformerF:         MessageDetail => Either[RuntimeException, MessageDetail],
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
@@ -166,7 +166,9 @@ class S3WriterManager(
       writer    <- writer(topicPartitionOffset.toTopicPartition, messageDetail)
       shouldSkip = writer.shouldSkip(topicPartitionOffset.offset)
       resultIfNotSkipped <- if (!shouldSkip) {
-        writeAndCommit(topicPartitionOffset, messageDetail, writer)
+        transformerF(messageDetail).flatMap { transformed =>
+          writeAndCommit(topicPartitionOffset, transformed, writer)
+        }
       } else {
         ().asRight
       }
@@ -303,7 +305,6 @@ object S3WriterManager extends LazyLogging {
     storageInterface: StorageInterface,
   ): S3WriterManager = {
 
-    implicit val compressionCodec = config.compressionCodec
     val bucketAndPrefixFn: TopicPartition => Either[SinkError, S3Location] = topicPartition => {
       bucketOptsForTopic(config, topicPartition.topic) match {
         case Some(sBO) => sBO.bucketAndPrefix.asRight
@@ -364,17 +365,14 @@ object S3WriterManager extends LazyLogging {
                 bucketOptions.formatSelection,
                 stagingFilename,
                 topicPartition,
-              )
+              )(config.compressionCodec)
             } yield formatWriter
           case None => FatalS3SinkError("Can't find format choice in config", topicPartition).asLeft
         }
 
     val indexManager = new IndexManager(config.offsetSeekerOptions.maxIndexFiles)
 
-    val dataStorageMap =
-      config.bucketOptions.map(options => Topic(options.sourceTopic.getOrElse("")) -> options.dataStorage).toMap
-
-    val transformer = new MessageTransformer(dataStorageMap)
+    val transformers = TopicsTransformers.from(config.bucketOptions)
     new S3WriterManager(
       commitPolicyFn,
       bucketAndPrefixFn,
@@ -383,7 +381,7 @@ object S3WriterManager extends LazyLogging {
       finalFilenameFn,
       formatWriterFn,
       indexManager,
-      transformer.transform,
+      transformers.transform,
     )
   }
 

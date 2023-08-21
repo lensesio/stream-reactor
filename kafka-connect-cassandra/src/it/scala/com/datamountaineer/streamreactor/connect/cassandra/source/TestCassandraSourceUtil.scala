@@ -70,9 +70,8 @@ trait TestCassandraSourceUtil {
     table
   }
 
-  def truncateTable(session: Session, keySpace: String, table: String) = {
+  def truncateTable(session: Session, keySpace: String, table: String) =
     session.execute(s"TRUNCATE TABLE $keySpace.$table".stripMargin)
-  }
 
   def insertIntoTimeuuidTable(
     session:     Session,

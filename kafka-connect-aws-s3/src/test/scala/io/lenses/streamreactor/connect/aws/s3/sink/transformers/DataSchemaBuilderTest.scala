@@ -46,7 +46,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
       1,
       Offset(2),
     )
-    val actual = MessageTransformer.envelopeSchema(message, storageSettings)
+    val actual = EnvelopeWithSchemaTransformer.envelopeSchema(message, storageSettings)
     val expected = SchemaBuilder.struct()
       .field("key", Schema.STRING_SCHEMA).optional()
       .field("value", SampleData.Users.head.schema).optional()
@@ -88,7 +88,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
       1,
       Offset(2),
     )
-    val actual = MessageTransformer.envelopeSchema(message, storageSettings)
+    val actual = EnvelopeWithSchemaTransformer.envelopeSchema(message, storageSettings)
     val expected = SchemaBuilder.struct()
       .field("key", Schema.STRING_SCHEMA).optional()
       .field("value", SampleData.Users.head.schema).optional()
@@ -122,7 +122,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
       1,
       Offset(2),
     )
-    val actual   = MessageTransformer.envelopeSchema(message, storageSettings)
+    val actual   = EnvelopeWithSchemaTransformer.envelopeSchema(message, storageSettings)
     val expected = SampleData.Users.head.schema
 
     actual shouldBe expected
@@ -144,7 +144,7 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
       1,
       Offset(2),
     )
-    val actual = MessageTransformer.envelopeSchema(message, storageSettings)
+    val actual = EnvelopeWithSchemaTransformer.envelopeSchema(message, storageSettings)
     val expected = SchemaBuilder.struct()
       .field("value", SampleData.Users.head.schema).optional()
       .field(

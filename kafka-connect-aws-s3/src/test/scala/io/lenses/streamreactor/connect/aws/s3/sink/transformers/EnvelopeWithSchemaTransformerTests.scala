@@ -31,9 +31,9 @@ import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-class MessageTransformerTests extends AnyFunSuite with Matchers {
-  test("returns the message when there is no  setting for the topic") {
-    val transformer = MessageTransformer(Map.empty)
+class EnvelopeWithSchemaTransformerTests extends AnyFunSuite with Matchers {
+  test("returns an error when the topic does not match") {
+    val transformer = EnvelopeWithSchemaTransformer(Topic("different"), DataStorageSettings.enabled)
     val expected = MessageDetail(
       StringSinkData("key"),
       StructSinkData(SampleData.Users.head),
@@ -43,11 +43,17 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
       0,
       Offset(12),
     )
-    transformer.transform(expected) eq expected should be(true)
+    transformer.transform(expected) should be(
+      Left(
+        new RuntimeException(
+          "Invalid state reached. Envelope transformer topic [different] does not match incoming message topic [topic1].",
+        ),
+      ),
+    )
   }
 
   test("returns the message when the envelope settings is disabled") {
-    val transformer = MessageTransformer(Map(Topic("topic1") -> DataStorageSettings.disabled))
+    val transformer = EnvelopeWithSchemaTransformer(Topic("topic1"), DataStorageSettings.disabled)
     val expected = MessageDetail(
       StringSinkData("key"),
       StructSinkData(SampleData.Users.head),
@@ -57,7 +63,7 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
       0,
       Offset(12),
     )
-    transformer.transform(expected) eq expected should be(true)
+    transformer.transform(expected).getOrElse(fail("Should have returned a message")) eq expected should be(true)
   }
 
   test("full envelope") {
@@ -184,8 +190,8 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
   }
 
   private def run(settings: DataStorageSettings, expected: MessageDetail): Assertion = {
-    val transformer = MessageTransformer(Map(Topic("topic1") -> settings))
-    val actual      = transformer.transform(expected)
+    val transformer = EnvelopeWithSchemaTransformer(Topic("topic1"), settings)
+    val actual      = transformer.transform(expected).getOrElse(fail("Should have returned a message"))
     //only the value is changed. this needs to be cleaned up later.
     actual.key eq expected.key should be(true)
     actual.headers eq expected.headers should be(true)
@@ -198,14 +204,14 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
       if (settings.key) {
         val keyS = struct.schema().field("key").schema()
         keyS.isOptional shouldBe true
-        keyS.schema() shouldBe MessageTransformer.toOptional(expected.key.schema().get)
-        struct.get("key") shouldBe MessageTransformer.toOptionalConnectData(expected.key)
+        keyS.schema() shouldBe EnvelopeWithSchemaTransformer.toOptional(expected.key.schema().get)
+        struct.get("key") shouldBe EnvelopeWithSchemaTransformer.toOptionalConnectData(expected.key)
       } else {
         struct.schema().field("key") shouldBe null
       }
 
       if (settings.value) {
-        struct.get("value") shouldBe MessageTransformer.toOptionalConnectData(expected.value)
+        struct.get("value") shouldBe EnvelopeWithSchemaTransformer.toOptionalConnectData(expected.value)
       } else {
         struct.schema().field("value") shouldBe null
       }
@@ -213,8 +219,10 @@ class MessageTransformerTests extends AnyFunSuite with Matchers {
         val headersS = struct.schema().field("headers").schema()
         expected.headers.foreach {
           case (k, v) =>
-            headersS.field(k).schema() shouldBe MessageTransformer.toOptional(v.schema().get)
-            struct.get("headers").asInstanceOf[Struct].get(k) shouldBe MessageTransformer.toOptionalConnectData(v)
+            headersS.field(k).schema() shouldBe EnvelopeWithSchemaTransformer.toOptional(v.schema().get)
+            struct.get("headers").asInstanceOf[Struct].get(
+              k,
+            ) shouldBe EnvelopeWithSchemaTransformer.toOptionalConnectData(v)
         }
       } else {
         struct.schema().field("headers") shouldBe null
