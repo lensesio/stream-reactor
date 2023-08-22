@@ -33,7 +33,7 @@ case class EnvelopeWithSchemaTransformer(topic: Topic, settings: DataStorageSett
     if (message.topic != topic) {
       Left(
         new RuntimeException(
-          s"Invalid state reached. Envelope transformer topic [$topic] does not match incoming message topic [${message.topic}].",
+          s"Invalid state reached. Envelope transformer topic [${topic.value}] does not match incoming message topic [${message.topic.value}].",
         ),
       )
     } else if (settings.isDataStored) {

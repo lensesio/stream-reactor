@@ -43,13 +43,11 @@ class EnvelopeWithSchemaTransformerTests extends AnyFunSuite with Matchers {
       0,
       Offset(12),
     )
-    transformer.transform(expected) should be(
-      Left(
-        new RuntimeException(
-          "Invalid state reached. Envelope transformer topic [different] does not match incoming message topic [topic1].",
-        ),
-      ),
-    )
+    transformer.transform(expected) match {
+      case Left(value) =>
+        value.getMessage shouldBe "Invalid state reached. Envelope transformer topic [different] does not match incoming message topic [topic1]."
+      case Right(_) => fail("Should have returned an error")
+    }
   }
 
   test("returns the message when the envelope settings is disabled") {
