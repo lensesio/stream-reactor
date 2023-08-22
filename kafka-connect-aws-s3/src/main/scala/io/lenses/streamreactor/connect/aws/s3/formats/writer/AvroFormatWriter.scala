@@ -19,8 +19,8 @@ import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.avro.Schema
 import org.apache.avro.file.CodecFactory
@@ -78,8 +78,8 @@ class AvroFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: 
       new DataFileWriter[Any](writer).setCodec(avroCompressionCodec).create(schema, outputStream)
 
     def write(valueStruct: SinkData): Unit = {
-      val genericRecord: Any = ToAvroDataConverter.convertToGenericRecord(valueStruct)
-      fileWriter.append(genericRecord)
+      val record: Any = ToAvroDataConverter.convertToGenericRecord(valueStruct)
+      fileWriter.append(record)
       fileWriter.flush()
     }
 
