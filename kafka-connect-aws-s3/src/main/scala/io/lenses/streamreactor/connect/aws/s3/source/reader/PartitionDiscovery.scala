@@ -17,8 +17,10 @@ package io.lenses.streamreactor.connect.aws.s3.source.reader
 
 import cats.effect.IO
 import cats.effect.kernel.Ref
+import cats.implicits.toShow
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcherResponse
@@ -29,6 +31,7 @@ object PartitionDiscovery extends LazyLogging {
   type PartitionSearcherF = Seq[PartitionSearcherResponse] => IO[Seq[PartitionSearcherResponse]]
 
   def run(
+    connectorTaskId:       ConnectorTaskId,
     settings:              PartitionSearcherOptions,
     partitionSearcher:     PartitionSearcherF,
     readerManagerCreateFn: (S3Location, String) => IO[ReaderManager],
@@ -36,14 +39,14 @@ object PartitionDiscovery extends LazyLogging {
     cancelledRef:          Ref[IO, Boolean],
   ): IO[Unit] = {
     val task = for {
-      _        <- IO(logger.info("Starting the partition discovery task"))
+      _        <- IO(logger.info(s"[${connectorTaskId.show}] Starting the partition discovery task."))
       oldState <- readerManagerState.get
       newParts <- partitionSearcher(oldState.partitionResponses)
       tuples    = newParts.flatMap(part => part.results.partitions.map(part.root -> _))
       newReaderManagers <- tuples
         .map {
           case (location, path) =>
-            logger.info("Creating a new reader manager for {} {}", location.toString, path)
+            logger.info(s"[${connectorTaskId.show}] Creating a new reader manager for [$path].")
             readerManagerCreateFn(location, path)
         }.traverse(identity)
       newState = oldState.copy(
@@ -51,23 +54,26 @@ object PartitionDiscovery extends LazyLogging {
         readerManagers     = oldState.readerManagers ++ newReaderManagers,
       )
       _ <- readerManagerState.set(newState)
-      _ <- IO(logger.info("Finished the partition discovery task"))
+      _ <- IO(logger.info(s"[${connectorTaskId.show}] Finished the partition discovery task."))
     } yield ()
 
     if (!settings.continuous) {
-      IO.delay(logger.info("Partition discovery task will only run once")) >>
+      IO.delay(logger.info(s"[${connectorTaskId.show}] Partition discovery task will only run once.")) >>
         PollLoop.oneOfIgnoreError(
           settings.interval,
           cancelledRef,
-          err => logger.error("Error in partition discovery task. Partition discovery will resume.", err),
+          logError(_, connectorTaskId),
         )(() => task)
     } else {
-      IO.delay(logger.info("Partition discovery task will run continuously")) >>
+      IO.delay(logger.info(s"[${connectorTaskId.show}] Partition discovery task will run continuously.")) >>
         PollLoop.run(settings.interval, cancelledRef)(() =>
-          task.handleErrorWith { err =>
-            IO(logger.error("Error in partition discovery task. Partition discovery will resume.", err))
-          },
+          task.handleErrorWith(err => IO.delay(logError(err, connectorTaskId))),
         )
     }
   }
+
+  private def logError(err: Throwable, connectorTaskId: ConnectorTaskId): Unit = logger.error(
+    s"[${connectorTaskId.show}] Error in partition discovery task. Partition discovery will resume.",
+    err,
+  )
 }
