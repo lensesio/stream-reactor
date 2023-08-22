@@ -65,17 +65,12 @@ class ResultReader(
     limit:              Int,
     reader:             S3FormatStreamReader[_ <: SourceData],
     accumulatedResults: Vector[_ <: SourceData],
-  ): Vector[_ <: SourceData] = {
-
-    logger.trace(
-      s"Calling retrieveResults with limit ($limit), reader (${reader.getBucketAndPath}/${reader.getLineNumber}), accumulatedResults size ${accumulatedResults.size}",
-    )
+  ): Vector[_ <: SourceData] =
     if (limit > 0 && reader.hasNext) {
       retrieveResults(limit - 1, reader, accumulatedResults :+ reader.next())
     } else {
       accumulatedResults
     }
-  }
 
   override def close(): Unit = reader.close()
 
