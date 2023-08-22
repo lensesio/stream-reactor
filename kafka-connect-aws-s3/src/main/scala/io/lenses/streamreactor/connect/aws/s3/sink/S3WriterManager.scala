@@ -166,7 +166,9 @@ class S3WriterManager(
       writer    <- writer(topicPartitionOffset.toTopicPartition, messageDetail)
       shouldSkip = writer.shouldSkip(topicPartitionOffset.offset)
       resultIfNotSkipped <- if (!shouldSkip) {
-        transformerF(messageDetail).flatMap { transformed =>
+        transformerF(messageDetail).leftMap(ex =>
+          FatalS3SinkError(ex.getMessage, ex, topicPartitionOffset.toTopicPartition),
+        ).flatMap { transformed =>
           writeAndCommit(topicPartitionOffset, transformed, writer)
         }
       } else {
