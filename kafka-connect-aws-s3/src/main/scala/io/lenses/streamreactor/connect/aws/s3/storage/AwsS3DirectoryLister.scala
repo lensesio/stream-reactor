@@ -34,7 +34,7 @@ object AwsS3DirectoryLister extends LazyLogging {
   ): IO[DirectoryFindResults] =
     for {
       iterator   <- IO(listObjectsF(createListObjectsRequest(bucketAndPrefix)))
-      prefixInfo <- extractPrefixesFromResponse(iterator, exclude, connectorTaskId)
+      prefixInfo <- extractPrefixesFromResponse(iterator, exclude, connectorTaskId, completionConfig.levelsToRecurse)
       flattened <- flattenPrefixes(
         bucketAndPrefix,
         prefixInfo.partitions,
@@ -86,6 +86,7 @@ object AwsS3DirectoryLister extends LazyLogging {
     iterator:        Iterator[ListObjectsV2Response],
     exclude:         Set[String],
     connectorTaskId: ConnectorTaskId,
+    levelsToRecurse: Int,
   ): IO[DirectoryFindResults] =
     IO {
       val paths = iterator.foldLeft(Set.empty[String]) {
@@ -94,8 +95,12 @@ object AwsS3DirectoryLister extends LazyLogging {
             Option(listResp.commonPrefixes()).map(_.iterator().asScala).getOrElse(Iterator.empty)
               .foldLeft(Set.empty[String]) { (acc, item) =>
                 val prefix = item.prefix()
-                if (connectorTaskId.ownsDir(prefix) && !exclude.contains(prefix)) acc + prefix
-                else acc
+                if (levelsToRecurse > 0) {
+                  acc + prefix
+                } else {
+                  if (connectorTaskId.ownsDir(prefix) && !exclude.contains(prefix)) acc + prefix
+                  else acc
+                }
               }
           acc ++ commonPrefixesFiltered
       }
