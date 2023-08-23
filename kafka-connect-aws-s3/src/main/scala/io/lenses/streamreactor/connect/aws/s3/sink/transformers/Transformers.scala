@@ -52,9 +52,9 @@ object TopicsTransformers {
             val topic = Topic(bo.sourceTopic.get)
             bo.formatSelection match {
               case JsonFormatSelection =>
-                //Todo support schemaless envelope
-                map + (topic -> SequenceTransformer(
-                  List.empty,
+                map + (topic -> SchemalessEnvelopeTransformer(
+                  topic,
+                  bo.dataStorage,
                 ))
               case AvroFormatSelection | ParquetFormatSelection =>
                 map + (topic -> SequenceTransformer(

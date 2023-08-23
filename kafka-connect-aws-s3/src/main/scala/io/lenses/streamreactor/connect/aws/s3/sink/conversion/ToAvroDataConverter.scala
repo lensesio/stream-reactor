@@ -21,6 +21,7 @@ import org.apache.avro.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 
+import java.nio.ByteBuffer
 import java.util
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.IterableHasAsJava
@@ -39,11 +40,10 @@ object ToAvroDataConverter {
 
   def convertToGenericRecord[A <: Any](sinkData: SinkData): Any =
     sinkData match {
-      case StructSinkData(structVal) => avroDataConverter.fromConnectData(structVal.schema(), structVal)
-      case MapSinkData(map, _)       => convert(map)
-      case ArraySinkData(array, _)   => convert(array)
-      case ByteArraySinkData(array, schema) =>
-        avroDataConverter.fromConnectData(schema.getOrElse(ConnectSchema.OPTIONAL_BYTES_SCHEMA), array)
+      case StructSinkData(structVal)   => avroDataConverter.fromConnectData(structVal.schema(), structVal)
+      case MapSinkData(map, _)         => convert(map)
+      case ArraySinkData(array, _)     => convert(array)
+      case ByteArraySinkData(array, _) => ByteBuffer.wrap(array)
       case primitive: PrimitiveSinkData => primitive.value
       case _:         NullSinkData      => null
       case other => throw new IllegalArgumentException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
