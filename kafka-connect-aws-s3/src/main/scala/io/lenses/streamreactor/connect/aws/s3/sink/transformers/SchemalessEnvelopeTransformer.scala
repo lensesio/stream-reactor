@@ -38,7 +38,7 @@ case class SchemalessEnvelopeTransformer(topic: Topic, settings: DataStorageSett
           s"Invalid state reached. Envelope transformer topic [${topic.value}] does not match incoming message topic [${message.topic.value}].",
         ),
       )
-    } else if (settings.isDataStored) {
+    } else if (settings.hasEnvelope) {
       SchemalessEnvelopeTransformer.envelope(message, settings).asRight
     } else {
       message.asRight

@@ -39,7 +39,7 @@ class SequenceTransformerTest extends AnyFunSuite with Matchers {
       0,
       Offset(12),
     )
-    val transformer = SequenceTransformer(List.empty)
+    val transformer = SequenceTransformer()
     transformer.transform(messageDetail) match {
       case Left(value)  => fail(s"Should have returned a message: ${value.getMessage}")
       case Right(value) => value eq messageDetail shouldBe true
@@ -57,10 +57,8 @@ class SequenceTransformerTest extends AnyFunSuite with Matchers {
     )
     val actualKey = StringSinkData("different key")
     val transformer = SequenceTransformer(
-      List(
-        (message: MessageDetail) => message.copy(key = actualKey).asRight,
-        (message: MessageDetail) => message.copy(key = StringSinkData("another different key")).asRight,
-      ),
+      (message: MessageDetail) => message.copy(key = actualKey).asRight,
+      (message: MessageDetail) => message.copy(key = StringSinkData("another different key")).asRight,
     )
     transformer.transform(messageDetail) match {
       case Left(value)  => fail(s"Should have returned a message: ${value.getMessage}")
@@ -78,12 +76,10 @@ class SequenceTransformerTest extends AnyFunSuite with Matchers {
       Offset(12),
     )
     val transformer = SequenceTransformer(
-      List(
-        (message: MessageDetail) => message.copy(key = StringSinkData("another different key")).asRight,
-        (_: MessageDetail) => Left(new RuntimeException("Error from the second transformer")),
-        (message: MessageDetail) => message.copy(value = StringSinkData("another different value")).asRight,
-        (_: MessageDetail) => Left(new RuntimeException("Error from the fourth transformer")),
-      ),
+      (message: MessageDetail) => message.copy(key = StringSinkData("another different key")).asRight,
+      (_: MessageDetail) => Left(new RuntimeException("Error from the second transformer")),
+      (message: MessageDetail) => message.copy(value = StringSinkData("another different value")).asRight,
+      (_: MessageDetail) => Left(new RuntimeException("Error from the fourth transformer")),
     )
     transformer.transform(messageDetail) match {
       case Left(value)  => value.getMessage shouldBe "Error from the second transformer"

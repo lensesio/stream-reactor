@@ -29,7 +29,13 @@ import java.time.Instant
 class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
   test("create envelope schema containing Key, Values, Headers, and Metadata") {
     val storageSettings =
-      DataStorageSettings(envelope = true, value = true, key = true, metadata = true, headers = true)
+      DataStorageSettings(envelope      = true,
+                          value         = true,
+                          key           = true,
+                          metadata      = true,
+                          headers       = true,
+                          escapeNewLine = true,
+      )
 
     val ts = Instant.now()
     val message = MessageDetail(
@@ -67,7 +73,13 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
 
   test("create envelope schema containing Key, Values and Metadata") {
     val storageSettings =
-      DataStorageSettings(envelope = true, value = true, key = true, metadata = true, headers = false)
+      DataStorageSettings(envelope      = true,
+                          value         = true,
+                          key           = true,
+                          metadata      = true,
+                          headers       = false,
+                          escapeNewLine = true,
+      )
     val ts = Instant.now()
     val message = MessageDetail(
       StringSinkData("key", Some(Schema.STRING_SCHEMA)),
@@ -101,7 +113,13 @@ class DataSchemaBuilderTest extends AnyFunSuite with Matchers {
 
   test("create envelope schema containing  Values and Metadata") {
     val storageSettings =
-      DataStorageSettings(key = false, metadata = true, headers = false, envelope = true, value = true)
+      DataStorageSettings(key           = false,
+                          metadata      = true,
+                          headers       = false,
+                          envelope      = true,
+                          value         = true,
+                          escapeNewLine = true,
+      )
     val ts = Instant.now()
     val message = MessageDetail(
       StringSinkData("key", Some(Schema.STRING_SCHEMA)),

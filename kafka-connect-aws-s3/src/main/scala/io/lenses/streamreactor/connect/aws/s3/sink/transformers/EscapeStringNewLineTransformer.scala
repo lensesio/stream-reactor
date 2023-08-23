@@ -16,10 +16,8 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.transformers
 
 import cats.implicits.catsSyntaxEitherId
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.ArraySinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MapSinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.StringSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer._
+import org.apache.kafka.connect.data.Struct
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
@@ -30,16 +28,24 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
   * Ensures the string values new lines are escaped. The transformer is used for JSON storage.
   * It is expected the StructSinkData was already transformed to a MapSinkData
   */
-class EscapeStringNewLineTransformer extends Transformer {
+object EscapeStringNewLineTransformer extends Transformer {
   override def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] = {
     val value = message.value
     val newValue = value match {
       case StringSinkData(str, schema)  => StringSinkData(str.replaceAll("\n", "\\\\n"), schema)
       case MapSinkData(value, schema)   => MapSinkData(convert(value).asInstanceOf[java.util.Map[_, _]], schema)
       case ArraySinkData(value, schema) => ArraySinkData(convert(value).asInstanceOf[java.util.List[_]], schema)
+      case StructSinkData(value)        => StructSinkData(convert(value).asInstanceOf[Struct])
       case _                            => value
     }
     message.copy(value = newValue).asRight
+  }
+
+  private def convertStruct(s: Struct): Any = {
+    s.schema().fields().asScala.foreach { f =>
+      s.put(f, convert(s.get(f)))
+    }
+    s
   }
 
   private def convert(any: Any): Any =
@@ -48,6 +54,7 @@ class EscapeStringNewLineTransformer extends Transformer {
       case m: java.util.Map[_, _] => m.asScala.map { case (k, v) => (convert(k), convert(v)) }.asJava
       case l: java.util.List[_]   => l.asScala.map(convert).asJava
       case a: Array[_]            => a.map(convert)
+      case s: Struct              => convertStruct(s)
       case other => other
     }
 }

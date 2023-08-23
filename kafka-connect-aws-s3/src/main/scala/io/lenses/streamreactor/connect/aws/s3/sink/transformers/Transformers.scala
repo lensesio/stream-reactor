@@ -25,7 +25,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
   * Applies a sequence of transformations to a message.
   * @param transformers A sequence of transformations to apply.
   */
-case class SequenceTransformer(transformers: List[Transformer]) extends Transformer {
+case class SequenceTransformer(transformers: Transformer*) extends Transformer {
   def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] =
     transformers.foldLeft(message.asRight[RuntimeException]) {
       case (Right(m), transformer) => transformer.transform(m)
@@ -44,30 +44,45 @@ object TopicsTransformers {
   def from(bucketOptions: Seq[SinkBucketOptions]): TopicsTransformers = {
 
     val transformersMap =
-      bucketOptions.filter(_.sourceTopic.nonEmpty).filter(_.dataStorage.isDataStored).foldLeft(Map.empty[Topic,
-                                                                                                         Transformer,
-      ]) {
-        case (map, bo) =>
-          if (bo.dataStorage.isDataStored) {
-            val topic = Topic(bo.sourceTopic.get)
-            bo.formatSelection match {
-              case JsonFormatSelection =>
-                map + (topic -> SchemalessEnvelopeTransformer(
-                  topic,
-                  bo.dataStorage,
-                ))
-              case AvroFormatSelection | ParquetFormatSelection =>
-                map + (topic -> SequenceTransformer(
-                  List(
+      bucketOptions
+        .filter(_.sourceTopic.nonEmpty)
+        .foldLeft(Map.empty[Topic, Transformer]) {
+          case (map, bo) =>
+            if (bo.dataStorage.hasEnvelope) {
+              val topic = Topic(bo.sourceTopic.get)
+              bo.formatSelection match {
+                case JsonFormatSelection =>
+                  val transformer = if (bo.dataStorage.escapeNewLine) {
+                    SequenceTransformer(
+                      SchemalessEnvelopeTransformer(topic, bo.dataStorage),
+                      EscapeStringNewLineTransformer,
+                    )
+                  } else {
+                    SequenceTransformer(SchemalessEnvelopeTransformer(topic, bo.dataStorage))
+                  }
+                  map + (topic -> transformer)
+                case AvroFormatSelection | ParquetFormatSelection =>
+                  map + (topic -> SequenceTransformer(
                     new AddConnectSchemaTransformer(topic, bo.dataStorage),
                     new EnvelopeWithSchemaTransformer(topic, bo.dataStorage),
-                  ),
-                ))
+                  ))
 
-              case _ => map
+                case _ => map
+              }
+            } else {
+              // If escape new line is setup then add the escape transformer only for JSON, Text and CSV storage format
+              if (bo.dataStorage.escapeNewLine) {
+                bo.formatSelection match {
+                  case JsonFormatSelection | CsvFormatSelection(_) | TextFormatSelection(_) =>
+                    map + (Topic(bo.sourceTopic.get) -> SequenceTransformer(
+                      EscapeStringNewLineTransformer,
+                    ))
+
+                  case _ => map
+                }
+              } else map
             }
-          } else map
-      }
+        }
     TopicsTransformers(transformersMap)
   }
 }

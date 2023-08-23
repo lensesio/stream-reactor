@@ -32,7 +32,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
 
   val PrefixName = "streamReactorBackups"
   val TopicName  = "myTopic"
-  val BucketName = "myBucket"
+  val BucketName = "mybucket"
 
   private implicit val connectorTaskId = ConnectorTaskId("connector", 1, 0)
 
@@ -81,8 +81,9 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     )
 
     SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
-      case Left(value)  => fail(value.toString)
-      case Right(value) => value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false)))
+      case Left(value) => fail(value.toString)
+      case Right(value) =>
+        value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false, true)))
     }
   }
 
@@ -111,8 +112,8 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
-        value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false),
-                                                DataStorageSettings(true, true, true, false, true),
+        value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false, true),
+                                                DataStorageSettings(true, true, true, false, true, true),
         ))
     }
 
@@ -179,4 +180,27 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     kcql.head.getLimit should be(550)
   }
 
+  "S3SinkConfigDefBuilder" should "return true on escape new lines" in {
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false, '${DataStorageSettings.StoreEscapeNewLine}'=true)",
+    )
+
+    SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
+      case Left(value) => fail(value.toString)
+      case Right(value) =>
+        value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false, true)))
+    }
+  }
+
+  "S3SinkConfigDefBuilder" should "return false on escape new lines" in {
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false, '${DataStorageSettings.StoreEscapeNewLine}'=false)",
+    )
+
+    SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
+      case Left(value) => fail(value.toString)
+      case Right(value) =>
+        value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false, false)))
+    }
+  }
 }

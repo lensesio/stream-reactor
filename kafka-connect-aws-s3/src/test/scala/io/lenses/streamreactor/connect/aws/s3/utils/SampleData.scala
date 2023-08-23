@@ -52,6 +52,19 @@ object SampleData extends Matchers {
     new Struct(UsersSchema).put("name", "milson").put("title", "dog").put("salary", 395.44),
   )
 
+  val AddressSchema = SchemaBuilder.struct()
+    .field("street", SchemaBuilder.string().required().build())
+    .field("city", SchemaBuilder.string().required().build())
+    .field("country", SchemaBuilder.string().required().build())
+    .build()
+
+  val UserWithAddressSchema = SchemaBuilder.struct()
+    .field("name", SchemaBuilder.string().required().build())
+    .field("title", SchemaBuilder.string().optional().build())
+    .field("salary", SchemaBuilder.float64().optional().build())
+    .field("phone_numbers", SchemaBuilder.array(SchemaBuilder.string().build()).optional().build())
+    .field("address", AddressSchema)
+    .build()
   val recordsAsJson: List[String] = List(
     """{"name":"sam","title":"mr","salary":100.43}""",
     """{"name":"laura","title":"ms","salary":429.06}""",

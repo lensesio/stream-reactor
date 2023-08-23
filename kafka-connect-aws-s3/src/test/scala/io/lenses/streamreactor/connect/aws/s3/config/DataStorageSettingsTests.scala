@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings.AllFields
+import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings.AllEnvelopeFields
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
@@ -33,11 +33,12 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
     val properties      = Map(DataStorageSettings.StoreEnvelopeKey -> "true")
     val storageSettings = DataStorageSettings.from(properties)
     storageSettings shouldBe Right(DataStorageSettings(
-      envelope = true,
-      key      = true,
-      value    = true,
-      metadata = true,
-      headers  = true,
+      envelope      = true,
+      key           = true,
+      value         = true,
+      metadata      = true,
+      headers       = true,
+      escapeNewLine = true,
     ))
   }
 
@@ -60,7 +61,7 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
 
     assertOnError(
       DataStorageSettings.from(properties),
-      s"If ${DataStorageSettings.StoreEnvelopeKey} is set to true then at least one of ${AllFields.mkString("[", ",", "]")} must be set to true.",
+      s"If ${DataStorageSettings.StoreEnvelopeKey} is set to true then at least one of ${AllEnvelopeFields.mkString("[", ",", "]")} must be set to true.",
     )
   }
 
@@ -74,11 +75,12 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
     )
     val storageSettings = DataStorageSettings.from(properties)
     storageSettings shouldBe Right(DataStorageSettings(
-      envelope = true,
-      key      = true,
-      value    = false,
-      metadata = false,
-      headers  = false,
+      envelope      = true,
+      key           = true,
+      value         = false,
+      metadata      = false,
+      headers       = false,
+      escapeNewLine = true,
     ))
   }
 
@@ -92,11 +94,12 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
     )
     val storageSettings = DataStorageSettings.from(properties)
     storageSettings shouldBe Right(DataStorageSettings(
-      envelope = true,
-      key      = false,
-      value    = false,
-      metadata = true,
-      headers  = false,
+      envelope      = true,
+      key           = false,
+      value         = false,
+      metadata      = true,
+      headers       = false,
+      escapeNewLine = true,
     ))
   }
   test("headers enabled") {
@@ -109,11 +112,12 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
     )
     val storageSettings = DataStorageSettings.from(properties)
     storageSettings shouldBe Right(DataStorageSettings(
-      envelope = true,
-      key      = false,
-      value    = false,
-      metadata = false,
-      headers  = true,
+      envelope      = true,
+      key           = false,
+      value         = false,
+      metadata      = false,
+      headers       = true,
+      escapeNewLine = true,
     ))
   }
   test("all enabled") {
@@ -126,11 +130,12 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
     )
     val storageSettings = DataStorageSettings.from(properties)
     storageSettings shouldBe Right(DataStorageSettings(
-      envelope = true,
-      key      = true,
-      value    = true,
-      metadata = true,
-      headers  = true,
+      envelope      = true,
+      key           = true,
+      value         = true,
+      metadata      = true,
+      headers       = true,
+      escapeNewLine = true,
     ))
   }
   test("invalid envelope value") {

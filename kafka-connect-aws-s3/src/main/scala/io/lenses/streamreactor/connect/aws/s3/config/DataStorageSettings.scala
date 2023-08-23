@@ -30,8 +30,15 @@ import org.apache.kafka.common.config.ConfigException
   * @param metadata - If enabled it stores the metadata of the Kafka message
   * @param headers - If enabled it stores the headers of the Kafka message
   */
-case class DataStorageSettings(envelope: Boolean, key: Boolean, value: Boolean, metadata: Boolean, headers: Boolean) {
-  def isDataStored: Boolean = envelope
+case class DataStorageSettings(
+  envelope:      Boolean,
+  key:           Boolean,
+  value:         Boolean,
+  metadata:      Boolean,
+  headers:       Boolean,
+  escapeNewLine: Boolean,
+) {
+  def hasEnvelope: Boolean = envelope
 }
 
 object DataStorageSettings {
@@ -42,20 +49,22 @@ object DataStorageSettings {
   val StoreHeadersKey      = s"$KeyPrefix.headers"
   val StoreValueKey        = s"$KeyPrefix.value"
   val StoreMetadataKey     = s"$KeyPrefix.metadata"
-  val AllFields            = List(StoreKeyKey, StoreValueKey, StoreHeadersKey, StoreMetadataKey)
+  val StoreEscapeNewLine   = "store.escape.new.line"
+  val AllEnvelopeFields    = List(StoreKeyKey, StoreValueKey, StoreHeadersKey, StoreMetadataKey)
   val DefaultEnvelopeValue = false
   val DefaultFieldsValue   = true
 
   val Default: DataStorageSettings = DataStorageSettings(
-    envelope = DefaultEnvelopeValue,
-    key      = DefaultFieldsValue,
-    value    = DefaultFieldsValue,
-    metadata = DefaultFieldsValue,
-    headers  = DefaultFieldsValue,
+    envelope      = DefaultEnvelopeValue,
+    key           = DefaultFieldsValue,
+    value         = DefaultFieldsValue,
+    metadata      = DefaultFieldsValue,
+    headers       = DefaultFieldsValue,
+    escapeNewLine = DefaultFieldsValue,
   )
 
   def disabled: DataStorageSettings = Default
-  def enabled:  DataStorageSettings = DataStorageSettings(true, true, true, true, true)
+  def enabled:  DataStorageSettings = DataStorageSettings(true, true, true, true, true, true)
 
   def from(properties: Map[String, String]): Either[ConfigException, DataStorageSettings] =
     for {
@@ -64,16 +73,18 @@ object DataStorageSettings {
       metadata <- getBoolean(StoreMetadataKey, properties, DefaultFieldsValue)
       headers  <- getBoolean(StoreHeadersKey, properties, DefaultFieldsValue)
       value    <- getBoolean(StoreValueKey, properties, DefaultFieldsValue)
+      escape   <- getBoolean(StoreEscapeNewLine, properties, DefaultFieldsValue)
       result <- if (!envelope) {
         //if no envelope default
-        Default.asRight[ConfigException]
+        Default.copy(escapeNewLine = escape).asRight[ConfigException]
       } else {
         val setting = DataStorageSettings(
-          envelope = envelope,
-          key      = key,
-          value    = value,
-          metadata = metadata,
-          headers  = headers,
+          envelope      = envelope,
+          key           = key,
+          value         = value,
+          metadata      = metadata,
+          headers       = headers,
+          escapeNewLine = escape,
         )
 
         (
@@ -94,7 +105,7 @@ object DataStorageSettings {
       if (setting.key || setting.value || setting.metadata || setting.headers) {
         ().validNel
       } else {
-        s"If ${DataStorageSettings.StoreEnvelopeKey} is set to true then at least one of ${AllFields.mkString("[", ",", "]")} must be set to true.".invalidNel
+        s"If ${DataStorageSettings.StoreEnvelopeKey} is set to true then at least one of ${AllEnvelopeFields.mkString("[", ",", "]")} must be set to true.".invalidNel
       }
     } else ().validNel
 

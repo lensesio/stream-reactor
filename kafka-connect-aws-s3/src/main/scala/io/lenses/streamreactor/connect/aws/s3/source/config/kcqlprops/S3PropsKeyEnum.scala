@@ -44,4 +44,5 @@ object S3PropsKeyEnum extends Enum[S3PropsKeyEntry] {
   case object StoreEnvelopeHeaders  extends S3PropsKeyEntry(DataStorageSettings.StoreHeadersKey)
   case object StoreEnvelopeValue    extends S3PropsKeyEntry(DataStorageSettings.StoreValueKey)
   case object StoreEnvelopeMetadata extends S3PropsKeyEntry(DataStorageSettings.StoreMetadataKey)
+  case object StoreEscapeNewLine    extends S3PropsKeyEntry(DataStorageSettings.StoreEscapeNewLine)
 }

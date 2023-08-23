@@ -39,6 +39,7 @@ object S3PropsSchema {
     StoreEnvelopeHeaders  -> BooleanPropsSchema,
     StoreEnvelopeValue    -> BooleanPropsSchema,
     StoreEnvelopeMetadata -> BooleanPropsSchema,
+    StoreEscapeNewLine    -> BooleanPropsSchema,
   )
 
   val schema = KcqlPropsSchema(S3PropsKeyEnum, keys)

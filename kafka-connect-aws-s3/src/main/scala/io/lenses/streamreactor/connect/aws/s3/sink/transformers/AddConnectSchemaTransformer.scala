@@ -47,7 +47,7 @@ class AddConnectSchemaTransformer(topic: Topic, settings: DataStorageSettings) e
         ),
       )
     } else {
-      if (settings.isDataStored && (settings.key || settings.value)) {
+      if (settings.hasEnvelope && (settings.key || settings.value)) {
         for {
           key <- if (settings.key) AddConnectSchemaTransformer.qualifyWithSchema(message.key) else message.key.asRight
           value <- if (settings.value) AddConnectSchemaTransformer.qualifyWithSchema(message.value)
