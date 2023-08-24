@@ -149,17 +149,17 @@ class S3SinkTaskJsonEnvelopeTest
 
     val actual1 = jsonRecords.head
     actual1 should be(
-      """{"headers":{"h1":"record1-header1","h2":1},"metadata":{"partition":1,"offset":1,"topic":"myTopic","timestamp":10001},"value":{"name":"sam","salary":100.43,"title":"mr"},"key":{"name":"sam","salary":100.43,"title":"mr"}}""",
+      """{"headers":{"h1":"record1-header1","h2":1},"metadata":{"partition":1,"offset":1,"topic":"myTopic","timestamp":10001},"value":{"name":"sam","title":"mr","salary":100.43},"key":{"name":"sam","title":"mr","salary":100.43}}""",
     )
 
     val actual2 = jsonRecords(1)
     actual2 should be(
-      """{"headers":{"h1":"record1-header2","h2":2},"metadata":{"partition":1,"offset":2,"topic":"myTopic","timestamp":10002},"value":{"name":"laura","salary":429.06,"title":"ms"},"key":{"name":"laura","salary":429.06,"title":"ms"}}""",
+      """{"headers":{"h1":"record1-header2","h2":2},"metadata":{"partition":1,"offset":2,"topic":"myTopic","timestamp":10002},"value":{"name":"laura","title":"ms","salary":429.06},"key":{"name":"laura","title":"ms","salary":429.06}}""",
     )
 
     val actual3 = jsonRecords(2)
     actual3 should be(
-      """{"headers":{"h1":"record1-header3","h2":3},"metadata":{"partition":1,"offset":3,"topic":"myTopic","timestamp":10003},"value":{"name":"tom","salary":395.44,"title":null},"key":{"name":"tom","salary":395.44,"title":null}}""",
+      """{"headers":{"h1":"record1-header3","h2":3},"metadata":{"partition":1,"offset":3,"topic":"myTopic","timestamp":10003},"value":{"name":"tom","title":null,"salary":395.44},"key":{"name":"tom","title":null,"salary":395.44}}""",
     )
   }
 
@@ -244,7 +244,7 @@ class S3SinkTaskJsonEnvelopeTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true, 'store.escape.new.line'=true)",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true)",
         ),
       ).asJava
 
@@ -297,79 +297,6 @@ class S3SinkTaskJsonEnvelopeTest
 
     val actual1 = jsonRecords.head
 
-    actual1 should be(
-      """{"headers":{"h1":"record1-header1","h2":1},"metadata":{"partition":1,"offset":1,"topic":"myTopic","timestamp":10001},"value":{"name":"samuel\\n jackson","salary":"100.43","title":"mr"},"key":{"name":"samuel\\n jackson","salary":"100.43","title":"mr"}}""",
-    )
-
-    val actual2 = jsonRecords(1)
-    actual2 should be(
-      """{"headers":{"h1":"record1-header2","h2":2},"metadata":{"partition":1,"offset":2,"topic":"myTopic","timestamp":10002},"value":{"name":"anna\\nkarenina","salary":"429.06","title":"ms"},"key":{"name":"anna\\nkarenina","salary":"429.06","title":"ms"}}""",
-    )
-
-    val actual3 = jsonRecords(2)
-    actual3 should be(
-      """{"headers":{"h1":"record1-header3","h2":3},"metadata":{"partition":1,"offset":3,"topic":"myTopic","timestamp":10003},"value":{"name":"tom\\nhardy","salary":"395.44","title":null},"key":{"name":"tom\\nhardy","salary":"395.44","title":null}}""",
-    )
-  }
-
-  "S3SinkTask" should "write to JSON format when input is java Map but does not escape the text" in {
-
-    val task = new S3SinkTask()
-
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true, 'store.escape.new.line'=false)",
-        ),
-      ).asJava
-
-    task.start(props)
-    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
-    val map1 = Map[String, Any]("name" -> "samuel\n jackson", "title" -> "mr", "salary" -> "100.43").asJava
-    val map2 = Map[String, Any]("name" -> "anna\nkarenina", "title" -> "ms", "salary" -> "429.06").asJava
-    val map3 =
-      Map[String, Any]("name" -> "tom\nhardy", "title" -> null.asInstanceOf[String], "salary" -> "395.44").asJava
-
-    val record1 = toSinkRecord(
-      map1,
-      TopicName,
-      1,
-      1L,
-      10001L,
-      "h1" -> new SchemaAndValue(Schema.STRING_SCHEMA, "record1-header1"),
-      "h2" -> new SchemaAndValue(Schema.INT64_SCHEMA, 1L),
-    )
-    val record2 = toSinkRecord(
-      map2,
-      TopicName,
-      1,
-      2L,
-      10002L,
-      "h1" -> new SchemaAndValue(Schema.STRING_SCHEMA, "record1-header2"),
-      "h2" -> new SchemaAndValue(Schema.INT64_SCHEMA, 2L),
-    )
-    val record3 = toSinkRecord(
-      map3,
-      TopicName,
-      1,
-      3L,
-      10003L,
-      "h1" -> new SchemaAndValue(Schema.STRING_SCHEMA, "record1-header3"),
-      "h2" -> new SchemaAndValue(Schema.INT64_SCHEMA, 3L),
-    )
-    task.put(List(record1, record2, record3).asJava)
-
-    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
-    task.stop()
-
-    val files = listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/")
-    files.size should be(1)
-
-    val bytes       = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000003.json")
-    val jsonRecords = new String(bytes).split("\n")
-    jsonRecords.size should be(3)
-
-    val actual1 = jsonRecords.head
     actual1 should be(
       """{"headers":{"h1":"record1-header1","h2":1},"metadata":{"partition":1,"offset":1,"topic":"myTopic","timestamp":10001},"value":{"name":"samuel\n jackson","salary":"100.43","title":"mr"},"key":{"name":"samuel\n jackson","salary":"100.43","title":"mr"}}""",
     )
@@ -392,7 +319,7 @@ class S3SinkTaskJsonEnvelopeTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=false, 'store.escape.new.line'=true)",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=false)",
         ),
       ).asJava
 
@@ -444,73 +371,6 @@ class S3SinkTaskJsonEnvelopeTest
 
     val actual1 = jsonRecords.head
 
-    actual1 shouldBe """{"name":"samuel\\n jackson","salary":"100.43","title":"mr"}"""
-
-    val actual2 = jsonRecords(1)
-    actual2 shouldBe """{"name":"anna\\nkarenina","salary":"429.06","title":"ms"}"""
-
-    val actual3 = jsonRecords(2)
-    actual3 shouldBe """{"name":"tom\\nhardy","salary":"395.44","title":null}"""
-  }
-
-  "S3SinkTask" should "write to JSON format but disables escape new lines" in {
-
-    val task = new S3SinkTask()
-
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=false, 'store.escape.new.line'=false)",
-        ),
-      ).asJava
-
-    task.start(props)
-    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
-    val map1 = Map[String, Any]("name" -> "samuel\n jackson", "title" -> "mr", "salary" -> "100.43").asJava
-    val map2 = Map[String, Any]("name" -> "anna\nkarenina", "title" -> "ms", "salary" -> "429.06").asJava
-    val map3 =
-      Map[String, Any]("name" -> "tom\nhardy", "title" -> null.asInstanceOf[String], "salary" -> "395.44").asJava
-
-    val record1 = toSinkRecord(
-      map1,
-      TopicName,
-      1,
-      1L,
-      10001L,
-      "h1" -> new SchemaAndValue(Schema.STRING_SCHEMA, "record1-header1"),
-      "h2" -> new SchemaAndValue(Schema.INT64_SCHEMA, 1L),
-    )
-    val record2 = toSinkRecord(
-      map2,
-      TopicName,
-      1,
-      2L,
-      10002L,
-      "h1" -> new SchemaAndValue(Schema.STRING_SCHEMA, "record1-header2"),
-      "h2" -> new SchemaAndValue(Schema.INT64_SCHEMA, 2L),
-    )
-    val record3 = toSinkRecord(
-      map3,
-      TopicName,
-      1,
-      3L,
-      10003L,
-      "h1" -> new SchemaAndValue(Schema.STRING_SCHEMA, "record1-header3"),
-      "h2" -> new SchemaAndValue(Schema.INT64_SCHEMA, 3L),
-    )
-    task.put(List(record1, record2, record3).asJava)
-
-    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
-    task.stop()
-
-    val files = listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/")
-    files.size should be(1)
-
-    val bytes       = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000003.json")
-    val jsonRecords = new String(bytes).split("\n")
-    jsonRecords.size should be(3)
-
-    val actual1 = jsonRecords.head
     actual1 shouldBe """{"name":"samuel\n jackson","title":"mr","salary":"100.43"}"""
 
     val actual2 = jsonRecords(1)

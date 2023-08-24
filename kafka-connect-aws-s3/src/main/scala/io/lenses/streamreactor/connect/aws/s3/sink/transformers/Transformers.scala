@@ -52,14 +52,7 @@ object TopicsTransformers {
               val topic = Topic(bo.sourceTopic.get)
               bo.formatSelection match {
                 case JsonFormatSelection =>
-                  val transformer = if (bo.dataStorage.escapeNewLine) {
-                    SequenceTransformer(
-                      SchemalessEnvelopeTransformer(topic, bo.dataStorage),
-                      EscapeStringNewLineTransformer,
-                    )
-                  } else {
-                    SequenceTransformer(SchemalessEnvelopeTransformer(topic, bo.dataStorage))
-                  }
+                  val transformer = SequenceTransformer(SchemalessEnvelopeTransformer(topic, bo.dataStorage))
                   map + (topic -> transformer)
                 case AvroFormatSelection | ParquetFormatSelection =>
                   map + (topic -> SequenceTransformer(
@@ -69,19 +62,8 @@ object TopicsTransformers {
 
                 case _ => map
               }
-            } else {
-              // If escape new line is setup then add the escape transformer only for JSON, Text and CSV storage format
-              if (bo.dataStorage.escapeNewLine) {
-                bo.formatSelection match {
-                  case JsonFormatSelection | CsvFormatSelection(_) | TextFormatSelection(_) =>
-                    map + (Topic(bo.sourceTopic.get) -> SequenceTransformer(
-                      EscapeStringNewLineTransformer,
-                    ))
+            } else map
 
-                  case _ => map
-                }
-              } else map
-            }
         }
     TopicsTransformers(transformersMap)
   }
