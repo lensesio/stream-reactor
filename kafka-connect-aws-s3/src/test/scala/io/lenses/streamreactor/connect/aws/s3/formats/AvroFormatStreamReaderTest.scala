@@ -15,7 +15,9 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroFormatStreamReader
+import io.lenses.streamreactor.connect.aws.s3.config.ObjectMetadata
+import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroStreamReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.AvroFormatWriter
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
@@ -26,14 +28,15 @@ import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPR
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
-import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.checkRecord
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.topic
+import org.apache.kafka.connect.data.Struct
 import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
 import java.time.Instant
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
@@ -43,14 +46,37 @@ class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
     val byteArrayInputStream: ByteArrayInputStream = writeRecordsToOutputStream
     val avroFormatStreamReader =
-      new AvroFormatStreamReader(byteArrayInputStream, mock[S3Location])
+      new AvroStreamReader(
+        StreamReaderInput(
+          byteArrayInputStream,
+          mock[S3Location],
+          ObjectMetadata("mybucket", "prefix", 0, Instant.now()),
+          false,
+          () => Right(byteArrayInputStream),
+          0,
+          topic,
+          Map.empty.asJava,
+        ),
+      )
 
     avroFormatStreamReader.hasNext should be(true)
-    checkRecord(avroFormatStreamReader.next().data, "sam", Some("mr"), 100.43)
+    val actual1 = avroFormatStreamReader.next().value().asInstanceOf[Struct]
+    actual1.get("name") shouldBe "sam"
+    actual1.get("title") shouldBe "mr"
+    actual1.get("salary") shouldBe 100.43
+
     avroFormatStreamReader.hasNext should be(true)
-    checkRecord(avroFormatStreamReader.next().data, "laura", Some("ms"), 429.06)
+
+    val actual2 = avroFormatStreamReader.next().value().asInstanceOf[Struct]
+    actual2.get("name") shouldBe "laura"
+    actual2.get("title") shouldBe "ms"
+    actual2.get("salary") shouldBe 429.06
+
     avroFormatStreamReader.hasNext should be(true)
-    checkRecord(avroFormatStreamReader.next().data, "tom", None, 395.44)
+    val actual3 = avroFormatStreamReader.next().asInstanceOf[Struct]
+    actual3.get("name") shouldBe "tom"
+    actual3.get("title") shouldBe null
+    actual3.get("salary") shouldBe 395.44
     avroFormatStreamReader.hasNext should be(false)
 
   }

@@ -21,17 +21,16 @@ import io.lenses.streamreactor.connect.aws.s3.source.reader.ReaderManager
 import org.apache.kafka.connect.source.SourceRecord
 
 class S3SourceTaskState(
-  latestReaderManagersFn: () => IO[Seq[ReaderManager]],
+  latestReaderManagers: IO[Seq[ReaderManager]],
 ) {
 
   def close(): IO[Unit] =
-    latestReaderManagersFn().flatMap(_.traverse(_.close())).attempt.void
+    latestReaderManagers.flatMap(_.traverse(_.close())).attempt.void
 
-  //import the Applicative
   def poll(): IO[Seq[SourceRecord]] =
     for {
-      readers       <- latestReaderManagersFn()
-      pollResults   <- readers.map(_.poll()).traverse(identity)
-      sourceRecords <- pollResults.flatten.map(r => IO.fromEither(r.toSourceRecordList)).traverse(identity)
-    } yield sourceRecords.flatten
+      readers      <- latestReaderManagers
+      pollResults  <- readers.map(_.poll()).traverse(identity)
+      sourceRecords = pollResults.flatten
+    } yield sourceRecords
 }

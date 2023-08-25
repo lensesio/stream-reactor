@@ -16,8 +16,9 @@
 package io.lenses.streamreactor.connect.aws.s3.model
 
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
-import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
+import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
@@ -56,6 +57,11 @@ object BytesOutputRowTest extends Matchers {
     res.valueSize should be(expected.valueSize)
     util.Objects.deepEquals(res.key, expected.key) should be(true)
     util.Objects.deepEquals(res.value, expected.value) should be(true)
+  }
+
+  def checkEqualsByteArrayValue(res: SourceRecord, expected: BytesOutputRow): Any = {
+    res.key shouldBe expected.key
+    res.value shouldBe expected.value
   }
 }
 

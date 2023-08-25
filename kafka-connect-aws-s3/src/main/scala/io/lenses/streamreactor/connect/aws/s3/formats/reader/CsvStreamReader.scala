@@ -15,17 +15,15 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
+import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
 import io.lenses.streamreactor.connect.aws.s3.formats.FormatWriterException
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import org.apache.kafka.connect.source.SourceRecord
 
-import java.io.InputStream
-
-class CsvFormatStreamReader(inputStream: InputStream, bucketAndPath: S3Location, hasHeaders: Boolean)
-    extends TextFormatStreamReader(inputStream, bucketAndPath) {
+class CsvStreamReader(input: StreamReaderInput, hasHeaders: Boolean) extends TextStreamReader(input) {
 
   private var firstRun: Boolean = true
 
-  override def next(): StringSourceData = {
+  override def next(): SourceRecord = {
     if (firstRun) {
       if (hasHeaders) {
         if (sourceLines.hasNext) {

@@ -15,93 +15,87 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.reader
 
-import cats.implicits.catsSyntaxOptionId
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.S3FormatStreamReader
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.SourceData
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.PollResults
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.S3StreamReader
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.source.SourceRecord
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.util.Collections
+
 class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
-  private val readerBucketAndPath = S3Location("bucket-and-path", "MyPrefix".some)
-  private val targetTopic         = "MyTargetTopic"
-  private val limit               = 10
-  private val reader              = mock[S3FormatStreamReader[_ <: SourceData]]
-  private val partitionFn: String => Option[Int] = _ => Option.empty
+  private val targetTopic = "MyTargetTopic"
+  private val limit       = 10
+  private val reader      = mock[S3StreamReader]
 
-  private val result1 = StringSourceData("myJsonStuff0", 0)
-  private val result2 = StringSourceData("myJsonStuff1", 1)
-  private val result3 = StringSourceData("myJsonStuff2", 2)
+  private val result1 =
+    new SourceRecord(Collections.emptyMap(),
+                     Collections.emptyMap(),
+                     targetTopic,
+                     0,
+                     Schema.STRING_SCHEMA,
+                     "myJsonStuff0",
+    )
+  private val result2 =
+    new SourceRecord(Collections.emptyMap(),
+                     Collections.emptyMap(),
+                     targetTopic,
+                     0,
+                     Schema.STRING_SCHEMA,
+                     "myJsonStuff1",
+    )
+  private val result3 =
+    new SourceRecord(Collections.emptyMap(),
+                     Collections.emptyMap(),
+                     targetTopic,
+                     0,
+                     Schema.STRING_SCHEMA,
+                     "myJsonStuff2",
+    )
 
-  val target = new ResultReader(reader, targetTopic, partitionFn)
+  val target = new ResultReader(reader)
 
   "resultReader" should "read a single results from the reader" in {
-    when(reader.getBucketAndPath).thenReturn(readerBucketAndPath)
+
     when(reader.hasNext).thenReturn(true, false)
     when(reader.next()).thenReturn(result1)
 
-    target.retrieveResults(limit) should be(Some(
-      PollResults(
-        Vector(result1),
-        readerBucketAndPath,
-        targetTopic,
-        partitionFn,
-      ),
-    ))
+    target.retrieveResults(limit) shouldBe Some(
+      Vector(result1),
+    )
   }
 
   "resultReader" should "read a multiple results from the reader" in {
-    when(reader.getBucketAndPath).thenReturn(readerBucketAndPath)
     when(reader.hasNext).thenReturn(true, true, true, false)
     when(reader.next()).thenReturn(result1, result2, result3)
 
-    target.retrieveResults(limit) should be(Some(
-      PollResults(
-        Vector(
-          result1,
-          result2,
-          result3,
-        ),
-        readerBucketAndPath,
-        targetTopic,
-        partitionFn,
+    target.retrieveResults(limit) shouldBe Some(
+      Vector(
+        result1,
+        result2,
+        result3,
       ),
-    ))
+    )
   }
 
   "resultReader" should "return none when no results exist" in {
-    when(reader.getBucketAndPath).thenReturn(readerBucketAndPath)
     when(reader.hasNext).thenReturn(false)
 
     target.retrieveResults(limit) should be(None)
   }
 
   "resultReader" should "only read up to the limit" in {
-
-    when(reader.getBucketAndPath).thenReturn(readerBucketAndPath)
     when(reader.hasNext).thenReturn(true, true, true, false)
     when(reader.next()).thenReturn(result1, result2, result3)
 
-    target.retrieveResults(2) should be(Some(
-      PollResults(
-        Vector(result1, result2),
-        readerBucketAndPath,
-        targetTopic,
-        partitionFn,
-      ),
-    ))
+    target.retrieveResults(2) shouldBe Some(
+      Vector(result1, result2),
+    )
 
-    target.retrieveResults(2) should be(Some(
-      PollResults(
-        Vector(result3),
-        readerBucketAndPath,
-        targetTopic,
-        partitionFn,
-      ),
-    ))
+    target.retrieveResults(2) shouldBe Some(
+      Vector(result3),
+    )
   }
 }

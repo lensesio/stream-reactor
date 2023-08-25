@@ -13,19 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.source
+package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
-import cats.implicits.toTraverseOps
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.SourceData
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import org.apache.kafka.connect.source.SourceRecord
 
-case class PollResults(
-  resultList:    Vector[_ <: SourceData],
-  bucketAndPath: S3Location,
-  targetTopic:   String,
-  partitionFn:   String => Option[Int],
-) {
-  def toSourceRecordList: Either[Throwable, Vector[SourceRecord]] =
-    resultList.map(_.toSourceRecord(bucketAndPath, targetTopic, partitionFn)).traverse(identity)
+trait S3StreamReader extends AutoCloseable with Iterator[SourceRecord] {
+
+  def getBucketAndPath: S3Location
+
+  def getLineNumber: Long
+
 }

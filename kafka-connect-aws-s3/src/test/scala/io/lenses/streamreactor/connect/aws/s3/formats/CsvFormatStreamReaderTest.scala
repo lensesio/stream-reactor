@@ -15,15 +15,21 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.CsvFormatStreamReader
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
+import io.lenses.streamreactor.connect.aws.s3.config.ObjectMetadata
+import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.CsvStreamReader
+import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.LineKey
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
+import org.apache.kafka.connect.source.SourceRecord
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
+import java.time.Instant
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSugar {
 
@@ -59,25 +65,26 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
 
   "next" should "read multiple rows from a CSV file with headers" in {
 
-    val reader = setUpReader(SampleData.recordsAsCsvWithHeaders, includesHeaders = true)
-    val results: Seq[StringSourceData] = reader.toList
+    val reader  = setUpReader(SampleData.recordsAsCsvWithHeaders, includesHeaders = true)
+    val results = reader.toList
 
     results.size should be(3)
     reader.getLineNumber should be(3)
-    results.zipWithIndex.foreach { case (result, index) => result.lineNumber should be(index + 1) }
+    results.zipWithIndex.foreach {
+      case (result, index) => result.sourceOffset().get(LineKey) shouldBe (index + 1).toString
+    }
     checkResult(results)
     reader.close()
   }
 
   "next" should "read multiple rows from a CSV file without headers" in {
 
-    val reader = setUpReader(SampleData.recordsAsCsv, includesHeaders = false)
-    val results: Seq[StringSourceData] = reader.toList
+    val reader  = setUpReader(SampleData.recordsAsCsv, includesHeaders = false)
+    val results = reader.toList
 
     results.size should be(3)
     reader.getLineNumber should be(2)
-    //results.foreach(_.columnHeaders should be(List("col1", "col2", "col3")))
-    results.zipWithIndex.foreach { case (result, index) => result.lineNumber should be(index) }
+    results.zipWithIndex.foreach { case (result, index) => result.sourceOffset().get(LineKey) should be(index) }
     checkResult(results)
 
   }
@@ -88,17 +95,30 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
   }
 
   private def setUpReader(recordsToReturn: List[String], includesHeaders: Boolean) =
-    new CsvFormatStreamReader(
-      new ByteArrayInputStream(
-        recordsToReturn.mkString(System.lineSeparator()).getBytes(),
+    new CsvStreamReader(
+      StreamReaderInput(
+        new ByteArrayInputStream(
+          recordsToReturn.mkString(System.lineSeparator()).getBytes(),
+        ),
+        bucketAndPath,
+        ObjectMetadata(
+          bucketAndPath.bucket,
+          "myBucket:myPath",
+          0,
+          Instant.now(),
+        ),
+        hasEnvelope = false,
+        () => Right(new ByteArrayInputStream(recordsToReturn.mkString(System.lineSeparator()).getBytes())),
+        0,
+        Topic("topic"),
+        Map.empty.asJava,
       ),
-      bucketAndPath = bucketAndPath,
-      hasHeaders    = includesHeaders,
+      hasHeaders = includesHeaders,
     )
 
-  private def checkResult(results: Seq[StringSourceData]) = {
-    results(0).data should be(""""sam","mr","100.43"""")
-    results(1).data should be(""""laura","ms","429.06"""")
-    results(2).data should be(""""tom",,"395.44"""")
+  private def checkResult(results: Seq[SourceRecord]) = {
+    results.head.value() should be(""""sam","mr","100.43"""")
+    results(1).value() should be(""""laura","ms","429.06"""")
+    results(2).value() should be(""""tom",,"395.44"""")
   }
 }

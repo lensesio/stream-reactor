@@ -22,24 +22,24 @@ import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.PollResults
 import io.lenses.streamreactor.connect.aws.s3.source.files.SourceFileQueue
+import org.apache.kafka.connect.source.SourceRecord
 
 import scala.util.Try
 
 /**
   * Given a sourceBucketOptions, manages readers for all of the files
   */
-case class ReaderManager(
+class ReaderManager(
   recordsLimit:    Int,
   fileSource:      SourceFileQueue,
-  readerFn:        S3Location => Either[Throwable, ResultReader],
+  readerBuilderF:  S3Location => Either[Throwable, ResultReader],
   connectorTaskId: ConnectorTaskId,
   readerRef:       Ref[IO, Option[ResultReader]],
 ) extends LazyLogging {
 
-  def poll(): IO[Vector[PollResults]] = {
-    def fromNexFile(pollResults: Vector[PollResults], allLimit: Int): IO[Vector[PollResults]] =
+  def poll(): IO[Vector[SourceRecord]] = {
+    def fromNexFile(pollResults: Vector[SourceRecord], allLimit: Int): IO[Vector[SourceRecord]] =
       for {
         maybePrev <- readerRef.getAndSet(None)
         _ <-
@@ -52,7 +52,7 @@ case class ReaderManager(
               _ <- IO.delay(
                 logger.debug(s"[${connectorTaskId.show}] Start reading from ${value.toString}"),
               )
-              reader <- IO.fromEither(readerFn(value))
+              reader <- IO.fromEither(readerBuilderF(value))
               _      <- readerRef.set(Some(reader))
               r      <- acc(pollResults, allLimit)
             } yield r
@@ -65,7 +65,7 @@ case class ReaderManager(
     //  Once it returns no more records, the next file is read and a new reader is built.
     //  This is repeated until the recordsLimit is reached or there are no more files to read from.
     //  The results are accumulated in a Vector[PollResults] and returned.
-    def acc(pollResults: Vector[PollResults], allLimit: Int): IO[Vector[PollResults]] =
+    def acc(pollResults: Vector[SourceRecord], allLimit: Int): IO[Vector[SourceRecord]] =
       if (allLimit <= 0) IO.pure(pollResults)
       else {
         // if the reader is present, then read from it.
@@ -77,7 +77,7 @@ case class ReaderManager(
               val before = value.getLineNumber
               value.retrieveResults(allLimit) match {
                 case Some(results) =>
-                  val accumulated = acc(pollResults :+ results, allLimit - results.resultList.size)
+                  val accumulated = acc(pollResults ++ results, allLimit - results.size)
                   val after       = value.getLineNumber
                   logger.info("[{}] Read {} record(-s) from file {}",
                               connectorTaskId.show,

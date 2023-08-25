@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.aws.s3.config.ObjectMetadata
 import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processAsKey
 import org.apache.commons.io.IOUtils
 import software.amazon.awssdk.core.ResponseInputStream
@@ -27,7 +28,6 @@ import software.amazon.awssdk.services.s3.model._
 import java.io.File
 import java.io.InputStream
 import java.nio.charset.Charset
-import java.time.Instant
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Failure
@@ -141,23 +141,21 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
       )
   }
 
-  private def headBlobInner(bucket: String, path: String): HeadObjectResponse =
-    s3Client
-      .headObject(
-        HeadObjectRequest
-          .builder()
-          .bucket(bucket)
-          .key(path)
-          .build(),
-      )
-
   override def getBlob(bucket: String, path: String): Either[FileLoadError, InputStream] =
     Try(getBlobInner(bucket, path)).toEither.leftMap(FileLoadError(_, path))
 
-  override def getBlobSize(bucket: String, path: String): Either[FileLoadError, Long] =
-    Try(
-      headBlobInner(bucket, path).contentLength().toLong,
-    ).toEither.leftMap(ex => FileLoadError(ex, path))
+  override def getMetadata(bucket: String, path: String): Either[FileLoadError, ObjectMetadata] =
+    Try {
+      val response = s3Client
+        .headObject(
+          HeadObjectRequest
+            .builder()
+            .bucket(bucket)
+            .key(path)
+            .build(),
+        )
+      ObjectMetadata(bucket, path, response.contentLength(), response.lastModified())
+    }.toEither.leftMap(ex => FileLoadError(ex, path))
 
   override def close(): Unit = s3Client.close()
 
@@ -207,17 +205,11 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
     }
 
   override def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String] =
-    for {
-      blob <- getBlob(bucket, path)
-      asString <- Try(
+    getBlob(bucket, path).flatMap { blob =>
+      Try(
         IOUtils.toString(blob, Charset.forName("UTF-8")),
       ).toEither.leftMap(ex => FileLoadError(ex, path))
-    } yield asString
-
-  override def getBlobModified(bucket: String, path: String): Either[FileLoadError, Instant] =
-    Try(
-      headBlobInner(bucket, path).lastModified(),
-    ).toEither.leftMap(FileLoadError(_, path))
+    }
 
   override def writeStringToFile(bucket: String, path: String, data: String): Either[UploadError, Unit] = {
     logger.debug(s"[{}] Uploading file from data string ({}) to s3 {}:{}", connectorTaskId.show, data, bucket, path)

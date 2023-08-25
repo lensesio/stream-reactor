@@ -79,7 +79,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         options,
         searcherMock.find,
         (_, _) =>
-          IO(ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
+          IO(new ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
         state,
         cancelledRef,
       ).start
@@ -130,7 +130,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
                               s3Client.listObjectsV2Paginator(_).iterator().asScala,
         ).find,
         (_, _) =>
-          IO(ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
+          IO(new ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
         state,
         cancelledRef,
       ).start
@@ -190,7 +190,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
                               s3Client.listObjectsV2Paginator(_).iterator().asScala,
         ).find,
         (_, _) =>
-          IO(ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
+          IO(new ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
         state,
         cancelledRef,
       ).start
@@ -242,7 +242,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
                               s3Client.listObjectsV2Paginator(_).iterator().asScala,
         ).find,
         (_, _) =>
-          IO(ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
+          IO(new ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), connectorTaskId, readerRef)),
         state,
         cancelledRef,
       ).start
@@ -297,7 +297,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
             (
               _,
               _,
-            ) => IO(ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), taskId, readerRef)),
+            ) => IO(new ReaderManager(limit, fileQueueProcessor, _ => Left(new RuntimeException()), taskId, readerRef)),
             state,
             cancelledRef,
           ).start

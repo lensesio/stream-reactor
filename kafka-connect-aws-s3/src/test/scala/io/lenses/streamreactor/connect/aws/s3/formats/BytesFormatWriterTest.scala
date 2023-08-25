@@ -15,9 +15,11 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import io.lenses.streamreactor.connect.aws.s3.config.ObjectMetadata
+import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesFormatWithSizesStreamReader
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesWithSizesStreamReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
@@ -32,6 +34,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
 import java.time.Instant
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
@@ -54,14 +57,20 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
       ),
     )
     val result = outputStream.toByteArray
-    val reader = new BytesFormatWithSizesStreamReader(
-      new ByteArrayInputStream(result),
-      result.length.toLong,
-      mock[S3Location],
+    val reader = new BytesWithSizesStreamReader(
+      StreamReaderInput(
+        new ByteArrayInputStream(result),
+        mock[S3Location],
+        ObjectMetadata("mybucket", "prefix", result.length.toLong, Instant.now()),
+        false,
+        () => Right(new ByteArrayInputStream(result)),
+        0,
+        topic,
+        Map.empty.asJava,
+      ),
       BytesWriteMode.ValueWithSize,
     )
-    val byteArraySourceData = reader.next()
-    byteArraySourceData.representationValue should be(testBytes)
+    reader.next().value() shouldBe testBytes
   }
 
   "convert" should "write a string to byte stream" in {

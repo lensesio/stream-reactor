@@ -70,7 +70,7 @@ object S3SourceState extends StrictLogging {
                                                           readerManagerState,
                                                           cancelledRef,
       )
-      BuilderResult(new S3SourceTaskState(() => readerManagerState.get.map(_.readerManagers)),
+      BuilderResult(new S3SourceTaskState(readerManagerState.get.map(_.readerManagers)),
                     cancelledRef,
                     partitionDiscoveryLoop,
       )

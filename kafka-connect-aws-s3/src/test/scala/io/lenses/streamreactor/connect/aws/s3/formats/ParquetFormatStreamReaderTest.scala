@@ -15,19 +15,24 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetFormatStreamReader
+import cats.implicits.catsSyntaxOptionId
+import io.lenses.streamreactor.connect.aws.s3.config.ObjectMetadata
+import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetStreamReader
+import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import org.apache.kafka.connect.data.Struct
-import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.InputStream
+import java.time.Instant
+import java.util.Collections
 import scala.util.Try
 
 class ParquetFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
-  private val bucketAndPath = mock[S3Location]
+  private val bucketAndPath = S3Location("myBucket", "myPath".some)
 
   "iteration" should "read parquet files" in {
     val inputStreamFn: () => InputStream = () => getClass.getResourceAsStream("/parquet/1.parquet")
@@ -40,17 +45,33 @@ class ParquetFormatStreamReaderTest extends AnyFlatSpec with Matchers {
         stream.close()
       }
     }
+    val now = Instant.now()
+    val input = StreamReaderInput(
+      inputStreamFn(),
+      bucketAndPath,
+      ObjectMetadata(
+        bucketAndPath.bucket,
+        "myBucket:myPath",
+        streamSize.toLong,
+        now,
+      ),
+      false,
+      () => Try(inputStreamFn()).toEither,
+      0,
+      Topic("topic"),
+      Collections.emptyMap,
+    )
     val target =
-      ParquetFormatStreamReader(inputStreamFn(), streamSize.toLong, bucketAndPath, () => Try(inputStreamFn()).toEither)
+      ParquetStreamReader(input)
     val list = target.toList
     list should have size 200
-    list.head.data.value().asInstanceOf[Struct].getString("name") should be(
+    list.head.value().asInstanceOf[Struct].getString("name") should be(
       "dbiriwtgyelferkqjmgvmakxreoPnovkObfyjSCzhsaidymngstfqgkbocypzglotuahzMojaViltqGmJpBnrIew",
     )
-    list(1).data.value().asInstanceOf[Struct].getString("name") should be(
+    list(1).value().asInstanceOf[Struct].getString("name") should be(
       "oyiirzenfdzzujavsdawjyctxvpckyqkyhzzvmaoimnywcohhSnbquwbixpeDfxttbdhupeKZolcyAjwknobmoucvwoxxytytxg",
     )
-    list(199).data.value().asInstanceOf[Struct].getString("name") should be(
+    list(199).value().asInstanceOf[Struct].getString("name") should be(
       "cfmfgbDpeklnFumaugcdcHokwtockrhsyflNqKbuwsAnXpxqzicbLzleviwhZaaIaylptfegvwFwe",
     )
 

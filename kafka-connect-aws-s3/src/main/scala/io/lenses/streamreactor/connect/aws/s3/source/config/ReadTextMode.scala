@@ -15,10 +15,9 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.CustomTextFormatStreamReader
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.S3FormatStreamReader
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.CustomTextStreamReader
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.S3StreamReader
 import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.ReadTextModeEntry
 import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.ReadTextModeEnum
 import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEntry
@@ -28,10 +27,8 @@ import io.lenses.streamreactor.connect.io.text.LineStartLineEndReader
 import io.lenses.streamreactor.connect.io.text.PrefixSuffixReader
 import io.lenses.streamreactor.connect.io.text.RegexMatchLineReader
 
-import java.io.InputStream
-
 trait ReadTextMode {
-  def createStreamReader(inputStream: InputStream, bucketAndPath: S3Location): S3FormatStreamReader[StringSourceData]
+  def createStreamReader(input: StreamReaderInput): S3StreamReader
 }
 
 object ReadTextMode {
@@ -64,42 +61,39 @@ object ReadTextMode {
 
 case class StartEndTagReadTextMode(startTag: String, endTag: String, buffer: Int) extends ReadTextMode {
   override def createStreamReader(
-    inputStream:   InputStream,
-    bucketAndPath: S3Location,
-  ): S3FormatStreamReader[StringSourceData] = {
+    input: StreamReaderInput,
+  ): S3StreamReader = {
     val lineReader = new PrefixSuffixReader(
-      input      = inputStream,
+      input      = input.stream,
       prefix     = startTag,
       suffix     = endTag,
       bufferSize = buffer,
     )
-    new CustomTextFormatStreamReader(bucketAndPath, () => lineReader.next(), () => lineReader.close())
+    new CustomTextStreamReader(input, () => lineReader.next(), () => lineReader.close())
   }
 }
 
 case class StartEndLineReadTextMode(startLine: String, endLine: String, trim: Boolean) extends ReadTextMode {
   override def createStreamReader(
-    inputStream:   InputStream,
-    bucketAndPath: S3Location,
-  ): S3FormatStreamReader[StringSourceData] = {
+    input: StreamReaderInput,
+  ): S3StreamReader = {
     val lineReader = new LineStartLineEndReader(
-      inputStream,
+      input.stream,
       startLine,
       endLine,
       trim,
     )
-    new CustomTextFormatStreamReader(bucketAndPath, () => lineReader.next(), () => lineReader.close())
+    new CustomTextStreamReader(input, () => lineReader.next(), () => lineReader.close())
   }
 }
 case class RegexReadTextMode(regex: String) extends ReadTextMode {
   override def createStreamReader(
-    inputStream:   InputStream,
-    bucketAndPath: S3Location,
-  ): S3FormatStreamReader[StringSourceData] = {
+    input: StreamReaderInput,
+  ): S3StreamReader = {
     val lineReader = new RegexMatchLineReader(
-      input = inputStream,
+      input = input.stream,
       regex = regex,
     )
-    new CustomTextFormatStreamReader(bucketAndPath, () => lineReader.next(), () => lineReader.close())
+    new CustomTextStreamReader(input, () => lineReader.next(), () => lineReader.close())
   }
 }

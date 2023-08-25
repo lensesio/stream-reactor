@@ -16,37 +16,49 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
 import com.google.common.io.ByteStreams
+import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.source.SourceWatermark
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.source.SourceRecord
 
-import java.io.InputStream
 import scala.util.Try
 
-class BytesFormatStreamFileReader(
-  inputStream:    InputStream,
-  fileSize:       Long,
-  bucketAndPath:  S3Location,
+class BytesStreamFileReader(
+  input:          StreamReaderInput,
   bytesWriteMode: BytesWriteMode,
-) extends S3FormatStreamReader[ByteArraySourceData] {
+) extends S3StreamReader {
 
   private var consumed: Boolean = false
 
-  override def hasNext: Boolean = !consumed && fileSize > 0L
+  override def hasNext: Boolean = !consumed && input.metadata.size > 0L
 
-  override def next(): ByteArraySourceData = {
-    val fileAsBytes = ByteStreams.toByteArray(inputStream)
+  override def next(): SourceRecord = {
+    val fileAsBytes = ByteStreams.toByteArray(input.stream)
+    val row         = bytesWriteMode.read(fileAsBytes)
     consumed = true
-    ByteArraySourceData(bytesWriteMode.read(fileAsBytes), getLineNumber)
+
+    new SourceRecord(
+      input.sourcePartition,
+      SourceWatermark.offset(input.bucketAndPath, getLineNumber, input.metadata.lastModified),
+      input.targetTopic.value,
+      input.targetPartition,
+      Schema.BYTES_SCHEMA,
+      row.key,
+      Schema.BYTES_SCHEMA,
+      row.value,
+    )
   }
 
   override def getLineNumber: Long = if (consumed) 0 else -1
 
   override def close(): Unit = {
     val _ = Try {
-      inputStream.close()
+      input.stream.close()
     }
   }
 
-  override def getBucketAndPath: S3Location = bucketAndPath
+  override def getBucketAndPath: S3Location = input.bucketAndPath
 
 }

@@ -42,7 +42,7 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
       rootValue = Some(in)
       rootValue
     }
-    val sbo    = SourceBucketOptions(root, "topic", AvroFormatSelection, 100, 100, None, OrderingType.LastModified)
+    val sbo    = SourceBucketOptions(root, "topic", AvroFormatSelection, 100, 100, None, OrderingType.LastModified, false)
     val taskId = ConnectorTaskId("test", 3, 1)
     ReaderManagerBuilder(root, path, si, taskId, contextF, _ => Some(sbo))
       .asserting(_ => rootValue shouldBe Some(root.copy(prefix = Some(path))))

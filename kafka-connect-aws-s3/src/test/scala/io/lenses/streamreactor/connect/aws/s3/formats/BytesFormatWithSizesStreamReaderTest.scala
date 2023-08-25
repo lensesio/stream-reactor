@@ -15,17 +15,22 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import io.lenses.streamreactor.connect.aws.s3.config.ObjectMetadata
+import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesFormatWithSizesStreamReader
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesWithSizesStreamReader
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.model.BytesOutputRowTest
+import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
+import java.time.Instant
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class BytesFormatWithSizesStreamReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
@@ -40,10 +45,22 @@ class BytesFormatWithSizesStreamReaderTest extends AnyFlatSpec with MockitoSugar
 
   "next" should "return single record of key and values with sizes" in {
 
-    val target = new BytesFormatWithSizesStreamReader(new ByteArrayInputStream(bytesKeyAndValueWithSizes),
-                                                      bytesKeyAndValueWithSizes.length.toLong,
-                                                      bucketAndPath,
-                                                      bytesWriteMode = BytesWriteMode.KeyAndValueWithSizes,
+    val target = new BytesWithSizesStreamReader(
+      StreamReaderInput(
+        new ByteArrayInputStream(bytesKeyAndValueWithSizes),
+        bucketAndPath,
+        ObjectMetadata(bucketAndPath.bucket,
+                       bucketAndPath.path.getOrElse("mypath"),
+                       bytesKeyAndValueWithSizes.length.toLong,
+                       Instant.now(),
+        ),
+        false,
+        () => Right(new ByteArrayInputStream(bytesKeyAndValueWithSizes)),
+        0,
+        Topic("topic"),
+        Map.empty.asJava,
+      ),
+      bytesWriteMode = BytesWriteMode.KeyAndValueWithSizes,
     )
 
     checkRecord(target, outputKeyAndValueWithSizes)
@@ -55,10 +72,22 @@ class BytesFormatWithSizesStreamReaderTest extends AnyFlatSpec with MockitoSugar
   "next" should "return multiple records of key and values with sizes" in {
 
     val allElements = bytesKeyAndValueWithSizes ++ bytesKeyAndValueWithSizes2
-    val target = new BytesFormatWithSizesStreamReader(new ByteArrayInputStream(allElements),
-                                                      allElements.length.toLong,
-                                                      bucketAndPath,
-                                                      bytesWriteMode = BytesWriteMode.KeyAndValueWithSizes,
+    val target = new BytesWithSizesStreamReader(
+      StreamReaderInput(
+        new ByteArrayInputStream(allElements),
+        bucketAndPath,
+        ObjectMetadata(bucketAndPath.bucket,
+                       bucketAndPath.path.getOrElse("mypath"),
+                       allElements.length.toLong,
+                       Instant.now(),
+        ),
+        false,
+        () => Right(new ByteArrayInputStream(allElements)),
+        0,
+        Topic("topic"),
+        Map.empty.asJava,
+      ),
+      bytesWriteMode = BytesWriteMode.KeyAndValueWithSizes,
     )
 
     checkRecord(target, outputKeyAndValueWithSizes)
@@ -69,9 +98,9 @@ class BytesFormatWithSizesStreamReaderTest extends AnyFlatSpec with MockitoSugar
 
   }
 
-  private def checkRecord(target: BytesFormatWithSizesStreamReader, expectedOutputRow: BytesOutputRow) = {
+  private def checkRecord(target: BytesWithSizesStreamReader, expectedOutputRow: BytesOutputRow) = {
     target.hasNext should be(true)
     val record = target.next()
-    checkEqualsByteArrayValue(record.data, expectedOutputRow)
+    checkEqualsByteArrayValue(record, expectedOutputRow)
   }
 }

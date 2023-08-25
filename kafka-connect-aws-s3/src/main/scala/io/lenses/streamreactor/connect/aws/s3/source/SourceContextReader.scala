@@ -20,11 +20,10 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.LineKey
 import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.PathKey
 import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.TimeStampKey
-import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.fromSourcePartition
+import io.lenses.streamreactor.connect.aws.s3.source.SourceWatermark.partition
 import org.apache.kafka.connect.source.SourceTaskContext
 
 import java.time.Instant
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 
@@ -34,7 +33,7 @@ object SourceContextReader {
     context:    () => SourceTaskContext,
   )(sourceRoot: S3Location,
   ): Option[S3Location] = {
-    val key = fromSourcePartition(sourceRoot).asJava
+    val key = partition(sourceRoot)
     for {
       offsetMap <- Try(context().offsetStorageReader.offset(key).asScala).toOption.filterNot(_ == null)
       path      <- offsetMap.get(PathKey).collect { case value: String => value }

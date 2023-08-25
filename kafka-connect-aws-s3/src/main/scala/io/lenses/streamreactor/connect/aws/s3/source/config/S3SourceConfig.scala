@@ -15,8 +15,10 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
+import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toTraverseOps
 import com.datamountaineer.kcql.Kcql
+import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config.getString
@@ -31,6 +33,7 @@ import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 import java.util
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 
 object S3SourceConfig {
@@ -77,6 +80,7 @@ case class SourceBucketOptions(
   filesLimit:            Int,
   partitionExtractor:    Option[PartitionExtractor],
   orderingType:          OrderingType,
+  hasEnvelope:           Boolean,
 ) {
   def createBatchListerFn(
     storageInterface: StorageInterface,
@@ -108,6 +112,9 @@ object SourceBucketOptions {
         for {
           source <- S3Location.splitAndValidate(kcql.getSource, allowSlash = true)
           format <- FormatSelection.fromKcql(kcql)
+          //extract the envelope. of not present default to false
+          hasEnvelope <- extractEnvelope(Option(kcql.getProperties).map(_.asScala.toMap).getOrElse(Map.empty))
+
         } yield SourceBucketOptions(
           source,
           kcql.getTarget,
@@ -118,7 +125,18 @@ object SourceBucketOptions {
           orderingType = Try(config.getString(SOURCE_ORDERING_TYPE)).toOption.flatMap(
             OrderingType.withNameInsensitiveOption,
           ).getOrElse(OrderingType.AlphaNumeric),
+          hasEnvelope = hasEnvelope.getOrElse(false),
         )
     }.toSeq.traverse(identity)
 
+  def extractEnvelope(properties: Map[String, String]): Either[Throwable, Option[Boolean]] = {
+    val envelope = properties.get(DataStorageSettings.StoreEnvelopeKey)
+    envelope match {
+      case Some(value) =>
+        Try(value.toBoolean.some).toEither.left.map(_ =>
+          new IllegalArgumentException(s"Invalid value for $S3Config.ENVELOPE_ENABLED. Must be a boolean"),
+        )
+      case None => Right(None)
+    }
+  }
 }

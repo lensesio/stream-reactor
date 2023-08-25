@@ -22,16 +22,17 @@ import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.PollResults
 import io.lenses.streamreactor.connect.aws.s3.source.files.SourceFileQueue
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.source.SourceRecord
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.time.Instant
+import java.util.Collections
 
 class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with LazyLogging with BeforeAndAfter {
 
@@ -45,7 +46,7 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
     val fileQueueProcessor: SourceFileQueue = mock[SourceFileQueue]
 
     var locationFnCalls = 0
-    val target = ReaderManager(
+    val target = new ReaderManager(
       recordsLimit,
       fileQueueProcessor,
       _ =>
@@ -67,21 +68,18 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
 
   "poll" should "return single record when found" in {
 
-    val partitionFn:        String => Option[Int] = _ => Option.empty
-    val fileQueueProcessor: SourceFileQueue       = mock[SourceFileQueue]
-    var calledLocation:     Option[S3Location]    = Option.empty
+    val fileQueueProcessor: SourceFileQueue    = mock[SourceFileQueue]
+    var calledLocation:     Option[S3Location] = Option.empty
 
     when(fileQueueProcessor.next()).thenReturn(
       Some(firstFileBucketAndPathAndLine).asRight,
       None.asRight,
     )
 
-    val pollResults = PollResults(
-      resultList    = Vector(StringSourceData("abc", 0)),
-      bucketAndPath = firstFileBucketAndPath,
-      targetTopic   = "target",
-      partitionFn   = partitionFn,
+    val pollResults = Vector(
+      new SourceRecord(Collections.emptyMap(), Collections.emptyMap(), "target", 0, Schema.STRING_SCHEMA, "abc"),
     )
+
     val resultReader = mock[ResultReader]
 
     when(
@@ -90,13 +88,13 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
 
     when(
       resultReader.retrieveResults(9),
-    ).thenReturn(Option.empty[PollResults])
+    ).thenReturn(Option.empty[Vector[SourceRecord]])
 
     when(
       resultReader.getLocation,
     ).thenReturn(firstFileBucketAndPath)
 
-    val target = ReaderManager(
+    val target = new ReaderManager(
       recordsLimit,
       fileQueueProcessor,
       location => {

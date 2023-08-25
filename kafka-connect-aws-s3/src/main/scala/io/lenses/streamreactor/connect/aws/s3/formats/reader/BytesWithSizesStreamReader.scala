@@ -15,34 +15,44 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
+import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.source.SourceWatermark
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.source.SourceRecord
 
 import java.io.DataInputStream
-import java.io.InputStream
-import java.util.concurrent.atomic.AtomicLong
 import scala.util.Try
 
-class BytesFormatWithSizesStreamReader(
-  is:             InputStream,
-  fileSize:       Long,
-  bucketAndPath:  S3Location,
+class BytesWithSizesStreamReader(
+  input:          StreamReaderInput,
   bytesWriteMode: BytesWriteMode,
-) extends S3FormatStreamReader[ByteArraySourceData] {
+) extends S3StreamReader {
 
-  private val inputStream = new DataInputStream(is)
+  private val inputStream = new DataInputStream(input.stream)
 
   private var recordNumber: Long = -1
 
-  private val fileSizeCounter = new AtomicLong(fileSize)
+  private var fileSizeCounter = input.metadata.size
 
-  override def hasNext: Boolean = fileSizeCounter.get() > 0
+  override def hasNext: Boolean = fileSizeCounter > 0
 
-  override def next(): ByteArraySourceData = {
+  override def next(): SourceRecord = {
     recordNumber += 1
-    val ret = ByteArraySourceData(bytesWriteMode.read(inputStream), recordNumber)
-    fileSizeCounter.addAndGet(-ret.data.bytesRead.get.toLong)
-    ret
+    val row = bytesWriteMode.read(inputStream)
+    fileSizeCounter = -row.bytesRead.get.toLong
+
+    new SourceRecord(
+      input.sourcePartition,
+      SourceWatermark.offset(input.bucketAndPath, recordNumber, input.metadata.lastModified),
+      input.targetTopic.value,
+      input.targetPartition,
+      Schema.BYTES_SCHEMA,
+      row.key,
+      Schema.BYTES_SCHEMA,
+      row.value,
+    )
   }
 
   override def getLineNumber: Long = recordNumber
@@ -53,6 +63,6 @@ class BytesFormatWithSizesStreamReader(
     }
   }
 
-  override def getBucketAndPath: S3Location = bucketAndPath
+  override def getBucketAndPath: S3Location = input.bucketAndPath
 
 }

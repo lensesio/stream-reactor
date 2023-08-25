@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.storage
 
+import io.lenses.streamreactor.connect.aws.s3.config.ObjectMetadata
 import software.amazon.awssdk.services.s3.model.S3Object
 
 import java.io.File
@@ -57,9 +58,7 @@ trait StorageInterface {
 
   def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String]
 
-  def getBlobSize(bucket: String, path: String): Either[FileLoadError, Long]
-
-  def getBlobModified(bucket: String, path: String): Either[FileLoadError, Instant]
+  def getMetadata(bucket: String, path: String): Either[FileLoadError, ObjectMetadata]
 
   def writeStringToFile(bucket: String, path: String, data: String): Either[UploadError, Unit]
 

@@ -20,7 +20,6 @@ import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.util.Utf8
 import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.SchemaAndValue
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.scalacheck.Gen
@@ -100,21 +99,6 @@ object SampleData extends Matchers {
     Option(genericRecord.get("title")).fold(Option.empty[String])(e => Some(e.toString)) should be(title)
     genericRecord.get("salary") should be(salary)
   }
-
-  def checkRecord(schemaAndValue: SchemaAndValue, name: String, title: Option[String], salary: Double): Assertion = {
-
-    schemaAndValue.value().asInstanceOf[Struct].get("name").toString should be(name)
-    schemaAndValue.value().asInstanceOf[Struct].get("salary") should be(salary)
-    checkTitle(schemaAndValue, title)
-  }
-
-  private def checkTitle(schemaAndValue: SchemaAndValue, title: Option[String]) =
-    title match {
-      case None =>
-        schemaAndValue.value().asInstanceOf[Struct].get("title") should be(null)
-      case Some(title) =>
-        schemaAndValue.value().asInstanceOf[Struct].get("title").toString should be(title)
-    }
 
   def checkArray(genericRecord: GenericData.Array[Utf8], values: String*): Unit =
     values.zipWithIndex.foreach {

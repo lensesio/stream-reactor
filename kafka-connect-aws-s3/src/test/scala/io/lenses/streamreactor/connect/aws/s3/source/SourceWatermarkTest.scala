@@ -22,17 +22,17 @@ import org.scalatest.matchers.should.Matchers
 
 import java.time.Instant
 
-class SourceRecordConverterTest extends AnyFlatSpec with Matchers {
+class SourceWatermarkTest extends AnyFlatSpec with Matchers {
 
   "fromSourcePartition" should "convert S3Location to Map" in {
-    SourceRecordConverter.fromSourcePartition(S3Location("test-bucket", "test-prefix".some)) should contain allOf (
+    SourceWatermark.partition(S3Location("test-bucket", "test-prefix".some)) should contain allOf (
       "container" -> "test-bucket",
       "prefix"    -> "test-prefix"
     )
   }
 
   "fromSourcePartition" should "convert S3Location without prefix to Map" in {
-    SourceRecordConverter.fromSourcePartition(S3Location("test-bucket")) should contain allOf (
+    SourceWatermark.partition(S3Location("test-bucket")) should contain allOf (
       "container" -> "test-bucket",
       "prefix"    -> ""
     )
@@ -40,7 +40,7 @@ class SourceRecordConverterTest extends AnyFlatSpec with Matchers {
 
   "fromSourceOffset" should "convert S3Location to Map" in {
     val nowInst = Instant.now
-    SourceRecordConverter.fromSourceOffset(
+    SourceWatermark.offset(
       S3Location("test-bucket", "test-prefix".some).withPath("test-path"),
       100L,
       nowInst,

@@ -16,39 +16,50 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
 import io.confluent.connect.avro.AvroData
+import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.source.SourceWatermark
 import org.apache.avro.file.DataFileStream
 import org.apache.avro.generic.GenericDatumReader
 import org.apache.avro.generic.GenericRecord
+import org.apache.kafka.connect.source.SourceRecord
 
-import java.io.InputStream
 import scala.util.Try
 
-class AvroFormatStreamReader(inputStream: InputStream, bucketAndPath: S3Location)
-    extends S3FormatStreamReader[SchemaAndValueSourceData] {
+class AvroStreamReader(input: StreamReaderInput) extends S3StreamReader {
   private val avroDataConverter = new AvroData(100)
 
   private val datumReader = new GenericDatumReader[GenericRecord]()
 
-  private val stream = new DataFileStream[GenericRecord](inputStream, datumReader)
+  private val stream = new DataFileStream[GenericRecord](input.stream, datumReader)
 
   private var lineNumber: Long = -1
 
   override def close(): Unit = {
     val _ = Try(stream.close())
-    val _ = Try(inputStream.close())
+    val _ = Try(input.stream.close())
   }
 
   override def hasNext: Boolean = stream.hasNext
 
-  override def next(): SchemaAndValueSourceData = {
+  override def next(): SourceRecord = {
     lineNumber += 1
     val genericRecord  = stream.next
     val schemaAndValue = avroDataConverter.toConnectData(genericRecord.getSchema, genericRecord)
-    SchemaAndValueSourceData(schemaAndValue, lineNumber)
+
+    new SourceRecord(
+      input.sourcePartition,
+      SourceWatermark.offset(input.bucketAndPath, lineNumber, input.metadata.lastModified),
+      input.targetTopic.value,
+      input.targetPartition,
+      null,
+      null,
+      schemaAndValue.schema(),
+      schemaAndValue.value(),
+    )
   }
 
-  override def getBucketAndPath: S3Location = bucketAndPath
+  override def getBucketAndPath: S3Location = input.bucketAndPath
 
   override def getLineNumber: Long = lineNumber
 }

@@ -15,8 +15,9 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.TextFormatStreamReader
+import io.lenses.streamreactor.connect.aws.s3.config.ObjectMetadata
+import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.TextStreamReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.JsonFormatWriter
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
@@ -32,6 +33,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
 import java.time.Instant
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
@@ -39,14 +41,25 @@ class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
     val byteArrayInputStream: ByteArrayInputStream = writeRecordsToOutputStream
     val avroFormatStreamReader =
-      new TextFormatStreamReader(byteArrayInputStream, mock[S3Location])
+      new TextStreamReader(
+        StreamReaderInput(
+          byteArrayInputStream,
+          mock[S3Location],
+          ObjectMetadata("mybucket", "prefix", 0, Instant.now()),
+          false,
+          () => Right(byteArrayInputStream),
+          0,
+          topic,
+          Map.empty.asJava,
+        ),
+      )
 
     avroFormatStreamReader.hasNext should be(true)
-    avroFormatStreamReader.next() should be(StringSourceData(SampleData.recordsAsJson(0), 0))
+    avroFormatStreamReader.next().value() should be(SampleData.recordsAsJson(0))
     avroFormatStreamReader.hasNext should be(true)
-    avroFormatStreamReader.next() should be(StringSourceData(SampleData.recordsAsJson(1), 1))
+    avroFormatStreamReader.next() should be(SampleData.recordsAsJson(1))
     avroFormatStreamReader.hasNext should be(true)
-    avroFormatStreamReader.next() should be(StringSourceData(SampleData.recordsAsJson(2), 2))
+    avroFormatStreamReader.next() should be(SampleData.recordsAsJson(2))
     avroFormatStreamReader.hasNext should be(false)
 
   }
