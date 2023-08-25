@@ -273,6 +273,51 @@ class SchemalessEnvelopeTransformerTests extends AnyFunSuite with Matchers {
     map2.get("map") shouldBe Collections.singletonMap(1, "value")
     map2.get("nested") shouldBe Collections.singletonMap("field", 12)
   }
+
+  test("key is bytes array adds a keyIsArray field in the envelope") {
+    val settings = DataStorageSettings.enabled
+    val expected = MessageDetail(
+      ByteArraySinkData("key".getBytes(), Some(Schema.OPTIONAL_BYTES_SCHEMA)),
+      StructSinkData(SampleData.Users.head),
+      Map(
+        "header1" -> StringSinkData("value1", Some(Schema.STRING_SCHEMA)),
+        "header2" -> ByteArraySinkData("value2".getBytes(), Some(Schema.BYTES_SCHEMA)),
+      ),
+      Some(Instant.now()),
+      Topic("topic1"),
+      0,
+      Offset(12),
+    )
+    val transformer = SchemalessEnvelopeTransformer(Topic("topic1"), settings)
+    val actual      = transformer.transform(expected).getOrElse(fail("Should have returned a message"))
+    assert(actual.value) { map =>
+      map.get("key") shouldBe "key".getBytes()
+      map.get("keyIsArray") shouldBe true
+      map.containsKey("valueIsArray") shouldBe false
+    }
+  }
+  test("value is bytes array adds isValueArray field in the envelope") {
+    val settings = DataStorageSettings.enabled
+    val expected = MessageDetail(
+      StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA)),
+      ByteArraySinkData("value".getBytes(), Some(Schema.OPTIONAL_BYTES_SCHEMA)),
+      Map(
+        "header1" -> StringSinkData("value1", Some(Schema.STRING_SCHEMA)),
+        "header2" -> ByteArraySinkData("value2".getBytes(), Some(Schema.BYTES_SCHEMA)),
+      ),
+      Some(Instant.now()),
+      Topic("topic1"),
+      0,
+      Offset(12),
+    )
+    val transformer = SchemalessEnvelopeTransformer(Topic("topic1"), settings)
+    val actual      = transformer.transform(expected).getOrElse(fail("Should have returned a message"))
+    assert(actual.value) { map =>
+      map.get("value") shouldBe "value".getBytes()
+      map.get("valueIsArray") shouldBe true
+      map.containsKey("keyIsArray") shouldBe false
+    }
+  }
   private def assert(value: SinkData)(fn: java.util.Map[_, _] => Assertion): Assertion =
     value match {
       case MapSinkData(map, _) => fn(map)

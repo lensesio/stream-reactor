@@ -73,8 +73,24 @@ object SchemalessEnvelopeTransformer {
     */
   private def envelope(message: MessageDetail, settings: DataStorageSettings): MessageDetail = {
     val envelope = new java.util.HashMap[String, Any]()
-    if (settings.key) envelope.put("key", convert(message.key))
-    if (settings.value) envelope.put("value", convert(message.value))
+
+    if (settings.key) {
+      envelope.put("key", convert(message.key))
+      message.key match {
+        case ByteArraySinkData(_, _) =>
+          envelope.put("keyIsArray", true)
+        case _ =>
+      }
+    }
+
+    if (settings.value) {
+      envelope.put("value", convert(message.value))
+      message.value match {
+        case ByteArraySinkData(_, _) =>
+          envelope.put("valueIsArray", true)
+        case _ =>
+      }
+    }
     if (settings.metadata) envelope.put("metadata", metadataData(message))
     if (settings.headers) envelope.put("headers", headersData(message))
 

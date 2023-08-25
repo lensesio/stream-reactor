@@ -18,13 +18,13 @@ package io.lenses.streamreactor.connect.aws.s3.utils
 
 import cats.implicits.catsSyntaxOptionId
 import com.google.common.io.ByteStreams
+import io.lenses.streamreactor.connect.aws.s3.config.ObjectMetadata
 import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processAsKey
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 import java.io.File
 import java.io.InputStream
 import java.nio.file.Files
-import java.time.Instant
 
 class RemoteFileHelper(storageInterface: StorageInterface) {
 
@@ -55,14 +55,8 @@ class RemoteFileHelper(storageInterface: StorageInterface) {
   private def streamToByteArray(inputStream: InputStream): Array[Byte] =
     ByteStreams.toByteArray(inputStream)
 
-  def getFileSize(bucket: String, path: String): Long =
-    storageInterface.getBlobSize(bucket, path) match {
-      case Left(value)  => throw new RuntimeException(value.exception)
-      case Right(value) => value
-    }
-
-  def getModificationDate(bucket: String, path: String): Instant =
-    storageInterface.getBlobModified(bucket, path) match {
+  def getMetadata(bucket: String, path: String): ObjectMetadata =
+    storageInterface.getMetadata(bucket, path) match {
       case Left(value)  => throw new RuntimeException(value.exception)
       case Right(value) => value
     }

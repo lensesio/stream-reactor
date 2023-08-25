@@ -17,6 +17,8 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits._
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
@@ -32,6 +34,7 @@ import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.util.Base64
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
@@ -379,4 +382,105 @@ class S3SinkTaskJsonEnvelopeTest
     val actual3 = jsonRecords(2)
     actual3 shouldBe """{"name":"tom\nhardy","title":null,"salary":"395.44"}"""
   }
+
+  "S3SinkTask" should "write to JSON format when input is array of bytes representing text with new line" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true)",
+        ),
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    val array1 = "samuel jackson".getBytes
+    val array2 = "anna\nkarenina".getBytes
+    val array3 = "tom\nhardy".getBytes
+
+    val record1 = toSinkRecord(
+      array1,
+      TopicName,
+      1,
+      1L,
+      10001L,
+      "h1" -> new SchemaAndValue(Schema.STRING_SCHEMA, "record1-header1"),
+      "h2" -> new SchemaAndValue(Schema.INT64_SCHEMA, 1L),
+    )
+    val record2 = toSinkRecord(
+      array2,
+      TopicName,
+      1,
+      2L,
+      10002L,
+      "h1" -> new SchemaAndValue(Schema.STRING_SCHEMA, "record1-header2"),
+      "h2" -> new SchemaAndValue(Schema.INT64_SCHEMA, 2L),
+    )
+    val record3 = toSinkRecord(
+      array3,
+      TopicName,
+      1,
+      3L,
+      10003L,
+      "h1" -> new SchemaAndValue(Schema.STRING_SCHEMA, "record1-header3"),
+      "h2" -> new SchemaAndValue(Schema.INT64_SCHEMA, 3L),
+    )
+    task.put(List(record1, record2, record3).asJava)
+
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    val files = listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/")
+
+    files.size should be(1)
+
+    val bytes       = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000003.json")
+    val jsonRecords = new String(bytes).split("\n")
+    jsonRecords.size should be(3)
+
+    val actual1 = jsonRecords.head
+    //convert actual1 string to Json using Jackson
+    val objectMapper = new ObjectMapper()
+    objectMapper.registerModule(DefaultScalaModule)
+    val json1     = objectMapper.readTree(actual1)
+    val json1Node = json1.get("key")
+    json1Node should not be null
+    json1Node.isArray shouldBe false
+    new String(Base64.getDecoder.decode(json1Node.asText())) shouldBe "samuel jackson"
+    json1.get("keyIsArray").asBoolean() shouldBe true
+    val json1NodeValue = json1.get("value")
+    json1NodeValue should not be null
+    json1NodeValue.isArray shouldBe false
+    new String(Base64.getDecoder.decode(json1NodeValue.asText())) shouldBe "samuel jackson"
+    json1.has("valueIsArray") shouldBe true
+
+    val actual2   = jsonRecords(1)
+    val json2     = objectMapper.readTree(actual2)
+    val json2Node = json2.get("key")
+    json2Node should not be null
+    json2Node.isArray shouldBe false
+    json2.get("keyIsArray").asBoolean() shouldBe true
+    new String(Base64.getDecoder.decode(json2Node.asText())) shouldBe "anna\nkarenina"
+    val json2NodeValue = json2.get("value")
+    json2NodeValue should not be null
+    json2NodeValue.isArray shouldBe false
+    json2.get("valueIsArray").asBoolean() shouldBe true
+    new String(Base64.getDecoder.decode(json2NodeValue.asText())) shouldBe "anna\nkarenina"
+
+    val actual3   = jsonRecords(2)
+    val json3     = objectMapper.readTree(actual3)
+    val json3Node = json3.get("key")
+    json3Node should not be null
+    json3Node.isArray shouldBe false
+    json3.get("keyIsArray").asBoolean() shouldBe true
+    new String(Base64.getDecoder.decode(json3Node.asText())) shouldBe "tom\nhardy"
+    val json3NodeValue = json3.get("value")
+    json3NodeValue should not be null
+    json3NodeValue.isArray shouldBe false
+    json3.get("valueIsArray").asBoolean() shouldBe true
+    new String(Base64.getDecoder.decode(json3NodeValue.asText())) shouldBe "tom\nhardy"
+  }
+
 }
