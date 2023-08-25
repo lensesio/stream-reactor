@@ -15,54 +15,35 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
-import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.SourceWatermark
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.source.SourceRecord
 
 import java.io.DataInputStream
+import java.io.InputStream
 import scala.util.Try
 
 class BytesWithSizesStreamReader(
-  input:          StreamReaderInput,
+  input:          InputStream,
+  size:           Long,
   bytesWriteMode: BytesWriteMode,
-) extends S3StreamReader {
+) extends S3DataIterator[BytesOutputRow] {
 
-  private val inputStream = new DataInputStream(input.stream)
+  private val inputStream = new DataInputStream(input)
 
-  private var recordNumber: Long = -1
-
-  private var fileSizeCounter = input.metadata.size
+  private var fileSizeCounter = size
 
   override def hasNext: Boolean = fileSizeCounter > 0
 
-  override def next(): SourceRecord = {
-    recordNumber += 1
+  override def next(): BytesOutputRow = {
+
     val row = bytesWriteMode.read(inputStream)
     fileSizeCounter = -row.bytesRead.get.toLong
-
-    new SourceRecord(
-      input.sourcePartition,
-      SourceWatermark.offset(input.bucketAndPath, recordNumber, input.metadata.lastModified),
-      input.targetTopic.value,
-      input.targetPartition,
-      Schema.BYTES_SCHEMA,
-      row.key,
-      Schema.BYTES_SCHEMA,
-      row.value,
-    )
+    row
   }
-
-  override def getLineNumber: Long = recordNumber
 
   override def close(): Unit = {
     val _ = Try {
       inputStream.close()
     }
   }
-
-  override def getBucketAndPath: S3Location = input.bucketAndPath
-
 }

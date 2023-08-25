@@ -74,19 +74,22 @@ class ReaderManager(
           reader <- readerRef.get
           data <- reader match {
             case Some(value) =>
-              val before = value.getLineNumber
+              // The index of -1 means no record. It's an unfortunate state introduced by the readers keeping track of the current records
+              // which is kept for backwards compatibility. If -1 then there are 0 records, and it adds 1 to the index to get the number of records read.
+              val before = if (value.currentRecordIndex == -1) 0 else value.currentRecordIndex + 1
               value.retrieveResults(allLimit) match {
                 case Some(results) =>
                   val accumulated = acc(pollResults ++ results, allLimit - results.size)
-                  val after       = value.getLineNumber
+                  //same as above, -1 means no record, so add 1 to get the number of records read
+                  val after = if (value.currentRecordIndex == -1) 0 else value.currentRecordIndex + 1
                   logger.info("[{}] Read {} record(-s) from file {}",
                               connectorTaskId.show,
                               after - before,
-                              value.getLocation.toString,
+                              value.source.toString,
                   )
                   accumulated
                 case None =>
-                  logger.info("[{}] Read 0 records from file {}", connectorTaskId.show, value.getLocation.toString)
+                  logger.info("[{}] Read 0 records from file {}", connectorTaskId.show, value.source.toString)
                   fromNexFile(pollResults, allLimit)
               }
 
@@ -100,8 +103,8 @@ class ReaderManager(
   private def closeAndLog(maybePrev: Option[ResultReader]): IO[Unit] = IO.delay {
     maybePrev.foreach { prev =>
       logger.info(s"[${connectorTaskId.show}] Read {} records from file {}",
-                  prev.getLineNumber,
-                  prev.getLocation.toString,
+                  prev.currentRecordIndex,
+                  prev.source.toString,
       )
       Try(prev.close())
     }

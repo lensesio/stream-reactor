@@ -15,20 +15,19 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
-import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
 import io.lenses.streamreactor.connect.aws.s3.formats.FormatWriterException
-import org.apache.kafka.connect.source.SourceRecord
 
-class CsvStreamReader(input: StreamReaderInput, hasHeaders: Boolean) extends TextStreamReader(input) {
+import java.io.InputStream
+
+class CsvStreamReader(input: InputStream, hasHeaders: Boolean) extends TextStreamReader(input) {
 
   private var firstRun: Boolean = true
 
-  override def next(): SourceRecord = {
+  override def next(): String = {
     if (firstRun) {
       if (hasHeaders) {
         if (sourceLines.hasNext) {
           sourceLines.next()
-          lineNumber += 1
         } else {
           throw FormatWriterException("No column headers are available")
         }

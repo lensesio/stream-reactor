@@ -15,25 +15,15 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.config.ObjectMetadata
-import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.CsvStreamReader
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.LineKey
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
-import org.apache.kafka.connect.source.SourceRecord
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
-import java.time.Instant
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSugar {
-
-  private val bucketAndPath = mock[S3Location]
 
   "next" should "throw an error when you try and read an empty file when headers are configured" in {
     val reader = setUpReader(List(), includesHeaders = true)
@@ -69,10 +59,6 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
     val results = reader.toList
 
     results.size should be(3)
-    reader.getLineNumber should be(3)
-    results.zipWithIndex.foreach {
-      case (result, index) => result.sourceOffset().get(LineKey) shouldBe (index + 1).toString
-    }
     checkResult(results)
     reader.close()
   }
@@ -83,42 +69,21 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
     val results = reader.toList
 
     results.size should be(3)
-    reader.getLineNumber should be(2)
-    results.zipWithIndex.foreach { case (result, index) => result.sourceOffset().get(LineKey) should be(index) }
     checkResult(results)
 
   }
 
-  "getBucketAndPath" should "retain bucket and path from setup" in {
-    val reader = setUpReader(SampleData.recordsAsCsv, includesHeaders = false)
-    reader.getBucketAndPath should be(bucketAndPath)
-  }
-
-  private def setUpReader(recordsToReturn: List[String], includesHeaders: Boolean) =
+  private def setUpReader(recordsToReturn: List[String], includesHeaders: Boolean): CsvStreamReader =
     new CsvStreamReader(
-      StreamReaderInput(
-        new ByteArrayInputStream(
-          recordsToReturn.mkString(System.lineSeparator()).getBytes(),
-        ),
-        bucketAndPath,
-        ObjectMetadata(
-          bucketAndPath.bucket,
-          "myBucket:myPath",
-          0,
-          Instant.now(),
-        ),
-        hasEnvelope = false,
-        () => Right(new ByteArrayInputStream(recordsToReturn.mkString(System.lineSeparator()).getBytes())),
-        0,
-        Topic("topic"),
-        Map.empty.asJava,
+      new ByteArrayInputStream(
+        recordsToReturn.mkString(System.lineSeparator()).getBytes(),
       ),
       hasHeaders = includesHeaders,
     )
 
-  private def checkResult(results: Seq[SourceRecord]) = {
-    results.head.value() should be(""""sam","mr","100.43"""")
-    results(1).value() should be(""""laura","ms","429.06"""")
-    results(2).value() should be(""""tom",,"395.44"""")
+  private def checkResult(results: Seq[String]) = {
+    results.head should be(""""sam","mr","100.43"""")
+    results(1) should be(""""laura","ms","429.06"""")
+    results(2) should be(""""tom",,"395.44"""")
   }
 }

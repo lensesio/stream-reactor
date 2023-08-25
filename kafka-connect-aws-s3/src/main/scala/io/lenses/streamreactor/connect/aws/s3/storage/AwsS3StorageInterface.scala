@@ -154,7 +154,7 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
             .key(path)
             .build(),
         )
-      ObjectMetadata(bucket, path, response.contentLength(), response.lastModified())
+      ObjectMetadata(response.contentLength(), response.lastModified())
     }.toEither.leftMap(ex => FileLoadError(ex, path))
 
   override def close(): Unit = s3Client.close()

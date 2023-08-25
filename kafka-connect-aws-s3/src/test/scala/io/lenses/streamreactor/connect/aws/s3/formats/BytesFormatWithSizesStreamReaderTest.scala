@@ -15,28 +15,20 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.config.ObjectMetadata
-import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesWithSizesStreamReader
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.model.BytesOutputRowTest
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
-import java.time.Instant
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 class BytesFormatWithSizesStreamReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   import BytesOutputRowTest._
-
-  private val bucketAndPath: S3Location = mock[S3Location]
 
   private val bytesKeyAndValueWithSizes2: Array[Byte] =
     ByteArrayUtils.longToByteArray(4L) ++ ByteArrayUtils.longToByteArray(3L) ++ "caketea".getBytes
@@ -46,20 +38,8 @@ class BytesFormatWithSizesStreamReaderTest extends AnyFlatSpec with MockitoSugar
   "next" should "return single record of key and values with sizes" in {
 
     val target = new BytesWithSizesStreamReader(
-      StreamReaderInput(
-        new ByteArrayInputStream(bytesKeyAndValueWithSizes),
-        bucketAndPath,
-        ObjectMetadata(bucketAndPath.bucket,
-                       bucketAndPath.path.getOrElse("mypath"),
-                       bytesKeyAndValueWithSizes.length.toLong,
-                       Instant.now(),
-        ),
-        false,
-        () => Right(new ByteArrayInputStream(bytesKeyAndValueWithSizes)),
-        0,
-        Topic("topic"),
-        Map.empty.asJava,
-      ),
+      new ByteArrayInputStream(bytesKeyAndValueWithSizes),
+      bytesKeyAndValueWithSizes.length.toLong,
       bytesWriteMode = BytesWriteMode.KeyAndValueWithSizes,
     )
 
@@ -73,20 +53,8 @@ class BytesFormatWithSizesStreamReaderTest extends AnyFlatSpec with MockitoSugar
 
     val allElements = bytesKeyAndValueWithSizes ++ bytesKeyAndValueWithSizes2
     val target = new BytesWithSizesStreamReader(
-      StreamReaderInput(
-        new ByteArrayInputStream(allElements),
-        bucketAndPath,
-        ObjectMetadata(bucketAndPath.bucket,
-                       bucketAndPath.path.getOrElse("mypath"),
-                       allElements.length.toLong,
-                       Instant.now(),
-        ),
-        false,
-        () => Right(new ByteArrayInputStream(allElements)),
-        0,
-        Topic("topic"),
-        Map.empty.asJava,
-      ),
+      new ByteArrayInputStream(allElements),
+      allElements.length.toLong,
       bytesWriteMode = BytesWriteMode.KeyAndValueWithSizes,
     )
 

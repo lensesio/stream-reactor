@@ -17,7 +17,6 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.config.AvroFormatSelection
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.AvroFormatWriter
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData

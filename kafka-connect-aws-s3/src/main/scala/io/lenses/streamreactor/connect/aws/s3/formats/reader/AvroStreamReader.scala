@@ -16,50 +16,30 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
 import io.confluent.connect.avro.AvroData
-import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.SourceWatermark
 import org.apache.avro.file.DataFileStream
 import org.apache.avro.generic.GenericDatumReader
 import org.apache.avro.generic.GenericRecord
-import org.apache.kafka.connect.source.SourceRecord
+import org.apache.kafka.connect.data.SchemaAndValue
 
+import java.io.InputStream
 import scala.util.Try
 
-class AvroStreamReader(input: StreamReaderInput) extends S3StreamReader {
+class AvroStreamReader(input: InputStream) extends S3DataIterator[SchemaAndValue] {
   private val avroDataConverter = new AvroData(100)
 
   private val datumReader = new GenericDatumReader[GenericRecord]()
 
-  private val stream = new DataFileStream[GenericRecord](input.stream, datumReader)
-
-  private var lineNumber: Long = -1
+  private val stream = new DataFileStream[GenericRecord](input, datumReader)
 
   override def close(): Unit = {
     val _ = Try(stream.close())
-    val _ = Try(input.stream.close())
+    val _ = Try(input.close())
   }
 
   override def hasNext: Boolean = stream.hasNext
 
-  override def next(): SourceRecord = {
-    lineNumber += 1
-    val genericRecord  = stream.next
-    val schemaAndValue = avroDataConverter.toConnectData(genericRecord.getSchema, genericRecord)
-
-    new SourceRecord(
-      input.sourcePartition,
-      SourceWatermark.offset(input.bucketAndPath, lineNumber, input.metadata.lastModified),
-      input.targetTopic.value,
-      input.targetPartition,
-      null,
-      null,
-      schemaAndValue.schema(),
-      schemaAndValue.value(),
-    )
+  override def next(): SchemaAndValue = {
+    val genericRecord = stream.next
+    avroDataConverter.toConnectData(genericRecord.getSchema, genericRecord)
   }
-
-  override def getBucketAndPath: S3Location = input.bucketAndPath
-
-  override def getLineNumber: Long = lineNumber
 }

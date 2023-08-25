@@ -16,71 +16,51 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
 import io.confluent.connect.avro.AvroData
-import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.parquet.ParquetSeekableInputStream
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.parquet.ParquetStreamingInputFile
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.SourceWatermark
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.conf.Configuration
-import org.apache.kafka.connect.source.SourceRecord
+import org.apache.kafka.connect.data.SchemaAndValue
 import org.apache.parquet.avro.AvroParquetReader
 import org.apache.parquet.avro.AvroReadSupport.READ_INT96_AS_FIXED
 import org.apache.parquet.hadoop.ParquetReader
 
+import java.io.InputStream
 import scala.util.Try
 
 class ParquetStreamReader(
-  avroParquetReader: ParquetReader[GenericRecord],
-  input:             StreamReaderInput,
-) extends S3StreamReader
+  reader: ParquetReader[GenericRecord],
+) extends S3DataIterator[SchemaAndValue]
     with Using {
-  private val parquetReaderIteratorAdaptor = new ParquetReaderIteratorAdaptor(avroParquetReader)
-  private var lineNumber: Long = -1
-  private val avroDataConverter = new AvroData(100)
-
-  override def getBucketAndPath: S3Location = input.bucketAndPath
-
-  override def getLineNumber: Long = lineNumber
+  private val parquetReaderIteratorAdaptor = new ParquetReaderIteratorAdaptor(reader)
+  private val avroDataConverter            = new AvroData(100)
 
   override def close(): Unit = {
-    val _ = Try(avroParquetReader.close())
+    val _ = Try(reader.close())
   }
 
   override def hasNext: Boolean = parquetReaderIteratorAdaptor.hasNext
 
-  override def next(): SourceRecord = {
-
-    lineNumber += 1
+  override def next(): SchemaAndValue = {
     val nextRec = parquetReaderIteratorAdaptor.next()
-
-    val schemaAndValue = avroDataConverter.toConnectData(nextRec.getSchema, nextRec)
-    new SourceRecord(
-      input.sourcePartition,
-      SourceWatermark.offset(input.bucketAndPath, lineNumber, input.metadata.lastModified),
-      input.targetTopic.value,
-      input.targetPartition,
-      null,
-      null,
-      schemaAndValue.schema(),
-      schemaAndValue.value(),
-    )
-
+    avroDataConverter.toConnectData(nextRec.getSchema, nextRec)
   }
 
 }
 
 object ParquetStreamReader {
   def apply(
-    input: StreamReaderInput,
+    input:     InputStream,
+    size:      Long,
+    recreateF: () => Either[Throwable, InputStream],
   ): ParquetStreamReader = {
     val inputFile = new ParquetStreamingInputFile(
-      input.metadata.size,
+      size,
       () =>
         new ParquetSeekableInputStream(
-          input.stream,
+          input,
           () =>
-            input.recreateInputStreamF() match {
+            recreateF() match {
               case Left(throwable) => throw throwable
               case Right(value)    => value
             },
@@ -93,6 +73,6 @@ object ParquetStreamReader {
       AvroParquetReader.builder[GenericRecord](inputFile).withConf(conf).build()
     }
 
-    new ParquetStreamReader(avroParquetReader, input)
+    new ParquetStreamReader(avroParquetReader)
   }
 }

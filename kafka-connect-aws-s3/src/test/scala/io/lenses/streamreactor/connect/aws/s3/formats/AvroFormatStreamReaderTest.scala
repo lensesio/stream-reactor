@@ -15,8 +15,6 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.config.ObjectMetadata
-import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroStreamReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.AvroFormatWriter
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
@@ -25,18 +23,15 @@ import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.topic
 import org.apache.kafka.connect.data.Struct
-import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
 import java.time.Instant
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
@@ -47,16 +42,7 @@ class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
     val byteArrayInputStream: ByteArrayInputStream = writeRecordsToOutputStream
     val avroFormatStreamReader =
       new AvroStreamReader(
-        StreamReaderInput(
-          byteArrayInputStream,
-          mock[S3Location],
-          ObjectMetadata("mybucket", "prefix", 0, Instant.now()),
-          false,
-          () => Right(byteArrayInputStream),
-          0,
-          topic,
-          Map.empty.asJava,
-        ),
+        byteArrayInputStream,
       )
 
     avroFormatStreamReader.hasNext should be(true)

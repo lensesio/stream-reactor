@@ -15,38 +15,18 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
-import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.SourceWatermark
 import io.lenses.streamreactor.connect.io.text.OptionIteratorAdaptor
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.source.SourceRecord
 
 class CustomTextStreamReader(
-  input:        StreamReaderInput,
   lineReaderFn: () => Option[String],
   closeFn:      () => Unit,
-) extends S3StreamReader {
+) extends S3DataIterator[String] {
 
   private val adaptor = new OptionIteratorAdaptor(() => lineReaderFn())
 
-  override def getBucketAndPath: S3Location = input.bucketAndPath
-
-  override def getLineNumber: Long = adaptor.getLine()
-
   override def hasNext: Boolean = adaptor.hasNext
 
-  override def next(): SourceRecord =
-    new SourceRecord(
-      input.sourcePartition,
-      SourceWatermark.offset(input.bucketAndPath, adaptor.getLine(), input.metadata.lastModified),
-      input.targetTopic.value,
-      input.targetPartition,
-      null,
-      null,
-      Schema.STRING_SCHEMA,
-      adaptor.next(),
-    )
+  override def next(): String = adaptor.next()
 
   override def close(): Unit = closeFn()
 }

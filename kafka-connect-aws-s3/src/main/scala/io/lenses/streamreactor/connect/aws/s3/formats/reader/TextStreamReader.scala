@@ -15,22 +15,18 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
-import io.lenses.streamreactor.connect.aws.s3.config.StreamReaderInput
 import io.lenses.streamreactor.connect.aws.s3.formats.FormatWriterException
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.SourceWatermark
 import io.lenses.streamreactor.connect.aws.s3.source.config.ReadTextMode
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.source.SourceRecord
 
+import java.io.InputStream
 import scala.io.Source
 import scala.util.Try
 
 object TextStreamReader {
   def apply(
     readTextMode: Option[ReadTextMode],
-    input:        StreamReaderInput,
-  ): S3StreamReader =
+    input:        InputStream,
+  ): S3DataIterator[String] =
     readTextMode.map(_.createStreamReader(input))
       .getOrElse(
         new TextStreamReader(
@@ -39,11 +35,10 @@ object TextStreamReader {
       )
 }
 
-class TextStreamReader(input: StreamReaderInput) extends S3StreamReader {
+class TextStreamReader(input: InputStream) extends S3DataIterator[String] {
 
-  private val source = Source.fromInputStream(input.stream, "UTF-8")
+  private val source = Source.fromInputStream(input, "UTF-8")
   protected val sourceLines: Iterator[String] = source.getLines()
-  protected var lineNumber:  Long             = -1
 
   override def close(): Unit = {
     Try(source.close())
@@ -52,27 +47,13 @@ class TextStreamReader(input: StreamReaderInput) extends S3StreamReader {
 
   override def hasNext: Boolean = sourceLines.hasNext
 
-  override def next(): SourceRecord = {
-    lineNumber += 1
+  override def next(): String = {
     if (!sourceLines.hasNext) {
       throw FormatWriterException(
         "Invalid state reached: the file content has been consumed, no further calls to next() are possible.",
       )
     }
-
-    new SourceRecord(
-      input.sourcePartition,
-      SourceWatermark.offset(input.bucketAndPath, lineNumber, input.metadata.lastModified),
-      input.targetTopic.value,
-      input.targetPartition,
-      null,
-      null,
-      Schema.STRING_SCHEMA,
-      sourceLines.next(),
-    )
+    sourceLines.next()
   }
 
-  override def getBucketAndPath: S3Location = input.bucketAndPath
-
-  override def getLineNumber: Long = lineNumber
 }

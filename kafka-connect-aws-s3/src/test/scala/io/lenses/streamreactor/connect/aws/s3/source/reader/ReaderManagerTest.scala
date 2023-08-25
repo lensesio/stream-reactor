@@ -91,7 +91,7 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
     ).thenReturn(Option.empty[Vector[SourceRecord]])
 
     when(
-      resultReader.getLocation,
+      resultReader.source,
     ).thenReturn(firstFileBucketAndPath)
 
     val target = new ReaderManager(

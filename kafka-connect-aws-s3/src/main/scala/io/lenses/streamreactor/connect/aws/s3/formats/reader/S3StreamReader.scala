@@ -22,6 +22,35 @@ trait S3StreamReader extends AutoCloseable with Iterator[SourceRecord] {
 
   def getBucketAndPath: S3Location
 
-  def getLineNumber: Long
+  def currentRecordIndex: Long
+}
 
+trait S3DataIterator[T] extends Iterator[T] with AutoCloseable
+
+trait Converter[T] {
+  def convert(t: T, index: Long): SourceRecord
+}
+
+class DelegateIteratorS3StreamReader[T](iterator: S3DataIterator[T], converter: Converter[T], location: S3Location)
+    extends S3StreamReader {
+
+  // It starts at -1 to signal nothing read. However, this means 0 is the first record.
+  // The connector watermark needs to take this into account.
+  // It would have been an option to change to 0 as no-records,
+  // but this means the current connectors will skip a record once updated.
+  // So now this inconsistency is here to stay.
+  private var recordIndex:       Long       = -1
+  override def getBucketAndPath: S3Location = location
+
+  override def currentRecordIndex: Long = recordIndex
+
+  override def hasNext: Boolean = iterator.hasNext
+
+  override def next(): SourceRecord = {
+    val data = iterator.next()
+    recordIndex = recordIndex + 1
+    converter.convert(data, recordIndex)
+  }
+
+  override def close(): Unit = iterator.close()
 }
