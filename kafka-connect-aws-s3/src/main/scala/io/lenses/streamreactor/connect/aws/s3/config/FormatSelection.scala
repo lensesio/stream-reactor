@@ -18,13 +18,11 @@ package io.lenses.streamreactor.connect.aws.s3.config
 import com.datamountaineer.kcql.Kcql
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.aws.s3.formats.reader._
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.converters.BytesOutputRowConverter
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.converters.SchemaAndValueConverter
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.converters.TextConverter
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.converters._
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.S3FormatWriter
+import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.ReadTextMode
 import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsSchema
@@ -98,12 +96,23 @@ case object JsonFormatSelection extends FormatSelection {
     input: ReaderBuilderContext,
   ): S3StreamReader = {
     val inner = new TextStreamReader(input.stream)
-    val converter = new TextConverter(input.watermarkPartition,
+    val converter = if (input.hasEnvelope) {
+      new SchemalessEnvelopeConverter(input.watermarkPartition,
                                       input.targetTopic,
                                       input.targetPartition,
                                       input.bucketAndPath,
                                       input.metadata.lastModified,
-    )
+      )
+
+    } else {
+      new TextConverter(input.watermarkPartition,
+                        input.targetTopic,
+                        input.targetPartition,
+                        input.bucketAndPath,
+                        input.metadata.lastModified,
+      )
+    }
+
     new DelegateIteratorS3StreamReader[String](inner, converter, input.bucketAndPath)
   }
 
@@ -127,12 +136,21 @@ case object AvroFormatSelection extends FormatSelection {
   ): S3StreamReader = {
 
     val inner = new AvroStreamReader(input.stream)
-    val converter = new SchemaAndValueConverter(input.watermarkPartition,
-                                                input.targetTopic,
-                                                input.targetPartition,
-                                                input.bucketAndPath,
-                                                input.metadata.lastModified,
-    )
+    if (input.hasEnvelope) {
+      new SchemaAndValueEnvelopeConverter(input.watermarkPartition,
+                                          input.targetTopic,
+                                          input.targetPartition,
+                                          input.bucketAndPath,
+                                          input.metadata.lastModified,
+      )
+    } else {
+      new SchemaAndValueConverter(input.watermarkPartition,
+                                  input.targetTopic,
+                                  input.targetPartition,
+                                  input.bucketAndPath,
+                                  input.metadata.lastModified,
+      )
+    }
     new DelegateIteratorS3StreamReader(inner, converter, input.bucketAndPath)
 
   }
@@ -157,12 +175,21 @@ case object ParquetFormatSelection extends FormatSelection {
     input: ReaderBuilderContext,
   ): S3StreamReader = {
     val inner = ParquetStreamReader.apply(input.stream, input.metadata.size, input.recreateInputStreamF)
-    val converter = new SchemaAndValueConverter(input.watermarkPartition,
-                                                input.targetTopic,
-                                                input.targetPartition,
-                                                input.bucketAndPath,
-                                                input.metadata.lastModified,
-    )
+    val converter = if (input.hasEnvelope) {
+      new SchemaAndValueEnvelopeConverter(input.watermarkPartition,
+                                          input.targetTopic,
+                                          input.targetPartition,
+                                          input.bucketAndPath,
+                                          input.metadata.lastModified,
+      )
+    } else {
+      new SchemaAndValueConverter(input.watermarkPartition,
+                                  input.targetTopic,
+                                  input.targetPartition,
+                                  input.bucketAndPath,
+                                  input.metadata.lastModified,
+      )
+    }
     new DelegateIteratorS3StreamReader(inner, converter, input.bucketAndPath)
   }
 
