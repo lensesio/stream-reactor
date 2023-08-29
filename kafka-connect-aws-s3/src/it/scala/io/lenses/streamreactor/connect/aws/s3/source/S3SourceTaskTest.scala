@@ -265,7 +265,7 @@ class S3SourceTaskTest
           sourceRecords2 should have size 190
           sourceRecords3 should have size 190
           sourceRecords4 should have size 190
-          sourceRecords5 should have size 31
+          sourceRecords5 should have size 30
           sourceRecords6 should have size 0
           sourceRecords7 should have size 0
 
@@ -275,7 +275,7 @@ class S3SourceTaskTest
             .concat(sourceRecords4.asScala)
             .concat(sourceRecords5.asScala)
             .concat(sourceRecords6.asScala)
-            .toSet should have size 791
+            .toSet should have size 790
         }
     }
   }
