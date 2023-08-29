@@ -136,7 +136,7 @@ case object AvroFormatSelection extends FormatSelection {
   ): S3StreamReader = {
 
     val inner = new AvroStreamReader(input.stream)
-    if (input.hasEnvelope) {
+    val converter = if (input.hasEnvelope) {
       new SchemaAndValueEnvelopeConverter(input.watermarkPartition,
                                           input.targetTopic,
                                           input.targetPartition,
