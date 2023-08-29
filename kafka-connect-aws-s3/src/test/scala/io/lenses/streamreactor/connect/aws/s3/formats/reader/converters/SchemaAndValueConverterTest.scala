@@ -43,7 +43,7 @@ class SchemaAndValueConverterTest extends AnyFunSuite with Matchers {
       lastModified,
     ).convert(value, 1)
     actual.valueSchema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
-    actual.value() shouldBe "value"
+    actual.value() shouldBe "lore ipsum"
     actual.kafkaPartition() shouldBe 1
     actual.sourcePartition() shouldBe Map("a" -> "1").asJava
     actual.sourceOffset() shouldBe Map("line" -> "1", "path" -> "a/b/c.txt", "ts" -> "1000").asJava

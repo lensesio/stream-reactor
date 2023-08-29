@@ -59,7 +59,7 @@ class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
     actual2.get("salary") shouldBe 429.06
 
     avroFormatStreamReader.hasNext should be(true)
-    val actual3 = avroFormatStreamReader.next().asInstanceOf[Struct]
+    val actual3 = avroFormatStreamReader.next().value().asInstanceOf[Struct]
     actual3.get("name") shouldBe "tom"
     actual3.get("title") shouldBe null
     actual3.get("salary") shouldBe 395.44

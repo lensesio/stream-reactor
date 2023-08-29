@@ -21,20 +21,21 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.time.Instant
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 class SourceWatermarkTest extends AnyFlatSpec with Matchers {
 
   "fromSourcePartition" should "convert S3Location to Map" in {
-    SourceWatermark.partition(S3Location("test-bucket", "test-prefix".some)) should contain allOf (
+    SourceWatermark.partition(S3Location("test-bucket", "test-prefix".some)).asScala.toMap shouldBe Map(
       "container" -> "test-bucket",
-      "prefix"    -> "test-prefix"
+      "prefix"    -> "test-prefix",
     )
   }
 
   "fromSourcePartition" should "convert S3Location without prefix to Map" in {
-    SourceWatermark.partition(S3Location("test-bucket")) should contain allOf (
+    SourceWatermark.partition(S3Location("test-bucket")).asScala.toMap shouldBe Map(
       "container" -> "test-bucket",
-      "prefix"    -> ""
+      "prefix"    -> "",
     )
   }
 
@@ -44,7 +45,7 @@ class SourceWatermarkTest extends AnyFlatSpec with Matchers {
       S3Location("test-bucket", "test-prefix".some).withPath("test-path"),
       100L,
       nowInst,
-    ) should contain allOf (
+    ).asScala.toMap shouldBe Map(
       "path" -> "test-path",
       "line" -> "100",
       "ts"   -> nowInst.toEpochMilli.toString,

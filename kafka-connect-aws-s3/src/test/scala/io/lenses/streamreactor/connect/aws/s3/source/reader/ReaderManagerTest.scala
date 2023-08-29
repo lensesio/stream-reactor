@@ -105,7 +105,7 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
       Ref[IO].of(Option.empty[ResultReader]).unsafeRunSync(),
     )
 
-    target.poll().unsafeRunSync() should be(Vector(pollResults))
+    target.poll().unsafeRunSync() should be(pollResults)
 
     verify(fileQueueProcessor, times(2)).next()
     calledLocation shouldBe firstFileBucketAndPathAndLine.some

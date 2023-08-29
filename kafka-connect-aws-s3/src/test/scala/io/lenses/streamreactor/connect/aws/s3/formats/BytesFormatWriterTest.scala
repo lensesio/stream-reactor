@@ -57,7 +57,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
       result.length.toLong,
       BytesWriteMode.ValueWithSize,
     )
-    reader.next() shouldBe testBytes
+    reader.next().value shouldBe testBytes
   }
 
   "convert" should "write a string to byte stream" in {

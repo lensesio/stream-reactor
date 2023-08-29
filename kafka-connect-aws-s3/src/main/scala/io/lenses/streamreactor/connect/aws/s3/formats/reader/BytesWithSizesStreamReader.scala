@@ -37,7 +37,7 @@ class BytesWithSizesStreamReader(
   override def next(): BytesOutputRow = {
 
     val row = bytesWriteMode.read(inputStream)
-    fileSizeCounter = -row.bytesRead.get.toLong
+    fileSizeCounter -= row.bytesRead.get
     row
   }
 
