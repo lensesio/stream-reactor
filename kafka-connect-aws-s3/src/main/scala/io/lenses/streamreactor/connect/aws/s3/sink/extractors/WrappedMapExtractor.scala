@@ -19,7 +19,7 @@ import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
 
 /**
-  * Extracts values from a SinkData Map.
+  * Extracts values from a Map.
   */
 object WrappedMapExtractor {
 

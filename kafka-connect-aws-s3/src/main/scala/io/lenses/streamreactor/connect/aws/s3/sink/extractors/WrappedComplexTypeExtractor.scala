@@ -17,7 +17,6 @@ package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.ArraySinkData
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.WrappedMapExtractor.extractPathFromMap
 import org.apache.kafka.connect.data.Struct
@@ -29,9 +28,9 @@ object WrappedComplexTypeExtractor extends LazyLogging {
     fieldName:          PartitionNamePath,
   ): Either[ExtractorError, String] =
     wrappedComplexType match {
-      case struct:     Struct              => StructExtractor.extractPathFromStruct(struct, fieldName)
-      case wrappedMap: java.util.Map[_, _] => extractPathFromMap(wrappedMap, fieldName)
-      case ArraySinkData(wrappedArr, _) => WrappedArrayExtractor.extractPathFromArray(wrappedArr, fieldName)
+      case struct: Struct              => StructExtractor.extractPathFromStruct(struct, fieldName)
+      case map:    java.util.Map[_, _] => extractPathFromMap(map, fieldName)
+      case array:  java.util.List[_]   => WrappedArrayExtractor.extractPathFromArray(array, fieldName)
       case other =>
         logger.error(s"Unable to represent a complex object as a string value ${other.getClass.getCanonicalName}")
         ExtractorError(ExtractorErrorType.UnexpectedType).asLeft[String]
