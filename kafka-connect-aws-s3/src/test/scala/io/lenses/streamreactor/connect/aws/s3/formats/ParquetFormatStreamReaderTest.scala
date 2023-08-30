@@ -15,10 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetFormatStreamReader
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetStreamReader
 import org.apache.kafka.connect.data.Struct
-import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -26,8 +24,6 @@ import java.io.InputStream
 import scala.util.Try
 
 class ParquetFormatStreamReaderTest extends AnyFlatSpec with Matchers {
-
-  private val bucketAndPath = mock[S3Location]
 
   "iteration" should "read parquet files" in {
     val inputStreamFn: () => InputStream = () => getClass.getResourceAsStream("/parquet/1.parquet")
@@ -41,16 +37,16 @@ class ParquetFormatStreamReaderTest extends AnyFlatSpec with Matchers {
       }
     }
     val target =
-      ParquetFormatStreamReader(inputStreamFn(), streamSize.toLong, bucketAndPath, () => Try(inputStreamFn()).toEither)
+      ParquetStreamReader(inputStreamFn(), streamSize.toLong, () => Try(inputStreamFn()).toEither)
     val list = target.toList
     list should have size 200
-    list.head.data.value().asInstanceOf[Struct].getString("name") should be(
+    list.head.value().asInstanceOf[Struct].getString("name") should be(
       "dbiriwtgyelferkqjmgvmakxreoPnovkObfyjSCzhsaidymngstfqgkbocypzglotuahzMojaViltqGmJpBnrIew",
     )
-    list(1).data.value().asInstanceOf[Struct].getString("name") should be(
+    list(1).value().asInstanceOf[Struct].getString("name") should be(
       "oyiirzenfdzzujavsdawjyctxvpckyqkyhzzvmaoimnywcohhSnbquwbixpeDfxttbdhupeKZolcyAjwknobmoucvwoxxytytxg",
     )
-    list(199).data.value().asInstanceOf[Struct].getString("name") should be(
+    list(199).value().asInstanceOf[Struct].getString("name") should be(
       "cfmfgbDpeklnFumaugcdcHokwtockrhsyflNqKbuwsAnXpxqzicbLzleviwhZaaIaylptfegvwFwe",
     )
 

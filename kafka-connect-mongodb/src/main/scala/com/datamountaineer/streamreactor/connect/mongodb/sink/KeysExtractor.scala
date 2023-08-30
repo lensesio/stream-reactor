@@ -142,7 +142,6 @@ object KeysExtractor {
               case JLong(l)    => l
               case JString(s)  => s
               case other =>
-                println(other)
                 throw new ConfigException(
                   s"Field $longKey is not handled as a key (${other.getClass}). it needs to be a int, long, string, double or decimal",
                 )

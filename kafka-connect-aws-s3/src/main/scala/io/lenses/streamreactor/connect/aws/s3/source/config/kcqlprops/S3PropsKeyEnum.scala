@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops
 
 import enumeratum.Enum
 import enumeratum.EnumEntry
+import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings
 
 sealed abstract class S3PropsKeyEntry(override val entryName: String) extends EnumEntry
 
@@ -37,4 +38,10 @@ object S3PropsKeyEnum extends Enum[S3PropsKeyEntry] {
   case object ReadEndLine   extends S3PropsKeyEntry("read.text.end.line")
 
   case object ReadTrimLine extends S3PropsKeyEntry("read.text.trim")
+
+  case object StoreEnvelope         extends S3PropsKeyEntry(DataStorageSettings.StoreEnvelopeKey)
+  case object StoreEnvelopeKey      extends S3PropsKeyEntry(DataStorageSettings.StoreKeyKey)
+  case object StoreEnvelopeHeaders  extends S3PropsKeyEntry(DataStorageSettings.StoreHeadersKey)
+  case object StoreEnvelopeValue    extends S3PropsKeyEntry(DataStorageSettings.StoreValueKey)
+  case object StoreEnvelopeMetadata extends S3PropsKeyEntry(DataStorageSettings.StoreMetadataKey)
 }

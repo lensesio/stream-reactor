@@ -16,27 +16,36 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.ContainerKey
-import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.LineKey
-import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.PathKey
-import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.PrefixKey
-import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.TimeStampKey
+import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants._
 
 import java.time.Instant
+import scala.jdk.CollectionConverters.MapHasAsJava
 
-object SourceRecordConverter {
+object SourceWatermark {
 
-  def fromSourcePartition(root: S3Location): Map[String, String] =
+  /**
+    * Builds the source partition information from the S3Location
+    * @param root The S3Location
+    * @return A map of partition information
+    */
+  def partition(root: S3Location): java.util.Map[String, String] =
     Map(
       ContainerKey -> root.bucket,
       PrefixKey    -> root.prefixOrDefault(),
-    )
+    ).asJava
 
-  def fromSourceOffset(bucketAndPath: S3Location, offset: Long, lastModified: Instant): Map[String, AnyRef] =
+  /**
+    * Builds the source offset information from the S3Location
+    * @param bucketAndPath The S3Location
+    * @param offset The offset
+    * @param lastModified The last modified time of the file processed
+    * @return A map of offset information
+    */
+  def offset(bucketAndPath: S3Location, offset: Long, lastModified: Instant): java.util.Map[String, String] =
     Map(
       PathKey      -> bucketAndPath.pathOrUnknown,
       LineKey      -> offset.toString,
       TimeStampKey -> lastModified.toEpochMilli.toString,
-    )
+    ).asJava
 
 }

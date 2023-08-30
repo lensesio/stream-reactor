@@ -18,11 +18,17 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.NullNode
 import io.lenses.streamreactor.connect.aws.s3.formats.writer._
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData._
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.time.Instant
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
@@ -30,7 +36,14 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    jsonFormatWriter.write(None, StructSinkData(users.head), topic)
+    jsonFormatWriter.write(MessageDetail(NullSinkData(None),
+                                         StructSinkData(SampleData.Users.head),
+                                         Map.empty,
+                                         Some(Instant.now()),
+                                         topic,
+                                         0,
+                                         Offset(0),
+    ))
 
     outputStream.toString should be(recordsAsJson.head + "\n")
 
@@ -40,7 +53,11 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    firstUsers.foreach(e => jsonFormatWriter.write(None, StructSinkData(e), topic))
+    SampleData.Users.take(3).foreach(e =>
+      jsonFormatWriter.write(
+        MessageDetail(NullSinkData(None), StructSinkData(e), Map.empty, Some(Instant.now()), topic, 0, Offset(0)),
+      ),
+    )
 
     outputStream.toString should be(recordsAsJson.mkString("\n"))
 
@@ -50,7 +67,14 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    jsonFormatWriter.write(None, StringSinkData("bees", None), topic)
+    jsonFormatWriter.write(MessageDetail(NullSinkData(None),
+                                         StringSinkData("bees", None),
+                                         Map.empty,
+                                         Some(Instant.now()),
+                                         topic,
+                                         0,
+                                         Offset(0),
+    ))
 
     val objectMapper = new ObjectMapper()
     val tree         = objectMapper.readTree(outputStream.toString())
@@ -62,7 +86,14 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    jsonFormatWriter.write(None, StringSinkData("apple\nbucket", None), topic)
+    jsonFormatWriter.write(MessageDetail(NullSinkData(None),
+                                         StringSinkData("apple\nbucket", None),
+                                         Map.empty,
+                                         Some(Instant.now()),
+                                         topic,
+                                         0,
+                                         Offset(0),
+    ))
 
     val objectMapper = new ObjectMapper()
     val tree         = objectMapper.readTree(outputStream.toString())
@@ -74,7 +105,17 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    jsonFormatWriter.write(None, StringSinkData("bees", Some(SchemaBuilder.string().build())), topic)
+    jsonFormatWriter.write(
+      MessageDetail(
+        NullSinkData(None),
+        StringSinkData("bees", Some(SchemaBuilder.string().build())),
+        Map.empty,
+        Some(Instant.now()),
+        topic,
+        0,
+        Offset(0),
+      ),
+    )
 
     val objectMapper = new ObjectMapper()
     val tree         = objectMapper.readTree(outputStream.toString())
@@ -86,8 +127,28 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    jsonFormatWriter.write(None, StringSinkData("bees", Some(SchemaBuilder.string().build())), topic)
-    jsonFormatWriter.write(None, StringSinkData("wasps", Some(SchemaBuilder.string().build())), topic)
+    jsonFormatWriter.write(
+      MessageDetail(
+        NullSinkData(None),
+        StringSinkData("bees", Some(SchemaBuilder.string().build())),
+        Map.empty,
+        Some(Instant.now()),
+        topic,
+        0,
+        Offset(1),
+      ),
+    )
+    jsonFormatWriter.write(
+      MessageDetail(
+        NullSinkData(None),
+        StringSinkData("wasps", Some(SchemaBuilder.string().build())),
+        Map.empty,
+        Some(Instant.now()),
+        topic,
+        0,
+        Offset(2),
+      ),
+    )
 
     val lines     = outputStream.toString().split(System.lineSeparator())
     val treeLine1 = new ObjectMapper().readTree(lines(0))
@@ -101,14 +162,20 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
-    jsonFormatWriter.write(None,
-                           ArraySinkData(
-                             Seq(
-                               StringSinkData("bees"),
-                               StringSinkData("wasps"),
-                             ),
-                           ),
-                           topic,
+    jsonFormatWriter.write(
+      MessageDetail(NullSinkData(None),
+                    ArraySinkData(
+                      Seq(
+                        "bees",
+                        "wasps",
+                      ).asJava,
+                    ),
+                    Map.empty,
+                    Some(Instant.now()),
+                    topic,
+                    0,
+                    Offset(0),
+      ),
     )
 
     val lines     = outputStream.toString().split(System.lineSeparator())
@@ -122,14 +189,20 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(
-      None,
-      MapSinkData(
-        Map(
-          StringSinkData("bees")  -> StringSinkData("sting when scared"),
-          StringSinkData("wasps") -> StringSinkData("sting for fun"),
+      MessageDetail(
+        NullSinkData(None),
+        MapSinkData(
+          Map(
+            "bees"  -> "sting when scared",
+            "wasps" -> "sting for fun",
+          ).asJava,
         ),
+        Map.empty,
+        Some(Instant.now()),
+        topic,
+        0,
+        Offset(0),
       ),
-      topic,
     )
 
     val lines     = outputStream.toString().split(System.lineSeparator())
@@ -143,15 +216,21 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream     = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(
-      None,
-      MapSinkData(
-        Map(
-          StringSinkData("bees")  -> StringSinkData("sting when scared"),
-          StringSinkData("wasps") -> NullSinkData(),
+      MessageDetail(
+        NullSinkData(None),
+        MapSinkData(
+          Map(
+            "bees"  -> "sting when scared",
+            "wasps" -> null,
+          ).asJava,
+          Some(SchemaBuilder.map(SchemaBuilder.string().build(), SchemaBuilder.string().optional().build()).build()),
         ),
-        Some(SchemaBuilder.map(SchemaBuilder.string().build(), SchemaBuilder.string().optional().build()).build()),
+        Map.empty,
+        Some(Instant.now()),
+        topic,
+        0,
+        Offset(0),
       ),
-      topic,
     )
 
     val lines     = outputStream.toString().split(System.lineSeparator())

@@ -17,8 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesFormatStreamFileReader
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesStreamFileReader
 import io.lenses.streamreactor.connect.aws.s3.model.BytesOutputRowTest
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
@@ -30,14 +29,13 @@ class BytesFormatStreamFileReaderTest extends AnyFlatSpec with MockitoSugar with
 
   import BytesOutputRowTest._
 
-  private val bucketAndPath: S3Location = mock[S3Location]
   private val fileContents = "lemonOlivelemonOlive".getBytes
 
   "read" should "read entire file at once" in {
-    val target = new BytesFormatStreamFileReader(new ByteArrayInputStream(fileContents),
-                                                 fileContents.length.toLong,
-                                                 bucketAndPath,
-                                                 BytesWriteMode.ValueOnly,
+    val target = new BytesStreamFileReader(
+      new ByteArrayInputStream(fileContents),
+      fileContents.length.toLong,
+      BytesWriteMode.ValueOnly,
     )
 
     checkRecord(target, BytesOutputRow(None, None, Array.empty[Byte], fileContents))
@@ -47,19 +45,19 @@ class BytesFormatStreamFileReaderTest extends AnyFlatSpec with MockitoSugar with
 
   "hasNext" should "return false for empty file" in {
 
-    val target = new BytesFormatStreamFileReader(new ByteArrayInputStream(Array[Byte]()),
-                                                 0L,
-                                                 bucketAndPath,
-                                                 BytesWriteMode.ValueOnly,
+    val target = new BytesStreamFileReader(
+      new ByteArrayInputStream(Array[Byte]()),
+      0,
+      BytesWriteMode.ValueOnly,
     )
 
     target.hasNext should be(false)
   }
 
-  private def checkRecord(target: BytesFormatStreamFileReader, expectedOutputRow: BytesOutputRow) = {
+  private def checkRecord(target: BytesStreamFileReader, expectedOutputRow: BytesOutputRow) = {
     target.hasNext should be(true)
     val record = target.next()
-    checkEqualsByteArrayValue(record.data, expectedOutputRow)
+    checkEqualsByteArrayValue(record, expectedOutputRow)
   }
 
 }

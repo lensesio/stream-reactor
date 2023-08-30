@@ -15,10 +15,10 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.ArraySinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.MapSinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ArraySinkDataConverter
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.MapSinkDataConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.MissingValue
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.UnexpectedType
 import org.apache.kafka.connect.data.Schema
@@ -263,25 +263,25 @@ class SinkDataExtractorTest extends AnyFlatSpec with Matchers {
   }
 
   "lookupFieldValueFromSinkData" should "handle flat map sink data without schema" in {
-    val mapSinkData = MapSinkDataConverter(
+    val mapSinkData = MapSinkData(
       Map(
         "key1" -> "val1",
         "key2" -> null,
-      ),
+      ).asJava,
       None,
     )
     SinkDataExtractor.extractPathFromSinkData(mapSinkData)(Some(PartitionNamePath("key1"))) should be(Right("val1"))
   }
 
   "lookupFieldValueFromSinkData" should "handle 3d map sink data without schema" in {
-    val mapSinkData = MapSinkDataConverter(
-      Map(
+    val mapSinkData = MapSinkData(
+      Map[String, Any](
         "key1" -> "val1",
-        "key2" -> Map(
+        "key2" -> Map[String, String](
           "key3" -> "val2",
           "key4" -> null,
-        ),
-      ),
+        ).asJava,
+      ).asJava,
       None,
     )
     SinkDataExtractor.extractPathFromSinkData(mapSinkData)(Some(PartitionNamePath("key2", "key3"))) should be(
@@ -290,14 +290,14 @@ class SinkDataExtractorTest extends AnyFlatSpec with Matchers {
   }
 
   "lookupFieldValueFromSinkData" should "handle 3d list sink data without schema" in {
-    val arraySinkData = ArraySinkDataConverter(
-      Array(
+    val arraySinkData = ArraySinkData(
+      List[Any](
         "val1",
-        Map(
+        Map[String, String](
           "key3" -> "val2",
           "key4" -> null,
-        ),
-      ),
+        ).asJava,
+      ).asJava,
       None,
     )
     SinkDataExtractor.extractPathFromSinkData(arraySinkData)(Some(PartitionNamePath("0"))) should be(Right("val1"))

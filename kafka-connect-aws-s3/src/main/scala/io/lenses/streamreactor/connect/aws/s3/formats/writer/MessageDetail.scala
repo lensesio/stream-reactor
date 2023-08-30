@@ -13,14 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.formats.reader
+package io.lenses.streamreactor.connect.aws.s3.formats.writer
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.aws.s3.model.Topic
 
-trait S3FormatStreamReader[R <: SourceData] extends AutoCloseable with Iterator[R] {
+import java.time.Instant
 
-  def getBucketAndPath: S3Location
-
-  def getLineNumber: Long
-
-}
+case class MessageDetail(
+  key:       SinkData,
+  value:     SinkData,
+  headers:   Map[String, SinkData],
+  timestamp: Option[Instant],
+  topic:     Topic,
+  partition: Int,
+  offset:    Offset,
+)

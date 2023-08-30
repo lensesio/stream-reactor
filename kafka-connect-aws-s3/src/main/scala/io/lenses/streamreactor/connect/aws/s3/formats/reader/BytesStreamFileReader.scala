@@ -15,44 +15,34 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
+import com.google.common.io.ByteStreams
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 
-import java.io.DataInputStream
 import java.io.InputStream
-import java.util.concurrent.atomic.AtomicLong
 import scala.util.Try
 
-class BytesFormatWithSizesStreamReader(
-  is:             InputStream,
-  fileSize:       Long,
-  bucketAndPath:  S3Location,
+class BytesStreamFileReader(
+  input:          InputStream,
+  size:           Long,
   bytesWriteMode: BytesWriteMode,
-) extends S3FormatStreamReader[ByteArraySourceData] {
+) extends S3DataIterator[BytesOutputRow] {
 
-  private val inputStream = new DataInputStream(is)
+  private var consumed: Boolean = false
 
-  private var recordNumber: Long = -1
+  override def hasNext: Boolean = !consumed && size > 0L
 
-  private val fileSizeCounter = new AtomicLong(fileSize)
-
-  override def hasNext: Boolean = fileSizeCounter.get() > 0
-
-  override def next(): ByteArraySourceData = {
-    recordNumber += 1
-    val ret = ByteArraySourceData(bytesWriteMode.read(inputStream), recordNumber)
-    fileSizeCounter.addAndGet(-ret.data.bytesRead.get.toLong)
-    ret
+  override def next(): BytesOutputRow = {
+    val fileAsBytes = ByteStreams.toByteArray(input)
+    val row         = bytesWriteMode.read(fileAsBytes)
+    consumed = true
+    row
   }
-
-  override def getLineNumber: Long = recordNumber
 
   override def close(): Unit = {
     val _ = Try {
-      inputStream.close()
+      input.close()
     }
   }
-
-  override def getBucketAndPath: S3Location = bucketAndPath
 
 }

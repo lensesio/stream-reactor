@@ -17,16 +17,21 @@ package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.ByteArraySinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.PrimitiveSinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
 
 object WrappedPrimitiveExtractor extends LazyLogging {
 
-  private[extractors] def extractFromPrimitive(wrappedPrimitive: SinkData): Either[ExtractorError, String] =
+  private[extractors] def extractFromPrimitive(wrappedPrimitive: Any): Either[ExtractorError, String] =
     wrappedPrimitive match {
-      case data: PrimitiveSinkData => data.primVal().toString.asRight[ExtractorError]
-      case ByteArraySinkData(array, _) => new String(array.array).asRight[ExtractorError]
+      case b:     Byte    => b.toString.asRight[ExtractorError]
+      case b:     Boolean => b.toString.asRight[ExtractorError]
+      case s:     Short   => s.toString.asRight[ExtractorError]
+      case i:     Int     => i.toString.asRight[ExtractorError]
+      case l:     Long    => l.toString.asRight[ExtractorError]
+      case f:     Float   => f.toString.asRight[ExtractorError]
+      case d:     Double  => d.toString.asRight[ExtractorError]
+      case str:   String => str.asRight[ExtractorError]
+      case array: Array[_] if array.isInstanceOf[Array[Byte]] =>
+        new String(array.asInstanceOf[Array[Byte]]).asRight[ExtractorError]
       case other =>
         logger.error(s"Unable to represent a complex object as a string value ${other.getClass.getCanonicalName}")
         ExtractorError(ExtractorErrorType.UnexpectedType).asLeft[String]

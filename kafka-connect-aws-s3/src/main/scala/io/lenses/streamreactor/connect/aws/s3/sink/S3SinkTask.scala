@@ -24,7 +24,7 @@ import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.HeaderToStringConverter
@@ -132,33 +132,40 @@ class S3SinkTask extends SinkTask with ErrorHandler {
 
     val _ = handleTry {
       Try {
-        val recordsStats = buildLogForRecords(records.asScala)
-          .toList.sortBy(_._1).map { case (k, v) => s"$k=$v" }.mkString(";")
 
-        logger.debug(s"[${connectorTaskId.show}] put records=${records.size()} stats=$recordsStats")
+        logger.debug(
+          s"[${connectorTaskId.show}] put records=${records.size()} stats=${buildLogForRecords(records.asScala)
+            .toList.sortBy(_._1).map { case (k, v) => s"$k=$v" }.mkString(";")}",
+        )
 
         // a failure in recommitPending will prevent the processing of further records
         handleErrors(writerManager.recommitPending())
 
         records.asScala.foreach {
           record =>
-            handleErrors(
-              writerManager.write(
-                Topic(record.topic).withPartition(record.kafkaPartition.intValue).withOffset(record.kafkaOffset),
-                MessageDetail(
-                  keySinkData = Option(record.key()).fold(Option.empty[SinkData])(key =>
-                    Option(ValueToSinkDataConverter(key, Option(record.keySchema()))),
-                  ),
-                  valueSinkData = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
-                  headers       = HeaderToStringConverter(record),
-                  TimestampUtils.parseTime(Option(record.timestamp()).map(_.toLong))(_ =>
-                    logger.debug(
-                      s"Record timestamp is invalid ${record.timestamp()}",
-                    ),
-                  ),
+            val topicPartitionOffset =
+              Topic(record.topic).withPartition(record.kafkaPartition.intValue).withOffset(Offset(record.kafkaOffset))
+
+            val key = Option(record.key()) match {
+              case Some(k) => ValueToSinkDataConverter(k, Option(record.keySchema()))
+              case None    => NullSinkData(Option(record.keySchema()))
+            }
+            val msgDetails = MessageDetail(
+              key     = key,
+              value   = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
+              headers = HeaderToStringConverter(record),
+              TimestampUtils.parseTime(Option(record.timestamp()).map(_.toLong))(_ =>
+                logger.debug(
+                  s"Record timestamp is invalid ${record.timestamp()}",
                 ),
               ),
+              Topic(record.topic()),
+              record.kafkaPartition(),
+              Offset(record.kafkaOffset()),
             )
+            handleErrors {
+              writerManager.write(topicPartitionOffset, msgDetails)
+            }
         }
 
         if (records.isEmpty) {

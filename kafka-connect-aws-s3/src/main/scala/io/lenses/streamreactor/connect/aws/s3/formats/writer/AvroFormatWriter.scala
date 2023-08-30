@@ -19,8 +19,8 @@ import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.avro.Schema
 import org.apache.avro.file.CodecFactory
@@ -28,8 +28,6 @@ import org.apache.avro.file.DataFileWriter
 import org.apache.avro.generic.GenericDatumWriter
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 
-import scala.util.Failure
-import scala.util.Success
 import scala.util.Try
 
 class AvroFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: CompressionCodec)
@@ -53,31 +51,17 @@ class AvroFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: 
 
   override def rolloverFileOnSchemaChange() = true
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] =
+  override def write(message: MessageDetail): Either[Throwable, Unit] =
     Try {
-
-      logger.trace("AvroFormatWriter - write")
-
-      avroWriterState = Some(
-        avroWriterState
-          .getOrElse {
-            Try(new AvroWriterState(outputStream, valueSinkData.schema())) match {
-              case Failure(exception) =>
-                exception.printStackTrace(); throw exception
-              case Success(writerState: AvroWriterState) =>
-                avroWriterState = Some(writerState)
-                writerState
-            }
-
-          },
-      )
-
-      avroWriterState.map(_.write(valueSinkData))
-
-    }.toEither match {
-      case Left(value) => value.asLeft
-      case Right(_)    => ().asRight
-    }
+      val writerState = avroWriterState match {
+        case Some(state) => state
+        case None =>
+          val state = new AvroWriterState(outputStream, message.value.schema())
+          avroWriterState = Some(state)
+          state
+      }
+      writerState.write(message.value)
+    }.toEither
 
   override def complete(): Either[SinkError, Unit] =
     avroWriterState.fold {
@@ -87,19 +71,16 @@ class AvroFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: 
 
   override def getPointer: Long = avroWriterState.fold(0L)(_.pointer)
 
-  class AvroWriterState(outputStream: S3OutputStream, connectSchema: Option[ConnectSchema]) {
-    private val schema: Schema                     = ToAvroDataConverter.convertSchema(connectSchema)
-    private val writer: GenericDatumWriter[AnyRef] = new GenericDatumWriter[AnyRef](schema)
-    private val fileWriter: DataFileWriter[AnyRef] =
-      new DataFileWriter[AnyRef](writer).setCodec(avroCompressionCodec).create(schema, outputStream)
+  private class AvroWriterState(outputStream: S3OutputStream, connectSchema: Option[ConnectSchema]) {
+    private val schema: Schema                  = ToAvroDataConverter.convertSchema(connectSchema)
+    private val writer: GenericDatumWriter[Any] = new GenericDatumWriter[Any](schema)
+    private val fileWriter: DataFileWriter[Any] =
+      new DataFileWriter[Any](writer).setCodec(avroCompressionCodec).create(schema, outputStream)
 
     def write(valueStruct: SinkData): Unit = {
-
-      val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(valueStruct)
-
-      fileWriter.append(genericRecord)
+      val record: Any = ToAvroDataConverter.convertToGenericRecord(valueStruct)
+      fileWriter.append(record)
       fileWriter.flush()
-
     }
 
     def close(): Either[SinkError, Unit] =

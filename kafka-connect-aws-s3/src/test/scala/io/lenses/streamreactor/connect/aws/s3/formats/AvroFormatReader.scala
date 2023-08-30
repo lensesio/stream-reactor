@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.formats.reader
+package io.lenses.streamreactor.connect.aws.s3.formats
 
 /*
  * Copyright 2020 Lenses.io
@@ -31,6 +31,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats.reader
  * limitations under the License.
  */
 
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.Using
 import org.apache.avro.file.DataFileReader
 import org.apache.avro.file.SeekableByteArrayInput
 import org.apache.avro.generic.GenericDatumReader
@@ -48,7 +49,6 @@ class AvroFormatReader extends Using {
         using(new DataFileReader[GenericRecord](inputStream, datumReader)) {
           dataFileReader =>
             dataFileReader.iterator().asScala.toList
-
         }
     }
 

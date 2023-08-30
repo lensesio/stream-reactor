@@ -21,7 +21,7 @@ import com.opencsv.CSVReader
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroFormatReader
+import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetFormatReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.BytesFormatWriter
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
@@ -290,8 +290,8 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.stop()
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(2)
-    getFileSize(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.parquet") should be >= 941L
-    getFileSize(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.parquet") should be >= 954L
+    getMetadata(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.parquet").size should be >= 941L
+    getMetadata(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.parquet").size should be >= 954L
 
     var genericRecords =
       parquetFormatReader.read(remoteFileAsBytes(BucketName,
@@ -379,7 +379,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     list should contain("streamReactorBackups/myTopic/000000000001/000000000001.parquet")
 
     val modificationDate =
-      getModificationDate(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.parquet")
+      getMetadata(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.parquet").lastModified
 
     task = createTask(context, props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -389,7 +389,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(1)
 
     // file should not have been overwritten
-    getModificationDate(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.parquet") should be(
+    getMetadata(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.parquet").lastModified should be(
       modificationDate,
     )
 
@@ -405,7 +405,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(1)
 
     // file should not have been overwritten
-    getModificationDate(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.parquet") should be(
+    getMetadata(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.parquet").lastModified should be(
       modificationDate,
     )
 
@@ -426,7 +426,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(2)
 
     // file should not have been overwritten
-    getModificationDate(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.parquet") should be(
+    getMetadata(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.parquet").lastModified should be(
       modificationDate,
     )
 

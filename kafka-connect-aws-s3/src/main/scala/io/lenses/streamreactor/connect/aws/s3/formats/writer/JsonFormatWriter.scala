@@ -17,9 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats.writer
 
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.JsonFormatWriter._
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.LineSeparatorUtil.LineSeparatorBytes
-import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink._
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToJsonDataConverter
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 import org.apache.kafka.connect.json.JsonConverter
 
@@ -27,18 +25,20 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
 class JsonFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter {
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] =
+  override def write(messageDetail: MessageDetail): Either[Throwable, Unit] = {
+    val topic         = messageDetail.topic
+    val valueSinkData = messageDetail.value
     Try {
 
-      val dataBytes = valueSinkData match {
+      val dataBytes = messageDetail.value match {
         case data: PrimitiveSinkData =>
-          Converter.fromConnectData(topic.value, valueSinkData.schema().orNull, data.safeVal())
+          Converter.fromConnectData(topic.value, valueSinkData.schema().orNull, data.safeValue)
         case StructSinkData(structVal) =>
           Converter.fromConnectData(topic.value, valueSinkData.schema().orNull, structVal)
         case MapSinkData(map, schema) =>
-          Converter.fromConnectData(topic.value, schema.orNull, ToJsonDataConverter.convertMap(map))
+          Converter.fromConnectData(topic.value, schema.orNull, map)
         case ArraySinkData(array, schema) =>
-          Converter.fromConnectData(topic.value, schema.orNull, ToJsonDataConverter.convertArray(array))
+          Converter.fromConnectData(topic.value, schema.orNull, array)
         case ByteArraySinkData(_, _) => throw new IllegalStateException("Cannot currently write byte array as json")
         case NullSinkData(schema)    => Converter.fromConnectData(topic.value, schema.orNull, null)
       }
@@ -47,6 +47,7 @@ class JsonFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter {
       outputStream.write(LineSeparatorBytes)
       outputStream.flush()
     }.toEither
+  }
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 

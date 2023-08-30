@@ -69,7 +69,6 @@ class RedisStreamTest
 
       val TOPIC = "cpuTopic"
       val KCQL  = s"INSERT INTO stream1 SELECT * from $TOPIC STOREAS STREAM"
-      println("Testing KCQL : " + KCQL)
       val props = Map(
         RedisConfigConstants.REDIS_HOST     -> "localhost",
         RedisConfigConstants.REDIS_PORT     -> "6379",

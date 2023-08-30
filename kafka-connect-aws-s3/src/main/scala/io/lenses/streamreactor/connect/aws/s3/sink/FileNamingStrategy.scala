@@ -16,9 +16,11 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxEitherId
+import cats.implicits.toTraverseOps
 import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.createFileAndParents
@@ -69,6 +71,11 @@ trait S3FileNamingStrategy {
 
 }
 
+/** *
+  * Stores the data in {{{$bucket:[$prefix]/$topic/$partition}}}, mirroring the Kafka topic partitions.
+  * @param formatSelection
+  * @param paddingStrategy
+  */
 class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection, paddingStrategy: PaddingStrategy)
     extends S3FileNamingStrategy {
 
@@ -186,53 +193,77 @@ class PartitionedS3FileNamingStrategy(
     messageDetail:  MessageDetail,
     topicPartition: TopicPartition,
   ): Either[SinkError, Map[PartitionField, String]] =
-    Try {
-      partitionSelection
-        .partitions
-        .map {
-          case partition @ HeaderPartitionField(name) => partition -> {
-              val sinkData = messageDetail.headers.getOrElse(
-                name.head,
-                throw new IllegalArgumentException(s"Header '$name' not found in message"),
+    partitionSelection
+      .partitions
+      .traverse {
+        case partition @ HeaderPartitionField(name) =>
+          messageDetail.headers.get(name.head) match {
+            case Some(value) =>
+              partitionValueOrError(value, s"Header '${name.head}' is null.", topicPartition, partition)(
+                getPartitionValueFromSinkData(_, name.tail),
               )
-              getPartitionValueFromSinkData(sinkData, name.tail)
-            }
-          case partition @ KeyPartitionField(name) => partition -> {
-              val sinkData =
-                messageDetail.keySinkData.getOrElse(throw new IllegalArgumentException(s"No key data found"))
-              getPartitionValueFromSinkData(sinkData, name)
-            }
-          case partition @ ValuePartitionField(name) =>
-            partition -> getPartitionValueFromSinkData(messageDetail.valueSinkData, name)
-          case partition @ WholeKeyPartitionField() =>
-            partition -> getPartitionByWholeKeyValue(messageDetail.keySinkData)
-          case partition @ TopicPartitionField()     => partition -> topicPartition.topic.value
-          case partition @ PartitionPartitionField() => partition -> padString(topicPartition.partition.toString)
-          case partition @ DatePartitionField(_) => partition ->
-              messageDetail.time.fold(
-                throw new IllegalArgumentException(
-                  "No valid timestamp parsed from kafka connect message, however date partitioning was requested",
-                ),
-              )(partition.formatter.format)
+            case None =>
+              FatalS3SinkError(s"Header '$name' not found in message", topicPartition).asLeft[(
+                PartitionField,
+                String,
+              )]
+          }
+
+        case partition @ KeyPartitionField(name) =>
+          partitionValueOrError(messageDetail.key, s"Key is null.", topicPartition, partition)(
+            getPartitionValueFromSinkData(_, name),
+          )
+
+        case partition @ ValuePartitionField(name) =>
+          partitionValueOrError(messageDetail.value, s"Value is null.", topicPartition, partition)(
+            getPartitionValueFromSinkData(_, name),
+          )
+
+        case partition @ WholeKeyPartitionField() =>
+          getPartitionByWholeKeyValue(messageDetail.key, topicPartition).map(partition -> _)
+        case partition @ TopicPartitionField() => (partition -> topicPartition.topic.value).asRight[SinkError]
+        case partition @ PartitionPartitionField() =>
+          (partition -> padString(topicPartition.partition.toString)).asRight[SinkError]
+        case partition @ DatePartitionField(_) =>
+          messageDetail.timestamp match {
+            case Some(value) => (partition -> partition.formatter.format(value)).asRight[SinkError]
+            case None =>
+              FatalS3SinkError(s"Timestamp not found in message", topicPartition).asLeft[(
+                PartitionField,
+                String,
+              )]
+          }
+      }
+      .map(_.toMap)
+
+  private def partitionValueOrError(
+    data:           SinkData,
+    errorMsg:       String,
+    topicPartition: TopicPartition,
+    partition:      PartitionField,
+  )(f:              SinkData => String,
+  ): Either[SinkError, (PartitionField, String)] =
+    data match {
+      case NullSinkData(_) => FatalS3SinkError(errorMsg, topicPartition).asLeft[(PartitionField, String)]
+      case other           => (partition -> f(other)).asRight
+    }
+  private def getPartitionByWholeKeyValue(data: SinkData, topicPartition: TopicPartition): Either[SinkError, String] =
+    data match {
+      case NullSinkData(_) =>
+        FatalS3SinkError(s"Key is null, but requested to partition by whole key", topicPartition).asLeft[String]
+      case other =>
+        Try {
+          getFieldStringValue(other, None).getOrElse("[missing]")
+        } match {
+          case Failure(_) =>
+            FatalS3SinkError("Non primitive struct provided, PARTITIONBY _key requested in KCQL",
+                             topicPartition,
+            ).asLeft[String]
+          case Success(value) => value.asRight
         }
-        .toMap[PartitionField, String]
-    }.toEither.left.map(ex => FatalS3SinkError(ex.getMessage, ex, topicPartition))
-
-  private def getPartitionByWholeKeyValue(structOpt: Option[SinkData]): String = {
-    val struct = structOpt
-      .getOrElse(throw new IllegalArgumentException(s"No key struct found, but requested to partition by whole key"))
-
-    Try {
-      getFieldStringValue(struct, None).getOrElse("[missing]")
-    } match {
-      case Failure(exception) =>
-        throw new IllegalStateException("Non primitive struct provided, PARTITIONBY _key requested in KCQL", exception)
-      case Success(value) => value
     }
 
-  }
-
-  val reservedCharacters = Set("/", "\\")
+  val reservedCharacters: Set[String] = Set("/", "\\")
 
   private def getFieldStringValue(struct: SinkData, partitionName: Option[PartitionNamePath]) =
     adaptErrorResponse(SinkDataExtractor.extractPathFromSinkData(struct)(partitionName)).fold(Option.empty[String])(
@@ -242,7 +273,7 @@ class PartitionedS3FileNamingStrategy(
           .replace("\\", "-")),
     )
 
-  def getPartitionValueFromSinkData(sinkData: SinkData, partitionName: PartitionNamePath): String =
+  private def getPartitionValueFromSinkData(sinkData: SinkData, partitionName: PartitionNamePath): String =
     getFieldStringValue(sinkData, Option(partitionName)).getOrElse("[missing]")
 
   override def shouldProcessPartitionValues: Boolean = true

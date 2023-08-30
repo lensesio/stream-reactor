@@ -18,10 +18,15 @@ package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 import org.apache.avro.Schema
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 
 import java.nio.ByteBuffer
+import java.util
+import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.IterableHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 object ToAvroDataConverter {
@@ -33,28 +38,30 @@ object ToAvroDataConverter {
       avroDataConverter.fromConnectSchema,
     )
 
-  def convertToGenericRecord[A <: Any](sinkData: SinkData): AnyRef =
+  def convertToGenericRecord[A <: Any](sinkData: SinkData): Any =
     sinkData match {
       case StructSinkData(structVal)   => avroDataConverter.fromConnectData(structVal.schema(), structVal)
-      case MapSinkData(map, _)         => convertMap(map)
-      case ArraySinkData(array, _)     => convertArray(array)
+      case MapSinkData(map, _)         => convert(map)
+      case ArraySinkData(array, _)     => convert(array)
       case ByteArraySinkData(array, _) => ByteBuffer.wrap(array)
-      case primitive: PrimitiveSinkData => primitive.primVal().asInstanceOf[AnyRef]
+      case primitive: PrimitiveSinkData => primitive.value
       case _:         NullSinkData      => null
       case other => throw new IllegalArgumentException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
     }
 
-  def convertArray(array: Seq[SinkData]): java.util.List[Any] = array.map {
-    case data: PrimitiveSinkData => data.primVal()
-    case StructSinkData(structVal)    => structVal
-    case MapSinkData(map, _)          => convertMap(map)
-    case ArraySinkData(iArray, _)     => convertArray(iArray)
-    case ByteArraySinkData(bArray, _) => ByteBuffer.wrap(bArray)
-    case _                            => throw new IllegalArgumentException("Complex array writing not currently supported")
-  }.asJava
+  private def convertArray(list: java.util.List[_]) = list.asScala.map(convert).asJava
+  private def convert(value:     Any): Any =
+    value match {
+      case map:   java.util.Map[_, _] => convertMap(map)
+      case array: Array[_]            => convertArray(array.toSeq.asJava)
+      case list:  java.util.List[_]   => convertArray(list)
+      case s:     Struct              => avroDataConverter.fromConnectData(s.schema(), s)
+      case _ => value
+    }
 
-  def convertMap(map: Map[SinkData, SinkData]): java.util.Map[AnyRef, AnyRef] = map.map {
-    case (data, data1) => convertToGenericRecord(data) -> convertToGenericRecord(data1)
-  }.asJava
+  private def convertMap(map: java.util.Map[_, _]): util.Map[Any, Any] =
+    map.asScala.map {
+      case (key, value) => convert(key) -> convert(value)
+    }.asJava
 
 }

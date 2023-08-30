@@ -17,6 +17,9 @@ package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.Logger
+import io.lenses.streamreactor.connect.aws.s3.sink.config.S3FlushSettings.defaultFlushCount
+import io.lenses.streamreactor.connect.aws.s3.sink.config.S3FlushSettings.defaultFlushInterval
+import io.lenses.streamreactor.connect.aws.s3.sink.config.S3FlushSettings.defaultFlushSize
 
 import scala.util.Try
 
@@ -62,6 +65,8 @@ case class CommitPolicy(logger: Logger, conditions: CommitPolicyCondition*) {
 }
 
 object CommitPolicy extends LazyLogging {
+  val Default: CommitPolicy =
+    CommitPolicy(FileSize(defaultFlushSize), Interval(defaultFlushInterval), Count(defaultFlushCount))
   def apply(conditions: CommitPolicyCondition*): CommitPolicy =
     CommitPolicy(logger, conditions: _*)
 }

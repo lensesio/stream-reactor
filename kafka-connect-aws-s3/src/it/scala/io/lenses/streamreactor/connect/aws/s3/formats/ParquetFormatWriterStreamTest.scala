@@ -34,6 +34,9 @@ import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.SeqHasAsJava
+
 class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with EitherValues {
   import helper._
 
@@ -47,11 +50,32 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
 
     val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
-    parquetFormatWriter.write(None, StructSinkData(users.head), topic)
+    parquetFormatWriter.write(MessageDetail(NullSinkData(None),
+                                            StructSinkData(users.head),
+                                            Map.empty,
+                                            None,
+                                            topic,
+                                            1,
+                                            Offset(1),
+    ))
     parquetFormatWriter.getPointer should be(21)
-    parquetFormatWriter.write(None, StructSinkData(users(1)), topic)
+    parquetFormatWriter.write(MessageDetail(NullSinkData(None),
+                                            StructSinkData(users(1)),
+                                            Map.empty,
+                                            None,
+                                            topic,
+                                            1,
+                                            Offset(2),
+    ))
     parquetFormatWriter.getPointer should be(44)
-    parquetFormatWriter.write(None, StructSinkData(users(2)), topic)
+    parquetFormatWriter.write(MessageDetail(NullSinkData(None),
+                                            StructSinkData(users(2)),
+                                            Map.empty,
+                                            None,
+                                            topic,
+                                            1,
+                                            Offset(3),
+    ))
     parquetFormatWriter.getPointer should be(59)
     parquetFormatWriter.complete() should be(Right(()))
 
@@ -77,15 +101,21 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
     val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
     parquetFormatWriter.write(
-      None,
-      ArraySinkData(
-        Seq(
-          StringSinkData("batman"),
-          StringSinkData("robin"),
-          StringSinkData("alfred"),
+      MessageDetail(
+        NullSinkData(None),
+        ArraySinkData(
+          Seq(
+            "batman",
+            "robin",
+            "alfred",
+          ).asJava,
         ),
+        Map.empty,
+        None,
+        topic,
+        1,
+        Offset(1),
       ),
-      topic,
     ).left.value.getMessage should be("Schema-less data is not supported for Avro/Parquet")
   }
 
@@ -96,16 +126,22 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
     val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
     parquetFormatWriter.write(
-      None,
-      MapSinkData(
-        Map(
-          StringSinkData("batman") -> IntSinkData(1),
-          StringSinkData("robin")  -> IntSinkData(2),
-          StringSinkData("alfred") -> IntSinkData(3),
+      MessageDetail(
+        NullSinkData(None),
+        MapSinkData(
+          Map(
+            "batman" -> 1,
+            "robin"  -> 2,
+            "alfred" -> 3,
+          ).asJava,
+          Some(mapSchema),
         ),
-        Some(mapSchema),
+        Map.empty,
+        None,
+        topic,
+        1,
+        Offset(1),
       ),
-      topic,
     ).left.value.getMessage should be("Avro schema must be a record.")
     parquetFormatWriter.complete() should be(Right(()))
   }
@@ -142,7 +178,18 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
     val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
 
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
-    firstUsers.foreach(u => parquetFormatWriter.write(None, StructSinkData(u), topic) should be(Right(())))
+    firstUsers.foreach(u =>
+      parquetFormatWriter.write(MessageDetail(NullSinkData(None),
+                                              StructSinkData(u),
+                                              Map.empty,
+                                              None,
+                                              topic,
+                                              1,
+                                              Offset(1),
+      )) should be(
+        Right(()),
+      ),
+    )
     parquetFormatWriter.complete() should be(Right(()))
   }
 }

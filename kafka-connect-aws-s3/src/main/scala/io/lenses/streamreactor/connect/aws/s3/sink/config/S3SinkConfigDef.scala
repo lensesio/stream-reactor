@@ -28,7 +28,6 @@ import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
 import java.util
-import scala.collection.immutable.ListMap
 import scala.jdk.CollectionConverters._
 import S3ConfigSettings._
 
@@ -98,24 +97,13 @@ class S3SinkConfigDef() extends ConfigDef with LazyLogging {
     }
   }
 
-  def writeInOrder(remappedProps: Map[String, Any]): ListMap[String, Any] =
-    ListMap(remappedProps.toSeq.sortBy(_._1): _*)
-
   def processStringKeyedProperties(stringProps: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
     var remappedProps: Map[String, Any] = stringProps
     for (proc <- processorChain) {
-      logger.info("START: Executing ConfigDef processor {} with props {}",
-                  proc.getClass.getSimpleName,
-                  writeInOrder(remappedProps),
-      )
       proc.process(remappedProps) match {
         case Left(exception)   => return exception.asLeft[Map[String, AnyRef]]
         case Right(properties) => remappedProps = properties
       }
-      logger.info("END: Executing ConfigDef processor {} with props {}",
-                  proc.getClass.getSimpleName,
-                  writeInOrder(remappedProps),
-      )
     }
     remappedProps.asRight
   }

@@ -15,10 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.CsvFormatStreamReader
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.StringSourceData
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.CsvStreamReader
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -26,8 +24,6 @@ import org.scalatest.matchers.should.Matchers
 import java.io.ByteArrayInputStream
 
 class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSugar {
-
-  private val bucketAndPath = mock[S3Location]
 
   "next" should "throw an error when you try and read an empty file when headers are configured" in {
     val reader = setUpReader(List(), includesHeaders = true)
@@ -48,7 +44,7 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
   }
 
   "next" should "throw error when you call next incorrectly when headers are configured" in {
-    val reader = setUpReader(List(TestSampleSchemaAndData.csvHeader), includesHeaders = true)
+    val reader = setUpReader(List(SampleData.csvHeader), includesHeaders = true)
     intercept[FormatWriterException] {
       reader.next()
     }.getMessage should be(
@@ -59,46 +55,35 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
 
   "next" should "read multiple rows from a CSV file with headers" in {
 
-    val reader = setUpReader(TestSampleSchemaAndData.recordsAsCsvWithHeaders, includesHeaders = true)
-    val results: Seq[StringSourceData] = reader.toList
+    val reader  = setUpReader(SampleData.recordsAsCsvWithHeaders, includesHeaders = true)
+    val results = reader.toList
 
     results.size should be(3)
-    reader.getLineNumber should be(3)
-    results.zipWithIndex.foreach { case (result, index) => result.lineNumber should be(index + 1) }
     checkResult(results)
     reader.close()
   }
 
   "next" should "read multiple rows from a CSV file without headers" in {
 
-    val reader = setUpReader(TestSampleSchemaAndData.recordsAsCsv, includesHeaders = false)
-    val results: Seq[StringSourceData] = reader.toList
+    val reader  = setUpReader(SampleData.recordsAsCsv, includesHeaders = false)
+    val results = reader.toList
 
     results.size should be(3)
-    reader.getLineNumber should be(2)
-    //results.foreach(_.columnHeaders should be(List("col1", "col2", "col3")))
-    results.zipWithIndex.foreach { case (result, index) => result.lineNumber should be(index) }
     checkResult(results)
 
   }
 
-  "getBucketAndPath" should "retain bucket and path from setup" in {
-    val reader = setUpReader(TestSampleSchemaAndData.recordsAsCsv, includesHeaders = false)
-    reader.getBucketAndPath should be(bucketAndPath)
-  }
-
-  private def setUpReader(recordsToReturn: List[String], includesHeaders: Boolean) =
-    new CsvFormatStreamReader(
+  private def setUpReader(recordsToReturn: List[String], includesHeaders: Boolean): CsvStreamReader =
+    new CsvStreamReader(
       new ByteArrayInputStream(
         recordsToReturn.mkString(System.lineSeparator()).getBytes(),
       ),
-      bucketAndPath = bucketAndPath,
-      hasHeaders    = includesHeaders,
+      hasHeaders = includesHeaders,
     )
 
-  private def checkResult(results: Seq[StringSourceData]) = {
-    results(0).data should be(""""sam","mr","100.43"""")
-    results(1).data should be(""""laura","ms","429.06"""")
-    results(2).data should be(""""tom",,"395.44"""")
+  private def checkResult(results: Seq[String]) = {
+    results.head should be(""""sam","mr","100.43"""")
+    results(1) should be(""""laura","ms","429.06"""")
+    results(2) should be(""""tom",,"395.44"""")
   }
 }

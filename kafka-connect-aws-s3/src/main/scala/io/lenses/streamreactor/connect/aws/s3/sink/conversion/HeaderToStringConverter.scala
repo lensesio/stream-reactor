@@ -16,7 +16,6 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
-import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
@@ -24,10 +23,6 @@ import scala.jdk.CollectionConverters.IterableHasAsScala
 object HeaderToStringConverter {
 
   def apply(record: SinkRecord): Map[String, SinkData] = record.headers().asScala.map(header =>
-    header.key() -> headerValueToString(header.value(), Option(header.schema())),
+    header.key() -> ValueToSinkDataConverter(header.value(), Option(header.schema())),
   ).toMap
-
-  def headerValueToString(value: Any, schema: Option[Schema]): SinkData =
-    ValueToSinkDataConverter(value, schema)
-
 }

@@ -22,45 +22,28 @@ import org.apache.kafka.connect.errors.ConnectException
 
 import java.nio.ByteBuffer
 import java.util
-import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 object ValueToSinkDataConverter {
 
   def apply(value: Any, schema: Option[Schema]): SinkData = value match {
-    case shortVal:  Short          => ShortSinkData(shortVal, schema)
-    case boolVal:   Boolean        => BooleanSinkData(boolVal, schema)
-    case stringVal: String         => StringSinkData(stringVal, schema)
-    case longVal:   Long           => LongSinkData(longVal, schema)
-    case intVal:    Int            => IntSinkData(intVal, schema)
-    case byteVal:   Byte           => ByteSinkData(byteVal, schema)
-    case doubleVal: Double         => DoubleSinkData(doubleVal, schema)
-    case floatVal:  Float          => FloatSinkData(floatVal, schema)
+    case shortVal:  Short          => ShortSinkData(shortVal, schema.orElse(Some(Schema.OPTIONAL_INT16_SCHEMA)))
+    case boolVal:   Boolean        => BooleanSinkData(boolVal, schema.orElse(Some(Schema.OPTIONAL_BOOLEAN_SCHEMA)))
+    case stringVal: String         => StringSinkData(stringVal, schema.orElse(Some(Schema.OPTIONAL_STRING_SCHEMA)))
+    case longVal:   Long           => LongSinkData(longVal, schema.orElse(Some(Schema.OPTIONAL_INT64_SCHEMA)))
+    case intVal:    Int            => IntSinkData(intVal, schema.orElse(Some(Schema.OPTIONAL_INT32_SCHEMA)))
+    case byteVal:   Byte           => ByteSinkData(byteVal, schema.orElse(Some(Schema.OPTIONAL_INT8_SCHEMA)))
+    case doubleVal: Double         => DoubleSinkData(doubleVal, schema.orElse(Some(Schema.OPTIONAL_FLOAT64_SCHEMA)))
+    case floatVal:  Float          => FloatSinkData(floatVal, schema.orElse(Some(Schema.OPTIONAL_FLOAT32_SCHEMA)))
     case structVal: Struct         => StructSinkData(structVal)
-    case mapVal:    Map[_, _]      => MapSinkDataConverter(mapVal, schema)
-    case mapVal:    util.Map[_, _] => MapSinkDataConverter(mapVal.asScala.toMap, schema)
-    case bytesVal:  Array[Byte]    => ByteArraySinkData(bytesVal, schema)
-    case bytesVal:  ByteBuffer     => ByteArraySinkData(bytesVal.array(), schema)
-    case arrayVal:  Array[_]       => ArraySinkDataConverter(arrayVal, schema)
-    case listVal:   util.List[_]   => ArraySinkDataConverter(listVal.toArray, schema)
+    case mapVal:    Map[_, _]      => MapSinkData(mapVal.asJava, schema)
+    case mapVal:    util.Map[_, _] => MapSinkData(mapVal, schema)
+    case bytesVal:  Array[Byte]    => ByteArraySinkData(bytesVal, schema.orElse(Some(Schema.OPTIONAL_BYTES_SCHEMA)))
+    case bytesVal:  ByteBuffer     => ByteArraySinkData(bytesVal.array(), schema.orElse(Some(Schema.OPTIONAL_BYTES_SCHEMA)))
+    case arrayVal:  Array[_]       => ArraySinkData(arrayVal.toList.asJava, schema)
+    case listVal:   util.List[_]   => ArraySinkData(listVal, schema)
     case null     => NullSinkData(schema)
     case otherVal => throw new ConnectException(s"Unsupported record $otherVal:${otherVal.getClass.getCanonicalName}")
   }
-}
-
-object ArraySinkDataConverter {
-  def apply(array: Array[_], schema: Option[Schema]): SinkData =
-    ArraySinkData(array.map(e => ValueToSinkDataConverter(e, None)).toIndexedSeq, schema)
-}
-
-object MapSinkDataConverter {
-  def apply(map: Map[_, _], schema: Option[Schema]): SinkData =
-    MapSinkData(
-      map.map {
-        case (k: String, v) => StringSinkData(k, None) -> ValueToSinkDataConverter(v, None)
-        case (k, _) => throw new ConnectException(
-            s"Non-string map values including (${k.getClass.getCanonicalName}) are not currently supported",
-          )
-      },
-      schema,
-    )
 }

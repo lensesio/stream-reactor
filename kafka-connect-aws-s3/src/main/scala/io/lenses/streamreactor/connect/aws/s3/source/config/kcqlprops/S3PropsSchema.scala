@@ -26,14 +26,19 @@ import io.lenses.streamreactor.connect.config.kcqlprops.StringPropsSchema
 object S3PropsSchema {
 
   private val keys = Map[S3PropsKeyEntry, PropsSchema](
-    ReadTextMode  -> EnumPropsSchema(ReadTextModeEnum),
-    ReadRegex     -> StringPropsSchema,
-    ReadStartTag  -> StringPropsSchema,
-    ReadEndTag    -> StringPropsSchema,
-    ReadStartLine -> StringPropsSchema,
-    ReadEndLine   -> StringPropsSchema,
-    BufferSize    -> IntPropsSchema,
-    ReadTrimLine  -> BooleanPropsSchema,
+    ReadTextMode          -> EnumPropsSchema(ReadTextModeEnum),
+    ReadRegex             -> StringPropsSchema,
+    ReadStartTag          -> StringPropsSchema,
+    ReadEndTag            -> StringPropsSchema,
+    ReadStartLine         -> StringPropsSchema,
+    ReadEndLine           -> StringPropsSchema,
+    BufferSize            -> IntPropsSchema,
+    ReadTrimLine          -> BooleanPropsSchema,
+    StoreEnvelope         -> BooleanPropsSchema,
+    StoreEnvelopeKey      -> BooleanPropsSchema,
+    StoreEnvelopeHeaders  -> BooleanPropsSchema,
+    StoreEnvelopeValue    -> BooleanPropsSchema,
+    StoreEnvelopeMetadata -> BooleanPropsSchema,
   )
 
   val schema = KcqlPropsSchema(S3PropsKeyEnum, keys)

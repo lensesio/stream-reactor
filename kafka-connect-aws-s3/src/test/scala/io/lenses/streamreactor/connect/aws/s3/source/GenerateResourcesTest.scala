@@ -19,19 +19,19 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode.KeyAndValueWithSizes
 import io.lenses.streamreactor.connect.aws.s3.formats.writer._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.schema
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData.topic
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.topic
 import org.apache.commons.io.FileUtils
-import org.apache.kafka.connect.data.Struct
-import org.scalacheck.Gen
-import org.scalacheck.Gen.Choose.chooseDouble
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.File
+import java.time.Instant
 import java.util.UUID
 
 class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
@@ -61,14 +61,6 @@ class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
     "bytes_keyandvaluewithsizes" -> bytesKeyValueFn,
   )
 
-  def userGen: Gen[Struct] =
-    for {
-      name   <- Gen.alphaStr
-      title  <- Gen.alphaStr
-      salary <- Gen.choose(0.00, 1000.00)(chooseDouble)
-
-    } yield new Struct(schema).put("name", name).put("title", title).put("salary", salary)
-
   /**
     * For AVRO, Parquet and Json writes 5 files, each with 200 records to a temporary directory
     */
@@ -86,7 +78,18 @@ class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
             fileNum =>
               val outputStream = new S3ByteArrayOutputStream
               val writer: S3FormatWriter = writerClass(outputStream)
-              1 to numberOfRecords foreach { _ => writer.write(None, StructSinkData(userGen.sample.get), topic) }
+              1 to numberOfRecords foreach { _ =>
+                writer.write(
+                  MessageDetail(NullSinkData(None),
+                                StructSinkData(SampleData.generateUser.sample.get),
+                                Map.empty,
+                                Some(Instant.now()),
+                                topic,
+                                0,
+                                Offset(0),
+                  ),
+                )
+              }
               writer.complete() // TODO: FIX
 
               val dataFile = new File(s"$dir/$format/$fileNum.$format")
@@ -116,7 +119,17 @@ class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
               val outputStream = new S3ByteArrayOutputStream
               val writer: S3FormatWriter = writerClass(outputStream)
               1 to numberOfRecords foreach { _ =>
-                writer.write(Some(ByteArraySinkData("myKey".getBytes)), ByteArraySinkData("somestring".getBytes), topic)
+                writer.write(
+                  MessageDetail(
+                    ByteArraySinkData("myKey".getBytes),
+                    ByteArraySinkData("somestring".getBytes),
+                    Map.empty,
+                    Some(Instant.now()),
+                    topic,
+                    0,
+                    Offset(0),
+                  ),
+                )
               }
               writer.complete() // TODO: FIX
 

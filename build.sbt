@@ -1,6 +1,5 @@
 import Dependencies.globalExcludeDeps
 import Dependencies.gson
-import Dependencies.googleProtobuf
 
 import Settings._
 import sbt.Keys.libraryDependencies

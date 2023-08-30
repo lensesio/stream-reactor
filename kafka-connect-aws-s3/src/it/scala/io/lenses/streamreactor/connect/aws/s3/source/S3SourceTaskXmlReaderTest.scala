@@ -51,7 +51,7 @@ class S3SourceTaskXmlReaderTest extends S3ProxyContainerTest with AnyFlatSpecLik
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql"                            -> s"insert into ${TopicName} select * from $BucketName:${PrefixName}/xml STOREAS `TEXT` LIMIT 1000 PROPERTIES ( 'read.text.mode'='StartEndTag' , 'read.text.start.tag'='<Employee>' , 'read.text.end.tag'='</Employee>' )",
+          "connect.s3.kcql"                            -> s"insert into $TopicName select * from $BucketName:$PrefixName/xml STOREAS `TEXT` LIMIT 1000 PROPERTIES ( 'read.text.mode'='StartEndTag' , 'read.text.start.tag'='<Employee>' , 'read.text.end.tag'='</Employee>' )",
           "connect.s3.partition.search.recurse.levels" -> "0",
         ),
       ).asJava

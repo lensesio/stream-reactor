@@ -21,7 +21,7 @@
             <pattern>%d{HH:mm:ss} %-5p %-25.25C{1} %15.15M %3.3L] %m%n</pattern>
         </encoder>
     </appender>
-    <logger name="io.lenses" level="TRACE"/>
+    <logger name="io.lenses" level="DEBUG"/>
     <logger name="com.amazonaws.auth.profile.internal" level="ERROR"/>
     <root level="INFO">
         <appender-ref ref="stdout"/>

@@ -77,7 +77,7 @@ trait S3FormatWriter extends AutoCloseable {
 
   def rolloverFileOnSchemaChange(): Boolean
 
-  def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit]
+  def write(message: MessageDetail): Either[Throwable, Unit]
 
   def getPointer: Long
 

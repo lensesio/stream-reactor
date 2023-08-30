@@ -16,21 +16,18 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
 import io.lenses.streamreactor.connect.aws.s3.formats.FormatWriterException
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 
 import java.io.InputStream
 
-class CsvFormatStreamReader(inputStream: InputStream, bucketAndPath: S3Location, hasHeaders: Boolean)
-    extends TextFormatStreamReader(inputStream, bucketAndPath) {
+class CsvStreamReader(input: InputStream, hasHeaders: Boolean) extends TextStreamReader(input) {
 
   private var firstRun: Boolean = true
 
-  override def next(): StringSourceData = {
+  override def next(): String = {
     if (firstRun) {
       if (hasHeaders) {
         if (sourceLines.hasNext) {
           sourceLines.next()
-          lineNumber += 1
         } else {
           throw FormatWriterException("No column headers are available")
         }

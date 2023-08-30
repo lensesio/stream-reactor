@@ -46,7 +46,7 @@ object WithSizesBytesOutputRowReader {
     val theValue: Array[Byte] = readSegmentFromInputStream(inputStream, valSize)
     bytesRead += theValue.length
 
-    BytesOutputRow(keySize, valSize, theKey, theValue, Some(bytesRead))
+    BytesOutputRow(keySize, valSize, theKey, theValue, Some(bytesRead.toLong))
 
   }
 

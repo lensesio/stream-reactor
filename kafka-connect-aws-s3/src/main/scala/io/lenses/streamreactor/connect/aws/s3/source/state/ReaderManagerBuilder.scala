@@ -53,15 +53,21 @@ object ReaderManagerBuilder {
       } { location =>
         S3SourceFileQueue.from(
           listingFn,
-          storageInterface.getBlobModified,
+          storageInterface.getMetadata(_, _).map(_.lastModified),
           location,
           connectorTaskId,
         )
       }
-    } yield ReaderManager(
+    } yield new ReaderManager(
       sbo.recordsLimit,
       source,
-      ResultReader.create(sbo.format, sbo.targetTopic, sbo.getPartitionExtractorFn, connectorTaskId, storageInterface),
+      ResultReader.create(sbo.format,
+                          sbo.targetTopic,
+                          sbo.getPartitionExtractorFn,
+                          connectorTaskId,
+                          storageInterface,
+                          sbo.hasEnvelope,
+      ),
       connectorTaskId,
       ref,
     )

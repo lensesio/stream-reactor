@@ -22,7 +22,7 @@ case class BytesOutputRow(
   valueSize: Option[Long],
   key:       Array[Byte],
   value:     Array[Byte],
-  bytesRead: Option[Int] = None,
+  bytesRead: Option[Long] = None,
 ) {
 
   def toByteArray: Array[Byte] = {

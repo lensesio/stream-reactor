@@ -18,8 +18,9 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config._
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.AvroFormatReader
+import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
@@ -66,6 +67,8 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         formatSelection    = AvroFormatSelection,
         fileNamingStrategy = new HierarchicalS3FileNamingStrategy(AvroFormatSelection, NoOpPaddingStrategy),
         localStagingArea   = LocalStagingArea(localRoot),
+        partitionSelection = None,
+        dataStorage        = DataStorageSettings.disabled,
       ),
     ),
     offsetSeekerOptions = OffsetSeekerOptions(5),
@@ -79,7 +82,14 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       case (struct: Struct, index: Int) =>
         val writeRes = sink.write(
           TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)),
-          MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData], None),
+          MessageDetail(NullSinkData(None),
+                        StructSinkData(struct),
+                        Map.empty[String, SinkData],
+                        None,
+                        Topic(TopicName),
+                        1,
+                        Offset((index + 1).toLong),
+          ),
         )
         writeRes.isRight should be(true)
     }
@@ -116,7 +126,14 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       case (user, index) =>
         sink.write(
           TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)),
-          MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData], None),
+          MessageDetail(NullSinkData(None),
+                        StructSinkData(user),
+                        Map.empty[String, SinkData],
+                        None,
+                        Topic(TopicName),
+                        1,
+                        Offset((index + 1).toLong),
+          ),
         )
     }
     sink.close()

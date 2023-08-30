@@ -17,20 +17,19 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesFormatWithSizesStreamReader
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.ByteArraySinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.BytesFormatWriter
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesWithSizesStreamReader
+import io.lenses.streamreactor.connect.aws.s3.formats.writer._
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
-import io.lenses.streamreactor.connect.aws.s3.utils.TestSampleSchemaAndData._
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData._
 import org.apache.commons.io.IOUtils
-import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
+import java.time.Instant
 
 class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
@@ -42,24 +41,39 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val testBytes    = "Sausages".getBytes()
     val outputStream = new S3ByteArrayOutputStream()
     val writer       = new BytesFormatWriter(outputStream, BytesWriteMode.ValueWithSize)
-    writer.write(Option.empty, ByteArraySinkData(testBytes), Topic("myTopic"))
+    writer.write(
+      MessageDetail(NullSinkData(None),
+                    ByteArraySinkData(testBytes),
+                    Map.empty,
+                    Some(Instant.now()),
+                    Topic("myTopic"),
+                    0,
+                    Offset(0),
+      ),
+    )
     val result = outputStream.toByteArray
-
-    val reader = new BytesFormatWithSizesStreamReader(
+    val reader = new BytesWithSizesStreamReader(
       new ByteArrayInputStream(result),
       result.length.toLong,
-      mock[S3Location],
       BytesWriteMode.ValueWithSize,
     )
-    val byteArraySourceData = reader.next()
-    byteArraySourceData.representationValue should be(testBytes)
+    reader.next().value shouldBe testBytes
   }
 
   "convert" should "write a string to byte stream" in {
 
     val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(outputStream, BytesWriteMode.ValueOnly)
-    bytesFormatWriter.write(None, ByteArraySinkData("Sausages".getBytes, None), topic)
+    bytesFormatWriter.write(
+      MessageDetail(NullSinkData(None),
+                    ByteArraySinkData("Sausages".getBytes, None),
+                    Map.empty,
+                    Some(Instant.now()),
+                    topic,
+                    0,
+                    Offset(0),
+      ),
+    )
 
     outputStream.toString should be("Sausages")
 
@@ -70,7 +84,14 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(outputStream, BytesWriteMode.ValueOnly)
-    bytesFormatWriter.write(None, byteArrayValue, topic)
+    bytesFormatWriter.write(MessageDetail(NullSinkData(None),
+                                          byteArrayValue,
+                                          Map.empty,
+                                          Some(Instant.now()),
+                                          topic,
+                                          0,
+                                          Offset(0),
+    ))
 
     outputStream.toByteArray should be(bytes)
 
@@ -82,7 +103,16 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(outputStream, BytesWriteMode.KeyOnly)
-    bytesFormatWriter.write(Some(byteArrayValue), ByteArraySinkData("notUsed".getBytes, None), topic)
+    bytesFormatWriter.write(
+      MessageDetail(byteArrayValue,
+                    ByteArraySinkData("notUsed".getBytes, None),
+                    Map.empty,
+                    Some(Instant.now()),
+                    topic,
+                    0,
+                    Offset(0),
+      ),
+    )
 
     outputStream.toByteArray should be(bytes)
 
@@ -94,7 +124,14 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(outputStream, BytesWriteMode.KeyAndValueWithSizes)
-    bytesFormatWriter.write(Some(byteArrayValue), byteArrayValue, topic)
+    bytesFormatWriter.write(MessageDetail(byteArrayValue,
+                                          byteArrayValue,
+                                          Map.empty,
+                                          Some(Instant.now()),
+                                          topic,
+                                          0,
+                                          Offset(0),
+    ))
 
     outputStream.toByteArray should be(pixelLengthBytes ++ pixelLengthBytes ++ bytes ++ bytes)
 
@@ -107,7 +144,16 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(outputStream, BytesWriteMode.KeyWithSize)
 
-    bytesFormatWriter.write(Some(byteArrayValue), ByteArraySinkData("notUsed".getBytes, None), topic)
+    bytesFormatWriter.write(
+      MessageDetail(byteArrayValue,
+                    ByteArraySinkData("notUsed".getBytes, None),
+                    Map.empty,
+                    Some(Instant.now()),
+                    topic,
+                    0,
+                    Offset(0),
+      ),
+    )
 
     outputStream.toByteArray should be(pixelLengthBytes ++ bytes)
 
@@ -119,7 +165,16 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(outputStream, BytesWriteMode.ValueWithSize)
-    bytesFormatWriter.write(Some(ByteArraySinkData("notUsed".getBytes, None)), byteArrayValue, topic)
+    bytesFormatWriter.write(
+      MessageDetail(ByteArraySinkData("notUsed".getBytes, None),
+                    byteArrayValue,
+                    Map.empty,
+                    Some(Instant.now()),
+                    topic,
+                    0,
+                    Offset(0),
+      ),
+    )
 
     outputStream.toByteArray should be(pixelLengthBytes ++ bytes)
 
@@ -135,8 +190,22 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(outputStream, BytesWriteMode.ValueOnly)
-    bytesFormatWriter.write(None, ByteArraySinkData(bytes1, None), topic)
-    bytesFormatWriter.write(None, ByteArraySinkData(bytes2, None), topic)
+    bytesFormatWriter.write(MessageDetail(NullSinkData(None),
+                                          ByteArraySinkData(bytes1, None),
+                                          Map.empty,
+                                          Some(Instant.now()),
+                                          topic,
+                                          0,
+                                          Offset(0),
+    ))
+    bytesFormatWriter.write(MessageDetail(NullSinkData(None),
+                                          ByteArraySinkData(bytes2, None),
+                                          Map.empty,
+                                          Some(Instant.now()),
+                                          topic,
+                                          0,
+                                          Offset(0),
+    ))
 
     outputStream.toByteArray should be(bytes)
 
@@ -147,7 +216,15 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream      = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(outputStream, BytesWriteMode.ValueOnly)
-    val caught            = bytesFormatWriter.write(None, StructSinkData(users.head), topic)
+    val caught =
+      bytesFormatWriter.write(MessageDetail(NullSinkData(None),
+                                            StructSinkData(SampleData.Users.head),
+                                            Map.empty,
+                                            Some(Instant.now()),
+                                            topic,
+                                            0,
+                                            Offset(0),
+      ))
     bytesFormatWriter.complete()
     caught should be.leftSide
   }

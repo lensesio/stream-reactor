@@ -16,34 +16,29 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
 import io.lenses.streamreactor.connect.aws.s3.formats.FormatWriterException
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.ReadTextMode
 
 import java.io.InputStream
 import scala.io.Source
 import scala.util.Try
 
-object TextFormatStreamReader {
+object TextStreamReader {
   def apply(
-    readTextMode:  Option[ReadTextMode],
-    inputStream:   InputStream,
-    bucketAndPath: S3Location,
-  ): S3FormatStreamReader[StringSourceData] =
-    readTextMode.map(_.createStreamReader(inputStream, bucketAndPath))
+    readTextMode: Option[ReadTextMode],
+    input:        InputStream,
+  ): S3DataIterator[String] =
+    readTextMode.map(_.createStreamReader(input))
       .getOrElse(
-        new TextFormatStreamReader(
-          inputStream,
-          bucketAndPath,
+        new TextStreamReader(
+          input,
         ),
       )
 }
 
-class TextFormatStreamReader(inputStream: InputStream, bucketAndPath: S3Location)
-    extends S3FormatStreamReader[StringSourceData] {
+class TextStreamReader(input: InputStream) extends S3DataIterator[String] {
 
-  private val source = Source.fromInputStream(inputStream, "UTF-8")
+  private val source = Source.fromInputStream(input, "UTF-8")
   protected val sourceLines: Iterator[String] = source.getLines()
-  protected var lineNumber:  Long             = -1
 
   override def close(): Unit = {
     Try(source.close())
@@ -52,17 +47,13 @@ class TextFormatStreamReader(inputStream: InputStream, bucketAndPath: S3Location
 
   override def hasNext: Boolean = sourceLines.hasNext
 
-  override def next(): StringSourceData = {
-    lineNumber += 1
+  override def next(): String = {
     if (!sourceLines.hasNext) {
       throw FormatWriterException(
         "Invalid state reached: the file content has been consumed, no further calls to next() are possible.",
       )
     }
-    StringSourceData(sourceLines.next(), lineNumber)
+    sourceLines.next()
   }
 
-  override def getBucketAndPath: S3Location = bucketAndPath
-
-  override def getLineNumber: Long = lineNumber
 }

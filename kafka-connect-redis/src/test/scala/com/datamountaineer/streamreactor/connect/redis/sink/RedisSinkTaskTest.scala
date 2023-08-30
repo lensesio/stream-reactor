@@ -28,7 +28,7 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
 
   "work with Cache" -> {
     val KCQL = s"INSERT INTO cache SELECT price from yahoo-fx PK symbol;"
-    println("Testing mode for KCQL : " + KCQL)
+
     val props = Map(
       RedisConfigConstants.REDIS_HOST  -> "localhost",
       RedisConfigConstants.REDIS_PORT  -> "0000",
@@ -47,7 +47,7 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
 
   "work with SortedSet" -> {
     val KCQL = s"INSERT INTO topic-1 SELECT * FROM topic1 STOREAS SortedSet(score=ts);"
-    println("Testing mode for KCQL : " + KCQL)
+
     val props = Map(
       RedisConfigConstants.REDIS_HOST  -> "localhost",
       RedisConfigConstants.REDIS_PORT  -> "0000",
@@ -66,7 +66,7 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
 
   "work with Multiple SortedSets" -> {
     val KCQL = s"SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet(score=timestamp);"
-    println("Testing mode for KCQL : " + KCQL)
+
     val props = Map(
       RedisConfigConstants.REDIS_HOST  -> "localhost",
       RedisConfigConstants.REDIS_PORT  -> "0000",
@@ -92,7 +92,7 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
         s"INSERT INTO cache3 SELECT price from appl-fx PK symbol;" +
         s"INSERT INTO topic-1 SELECT * FROM topic1 STOREAS SortedSet(score=ts);" +
         s"INSERT INTO topic-2 SELECT * FROM topic2 STOREAS SortedSet(score=ts);"
-    println("Testing mode for KCQL : " + KCQL)
+
     val props = Map(
       RedisConfigConstants.REDIS_HOST  -> "localhost",
       RedisConfigConstants.REDIS_PORT  -> "0000",
@@ -126,7 +126,7 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
 
   "work with streams" -> {
     val KCQL = s"SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS STREAM;"
-    println("Testing mode for KCQL : " + KCQL)
+
     val props = Map(
       RedisConfigConstants.REDIS_HOST  -> "localhost",
       RedisConfigConstants.REDIS_PORT  -> "0000",
