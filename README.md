@@ -16,7 +16,7 @@ fork of the project.
 
 ## Download
 
-The latest releases are available in the GitHub release tab, or via [tarballs in Maven central](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22kcbq-connector%22).
+The latest releases are available in the GitHub release tab, or via [Confluent Hub](https://www.confluent.io/hub/wepay/kafka-connect-bigquery).
 
 ## Standalone Quickstart
 
