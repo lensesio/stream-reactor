@@ -375,6 +375,17 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     partitionBy should contain allOf ("_header.col1", "_header.col2")
   }
 
+  test("partitionByShouldAllowQuotingGroupsOfFields") {
+    val topic = "TOPIC_A"
+    val table = "TABLE_A"
+    val syntax =
+      s"UPSERT INTO $table SELECT * FROM $topic IGNORE col1, 1col2 PARTITIONBY _header.cost.centre.id,_header.`cost.centre.id`  "
+    val kcql        = Kcql.parse(syntax)
+    val partitionBy = kcql.getPartitionBy.asScala.toSet
+    partitionBy should have size 2
+    partitionBy should contain allOf ("_header.cost.centre.id", "_header.`cost.centre.id`")
+  }
+
   test("handlerPartitionByWhenSpecificFieldsAreIncluded") {
     val topic       = "TOPIC_A"
     val table       = "TABLE_A"
