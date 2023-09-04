@@ -275,11 +275,11 @@ RIGHT_PARAN
     : ')'
     ;
 
-
 FIELD
-   : ( 'a' .. 'z' | 'A' .. 'Z' | '@' |'_' | '0' .. '9' )+
+   : ( ESCAPED_FIELD | 'a' .. 'z' | 'A' .. 'Z' | '@' |'_' | '0' .. '9' )+
    ;
 
+fragment ESCAPED_FIELD    : ( '`' (~'`')+ '`');
 
 TOPICNAME
    : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' | '-' | '+' | '/' |'{'|'}'|':' )+ | ESCAPED_TOPIC
