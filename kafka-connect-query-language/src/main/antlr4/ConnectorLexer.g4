@@ -277,11 +277,11 @@ RIGHT_PARAN
     : ')'
     ;
 
+
 FIELD
-   : ( ESCAPED_FIELD | 'a' .. 'z' | 'A' .. 'Z' | '@' |'_' | '0' .. '9' )+
+   : ( 'a' .. 'z' | 'A' .. 'Z' | '@' |'_' | '0' .. '9' )+
    ;
 
-fragment ESCAPED_FIELD    : ( '`' (~'`')+ '`');
 
 TOPICNAME
    : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' | '-' | '+' | '/' |'{'|'}'|':' )+ | ESCAPED_TOPIC
@@ -295,6 +295,10 @@ KEYDELIMVALUE
 
 fragment ESCAPED_TOPIC
     : ( '`' (~'`')+ '`')
+    ;
+
+ESCAPED_FIELD
+    : FIELD DOT ( '`' (~'`')+ '`')
     ;
 
 STRING: '\'' ~('\'' | '\r' | '\n')* '\'';

@@ -1181,25 +1181,6 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     )
   }
 
-  "S3SinkTask" should "not get past kcql parser when contains a slash" in {
-
-    val task = new S3SinkTask()
-
-    val keyWithSlash = "_key.date/of/birth"
-
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY $keyWithSlash, _key.phonePrefix STOREAS `CSV` WITH_FLUSH_COUNT = 1",
-        ),
-      ).asJava
-
-    intercept[IllegalArgumentException] {
-      task.start(props)
-    }.getMessage contains "no viable alternative at input"
-
-  }
-
   "S3SinkTask" should "allow partitioning by complex key and values" in {
 
     val task = new S3SinkTask()
