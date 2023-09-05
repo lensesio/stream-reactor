@@ -355,10 +355,7 @@ object S3WriterManager extends LazyLogging {
                                                                 partitionValues,
             )
           } yield stagingFilename
-        case None => FatalS3SinkError(
-            s"Can't find the KCQL for source topic [${topicPartition.topic}]. The topics defined via [topics] or [topics.regex] need to have an equivalent KCQL statement: INSERT INTO \$S3_BUCKET SELECT * FROM \$TOPIC.",
-            topicPartition,
-          ).asLeft
+        case None => fatalErrorTopicNotConfigured( topicPartition).asLeft
       }
 
     val formatWriterFn: (TopicPartition, File) => Either[SinkError, S3FormatWriter] =
