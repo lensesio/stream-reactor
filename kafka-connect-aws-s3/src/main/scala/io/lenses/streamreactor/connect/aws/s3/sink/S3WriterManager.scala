@@ -355,7 +355,7 @@ object S3WriterManager extends LazyLogging {
                                                                 partitionValues,
             )
           } yield stagingFilename
-        case None => fatalErrorTopicNotConfigured( topicPartition).asLeft
+        case None => fatalErrorTopicNotConfigured(topicPartition).asLeft
       }
 
     val formatWriterFn: (TopicPartition, File) => Either[SinkError, S3FormatWriter] =
