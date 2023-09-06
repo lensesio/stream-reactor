@@ -55,7 +55,7 @@ class S3SourceJsonEnvelopeTest extends S3ProxyContainerTest with AnyFlatSpecLike
 
   "task" should "extract from json files containing the envelope" in {
 
-    val task = new S3SourceTask()
+    val task = new S3SourceTaskDeprecated()
 
     val props = DefaultProps
       .combine(

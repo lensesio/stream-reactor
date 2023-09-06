@@ -33,7 +33,7 @@ import org.apache.kafka.connect.source.SourceTask
 import java.util
 import java.util.Collections
 import scala.jdk.CollectionConverters._
-class S3SourceTask extends SourceTask with LazyLogging {
+class S3SourceTaskDeprecated extends SourceTask with LazyLogging {
 
   private val contextOffsetFn: S3Location => Option[S3Location] =
     SourceContextReader.getCurrentOffset(() => context)

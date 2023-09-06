@@ -97,7 +97,7 @@ class S3SinkTaskJsonEnvelopeTest
 
   "S3SinkTask" should "write to json format" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -168,7 +168,7 @@ class S3SinkTaskJsonEnvelopeTest
 
   "S3SinkTask" should "write to JSON format when input is java Map" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -242,7 +242,7 @@ class S3SinkTaskJsonEnvelopeTest
 
   "S3SinkTask" should "write to JSON format when input is java Map and escape new line text" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -317,7 +317,7 @@ class S3SinkTaskJsonEnvelopeTest
 
   "S3SinkTask" should "write to JSON format when input is java Map escapes new line when envelope is disabled" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -385,7 +385,7 @@ class S3SinkTaskJsonEnvelopeTest
 
   "S3SinkTask" should "write to JSON format when input is array of bytes representing text with new line" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(

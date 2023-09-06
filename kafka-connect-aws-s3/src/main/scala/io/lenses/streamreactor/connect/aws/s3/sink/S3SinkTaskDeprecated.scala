@@ -43,7 +43,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 
-class S3SinkTask extends SinkTask with ErrorHandler {
+class S3SinkTaskDeprecated extends SinkTask with ErrorHandler {
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 

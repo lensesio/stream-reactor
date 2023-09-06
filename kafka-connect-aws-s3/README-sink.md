@@ -7,7 +7,7 @@ Before reading this document it is recommended to be familiar with the [general 
 An example configuration is provided:
 
     name=S3SinkConnectorParquet # this can be anything
-    connector.class=io.lenses.streamreactor.connect.aws.s3.sink.S3SinkConnector
+    connector.class=io.lenses.streamreactor.connect.aws.s3.sink.S3SinkConnectorDeprecated
     topics=$TOPIC_NAME
     tasks.max=1
     connect.s3.kcql=insert into $BUCKET_NAME:$PREFIX_NAME select * from $TOPIC_NAME STOREAS `parquet` WITH_FLUSH_COUNT = 5000 
