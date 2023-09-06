@@ -32,7 +32,7 @@ import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-class S3SourceTaskTest
+class S3SourceTaskDeprecatedTest
     extends AnyFlatSpec
     with Matchers
     with S3ProxyContainerTest
@@ -101,7 +101,7 @@ class S3SourceTaskTest
         withClue(s"Format:$format") {
           val t1 = System.currentTimeMillis()
 
-          val task = new S3SourceTask()
+          val task = new S3SourceTaskDeprecated()
 
           val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
 
@@ -159,7 +159,7 @@ class S3SourceTaskTest
         withClue(s"Format:$format") {
           val t1 = System.currentTimeMillis()
 
-          val task = new S3SourceTask()
+          val task = new S3SourceTaskDeprecated()
 
           val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
 
@@ -216,7 +216,7 @@ class S3SourceTaskTest
       (format, formatOptions, dir) =>
         val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
 
-        val task = new S3SourceTask()
+        val task = new S3SourceTaskDeprecated()
 
         val context = new SourceTaskContext {
           override def configs(): util.Map[String, String] = Map.empty[String, String].asJava
@@ -284,7 +284,7 @@ class S3SourceTaskTest
     val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.ValueOnly))
     val dir                     = "bytesval"
 
-    val task = new S3SourceTask()
+    val task = new S3SourceTaskDeprecated()
 
     val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
 
@@ -321,7 +321,7 @@ class S3SourceTaskTest
     val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.KeyAndValueWithSizes))
 
     val dir  = "byteskv"
-    val task = new S3SourceTask()
+    val task = new S3SourceTaskDeprecated()
 
     val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
 
@@ -374,7 +374,7 @@ class S3SourceTaskTest
     val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.KeyAndValueWithSizes))
 
     val dir  = "nested/byteskv"
-    val task = new S3SourceTask()
+    val task = new S3SourceTaskDeprecated()
 
     val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
 

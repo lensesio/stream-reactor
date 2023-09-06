@@ -13,31 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.sink
+package io.lenses.streamreactor.connect.aws.s3.source
 
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfigDef
 import io.lenses.streamreactor.connect.aws.s3.config.TaskDistributor.distributeTasks
+import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfigDef
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
-import org.apache.kafka.connect.sink.SinkConnector
+import org.apache.kafka.connect.source.ExactlyOnceSupport
+import org.apache.kafka.connect.source.SourceConnector
 
 import java.util
 
-class S3SinkConnector extends SinkConnector with LazyLogging {
+class S3SourceConnectorDeprecated extends SourceConnector with LazyLogging {
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   private val props: util.Map[String, String] = new util.HashMap[String, String]()
 
   override def version(): String = manifest.version()
 
-  override def taskClass(): Class[_ <: Task] = classOf[S3SinkTask]
+  override def taskClass(): Class[_ <: Task] = classOf[S3SourceTaskDeprecated]
 
-  override def config(): ConfigDef = S3SinkConfigDef.config
+  override def config(): ConfigDef = S3SourceConfigDef.config
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Creating S3 sink connector")
+    logger.info(s"Creating S3 source connector")
     this.props.putAll(props)
   }
 
@@ -47,4 +48,7 @@ class S3SinkConnector extends SinkConnector with LazyLogging {
     logger.info(s"Creating $maxTasks tasks config")
     distributeTasks(props, maxTasks)
   }
+
+  override def exactlyOnceSupport(connectorConfig: util.Map[String, String]): ExactlyOnceSupport =
+    ExactlyOnceSupport.SUPPORTED
 }

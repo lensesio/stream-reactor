@@ -79,7 +79,7 @@ class S3SinkTaskParquetEnvelopeTest
 
   "S3SinkTask" should "write to avro format" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(

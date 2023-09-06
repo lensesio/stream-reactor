@@ -57,7 +57,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Try
 
-class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with MockitoSugar with LazyLogging {
+class S3SinkTaskDeprecatedTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with MockitoSugar with LazyLogging {
 
   import helper._
   import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
@@ -162,7 +162,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "flush on configured flush time intervals" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DeprecatedProps
       .combine(
@@ -195,7 +195,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "throw error if prefix contains a slash" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val prefixWithSlashes = "my/prefix/that/is/a/path"
     val props = DefaultProps
@@ -215,7 +215,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "flush for every record when configured flush count size of 1" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -249,7 +249,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     */
   "S3SinkTask" should "flush on configured file size" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -274,7 +274,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "flush on configured file size for Parquet" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -309,9 +309,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  def createTask(context: SinkTaskContext, props: util.Map[String, String]): S3SinkTask = {
+  def createTask(context: SinkTaskContext, props: util.Map[String, String]): S3SinkTaskDeprecated = {
     reset(context)
-    val task: S3SinkTask = new S3SinkTask()
+    val task: S3SinkTaskDeprecated = new S3SinkTaskDeprecated()
     task.initialize(context)
     task.start(props)
     task
@@ -323,7 +323,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     */
   "S3SinkTask" should "put existing offsets to the context" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -366,7 +366,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       ).asJava
     val context = mock[SinkTaskContext]
 
-    var task: S3SinkTask = createTask(context, props)
+    var task: S3SinkTaskDeprecated = createTask(context, props)
 
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     verify(context, never).offset(new TopicPartition("myTopic", 1), 0)
@@ -437,7 +437,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "write to parquet format" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -464,7 +464,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "write to avro format" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -491,7 +491,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "error when trying to write AVRO to text format" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -518,7 +518,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       new SinkRecord(TopicName, 1, null, null, null, "Peas", 2),
       new SinkRecord(TopicName, 1, null, null, null, "Gravy", 3),
     )
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -545,7 +545,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "write to csv format with headers" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val extraRecord = toSinkRecord(new Struct(schema).put("name", "bob").put("title", "mr").put("salary", 200.86), 3)
 
@@ -589,7 +589,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "write to csv format without headers" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val extraRecord = toSinkRecord(new Struct(schema).put("name", "bob").put("title", "mr").put("salary", 200.86), 3)
 
@@ -631,7 +631,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "use custom partitioning scheme and flush for every record" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -682,7 +682,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     */
   "S3SinkTask" should "use custom partitioning scheme and flush after two written records" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val partitionedData: List[Struct] = List(
       new Struct(schema).put("name", "first").put("title", "primary").put("salary", null),
@@ -738,7 +738,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "use custom partitioning with value display only" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -798,7 +798,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       new SinkRecord(TopicName, 1, null, null, null, bytes1, 0),
       new SinkRecord(TopicName, 1, null, null, null, bytes2, 1),
     )
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -857,7 +857,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
                      createHeaders(("phonePrefix", "+49"), ("region", "5")),
       ),
     )
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -892,7 +892,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "combine header and value-extracted partition" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -927,7 +927,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       createSinkRecord(1, users(1), 0, createHeaders(("hair", "blue"), ("feet", "5"))),
     )
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -958,7 +958,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       createSinkRecord(1, users(1), 1, createHeaders[AnyVal](("longheader", 2L), ("intheader", 2))),
       createSinkRecord(2, users(2), 2, createHeaders[AnyVal](("intheader", 1), ("longheader", 1L))),
     )
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -990,7 +990,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
         new SinkRecord(TopicName, 1, null, (k % 2).toString, schema, user, k.toLong, null, null)
     }
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1025,7 +1025,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
         new SinkRecord(TopicName, 1, null, (k % 2).toString, schema, user, k.toLong, null, null)
     }
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1060,7 +1060,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
         new SinkRecord(TopicName, 1, null, (k % 2).toString, schema, user, k.toLong, null, null)
     }
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1095,7 +1095,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
         new SinkRecord(TopicName, 1, null, user, schema, user, k.toLong, null, null)
     }
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1126,7 +1126,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
         new SinkRecord(TopicName, 1, null, k % 2, schema, user, k.toLong, null, null)
     }
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1156,7 +1156,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "allow partitioning by complex key" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1183,7 +1183,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "not get past kcql parser when contains a slash" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val keyWithSlash = "_key.date/of/birth"
 
@@ -1202,7 +1202,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "allow partitioning by complex key and values" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1243,7 +1243,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       new TopicPartition(TopicName, 1),
     ).asJava
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1288,7 +1288,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       new TopicPartition(TopicName, 0),
     ).asJava
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1328,7 +1328,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       new TopicPartition(TopicName, 0),
     ).asJava
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1367,7 +1367,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       new TopicPartition(TopicName, 0),
     ).asJava
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1408,7 +1408,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       new TopicPartition(TopicName, 0),
     ).asJava
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1461,7 +1461,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       new TopicPartition(TopicName, 0),
     ).asJava
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1518,7 +1518,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       new TopicPartition(TopicName, 0),
     ).asJava
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1565,7 +1565,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       new TopicPartition(TopicName, 0),
     ).asJava
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1660,7 +1660,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       new TopicPartition(TopicName, 1),
     ).asJava
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1745,7 +1745,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       new TopicPartition(TopicName, 1),
     ).asJava
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1817,7 +1817,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       new TopicPartition(TopicName, 1),
     ).asJava
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1845,7 +1845,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "flush for every record when configured flush count size of 1 with build local write mode" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1877,7 +1877,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "be able to stop when there is no state" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
     task.stop()
   }
 
@@ -1885,7 +1885,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
     val tempDir = Files.createTempDirectory("tempdirtest")
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1922,7 +1922,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val profileDir = getResourcesDirectory()
       .getOrElse(fail("cannot get resources dir"))
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = Map(
       "name"                       -> "sinkName",
@@ -1953,7 +1953,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "not write duplicate offsets" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -1982,7 +1982,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "recover after a failure" in {
 
-    val task    = new S3SinkTask()
+    val task    = new S3SinkTaskDeprecated()
     val context = mock[SinkTaskContext]
     task.initialize(context)
 
@@ -2026,7 +2026,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "recover after a failure for single record commits" in {
 
-    val task    = new S3SinkTask()
+    val task    = new S3SinkTaskDeprecated()
     val context = mock[SinkTaskContext]
     task.initialize(context)
 
@@ -2070,7 +2070,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "continue processing records when a source file has been deleted" in {
 
-    val task    = new S3SinkTask()
+    val task    = new S3SinkTaskDeprecated()
     val context = mock[SinkTaskContext]
     task.initialize(context)
 
@@ -2131,7 +2131,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
         toSinkRecord(user, k, topic2Name)
     }
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -2179,7 +2179,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
         new SinkRecord(TopicName, 1, null, null, schema, user, k.toLong, timestamp, TimestampType.CREATE_TIME)
     }
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -2203,7 +2203,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   "S3SinkTask" should "write files with topic partition without padding when requested" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -2259,7 +2259,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
   }
 
   private def getResourcesDirectory(): Try[String] = {
-    val url = classOf[S3SinkTaskTest].getResource("/profiles/")
+    val url = classOf[S3SinkTaskDeprecatedTest].getResource("/profiles/")
     Try {
       val uri = url.toURI
       logger.info("Profile uri: {}", uri)

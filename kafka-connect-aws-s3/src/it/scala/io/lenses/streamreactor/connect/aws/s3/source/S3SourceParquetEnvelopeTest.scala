@@ -133,7 +133,7 @@ class S3SourceParquetEnvelopeTest extends S3ProxyContainerTest with AnyFlatSpecL
 
   "task" should "extract from parquet files containing the envelope" in {
 
-    val task = new S3SourceTask()
+    val task = new S3SourceTaskDeprecated()
 
     val props = DefaultProps
       .combine(

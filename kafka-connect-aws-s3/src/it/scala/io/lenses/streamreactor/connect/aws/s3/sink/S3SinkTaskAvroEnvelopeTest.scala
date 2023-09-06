@@ -98,7 +98,7 @@ class S3SinkTaskAvroEnvelopeTest
 
   "S3SinkTask" should "write to avro format" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
@@ -232,7 +232,7 @@ class S3SinkTaskAvroEnvelopeTest
 
   "S3SinkTask" should "write to avro format when input is java Map" in {
 
-    val task = new S3SinkTask()
+    val task = new S3SinkTaskDeprecated()
 
     val props = DefaultProps
       .combine(
