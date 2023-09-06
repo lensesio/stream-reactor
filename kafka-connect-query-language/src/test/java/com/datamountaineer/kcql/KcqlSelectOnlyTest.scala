@@ -53,6 +53,30 @@ class KcqlSelectOnlyTest extends AnyFunSuite {
     kcql.getStoredAs should be("SS")
   }
 
+  test("storeASWithAVRO") {
+    val KCQL = "INSERT INTO SENSOR- SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS AVRO"
+    val kcql = Kcql.parse(KCQL)
+    kcql.getStoredAs should be("AVRO")
+  }
+
+  test("storeASWithParquet") {
+    val KCQL = "INSERT INTO SENSOR- SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS PARQUET"
+    val kcql = Kcql.parse(KCQL)
+    kcql.getStoredAs should be("PARQUET")
+  }
+
+  test("storeASWithJSON") {
+    val KCQL = "INSERT INTO SENSOR- SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS JSON"
+    val kcql = Kcql.parse(KCQL)
+    kcql.getStoredAs should be("JSON")
+  }
+
+  test("storeASWithBYTES") {
+    val KCQL = "INSERT INTO SENSOR- SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS BYTES"
+    val kcql = Kcql.parse(KCQL)
+    kcql.getStoredAs should be("BYTES")
+  }
+
   test("testSELECTwithPK") {
     val KCQL = "SELECT temperature, humidity FROM sensorsTopic PK sensorID"
     val kcql = Kcql.parse(KCQL)
