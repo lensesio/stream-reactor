@@ -17,36 +17,17 @@ package io.lenses.streamreactor.connect.aws.s3.formats.writer
 
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
-import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 
 import scala.util.Try
 
-class BytesFormatWriter(outputStream: S3OutputStream, bytesWriteMode: BytesWriteMode)
-    extends S3FormatWriter
-    with LazyLogging {
+class BytesFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter with LazyLogging {
 
-  private val writeKeys   = bytesWriteMode.entryName.contains("Key")
-  private val writeValues = bytesWriteMode.entryName.contains("Value")
-  private val writeSizes  = bytesWriteMode.entryName.contains("Size")
-  private val byteOutputRow = BytesOutputRow(
-    None,
-    None,
-    Array.empty,
-    Array.empty,
-  )
   override def write(messageDetail: MessageDetail): Either[Throwable, Unit] =
     for {
-      key   <- if (writeKeys) convertToBytes(messageDetail.key) else Array.emptyByteArray.asRight
-      value <- if (writeValues) convertToBytes(messageDetail.value) else Array.emptyByteArray.asRight
-      data = byteOutputRow.copy(
-        keySize   = if (writeKeys && writeSizes) Some(key.length.longValue()) else None,
-        key       = key,
-        valueSize = if (writeValues && writeSizes) Some(value.length.longValue()) else None,
-        value     = value,
-      ).toByteArray
+      value <- convertToBytes(messageDetail.value)
+      data   = value
       _ <- Try {
         outputStream.write(data)
         outputStream.flush()

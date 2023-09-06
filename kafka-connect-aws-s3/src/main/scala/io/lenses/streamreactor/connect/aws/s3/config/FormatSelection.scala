@@ -15,11 +15,11 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
+import cats.implicits.catsSyntaxEitherId
 import com.datamountaineer.kcql.Kcql
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.aws.s3.formats.reader._
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.converters._
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
@@ -74,21 +74,27 @@ case object FormatSelection {
     val withoutTicks = formatAsString.replace("`", "")
     val split        = withoutTicks.split("_")
 
-    val formatOptions: Set[FormatOptions] = if (split.size > 1) {
+    Format.withNameInsensitiveOption(split(0)) match {
+      case Some(Format.Json)    => JsonFormatSelection.asRight
+      case Some(Format.Avro)    => AvroFormatSelection.asRight
+      case Some(Format.Parquet) => ParquetFormatSelection.asRight
+      case Some(Format.Text)    => TextFormatSelection(readTextMode()).asRight
+      case Some(Format.Csv)     => CsvFormatSelection(parseCsvFormatOptions(split)).asRight
+      case Some(Format.Bytes) if split.size > 1 =>
+        new IllegalArgumentException(
+          s"Unsupported format - $formatAsString.  Please note that the following formats are no longer supported: `Bytes_KeyAndValueWithSizes`, `Bytes_KeyWithSize`, `Bytes_ValueWithSize`, `Bytes_KeyOnly`, `Bytes_ValueOnly`.  For this type of data we recommend the AVRO/Parquet/Json envelope formats. You can still store the message value as byte using the BYTES mode with no suffix.",
+        ).asLeft
+      case Some(Format.Bytes) => BytesFormatSelection.asRight
+      case None               => new IllegalArgumentException(s"Unsupported format - $formatAsString").asLeft
+    }
+  }
+
+  private def parseCsvFormatOptions(split: Array[String]): Set[FormatOptions] =
+    if (split.length > 1) {
       split.splitAt(1)._2.flatMap(FormatOptions.withNameInsensitiveOption).toSet
     } else {
       Set.empty
     }
-
-    Format.withNameInsensitiveOption(split(0)).map {
-      case Format.Json    => JsonFormatSelection
-      case Format.Avro    => AvroFormatSelection
-      case Format.Parquet => ParquetFormatSelection
-      case Format.Text    => TextFormatSelection(readTextMode())
-      case Format.Csv     => CsvFormatSelection(formatOptions)
-      case Format.Bytes   => BytesFormatSelection(formatOptions)
-    }.toRight(new IllegalArgumentException(s"Unsupported format - $formatAsString"))
-  }
 }
 
 case object JsonFormatSelection extends FormatSelection {
@@ -105,12 +111,7 @@ case object JsonFormatSelection extends FormatSelection {
       )
 
     } else {
-      new TextConverter(input.watermarkPartition,
-                        input.targetTopic,
-                        input.targetPartition,
-                        input.bucketAndPath,
-                        input.metadata.lastModified,
-      )
+      TextConverter(input)
     }
 
     new DelegateIteratorS3StreamReader[String](inner, converter, input.bucketAndPath)
@@ -205,12 +206,7 @@ case class TextFormatSelection(readTextMode: Option[ReadTextMode]) extends Forma
       readTextMode,
       input.stream,
     )
-    val converter = new TextConverter(input.watermarkPartition,
-                                      input.targetTopic,
-                                      input.targetPartition,
-                                      input.bucketAndPath,
-                                      input.metadata.lastModified,
-    )
+    val converter = TextConverter(input)
     new DelegateIteratorS3StreamReader(
       inner,
       converter,
@@ -226,13 +222,8 @@ case class CsvFormatSelection(formatOptions: Set[FormatOptions]) extends FormatS
   override def toStreamReader(
     input: ReaderBuilderContext,
   ): S3StreamReader = {
-    val inner = new CsvStreamReader(input.stream, hasHeaders = formatOptions.contains(WithHeaders))
-    val converter = new TextConverter(input.watermarkPartition,
-                                      input.targetTopic,
-                                      input.targetPartition,
-                                      input.bucketAndPath,
-                                      input.metadata.lastModified,
-    )
+    val inner     = new CsvStreamReader(input.stream, hasHeaders = formatOptions.contains(WithHeaders))
+    val converter = TextConverter(input)
     new DelegateIteratorS3StreamReader(
       inner,
       converter,
@@ -244,17 +235,12 @@ case class CsvFormatSelection(formatOptions: Set[FormatOptions]) extends FormatS
 
   override def supportsEnvelope: Boolean = false
 }
-case class BytesFormatSelection(formatOptions: Set[FormatOptions]) extends FormatSelection {
+object BytesFormatSelection extends FormatSelection {
   override def toStreamReader(
     input: ReaderBuilderContext,
   ): S3StreamReader = {
 
-    val bytesWriteMode = S3FormatWriter.convertToBytesWriteMode(formatOptions)
-    val inner = if (bytesWriteMode.entryName.toLowerCase.contains("size")) {
-      new BytesWithSizesStreamReader(input.stream, input.metadata.size, bytesWriteMode)
-    } else {
-      new BytesStreamFileReader(input.stream, input.metadata.size, bytesWriteMode)
-    }
+    val inner = new BytesStreamFileReader(input.stream, input.metadata.size)
     val converter = new BytesOutputRowConverter(input.watermarkPartition,
                                                 input.targetTopic,
                                                 input.targetPartition,

@@ -29,15 +29,4 @@ object FormatOptions extends Enum[FormatOptions] {
   /** CSV Options */
   case object WithHeaders extends FormatOptions
 
-  /** Byte Options */
-  case object KeyAndValueWithSizes extends FormatOptions
-
-  case object KeyWithSize extends FormatOptions
-
-  case object ValueWithSize extends FormatOptions
-
-  case object KeyOnly extends FormatOptions
-
-  case object ValueOnly extends FormatOptions
-
 }

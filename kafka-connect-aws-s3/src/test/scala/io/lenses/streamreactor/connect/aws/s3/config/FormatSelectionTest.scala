@@ -18,10 +18,11 @@ package io.lenses.streamreactor.connect.aws.s3.config
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
+import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class FormatSelectionTest extends AnyFlatSpec with Matchers {
+class FormatSelectionTest extends AnyFlatSpec with Matchers with EitherValues {
 
   implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
 
@@ -33,5 +34,11 @@ class FormatSelectionTest extends AnyFlatSpec with Matchers {
 
   "formatSelection.fromString" should "format for CSV without headers" in {
     FormatSelection.fromString("`CSV`", () => Option.empty) should be(Right(CsvFormatSelection(Set.empty)))
+  }
+
+  "formatSelection.fromString" should "return error for deprecated format selections" in {
+    FormatSelection.fromString("BYTES_VALUEONLY", () => Option.empty).left.value.getMessage should startWith(
+      "Unsupported format - BYTES_VALUEONLY.  Please note",
+    )
   }
 }

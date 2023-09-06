@@ -31,7 +31,6 @@ class BytesOutputRowConverterTest extends AnyFunSuite with Matchers {
     val location     = S3Location("bucket", "myprefix".some, "a/b/c.txt".some)
     val lastModified = Instant.ofEpochMilli(10001)
 
-    val keyBytes   = "key".getBytes
     val valueBytes = "value".getBytes
 
     val actual = new BytesOutputRowConverter(
@@ -42,15 +41,11 @@ class BytesOutputRowConverterTest extends AnyFunSuite with Matchers {
       lastModified,
     ).convert(
       BytesOutputRow(
-        keyBytes.length.toLong.some,
-        valueBytes.length.toLong.some,
-        keyBytes,
         valueBytes,
-        (keyBytes.length + valueBytes.length).toLong.some,
       ),
       2,
     )
-    actual.key() shouldBe "key".getBytes
+    actual.key() shouldBe null
     actual.value() shouldBe "value".getBytes
     actual.topic() shouldBe "topic1"
     actual.kafkaPartition() shouldBe 1

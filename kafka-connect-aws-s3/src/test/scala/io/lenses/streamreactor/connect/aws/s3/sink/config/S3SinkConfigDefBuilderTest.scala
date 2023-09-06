@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.FileSize
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.Interval
 import org.mockito.MockitoSugar
+import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -28,7 +29,7 @@ import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matchers {
+class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matchers with EitherValues {
 
   val PrefixName = "streamReactorBackups"
   val TopicName  = "myTopic"
@@ -188,7 +189,12 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
-        value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false)))
+        value.map(_.dataStorage) should be(List(DataStorageSettings(envelope = true,
+                                                                    key      = true,
+                                                                    value    = true,
+                                                                    metadata = false,
+                                                                    headers  = false,
+        )))
     }
   }
 
@@ -200,7 +206,33 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
-        value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false)))
+        value.map(_.dataStorage) should be(List(DataStorageSettings(envelope = true,
+                                                                    key      = true,
+                                                                    value    = true,
+                                                                    metadata = false,
+                                                                    headers  = false,
+        )))
     }
   }
+
+  "S3SinkConfigDefBuilder" should "error when old BYTES settings used" in {
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES_VALUEONLY` WITH_FLUSH_COUNT = 1",
+    )
+
+    SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)).left.value.getMessage should startWith(
+      "Unsupported format - `BYTES_VALUEONLY`.  Please note",
+    )
+  }
+
+  "S3SinkConfigDefBuilder" should "now enforce single message files for BYTES" in {
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES` WITH_FLUSH_COUNT = 3",
+    )
+
+    SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)).left.value.getMessage should be(
+      "BYTES mode must be used in conjunction with the setting `WITH_FLUSH_COUNT = 1`",
+    )
+  }
+
 }

@@ -16,18 +16,15 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
-import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesStreamFileReader
-import io.lenses.streamreactor.connect.aws.s3.model.BytesOutputRowTest
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayInputStream
+import java.util.Objects
 
 class BytesFormatStreamFileReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
-
-  import BytesOutputRowTest._
 
   private val fileContents = "lemonOlivelemonOlive".getBytes
 
@@ -35,10 +32,9 @@ class BytesFormatStreamFileReaderTest extends AnyFlatSpec with MockitoSugar with
     val target = new BytesStreamFileReader(
       new ByteArrayInputStream(fileContents),
       fileContents.length.toLong,
-      BytesWriteMode.ValueOnly,
     )
 
-    checkRecord(target, BytesOutputRow(None, None, Array.empty[Byte], fileContents))
+    checkRecord(target, BytesOutputRow(fileContents))
 
     target.hasNext should be(false)
   }
@@ -48,7 +44,6 @@ class BytesFormatStreamFileReaderTest extends AnyFlatSpec with MockitoSugar with
     val target = new BytesStreamFileReader(
       new ByteArrayInputStream(Array[Byte]()),
       0,
-      BytesWriteMode.ValueOnly,
     )
 
     target.hasNext should be(false)
@@ -59,5 +54,8 @@ class BytesFormatStreamFileReaderTest extends AnyFlatSpec with MockitoSugar with
     val record = target.next()
     checkEqualsByteArrayValue(record, expectedOutputRow)
   }
+
+  private def checkEqualsByteArrayValue(res: BytesOutputRow, expected: BytesOutputRow): Any =
+    Objects.deepEquals(res.value, expected.value) should be(true)
 
 }

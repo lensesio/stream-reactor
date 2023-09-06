@@ -19,7 +19,6 @@ import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.formats.FormatWriterException
-import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
 import io.lenses.streamreactor.connect.aws.s3.sink.NonFatalS3SinkError
@@ -31,13 +30,6 @@ import java.io.File
 import scala.util.Try
 
 object S3FormatWriter {
-
-  def convertToBytesWriteMode(formatOptions: Set[FormatOptions]): BytesWriteMode = {
-    require(formatOptions.size <= 1, "Cannot have more than one format option provided.")
-    formatOptions
-      .headOption
-      .fold[BytesWriteMode](BytesWriteMode.ValueWithSize)(fo => BytesWriteMode.withName(fo.entryName))
-  }
 
   def apply(
     formatSelection: FormatSelection,
@@ -66,9 +58,8 @@ object S3FormatWriter {
       case AvroFormatSelection               => new AvroFormatWriter(outputStream)
       case TextFormatSelection(_)            => new TextFormatWriter(outputStream)
       case CsvFormatSelection(formatOptions) => new CsvFormatWriter(outputStream, formatOptions.contains(WithHeaders))
-      case BytesFormatSelection(formatOptions) =>
-        new BytesFormatWriter(outputStream, convertToBytesWriteMode(formatOptions))
-      case _ => throw FormatWriterException(s"Unsupported S3 format $formatInfo.format")
+      case BytesFormatSelection              => new BytesFormatWriter(outputStream)
+      case _                                 => throw FormatWriterException(s"Unsupported S3 format $formatInfo.format")
     }
 
 }
