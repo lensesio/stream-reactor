@@ -245,7 +245,7 @@ with_structure
     ;
 
 with_format
-    : FORMAT
+    : FIELD
     ;
 
 project_to

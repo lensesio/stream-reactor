@@ -46,7 +46,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
 
     val element = kcql.head
 
-    element.getStoredAs should be("`CSV`")
+    element.getStoredAs should be("CSV")
     element.getWithFlushCount should be(1)
     element.getWithPartitioner should be("Values")
     element.getPartitionBy.asScala.toSet should be(Set("_key"))
@@ -55,7 +55,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
 
   "S3SinkConfigDefBuilder" should "defaults data storage settings if not provided" in {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
     )
 
     SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {

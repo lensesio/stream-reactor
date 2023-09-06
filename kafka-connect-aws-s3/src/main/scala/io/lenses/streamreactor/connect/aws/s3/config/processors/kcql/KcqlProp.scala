@@ -38,7 +38,7 @@ object KcqlProp extends Enum[KcqlProp] {
 
   case object Target extends KcqlProp("target", k => fromString(k.getTarget))
 
-  case object Format extends KcqlProp("format", k => fromString(k.getStoredAs).map(_.replace("`", "")))
+  case object Format extends KcqlProp("format", k => fromString(k.getStoredAs))
 
   case object Partitioner extends KcqlProp("partitioner", k => fromString(k.getWithPartitioner))
 

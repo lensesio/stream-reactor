@@ -94,7 +94,7 @@ public class Kcql {
         return query;
     }
 
-    public void setQuery(String query){
+    public void setQuery(String query) {
         this.query = query;
     }
 
@@ -714,7 +714,7 @@ public class Kcql {
 
             @Override
             public void exitStoreas_type(ConnectorParser.Storeas_typeContext ctx) {
-                kcql.storedAs = ctx.getText();
+                kcql.storedAs = ctx.getText().replace("`", "");
             }
 
 
@@ -879,7 +879,18 @@ public class Kcql {
 
             @Override
             public void exitWith_format(ConnectorParser.With_formatContext ctx) {
-                kcql.formatType = FormatType.valueOf(ctx.getText().toUpperCase());
+                try {
+                    kcql.formatType = FormatType.valueOf(ctx.getText().toUpperCase());
+                } catch (Throwable t) {
+                    FormatType[] types = FormatType.values();
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(types[0].toString());
+                    for (int i = 1; i < types.length; ++i) {
+                        sb.append(",");
+                        sb.append(types[i].toString());
+                    }
+                    throw new IllegalArgumentException(("Invalid 'FORMAT'. Available values are : " + sb));
+                }
             }
 
             @Override

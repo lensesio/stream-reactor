@@ -442,7 +442,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"""insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` WITH_FLUSH_COUNT = 1""",
+          "connect.s3.kcql" -> s"""insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET WITH_FLUSH_COUNT = 1""",
         ),
       ).asJava
 
