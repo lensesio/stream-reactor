@@ -19,7 +19,7 @@ object Configuration {
     ConnectorConfiguration(
       "connector" + randomTestId,
       Map(
-        "connector.class"            -> ConfigValue("io.lenses.streamreactor.connect.aws.s3.sink.S3SinkConnector"),
+        "connector.class"            -> ConfigValue("io.lenses.streamreactor.connect.aws.s3.sink.S3SinkConnectorDeprecated"),
         "tasks.max"                  -> ConfigValue(1),
         "topics"                     -> ConfigValue(topicName),
         "connect.s3.aws.access.key"  -> ConfigValue(auth.identity),

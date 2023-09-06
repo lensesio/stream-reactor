@@ -23,11 +23,11 @@ import org.scalatest.matchers.should.Matchers
 import java.util
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-class S3SourceConnectorTest extends AnyFlatSpecLike with Matchers with OptionValues {
+class S3SourceConnectorDeprecatedTest extends AnyFlatSpecLike with Matchers with OptionValues {
 
   "taskConfigs" should "deliver correct number of task configs" in {
 
-    val sourceConnector = new S3SourceConnector()
+    val sourceConnector = new S3SourceConnectorDeprecated()
     val taskConfigs: util.List[util.Map[String, String]] = sourceConnector.taskConfigs(5)
 
     taskConfigs.get(0).asScala.get(TASK_INDEX).value shouldBe "0:5"

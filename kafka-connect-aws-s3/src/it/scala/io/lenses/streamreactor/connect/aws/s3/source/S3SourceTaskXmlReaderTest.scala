@@ -46,7 +46,7 @@ class S3SourceTaskXmlReaderTest extends S3ProxyContainerTest with AnyFlatSpecLik
 
   "task" should "extract from xml files" in {
 
-    val task = new S3SourceTask()
+    val task = new S3SourceTaskDeprecated()
 
     val props = DefaultProps
       .combine(

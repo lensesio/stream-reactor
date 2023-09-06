@@ -12,7 +12,7 @@ The source files may have been written by the Lenses.io S3 Sink or other produce
 An example configuration is provided:
 
     name=S3SourceConnectorParquet # this can be anything
-    connector.class=io.lenses.streamreactor.connect.aws.s3.source.S3SourceConnector
+    connector.class=io.lenses.streamreactor.connect.aws.s3.source.S3SourceConnectorDeprecated
     tasks.max=1
     connect.s3.kcql=insert into $TOPIC_NAME select * from $BUCKET_NAME:$PREFIX_NAME STOREAS `parquet`
     connect.s3.aws.secret.key=SECRET_KEY
