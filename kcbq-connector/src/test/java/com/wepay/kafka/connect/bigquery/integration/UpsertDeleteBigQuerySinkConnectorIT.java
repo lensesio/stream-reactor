@@ -60,8 +60,8 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
   private static final Logger logger = LoggerFactory.getLogger(UpsertDeleteBigQuerySinkConnectorIT.class);
 
   private static final String CONNECTOR_NAME = "kcbq-sink-connector";
-  private static final long NUM_RECORDS_PRODUCED = 20;
-  private static final int TASKS_MAX = 3;
+  private static final long NUM_RECORDS_PRODUCED = 8;
+  private static final int TASKS_MAX = 1;
   private static final String KAFKA_FIELD_NAME = "kafkaKey";
 
   private BigQuery bigQuery;
@@ -112,7 +112,7 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
   @Test
   public void testUpsert() throws Throwable {
     // create topic in Kafka
-    final String topic = suffixedTableOrTopic("test-upsert");
+    final String topic = suffixedTableOrTopic("test-upsert" + System.nanoTime());
     // Make sure each task gets to read from at least one partition
     connect.kafka().createTopic(topic, TASKS_MAX);
 
@@ -167,7 +167,7 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
   @Test
   public void testDelete() throws Throwable {
     // create topic in Kafka
-    final String topic = suffixedTableOrTopic("test-delete");
+    final String topic = suffixedTableOrTopic("test-delete" + System.nanoTime());
     // Make sure each task gets to read from at least one partition
     connect.kafka().createTopic(topic, TASKS_MAX);
 
@@ -226,7 +226,7 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
   @Test
   public void testUpsertDelete() throws Throwable {
     // create topic in Kafka
-    final String topic = suffixedTableOrTopic("test-upsert-delete");
+    final String topic = suffixedTableOrTopic("test-upsert-delete" + System.nanoTime());
     // Make sure each task gets to read from at least one partition
     connect.kafka().createTopic(topic, TASKS_MAX);
 

@@ -107,10 +107,6 @@
             <url>https://packages.confluent.io/maven/</url>
         </repository>
         <repository>
-            <id>jcenter</id>
-            <url>https://jcenter.bintray.com</url>
-        </repository>
-        <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
         </repository>
@@ -120,10 +116,6 @@
         <pluginRepository>
             <id>confluent</id>
             <url>https://packages.confluent.io/maven/</url>
-        </pluginRepository>
-        <pluginRepository>
-            <id>jcenter</id>
-            <url>https://jcenter.bintray.com</url>
         </pluginRepository>
         <pluginRepository>
             <id>jitpack.io</id>
@@ -370,6 +362,7 @@ under the License.
                             <id>embedded-integration-test</id>
                             <goals>
                                 <goal>integration-test</goal>
+                                <goal>verify</goal>
                             </goals>
                             <configuration>
                                 <groups>org.apache.kafka.test.IntegrationTest</groups>
