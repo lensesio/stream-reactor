@@ -10,6 +10,8 @@ import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.FileSize
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.Interval
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection.defaultPartitionSelection
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.{HierarchicalS3FileNamer, S3KeyNamer}
 import io.lenses.streamreactor.connect.aws.s3.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -30,7 +32,13 @@ class S3WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContaine
       commitPolicyFn    = _ => CommitPolicy(FileSize(5L), Interval(5.seconds), Count(5L)).asRight,
       bucketAndPrefixFn = _ => S3Location("bucketAndPath:location").asRight,
       fileNamingStrategyFn =
-        _ => new HierarchicalS3FileNamingStrategy(CsvFormatSelection(Set.empty), NoOpPaddingStrategy).asRight,
+        _ =>
+          new S3KeyNamer(
+            CsvFormatSelection(Set.empty),
+            NoOpPaddingStrategy,
+            defaultPartitionSelection,
+            HierarchicalS3FileNamer
+          ).asRight,
       stagingFilenameFn = (_, _) => new File("blah.csv").asRight,
       finalFilenameFn   = (_, _, _) => mock[S3Location].asRight,
       formatWriterFn    = (_, _) => mock[S3FormatWriter].asRight,

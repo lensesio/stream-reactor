@@ -17,13 +17,14 @@ package io.lenses.streamreactor.connect.aws.s3.sink.config
 import cats.syntax.all._
 import com.datamountaineer.kcql.Kcql
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.config.{ConnectorTaskId, DataStorageSettings, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MAX_INDEX_FILES
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.sink._
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.{HierarchicalS3FileNamer, PartitionedS3FileNamer, S3KeyNamer}
 
 import java.util
 import scala.jdk.CollectionConverters._
@@ -79,11 +80,13 @@ object SinkBucketOptions extends LazyLogging {
       for {
         formatSelection   <- FormatSelection.fromKcql(kcql)
         partitionSelection = PartitionSelection(kcql)
-        namingStrategy = partitionSelection match {
-          case Some(partSel) =>
-            new PartitionedS3FileNamingStrategy(formatSelection, config.getPaddingStrategy(), partSel)
-          case None => new HierarchicalS3FileNamingStrategy(formatSelection, config.getPaddingStrategy())
+
+        fileNamer = if (partitionSelection.isCustom) {
+          PartitionedS3FileNamer
+        } else {
+          HierarchicalS3FileNamer
         }
+        keyNamer = new S3KeyNamer(formatSelection, config.getPaddingStrategy(), partitionSelection, fileNamer)
         stagingArea <- LocalStagingArea(config)
         target      <- S3Location.splitAndValidate(kcql.getTarget, allowSlash = false)
         storageSettings <- DataStorageSettings.from(
@@ -97,7 +100,7 @@ object SinkBucketOptions extends LazyLogging {
           Option(kcql.getSource).filterNot(Set("*", "`*`").contains(_)),
           target,
           formatSelection    = formatSelection,
-          fileNamingStrategy = namingStrategy,
+          fileNamingStrategy = keyNamer,
           partitionSelection = partitionSelection,
           commitPolicy       = config.commitPolicy(kcql),
           localStagingArea   = stagingArea,
@@ -135,8 +138,8 @@ case class SinkBucketOptions(
   sourceTopic:        Option[String],
   bucketAndPrefix:    S3Location,
   formatSelection:    FormatSelection,
-  fileNamingStrategy: S3FileNamingStrategy,
-  partitionSelection: Option[PartitionSelection] = None,
+  fileNamingStrategy: S3KeyNamer,
+  partitionSelection: PartitionSelection,
   commitPolicy:       CommitPolicy               = CommitPolicy.Default,
   localStagingArea:   LocalStagingArea,
   dataStorage:        DataStorageSettings,

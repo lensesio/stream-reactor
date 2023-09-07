@@ -15,22 +15,15 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.seek
 
-import cats.implicits.catsSyntaxEitherId
-import cats.implicits.catsSyntaxOptionId
+import cats.implicits.{catsSyntaxEitherId, catsSyntaxOptionId}
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.Offset
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
-import io.lenses.streamreactor.connect.aws.s3.sink.NonFatalS3SinkError
-import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
+import io.lenses.streamreactor.connect.aws.s3.model.{Offset, Topic}
+import io.lenses.streamreactor.connect.aws.s3.sink.{FatalS3SinkError, NonFatalS3SinkError}
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
 import io.lenses.streamreactor.connect.aws.s3.storage._
-import org.mockito.ArgumentMatchers.any
-import org.mockito.ArgumentMatchers.anyString
-import org.mockito.ArgumentMatchers.{ eq => eqTo }
+import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
 import org.mockito.MockitoSugar
-import org.scalatest.BeforeAndAfter
-import org.scalatest.EitherValues
-import org.scalatest.OptionValues
+import org.scalatest.{BeforeAndAfter, EitherValues, OptionValues}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers._
 import software.amazon.awssdk.services.s3.model.S3Object
@@ -51,7 +44,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
 
   private val maxIndexes = 5
 
-  private val fileNamingStrategy = mock[S3FileNamingStrategy]
+  private val fileNamingStrategy = mock[S3KeyNamer]
 
   private val indexManager = new IndexManager(maxIndexes)
 

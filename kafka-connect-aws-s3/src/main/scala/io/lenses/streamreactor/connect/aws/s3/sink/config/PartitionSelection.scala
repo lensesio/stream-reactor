@@ -16,24 +16,32 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
 import com.datamountaineer.kcql.Kcql
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.Values
 
 case class PartitionSelection(
+  isCustom: Boolean,
   partitions:       Seq[PartitionField],
-  partitionDisplay: PartitionDisplay = PartitionDisplay.Values,
+  partitionDisplay: PartitionDisplay,
 )
-
 case object PartitionSelection {
 
-  def apply(kcql: Kcql): Option[PartitionSelection] = {
-    val partitions: Seq[PartitionField] = PartitionField(kcql)
-    if (partitions.isEmpty) None
-    else
-      Some(
-        PartitionSelection(
-          partitions,
-          PartitionDisplay(kcql),
-        ),
+  private val DefaultPartitionFields: Seq[PartitionField] = Seq(new TopicPartitionField, new PartitionPartitionField)
+
+  val defaultPartitionSelection: PartitionSelection = PartitionSelection(isCustom = false, DefaultPartitionFields, Values)
+
+
+  def apply(kcql: Kcql): PartitionSelection = {
+    val fields: Seq[PartitionField] = PartitionField(kcql)
+    if (fields.isEmpty) {
+      defaultPartitionSelection
+    } else {
+      PartitionSelection(
+        isCustom = true,
+        fields,
+        PartitionDisplay(kcql),
       )
+    }
+
   }
 
 }

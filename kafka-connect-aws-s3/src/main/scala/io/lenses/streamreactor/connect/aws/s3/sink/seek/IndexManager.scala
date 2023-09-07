@@ -22,8 +22,8 @@ import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
 import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.NonFatalS3SinkError
-import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
 import io.lenses.streamreactor.connect.aws.s3.storage.FileDeleteError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
@@ -135,7 +135,7 @@ class IndexManager(
     */
   def seek(
     topicPartition:     TopicPartition,
-    fileNamingStrategy: S3FileNamingStrategy,
+    fileNamingStrategy: S3KeyNamer,
     bucket:             String,
   ): Either[SinkError, Option[TopicPartitionOffset]] = {
     val indexLocation = IndexFilenames.indexForTopicPartition(topicPartition.topic.value, topicPartition.partition)
