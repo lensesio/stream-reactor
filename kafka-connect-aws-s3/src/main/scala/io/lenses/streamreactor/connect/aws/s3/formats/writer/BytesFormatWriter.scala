@@ -24,15 +24,23 @@ import scala.util.Try
 
 class BytesFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter with LazyLogging {
 
+  private var soiled = false
+
   override def write(messageDetail: MessageDetail): Either[Throwable, Unit] =
-    for {
-      value <- convertToBytes(messageDetail.value)
-      data   = value
-      _ <- Try {
-        outputStream.write(data)
-        outputStream.flush()
-      }.toEither
-    } yield ()
+    if (soiled) {
+      new IllegalStateException(
+        "Output stream already written to, can only write a single record for BYTES type.",
+      ).asLeft
+    } else {
+      soiled = true
+      for {
+        value <- convertToBytes(messageDetail.value)
+        _ <- Try {
+          outputStream.write(value)
+          outputStream.flush()
+        }.toEither
+      } yield ()
+    }
 
   private def convertToBytes(sinkData: SinkData): Either[Throwable, Array[Byte]] =
     sinkData match {

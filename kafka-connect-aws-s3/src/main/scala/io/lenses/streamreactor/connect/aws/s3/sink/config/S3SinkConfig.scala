@@ -114,7 +114,7 @@ object SinkBucketOptions extends LazyLogging {
       case BytesFormatSelection if commitPolicy.conditions.contains(Count(1L)) => ().asRight
       case BytesFormatSelection =>
         new IllegalArgumentException(
-          "BYTES mode must be used in conjunction with the setting `WITH_FLUSH_COUNT = 1`",
+          "FLUSH_COUNT > 1 is not allowed for BYTES. If you want to store N records as raw bytes use AVRO or PARQUET. If you are using BYTES but not specified a FLUSH_COUNT, then do so by adding WITH_FLUSH_COUNT = 1 to your KCQL.",
         ).asLeft
       case _ => ().asRight
     }

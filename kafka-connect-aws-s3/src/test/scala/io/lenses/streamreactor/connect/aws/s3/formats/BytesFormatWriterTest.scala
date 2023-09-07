@@ -22,12 +22,13 @@ import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData._
 import org.apache.commons.io.IOUtils
+import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.time.Instant
 
-class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
+class BytesFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   private val bytes:          Array[Byte]       = getPixelBytes
   private val byteArrayValue: ByteArraySinkData = ByteArraySinkData(bytes, None)
@@ -89,7 +90,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
   }
 
-  "convert" should "write multiple parts of an image and combine" in {
+  "convert" should "not be able to write multiple parts of an image and combine" in {
 
     val stream = classOf[BytesFormatWriter].getResourceAsStream("/streamreactor-logo.png")
     val bytes: Array[Byte] = IOUtils.toByteArray(stream)
@@ -104,7 +105,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
                                           topic,
                                           0,
                                           Offset(0),
-    ))
+    )) should be(Right(()))
     bytesFormatWriter.write(MessageDetail(NullSinkData(None),
                                           ByteArraySinkData(bytes2, None),
                                           Map.empty,
@@ -112,9 +113,12 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
                                           topic,
                                           0,
                                           Offset(0),
-    ))
-
-    outputStream.toByteArray should be(bytes)
+    )).left.value match {
+      case e: IllegalStateException =>
+        e.getMessage should be("Output stream already written to, can only write a single record for BYTES type.")
+      case _ => fail("Not failed")
+    }
+    outputStream.toByteArray should be(bytes1)
 
     bytesFormatWriter.complete()
   }

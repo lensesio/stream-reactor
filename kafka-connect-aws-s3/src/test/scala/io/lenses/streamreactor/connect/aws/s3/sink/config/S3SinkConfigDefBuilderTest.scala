@@ -230,8 +230,8 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES` WITH_FLUSH_COUNT = 3",
     )
 
-    SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)).left.value.getMessage should be(
-      "BYTES mode must be used in conjunction with the setting `WITH_FLUSH_COUNT = 1`",
+    SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)).left.value.getMessage should startWith(
+      "FLUSH_COUNT > 1 is not allowed for BYTES",
     )
   }
 

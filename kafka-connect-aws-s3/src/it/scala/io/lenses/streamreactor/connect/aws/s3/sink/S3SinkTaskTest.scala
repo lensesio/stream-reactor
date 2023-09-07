@@ -792,11 +792,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
     Try(task.start(props)) match {
       case Failure(exception) =>
-        exception.getMessage should startWith("BYTES mode must be used in conjunction")
+        exception.getMessage should startWith("FLUSH_COUNT > 1 is not allowed for BYTES")
       case Success(_) => fail("Exception expected")
     }
     Try(task.stop())
-
   }
 
   "S3SinkTask" should "write to bytes format" in {
@@ -826,6 +825,27 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
     remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.bytes") should be(bytes)
 
+  }
+
+  "S3SinkTask" should "prompt user of defaults for bytes format to specify a flush count" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES`",
+        ),
+      ).asJava
+
+    Try(task.start(props)) match {
+      case Failure(exception) =>
+        exception.getMessage should endWith(
+          "If you are using BYTES but not specified a FLUSH_COUNT, then do so by adding WITH_FLUSH_COUNT = 1 to your KCQL.",
+        )
+      case Success(_) => fail("Exception expected")
+    }
+    Try(task.stop())
   }
 
   "S3SinkTask" should "support header values for data partitioning" in {
