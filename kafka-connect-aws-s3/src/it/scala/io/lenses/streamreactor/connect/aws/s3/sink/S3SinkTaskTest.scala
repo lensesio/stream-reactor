@@ -55,6 +55,8 @@ import java.util
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.util.Failure
+import scala.util.Success
 import scala.util.Try
 
 class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with MockitoSugar with LazyLogging {
@@ -68,18 +70,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
   private val PrefixName = "streamReactorBackups"
   private val TopicName  = "myTopic"
 
-  private def DeprecatedProps = Map(
-    DEP_AWS_ACCESS_KEY              -> Identity,
-    DEP_AWS_SECRET_KEY              -> Credential,
-    DEP_AUTH_MODE                   -> AuthMode.Credentials.toString,
-    DEP_CUSTOM_ENDPOINT             -> uri(),
-    DEP_ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
-    "name"                          -> "s3SinkTaskBuildLocalTest",
-    AWS_REGION                      -> "eu-west-1",
-    TASK_INDEX                      -> "1:1",
-  )
-
-  private def DefaultProps = Map(
+  private def DefaultProps: Map[String, String] = Map(
     AWS_ACCESS_KEY              -> Identity,
     AWS_SECRET_KEY              -> Credential,
     AUTH_MODE                   -> AuthMode.Credentials.toString,
@@ -164,7 +155,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
     val task = new S3SinkTask()
 
-    val props = DeprecatedProps
+    val props = DefaultProps
       .combine(
         Map(
           "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_INTERVAL = 1",
@@ -788,22 +779,39 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "write to bytes format and combine files" in {
+  "S3SinkTask" should "writing to bytes format doesn't allow you to combine files" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES` WITH_FLUSH_COUNT = 2",
+        ),
+      ).asJava
+
+    Try(task.start(props)) match {
+      case Failure(exception) =>
+        exception.getMessage should startWith("FLUSH_COUNT > 1 is not allowed for BYTES")
+      case Success(_) => fail("Exception expected")
+    }
+    Try(task.stop())
+  }
+
+  "S3SinkTask" should "write to bytes format" in {
 
     val stream = classOf[BytesFormatWriter].getResourceAsStream("/streamreactor-logo.png")
     val bytes: Array[Byte] = IOUtils.toByteArray(stream)
-    val (bytes1, bytes2) = bytes.splitAt(bytes.length / 2)
 
     val textRecords = List(
-      new SinkRecord(TopicName, 1, null, null, null, bytes1, 0),
-      new SinkRecord(TopicName, 1, null, null, null, bytes2, 1),
+      new SinkRecord(TopicName, 1, null, null, null, bytes, 0),
     )
     val task = new S3SinkTask()
 
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES_ValueOnly` WITH_FLUSH_COUNT = 2",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES` WITH_FLUSH_COUNT = 1",
         ),
       ).asJava
 
@@ -815,9 +823,29 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(1)
 
-    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.bytes")
-    file1Bytes should be(bytes)
+    remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.bytes") should be(bytes)
 
+  }
+
+  "S3SinkTask" should "prompt user of defaults for bytes format to specify a flush count" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES`",
+        ),
+      ).asJava
+
+    Try(task.start(props)) match {
+      case Failure(exception) =>
+        exception.getMessage should endWith(
+          "If you are using BYTES but not specified a FLUSH_COUNT, then do so by adding WITH_FLUSH_COUNT = 1 to your KCQL.",
+        )
+      case Success(_) => fail("Exception expected")
+    }
+    Try(task.stop())
   }
 
   "S3SinkTask" should "support header values for data partitioning" in {

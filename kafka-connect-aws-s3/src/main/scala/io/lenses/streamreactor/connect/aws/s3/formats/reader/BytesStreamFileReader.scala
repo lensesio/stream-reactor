@@ -17,15 +17,13 @@ package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
 import com.google.common.io.ByteStreams
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
-import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
 
 import java.io.InputStream
 import scala.util.Try
 
 class BytesStreamFileReader(
-  input:          InputStream,
-  size:           Long,
-  bytesWriteMode: BytesWriteMode,
+  input: InputStream,
+  size:  Long,
 ) extends S3DataIterator[BytesOutputRow] {
 
   private var consumed: Boolean = false
@@ -34,7 +32,7 @@ class BytesStreamFileReader(
 
   override def next(): BytesOutputRow = {
     val fileAsBytes = ByteStreams.toByteArray(input)
-    val row         = bytesWriteMode.read(fileAsBytes)
+    val row         = BytesOutputRow(fileAsBytes)
     consumed = true
     row
   }

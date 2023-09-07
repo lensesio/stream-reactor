@@ -17,15 +17,13 @@ package io.lenses.streamreactor.connect.aws.s3.sink.config
 import cats.syntax.all._
 import com.datamountaineer.kcql.Kcql
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MAX_INDEX_FILES
+import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink._
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
 
 import java.util
 import scala.jdk.CollectionConverters._
@@ -91,7 +89,9 @@ object SinkBucketOptions extends LazyLogging {
         storageSettings <- DataStorageSettings.from(
           Option(kcql.getProperties).map(_.asScala.toMap).getOrElse(Map.empty),
         )
-        _ <- validateEnvelopeAndFormat(formatSelection, storageSettings)
+        _           <- validateEnvelopeAndFormat(formatSelection, storageSettings)
+        commitPolicy = config.commitPolicy(kcql)
+        _           <- validateCommitPolicyForBytesFormat(formatSelection, commitPolicy)
       } yield {
         SinkBucketOptions(
           Option(kcql.getSource).filterNot(Set("*", "`*`").contains(_)),
@@ -105,6 +105,19 @@ object SinkBucketOptions extends LazyLogging {
         )
       }
     }.toSeq.traverse(identity)
+
+  private def validateCommitPolicyForBytesFormat(
+    formatSelection: FormatSelection,
+    commitPolicy:    CommitPolicy,
+  ): Either[Throwable, Unit] =
+    formatSelection match {
+      case BytesFormatSelection if commitPolicy.conditions.contains(Count(1L)) => ().asRight
+      case BytesFormatSelection =>
+        new IllegalArgumentException(
+          "FLUSH_COUNT > 1 is not allowed for BYTES. If you want to store N records as raw bytes use AVRO or PARQUET. If you are using BYTES but not specified a FLUSH_COUNT, then do so by adding WITH_FLUSH_COUNT = 1 to your KCQL.",
+        ).asLeft
+      case _ => ().asRight
+    }
 
   private def validateEnvelopeAndFormat(
     format:   FormatSelection,

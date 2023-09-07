@@ -44,11 +44,11 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
         ) should be(Right(true))
     }
 
-  def totalFileLengthBytes(format: Format, formatOption: Option[FormatOptions]): Int = {
+  def totalFileLengthBytes(format: Format): Int = {
     1 to 5 map {
       fileNum: Int =>
         fileLengthBytes(
-          s"/${format.entryName.toLowerCase}${generateFormatString(formatOption)}/$fileNum.${format.entryName.toLowerCase}",
+          s"/${format.entryName.toLowerCase}/$fileNum.${format.entryName.toLowerCase}",
         )
     }
   }.sum

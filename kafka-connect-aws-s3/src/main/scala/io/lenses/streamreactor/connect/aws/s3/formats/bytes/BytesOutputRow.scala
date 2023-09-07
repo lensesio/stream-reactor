@@ -15,29 +15,10 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.bytes
 
-import scala.collection.mutable.ListBuffer
-
+/**
+  * Now that we only read/write the value for a BYTES record, this is little more than a wrapper for a byte array.
+  * @param value the record value byte array
+  */
 case class BytesOutputRow(
-  keySize:   Option[Long],
-  valueSize: Option[Long],
-  key:       Array[Byte],
-  value:     Array[Byte],
-  bytesRead: Option[Long] = None,
-) {
-
-  def toByteArray: Array[Byte] = {
-    val buffer = new ListBuffer[Byte]()
-
-    keySize.foreach {
-      buffer ++= ByteArrayUtils.longToByteArray(_)
-    }
-    valueSize.foreach {
-      buffer ++= ByteArrayUtils.longToByteArray(_)
-    }
-
-    if (key.nonEmpty) buffer ++= key
-    if (value.nonEmpty) buffer ++= value
-    buffer.toArray
-  }
-
-}
+  value: Array[Byte],
+)
