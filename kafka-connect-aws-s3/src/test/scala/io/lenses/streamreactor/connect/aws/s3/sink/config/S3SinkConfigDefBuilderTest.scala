@@ -221,7 +221,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     )
 
     SinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)).left.value.getMessage should startWith(
-      "Unsupported format - `BYTES_VALUEONLY`.  Please note",
+      "Unsupported format - BYTES_VALUEONLY.  Please note",
     )
   }
 
