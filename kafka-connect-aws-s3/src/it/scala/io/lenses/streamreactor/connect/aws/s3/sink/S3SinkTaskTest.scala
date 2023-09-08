@@ -176,8 +176,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    val bckPath =  listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/")
-    bckPath.size should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(1)
     remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}{"name":"tom","title":null,"salary":395.44}""",
     )

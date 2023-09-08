@@ -33,7 +33,8 @@ import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection.defaultPartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.sink.naming.{HierarchicalS3FileNamer, S3KeyNamer}
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.HierarchicalS3FileNamer
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.avro.generic.GenericRecord
@@ -66,12 +67,12 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
       SinkBucketOptions(
         TopicName.some,
         bucketAndPrefix,
-        commitPolicy       = CommitPolicy(Count(2)),
-        fileNamingStrategy = new S3KeyNamer(
+        commitPolicy = CommitPolicy(Count(2)),
+        keyNamer = new S3KeyNamer(
           ParquetFormatSelection,
-          NoOpPaddingStrategy,
+          NoOpPaddingStrategy.padString,
           defaultPartitionSelection,
-          HierarchicalS3FileNamer
+          HierarchicalS3FileNamer,
         ),
         formatSelection    = ParquetFormatSelection,
         localStagingArea   = LocalStagingArea(localRoot),

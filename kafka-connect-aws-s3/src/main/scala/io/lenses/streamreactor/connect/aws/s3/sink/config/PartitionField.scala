@@ -23,6 +23,8 @@ import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 sealed trait PartitionField {
   def valuePrefixDisplay(): String
+
+  def supportsPadding: Boolean = false
 }
 
 object PartitionField {
@@ -97,6 +99,8 @@ case class TopicPartitionField() extends PartitionField {
 
 case class PartitionPartitionField() extends PartitionField {
   override def valuePrefixDisplay(): String = "partition"
+
+  override def supportsPadding: Boolean = true
 }
 
 case class DatePartitionField(format: String) extends PartitionField {

@@ -18,14 +18,22 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config._
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.{MessageDetail, NullSinkData, SinkData, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
+import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.{CommitPolicy, Count}
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection.defaultPartitionSelection
-import io.lenses.streamreactor.connect.aws.s3.sink.config.{LocalStagingArea, OffsetSeekerOptions, S3SinkConfig, SinkBucketOptions}
-import io.lenses.streamreactor.connect.aws.s3.sink.naming.{HierarchicalS3FileNamer, S3KeyNamer}
+import io.lenses.streamreactor.connect.aws.s3.sink.config.LocalStagingArea
+import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
+import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
+import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.HierarchicalS3FileNamer
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
@@ -56,13 +64,13 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         SinkBucketOptions(
           TopicName.some,
           bucketAndPrefix,
-          commitPolicy       = CommitPolicy(Count(1)),
-          formatSelection    = JsonFormatSelection,
-          fileNamingStrategy = new S3KeyNamer(
+          commitPolicy    = CommitPolicy(Count(1)),
+          formatSelection = JsonFormatSelection,
+          keyNamer = new S3KeyNamer(
             JsonFormatSelection,
-            NoOpPaddingStrategy,
+            NoOpPaddingStrategy.padString,
             defaultPartitionSelection,
-            HierarchicalS3FileNamer
+            HierarchicalS3FileNamer,
           ),
           localStagingArea   = LocalStagingArea(localRoot),
           partitionSelection = defaultPartitionSelection,
@@ -106,11 +114,11 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           bucketAndPrefix,
           commitPolicy    = CommitPolicy(Count(3)),
           formatSelection = JsonFormatSelection,
-          fileNamingStrategy = new S3KeyNamer(
+          keyNamer = new S3KeyNamer(
             JsonFormatSelection,
-            NoOpPaddingStrategy,
+            NoOpPaddingStrategy.padString,
             defaultPartitionSelection,
-            HierarchicalS3FileNamer
+            HierarchicalS3FileNamer,
           ),
           localStagingArea   = LocalStagingArea(localRoot),
           partitionSelection = defaultPartitionSelection,

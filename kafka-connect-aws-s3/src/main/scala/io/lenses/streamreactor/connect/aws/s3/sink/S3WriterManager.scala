@@ -28,7 +28,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionField
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.aws.s3.sink.seek._
 import io.lenses.streamreactor.connect.aws.s3.sink.transformers.TopicsTransformers
 import io.lenses.streamreactor.connect.aws.s3.sink.writer.S3Writer
@@ -53,14 +53,14 @@ case class MapKey(topicPartition: TopicPartition, partitionValues: immutable.Map
   * sinks, since file handles cannot be safely shared without considerable overhead.
   */
 class S3WriterManager(
-                       commitPolicyFn:       TopicPartition => Either[SinkError, CommitPolicy],
-                       bucketAndPrefixFn:    TopicPartition => Either[SinkError, S3Location],
-                       fileNamingStrategyFn: TopicPartition => Either[SinkError, S3KeyNamer],
-                       stagingFilenameFn:    (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
-                       finalFilenameFn:      (TopicPartition, Map[PartitionField, String], Offset) => Either[SinkError, S3Location],
-                       formatWriterFn:       (TopicPartition, File) => Either[SinkError, S3FormatWriter],
-                       indexManager:         IndexManager,
-                       transformerF:         MessageDetail => Either[RuntimeException, MessageDetail],
+  commitPolicyFn:    TopicPartition => Either[SinkError, CommitPolicy],
+  bucketAndPrefixFn: TopicPartition => Either[SinkError, S3Location],
+  keyNamerFn:        TopicPartition => Either[SinkError, KeyNamer],
+  stagingFilenameFn: (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
+  finalFilenameFn:   (TopicPartition, Map[PartitionField, String], Offset) => Either[SinkError, S3Location],
+  formatWriterFn:    (TopicPartition, File) => Either[SinkError, S3FormatWriter],
+  indexManager:      IndexManager,
+  transformerF:      MessageDetail => Either[RuntimeException, MessageDetail],
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
@@ -146,9 +146,9 @@ class S3WriterManager(
   ): Either[SinkError, Option[TopicPartitionOffset]] = {
     logger.debug(s"[{}] seekOffsetsForTopicPartition {}", connectorTaskId.show, topicPartition)
     for {
-      fileNamingStrategy <- fileNamingStrategyFn(topicPartition)
-      bucketAndPrefix    <- bucketAndPrefixFn(topicPartition)
-      offset             <- indexManager.seek(topicPartition, fileNamingStrategy, bucketAndPrefix.bucket)
+      keyNamer        <- keyNamerFn(topicPartition)
+      bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
+      offset          <- indexManager.seek(topicPartition, keyNamer, bucketAndPrefix.bucket)
     } yield offset
   }
 
@@ -203,11 +203,11 @@ class S3WriterManager(
     }
 
   private def processPartitionValues(
-    messageDetail:      MessageDetail,
-    fileNamingStrategy: S3KeyNamer,
-    topicPartition:     TopicPartition,
+    messageDetail:  MessageDetail,
+    keyNamer:       KeyNamer,
+    topicPartition: TopicPartition,
   ): Either[SinkError, immutable.Map[PartitionField, String]] =
-    fileNamingStrategy.processPartitionValues(messageDetail, topicPartition)
+    keyNamer.processPartitionValues(messageDetail, topicPartition)
 
   /**
     * Returns a writer that can write records for a particular topic and partition.
@@ -215,11 +215,11 @@ class S3WriterManager(
     */
   private def writer(topicPartition: TopicPartition, messageDetail: MessageDetail): Either[SinkError, S3Writer] =
     for {
-      bucketAndPrefix    <- bucketAndPrefixFn(topicPartition)
-      fileNamingStrategy <- fileNamingStrategyFn(topicPartition)
-      partitionValues    <- processPartitionValues(messageDetail, fileNamingStrategy, topicPartition)
-      key                 = MapKey(topicPartition, partitionValues)
-      maybeWriter         = writers.get(key)
+      bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
+      keyNamer        <- keyNamerFn(topicPartition)
+      partitionValues <- processPartitionValues(messageDetail, keyNamer, topicPartition)
+      key              = MapKey(topicPartition, partitionValues)
+      maybeWriter      = writers.get(key)
       writer <- maybeWriter match {
         case Some(w) => w.asRight
         case None =>
@@ -317,9 +317,9 @@ object S3WriterManager extends LazyLogging {
         case None                => fatalErrorTopicNotConfigured(topicPartition).asLeft
       }
 
-    val fileNamingStrategyFn: TopicPartition => Either[SinkError, S3KeyNamer] = topicPartition =>
+    val keyNamerFn: TopicPartition => Either[SinkError, KeyNamer] = topicPartition =>
       bucketOptsForTopic(config, topicPartition.topic) match {
-        case Some(bucketOptions) => bucketOptions.fileNamingStrategy.asRight
+        case Some(bucketOptions) => bucketOptions.keyNamer.asRight
         case None                => fatalErrorTopicNotConfigured(topicPartition).asLeft
       }
 
@@ -328,11 +328,11 @@ object S3WriterManager extends LazyLogging {
         bucketOptsForTopic(config, topicPartition.topic) match {
           case Some(bucketOptions) =>
             for {
-              fileNamingStrategy <- fileNamingStrategyFn(topicPartition)
-              stagingFilename <- fileNamingStrategy.stagingFile(bucketOptions.localStagingArea.dir,
-                                                                bucketOptions.bucketAndPrefix,
-                                                                topicPartition,
-                                                                partitionValues,
+              keyNamer <- keyNamerFn(topicPartition)
+              stagingFilename <- keyNamer.stagingFile(bucketOptions.localStagingArea.dir,
+                                                      bucketOptions.bucketAndPrefix,
+                                                      topicPartition,
+                                                      partitionValues,
               )
             } yield stagingFilename
           case None => fatalErrorTopicNotConfigured(topicPartition).asLeft
@@ -346,10 +346,10 @@ object S3WriterManager extends LazyLogging {
       bucketOptsForTopic(config, topicPartition.topic) match {
         case Some(bucketOptions) =>
           for {
-            fileNamingStrategy <- fileNamingStrategyFn(topicPartition)
-            stagingFilename <- fileNamingStrategy.finalFilename(bucketOptions.bucketAndPrefix,
-                                                                topicPartition.withOffset(offset),
-                                                                partitionValues,
+            keyNamer <- keyNamerFn(topicPartition)
+            stagingFilename <- keyNamer.finalFilename(bucketOptions.bucketAndPrefix,
+                                                      topicPartition.withOffset(offset),
+                                                      partitionValues,
             )
           } yield stagingFilename
         case None => fatalErrorTopicNotConfigured(topicPartition).asLeft
@@ -375,7 +375,7 @@ object S3WriterManager extends LazyLogging {
     new S3WriterManager(
       commitPolicyFn,
       bucketAndPrefixFn,
-      fileNamingStrategyFn,
+      keyNamerFn,
       stagingFilenameFn,
       finalFilenameFn,
       formatWriterFn,

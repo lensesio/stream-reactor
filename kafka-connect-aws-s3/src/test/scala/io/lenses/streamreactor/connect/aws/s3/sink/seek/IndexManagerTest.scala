@@ -15,15 +15,22 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.seek
 
-import cats.implicits.{catsSyntaxEitherId, catsSyntaxOptionId}
+import cats.implicits.catsSyntaxEitherId
+import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.{Offset, Topic}
-import io.lenses.streamreactor.connect.aws.s3.sink.{FatalS3SinkError, NonFatalS3SinkError}
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.aws.s3.model.Topic
+import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
+import io.lenses.streamreactor.connect.aws.s3.sink.NonFatalS3SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
 import io.lenses.streamreactor.connect.aws.s3.storage._
-import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
+import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.ArgumentMatchers.{ eq => eqTo }
 import org.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfter, EitherValues, OptionValues}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.EitherValues
+import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers._
 import software.amazon.awssdk.services.s3.model.S3Object
@@ -44,12 +51,12 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
 
   private val maxIndexes = 5
 
-  private val fileNamingStrategy = mock[S3KeyNamer]
+  private val keyNamer = mock[S3KeyNamer]
 
   private val indexManager = new IndexManager(maxIndexes)
 
   after {
-    reset(storageInterface, fileNamingStrategy)
+    reset(storageInterface, keyNamer)
   }
 
   "write" should "write an index for a topic/partition/offset" in {
@@ -245,7 +252,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
       ).some.asRight,
     )
     when(storageInterface.deleteFiles(eqTo(bucketName), any[List[String]])).thenReturn(().asRight)
-    val seekRes = indexManager.seek(topicPartition, fileNamingStrategy, bucketName)
+    val seekRes = indexManager.seek(topicPartition, keyNamer, bucketName)
     seekRes.value should be(Some(topicPartition.withOffset(Offset(70))))
 
     val seekInOrder = inOrder(storageInterface)
@@ -284,7 +291,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     when(storageInterface.pathExists(any[String], any[String])).thenReturn(true.asRight)
     when(storageInterface.deleteFiles(eqTo(bucketName), any[List[String]])).thenReturn(().asRight)
 
-    val seekRes    = indexManager.seek(topicPartition, fileNamingStrategy, bucketName)
+    val seekRes    = indexManager.seek(topicPartition, keyNamer, bucketName)
     val capturedEx = seekRes.left.value
     capturedEx shouldBe a[FatalS3SinkError]
     capturedEx.message() should startWith("Too many index files have accumulated")

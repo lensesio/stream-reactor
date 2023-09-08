@@ -19,7 +19,7 @@ import com.datamountaineer.kcql.Kcql
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.Values
 
 case class PartitionSelection(
-  isCustom: Boolean,
+  isCustom:         Boolean,
   partitions:       Seq[PartitionField],
   partitionDisplay: PartitionDisplay,
 )
@@ -27,8 +27,8 @@ case object PartitionSelection {
 
   private val DefaultPartitionFields: Seq[PartitionField] = Seq(new TopicPartitionField, new PartitionPartitionField)
 
-  val defaultPartitionSelection: PartitionSelection = PartitionSelection(isCustom = false, DefaultPartitionFields, Values)
-
+  val defaultPartitionSelection: PartitionSelection =
+    PartitionSelection(isCustom = false, DefaultPartitionFields, Values)
 
   def apply(kcql: Kcql): PartitionSelection = {
     val fields: Seq[PartitionField] = PartitionField(kcql)

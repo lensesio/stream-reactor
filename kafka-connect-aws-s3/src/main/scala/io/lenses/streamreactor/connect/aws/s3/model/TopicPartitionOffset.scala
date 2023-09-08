@@ -24,6 +24,9 @@ case class Topic(value: String) extends AnyVal {
 
 object Offset {
 
+  // Define an implicit conversion from Long to Offset
+  implicit def longToOffset(value: Long): Offset = Offset(value)
+
   implicit def orderingByOffsetValue[A <: Offset]: Ordering[A] =
     Ordering.by(_.value)
 
@@ -45,5 +48,5 @@ case class TopicPartition(topic: Topic, partition: Int) {
 case class TopicPartitionOffset(topic: Topic, partition: Int, offset: Offset) {
   def toTopicPartition: TopicPartition = TopicPartition(topic, partition)
 
-  def toTopicPartitionOffsetTuple = (toTopicPartition, offset)
+  def toTopicPartitionOffsetTuple: (TopicPartition, Offset) = (toTopicPartition, offset)
 }
