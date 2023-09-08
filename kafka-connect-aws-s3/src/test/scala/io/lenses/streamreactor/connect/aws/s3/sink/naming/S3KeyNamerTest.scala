@@ -61,7 +61,7 @@ class S3KeyNamerTest extends AnyFunSuite with Matchers with OptionValues with Ei
 
     val fullPath     = result.value.getPath.replace(stagingDirectory.toString, "")
     val (path, uuid) = fullPath.splitAt(fullPath.length - 36)
-    path shouldEqual s"/prefix/$TopicName/$Partition/json/"
+    path shouldEqual s"/prefix/$TopicName/00$Partition/json/"
     UUID.fromString(uuid)
   }
 
@@ -69,7 +69,7 @@ class S3KeyNamerTest extends AnyFunSuite with Matchers with OptionValues with Ei
 
     val result = s3KeyNamer.finalFilename(bucketAndPrefix, topicPartition, partitionValues)
 
-    result.value.path.value shouldEqual s"prefix/$TopicName/$Partition/0$Offset.json"
+    result.value.path.value shouldEqual s"prefix/$TopicName/00$Partition/0$Offset.json"
   }
 
 }
