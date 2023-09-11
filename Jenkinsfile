@@ -31,5 +31,5 @@ common {
   publish = false
   downStreamValidate = false
   secret_file_list = getVaultSecretsList()
-  timeoutHours = 3
+  timeoutHours = 2
 }

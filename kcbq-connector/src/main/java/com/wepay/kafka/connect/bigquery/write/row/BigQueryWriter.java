@@ -24,7 +24,6 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.wepay.kafka.connect.bigquery.ErrantRecordHandler;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
-import com.wepay.kafka.connect.bigquery.exception.BigQueryErrorResponses;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;

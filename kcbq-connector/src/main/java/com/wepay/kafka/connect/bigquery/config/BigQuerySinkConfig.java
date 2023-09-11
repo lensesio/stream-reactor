@@ -329,29 +329,6 @@ public class BigQuerySinkConfig extends AbstractConfig {
       + "tables, and periodic merge flushes. Row-matching will be performed based on the contents " 
       + "of record keys.";
 
-  public static final String USE_STORAGE_WRITE_API_CONFIG = "useStorageWriteApi";
-
-  private static final ConfigDef.Type USE_STORAGE_WRITE_API_TYPE = ConfigDef.Type.BOOLEAN;
-  public static final boolean USE_STORAGE_WRITE_API_DEFAULT = false;
-  private static final ConfigDef.Importance USE_STORAGE_WRITE_API_IMPORTANCE = ConfigDef.Importance.MEDIUM;
-  private static final String USE_STORAGE_WRITE_API_DOC =
-          "Use Google's New Storage Write API for data streaming. Not available for upsert/delete mode";
-
-  public static final String ENABLE_BATCH_MODE_CONFIG = "enableBatchMode";
-  private static final ConfigDef.Type ENABLE_BATCH_MODE_TYPE = ConfigDef.Type.BOOLEAN;
-  public static final boolean ENABLE_BATCH_MODE_DEFAULT = false;
-  private static final ConfigDef.Importance ENABLE_BATCH_MODE_IMPORTANCE = ConfigDef.Importance.LOW;
-  private static final String ENABLE_BATCH_MODE_DOC = "Use Google's New Storage Write API with batch mode";
-
-  public static final String COMMIT_INTERVAL_SEC_CONFIG = "commitInterval";
-  private static final ConfigDef.Type COMMIT_INTERVAL_SEC_TYPE = ConfigDef.Type.INT;
-  private static final Integer COMMIT_INTERVAL_SEC_DEFAULT = 60;
-
-  private static final ConfigDef.Validator COMMIT_INTERVAL_VALIDATOR = ConfigDef.Range.between(60, 14400); // currently allows 1 min -> 4 hours
-  private static final ConfigDef.Importance COMMIT_INTERVAL_SEC_IMPORTANCE = ConfigDef.Importance.LOW;
-  private static final String COMMIT_INTERVAL_SEC_DOC =
-          "The interval, in seconds, in which to attempt to commit streamed records.";
-
   public static final String DELETE_ENABLED_CONFIG =                    "deleteEnabled";
   private static final ConfigDef.Type DELETE_ENABLED_TYPE =             ConfigDef.Type.BOOLEAN;
   public static final boolean DELETE_ENABLED_DEFAULT =                  false;
@@ -824,6 +801,11 @@ public class BigQuerySinkConfig extends AbstractConfig {
             BIGQUERY_CLUSTERING_FIELD_NAMES_VALIDATOR,
             BIGQUERY_CLUSTERING_FIELD_NAMES_IMPORTANCE,
             BIGQUERY_CLUSTERING_FIELD_NAMES_DOC
+        ).defineInternal(
+            CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_CONFIG,
+            CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_TYPE,
+            CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_DEFAULT,
+            CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_IMPORTANCE
         ).define(
             TIME_PARTITIONING_TYPE_CONFIG,
             TIME_PARTITIONING_TYPE_TYPE,
@@ -861,25 +843,11 @@ public class BigQuerySinkConfig extends AbstractConfig {
             BIGQUERY_PARTITION_EXPIRATION_VALIDATOR,
             BIGQUERY_PARTITION_EXPIRATION_IMPORTANCE,
             BIGQUERY_PARTITION_EXPIRATION_DOC
-        ).define(
-            USE_STORAGE_WRITE_API_CONFIG,
-            USE_STORAGE_WRITE_API_TYPE,
-            USE_STORAGE_WRITE_API_DEFAULT,
-            USE_STORAGE_WRITE_API_IMPORTANCE,
-            USE_STORAGE_WRITE_API_DOC
-        ).define(
-            ENABLE_BATCH_MODE_CONFIG,
-            ENABLE_BATCH_MODE_TYPE,
-            ENABLE_BATCH_MODE_DEFAULT,
-            ENABLE_BATCH_MODE_IMPORTANCE,
-            ENABLE_BATCH_MODE_DOC
-        ).define(
-            COMMIT_INTERVAL_SEC_CONFIG,
-            COMMIT_INTERVAL_SEC_TYPE,
-            COMMIT_INTERVAL_SEC_DEFAULT,
-            COMMIT_INTERVAL_VALIDATOR,
-            COMMIT_INTERVAL_SEC_IMPORTANCE,
-            COMMIT_INTERVAL_SEC_DOC
+        ).defineInternal(
+                    CONNECTOR_RUNTIME_PROVIDER_CONFIG,
+                    CONNECTOR_RUNTIME_PROVIDER_TYPE,
+                    CONNECTOR_RUNTIME_PROVIDER_DEFAULT,
+                    CONNECTOR_RUNTIME_PROVIDER_IMPORTANCE
         ).define(
             MAX_RETRIES_CONFIG,
             MAX_RETRIES_TYPE,
@@ -892,16 +860,6 @@ public class BigQuerySinkConfig extends AbstractConfig {
             ENABLE_RETRIES_TYPE,
             ENABLE_RETRIES_DEFAULT,
             ENABLE_RETRIES_IMPORTANCE
-        ).defineInternal(
-            CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_CONFIG,
-            CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_TYPE,
-            CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_DEFAULT,
-            CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_IMPORTANCE
-        ).defineInternal(
-            CONNECTOR_RUNTIME_PROVIDER_CONFIG,
-            CONNECTOR_RUNTIME_PROVIDER_TYPE,
-            CONNECTOR_RUNTIME_PROVIDER_DEFAULT,
-            CONNECTOR_RUNTIME_PROVIDER_IMPORTANCE
         );
   }
 
@@ -915,12 +873,9 @@ public class BigQuerySinkConfig extends AbstractConfig {
     // checking for those tables that the credentials are already valid.
     MULTI_PROPERTY_VALIDATIONS.add(new CredentialsValidator.BigQueryCredentialsValidator());
     MULTI_PROPERTY_VALIDATIONS.add(new CredentialsValidator.GcsCredentialsValidator());
-    MULTI_PROPERTY_VALIDATIONS.add(new CredentialsValidator.BigQueryStorageWriteApiCredentialsValidator());
     MULTI_PROPERTY_VALIDATIONS.add(new GcsBucketValidator());
     MULTI_PROPERTY_VALIDATIONS.add(new PartitioningModeValidator());
     MULTI_PROPERTY_VALIDATIONS.add(new PartitioningTypeValidator());
-    MULTI_PROPERTY_VALIDATIONS.add(new StorageWriteApiValidator());
-    MULTI_PROPERTY_VALIDATIONS.add(new StorageWriteApiValidator.StorageWriteApiBatchValidator());
     MULTI_PROPERTY_VALIDATIONS.add(new UpsertDeleteValidator.UpsertValidator());
     MULTI_PROPERTY_VALIDATIONS.add(new UpsertDeleteValidator.DeleteValidator());
   }
@@ -1004,11 +959,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
    * @return a {@link RecordConverter} for BigQuery.
    */
   public RecordConverter<Map<String, Object>> getRecordConverter() {
-    return new BigQueryRecordConverter(
-            getBoolean(CONVERT_DOUBLE_SPECIAL_VALUES_CONFIG),
-            getBoolean(CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_CONFIG),
-            getBoolean(USE_STORAGE_WRITE_API_CONFIG)
-    );
+    return new BigQueryRecordConverter(getBoolean(CONVERT_DOUBLE_SPECIAL_VALUES_CONFIG), getBoolean(CONVERT_DEBEZIUM_TIMESTAMP_TO_INTEGER_CONFIG));
   }
 
   /**

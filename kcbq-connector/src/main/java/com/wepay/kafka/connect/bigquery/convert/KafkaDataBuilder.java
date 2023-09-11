@@ -72,16 +72,4 @@ public class KafkaDataBuilder {
         return kafkaData;
     }
 
-    /**
-     * Construct a map of Kafka Data record for sending to Storage Write API
-     *
-     * @param kafkaConnectRecord Kafka sink record to build kafka data from.
-     * @return HashMap which contains the values of kafka topic, partition, offset, and insertTime in microseconds.
-     */
-    public static Map<String, Object> buildKafkaDataRecordStorageApi(SinkRecord kafkaConnectRecord) {
-        Map<String, Object> kafkaData = buildKafkaDataRecord(kafkaConnectRecord);
-        kafkaData.put(KAFKA_DATA_INSERT_TIME_FIELD_NAME, System.currentTimeMillis() * 1000);
-        return kafkaData;
-    }
-
 }

@@ -23,7 +23,6 @@ package com.wepay.kafka.connect.bigquery.convert;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -39,38 +38,24 @@ public class KafkaDataConverterTest {
     private static final String kafkaDataPartitionName = "partition";
     private static final String kafkaDataOffsetName = "offset";
     private static final String kafkaDataInsertTimeName = "insertTime";
-    Map<String, Object> expectedKafkaDataFields = new HashMap<>();
-    private static final String kafkaDataTopicValue = "testTopic";
-    private static final int kafkaDataPartitionValue = 101;
-    private static final long kafkaDataOffsetValue = 1337;
-
-    @Before
-    public void setup() {
-        expectedKafkaDataFields.put(kafkaDataTopicName, kafkaDataTopicValue);
-        expectedKafkaDataFields.put(kafkaDataPartitionName, kafkaDataPartitionValue);
-        expectedKafkaDataFields.put(kafkaDataOffsetName, kafkaDataOffsetValue);
-    }
 
     @Test
     public void testBuildKafkaDataRecord() {
+
+        final String kafkaDataTopicValue = "testTopic";
+        final int kafkaDataPartitionValue = 101;
+        final long kafkaDataOffsetValue = 1337;
+
+        Map<String, Object> expectedKafkaDataFields = new HashMap<>();
+        expectedKafkaDataFields.put(kafkaDataTopicName, kafkaDataTopicValue);
+        expectedKafkaDataFields.put(kafkaDataPartitionName, kafkaDataPartitionValue);
+        expectedKafkaDataFields.put(kafkaDataOffsetName, kafkaDataOffsetValue);
+
         SinkRecord record = new SinkRecord(kafkaDataTopicValue, kafkaDataPartitionValue, null, null, null, null, kafkaDataOffsetValue);
         Map<String, Object> actualKafkaDataFields = KafkaDataBuilder.buildKafkaDataRecord(record);
 
         assertTrue(actualKafkaDataFields.containsKey(kafkaDataInsertTimeName));
         assertTrue(actualKafkaDataFields.get(kafkaDataInsertTimeName) instanceof Double);
-
-        actualKafkaDataFields.remove(kafkaDataInsertTimeName);
-
-        assertEquals(expectedKafkaDataFields, actualKafkaDataFields);
-    }
-
-    @Test
-    public void testBuildKafkaDataRecordStorageWriteApi() {
-        SinkRecord record = new SinkRecord(kafkaDataTopicValue, kafkaDataPartitionValue, null, null, null, null, kafkaDataOffsetValue);
-        Map<String, Object> actualKafkaDataFields = KafkaDataBuilder.buildKafkaDataRecordStorageApi(record);
-
-        assertTrue(actualKafkaDataFields.containsKey(kafkaDataInsertTimeName));
-        assertTrue(actualKafkaDataFields.get(kafkaDataInsertTimeName) instanceof Long);
 
         actualKafkaDataFields.remove(kafkaDataInsertTimeName);
 
