@@ -1,7 +1,6 @@
-package com.wepay.kafka.connect.bigquery.exception;
+package com.wepay.kafka.connect.bigquery.write.row;
 
 import com.google.cloud.bigquery.BigQueryException;
-import com.wepay.kafka.connect.bigquery.exception.BigQueryErrorResponses;
 import org.junit.Test;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;

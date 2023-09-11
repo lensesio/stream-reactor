@@ -295,16 +295,4 @@ public class BigQuerySinkConfigTest {
 
     new BigQuerySinkConfig(badConfigProperties);
   }
-
-  @Test(expected = ConfigException.class)
-  public void testInvalidCommitInterval() {
-    Map<String, String> badConfigProperties = propertiesFactory.getProperties();
-
-    badConfigProperties.put(
-            BigQuerySinkConfig.COMMIT_INTERVAL_SEC_CONFIG,
-            "0"
-    );
-
-    new BigQuerySinkConfig(badConfigProperties);
-  }
 }

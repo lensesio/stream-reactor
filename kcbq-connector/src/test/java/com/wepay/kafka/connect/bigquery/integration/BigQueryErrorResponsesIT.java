@@ -33,7 +33,7 @@ import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.wepay.kafka.connect.bigquery.integration.utils.TableClearer;
-import com.wepay.kafka.connect.bigquery.exception.BigQueryErrorResponses;
+import com.wepay.kafka.connect.bigquery.write.row.BigQueryErrorResponses;
 import org.apache.kafka.test.TestUtils;
 import org.junit.Before;
 import org.junit.Test;

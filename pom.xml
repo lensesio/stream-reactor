@@ -36,9 +36,12 @@
         <java.version>8</java.version>
         <com.google.guava.version>32.0.1-jre</com.google.guava.version>
         <com.google.re2j.version>1.7</com.google.re2j.version>
-        <com.google.auto.value.version>1.10.2</com.google.auto.value.version>
         <confluent.version>6.0.10</confluent.version>
         <debezium.version>0.6.2</debezium.version>
+        <google.auth.version>0.21.1</google.auth.version>
+        <google.cloud.version>2.10.9</google.cloud.version>
+        <google.cloud.storage.version>1.113.4</google.cloud.storage.version>
+        <google.protobuf.version>3.19.6</google.protobuf.version>
         <jackson.version>2.10.2</jackson.version>
         <kafka.version>2.6.0</kafka.version>
         <kafka.scala.version>2.12</kafka.scala.version>
@@ -52,7 +55,6 @@
         <checkstyle.plugin.version>2.15</checkstyle.plugin.version>
         <checkstyle.version>6.18</checkstyle.version>
         <compiler.plugin.version>3.8.1</compiler.plugin.version>
-        <google.cloud.bom.version>26.14.0</google.cloud.bom.version>
         <jacoco.plugin.version>0.8.5</jacoco.plugin.version>
         <kafka.connect.plugin.version>0.11.1</kafka.connect.plugin.version>
         <release.plugin.version>2.5.3</release.plugin.version>
@@ -123,19 +125,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>com.google.cloud</groupId>
-                <artifactId>libraries-bom</artifactId>
-                <version>${google.cloud.bom.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.auto.value</groupId>
-                        <artifactId>auto-value</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
             <!-- Child projects -->
             <dependency>
                 <groupId>com.wepay.kcbq</groupId>
@@ -155,6 +144,22 @@
                 <artifactId>kafka-clients</artifactId>
                 <version>${kafka.version}</version>
                 <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>google-cloud-bigquery</artifactId>
+                <version>${google.cloud.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>google-cloud-storage</artifactId>
+                <version>${google.cloud.storage.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.auth</groupId>
+                <artifactId>google-auth-library-oauth2-http</artifactId>
+                <version>${google.auth.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -183,9 +188,9 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-            <groupId>com.google.auto.value</groupId>
-            <artifactId>auto-value</artifactId>
-            <version>${com.google.auto.value.version}</version>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${google.protobuf.version}</version>
             </dependency>
             <dependency>
                 <groupId>junit</groupId>
@@ -274,20 +279,6 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-    <dependencies>
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-bigquerystorage</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-bigquery</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-storage</artifactId>
-        </dependency>
-    </dependencies>
 
     <build>
         <plugins>

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.wepay.kafka.connect.bigquery.exception;
+package com.wepay.kafka.connect.bigquery.write.row;
 
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;

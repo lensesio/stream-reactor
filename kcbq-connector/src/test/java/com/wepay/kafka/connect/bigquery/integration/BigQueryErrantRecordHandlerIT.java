@@ -5,7 +5,6 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardSQLTypeName;
-import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.integration.utils.BigQueryTestUtils;
 import com.wepay.kafka.connect.bigquery.integration.utils.SchemaRegistryTestUtils;
 import io.confluent.connect.avro.AvroConverter;
@@ -73,195 +72,6 @@ public class BigQueryErrantRecordHandlerIT extends BaseConnectorIT {
       schemaRegistry.stop();
     }
   }
-
-  @Test
-  public void testRecordsSentToDlqOnInvalidArgumentAvroStorageApi() throws Exception {
-    final String topic = "test-dlq-feature-avro" + System.nanoTime();
-    final String dlqTopic = "dlq_topic"+ System.nanoTime();
-
-    createTopicAndTable(topic);
-    Map<String, String> props = connectorAvroProps(topic, dlqTopic);
-    props.put(BigQuerySinkConfig.USE_STORAGE_WRITE_API_CONFIG, "true");
-    // start a sink connector
-    connect.configureConnector(CONNECTOR_NAME, props);
-
-    // wait for tasks to spin up
-    waitForConnectorToStart(CONNECTOR_NAME, 1);
-
-    // Instantiate the converters we'll use to send records to the connector
-    converter = new AvroConverter();
-    converter.configure(Collections.singletonMap(
-                    SCHEMA_REGISTRY_URL_CONFIG,schemaRegistryUrl
-            ), false
-    );
-
-    List<SchemaAndValue> records = getRecords();
-    //generating invalid records which leads to INVALID_ARGUMENT error on data ingestion
-    schemaRegistry.produceRecords(converter, records, topic);
-
-    // Check records show up in dlq topic
-    verify(dlqTopic, 120, (int) NUM_RECORDS_PRODUCED);
-  }
-
-  @Test
-  public void testRecordsSentToDlqOnInvalidArgumentStorageApi() throws InterruptedException {
-    final String topic = suffixedTableOrTopic("test-dlq-feature" + System.nanoTime());
-    final String dlqTopic = "dlq_topic"+ System.nanoTime();
-
-    createTopicAndTable(topic);
-    Map<String, String> props = connectorProps(topic, dlqTopic);
-    props.put(BigQuerySinkConfig.USE_STORAGE_WRITE_API_CONFIG, "true");
-    // start a sink connector
-    connect.configureConnector(CONNECTOR_NAME, props);
-
-    // wait for tasks to spin up
-    waitForConnectorToStart(CONNECTOR_NAME, 1);
-
-    // Instantiate the converters we'll use to send records to the connector
-    Converter keyConverter = converter(true);
-    Converter valueConverter = converter(false);
-
-    // Send Invalid records to BigQuery
-    for (int i = 0; i < NUM_RECORDS_PRODUCED; i++) {
-      String kafkaKey = key(keyConverter, topic, i);
-      String kafkaValue = value(valueConverter, topic, i);
-      logger.debug("Sending message with key '{}' and value '{}' to topic '{}'", kafkaKey, kafkaValue, topic);
-      connect.kafka().produce(topic, kafkaKey, kafkaValue);
-    }
-
-    // Check records show up in dlq topic
-    verify(dlqTopic, 120, (int) NUM_RECORDS_PRODUCED);
-  }
-
-  @Test
-  public void testRecordsSentToDlqOnRecordConversionErrorStorageApi() throws InterruptedException {
-    final String topic = suffixedTableOrTopic("test-dlq-feature" + System.nanoTime());
-    final String dlqTopic = "dlq_topic"+ System.nanoTime();
-    // Make sure each task gets to read from at least one partition
-    connect.kafka().createTopic(topic, 1);
-
-    Map<String, String> props = connectorProps(topic, dlqTopic);
-    props.put(KEY_CONVERTER_CLASS_CONFIG, StringConverter.class.getName());
-    props.put("key.converter.schemas.enable", "false");
-    props.put("value.converter.schemas.enable", "false");
-    props.put(BigQuerySinkConfig.USE_STORAGE_WRITE_API_CONFIG, "true");
-    // start a sink connector
-    connect.configureConnector(CONNECTOR_NAME, props);
-
-    // wait for tasks to spin up
-    waitForConnectorToStart(CONNECTOR_NAME, 1);
-
-    // Send Invalid records to Kafka
-    for (int i = 0; i < NUM_RECORDS_PRODUCED; i++) {
-      String kafkaKey = "key-" + i;
-      String kafkaValue = "\"f1\":1";
-      logger.debug("Sending message with key '{}' and value '{}' to topic '{}'", kafkaKey, kafkaValue, topic);
-      connect.kafka().produce(topic, kafkaKey, kafkaValue);
-    }
-
-    // Check records show up in dlq topic
-    ConsumerRecords<byte[], byte[]> records = connect.kafka().consume(
-            (int) NUM_RECORDS_PRODUCED,
-            Duration.ofSeconds(120).toMillis(), dlqTopic);
-
-    Assert.assertEquals(NUM_RECORDS_PRODUCED, records.count());
-  }
-
-  @Test
-  public void testRecordsSentToDlqOnInvalidArgumentAvroBatchStorageApi() throws Exception {
-    final String topic = "test-dlq-feature-avro" + System.nanoTime();
-    final String dlqTopic = "dlq_topic"+ System.nanoTime();
-    int recordCount = 2;
-
-    createTopicAndTable(topic);
-    Map<String, String> props = connectorAvroProps(topic, dlqTopic);
-    props.put(BigQuerySinkConfig.USE_STORAGE_WRITE_API_CONFIG, "true");
-    props.put(BigQuerySinkConfig.ENABLE_BATCH_MODE_CONFIG, "true");
-    // start a sink connector
-    connect.configureConnector(CONNECTOR_NAME, props);
-
-    // wait for tasks to spin up
-    waitForConnectorToStart(CONNECTOR_NAME, 1);
-
-    // Instantiate the converters we'll use to send records to the connector
-    converter = new AvroConverter();
-    converter.configure(Collections.singletonMap(
-                    SCHEMA_REGISTRY_URL_CONFIG,schemaRegistryUrl
-            ), false
-    );
-
-    List<SchemaAndValue> records = getRecords(recordCount);
-    schemaRegistry.produceRecords(converter, records, topic);
-
-    // Check records show up in dlq topic
-    verify(dlqTopic, 180, recordCount);
-  }
-
-  @Test
-  public void testRecordsSentToDlqOnInvalidArgumentBatchStorageApi() throws InterruptedException {
-    final String topic = suffixedTableOrTopic("test-dlq-feature" + System.nanoTime());
-    final String dlqTopic = "dlq_topic"+ System.nanoTime();
-    int recordCount = 2;
-    createTopicAndTable(topic);
-    Map<String, String> props = connectorProps(topic, dlqTopic);
-    props.put(BigQuerySinkConfig.USE_STORAGE_WRITE_API_CONFIG, "true");
-    props.put(BigQuerySinkConfig.ENABLE_BATCH_MODE_CONFIG, "true");
-    // start a sink connector
-    connect.configureConnector(CONNECTOR_NAME, props);
-
-    // wait for tasks to spin up
-    waitForConnectorToStart(CONNECTOR_NAME, 1);
-
-    // Instantiate the converters we'll use to send records to the connector
-    Converter keyConverter = converter(true);
-    Converter valueConverter = converter(false);
-
-    // Send Invalid records to BigQuery
-    for (int i = 0; i < recordCount; i++) {
-      String kafkaKey = key(keyConverter, topic, i);
-      String kafkaValue = value(valueConverter, topic, i);
-      logger.debug("Sending message with key '{}' and value '{}' to topic '{}'", kafkaKey, kafkaValue, topic);
-      connect.kafka().produce(topic, kafkaKey, kafkaValue);
-    }
-
-    // Check records show up in dlq topic
-    verify(dlqTopic, 180, recordCount);
-  }
-
-  @Test
-  public void testRecordsSentToDlqOnRecordConversionErrorBatchStorageApi() throws InterruptedException {
-    final String topic = suffixedTableOrTopic("test-dlq-feature" + System.nanoTime());
-    final String dlqTopic = "dlq_topic"+ System.nanoTime();
-    int recordCount = 2;
-    createTopicAndTable(topic);
-    Map<String, String> props = connectorProps(topic, dlqTopic);
-    props.put(KEY_CONVERTER_CLASS_CONFIG, StringConverter.class.getName());
-    props.put("key.converter.schemas.enable", "false");
-    props.put("value.converter.schemas.enable", "false");
-    props.put(BigQuerySinkConfig.USE_STORAGE_WRITE_API_CONFIG, "true");
-    props.put(BigQuerySinkConfig.ENABLE_BATCH_MODE_CONFIG, "true");
-    // start a sink connector
-    connect.configureConnector(CONNECTOR_NAME, props);
-
-    // wait for tasks to spin up
-    waitForConnectorToStart(CONNECTOR_NAME, 1);
-
-    // Send Invalid records to Kafka
-    for (int i = 0; i < recordCount; i++) {
-      String kafkaKey = "key-" + i;
-      String kafkaValue = "\"f1\":1";
-      logger.debug("Sending message with key '{}' and value '{}' to topic '{}'", kafkaKey, kafkaValue, topic);
-      connect.kafka().produce(topic, kafkaKey, kafkaValue);
-    }
-
-    // Check records show up in dlq topic
-    ConsumerRecords<byte[], byte[]> records = connect.kafka().consume(
-            recordCount,
-            Duration.ofSeconds(180).toMillis(), dlqTopic);
-
-    Assert.assertEquals(recordCount, records.count());
-  }
-
 
   @Test
   public void testRecordsSentToDlqOnInvalidReasonAvro() throws Exception {
@@ -333,6 +143,7 @@ public class BigQueryErrantRecordHandlerIT extends BaseConnectorIT {
     props.put(KEY_CONVERTER_CLASS_CONFIG, StringConverter.class.getName());
     props.put("key.converter.schemas.enable", "false");
     props.put("value.converter.schemas.enable", "false");
+
     // start a sink connector
     connect.configureConnector(CONNECTOR_NAME, props);
 
