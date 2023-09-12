@@ -15,9 +15,15 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
+import cats.implicits.catsSyntaxOptionId
+import cats.implicits.none
 import com.datamountaineer.kcql.Kcql
 import enumeratum.Enum
 import enumeratum.EnumEntry
+import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.PartitionIncludeKeys
+import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEntry
+import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum
+import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 
 import scala.collection.immutable
 
@@ -31,11 +37,21 @@ object PartitionDisplay extends Enum[PartitionDisplay] {
 
   case object Values extends PartitionDisplay
 
-  def apply(kcql: Kcql): PartitionDisplay =
-    Option(kcql.getWithPartitioner).fold[PartitionDisplay](KeysAndValues) {
-      PartitionDisplay
-        .withNameInsensitiveOption(_)
-        .getOrElse(KeysAndValues)
+  def apply(
+    kcql:    Kcql,
+    props:   KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type],
+    default: PartitionDisplay,
+  ): PartitionDisplay = fromProps(props).orElse(fromKcql(kcql)).getOrElse(default)
+
+  private def fromProps(props: KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type]): Option[PartitionDisplay] =
+    props.getOptionalBoolean(PartitionIncludeKeys) match {
+      case Some(true)  => KeysAndValues.some
+      case Some(false) => Values.some
+      case None        => none
     }
+
+  def fromKcql(
+    kcql: Kcql,
+  ): Option[PartitionDisplay] = Option(kcql.getWithPartitioner).flatMap(PartitionDisplay.withNameInsensitiveOption)
 
 }

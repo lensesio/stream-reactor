@@ -18,6 +18,8 @@ package io.lenses.streamreactor.connect.aws.s3.config
 import cats.implicits.catsSyntaxEitherId
 import com.datamountaineer.kcql.Kcql
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
+import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEntry
+import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum
 import io.lenses.streamreactor.connect.aws.s3.formats.reader._
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.converters._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName._
@@ -25,7 +27,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.ReadTextMode
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3SourcePropsSchema
+import io.lenses.streamreactor.connect.config.kcqlprops.KcqlPropsSchema
 
 import java.io.InputStream
 import java.time.Instant
@@ -55,14 +57,13 @@ sealed trait FormatSelection {
 }
 case object FormatSelection {
 
-  private val schema = S3SourcePropsSchema.schema
-
   def fromKcql(
-    kcql: Kcql,
+    kcql:            Kcql,
+    kcqlPropsSchema: KcqlPropsSchema[S3PropsKeyEntry, S3PropsKeyEnum.type],
   ): Either[Throwable, FormatSelection] =
     Option(kcql.getStoredAs) match {
       case Some(storedAs) =>
-        fromString(storedAs, () => ReadTextMode(schema.readProps(kcql.getProperties.asScala.toMap)))
+        fromString(storedAs, () => ReadTextMode(kcqlPropsSchema.readProps(kcql.getProperties.asScala.toMap)))
       case None =>
         Right(JsonFormatSelection)
     }

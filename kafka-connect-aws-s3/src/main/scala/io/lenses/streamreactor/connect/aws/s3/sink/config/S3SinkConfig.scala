@@ -28,6 +28,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
 import io.lenses.streamreactor.connect.aws.s3.sink.config.kcqlprops.S3SinkProps
+import io.lenses.streamreactor.connect.aws.s3.sink.config.kcqlprops.S3SinkPropsSchema
 import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.DefaultPaddingService
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.HierarchicalS3FileNamer
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.KeyNamer
@@ -86,9 +87,9 @@ object SinkBucketOptions extends LazyLogging {
   ): Either[Throwable, Seq[SinkBucketOptions]] =
     config.getKCQL.map { kcql: Kcql =>
       for {
-        formatSelection   <- FormatSelection.fromKcql(kcql)
-        partitionSelection = PartitionSelection(kcql)
+        formatSelection   <- FormatSelection.fromKcql(kcql, S3SinkPropsSchema.schema)
         sinkProps          = S3SinkProps.fromKcql(kcql)
+        partitionSelection = PartitionSelection(kcql, sinkProps)
         paddingService     = DefaultPaddingService.fromConfig(config, sinkProps)
 
         fileNamer = if (partitionSelection.isCustom) {

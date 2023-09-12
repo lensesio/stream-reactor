@@ -20,6 +20,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.Pa
 import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.PaddingFields
 import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.PaddingLength
 import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.PaddingSelection
+import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.PartitionIncludeKeys
 import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.StoreEnvelope
 import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.StoreEnvelopeHeaders
 import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.StoreEnvelopeKey
@@ -39,6 +40,7 @@ object S3SinkPropsSchema {
     PaddingLength         -> IntPropsSchema,
     PaddingFields         -> SetPropsSchema[String](),
     PaddingSelection      -> EnumPropsSchema(PaddingType),
+    PartitionIncludeKeys  -> BooleanPropsSchema,
     StoreEnvelope         -> BooleanPropsSchema,
     StoreEnvelopeKey      -> BooleanPropsSchema,
     StoreEnvelopeHeaders  -> BooleanPropsSchema,

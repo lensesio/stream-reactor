@@ -30,6 +30,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection.defaultPartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink.config.LocalStagingArea
 import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.Values
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.HierarchicalS3FileNamer
@@ -68,7 +69,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           formatSelection = JsonFormatSelection,
           keyNamer = new S3KeyNamer(
             JsonFormatSelection,
-            defaultPartitionSelection,
+            defaultPartitionSelection(Values),
             new HierarchicalS3FileNamer(
               identity[String],
               JsonFormatSelection.extension,
@@ -79,7 +80,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             ),
           ),
           localStagingArea   = LocalStagingArea(localRoot),
-          partitionSelection = defaultPartitionSelection,
+          partitionSelection = defaultPartitionSelection(Values),
           dataStorage        = DataStorageSettings.disabled,
         ), // JsonS3Format
       ),
@@ -122,7 +123,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           formatSelection = JsonFormatSelection,
           keyNamer = new S3KeyNamer(
             AvroFormatSelection,
-            defaultPartitionSelection,
+            defaultPartitionSelection(Values),
             new HierarchicalS3FileNamer(
               identity[String],
               JsonFormatSelection.extension,
@@ -133,7 +134,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
             ),
           ),
           localStagingArea   = LocalStagingArea(localRoot),
-          partitionSelection = defaultPartitionSelection,
+          partitionSelection = defaultPartitionSelection(Values),
           dataStorage        = DataStorageSettings.disabled,
         ),
       ),

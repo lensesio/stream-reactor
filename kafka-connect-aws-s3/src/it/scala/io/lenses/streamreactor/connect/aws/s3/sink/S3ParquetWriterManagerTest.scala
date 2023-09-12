@@ -31,6 +31,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection.defaultPartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink.config.LocalStagingArea
 import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.Values
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.HierarchicalS3FileNamer
@@ -70,7 +71,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         commitPolicy = CommitPolicy(Count(2)),
         keyNamer = new S3KeyNamer(
           ParquetFormatSelection,
-          defaultPartitionSelection,
+          defaultPartitionSelection(Values),
           new HierarchicalS3FileNamer(
             identity[String],
             ParquetFormatSelection.extension,
@@ -82,7 +83,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         ),
         formatSelection    = ParquetFormatSelection,
         localStagingArea   = LocalStagingArea(localRoot),
-        partitionSelection = defaultPartitionSelection,
+        partitionSelection = defaultPartitionSelection(Values),
         dataStorage        = DataStorageSettings.disabled,
       ),
     ),

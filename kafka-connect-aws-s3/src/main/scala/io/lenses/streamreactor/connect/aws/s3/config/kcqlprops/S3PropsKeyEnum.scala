@@ -53,4 +53,5 @@ object S3PropsKeyEnum extends Enum[S3PropsKeyEntry] {
 
   case object PaddingSelection extends S3PropsKeyEntry("padding.default.type")
 
+  case object PartitionIncludeKeys extends S3PropsKeyEntry("partition.include.keys")
 }

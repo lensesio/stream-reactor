@@ -25,6 +25,8 @@ import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink.config.TopicPartitionField
 import io.lenses.streamreactor.connect.aws.s3.sink.LeftPadPaddingStrategy
 import io.lenses.streamreactor.connect.aws.s3.sink.PaddingStrategy
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.Values
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection.defaultPartitionSelection
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.MockitoSugar
 import org.scalatest.funsuite.AnyFunSuite
@@ -39,7 +41,8 @@ class S3KeyNamerTest extends AnyFunSuite with Matchers with OptionValues with Ei
 
   private val formatSelection:    FormatSelection    = JsonFormatSelection
   private val paddingStrategy:    PaddingStrategy    = LeftPadPaddingStrategy(3, '0')
-  private val partitionSelection: PartitionSelection = PartitionSelection.defaultPartitionSelection
+  private val partitionSelection: PartitionSelection = defaultPartitionSelection(Values)
+
   private val fileNamer: S3FileNamer =
     new HierarchicalS3FileNamer(paddingStrategy.padString, JsonFormatSelection.extension)
   private val bucketAndPrefix = S3Location("my-bucket", Some("prefix"))
