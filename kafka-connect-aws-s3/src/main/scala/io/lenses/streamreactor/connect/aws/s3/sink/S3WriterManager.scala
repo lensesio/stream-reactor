@@ -148,7 +148,7 @@ class S3WriterManager(
     for {
       keyNamer        <- keyNamerFn(topicPartition)
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
-      offset          <- indexManager.seek(topicPartition, keyNamer, bucketAndPrefix.bucket)
+      offset          <- indexManager.seek(topicPartition, bucketAndPrefix.bucket)
     } yield offset
   }
 

@@ -2,7 +2,6 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.CsvFormatSelection
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
@@ -10,8 +9,6 @@ import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.FileSize
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.Interval
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection.defaultPartitionSelection
-import io.lenses.streamreactor.connect.aws.s3.sink.naming.HierarchicalS3FileNamer
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
 import io.lenses.streamreactor.connect.aws.s3.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
@@ -28,18 +25,13 @@ class S3WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContaine
 
   private val topicPartition = Topic("topic").withPartition(10)
 
+  private val s3KeyNamer = mock[S3KeyNamer]
   "S3WriterManager" should "return empty map when no offset or metadata writers can be found" in {
     val wm = new S3WriterManager(
       commitPolicyFn    = _ => CommitPolicy(FileSize(5L), Interval(5.seconds), Count(5L)).asRight,
       bucketAndPrefixFn = _ => S3Location("bucketAndPath:location").asRight,
       keyNamerFn =
-        _ =>
-          new S3KeyNamer(
-            CsvFormatSelection(Set.empty),
-            NoOpPaddingStrategy.padString,
-            defaultPartitionSelection,
-            HierarchicalS3FileNamer,
-          ).asRight,
+        _ => s3KeyNamer.asRight,
       stagingFilenameFn = (_, _) => new File("blah.csv").asRight,
       finalFilenameFn   = (_, _, _) => mock[S3Location].asRight,
       formatWriterFn    = (_, _) => mock[S3FormatWriter].asRight,

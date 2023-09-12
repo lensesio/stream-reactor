@@ -68,9 +68,15 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           formatSelection = JsonFormatSelection,
           keyNamer = new S3KeyNamer(
             JsonFormatSelection,
-            NoOpPaddingStrategy.padString,
             defaultPartitionSelection,
-            HierarchicalS3FileNamer,
+            new HierarchicalS3FileNamer(
+              identity[String],
+              JsonFormatSelection.extension,
+            ),
+            Map[String, String => String](
+              "topic"     -> identity[String],
+              "partition" -> identity[String],
+            ),
           ),
           localStagingArea   = LocalStagingArea(localRoot),
           partitionSelection = defaultPartitionSelection,
@@ -115,10 +121,16 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           commitPolicy    = CommitPolicy(Count(3)),
           formatSelection = JsonFormatSelection,
           keyNamer = new S3KeyNamer(
-            JsonFormatSelection,
-            NoOpPaddingStrategy.padString,
+            AvroFormatSelection,
             defaultPartitionSelection,
-            HierarchicalS3FileNamer,
+            new HierarchicalS3FileNamer(
+              identity[String],
+              JsonFormatSelection.extension,
+            ),
+            Map[String, String => String](
+              "topic"     -> identity[String],
+              "partition" -> identity[String],
+            ),
           ),
           localStagingArea   = LocalStagingArea(localRoot),
           partitionSelection = defaultPartitionSelection,

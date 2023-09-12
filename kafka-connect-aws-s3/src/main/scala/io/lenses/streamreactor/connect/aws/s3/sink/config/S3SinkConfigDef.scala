@@ -29,6 +29,7 @@ import org.apache.kafka.common.config.ConfigDef.Type
 import java.util
 import scala.jdk.CollectionConverters._
 import S3ConfigSettings._
+import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingStrategySettings
 
 object S3SinkConfigDef {
 

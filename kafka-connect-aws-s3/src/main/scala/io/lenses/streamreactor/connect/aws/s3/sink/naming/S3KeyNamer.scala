@@ -38,11 +38,28 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
+object S3KeyNamer {
+
+  def apply(
+    formatSelection:    FormatSelection,
+    partitionSelection: PartitionSelection,
+    fileNamer:          S3FileNamer,
+    padderProviderFn:   String => String => String,
+  ): S3KeyNamer =
+    new S3KeyNamer(
+      formatSelection,
+      partitionSelection,
+      fileNamer,
+      partitionSelection.partitions.collect {
+        case pf if pf.supportsPadding => pf.valuePrefixDisplay() -> padderProviderFn(pf.valuePrefixDisplay())
+      }.toMap,
+    )
+}
 class S3KeyNamer(
   formatSelection:    FormatSelection,
-  fnPad:              String => String,
   partitionSelection: PartitionSelection,
   fileNamer:          S3FileNamer,
+  paddingFns:         Map[String, String => String],
 ) extends KeyNamer {
 
   private val DefaultPrefix = "streamreactor"
@@ -72,9 +89,10 @@ class S3KeyNamer(
     partitionSelection.partitions.map {
       (partition: PartitionField) =>
         partitionValues.get(partition) match {
-          case Some(partVal) if partition.supportsPadding => partitionValuePrefix(partition) + fnPad(partVal)
-          case Some(partVal)                              => partitionValuePrefix(partition) + partVal
-          case None                                       => "[missing]"
+          case Some(partVal) if partition.supportsPadding =>
+            partitionValuePrefix(partition) + paddingFns(partition.valuePrefixDisplay())(partVal)
+          case Some(partVal) => partitionValuePrefix(partition) + partVal
+          case None          => "[missing]"
         }
     }
       .mkString("/")
@@ -89,7 +107,7 @@ class S3KeyNamer(
   ): Either[FatalS3SinkError, S3Location] =
     Try(
       bucketAndPrefix.withPath(
-        s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${fileNamer.fileName(fnPad, formatSelection.extension, topicPartitionOffset)}",
+        s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${fileNamer.fileName(topicPartitionOffset)}",
       ),
     ).toEither.left.map(ex => FatalS3SinkError(ex.getMessage, topicPartitionOffset.toTopicPartition))
 
@@ -127,7 +145,8 @@ class S3KeyNamer(
           getPartitionByWholeKeyValue(messageDetail.key, topicPartition).map(partition -> _)
         case partition @ TopicPartitionField() => (partition -> topicPartition.topic.value).asRight[SinkError]
         case partition @ PartitionPartitionField() =>
-          (partition -> fnPad(topicPartition.partition.toString)).asRight[SinkError]
+          val partitionPadFn = paddingFns("partition")
+          (partition -> partitionPadFn(topicPartition.partition.toString)).asRight[SinkError]
         case partition @ DatePartitionField(_) =>
           messageDetail.timestamp match {
             case Some(value) => (partition -> partition.formatter.format(value)).asRight[SinkError]

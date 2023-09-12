@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.config.kcqlprops
 import cats.implicits.catsSyntaxOptionId
 import enumeratum._
 
+import scala.reflect.ClassTag
 import scala.util.Try
 
 object KcqlProperties {
@@ -49,6 +50,12 @@ case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
       i <- Try(value.toInt).toOption
     } yield i
 
+  def getOptionalChar(key: U): Option[Char] =
+    for {
+      value: Char <- map.get(key).filter(_.length == 1).flatMap(_.toCharArray.headOption)
+      _:     PropsSchema <- schema.schema.get(key).filter(_ == CharPropsSchema)
+    } yield value
+
   def getOptionalBoolean(key: U): Option[Boolean] =
     for {
       value:  String <- map.get(key)
@@ -59,6 +66,14 @@ case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
       }
       b <- Try(value.toBoolean).toOption
     } yield b
+
+  def getOptionalSet[V](key: U)(implicit converter: String => V, ct: ClassTag[V]): Option[Set[V]] =
+    map.get(key) match {
+      case Some(value) if schema.schema.get(key).contains(SetPropsSchema()) =>
+        val elements = value.split(',').map(converter).toSet
+        Some(elements)
+      case _ => None
+    }
 
   /*
   PKE - props enum (contains the prop keys)

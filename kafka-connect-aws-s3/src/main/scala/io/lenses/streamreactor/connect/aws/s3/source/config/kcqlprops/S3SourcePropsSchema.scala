@@ -15,7 +15,9 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops
 
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEnum._
+import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEntry
+import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum
+import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum._
 import io.lenses.streamreactor.connect.config.kcqlprops.BooleanPropsSchema
 import io.lenses.streamreactor.connect.config.kcqlprops.EnumPropsSchema
 import io.lenses.streamreactor.connect.config.kcqlprops.IntPropsSchema
@@ -23,24 +25,20 @@ import io.lenses.streamreactor.connect.config.kcqlprops.KcqlPropsSchema
 import io.lenses.streamreactor.connect.config.kcqlprops.PropsSchema
 import io.lenses.streamreactor.connect.config.kcqlprops.StringPropsSchema
 
-object S3PropsSchema {
+object S3SourcePropsSchema {
 
-  private val keys = Map[S3PropsKeyEntry, PropsSchema](
-    ReadTextMode          -> EnumPropsSchema(ReadTextModeEnum),
-    ReadRegex             -> StringPropsSchema,
-    ReadStartTag          -> StringPropsSchema,
-    ReadEndTag            -> StringPropsSchema,
-    ReadStartLine         -> StringPropsSchema,
-    ReadEndLine           -> StringPropsSchema,
-    BufferSize            -> IntPropsSchema,
-    ReadTrimLine          -> BooleanPropsSchema,
-    StoreEnvelope         -> BooleanPropsSchema,
-    StoreEnvelopeKey      -> BooleanPropsSchema,
-    StoreEnvelopeHeaders  -> BooleanPropsSchema,
-    StoreEnvelopeValue    -> BooleanPropsSchema,
-    StoreEnvelopeMetadata -> BooleanPropsSchema,
+  private[source] val keys = Map[S3PropsKeyEntry, PropsSchema](
+    ReadTextMode  -> EnumPropsSchema(ReadTextModeEnum),
+    ReadRegex     -> StringPropsSchema,
+    ReadStartTag  -> StringPropsSchema,
+    ReadEndTag    -> StringPropsSchema,
+    ReadStartLine -> StringPropsSchema,
+    ReadEndLine   -> StringPropsSchema,
+    BufferSize    -> IntPropsSchema,
+    ReadTrimLine  -> BooleanPropsSchema,
+    StoreEnvelope -> BooleanPropsSchema,
   )
 
-  val schema = KcqlPropsSchema(S3PropsKeyEnum, keys)
+  private[source] val schema = KcqlPropsSchema(S3PropsKeyEnum, keys)
 
 }

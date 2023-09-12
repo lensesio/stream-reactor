@@ -26,3 +26,7 @@ object StringPropsSchema extends PropsSchema
 object IntPropsSchema extends PropsSchema
 
 object BooleanPropsSchema extends PropsSchema
+
+object CharPropsSchema extends PropsSchema
+
+case class SetPropsSchema[T]() extends PropsSchema

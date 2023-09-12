@@ -23,7 +23,6 @@ import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.NonFatalS3SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
-import io.lenses.streamreactor.connect.aws.s3.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processAsKey
 import io.lenses.streamreactor.connect.aws.s3.storage.FileDeleteError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
@@ -129,13 +128,11 @@ class IndexManager(
     * Seeks the filesystem to find the latyest offsets for a topic/partition.
     *
     * @param topicPartition     the TopicPartition for which to retrieve the offsets
-    * @param keyNamer the S3keyNamer to use in the case that a fallback offset seeker is required.
     * @param bucket    the configured bucket
     * @return either a SinkError or an option to a TopicPartitionOffset with the seek result.
     */
   def seek(
     topicPartition: TopicPartition,
-    keyNamer:       KeyNamer,
     bucket:         String,
   ): Either[SinkError, Option[TopicPartitionOffset]] = {
     val indexLocation = IndexFilenames.indexForTopicPartition(topicPartition.topic.value, topicPartition.partition)

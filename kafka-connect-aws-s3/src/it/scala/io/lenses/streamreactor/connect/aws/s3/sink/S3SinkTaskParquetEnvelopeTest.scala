@@ -84,7 +84,7 @@ class S3SinkTaskParquetEnvelopeTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true)",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true,'padding.fields.enable'='partition,offset')",
         ),
       ).asJava
 

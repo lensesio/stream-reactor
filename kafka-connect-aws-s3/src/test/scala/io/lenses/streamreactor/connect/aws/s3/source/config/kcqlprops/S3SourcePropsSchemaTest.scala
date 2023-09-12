@@ -15,15 +15,15 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops
 
+import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum
 import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.ReadTextModeEntry
 import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.ReadTextModeEnum
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEnum
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsSchema
+import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3SourcePropsSchema
 import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.ReadTextModeEnum.Regex
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class S3PropsSchemaTest extends AnyFlatSpec with Matchers {
+class S3SourcePropsSchemaTest extends AnyFlatSpec with Matchers {
 
   "S3PropsSchema" should "parse expected configs" in {
     val config = Map[String, String](
@@ -32,7 +32,7 @@ class S3PropsSchemaTest extends AnyFlatSpec with Matchers {
       "read.text.start.tag" -> "<employer>",
       "read.text.end.tag"   -> "</employer>",
     )
-    val props = S3PropsSchema.schema.readProps(config)
+    val props = S3SourcePropsSchema.schema.readProps(config)
     props.getEnumValue[ReadTextModeEntry, ReadTextModeEnum.type](ReadTextModeEnum,
                                                                  S3PropsKeyEnum.ReadTextMode,
     ) should be(Some(Regex))

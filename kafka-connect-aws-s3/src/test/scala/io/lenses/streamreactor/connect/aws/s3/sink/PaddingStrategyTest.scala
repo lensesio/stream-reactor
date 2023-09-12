@@ -20,10 +20,6 @@ import org.scalatest.matchers.should.Matchers
 
 class PaddingStrategyTest extends AnyFlatSpecLike with Matchers {
 
-  "NoOpPaddingStrategy" should "return string as is" in {
-    NoOpPaddingStrategy.padString("1") should be("1")
-  }
-
   "LeftPaddingStrategy" should "pad string left" in {
     LeftPadPaddingStrategy(5, '0').padString("2") should be("00002")
   }

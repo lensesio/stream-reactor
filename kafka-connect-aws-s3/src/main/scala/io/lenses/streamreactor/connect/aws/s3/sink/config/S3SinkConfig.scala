@@ -27,6 +27,8 @@ import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
+import io.lenses.streamreactor.connect.aws.s3.sink.config.kcqlprops.S3SinkProps
+import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.DefaultPaddingService
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.HierarchicalS3FileNamer
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.PartitionedS3FileNamer
@@ -86,13 +88,22 @@ object SinkBucketOptions extends LazyLogging {
       for {
         formatSelection   <- FormatSelection.fromKcql(kcql)
         partitionSelection = PartitionSelection(kcql)
+        sinkProps          = S3SinkProps.fromKcql(kcql)
+        paddingService     = DefaultPaddingService.fromConfig(config, sinkProps)
 
         fileNamer = if (partitionSelection.isCustom) {
-          PartitionedS3FileNamer
+          new PartitionedS3FileNamer(
+            paddingService.getPadderForField("partition"),
+            paddingService.getPadderForField("offset"),
+            formatSelection.extension,
+          )
         } else {
-          HierarchicalS3FileNamer
+          new HierarchicalS3FileNamer(
+            paddingService.getPadderForField("offset"),
+            formatSelection.extension,
+          )
         }
-        keyNamer     = new S3KeyNamer(formatSelection, config.getPaddingStrategy().padString, partitionSelection, fileNamer)
+        keyNamer     = S3KeyNamer(formatSelection, partitionSelection, fileNamer, paddingService.getPadderForField)
         stagingArea <- LocalStagingArea(config)
         target      <- S3Location.splitAndValidate(kcql.getTarget, allowSlash = false)
         storageSettings <- DataStorageSettings.from(

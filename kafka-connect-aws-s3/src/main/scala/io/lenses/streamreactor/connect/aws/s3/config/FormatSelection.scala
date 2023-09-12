@@ -25,7 +25,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.ReadTextMode
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsSchema
+import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3SourcePropsSchema
 
 import java.io.InputStream
 import java.time.Instant
@@ -55,7 +55,7 @@ sealed trait FormatSelection {
 }
 case object FormatSelection {
 
-  private val schema = S3PropsSchema.schema
+  private val schema = S3SourcePropsSchema.schema
 
   def fromKcql(
     kcql: Kcql,

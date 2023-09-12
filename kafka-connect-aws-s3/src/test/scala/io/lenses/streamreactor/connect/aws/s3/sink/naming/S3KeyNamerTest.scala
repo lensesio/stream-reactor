@@ -25,6 +25,8 @@ import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink.config.TopicPartitionField
 import io.lenses.streamreactor.connect.aws.s3.sink.LeftPadPaddingStrategy
 import io.lenses.streamreactor.connect.aws.s3.sink.PaddingStrategy
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.MockitoSugar
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.EitherValues
@@ -33,12 +35,13 @@ import org.scalatest.OptionValues
 import java.nio.file.Files
 import java.util.UUID
 
-class S3KeyNamerTest extends AnyFunSuite with Matchers with OptionValues with EitherValues {
+class S3KeyNamerTest extends AnyFunSuite with Matchers with OptionValues with EitherValues with MockitoSugar {
 
   private val formatSelection:    FormatSelection    = JsonFormatSelection
   private val paddingStrategy:    PaddingStrategy    = LeftPadPaddingStrategy(3, '0')
   private val partitionSelection: PartitionSelection = PartitionSelection.defaultPartitionSelection
-  private val fileNamer:          S3FileNamer        = HierarchicalS3FileNamer
+  private val fileNamer: S3FileNamer =
+    new HierarchicalS3FileNamer(paddingStrategy.padString, JsonFormatSelection.extension)
   private val bucketAndPrefix = S3Location("my-bucket", Some("prefix"))
 
   private val TopicName = "my-topic"
@@ -51,7 +54,11 @@ class S3KeyNamerTest extends AnyFunSuite with Matchers with OptionValues with Ei
     TopicPartitionField()     -> TopicName,
     PartitionPartitionField() -> Partition.toString,
   )
-  private val s3KeyNamer = new S3KeyNamer(formatSelection, paddingStrategy.padString, partitionSelection, fileNamer)
+
+  private val paddingService = mock[String => String => String]
+  private val noOpPadder: String => String = LeftPadPaddingStrategy(3, '0').padString
+  when(paddingService.apply(anyString)).thenReturn(noOpPadder)
+  private val s3KeyNamer = S3KeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
 
   test("stagingFile should generate the correct staging file path") {
     val stagingDirectory = Files.createTempDirectory("myTempDir").toFile

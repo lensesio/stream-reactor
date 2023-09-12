@@ -19,27 +19,28 @@ import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
 
 trait S3FileNamer {
   def fileName(
-    fnPad:                String => String,
-    extension:            String,
     topicPartitionOffset: TopicPartitionOffset,
   ): String
 }
-object HierarchicalS3FileNamer extends S3FileNamer {
+class HierarchicalS3FileNamer(
+  offsetPadderFn: String => String,
+  extension:      String,
+) extends S3FileNamer {
   def fileName(
-    fnPad:                String => String,
-    extension:            String,
     topicPartitionOffset: TopicPartitionOffset,
   ): String =
-    s"${fnPad(topicPartitionOffset.offset.value.toString)}.$extension"
+    s"${offsetPadderFn(topicPartitionOffset.offset.value.toString)}.$extension"
 }
-object PartitionedS3FileNamer extends S3FileNamer {
+class PartitionedS3FileNamer(
+  partitionPadderFn: String => String,
+  offsetPadderFn:    String => String,
+  extension:         String,
+) extends S3FileNamer {
   def fileName(
-    fnPad:                String => String,
-    extension:            String,
     topicPartitionOffset: TopicPartitionOffset,
   ): String =
-    s"${topicPartitionOffset.topic.value}(${fnPad(
+    s"${topicPartitionOffset.topic.value}(${partitionPadderFn(
       topicPartitionOffset.partition.toString,
-    )}_${fnPad(topicPartitionOffset.offset.value.toString)}).$extension"
+    )}_${offsetPadderFn(topicPartitionOffset.offset.value.toString)}).$extension"
 
 }

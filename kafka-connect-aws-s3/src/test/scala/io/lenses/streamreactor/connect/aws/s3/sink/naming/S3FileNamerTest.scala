@@ -26,14 +26,14 @@ class S3FileNamerTest extends AnyFunSuite with Matchers {
 
   test("HierarchicalS3FileNamer.fileName should generate the correct file name") {
 
-    val result = HierarchicalS3FileNamer.fileName(paddingFn, extension, topicPartitionOffset)
+    val result = new HierarchicalS3FileNamer(paddingFn, extension).fileName(topicPartitionOffset)
 
     result shouldEqual "00081.avro"
   }
 
   test("PartitionedS3FileNamer.fileName should generate the correct file name") {
 
-    val result = PartitionedS3FileNamer.fileName(paddingFn, extension, topicPartitionOffset)
+    val result = new PartitionedS3FileNamer(paddingFn, paddingFn, extension).fileName(topicPartitionOffset)
 
     result shouldEqual "topic(0009_00081).avro"
   }

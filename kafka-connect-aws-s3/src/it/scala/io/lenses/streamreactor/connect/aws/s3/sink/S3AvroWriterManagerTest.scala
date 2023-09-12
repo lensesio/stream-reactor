@@ -70,9 +70,15 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         formatSelection = AvroFormatSelection,
         keyNamer = new S3KeyNamer(
           AvroFormatSelection,
-          NoOpPaddingStrategy.padString,
           defaultPartitionSelection,
-          HierarchicalS3FileNamer,
+          new HierarchicalS3FileNamer(
+            identity[String],
+            AvroFormatSelection.extension,
+          ),
+          Map[String, String => String](
+            "topic"     -> identity[String],
+            "partition" -> identity[String],
+          ),
         ),
         localStagingArea   = LocalStagingArea(localRoot),
         partitionSelection = defaultPartitionSelection,
