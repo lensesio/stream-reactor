@@ -65,7 +65,7 @@ class IndexManager(
           if (indexes.size > maxIndexes) {
             logAndReturnMaxExceededError(topicPartition, indexes)
           } else if (filtered.size == indexes.size) {
-            val logLine = s"Latest file not found in index (${mostRecentIndexFile})"
+            val logLine = s"Latest file not found in index ($mostRecentIndexFile)"
             logger.error("[{}] {}", connectorTaskId.show, logLine)
             NonFatalS3SinkError(logLine).asLeft
           } else {

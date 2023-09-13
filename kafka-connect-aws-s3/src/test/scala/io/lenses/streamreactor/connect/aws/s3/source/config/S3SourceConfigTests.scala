@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions.ExcludeIndexes
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -32,8 +33,9 @@ class S3SourceConfigTests extends AnyFunSuite with Matchers {
         KCQL_CONFIG                             -> "INSERT INTO topic SELECT * FROM bucket:/a/b/c",
       ).asJava,
     ) match {
-      case Left(value)  => fail(value.toString)
-      case Right(value) => value.partitionSearcher shouldBe PartitionSearcherOptions(0, false, 1.seconds)
+      case Left(value) => fail(value.toString)
+      case Right(value) =>
+        value.partitionSearcher shouldBe PartitionSearcherOptions(0, continuous = false, 1.seconds, ExcludeIndexes)
     }
   }
   test("partition search options disables the continuous search") {
@@ -46,8 +48,9 @@ class S3SourceConfigTests extends AnyFunSuite with Matchers {
         KCQL_CONFIG                             -> "INSERT INTO topic SELECT * FROM bucket:/a/b/c",
       ).asJava,
     ) match {
-      case Left(value)  => fail(value.toString)
-      case Right(value) => value.partitionSearcher shouldBe PartitionSearcherOptions(1, false, 1.seconds)
+      case Left(value) => fail(value.toString)
+      case Right(value) =>
+        value.partitionSearcher shouldBe PartitionSearcherOptions(1, continuous = false, 1.seconds, ExcludeIndexes)
     }
   }
   test("enable continuous partitions polling") {
@@ -60,8 +63,9 @@ class S3SourceConfigTests extends AnyFunSuite with Matchers {
         KCQL_CONFIG                             -> "INSERT INTO topic SELECT * FROM bucket:/a/b/c",
       ).asJava,
     ) match {
-      case Left(value)  => fail(value.toString)
-      case Right(value) => value.partitionSearcher shouldBe PartitionSearcherOptions(1, true, 1.seconds)
+      case Left(value) => fail(value.toString)
+      case Right(value) =>
+        value.partitionSearcher shouldBe PartitionSearcherOptions(1, continuous = true, 1.seconds, ExcludeIndexes)
     }
   }
   test("not specifying the SOURCE_PARTITION_SEARCH_MODE defaults to true") {
@@ -73,8 +77,9 @@ class S3SourceConfigTests extends AnyFunSuite with Matchers {
         KCQL_CONFIG                             -> "INSERT INTO topic SELECT * FROM bucket:/a/b/c",
       ).asJava,
     ) match {
-      case Left(value)  => fail(value.toString)
-      case Right(value) => value.partitionSearcher shouldBe PartitionSearcherOptions(1, true, 1.seconds)
+      case Left(value) => fail(value.toString)
+      case Right(value) =>
+        value.partitionSearcher shouldBe PartitionSearcherOptions(1, continuous = true, 1.seconds, ExcludeIndexes)
     }
   }
 }

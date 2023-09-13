@@ -41,17 +41,8 @@ class ResultReader(
     * Retrieves the results for a particular reader, or None if no further results are available
     */
   def retrieveResults(limit: Int): Option[Vector[SourceRecord]] = {
-
     val results: Vector[SourceRecord] = accumulate(limit, reader, Vector.empty[SourceRecord])
-
-    if (results.isEmpty) {
-      None
-    } else {
-      Some(
-        results,
-      )
-    }
-
+    Option.when(results.nonEmpty)(results)
   }
 
   @tailrec

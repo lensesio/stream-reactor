@@ -29,17 +29,24 @@ object AwsS3DirectoryLister extends LazyLogging {
     bucketAndPrefix:  S3Location,
     completionConfig: DirectoryFindCompletionConfig,
     exclude:          Set[String],
+    wildcardExclude:  Set[String],
     listObjectsF:     ListObjectsV2Request => Iterator[ListObjectsV2Response],
     connectorTaskId:  ConnectorTaskId,
   ): IO[DirectoryFindResults] =
     for {
-      iterator   <- IO(listObjectsF(createListObjectsRequest(bucketAndPrefix)))
-      prefixInfo <- extractPrefixesFromResponse(iterator, exclude, connectorTaskId, completionConfig.levelsToRecurse)
+      iterator <- IO(listObjectsF(createListObjectsRequest(bucketAndPrefix)))
+      prefixInfo <- extractPrefixesFromResponse(iterator,
+                                                exclude,
+                                                wildcardExclude,
+                                                connectorTaskId,
+                                                completionConfig.levelsToRecurse,
+      )
       flattened <- flattenPrefixes(
         bucketAndPrefix,
         prefixInfo.partitions,
         completionConfig,
         exclude,
+        wildcardExclude,
         listObjectsF,
         connectorTaskId,
       )
@@ -50,6 +57,7 @@ object AwsS3DirectoryLister extends LazyLogging {
     prefixes:         Set[String],
     completionConfig: DirectoryFindCompletionConfig,
     exclude:          Set[String],
+    wildcardExclude:  Set[String],
     listObjectsF:     ListObjectsV2Request => Iterator[ListObjectsV2Response],
     connectorTaskId:  ConnectorTaskId,
   ): IO[Set[String]] =
@@ -57,11 +65,13 @@ object AwsS3DirectoryLister extends LazyLogging {
     else {
       prefixes.map(bucketAndPrefix.fromRoot).toList
         .traverse(
-          findDirectories(_,
-                          completionConfig.copy(levelsToRecurse = completionConfig.levelsToRecurse - 1),
-                          exclude,
-                          listObjectsF,
-                          connectorTaskId,
+          findDirectories(
+            _,
+            completionConfig.copy(levelsToRecurse = completionConfig.levelsToRecurse - 1),
+            exclude,
+            wildcardExclude,
+            listObjectsF,
+            connectorTaskId,
           ).map(_.partitions),
         )
         .map { result =>
@@ -85,6 +95,7 @@ object AwsS3DirectoryLister extends LazyLogging {
   private def extractPrefixesFromResponse(
     iterator:        Iterator[ListObjectsV2Response],
     exclude:         Set[String],
+    wildcardExclude: Set[String],
     connectorTaskId: ConnectorTaskId,
     levelsToRecurse: Int,
   ): IO[DirectoryFindResults] =
@@ -98,7 +109,11 @@ object AwsS3DirectoryLister extends LazyLogging {
                 if (levelsToRecurse > 0) {
                   acc + prefix
                 } else {
-                  if (connectorTaskId.ownsDir(prefix) && !exclude.contains(prefix)) acc + prefix
+                  if (
+                    connectorTaskId.ownsDir(prefix) && !exclude.contains(prefix) && !wildcardExclude.exists(we =>
+                      prefix.contains(we),
+                    )
+                  ) acc + prefix
                   else acc
                 }
               }

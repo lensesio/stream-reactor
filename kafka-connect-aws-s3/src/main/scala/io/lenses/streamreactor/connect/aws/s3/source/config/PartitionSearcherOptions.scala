@@ -17,8 +17,14 @@ package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import scala.concurrent.duration.FiniteDuration
 
+object PartitionSearcherOptions {
+  val ExcludeIndexes: Set[String] = Set(".indexes")
+
+}
+
 case class PartitionSearcherOptions(
-  recurseLevels: Int,
-  continuous:    Boolean,
-  interval:      FiniteDuration,
+  recurseLevels:    Int,
+  continuous:       Boolean,
+  interval:         FiniteDuration,
+  wildcardExcludes: Set[String],
 )

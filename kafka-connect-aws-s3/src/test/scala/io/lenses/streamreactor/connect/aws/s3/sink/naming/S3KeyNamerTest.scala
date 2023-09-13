@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.naming
 
+import cats.implicits.none
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.JsonFormatSelection
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
@@ -46,6 +47,7 @@ class S3KeyNamerTest extends AnyFunSuite with Matchers with OptionValues with Ei
   private val fileNamer: S3FileNamer =
     new HierarchicalS3FileNamer(paddingStrategy.padString, JsonFormatSelection.extension)
   private val bucketAndPrefix = S3Location("my-bucket", Some("prefix"))
+  private val bucketNoPrefix  = S3Location("my-bucket", none)
 
   private val TopicName = "my-topic"
   private val Partition = 9
@@ -63,6 +65,18 @@ class S3KeyNamerTest extends AnyFunSuite with Matchers with OptionValues with Ei
   when(paddingService.apply(anyString)).thenReturn(noOpPadder)
   private val s3KeyNamer = S3KeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
 
+  test("stagingFile should generate the correct staging file path with no prefix") {
+    val stagingDirectory = Files.createTempDirectory("myTempDir").toFile
+
+    val result =
+      s3KeyNamer.stagingFile(stagingDirectory, bucketNoPrefix, topicPartition.toTopicPartition, partitionValues)
+
+    val fullPath     = result.value.getPath.replace(stagingDirectory.toString, "")
+    val (path, uuid) = fullPath.splitAt(fullPath.length - 36)
+    path shouldEqual s"/$TopicName/00$Partition/json/"
+    UUID.fromString(uuid)
+  }
+
   test("stagingFile should generate the correct staging file path") {
     val stagingDirectory = Files.createTempDirectory("myTempDir").toFile
 
@@ -73,6 +87,13 @@ class S3KeyNamerTest extends AnyFunSuite with Matchers with OptionValues with Ei
     val (path, uuid) = fullPath.splitAt(fullPath.length - 36)
     path shouldEqual s"/prefix/$TopicName/00$Partition/json/"
     UUID.fromString(uuid)
+  }
+
+  test("finalFilename should write to the root of the bucket with no prefix") {
+
+    val result = s3KeyNamer.finalFilename(bucketNoPrefix, topicPartition, partitionValues)
+
+    result.value.path.value shouldEqual s"$TopicName/00$Partition/0$Offset.json"
   }
 
   test("finalFilename should generate the correct final S3 location") {

@@ -1225,6 +1225,36 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     )
   }
 
+  "S3SinkTask" should "write to root without a prefix" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName select * from $TopicName PARTITIONBY _key.region, name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+        ),
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(keyPartitionedRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    val fileList = listBucketPath(BucketName, "")
+    fileList.size should be(4)
+
+    // the results do contain the index.  The sink always looks for the index at the root of the bucket when offset synching.
+    // The source excludes the index files.
+    fileList should contain allOf (
+      ".indexes/s3SinkTaskBuildLocalTest/myTopic/00001/00000000000000000002",
+      "region=8/name=sam/myTopic(000000000001_000000000000).json",
+      "region=5/name=laura/myTopic(000000000001_000000000001).json",
+      "region=5/name=tom/myTopic(000000000001_000000000002).json"
+    )
+  }
+
   /**
     * This should write partition 1 but not partition 0
     */

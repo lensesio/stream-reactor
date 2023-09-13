@@ -45,6 +45,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
       topicRoot,
       DirectoryFindCompletionConfig(0),
       Set.empty,
+      Set.empty,
       s3Client.listObjectsV2Paginator(_).iterator().asScala,
       connectorTaskId,
     ).unsafeRunSync()
@@ -65,6 +66,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
       bucketRoot,
       DirectoryFindCompletionConfig(2),
       Set.empty,
+      Set.empty,
       s3Client.listObjectsV2Paginator(_).iterator().asScala,
       taskId,
     ).unsafeRunSync()
@@ -84,6 +86,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
       bucketRoot,
       DirectoryFindCompletionConfig(3),
       Set.empty,
+      Set.empty,
       s3Client.listObjectsV2Paginator(_).iterator().asScala,
       taskId,
     ).unsafeRunSync()
@@ -101,6 +104,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
     val dirs = AwsS3DirectoryLister.findDirectories(
       bucketRoot,
       DirectoryFindCompletionConfig(1),
+      Set.empty,
       Set.empty,
       s3Client.listObjectsV2Paginator(_).iterator().asScala,
       taskId,

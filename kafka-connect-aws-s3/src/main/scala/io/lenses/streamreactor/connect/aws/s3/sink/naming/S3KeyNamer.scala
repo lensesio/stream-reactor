@@ -62,9 +62,12 @@ class S3KeyNamer(
   paddingFns:         Map[String, String => String],
 ) extends KeyNamer {
 
-  private val DefaultPrefix = "streamreactor"
+  private val DefaultPrefix = ""
 
-  private def prefix(bucketAndPrefix: S3Location): String = bucketAndPrefix.prefix.getOrElse(DefaultPrefix)
+  private def addTrailingSlash(s: String): String = if (s.last == '/') s else s + '/'
+
+  private def prefix(bucketAndPrefix: S3Location): String =
+    bucketAndPrefix.prefix.map(addTrailingSlash).getOrElse(DefaultPrefix)
 
   override def stagingFile(
     stagingDirectory: File,
@@ -107,7 +110,7 @@ class S3KeyNamer(
   ): Either[FatalS3SinkError, S3Location] =
     Try(
       bucketAndPrefix.withPath(
-        s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${fileNamer.fileName(topicPartitionOffset)}",
+        s"${prefix(bucketAndPrefix)}${buildPartitionPrefix(partitionValues)}/${fileNamer.fileName(topicPartitionOffset)}",
       ),
     ).toEither.left.map(ex => FatalS3SinkError(ex.getMessage, topicPartitionOffset.toTopicPartition))
 
