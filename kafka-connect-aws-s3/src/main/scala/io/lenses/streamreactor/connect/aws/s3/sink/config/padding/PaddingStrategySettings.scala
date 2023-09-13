@@ -28,7 +28,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.DefaultPadding
 trait PaddingStrategySettings extends BaseSettings {
 
   def getPaddingStrategy: Option[PaddingStrategy] = {
-    val paddingLength = Option(getInt(PADDING_LENGTH)).filterNot(_ == -1).map(_.toInt)
+    val paddingLength = Option(getInt(PADDING_LENGTH)).filterNot(_ < 0).map(_.toInt)
     for {
       paddingType <- Option(getString(PADDING_STRATEGY)).filterNot(_ == "").flatMap(
         PaddingType.withNameInsensitiveOption,
