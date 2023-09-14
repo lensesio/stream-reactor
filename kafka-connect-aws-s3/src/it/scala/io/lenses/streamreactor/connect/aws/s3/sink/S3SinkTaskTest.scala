@@ -1082,7 +1082,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _topic, _partition STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _topic, _partition STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1148,7 +1148,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1178,7 +1178,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.region, _key.phonePrefix STOREAS `CSV` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.region, _key.phonePrefix STOREAS `CSV` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1205,7 +1205,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.region, name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.region, name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1232,7 +1232,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName select * from $TopicName PARTITIONBY _key.region, name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName select * from $TopicName PARTITIONBY _key.region, name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1276,7 +1276,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 2 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 2 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1323,7 +1323,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY jedi WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY jedi WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1363,7 +1363,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1404,7 +1404,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1445,7 +1445,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1498,7 +1498,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1555,7 +1555,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1602,7 +1602,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1697,7 +1697,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _value.user.name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _value.user.name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1795,7 +1795,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.favourites.band, _key.`cost.centre.id` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.favourites.band, _key.`cost.centre.id` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1867,7 +1867,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.header1.user.name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.header1.user.name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1895,7 +1895,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql"       -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql"       -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
           "connect.s3.write.mode" -> "BuildLocal",
         ),
       ).asJava
@@ -1937,7 +1937,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
         Map(
           "name"                           -> "s3SinkTaskBuildLocalTest",
           "connect.s3.local.tmp.directory" -> tempDir.toString,
-          "connect.s3.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
           "connect.s3.write.mode"          -> "BuildLocal",
         ),
       ).asJava
@@ -2124,7 +2124,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `json` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `json` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
           ERROR_POLICY                     -> "RETRY",
           ERROR_RETRY_INTERVAL             -> "10",
           HTTP_NBR_OF_RETRIES              -> "5",
@@ -2181,7 +2181,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from `*` WITH_FLUSH_COUNT = 3 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from `*` WITH_FLUSH_COUNT = 3 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -2229,7 +2229,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _date.uuuu,_date.LL,_date.dd WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _date.uuuu,_date.LL,_date.dd WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 

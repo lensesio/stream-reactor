@@ -102,7 +102,7 @@ class S3SinkTaskJsonEnvelopeTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true,'padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true,'padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -173,7 +173,7 @@ class S3SinkTaskJsonEnvelopeTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true,'padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true,'padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -247,7 +247,7 @@ class S3SinkTaskJsonEnvelopeTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true,'padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true,'padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -322,7 +322,7 @@ class S3SinkTaskJsonEnvelopeTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=false,'padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=false,'padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -390,7 +390,7 @@ class S3SinkTaskJsonEnvelopeTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true,'padding.fields.enable'='partition,offset')",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true,'padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
