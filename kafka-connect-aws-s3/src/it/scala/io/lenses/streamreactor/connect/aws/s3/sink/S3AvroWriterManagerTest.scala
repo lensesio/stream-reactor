@@ -34,7 +34,8 @@ import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.Values
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.sink.naming.HierarchicalS3FileNamer
+import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingService
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.OffsetS3FileNamer
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
@@ -72,14 +73,14 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         keyNamer = new S3KeyNamer(
           AvroFormatSelection,
           defaultPartitionSelection(Values),
-          new HierarchicalS3FileNamer(
+          new OffsetS3FileNamer(
             identity[String],
             AvroFormatSelection.extension,
           ),
-          Map[String, String => String](
-            "topic"     -> identity[String],
-            "partition" -> identity[String],
-          ),
+          new PaddingService(Map[String, PaddingStrategy](
+            "partition" -> NoOpPaddingStrategy,
+            "offset"    -> LeftPadPaddingStrategy(12, 0),
+          )),
         ),
         localStagingArea   = LocalStagingArea(localRoot),
         partitionSelection = defaultPartitionSelection(Values),

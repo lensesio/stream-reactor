@@ -44,7 +44,7 @@ class PartitionFieldTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   "partitionField.apply" should "parse partitions by whole key" in {
     when(kcql.getPartitionBy).thenReturn(Seq("_key").iterator.asJava)
-    PartitionField(kcql) should be(Seq(WholeKeyPartitionField()))
+    PartitionField(kcql) should be(Seq(WholeKeyPartitionField))
   }
 
   "partitionField.apply" should "parse partitions by keys" in {

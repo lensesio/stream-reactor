@@ -63,7 +63,7 @@ case object FormatSelection {
   ): Either[Throwable, FormatSelection] =
     Option(kcql.getStoredAs) match {
       case Some(storedAs) =>
-        fromString(storedAs, () => ReadTextMode(kcqlPropsSchema.readProps(kcql.getProperties.asScala.toMap)))
+        fromString(storedAs, () => ReadTextMode(kcqlPropsSchema.readPropsMap(kcql.getProperties.asScala.toMap)))
       case None =>
         Right(JsonFormatSelection)
     }

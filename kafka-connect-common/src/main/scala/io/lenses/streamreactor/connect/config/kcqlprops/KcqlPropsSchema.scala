@@ -21,6 +21,7 @@ case class KcqlPropsSchema[U <: EnumEntry, T <: Enum[U]](
   keys:   T,
   schema: Map[U, PropsSchema],
 ) {
-  def readProps(props: Map[String, String]): KcqlProperties[U, T] = KcqlProperties.fromStringMap[U, T](this, props)
+  def readPropsMap(props: Map[String, String]): KcqlProperties[U, T] = KcqlProperties.normaliseCase[U, T](this, props)
+  def readProps(props:    (String, String)*):   KcqlProperties[U, T] = readPropsMap(props.toMap)
 
 }

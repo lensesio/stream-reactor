@@ -22,7 +22,7 @@ import java.util.TimeZone
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 sealed trait PartitionField {
-  def valuePrefixDisplay(): String
+  def name(): String
 
   def supportsPadding: Boolean = false
 }
@@ -45,9 +45,9 @@ object PartitionField {
 
   def apply(partitionSpecifier: PartitionSpecifier): PartitionField =
     partitionSpecifier match {
-      case PartitionSpecifier.Key       => WholeKeyPartitionField()
-      case PartitionSpecifier.Topic     => TopicPartitionField()
-      case PartitionSpecifier.Partition => PartitionPartitionField()
+      case PartitionSpecifier.Key       => WholeKeyPartitionField
+      case PartitionSpecifier.Topic     => TopicPartitionField
+      case PartitionSpecifier.Partition => PartitionPartitionField
       case PartitionSpecifier.Header =>
         throw new IllegalArgumentException("cannot partition by Header partition field without path")
       case PartitionSpecifier.Value =>
@@ -72,39 +72,39 @@ object PartitionField {
 }
 
 case class HeaderPartitionField(path: PartitionNamePath) extends PartitionField {
-  override def valuePrefixDisplay(): String = path.toString
+  override def name(): String = path.toString
 
   path.validateProtectedCharacters()
 }
 
 case class KeyPartitionField(path: PartitionNamePath) extends PartitionField {
-  override def valuePrefixDisplay(): String = path.toString
+  override def name(): String = path.toString
 
   path.validateProtectedCharacters()
 }
 
 case class ValuePartitionField(path: PartitionNamePath) extends PartitionField {
-  override def valuePrefixDisplay(): String = path.toString
+  override def name(): String = path.toString
 
   path.validateProtectedCharacters()
 }
 
-case class WholeKeyPartitionField() extends PartitionField {
-  override def valuePrefixDisplay(): String = "key"
+case object WholeKeyPartitionField extends PartitionField {
+  override def name(): String = "key"
 }
 
-case class TopicPartitionField() extends PartitionField {
-  override def valuePrefixDisplay(): String = "topic"
+case object TopicPartitionField extends PartitionField {
+  override def name(): String = "topic"
 }
 
-case class PartitionPartitionField() extends PartitionField {
-  override def valuePrefixDisplay(): String = "partition"
+case object PartitionPartitionField extends PartitionField {
+  override def name(): String = "partition"
 
   override def supportsPadding: Boolean = true
 }
 
 case class DatePartitionField(format: String) extends PartitionField {
-  override def valuePrefixDisplay(): String = "date"
+  override def name(): String = "date"
 
   def formatter = DateTimeFormatter.ofPattern(format).withZone(TimeZone.getDefault.toZoneId)
 }

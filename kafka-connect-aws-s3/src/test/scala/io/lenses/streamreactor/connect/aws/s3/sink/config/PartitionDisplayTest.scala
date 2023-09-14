@@ -51,7 +51,7 @@ class PartitionDisplayTest extends AnyFlatSpec with MockitoSugar with Matchers {
     def keyValueProp(includeKeys: Boolean): KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type] =
       KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type](schema = S3SinkPropsSchema.schema,
                                                            map = Map(
-                                                             PartitionIncludeKeys -> includeKeys.toString,
+                                                             PartitionIncludeKeys.entryName -> includeKeys.toString,
                                                            ),
       )
     PartitionDisplay(kcql, keyValueProp(true), Values) should be(KeysAndValues)

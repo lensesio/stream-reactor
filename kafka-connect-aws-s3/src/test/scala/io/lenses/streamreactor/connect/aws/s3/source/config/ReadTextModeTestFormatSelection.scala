@@ -137,6 +137,6 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
   }
 
   private def readProps(propsMap: Map[String, String]): KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type] =
-    S3SourcePropsSchema.schema.readProps(propsMap)
+    S3SourcePropsSchema.schema.readPropsMap(propsMap)
 
 }

@@ -20,20 +20,21 @@ import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.JsonFormatSelection
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.Values
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection.defaultPartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionField
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionPartitionField
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink.config.TopicPartitionField
+import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.aws.s3.sink.LeftPadPaddingStrategy
 import io.lenses.streamreactor.connect.aws.s3.sink.PaddingStrategy
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.Values
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection.defaultPartitionSelection
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.MockitoSugar
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.should.Matchers
 import org.scalatest.EitherValues
 import org.scalatest.OptionValues
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import java.nio.file.Files
 import java.util.UUID
@@ -45,24 +46,25 @@ class S3KeyNamerTest extends AnyFunSuite with Matchers with OptionValues with Ei
   private val partitionSelection: PartitionSelection = defaultPartitionSelection(Values)
 
   private val fileNamer: S3FileNamer =
-    new HierarchicalS3FileNamer(paddingStrategy.padString, JsonFormatSelection.extension)
+    new OffsetS3FileNamer(paddingStrategy, JsonFormatSelection.extension)
+
   private val bucketAndPrefix = S3Location("my-bucket", Some("prefix"))
   private val bucketNoPrefix  = S3Location("my-bucket", none)
 
   private val TopicName = "my-topic"
   private val Partition = 9
-  private val Offset    = 81
+  private val Offset    = 81L
 
-  private val topicPartition = Topic(TopicName).withPartition(Partition).withOffset(Offset)
+  private val topicPartition = Topic(TopicName).withPartition(Partition).atOffset(Offset)
 
   private val partitionValues = Map[PartitionField, String](
-    TopicPartitionField()     -> TopicName,
-    PartitionPartitionField() -> Partition.toString,
+    TopicPartitionField     -> TopicName,
+    PartitionPartitionField -> Partition.toString,
   )
 
-  private val paddingService = mock[String => String => String]
-  private val noOpPadder: String => String = LeftPadPaddingStrategy(3, '0').padString
-  when(paddingService.apply(anyString)).thenReturn(noOpPadder)
+  private val paddingService = mock[PaddingService]
+  when(paddingService.padderFor(anyString)).thenReturn(paddingStrategy)
+
   private val s3KeyNamer = S3KeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
 
   test("stagingFile should generate the correct staging file path with no prefix") {

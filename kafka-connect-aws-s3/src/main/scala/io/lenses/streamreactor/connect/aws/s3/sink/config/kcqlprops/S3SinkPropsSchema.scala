@@ -16,18 +16,9 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.config.kcqlprops
 
 import com.datamountaineer.kcql.Kcql
-import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.PaddingCharacter
-import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.PaddingFields
-import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.PaddingLength
-import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.PaddingSelection
-import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.PartitionIncludeKeys
-import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.StoreEnvelope
-import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.StoreEnvelopeHeaders
-import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.StoreEnvelopeKey
-import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.StoreEnvelopeMetadata
-import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.StoreEnvelopeValue
 import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEntry
 import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum
+import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingType
 import io.lenses.streamreactor.connect.config.kcqlprops._
 
@@ -37,8 +28,7 @@ object S3SinkPropsSchema {
 
   private[sink] val keys = Map[S3PropsKeyEntry, PropsSchema](
     PaddingCharacter      -> CharPropsSchema,
-    PaddingLength         -> IntPropsSchema,
-    PaddingFields         -> SetPropsSchema[String](),
+    PaddingLength         -> MapPropsSchema[String, Int](),
     PaddingSelection      -> EnumPropsSchema(PaddingType),
     PartitionIncludeKeys  -> BooleanPropsSchema,
     StoreEnvelope         -> BooleanPropsSchema,
@@ -55,6 +45,6 @@ object S3SinkPropsSchema {
 
 object S3SinkProps {
   private[sink] def fromKcql(kcql: Kcql): KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type] =
-    S3SinkPropsSchema.schema.readProps(kcql.getProperties.asScala.toMap)
+    S3SinkPropsSchema.schema.readPropsMap(kcql.getProperties.asScala.toMap)
 
 }

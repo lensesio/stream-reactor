@@ -29,6 +29,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.aws.s3.sink.config._
+import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
 
@@ -44,22 +45,20 @@ object S3KeyNamer {
     formatSelection:    FormatSelection,
     partitionSelection: PartitionSelection,
     fileNamer:          S3FileNamer,
-    padderProviderFn:   String => String => String,
+    paddingService:     PaddingService,
   ): S3KeyNamer =
     new S3KeyNamer(
       formatSelection,
       partitionSelection,
       fileNamer,
-      partitionSelection.partitions.collect {
-        case pf if pf.supportsPadding => pf.valuePrefixDisplay() -> padderProviderFn(pf.valuePrefixDisplay())
-      }.toMap,
+      paddingService,
     )
 }
 class S3KeyNamer(
   formatSelection:    FormatSelection,
   partitionSelection: PartitionSelection,
   fileNamer:          S3FileNamer,
-  paddingFns:         Map[String, String => String],
+  paddingService:     PaddingService,
 ) extends KeyNamer {
 
   private val DefaultPrefix = ""
@@ -93,7 +92,7 @@ class S3KeyNamer(
       (partition: PartitionField) =>
         partitionValues.get(partition) match {
           case Some(partVal) if partition.supportsPadding =>
-            partitionValuePrefix(partition) + paddingFns(partition.valuePrefixDisplay())(partVal)
+            partitionValuePrefix(partition) + paddingService.padderFor(partition.name()).padString(partVal)
           case Some(partVal) => partitionValuePrefix(partition) + partVal
           case None          => "[missing]"
         }
@@ -101,7 +100,7 @@ class S3KeyNamer(
       .mkString("/")
 
   private def partitionValuePrefix(partition: PartitionField): String =
-    if (partitionSelection.partitionDisplay == KeysAndValues) s"${partition.valuePrefixDisplay()}=" else ""
+    if (partitionSelection.partitionDisplay == KeysAndValues) s"${partition.name()}=" else ""
 
   override def finalFilename(
     bucketAndPrefix:      S3Location,
@@ -144,12 +143,12 @@ class S3KeyNamer(
             getPartitionValueFromSinkData(_, name),
           )
 
-        case partition @ WholeKeyPartitionField() =>
+        case partition @ WholeKeyPartitionField =>
           getPartitionByWholeKeyValue(messageDetail.key, topicPartition).map(partition -> _)
-        case partition @ TopicPartitionField() => (partition -> topicPartition.topic.value).asRight[SinkError]
-        case partition @ PartitionPartitionField() =>
-          val partitionPadFn = paddingFns("partition")
-          (partition -> partitionPadFn(topicPartition.partition.toString)).asRight[SinkError]
+        case partition @ TopicPartitionField => (partition -> topicPartition.topic.value).asRight[SinkError]
+        case partition @ PartitionPartitionField =>
+          val partitionPaddingStrategy = paddingService.padderFor("partition")
+          (partition -> partitionPaddingStrategy.padString(topicPartition.partition.toString)).asRight[SinkError]
         case partition @ DatePartitionField(_) =>
           messageDetail.timestamp match {
             case Some(value) => (partition -> partition.formatter.format(value)).asRight[SinkError]

@@ -19,8 +19,8 @@ import com.datamountaineer.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.PADDING_LENGTH
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.PADDING_STRATEGY
 import io.lenses.streamreactor.connect.aws.s3.sink.PaddingStrategy
-import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.DefaultPaddingService.DefaultPadChar
-import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.DefaultPaddingService.DefaultPadLength
+import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingService.DefaultPadChar
+import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingService.DefaultPadLength
 
 /**
   * Retrieves Padding settings from KCQL

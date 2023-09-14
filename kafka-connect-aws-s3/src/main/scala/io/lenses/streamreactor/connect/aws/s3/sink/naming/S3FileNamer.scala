@@ -16,31 +16,32 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.naming
 
 import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.aws.s3.sink.PaddingStrategy
 
 trait S3FileNamer {
   def fileName(
     topicPartitionOffset: TopicPartitionOffset,
   ): String
 }
-class HierarchicalS3FileNamer(
-  offsetPadderFn: String => String,
-  extension:      String,
+class OffsetS3FileNamer(
+  offsetPaddingStrategy: PaddingStrategy,
+  extension:             String,
 ) extends S3FileNamer {
   def fileName(
     topicPartitionOffset: TopicPartitionOffset,
   ): String =
-    s"${offsetPadderFn(topicPartitionOffset.offset.value.toString)}.$extension"
+    s"${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}.$extension"
 }
-class PartitionedS3FileNamer(
-  partitionPadderFn: String => String,
-  offsetPadderFn:    String => String,
-  extension:         String,
+class TopicPartitionOffsetS3FileNamer(
+  partitionPaddingStrategy: PaddingStrategy,
+  offsetPaddingStrategy:    PaddingStrategy,
+  extension:                String,
 ) extends S3FileNamer {
   def fileName(
     topicPartitionOffset: TopicPartitionOffset,
   ): String =
-    s"${topicPartitionOffset.topic.value}(${partitionPadderFn(
+    s"${topicPartitionOffset.topic.value}(${partitionPaddingStrategy.padString(
       topicPartitionOffset.partition.toString,
-    )}_${offsetPadderFn(topicPartitionOffset.offset.value.toString)}).$extension"
+    )}_${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}).$extension"
 
 }

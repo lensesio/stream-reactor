@@ -16,25 +16,27 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.naming
 
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
+import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingType.LeftPad
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 class S3FileNamerTest extends AnyFunSuite with Matchers {
 
-  private val extension = "avro"
-  private val paddingFn: String => String = x => s"000$x"
-  private val topicPartitionOffset = Topic("topic").withPartition(9).withOffset(81)
+  private val extension            = "avro"
+  private val paddingStrategy      = LeftPad.toPaddingStrategy(5, '0')
+  private val topicPartitionOffset = Topic("topic").withPartition(9).atOffset(81)
 
-  test("HierarchicalS3FileNamer.fileName should generate the correct file name") {
+  test("OffsetFileNamer.fileName should generate the correct file name") {
 
-    val result = new HierarchicalS3FileNamer(paddingFn, extension).fileName(topicPartitionOffset)
+    val result = new OffsetS3FileNamer(paddingStrategy, extension).fileName(topicPartitionOffset)
 
     result shouldEqual "00081.avro"
   }
 
-  test("PartitionedS3FileNamer.fileName should generate the correct file name") {
+  test("TopicPartitionOffsetFileNamer.fileName should generate the correct file name") {
 
-    val result = new PartitionedS3FileNamer(paddingFn, paddingFn, extension).fileName(topicPartitionOffset)
+    val result =
+      new TopicPartitionOffsetS3FileNamer(paddingStrategy, paddingStrategy, extension).fileName(topicPartitionOffset)
 
-    result shouldEqual "topic(0009_00081).avro"
+    result shouldEqual "topic(00009_00081).avro"
   }
 }

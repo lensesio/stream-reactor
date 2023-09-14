@@ -30,3 +30,5 @@ object BooleanPropsSchema extends PropsSchema
 object CharPropsSchema extends PropsSchema
 
 case class SetPropsSchema[T]() extends PropsSchema
+
+case class MapPropsSchema[K, V]() extends PropsSchema

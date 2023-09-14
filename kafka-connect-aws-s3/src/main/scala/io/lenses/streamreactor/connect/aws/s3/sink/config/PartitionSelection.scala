@@ -27,9 +27,9 @@ case class PartitionSelection(
   partitions:       Seq[PartitionField],
   partitionDisplay: PartitionDisplay,
 )
-case object PartitionSelection {
+object PartitionSelection {
 
-  private val DefaultPartitionFields: Seq[PartitionField] = Seq(new TopicPartitionField, new PartitionPartitionField)
+  private val DefaultPartitionFields: Seq[PartitionField] = Seq(TopicPartitionField, PartitionPartitionField)
 
   def defaultPartitionSelection(partitionDisplay: PartitionDisplay): PartitionSelection =
     PartitionSelection(isCustom = false, DefaultPartitionFields, partitionDisplay)

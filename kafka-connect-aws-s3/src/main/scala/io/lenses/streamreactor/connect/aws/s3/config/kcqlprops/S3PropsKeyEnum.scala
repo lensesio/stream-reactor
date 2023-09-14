@@ -45,13 +45,11 @@ object S3PropsKeyEnum extends Enum[S3PropsKeyEntry] {
   case object StoreEnvelopeValue    extends S3PropsKeyEntry(DataStorageSettings.StoreValueKey)
   case object StoreEnvelopeMetadata extends S3PropsKeyEntry(DataStorageSettings.StoreMetadataKey)
 
-  case object PaddingCharacter extends S3PropsKeyEntry("padding.default.char")
+  case object PaddingLength extends S3PropsKeyEntry("padding.length")
 
-  case object PaddingLength extends S3PropsKeyEntry("padding.default.length")
+  case object PaddingCharacter extends S3PropsKeyEntry("padding.char")
 
-  case object PaddingFields extends S3PropsKeyEntry("padding.fields.enable")
-
-  case object PaddingSelection extends S3PropsKeyEntry("padding.default.type")
+  case object PaddingSelection extends S3PropsKeyEntry("padding.type")
 
   case object PartitionIncludeKeys extends S3PropsKeyEntry("partition.include.keys")
 }

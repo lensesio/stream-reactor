@@ -15,75 +15,93 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.config.padding
 
+import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.PaddingCharacter
-import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.PaddingFields
 import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.PaddingLength
 import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.PaddingSelection
 import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEntry
 import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum
+import io.lenses.streamreactor.connect.aws.s3.sink.NoOpPaddingStrategy
 import io.lenses.streamreactor.connect.aws.s3.sink.PaddingStrategy
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingType.LeftPad
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
+import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties.stringToInt
+import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties.stringToString
 
-import scala.reflect.ClassTag
+object PaddingService {
 
-trait PaddingService {
-
-  def getPadderForField(field: String): String => String
-
-}
-
-object DefaultPaddingService {
-
-  val DefaultPadFields:       Set[String] = Set("offset")
   val DefaultPaddingStrategy: PaddingType = LeftPad
   val DefaultPadLength:       Int         = 12
   val DefaultPadChar:         Char        = '0'
+  val DefaultPadFields:       Set[String] = Set("offset")
 
-  implicit def stringToString: String => String = identity[String]
+  private trait PaddingConfigDetector[C] {
 
-  implicit val stringClassTag: ClassTag[String] = ClassTag(classOf[String])
+    def configApplied(config: C): Boolean
 
+    def processConfig(config: C): PaddingService
+
+  }
+
+  private object ConfigDefPaddingConfigDetector extends PaddingConfigDetector[S3SinkConfigDefBuilder] {
+    override def configApplied(config: S3SinkConfigDefBuilder): Boolean = config.getPaddingStrategy.nonEmpty
+
+    override def processConfig(config: S3SinkConfigDefBuilder): PaddingService =
+      config.getPaddingStrategy.map(ps => new PaddingService(Map("offset" -> ps))).get
+  }
+
+  private object KcqlPropsPaddingConfigDetector
+      extends PaddingConfigDetector[KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type]] {
+    override def configApplied(config: KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type]): Boolean =
+      config.containsKeyStartingWith("padding.")
+
+    override def processConfig(config: KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type]): PaddingService =
+      fromDefaults(
+        config.getOptionalChar(PaddingCharacter),
+        config.getOptionalMap[String, Int](PaddingLength, stringToString, stringToInt),
+        config.getEnumValue[PaddingType, PaddingType.type](PaddingType, PaddingSelection),
+      )
+
+    private def fromDefaults(
+      maybeChar:   Option[Char],
+      maybeFields: Option[Map[String, Int]],
+      maybeType:   Option[PaddingType],
+    ): PaddingService = {
+      val fields: Map[String, Int] = maybeFields.getOrElse(DefaultPadFields.map(f => f -> DefaultPadLength)).toMap
+      val pChar:  Char             = maybeChar.getOrElse(DefaultPadChar)
+      val pType:  PaddingType      = maybeType.getOrElse(DefaultPaddingStrategy)
+      val paddingStrategies = fields.map(f => f._1 -> pType.toPaddingStrategy(f._2, pChar))
+      new PaddingService(paddingStrategies)
+    }
+
+  }
   def fromConfig(
     confDef: S3SinkConfigDefBuilder,
     props:   KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type],
-  ): PaddingService = {
-    val maybeKcqlPaddingSvc = confDef.getPaddingStrategy.map(ps => new DefaultPaddingService(DefaultPadFields, ps))
-    maybeKcqlPaddingSvc.getOrElse(fromProps(props))
+  ): Either[Throwable, PaddingService] = {
+    val cdConf = ConfigDefPaddingConfigDetector.configApplied(confDef)
+    val kpConf = KcqlPropsPaddingConfigDetector.configApplied(props)
+    (cdConf, kpConf) match {
+      case (true, true) =>
+        new IllegalStateException(
+          "Unable to process both padding Kafka Connect config properties and KCQL properties.  Please use one or the other.  We recommend KCQL properties for additional configuration ability.",
+        ).asLeft
+      case (true, false) => ConfigDefPaddingConfigDetector.processConfig(confDef).asRight
+      case _             => KcqlPropsPaddingConfigDetector.processConfig(props).asRight
+    }
+
   }
 
-  private def fromDefaults(
-    maybeChar:   Option[Char],
-    maybeLength: Option[Int],
-    maybeFields: Option[Set[String]],
-    maybeType:   Option[PaddingType],
-  ): PaddingService = {
-    val fields: Set[String] = maybeFields.getOrElse(DefaultPadFields)
-    val length: Int         = maybeLength.getOrElse(DefaultPadLength)
-    val pChar:  Char        = maybeChar.getOrElse(DefaultPadChar)
-    val pType:  PaddingType = maybeType.getOrElse(DefaultPaddingStrategy)
-    val pS = pType.toPaddingStrategy(length, pChar)
-    new DefaultPaddingService(fields, pS)
-  }
-  private def fromProps(props: KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type]): PaddingService =
-    fromDefaults(
-      props.getOptionalChar(PaddingCharacter),
-      props.getOptionalInt(PaddingLength),
-      props.getOptionalSet[String](PaddingFields),
-      props.getEnumValue[PaddingType, PaddingType.type](PaddingType, PaddingSelection),
-    )
 }
 
-case class DefaultPaddingService(
-  fields:          Set[String],
-  paddingStrategy: PaddingStrategy,
-) extends PaddingService {
+class PaddingService(
+  fields: Map[String, PaddingStrategy],
+) {
 
-  def getPadderForField(field: String): String => String =
-    if (fields.contains(field)) {
-      paddingStrategy.padString
-    } else {
-      identity
+  def padderFor(field: String): PaddingStrategy =
+    fields.get(field) match {
+      case Some(fieldPaddingStrategy) => fieldPaddingStrategy
+      case None                       => NoOpPaddingStrategy
     }
 }

@@ -24,9 +24,6 @@ case class Topic(value: String) extends AnyVal {
 
 object Offset {
 
-  // Define an implicit conversion from Long to Offset
-  implicit def longToOffset(value: Long): Offset = Offset(value)
-
   implicit def orderingByOffsetValue[A <: Offset]: Ordering[A] =
     Ordering.by(_.value)
 
@@ -40,6 +37,9 @@ object TopicPartition {
 }
 
 case class TopicPartition(topic: Topic, partition: Int) {
+
+  def atOffset(offset: Long): TopicPartitionOffset = withOffset(Offset(offset))
+
   def withOffset(offset: Offset): TopicPartitionOffset = TopicPartitionOffset(topic, partition, offset)
 
   def toKafka = new KafkaTopicPartition(topic.value, partition)

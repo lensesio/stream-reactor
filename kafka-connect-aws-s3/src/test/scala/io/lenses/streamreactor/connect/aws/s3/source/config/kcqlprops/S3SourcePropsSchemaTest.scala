@@ -32,7 +32,7 @@ class S3SourcePropsSchemaTest extends AnyFlatSpec with Matchers {
       "read.text.start.tag" -> "<employer>",
       "read.text.end.tag"   -> "</employer>",
     )
-    val props = S3SourcePropsSchema.schema.readProps(config)
+    val props = S3SourcePropsSchema.schema.readPropsMap(config)
     props.getEnumValue[ReadTextModeEntry, ReadTextModeEnum.type](ReadTextModeEnum,
                                                                  S3PropsKeyEnum.ReadTextMode,
     ) should be(Some(Regex))

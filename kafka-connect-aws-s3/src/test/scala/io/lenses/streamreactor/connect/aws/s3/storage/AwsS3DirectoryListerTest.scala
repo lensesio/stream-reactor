@@ -184,19 +184,19 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
   }
 
   private def check(
-    location:        S3Location,
-    exclude:         Set[String],
-    wildcardExclude: Set[String],
-    expected:        Set[String],
-    s3Client:        S3Client,
-    recursiveLevel:  Int             = 1,
-    connectorTaskId: ConnectorTaskId = connectorTaskId,
+    location:         S3Location,
+    exclude:          Set[String],
+    wildcardExcludes: Set[String],
+    expected:         Set[String],
+    s3Client:         S3Client,
+    recursiveLevel:   Int             = 1,
+    connectorTaskId:  ConnectorTaskId = connectorTaskId,
   ): Unit = {
     val actual = AwsS3DirectoryLister.findDirectories(
       location,
       DirectoryFindCompletionConfig(recursiveLevel),
       exclude,
-      wildcardExclude,
+      wildcardExcludes,
       s3Client.listObjectsV2Paginator(_).iterator().asScala,
       connectorTaskId,
     ).unsafeRunSync()

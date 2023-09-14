@@ -29,10 +29,10 @@ import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
 import io.lenses.streamreactor.connect.aws.s3.sink.config.kcqlprops.S3SinkProps
 import io.lenses.streamreactor.connect.aws.s3.sink.config.kcqlprops.S3SinkPropsSchema
-import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.DefaultPaddingService
-import io.lenses.streamreactor.connect.aws.s3.sink.naming.HierarchicalS3FileNamer
+import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingService
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.OffsetS3FileNamer
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.KeyNamer
-import io.lenses.streamreactor.connect.aws.s3.sink.naming.PartitionedS3FileNamer
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.TopicPartitionOffsetS3FileNamer
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
 
 import java.util
@@ -90,21 +90,21 @@ object SinkBucketOptions extends LazyLogging {
         formatSelection   <- FormatSelection.fromKcql(kcql, S3SinkPropsSchema.schema)
         sinkProps          = S3SinkProps.fromKcql(kcql)
         partitionSelection = PartitionSelection(kcql, sinkProps)
-        paddingService     = DefaultPaddingService.fromConfig(config, sinkProps)
+        paddingService    <- PaddingService.fromConfig(config, sinkProps)
 
         fileNamer = if (partitionSelection.isCustom) {
-          new PartitionedS3FileNamer(
-            paddingService.getPadderForField("partition"),
-            paddingService.getPadderForField("offset"),
+          new TopicPartitionOffsetS3FileNamer(
+            paddingService.padderFor("partition"),
+            paddingService.padderFor("offset"),
             formatSelection.extension,
           )
         } else {
-          new HierarchicalS3FileNamer(
-            paddingService.getPadderForField("offset"),
+          new OffsetS3FileNamer(
+            paddingService.padderFor("offset"),
             formatSelection.extension,
           )
         }
-        keyNamer     = S3KeyNamer(formatSelection, partitionSelection, fileNamer, paddingService.getPadderForField)
+        keyNamer     = S3KeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
         stagingArea <- LocalStagingArea(config)
         target      <- S3Location.splitAndValidate(kcql.getTarget, allowSlash = false)
         storageSettings <- DataStorageSettings.from(
