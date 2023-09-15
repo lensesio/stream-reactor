@@ -129,9 +129,7 @@ WITHUNWRAP
     : 'WITHUNWRAP'| 'withunwrap'
     ;
 
-FORMAT
-    : 'avro'|'AVRO'|'text'|'TEXT'|'binary'|'BINARY'|'json'|'JSON'|'object'|'OBJECT'|'map'|'MAP'|'protobuf'|'PROTOBUF'
-    ;
+
 
 PROJECTTO
     : 'projectTo'|'PROJECTTO'|'projectto'
@@ -295,6 +293,10 @@ KEYDELIMVALUE
 
 fragment ESCAPED_TOPIC
     : ( '`' (~'`')+ '`')
+    ;
+
+ESCAPED_FIELD
+    : FIELD DOT ( '`' (~'`')+ '`')
     ;
 
 STRING: '\'' ~('\'' | '\r' | '\n')* '\'';

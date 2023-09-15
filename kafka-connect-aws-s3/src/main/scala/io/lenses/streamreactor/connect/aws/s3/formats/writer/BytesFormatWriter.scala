@@ -17,41 +17,30 @@ package io.lenses.streamreactor.connect.aws.s3.formats.writer
 
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
-import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
 
 import scala.util.Try
 
-class BytesFormatWriter(outputStream: S3OutputStream, bytesWriteMode: BytesWriteMode)
-    extends S3FormatWriter
-    with LazyLogging {
+class BytesFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter with LazyLogging {
 
-  private val writeKeys   = bytesWriteMode.entryName.contains("Key")
-  private val writeValues = bytesWriteMode.entryName.contains("Value")
-  private val writeSizes  = bytesWriteMode.entryName.contains("Size")
-  private val byteOutputRow = BytesOutputRow(
-    None,
-    None,
-    Array.empty,
-    Array.empty,
-  )
+  private var soiled = false
+
   override def write(messageDetail: MessageDetail): Either[Throwable, Unit] =
-    for {
-      key   <- if (writeKeys) convertToBytes(messageDetail.key) else Array.emptyByteArray.asRight
-      value <- if (writeValues) convertToBytes(messageDetail.value) else Array.emptyByteArray.asRight
-      data = byteOutputRow.copy(
-        keySize   = if (writeKeys && writeSizes) Some(key.length.longValue()) else None,
-        key       = key,
-        valueSize = if (writeValues && writeSizes) Some(value.length.longValue()) else None,
-        value     = value,
-      ).toByteArray
-      _ <- Try {
-        outputStream.write(data)
-        outputStream.flush()
-      }.toEither
-    } yield ()
+    if (soiled) {
+      new IllegalStateException(
+        "Output stream already written to, can only write a single record for BYTES type.",
+      ).asLeft
+    } else {
+      soiled = true
+      for {
+        value <- convertToBytes(messageDetail.value)
+        _ <- Try {
+          outputStream.write(value)
+          outputStream.flush()
+        }.toEither
+      } yield ()
+    }
 
   private def convertToBytes(sinkData: SinkData): Either[Throwable, Array[Byte]] =
     sinkData match {

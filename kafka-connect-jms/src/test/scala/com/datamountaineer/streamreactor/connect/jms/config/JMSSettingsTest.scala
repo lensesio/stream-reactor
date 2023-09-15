@@ -256,7 +256,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
     queue.source shouldBe queueName
     queue.target shouldBe kafkaTopic1
     queue.converter.forSink.value shouldBe a[JsonMessageConverter]
-    queue.storageOptions.storedAs shouldBe "`datamountaineer.streamreactor.example.AddressedPerson`"
+    queue.storageOptions.storedAs shouldBe "datamountaineer.streamreactor.example.AddressedPerson"
     queue.storageOptions.storedAsProperties.size shouldBe 0
     queue.messageSelector shouldBe None
 
@@ -265,7 +265,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
     topic.target shouldBe kafkaTopic1
     topic.destinationType shouldBe TopicDestination
     topic.messageSelector shouldBe None
-    topic.storageOptions.storedAs shouldBe "`datamountaineer.streamreactor.example.NonAddressedPerson`"
+    topic.storageOptions.storedAs shouldBe "datamountaineer.streamreactor.example.NonAddressedPerson"
     topic.storageOptions.storedAsProperties.size shouldBe 0
 
     settings.destinationSelector shouldBe DestinationSelector.CDI

@@ -39,7 +39,7 @@ class BytesOutputRowConverter(
       topic.value,
       partition,
       Schema.BYTES_SCHEMA,
-      row.key,
+      null,
       Schema.BYTES_SCHEMA,
       row.value,
     )

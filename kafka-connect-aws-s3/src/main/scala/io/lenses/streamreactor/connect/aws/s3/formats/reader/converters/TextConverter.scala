@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.reader.converters
 
+import io.lenses.streamreactor.connect.aws.s3.config.ReaderBuilderContext
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.Converter
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
@@ -41,5 +42,16 @@ class TextConverter(
       null,
       Schema.STRING_SCHEMA,
       value,
+    )
+}
+
+object TextConverter {
+
+  def apply(input: ReaderBuilderContext): TextConverter =
+    new TextConverter(input.watermarkPartition,
+                      input.targetTopic,
+                      input.targetPartition,
+                      input.bucketAndPath,
+                      input.metadata.lastModified,
     )
 }

@@ -310,20 +310,20 @@ object S3WriterManager extends LazyLogging {
     val bucketAndPrefixFn: TopicPartition => Either[SinkError, S3Location] = topicPartition => {
       bucketOptsForTopic(config, topicPartition.topic) match {
         case Some(sBO) => sBO.bucketAndPrefix.asRight
-        case None      => FatalS3SinkError.apply(s"No bucket config for ${topicPartition.topic}", topicPartition).asLeft
+        case None      => fatalErrorTopicNotConfigured(topicPartition).asLeft
       }
     }
 
     val commitPolicyFn: TopicPartition => Either[SinkError, CommitPolicy] = topicPartition =>
       bucketOptsForTopic(config, topicPartition.topic) match {
         case Some(bucketOptions) => bucketOptions.commitPolicy.asRight
-        case None                => FatalS3SinkError("Can't find commitPolicy in config", topicPartition).asLeft
+        case None                => fatalErrorTopicNotConfigured(topicPartition).asLeft
       }
 
     val fileNamingStrategyFn: TopicPartition => Either[SinkError, S3FileNamingStrategy] = topicPartition =>
       bucketOptsForTopic(config, topicPartition.topic) match {
         case Some(bucketOptions) => bucketOptions.fileNamingStrategy.asRight
-        case None                => FatalS3SinkError("Can't find fileNamingStrategy in config", topicPartition).asLeft
+        case None                => fatalErrorTopicNotConfigured(topicPartition).asLeft
       }
 
     val stagingFilenameFn: (TopicPartition, immutable.Map[PartitionField, String]) => Either[SinkError, File] =
@@ -338,7 +338,7 @@ object S3WriterManager extends LazyLogging {
                                                                 partitionValues,
               )
             } yield stagingFilename
-          case None => FatalS3SinkError("Can't find fileNamingStrategy in config", topicPartition).asLeft
+          case None => fatalErrorTopicNotConfigured(topicPartition).asLeft
         }
 
     val finalFilenameFn: (
@@ -355,7 +355,7 @@ object S3WriterManager extends LazyLogging {
                                                                 partitionValues,
             )
           } yield stagingFilename
-        case None => FatalS3SinkError("Can't find fileNamingStrategy in config", topicPartition).asLeft
+        case None => fatalErrorTopicNotConfigured(topicPartition).asLeft
       }
 
     val formatWriterFn: (TopicPartition, File) => Either[SinkError, S3FormatWriter] =
@@ -390,4 +390,9 @@ object S3WriterManager extends LazyLogging {
   private def bucketOptsForTopic(config: S3SinkConfig, topic: Topic): Option[SinkBucketOptions] =
     config.bucketOptions.find(bo => bo.sourceTopic.isEmpty || bo.sourceTopic.contains(topic.value))
 
+  private def fatalErrorTopicNotConfigured(topicPartition: TopicPartition): SinkError =
+    FatalS3SinkError(
+      s"Can't find the KCQL for source topic [${topicPartition.topic}]. The topics defined via [topics] or [topics.regex] need to have an equivalent KCQL statement: INSERT INTO {S3_BUCKET} SELECT * FROM {TOPIC}.",
+      topicPartition,
+    )
 }

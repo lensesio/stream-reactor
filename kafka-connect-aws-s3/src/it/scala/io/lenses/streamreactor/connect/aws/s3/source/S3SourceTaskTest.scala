@@ -8,8 +8,6 @@ import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions
-import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.KeyAndValueWithSizes
-import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.ValueOnly
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
@@ -281,17 +279,15 @@ class S3SourceTaskTest
   }
 
   "task" should "read stored bytes files continuously" in {
-    val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.ValueOnly))
-    val dir                     = "bytesval"
+    val format = Format.Bytes
+    val dir    = "bytes"
 
     val task = new S3SourceTask()
-
-    val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
 
     val props = DefaultProps
       .combine(
         Map(
-          KCQL_CONFIG -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
+          KCQL_CONFIG -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}` LIMIT 190",
         ),
       ).asJava
 
@@ -310,116 +306,10 @@ class S3SourceTaskTest
       sourceRecords1 should have size 5
       sourceRecords2 should have size 0
 
-      val expectedLength = bucketSetup.totalFileLengthBytes(format, formatOptions)
+      val expectedLength = bucketSetup.totalFileLengthBytes(format)
       val allLength      = sourceRecords1.asScala.map(_.value().asInstanceOf[Array[Byte]].length).sum
 
       allLength should be(expectedLength)
-    }
-  }
-
-  "task" should "read stored bytes key/value files continuously" in {
-    val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.KeyAndValueWithSizes))
-
-    val dir  = "byteskv"
-    val task = new S3SourceTask()
-
-    val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
-
-    val props = DefaultProps
-      .combine(
-        Map(
-          KCQL_CONFIG -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
-        ),
-      ).asJava
-
-    task.start(props)
-    withCleanup(task.stop()) {
-      //Let the partitions scan do its work
-      val sourceRecords1 = eventually {
-        val records = task.poll()
-        records.size() shouldBe 190
-        records
-      }
-      val sourceRecords2 = task.poll()
-      val sourceRecords3 = task.poll()
-      val sourceRecords4 = task.poll()
-      val sourceRecords5 = task.poll()
-      val sourceRecords6 = task.poll()
-      val sourceRecords7 = task.poll()
-
-      task.stop()
-
-      sourceRecords1 should have size 190
-      sourceRecords2 should have size 190
-      sourceRecords3 should have size 190
-      sourceRecords4 should have size 190
-      sourceRecords5 should have size 190
-      sourceRecords6 should have size 50
-      sourceRecords7 should have size 0
-
-      sourceRecords1.asScala
-        .concat(sourceRecords2.asScala)
-        .concat(sourceRecords3.asScala)
-        .concat(sourceRecords4.asScala)
-        .concat(sourceRecords5.asScala)
-        .concat(sourceRecords6.asScala)
-        .toSet should have size 1000
-
-      sourceRecords1.get(0).key should be("myKey".getBytes)
-      sourceRecords1.get(0).value() should be("somestring".getBytes)
-    }
-  }
-
-  "task" should "read stored nested bytes key/value files continuously" in {
-    val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.KeyAndValueWithSizes))
-
-    val dir  = "nested/byteskv"
-    val task = new S3SourceTask()
-
-    val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
-
-    val props = DefaultProps
-      .combine(
-        Map(
-          KCQL_CONFIG -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
-        ),
-      ).asJava
-
-    task.start(props)
-    withCleanup(task.stop()) {
-      //Let the partitions scan do its work
-      val sourceRecords1 = eventually {
-        val records = task.poll()
-        records.size() shouldBe 190
-        records
-      }
-      val sourceRecords2 = task.poll()
-      val sourceRecords3 = task.poll()
-      val sourceRecords4 = task.poll()
-      val sourceRecords5 = task.poll()
-      val sourceRecords6 = task.poll()
-      val sourceRecords7 = task.poll()
-
-      task.stop()
-
-      sourceRecords1 should have size 190
-      sourceRecords2 should have size 190
-      sourceRecords3 should have size 190
-      sourceRecords4 should have size 190
-      sourceRecords5 should have size 190
-      sourceRecords6 should have size 50
-      sourceRecords7 should have size 0
-
-      sourceRecords1.asScala
-        .concat(sourceRecords2.asScala)
-        .concat(sourceRecords3.asScala)
-        .concat(sourceRecords4.asScala)
-        .concat(sourceRecords5.asScala)
-        .concat(sourceRecords6.asScala)
-        .toSet should have size 1000
-
-      sourceRecords1.get(0).key should be("myKey".getBytes)
-      sourceRecords1.get(0).value() should be("somestring".getBytes)
     }
   }
 
@@ -434,9 +324,7 @@ class S3SourceTaskTest
         bucketSetup.setUpBucketData(BucketName, format, formatOptions, dir)
     }
 
-    bucketSetup.setUpBucketData(BucketName, Bytes, Some(KeyAndValueWithSizes), "byteskv")
-    bucketSetup.setUpBucketData(BucketName, Bytes, Some(ValueOnly), "bytesval")
-    bucketSetup.setUpBucketData(BucketName, Bytes, Some(KeyAndValueWithSizes), "nested/byteskv")
+    bucketSetup.setUpBucketData(BucketName, Bytes, Option.empty, "bytesval")
   }
 
   private def withCleanup[T](cleanup: => Unit)(fn: => T): Unit =

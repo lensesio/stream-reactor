@@ -55,6 +55,8 @@ import java.util
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.util.Failure
+import scala.util.Success
 import scala.util.Try
 
 class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with MockitoSugar with LazyLogging {
@@ -68,18 +70,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
   private val PrefixName = "streamReactorBackups"
   private val TopicName  = "myTopic"
 
-  private def DeprecatedProps = Map(
-    DEP_AWS_ACCESS_KEY              -> Identity,
-    DEP_AWS_SECRET_KEY              -> Credential,
-    DEP_AUTH_MODE                   -> AuthMode.Credentials.toString,
-    DEP_CUSTOM_ENDPOINT             -> uri(),
-    DEP_ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
-    "name"                          -> "s3SinkTaskBuildLocalTest",
-    AWS_REGION                      -> "eu-west-1",
-    TASK_INDEX                      -> "1:1",
-  )
-
-  private def DefaultProps = Map(
+  private def DefaultProps: Map[String, String] = Map(
     AWS_ACCESS_KEY              -> Identity,
     AWS_SECRET_KEY              -> Credential,
     AUTH_MODE                   -> AuthMode.Credentials.toString,
@@ -164,7 +155,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
     val task = new S3SinkTask()
 
-    val props = DeprecatedProps
+    val props = DefaultProps
       .combine(
         Map(
           "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_INTERVAL = 1",
@@ -442,7 +433,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"""insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` WITH_FLUSH_COUNT = 1""",
+          "connect.s3.kcql" -> s"""insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET WITH_FLUSH_COUNT = 1""",
         ),
       ).asJava
 
@@ -788,22 +779,39 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "write to bytes format and combine files" in {
+  "S3SinkTask" should "writing to bytes format doesn't allow you to combine files" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES` WITH_FLUSH_COUNT = 2",
+        ),
+      ).asJava
+
+    Try(task.start(props)) match {
+      case Failure(exception) =>
+        exception.getMessage should startWith("FLUSH_COUNT > 1 is not allowed for BYTES")
+      case Success(_) => fail("Exception expected")
+    }
+    Try(task.stop())
+  }
+
+  "S3SinkTask" should "write to bytes format" in {
 
     val stream = classOf[BytesFormatWriter].getResourceAsStream("/streamreactor-logo.png")
     val bytes: Array[Byte] = IOUtils.toByteArray(stream)
-    val (bytes1, bytes2) = bytes.splitAt(bytes.length / 2)
 
     val textRecords = List(
-      new SinkRecord(TopicName, 1, null, null, null, bytes1, 0),
-      new SinkRecord(TopicName, 1, null, null, null, bytes2, 1),
+      new SinkRecord(TopicName, 1, null, null, null, bytes, 0),
     )
     val task = new S3SinkTask()
 
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES_ValueOnly` WITH_FLUSH_COUNT = 2",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES` WITH_FLUSH_COUNT = 1",
         ),
       ).asJava
 
@@ -815,9 +823,29 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(1)
 
-    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.bytes")
-    file1Bytes should be(bytes)
+    remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.bytes") should be(bytes)
 
+  }
+
+  "S3SinkTask" should "prompt user of defaults for bytes format to specify a flush count" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES`",
+        ),
+      ).asJava
+
+    Try(task.start(props)) match {
+      case Failure(exception) =>
+        exception.getMessage should endWith(
+          "If you are using BYTES but not specified a FLUSH_COUNT, then do so by adding WITH_FLUSH_COUNT = 1 to your KCQL.",
+        )
+      case Success(_) => fail("Exception expected")
+    }
+    Try(task.stop())
   }
 
   "S3SinkTask" should "support header values for data partitioning" in {
@@ -1179,25 +1207,6 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       "streamReactorBackups/region=5/phonePrefix=+49/myTopic(000000000001_000000000001).csv",
       "streamReactorBackups/region=5/phonePrefix=+49/myTopic(000000000001_000000000002).csv"
     )
-  }
-
-  "S3SinkTask" should "not get past kcql parser when contains a slash" in {
-
-    val task = new S3SinkTask()
-
-    val keyWithSlash = "_key.date/of/birth"
-
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY $keyWithSlash, _key.phonePrefix STOREAS `CSV` WITH_FLUSH_COUNT = 1",
-        ),
-      ).asJava
-
-    intercept[IllegalArgumentException] {
-      task.start(props)
-    }.getMessage contains "no viable alternative at input"
-
   }
 
   "S3SinkTask" should "allow partitioning by complex key and values" in {
@@ -1696,6 +1705,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val structMapSchema: Schema = SchemaBuilder.struct()
       .field("user", schema)
       .field("favourites", favsSchema)
+      .field("cost.centre.id", SchemaBuilder.string())
       .build()
 
     val nested: List[Struct] = List(
@@ -1709,6 +1719,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
         .put(
           "favourites",
           Map("band" -> "the killers", "film" -> "a clockwork orange").asJava,
+        )
+        .put(
+          "cost.centre.id",
+          "100",
         ),
       new Struct(structMapSchema)
         .put("user",
@@ -1720,6 +1734,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
         .put(
           "favourites",
           Map("band" -> "the strokes", "film" -> "a clockwork orange").asJava,
+        )
+        .put(
+          "cost.centre.id",
+          "200",
         ),
       new Struct(structMapSchema)
         .put("user",
@@ -1731,6 +1749,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
         .put(
           "favourites",
           Map().asJava,
+        )
+        .put(
+          "cost.centre.id",
+          "100",
         ),
     )
 
@@ -1750,7 +1772,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.favourites.band WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.favourites.band, _key.`cost.centre.id` WITH_FLUSH_COUNT = 1",
         ),
       ).asJava
 
@@ -1765,9 +1787,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     fileList.size should be(3)
 
     fileList should contain allOf (
-      "streamReactorBackups/favourites.band=the strokes/myTopic(000000000001_000000000000).json",
-      "streamReactorBackups/favourites.band=the killers/myTopic(000000000000_000000000000).json",
-      "streamReactorBackups/favourites.band=[missing]/myTopic(000000000001_000000000001).json",
+      "streamReactorBackups/favourites.band=the strokes/cost.centre.id=200/myTopic(000000000001_000000000000).json",
+      "streamReactorBackups/favourites.band=the killers/cost.centre.id=100/myTopic(000000000000_000000000000).json",
+      "streamReactorBackups/favourites.band=[missing]/cost.centre.id=100/myTopic(000000000001_000000000001).json",
     )
   }
 
