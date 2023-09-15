@@ -32,7 +32,7 @@ object PartitionField {
       .map(_.asScala)
       .getOrElse(Nil)
       .map { name =>
-        val split = name.split("\\.").toSeq
+        val split: Seq[String] = PartitionFieldSplitter.split(name)
         PartitionSpecifier.withNameOption(split.head).fold(PartitionField(split))(hd =>
           if (split.tail.isEmpty) PartitionField(hd) else PartitionField(hd, split.tail),
         )

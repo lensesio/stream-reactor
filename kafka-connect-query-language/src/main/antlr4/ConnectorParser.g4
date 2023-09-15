@@ -74,6 +74,14 @@ column
    : FIELD ( DOT FIELD )* (DOT ASTERISK)? | STRING
    ;
 
+partition_column
+   : (field_or_quoted_field ( DOT field_or_quoted_field )* (DOT ASTERISK)?) | STRING
+   ;
+
+field_or_quoted_field
+   : ((ESCAPED_FIELD | FIELD)* DOT*)
+   ;
+
 column_name_alias
    : FIELD | STRING
    ;
@@ -131,7 +139,7 @@ initialize
    ;
 
 partition_name
-   : column
+   : partition_column
    ;
 
 partition_list

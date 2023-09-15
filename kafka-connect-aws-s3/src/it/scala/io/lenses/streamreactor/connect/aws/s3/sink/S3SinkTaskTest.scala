@@ -1209,25 +1209,6 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     )
   }
 
-  "S3SinkTask" should "not get past kcql parser when contains a slash" in {
-
-    val task = new S3SinkTask()
-
-    val keyWithSlash = "_key.date/of/birth"
-
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY $keyWithSlash, _key.phonePrefix STOREAS `CSV` WITH_FLUSH_COUNT = 1",
-        ),
-      ).asJava
-
-    intercept[IllegalArgumentException] {
-      task.start(props)
-    }.getMessage contains "no viable alternative at input"
-
-  }
-
   "S3SinkTask" should "allow partitioning by complex key and values" in {
 
     val task = new S3SinkTask()
@@ -1724,6 +1705,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val structMapSchema: Schema = SchemaBuilder.struct()
       .field("user", schema)
       .field("favourites", favsSchema)
+      .field("cost.centre.id", SchemaBuilder.string())
       .build()
 
     val nested: List[Struct] = List(
@@ -1737,6 +1719,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
         .put(
           "favourites",
           Map("band" -> "the killers", "film" -> "a clockwork orange").asJava,
+        )
+        .put(
+          "cost.centre.id",
+          "100",
         ),
       new Struct(structMapSchema)
         .put("user",
@@ -1748,6 +1734,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
         .put(
           "favourites",
           Map("band" -> "the strokes", "film" -> "a clockwork orange").asJava,
+        )
+        .put(
+          "cost.centre.id",
+          "200",
         ),
       new Struct(structMapSchema)
         .put("user",
@@ -1759,6 +1749,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
         .put(
           "favourites",
           Map().asJava,
+        )
+        .put(
+          "cost.centre.id",
+          "100",
         ),
     )
 
@@ -1778,7 +1772,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.favourites.band WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.favourites.band, _key.`cost.centre.id` WITH_FLUSH_COUNT = 1",
         ),
       ).asJava
 
@@ -1793,9 +1787,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     fileList.size should be(3)
 
     fileList should contain allOf (
-      "streamReactorBackups/favourites.band=the strokes/myTopic(000000000001_000000000000).json",
-      "streamReactorBackups/favourites.band=the killers/myTopic(000000000000_000000000000).json",
-      "streamReactorBackups/favourites.band=[missing]/myTopic(000000000001_000000000001).json",
+      "streamReactorBackups/favourites.band=the strokes/cost.centre.id=200/myTopic(000000000001_000000000000).json",
+      "streamReactorBackups/favourites.band=the killers/cost.centre.id=100/myTopic(000000000000_000000000000).json",
+      "streamReactorBackups/favourites.band=[missing]/cost.centre.id=100/myTopic(000000000001_000000000001).json",
     )
   }
 

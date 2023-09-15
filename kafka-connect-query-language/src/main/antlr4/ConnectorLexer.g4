@@ -295,6 +295,10 @@ fragment ESCAPED_TOPIC
     : ( '`' (~'`')+ '`')
     ;
 
+ESCAPED_FIELD
+    : FIELD DOT ( '`' (~'`')+ '`')
+    ;
+
 STRING: '\'' ~('\'' | '\r' | '\n')* '\'';
 
 NEWLINE
