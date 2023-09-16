@@ -52,11 +52,14 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
           .build(records)
           .flatMap { batchPoints =>
             logger.debug(s"Writing ${batchPoints.length} points to the database...")
-            for {
-              writer   <- Try(influxDB.makeWriteApi())
-              writeRes <- Try(writer.writePoints(batchPoints.asJava))
-            } yield writeRes
-          }.map(_ => logger.debug("Writing complete")),
+            val writer = influxDB.makeWriteApi()
+            val writeAttempt = Try {
+              writer.writePoints(batchPoints.asJava)
+            }
+            writer.close()
+            writeAttempt
+          }
+          .map(_ => logger.debug("Writing complete")),
       )
     }
 
