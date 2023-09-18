@@ -16,6 +16,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import cats.effect.unsafe.implicits.global
+import cats.effect.IO
+import cats.effect.Resource
 import cats.implicits._
 import com.opencsv.CSVReader
 import com.typesafe.scalalogging.LazyLogging
@@ -47,9 +50,9 @@ import org.scalatest.matchers.should.Matchers
 import java.io.File
 import java.io.StringReader
 import java.nio.file.Files
+import java.time.format.DateTimeFormatter
 import java.time.LocalDate
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 import java.lang
 import java.util
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -966,6 +969,30 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
     listBucketPath(BucketName, "streamReactorBackups/").size should be(0)
 
+  }
+
+  "S3SinkTask" should "fail with message when deprecated properties are used" in {
+    Resource.make(IO(new S3SinkTask())) { sinkTask =>
+      IO(sinkTask.stop())
+    }.use { sinkTask =>
+      IO {
+        val exMessage = intercept[IllegalArgumentException] {
+          sinkTask.start(
+            DefaultProps.combine(
+              Map(
+                "aws.access.key"  -> "myAccessKey",
+                "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` WITH_FLUSH_COUNT = 1",
+              ),
+            ).asJava,
+          )
+        }.getMessage
+
+        exMessage should startWith("The following properties have been deprecated: `aws.access.key`")
+        exMessage should include("Change `aws.access.key` to `connect.s3.aws.access.key`")
+
+        listBucketPath(BucketName, "streamReactorBackups/").size should be(0)
+      }
+    }.unsafeRunSync()
   }
 
   "S3SinkTask" should "support numeric header data types" in {

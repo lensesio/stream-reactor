@@ -20,6 +20,7 @@ import com.datamountaineer.streamreactor.common.config.base.traits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.config.processors.ConfigDefProcessor
+import io.lenses.streamreactor.connect.aws.s3.config.processors.DeprecationConfigDefProcessor
 import io.lenses.streamreactor.connect.aws.s3.config.processors.LowerCaseKeyConfigDefProcessor
 import io.lenses.streamreactor.connect.aws.s3.config.processors.YamlProfileProcessor
 import org.apache.kafka.common.config.ConfigDef
@@ -78,7 +79,7 @@ object S3SinkConfigDef {
 class S3SinkConfigDef() extends ConfigDef with LazyLogging {
 
   private val processorChain: List[ConfigDefProcessor] =
-    List(new LowerCaseKeyConfigDefProcessor, new YamlProfileProcessor)
+    List(new LowerCaseKeyConfigDefProcessor, new DeprecationConfigDefProcessor, new YamlProfileProcessor)
 
   override def parse(jProps: util.Map[_, _]): util.Map[String, AnyRef] = {
     val scalaProps: Map[Any, Any] = jProps.asScala.toMap
