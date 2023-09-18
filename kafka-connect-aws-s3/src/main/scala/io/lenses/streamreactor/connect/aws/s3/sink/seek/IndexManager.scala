@@ -22,13 +22,12 @@ import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
 import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
 import io.lenses.streamreactor.connect.aws.s3.sink.NonFatalS3SinkError
-import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
 import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
+import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processAsKey
 import io.lenses.streamreactor.connect.aws.s3.storage.FileDeleteError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
-import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processAsKey
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 class IndexManager(
   maxIndexes: Int,
 )(
@@ -66,7 +65,7 @@ class IndexManager(
           if (indexes.size > maxIndexes) {
             logAndReturnMaxExceededError(topicPartition, indexes)
           } else if (filtered.size == indexes.size) {
-            val logLine = s"Latest file not found in index (${mostRecentIndexFile})"
+            val logLine = s"Latest file not found in index ($mostRecentIndexFile)"
             logger.error("[{}] {}", connectorTaskId.show, logLine)
             NonFatalS3SinkError(logLine).asLeft
           } else {
@@ -129,14 +128,12 @@ class IndexManager(
     * Seeks the filesystem to find the latyest offsets for a topic/partition.
     *
     * @param topicPartition     the TopicPartition for which to retrieve the offsets
-    * @param fileNamingStrategy the S3FileNamingStrategy to use in the case that a fallback offset seeker is required.
     * @param bucket    the configured bucket
     * @return either a SinkError or an option to a TopicPartitionOffset with the seek result.
     */
   def seek(
-    topicPartition:     TopicPartition,
-    fileNamingStrategy: S3FileNamingStrategy,
-    bucket:             String,
+    topicPartition: TopicPartition,
+    bucket:         String,
   ): Either[SinkError, Option[TopicPartitionOffset]] = {
     val indexLocation = IndexFilenames.indexForTopicPartition(topicPartition.topic.value, topicPartition.partition)
     storageInterface.listRecursive(

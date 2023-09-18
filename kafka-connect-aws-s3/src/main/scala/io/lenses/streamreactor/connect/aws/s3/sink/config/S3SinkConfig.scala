@@ -17,13 +17,23 @@ package io.lenses.streamreactor.connect.aws.s3.sink.config
 import cats.syntax.all._
 import com.datamountaineer.kcql.Kcql
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings
+import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
+import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MAX_INDEX_FILES
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.sink._
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
+import io.lenses.streamreactor.connect.aws.s3.sink.config.kcqlprops.S3SinkProps
+import io.lenses.streamreactor.connect.aws.s3.sink.config.kcqlprops.S3SinkPropsSchema
+import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingService
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.OffsetS3FileNamer
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.KeyNamer
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.TopicPartitionOffsetS3FileNamer
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
 
 import java.util
 import scala.jdk.CollectionConverters._
@@ -77,13 +87,24 @@ object SinkBucketOptions extends LazyLogging {
   ): Either[Throwable, Seq[SinkBucketOptions]] =
     config.getKCQL.map { kcql: Kcql =>
       for {
-        formatSelection   <- FormatSelection.fromKcql(kcql)
-        partitionSelection = PartitionSelection(kcql)
-        namingStrategy = partitionSelection match {
-          case Some(partSel) =>
-            new PartitionedS3FileNamingStrategy(formatSelection, config.getPaddingStrategy(), partSel)
-          case None => new HierarchicalS3FileNamingStrategy(formatSelection, config.getPaddingStrategy())
+        formatSelection   <- FormatSelection.fromKcql(kcql, S3SinkPropsSchema.schema)
+        sinkProps          = S3SinkProps.fromKcql(kcql)
+        partitionSelection = PartitionSelection(kcql, sinkProps)
+        paddingService    <- PaddingService.fromConfig(config, sinkProps)
+
+        fileNamer = if (partitionSelection.isCustom) {
+          new TopicPartitionOffsetS3FileNamer(
+            paddingService.padderFor("partition"),
+            paddingService.padderFor("offset"),
+            formatSelection.extension,
+          )
+        } else {
+          new OffsetS3FileNamer(
+            paddingService.padderFor("offset"),
+            formatSelection.extension,
+          )
         }
+        keyNamer     = S3KeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
         stagingArea <- LocalStagingArea(config)
         target      <- S3Location.splitAndValidate(kcql.getTarget, allowSlash = false)
         storageSettings <- DataStorageSettings.from(
@@ -97,7 +118,7 @@ object SinkBucketOptions extends LazyLogging {
           Option(kcql.getSource).filterNot(Set("*", "`*`").contains(_)),
           target,
           formatSelection    = formatSelection,
-          fileNamingStrategy = namingStrategy,
+          keyNamer           = keyNamer,
           partitionSelection = partitionSelection,
           commitPolicy       = config.commitPolicy(kcql),
           localStagingArea   = stagingArea,
@@ -135,9 +156,9 @@ case class SinkBucketOptions(
   sourceTopic:        Option[String],
   bucketAndPrefix:    S3Location,
   formatSelection:    FormatSelection,
-  fileNamingStrategy: S3FileNamingStrategy,
-  partitionSelection: Option[PartitionSelection] = None,
-  commitPolicy:       CommitPolicy               = CommitPolicy.Default,
+  keyNamer:           KeyNamer,
+  partitionSelection: PartitionSelection,
+  commitPolicy:       CommitPolicy = CommitPolicy.Default,
   localStagingArea:   LocalStagingArea,
   dataStorage:        DataStorageSettings,
 )

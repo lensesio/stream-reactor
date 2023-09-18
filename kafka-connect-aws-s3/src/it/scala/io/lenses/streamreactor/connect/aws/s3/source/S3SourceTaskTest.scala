@@ -10,6 +10,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.source.S3SourceTaskTest.formats
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
 import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindCompletionConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindResults
@@ -29,7 +30,17 @@ import java.util
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
+object S3SourceTaskTest {
 
+  val formats = Table(
+    ("format", "formatOptionOption", "dirName"),
+    (Format.Avro, None, "avro"),
+    (Format.Json, None, "json"),
+    (Format.Parquet, None, "parquet"),
+    (Format.Csv, Some(FormatOptions.WithHeaders), "csvheaders"),
+    (Format.Csv, None, "csvnoheaders"),
+  )
+}
 class S3SourceTaskTest
     extends AnyFlatSpec
     with Matchers
@@ -57,15 +68,6 @@ class S3SourceTaskTest
     SOURCE_PARTITION_SEARCH_RECURSE_LEVELS  -> "0",
   )
 
-  private val formats = Table(
-    ("format", "formatOptionOption", "dirName"),
-    (Format.Avro, None, "avro"),
-    (Format.Json, None, "json"),
-    (Format.Parquet, None, "parquet"),
-    (Format.Csv, Some(FormatOptions.WithHeaders), "csvheaders"),
-    (Format.Csv, None, "csvnoheaders"),
-  )
-
   "blobstore get input stream" should "reveal availability" in {
 
     val inputStream =
@@ -86,6 +88,7 @@ class S3SourceTaskTest
       AwsS3DirectoryLister.findDirectories(
         root,
         DirectoryFindCompletionConfig(0),
+        Set.empty,
         Set.empty,
         s3Client.listObjectsV2Paginator(_).iterator().asScala,
         ConnectorTaskId("name", 1, 1),

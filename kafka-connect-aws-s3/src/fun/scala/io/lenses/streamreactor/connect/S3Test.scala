@@ -85,7 +85,7 @@ class S3Test
             assert(files.contents().size() == 1)
           }
 
-          readKeyToOrder(s3Client, bucketName, "myfiles/orders/000000000000/000000000000.json")
+          readKeyToOrder(s3Client, bucketName, "myfiles/orders/0/000000000000.json")
         }.asserting {
           key: Order =>
             key should be(order)

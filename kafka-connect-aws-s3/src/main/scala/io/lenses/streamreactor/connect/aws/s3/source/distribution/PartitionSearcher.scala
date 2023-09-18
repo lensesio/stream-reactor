@@ -60,6 +60,7 @@ class PartitionSearcher(
         root,
         config,
         originalPartitions,
+        settings.wildcardExcludes,
         listS3ObjF,
         connectorTaskId,
       )
@@ -81,4 +82,5 @@ class PartitionSearcher(
       Option.empty,
     )
   }
+
 }

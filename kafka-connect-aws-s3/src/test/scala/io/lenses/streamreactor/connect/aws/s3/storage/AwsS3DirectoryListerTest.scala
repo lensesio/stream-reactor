@@ -40,11 +40,11 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
       ),
     )
 
-    check(S3Location("bucket", "prefix1/".some), Set.empty, Set("prefix1/"), s3Client)
+    check(S3Location("bucket", "prefix1/".some), Set.empty, Set.empty, Set("prefix1/"), s3Client)
 
-    check(S3Location("bucket", "prefix2/".some), Set.empty, Set("prefix2/"), s3Client)
-    check(S3Location("bucket", "prefix3/".some), Set.empty, Set.empty, s3Client)
-    check(S3Location("bucket", None), Set.empty, Set("prefix1/", "prefix2/"), s3Client)
+    check(S3Location("bucket", "prefix2/".some), Set.empty, Set.empty, Set("prefix2/"), s3Client)
+    check(S3Location("bucket", "prefix3/".some), Set.empty, Set.empty, Set.empty, s3Client)
+    check(S3Location("bucket", None), Set.empty, Set.empty, Set("prefix1/", "prefix2/"), s3Client)
   }
 
   "lister" should "list multiple pages" in {
@@ -67,6 +67,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     AwsS3DirectoryLister.findDirectories(
       S3Location("bucket", none),
       DirectoryFindCompletionConfig(1),
+      Set.empty,
       Set.empty,
       s3Client.listObjectsV2Paginator(_).iterator().asScala,
       connectorTaskId,
@@ -95,6 +96,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     check(
       S3Location("bucket", none),
       Set("prefix1/", "prefix4/"),
+      Set.empty,
       Set("prefix2/", "prefix3/"),
       s3Client,
       0,
@@ -123,6 +125,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     check(
       S3Location("bucket", none),
       Set.empty,
+      Set.empty,
       Set("prefix2/", "prefix4/"),
       s3Client,
       1,
@@ -131,6 +134,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
 
     check(
       S3Location("bucket", none),
+      Set.empty,
       Set.empty,
       Set("prefix1/", "prefix3/"),
       s3Client,
@@ -142,6 +146,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
       S3Location("bucket", none),
       Set("prefix2/", "prefix4/"),
       Set.empty,
+      Set.empty,
       s3Client,
       0,
       taskId1,
@@ -150,6 +155,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     check(
       S3Location("bucket", none),
       Set("prefix1/", "prefix3/"),
+      Set.empty,
       Set.empty,
       s3Client,
       0,
@@ -159,6 +165,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     check(
       S3Location("bucket", none),
       Set("prefix2/"),
+      Set.empty,
       Set("prefix4/"),
       s3Client,
       1,
@@ -168,6 +175,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     check(
       S3Location("bucket", none),
       Set("prefix1/"),
+      Set.empty,
       Set("prefix3/"),
       s3Client,
       1,
@@ -176,21 +184,45 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
   }
 
   private def check(
-    location:        S3Location,
-    exclude:         Set[String],
-    expected:        Set[String],
-    s3Client:        S3Client,
-    recursiveLevel:  Int             = 1,
-    connectorTaskId: ConnectorTaskId = connectorTaskId,
+    location:         S3Location,
+    exclude:          Set[String],
+    wildcardExcludes: Set[String],
+    expected:         Set[String],
+    s3Client:         S3Client,
+    recursiveLevel:   Int             = 1,
+    connectorTaskId:  ConnectorTaskId = connectorTaskId,
   ): Unit = {
     val actual = AwsS3DirectoryLister.findDirectories(
       location,
       DirectoryFindCompletionConfig(recursiveLevel),
       exclude,
+      wildcardExcludes,
       s3Client.listObjectsV2Paginator(_).iterator().asScala,
       connectorTaskId,
     ).unsafeRunSync()
     actual should be(DirectoryFindResults(expected))
     ()
   }
+
+  "lister" should "exclude indexes directory when configured as wildcard exclude" in {
+
+    val s3Client: S3Client = new MockS3Client(
+      S3Page(
+        ".indexes/sinkName/myTopic/00005/00000000000000000050",
+        ".indexes/sinkName/myTopic/00005/00000000000000000070",
+        ".indexes/sinkName/myTopic/00005/00000000000000000100",
+        "prefix1/1.txt",
+        "prefix1/2.txt",
+        "prefix2/3.txt",
+        "prefix2/4.txt",
+      ),
+    )
+
+    check(S3Location("bucket", "prefix1/".some), Set.empty, Set(".indexes"), Set("prefix1/"), s3Client)
+
+    check(S3Location("bucket", "prefix2/".some), Set.empty, Set(".indexes"), Set("prefix2/"), s3Client)
+    check(S3Location("bucket", "prefix3/".some), Set.empty, Set(".indexes"), Set.empty, s3Client)
+    check(S3Location("bucket", None), Set.empty, Set(".indexes"), Set("prefix1/", "prefix2/"), s3Client)
+  }
+
 }

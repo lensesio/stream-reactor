@@ -15,15 +15,16 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.util.Try
 
-class CommonConfigDefTest extends AnyFlatSpec with Matchers {
+class CommonConfigDefTest extends AnyFlatSpec with Matchers with EitherValues {
 
   private val DeprecatedProps: Map[String, String] = Map(
     DEP_AWS_ACCESS_KEY              -> "DepAccessKey",
@@ -53,21 +54,10 @@ class CommonConfigDefTest extends AnyFlatSpec with Matchers {
     resultMap.keys should contain allElementsOf DefaultProps.keys
   }
 
-  "CommonConfigDef" should "parse deprecated properties" in {
-    val resultMap = CommonConfigDef.config.parse(DeprecatedProps.asJava).asScala
-    resultMap should have size 18
-    DeprecatedProps.filterNot { case (k, _) => k == KCQL_CONFIG }.foreach {
-      case (k, _) => resultMap.get(k) should be(None)
-    }
-    resultMap.keys should contain allElementsOf DefaultProps.keys
+  "CommonConfigDef" should "not parse deprecated properties" in {
+    Try(CommonConfigDef.config.parse(DeprecatedProps.asJava)).toEither.left.value.getMessage should startWith(
+      "The following properties have been deprecated",
+    )
   }
 
-  "CommonConfigDef" should "parse merged properties" in {
-    val mergedProps = DefaultProps.combine(DeprecatedProps)
-    val resultMap   = CommonConfigDef.config.parse(mergedProps.asJava).asScala
-    DeprecatedProps.filterNot { case (k, _) => k == KCQL_CONFIG }.foreach {
-      case (k, _) => resultMap.get(k) should be(None)
-    }
-    resultMap.keys should contain allElementsOf DefaultProps.keys
-  }
 }

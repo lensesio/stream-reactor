@@ -17,8 +17,17 @@ package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import scala.concurrent.duration.FiniteDuration
 
+object PartitionSearcherOptions {
+  val ExcludeIndexes: Set[String] = Set(".indexes")
+
+}
+
+/**
+  * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
+  */
 case class PartitionSearcherOptions(
-  recurseLevels: Int,
-  continuous:    Boolean,
-  interval:      FiniteDuration,
+  recurseLevels:    Int,
+  continuous:       Boolean,
+  interval:         FiniteDuration,
+  wildcardExcludes: Set[String],
 )

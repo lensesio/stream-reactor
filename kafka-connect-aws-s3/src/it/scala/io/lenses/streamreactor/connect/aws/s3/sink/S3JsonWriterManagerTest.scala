@@ -27,10 +27,15 @@ import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection.defaultPartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink.config.LocalStagingArea
 import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.Values
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
+import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingService
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.OffsetS3FileNamer
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
@@ -61,11 +66,22 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         SinkBucketOptions(
           TopicName.some,
           bucketAndPrefix,
-          commitPolicy       = CommitPolicy(Count(1)),
-          formatSelection    = JsonFormatSelection,
-          fileNamingStrategy = new HierarchicalS3FileNamingStrategy(JsonFormatSelection, NoOpPaddingStrategy),
+          commitPolicy    = CommitPolicy(Count(1)),
+          formatSelection = JsonFormatSelection,
+          keyNamer = new S3KeyNamer(
+            JsonFormatSelection,
+            defaultPartitionSelection(Values),
+            new OffsetS3FileNamer(
+              identity[String],
+              JsonFormatSelection.extension,
+            ),
+            new PaddingService(Map[String, PaddingStrategy](
+              "partition" -> NoOpPaddingStrategy,
+              "offset"    -> LeftPadPaddingStrategy(12, 0),
+            )),
+          ),
           localStagingArea   = LocalStagingArea(localRoot),
-          partitionSelection = None,
+          partitionSelection = defaultPartitionSelection(Values),
           dataStorage        = DataStorageSettings.disabled,
         ), // JsonS3Format
       ),
@@ -106,10 +122,20 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           bucketAndPrefix,
           commitPolicy    = CommitPolicy(Count(3)),
           formatSelection = JsonFormatSelection,
-          fileNamingStrategy =
-            new HierarchicalS3FileNamingStrategy(JsonFormatSelection, NoOpPaddingStrategy), // JsonS3Format
+          keyNamer = new S3KeyNamer(
+            AvroFormatSelection,
+            defaultPartitionSelection(Values),
+            new OffsetS3FileNamer(
+              identity[String],
+              JsonFormatSelection.extension,
+            ),
+            new PaddingService(Map[String, PaddingStrategy](
+              "partition" -> NoOpPaddingStrategy,
+              "offset"    -> LeftPadPaddingStrategy(12, 0),
+            )),
+          ),
           localStagingArea   = LocalStagingArea(localRoot),
-          partitionSelection = None,
+          partitionSelection = defaultPartitionSelection(Values),
           dataStorage        = DataStorageSettings.disabled,
         ),
       ),

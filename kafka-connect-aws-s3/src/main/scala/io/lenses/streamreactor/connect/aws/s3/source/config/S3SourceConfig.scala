@@ -27,6 +27,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PAR
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_TYPE
 import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3SourcePropsSchema
 import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileMetadata
 import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
@@ -111,7 +112,7 @@ object SourceBucketOptions {
       kcql: Kcql =>
         for {
           source <- S3Location.splitAndValidate(kcql.getSource, allowSlash = true)
-          format <- FormatSelection.fromKcql(kcql)
+          format <- FormatSelection.fromKcql(kcql, S3SourcePropsSchema.schema)
           //extract the envelope. of not present default to false
           hasEnvelope <- extractEnvelope(Option(kcql.getProperties).map(_.asScala.toMap).getOrElse(Map.empty))
 

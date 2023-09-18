@@ -16,24 +16,41 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
 import com.datamountaineer.kcql.Kcql
+import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEntry
+import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.KeysAndValues
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.Values
+import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 
 case class PartitionSelection(
+  isCustom:         Boolean,
   partitions:       Seq[PartitionField],
-  partitionDisplay: PartitionDisplay = PartitionDisplay.Values,
+  partitionDisplay: PartitionDisplay,
 )
+object PartitionSelection {
 
-case object PartitionSelection {
+  private val DefaultPartitionFields: Seq[PartitionField] = Seq(TopicPartitionField, PartitionPartitionField)
 
-  def apply(kcql: Kcql): Option[PartitionSelection] = {
-    val partitions: Seq[PartitionField] = PartitionField(kcql)
-    if (partitions.isEmpty) None
-    else
-      Some(
-        PartitionSelection(
-          partitions,
-          PartitionDisplay(kcql),
-        ),
+  def defaultPartitionSelection(partitionDisplay: PartitionDisplay): PartitionSelection =
+    PartitionSelection(isCustom = false, DefaultPartitionFields, partitionDisplay)
+
+  def apply(
+    kcql:  Kcql,
+    props: KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type],
+  ): PartitionSelection = {
+    val fields: Seq[PartitionField] = PartitionField(kcql)
+    if (fields.isEmpty) {
+      defaultPartitionSelection(
+        PartitionDisplay(kcql, props, Values),
       )
+    } else {
+      PartitionSelection(
+        isCustom = true,
+        fields,
+        PartitionDisplay(kcql, props, KeysAndValues),
+      )
+    }
+
   }
 
 }

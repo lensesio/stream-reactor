@@ -16,6 +16,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import cats.effect.unsafe.implicits.global
+import cats.effect.IO
+import cats.effect.Resource
 import cats.implicits._
 import com.opencsv.CSVReader
 import com.typesafe.scalalogging.LazyLogging
@@ -47,9 +50,9 @@ import org.scalatest.matchers.should.Matchers
 import java.io.File
 import java.io.StringReader
 import java.nio.file.Files
+import java.time.format.DateTimeFormatter
 import java.time.LocalDate
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 import java.lang
 import java.util
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -176,9 +179,8 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(1)
-
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002.json") should be(
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000002.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}{"name":"tom","title":null,"salary":395.44}""",
     )
 
@@ -219,15 +221,15 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000000.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}""",
     )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000001.json") should be(
       """{"name":"laura","title":"ms","salary":429.06}""",
     )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000002.json") should be(
       """{"name":"tom","title":null,"salary":395.44}""",
     )
 
@@ -255,9 +257,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000001.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}""",
     )
 
@@ -280,21 +282,17 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(2)
-    getMetadata(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.parquet").size should be >= 941L
-    getMetadata(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.parquet").size should be >= 954L
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
+    getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000000.parquet").size should be >= 941L
+    getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000001.parquet").size should be >= 954L
 
     var genericRecords =
-      parquetFormatReader.read(remoteFileAsBytes(BucketName,
-                                                 "streamReactorBackups/myTopic/000000000001/000000000000.parquet",
-      ))
+      parquetFormatReader.read(remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000.parquet"))
     genericRecords.size should be(1)
     checkRecord(genericRecords.head, "sam", "mr", 100.43)
 
     genericRecords =
-      parquetFormatReader.read(remoteFileAsBytes(BucketName,
-                                                 "streamReactorBackups/myTopic/000000000001/000000000001.parquet",
-      ))
+      parquetFormatReader.read(remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000001.parquet"))
     genericRecords.size should be(1)
     checkRecord(genericRecords.head, "laura", "ms", 429.06)
 
@@ -332,15 +330,15 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000000.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}""",
     )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000001.json") should be(
       """{"name":"laura","title":"ms","salary":429.06}""",
     )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000002.json") should be(
       """{"name":"tom","title":null,"salary":395.44}""",
     )
 
@@ -365,22 +363,22 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition("myTopic", 1)).asJava)
     task.stop()
 
-    val list = listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/")
+    val list = listBucketPath(BucketName, "streamReactorBackups/myTopic/1/")
     list.size should be(1)
-    list should contain("streamReactorBackups/myTopic/000000000001/000000000001.parquet")
+    list should contain("streamReactorBackups/myTopic/1/000000000001.parquet")
 
     val modificationDate =
-      getMetadata(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.parquet").lastModified
+      getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000001.parquet").lastModified
 
     task = createTask(context, props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     verify(context).offset(new TopicPartition("myTopic", 1), 1)
     task.put(records.asJava)
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
     // file should not have been overwritten
-    getMetadata(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.parquet").lastModified should be(
+    getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000001.parquet").lastModified should be(
       modificationDate,
     )
 
@@ -393,10 +391,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     // only 1 "real" record so should leave it hanging again
     task.put(List(records(1), records(2)).asJava)
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
     // file should not have been overwritten
-    getMetadata(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.parquet").lastModified should be(
+    getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000001.parquet").lastModified should be(
       modificationDate,
     )
 
@@ -414,10 +412,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       toSinkRecord(users(3), 3),
     ).asJava)
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(2)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
 
     // file should not have been overwritten
-    getMetadata(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.parquet").lastModified should be(
+    getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000001.parquet").lastModified should be(
       modificationDate,
     )
 
@@ -443,9 +441,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.parquet")
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000.parquet")
 
     val genericRecords = parquetFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -470,9 +468,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.avro")
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000.avro")
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -524,12 +522,12 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(2)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
 
-    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.text")
+    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000001.text")
     new String(file1Bytes) should be("Sausages\nMash\n")
 
-    val file2Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000003.text")
+    val file2Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000003.text")
     new String(file2Bytes) should be("Peas\nGravy\n")
 
   }
@@ -555,9 +553,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(2)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
 
-    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.csv")
+    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000001.csv")
 
     val file1Reader    = new StringReader(new String(file1Bytes))
     val file1CsvReader = new CSVReader(file1Reader)
@@ -567,7 +565,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     file1CsvReader.readNext() should be(Array("laura", "ms", "429.06"))
     file1CsvReader.readNext() should be(null)
 
-    val file2Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000003.csv")
+    val file2Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000003.csv")
 
     val file2Reader    = new StringReader(new String(file2Bytes))
     val file2CsvReader = new CSVReader(file2Reader)
@@ -599,9 +597,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(2)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
 
-    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.csv")
+    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000001.csv")
 
     val file1Reader    = new StringReader(new String(file1Bytes))
     val file1CsvReader = new CSVReader(file1Reader)
@@ -610,7 +608,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     file1CsvReader.readNext() should be(Array("laura", "ms", "429.06"))
     file1CsvReader.readNext() should be(null)
 
-    val file2Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000003.csv")
+    val file2Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000003.csv")
 
     val file2Reader    = new StringReader(new String(file2Bytes))
     val file2CsvReader = new CSVReader(file2Reader)
@@ -641,27 +639,27 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
     remoteFileAsString(
       BucketName,
-      "streamReactorBackups/name=first/title=primary/salary=[missing]/myTopic(000000000001_000000000000).json",
+      "streamReactorBackups/name=first/title=primary/salary=[missing]/myTopic(1_000000000000).json",
     ) should be("""{"name":"first","title":"primary","salary":null}""")
     remoteFileAsString(
       BucketName,
-      "streamReactorBackups/name=second/title=secondary/salary=100.0/myTopic(000000000001_000000000001).json",
+      "streamReactorBackups/name=second/title=secondary/salary=100.0/myTopic(1_000000000001).json",
     ) should be("""{"name":"second","title":"secondary","salary":100.0}""")
     remoteFileAsString(
       BucketName,
-      "streamReactorBackups/name=third/title=primary/salary=100.0/myTopic(000000000001_000000000002).json",
+      "streamReactorBackups/name=third/title=primary/salary=100.0/myTopic(1_000000000002).json",
     ) should be("""{"name":"third","title":"primary","salary":100.0}""")
     remoteFileAsString(
       BucketName,
-      "streamReactorBackups/name=first/title=[missing]/salary=200.0/myTopic(000000000001_000000000003).json",
+      "streamReactorBackups/name=first/title=[missing]/salary=200.0/myTopic(1_000000000003).json",
     ) should be("""{"name":"first","title":null,"salary":200.0}""")
     remoteFileAsString(
       BucketName,
-      "streamReactorBackups/name=second/title=[missing]/salary=100.0/myTopic(000000000001_000000000004).json",
+      "streamReactorBackups/name=second/title=[missing]/salary=100.0/myTopic(1_000000000004).json",
     ) should be("""{"name":"second","title":null,"salary":100.0}""")
     remoteFileAsString(
       BucketName,
-      "streamReactorBackups/name=third/title=[missing]/salary=100.0/myTopic(000000000001_000000000005).json",
+      "streamReactorBackups/name=third/title=[missing]/salary=100.0/myTopic(1_000000000005).json",
     ) should be("""{"name":"third","title":null,"salary":100.0}""")
 
   }
@@ -705,22 +703,22 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     listBucketPath(BucketName, "streamReactorBackups/").size should be(4)
 
     remoteFileAsString(BucketName,
-                       "streamReactorBackups/name=first/title=primary/myTopic(000000000001_000000000002).json",
+                       "streamReactorBackups/name=first/title=primary/myTopic(1_000000000002).json",
     ) should be(
       """{"name":"first","title":"primary","salary":null}{"name":"first","title":"primary","salary":100.0}""",
     )
     remoteFileAsString(BucketName,
-                       "streamReactorBackups/name=first/title=secondary/myTopic(000000000001_000000000001).json",
+                       "streamReactorBackups/name=first/title=secondary/myTopic(1_000000000001).json",
     ) should be(
       """{"name":"first","title":"secondary","salary":100.0}""",
     )
     remoteFileAsString(BucketName,
-                       "streamReactorBackups/name=second/title=secondary/myTopic(000000000001_000000000005).json",
+                       "streamReactorBackups/name=second/title=secondary/myTopic(1_000000000005).json",
     ) should be(
       """{"name":"second","title":"secondary","salary":200.0}{"name":"second","title":"secondary","salary":100.0}""",
     )
     remoteFileAsString(BucketName,
-                       "streamReactorBackups/name=second/title=primary/myTopic(000000000001_000000000004).json",
+                       "streamReactorBackups/name=second/title=primary/myTopic(1_000000000004).json",
     ) should be(
       """{"name":"second","title":"primary","salary":100.0}""",
     )
@@ -747,33 +745,27 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     listBucketPath(BucketName, "streamReactorBackups/").size should be(6)
 
     remoteFileAsString(BucketName,
-                       "streamReactorBackups/first/primary/[missing]/myTopic(000000000001_000000000000).json",
+                       "streamReactorBackups/first/primary/[missing]/myTopic(1_000000000000).json",
     ) should be(
       """{"name":"first","title":"primary","salary":null}""",
     )
     remoteFileAsString(BucketName,
-                       "streamReactorBackups/second/secondary/100.0/myTopic(000000000001_000000000001).json",
+                       "streamReactorBackups/second/secondary/100.0/myTopic(1_000000000001).json",
     ) should be(
       """{"name":"second","title":"secondary","salary":100.0}""",
     )
-    remoteFileAsString(BucketName,
-                       "streamReactorBackups/third/primary/100.0/myTopic(000000000001_000000000002).json",
-    ) should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/third/primary/100.0/myTopic(1_000000000002).json") should be(
       """{"name":"third","title":"primary","salary":100.0}""",
     )
-    remoteFileAsString(BucketName,
-                       "streamReactorBackups/first/[missing]/200.0/myTopic(000000000001_000000000003).json",
-    ) should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/first/[missing]/200.0/myTopic(1_000000000003).json") should be(
       """{"name":"first","title":null,"salary":200.0}""",
     )
     remoteFileAsString(BucketName,
-                       "streamReactorBackups/second/[missing]/100.0/myTopic(000000000001_000000000004).json",
+                       "streamReactorBackups/second/[missing]/100.0/myTopic(1_000000000004).json",
     ) should be(
       """{"name":"second","title":null,"salary":100.0}""",
     )
-    remoteFileAsString(BucketName,
-                       "streamReactorBackups/third/[missing]/100.0/myTopic(000000000001_000000000005).json",
-    ) should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/third/[missing]/100.0/myTopic(1_000000000005).json") should be(
       """{"name":"third","title":null,"salary":100.0}""",
     )
 
@@ -821,9 +813,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.bytes") should be(bytes)
+    remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000.bytes") should be(bytes)
 
   }
 
@@ -903,17 +895,17 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     listBucketPath(BucketName, "streamReactorBackups/").size should be(3)
 
     val file1CsvReader: CSVReader =
-      openCsvReaderToBucketFile("streamReactorBackups/phonePrefix=+44/region=8/myTopic(000000000001_000000000000).csv")
+      openCsvReaderToBucketFile("streamReactorBackups/phonePrefix=+44/region=8/myTopic(1_000000000000).csv")
     file1CsvReader.readNext() should be(Array("sam", "mr", "100.43"))
     file1CsvReader.readNext() should be(null)
 
     val file2CsvReader: CSVReader =
-      openCsvReaderToBucketFile("streamReactorBackups/phonePrefix=+49/region=5/myTopic(000000000001_000000000001).csv")
+      openCsvReaderToBucketFile("streamReactorBackups/phonePrefix=+49/region=5/myTopic(1_000000000001).csv")
     file2CsvReader.readNext() should be(Array("laura", "ms", "429.06"))
     file2CsvReader.readNext() should be(null)
 
     val file3CsvReader: CSVReader =
-      openCsvReaderToBucketFile("streamReactorBackups/phonePrefix=+49/region=5/myTopic(000000000001_000000000002).csv")
+      openCsvReaderToBucketFile("streamReactorBackups/phonePrefix=+49/region=5/myTopic(1_000000000002).csv")
     file3CsvReader.readNext() should be(Array("tom", "", "395.44"))
     file3CsvReader.readNext() should be(null)
   }
@@ -939,12 +931,12 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     fileList.size should be(6)
 
     fileList should contain allOf (
-      "streamReactorBackups/headerPartitionKey=0/name=first/myTopic(000000000001_000000000000).csv",
-      "streamReactorBackups/headerPartitionKey=1/name=second/myTopic(000000000001_000000000001).csv",
-      "streamReactorBackups/headerPartitionKey=0/name=third/myTopic(000000000001_000000000002).csv",
-      "streamReactorBackups/headerPartitionKey=1/name=first/myTopic(000000000001_000000000003).csv",
-      "streamReactorBackups/headerPartitionKey=0/name=second/myTopic(000000000001_000000000004).csv",
-      "streamReactorBackups/headerPartitionKey=1/name=third/myTopic(000000000001_000000000005).csv"
+      "streamReactorBackups/headerPartitionKey=0/name=first/myTopic(1_000000000000).csv",
+      "streamReactorBackups/headerPartitionKey=1/name=second/myTopic(1_000000000001).csv",
+      "streamReactorBackups/headerPartitionKey=0/name=third/myTopic(1_000000000002).csv",
+      "streamReactorBackups/headerPartitionKey=1/name=first/myTopic(1_000000000003).csv",
+      "streamReactorBackups/headerPartitionKey=0/name=second/myTopic(1_000000000004).csv",
+      "streamReactorBackups/headerPartitionKey=1/name=third/myTopic(1_000000000005).csv"
     )
   }
 
@@ -979,6 +971,30 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
+  "S3SinkTask" should "fail with message when deprecated properties are used" in {
+    Resource.make(IO(new S3SinkTask())) { sinkTask =>
+      IO(sinkTask.stop())
+    }.use { sinkTask =>
+      IO {
+        val exMessage = intercept[IllegalArgumentException] {
+          sinkTask.start(
+            DefaultProps.combine(
+              Map(
+                "aws.access.key"  -> "myAccessKey",
+                "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` WITH_FLUSH_COUNT = 1",
+              ),
+            ).asJava,
+          )
+        }.getMessage
+
+        exMessage should startWith("The following properties have been deprecated: `aws.access.key`")
+        exMessage should include("Change `aws.access.key` to `connect.s3.aws.access.key`")
+
+        listBucketPath(BucketName, "streamReactorBackups/").size should be(0)
+      }
+    }.unsafeRunSync()
+  }
+
   "S3SinkTask" should "support numeric header data types" in {
 
     val textRecords = List(
@@ -1005,9 +1021,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     fileList.size should be(3)
 
     fileList should contain allOf (
-      "streamReactorBackups/intheader=1/longheader=2/myTopic(000000000001_000000000000).csv",
-      "streamReactorBackups/intheader=2/longheader=2/myTopic(000000000001_000000000001).csv",
-      "streamReactorBackups/intheader=1/longheader=1/myTopic(000000000002_000000000002).csv",
+      "streamReactorBackups/intheader=1/longheader=2/myTopic(1_000000000000).csv",
+      "streamReactorBackups/intheader=2/longheader=2/myTopic(1_000000000001).csv",
+      "streamReactorBackups/intheader=1/longheader=1/myTopic(2_000000000002).csv",
     )
   }
 
@@ -1037,12 +1053,12 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     fileList.size should be(6)
 
     fileList should contain allOf (
-      "streamReactorBackups/key=0/myTopic(000000000001_000000000000).csv",
-      "streamReactorBackups/key=1/myTopic(000000000001_000000000001).csv",
-      "streamReactorBackups/key=0/myTopic(000000000001_000000000002).csv",
-      "streamReactorBackups/key=1/myTopic(000000000001_000000000003).csv",
-      "streamReactorBackups/key=0/myTopic(000000000001_000000000004).csv",
-      "streamReactorBackups/key=1/myTopic(000000000001_000000000005).csv"
+      "streamReactorBackups/key=0/myTopic(1_000000000000).csv",
+      "streamReactorBackups/key=1/myTopic(1_000000000001).csv",
+      "streamReactorBackups/key=0/myTopic(1_000000000002).csv",
+      "streamReactorBackups/key=1/myTopic(1_000000000003).csv",
+      "streamReactorBackups/key=0/myTopic(1_000000000004).csv",
+      "streamReactorBackups/key=1/myTopic(1_000000000005).csv"
     )
   }
 
@@ -1072,12 +1088,12 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     fileList.size should be(6)
 
     fileList should contain allOf (
-      "streamReactorBackups/0/myTopic(000000000001_000000000000).csv",
-      "streamReactorBackups/1/myTopic(000000000001_000000000001).csv",
-      "streamReactorBackups/0/myTopic(000000000001_000000000002).csv",
-      "streamReactorBackups/1/myTopic(000000000001_000000000003).csv",
-      "streamReactorBackups/0/myTopic(000000000001_000000000004).csv",
-      "streamReactorBackups/1/myTopic(000000000001_000000000005).csv"
+      "streamReactorBackups/0/myTopic(1_000000000000).csv",
+      "streamReactorBackups/1/myTopic(1_000000000001).csv",
+      "streamReactorBackups/0/myTopic(1_000000000002).csv",
+      "streamReactorBackups/1/myTopic(1_000000000003).csv",
+      "streamReactorBackups/0/myTopic(1_000000000004).csv",
+      "streamReactorBackups/1/myTopic(1_000000000005).csv"
     )
   }
 
@@ -1093,7 +1109,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _topic, _partition STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _topic, _partition STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1159,7 +1175,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1189,7 +1205,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.region, _key.phonePrefix STOREAS `CSV` WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.region, _key.phonePrefix STOREAS `CSV` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1216,7 +1232,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.region, name WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.region, name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1233,6 +1249,36 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
       "streamReactorBackups/region=8/name=sam/myTopic(000000000001_000000000000).json",
       "streamReactorBackups/region=5/name=laura/myTopic(000000000001_000000000001).json",
       "streamReactorBackups/region=5/name=tom/myTopic(000000000001_000000000002).json"
+    )
+  }
+
+  "S3SinkTask" should "write to root without a prefix" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName select * from $TopicName PARTITIONBY _key.region, name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+        ),
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(keyPartitionedRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    val fileList = listBucketPath(BucketName, "")
+    fileList.size should be(4)
+
+    // the results do contain the index.  The sink always looks for the index at the root of the bucket when offset synching.
+    // The source excludes the index files.
+    fileList should contain allOf (
+      ".indexes/s3SinkTaskBuildLocalTest/myTopic/00001/00000000000000000002",
+      "region=8/name=sam/myTopic(000000000001_000000000000).json",
+      "region=5/name=laura/myTopic(000000000001_000000000001).json",
+      "region=5/name=tom/myTopic(000000000001_000000000002).json"
     )
   }
 
@@ -1256,7 +1302,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
     val props = DefaultProps
       .combine(
-        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 2"),
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 2 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+        ),
       ).asJava
 
     task.start(props)
@@ -1302,7 +1350,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY jedi WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY jedi WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1341,7 +1389,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
     val props = DefaultProps
       .combine(
-        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1"),
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+        ),
       ).asJava
 
     task.start(props)
@@ -1381,7 +1431,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1422,7 +1472,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1475,7 +1525,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1532,7 +1582,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1579,7 +1629,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1674,7 +1724,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _value.user.name WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _value.user.name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1772,7 +1822,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.favourites.band, _key.`cost.centre.id` WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.favourites.band, _key.`cost.centre.id` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1844,7 +1894,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.header1.user.name WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.header1.user.name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -1872,7 +1922,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql"       -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql"       -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
           "connect.s3.write.mode" -> "BuildLocal",
         ),
       ).asJava
@@ -1914,7 +1964,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
         Map(
           "name"                           -> "s3SinkTaskBuildLocalTest",
           "connect.s3.local.tmp.directory" -> tempDir.toString,
-          "connect.s3.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
           "connect.s3.write.mode"          -> "BuildLocal",
         ),
       ).asJava
@@ -1959,15 +2009,15 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000000.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}""",
     )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000001.json") should be(
       """{"name":"laura","title":"ms","salary":429.06}""",
     )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000002.json") should be(
       """{"name":"tom","title":null,"salary":395.44}""",
     )
 
@@ -1992,9 +2042,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002.avro")
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000002.avro")
 
     val genericRecords1 = avroFormatReader.read(bytes)
     genericRecords1.size should be(3)
@@ -2038,9 +2088,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000002.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}{"name":"tom","title":null,"salary":395.44}""",
     )
 
@@ -2081,9 +2131,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.avro")
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000.avro")
 
     val genericRecords1 = avroFormatReader.read(bytes)
     genericRecords1.size should be(1)
@@ -2101,7 +2151,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `json` WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `json` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
           ERROR_POLICY                     -> "RETRY",
           ERROR_RETRY_INTERVAL             -> "10",
           HTTP_NBR_OF_RETRIES              -> "5",
@@ -2158,7 +2208,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from `*` WITH_FLUSH_COUNT = 3",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from `*` WITH_FLUSH_COUNT = 3 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -2206,7 +2256,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _date.uuuu,_date.LL,_date.dd WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _date.uuuu,_date.LL,_date.dd WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
         ),
       ).asJava
 
@@ -2230,7 +2280,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     val props = DefaultProps
       .combine(
         Map(
-          "connect.s3.kcql"             -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 3",
+          "connect.s3.kcql"             -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 3)",
           "connect.s3.padding.strategy" -> "NoOp",
           "connect.s3.padding.length"   -> "10",
         ),

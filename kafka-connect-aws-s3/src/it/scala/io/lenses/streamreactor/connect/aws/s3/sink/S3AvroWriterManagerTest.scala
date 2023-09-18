@@ -28,10 +28,15 @@ import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection.defaultPartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink.config.LocalStagingArea
 import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
+import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.Values
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
+import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingService
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.OffsetS3FileNamer
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.avro.generic.GenericRecord
@@ -63,11 +68,22 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       SinkBucketOptions(
         TopicName.some,
         bucketAndPrefix,
-        commitPolicy       = CommitPolicy(Count(2)),
-        formatSelection    = AvroFormatSelection,
-        fileNamingStrategy = new HierarchicalS3FileNamingStrategy(AvroFormatSelection, NoOpPaddingStrategy),
+        commitPolicy    = CommitPolicy(Count(2)),
+        formatSelection = AvroFormatSelection,
+        keyNamer = new S3KeyNamer(
+          AvroFormatSelection,
+          defaultPartitionSelection(Values),
+          new OffsetS3FileNamer(
+            identity[String],
+            AvroFormatSelection.extension,
+          ),
+          new PaddingService(Map[String, PaddingStrategy](
+            "partition" -> NoOpPaddingStrategy,
+            "offset"    -> LeftPadPaddingStrategy(12, 0),
+          )),
+        ),
         localStagingArea   = LocalStagingArea(localRoot),
-        partitionSelection = None,
+        partitionSelection = defaultPartitionSelection(Values),
         dataStorage        = DataStorageSettings.disabled,
       ),
     ),

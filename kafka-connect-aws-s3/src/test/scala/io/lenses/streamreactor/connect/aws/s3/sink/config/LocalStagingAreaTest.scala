@@ -23,37 +23,29 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.File
 import java.nio.file.Files
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 class LocalStagingAreaTest extends AnyFlatSpec with Matchers with EitherValues {
 
   private val tmpDir = Files.createTempDirectory("S3OutputStreamOptionsTest")
   behavior of "LocalStagingArea"
 
-  private def adapt(map: Map[String, String]) = {
-    val newMap = map + {
-      "connect.s3.kcql" -> "assda"
-    }
-    S3SinkConfigDefBuilder(newMap.asJava)
-  }
-
   it should "create BuildLocalOutputStreamOptions when temp directory has been supplied" in {
     implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("unusedSinkName", 1, 1)
-    LocalStagingArea(adapt(Map(LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path"))) should
+    LocalStagingArea(TestConfigDefBuilder(LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path")) should
       be(Right(LocalStagingArea(new File(s"$tmpDir/my/path"))))
   }
 
   it should "create BuildLocalOutputStreamOptions when temp directory and sink name has been supplied" in {
     implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("unusedSinkName", 1, 1)
     // should ignore the sinkName
-    LocalStagingArea(adapt(Map(LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path"))) should
+    LocalStagingArea(TestConfigDefBuilder((LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path"))) should
       be(Right(LocalStagingArea(new File(s"$tmpDir/my/path"))))
   }
 
   it should "create BuildLocalOutputStreamOptions when only sink name has been supplied" in {
     implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("superSleekSinkName", 1, 1)
     val tempDir = System.getProperty("java.io.tmpdir")
-    val result  = LocalStagingArea(adapt(Map()))
+    val result  = LocalStagingArea(TestConfigDefBuilder())
     result.isRight should be(true)
     result.value match {
       case LocalStagingArea(file) => file.toString should startWith(s"$tempDir/superSleekSinkName".replace("//", "/"))

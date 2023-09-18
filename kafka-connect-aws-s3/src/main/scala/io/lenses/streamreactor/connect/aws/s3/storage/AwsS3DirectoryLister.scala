@@ -25,31 +25,46 @@ import software.amazon.awssdk.services.s3.model._
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 object AwsS3DirectoryLister extends LazyLogging {
+
+  /**
+    * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
+    */
   def findDirectories(
     bucketAndPrefix:  S3Location,
     completionConfig: DirectoryFindCompletionConfig,
     exclude:          Set[String],
+    wildcardExcludes: Set[String],
     listObjectsF:     ListObjectsV2Request => Iterator[ListObjectsV2Response],
     connectorTaskId:  ConnectorTaskId,
   ): IO[DirectoryFindResults] =
     for {
-      iterator   <- IO(listObjectsF(createListObjectsRequest(bucketAndPrefix)))
-      prefixInfo <- extractPrefixesFromResponse(iterator, exclude, connectorTaskId, completionConfig.levelsToRecurse)
+      iterator <- IO(listObjectsF(createListObjectsRequest(bucketAndPrefix)))
+      prefixInfo <- extractPrefixesFromResponse(iterator,
+                                                exclude,
+                                                wildcardExcludes,
+                                                connectorTaskId,
+                                                completionConfig.levelsToRecurse,
+      )
       flattened <- flattenPrefixes(
         bucketAndPrefix,
         prefixInfo.partitions,
         completionConfig,
         exclude,
+        wildcardExcludes,
         listObjectsF,
         connectorTaskId,
       )
     } yield DirectoryFindResults(flattened)
 
+  /**
+    * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
+    */
   private def flattenPrefixes(
     bucketAndPrefix:  S3Location,
     prefixes:         Set[String],
     completionConfig: DirectoryFindCompletionConfig,
     exclude:          Set[String],
+    wildcardExcludes: Set[String],
     listObjectsF:     ListObjectsV2Request => Iterator[ListObjectsV2Response],
     connectorTaskId:  ConnectorTaskId,
   ): IO[Set[String]] =
@@ -57,11 +72,13 @@ object AwsS3DirectoryLister extends LazyLogging {
     else {
       prefixes.map(bucketAndPrefix.fromRoot).toList
         .traverse(
-          findDirectories(_,
-                          completionConfig.copy(levelsToRecurse = completionConfig.levelsToRecurse - 1),
-                          exclude,
-                          listObjectsF,
-                          connectorTaskId,
+          findDirectories(
+            _,
+            completionConfig.copy(levelsToRecurse = completionConfig.levelsToRecurse - 1),
+            exclude,
+            wildcardExcludes,
+            listObjectsF,
+            connectorTaskId,
           ).map(_.partitions),
         )
         .map { result =>
@@ -83,10 +100,11 @@ object AwsS3DirectoryLister extends LazyLogging {
   }
 
   private def extractPrefixesFromResponse(
-    iterator:        Iterator[ListObjectsV2Response],
-    exclude:         Set[String],
-    connectorTaskId: ConnectorTaskId,
-    levelsToRecurse: Int,
+    iterator:         Iterator[ListObjectsV2Response],
+    exclude:          Set[String],
+    wildcardExcludes: Set[String],
+    connectorTaskId:  ConnectorTaskId,
+    levelsToRecurse:  Int,
   ): IO[DirectoryFindResults] =
     IO {
       val paths = iterator.foldLeft(Set.empty[String]) {
@@ -98,7 +116,11 @@ object AwsS3DirectoryLister extends LazyLogging {
                 if (levelsToRecurse > 0) {
                   acc + prefix
                 } else {
-                  if (connectorTaskId.ownsDir(prefix) && !exclude.contains(prefix)) acc + prefix
+                  if (
+                    connectorTaskId.ownsDir(prefix) && !exclude.contains(prefix) && !wildcardExcludes.exists(we =>
+                      prefix.contains(we),
+                    )
+                  ) acc + prefix
                   else acc
                 }
               }

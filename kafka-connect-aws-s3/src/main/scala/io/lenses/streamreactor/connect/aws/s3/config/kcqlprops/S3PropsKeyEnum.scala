@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops
+package io.lenses.streamreactor.connect.aws.s3.config.kcqlprops
 
 import enumeratum.Enum
 import enumeratum.EnumEntry
@@ -44,4 +44,12 @@ object S3PropsKeyEnum extends Enum[S3PropsKeyEntry] {
   case object StoreEnvelopeHeaders  extends S3PropsKeyEntry(DataStorageSettings.StoreHeadersKey)
   case object StoreEnvelopeValue    extends S3PropsKeyEntry(DataStorageSettings.StoreValueKey)
   case object StoreEnvelopeMetadata extends S3PropsKeyEntry(DataStorageSettings.StoreMetadataKey)
+
+  case object PaddingLength extends S3PropsKeyEntry("padding.length")
+
+  case object PaddingCharacter extends S3PropsKeyEntry("padding.char")
+
+  case object PaddingSelection extends S3PropsKeyEntry("padding.type")
+
+  case object PartitionIncludeKeys extends S3PropsKeyEntry("partition.include.keys")
 }

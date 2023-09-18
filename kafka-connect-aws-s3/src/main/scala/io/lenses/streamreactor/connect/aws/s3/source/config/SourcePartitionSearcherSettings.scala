@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.source.config
 import com.datamountaineer.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions.ExcludeIndexes
 
 import scala.concurrent.duration.DurationLong
 
@@ -30,5 +31,6 @@ trait SourcePartitionSearcherSettings extends BaseSettings {
       interval = S3Config.getLong(props, SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS).getOrElse(
         SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DEFAULT,
       ).millis,
+      wildcardExcludes = ExcludeIndexes,
     )
 }

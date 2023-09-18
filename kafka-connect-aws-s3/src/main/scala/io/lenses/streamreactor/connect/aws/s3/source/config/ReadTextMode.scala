@@ -15,12 +15,12 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
+import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEntry
+import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.CustomTextStreamReader
 import io.lenses.streamreactor.connect.aws.s3.formats.reader.S3DataIterator
 import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.ReadTextModeEntry
 import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.ReadTextModeEnum
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEntry
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3PropsKeyEnum
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 import io.lenses.streamreactor.connect.io.text.LineStartLineEndReader
 import io.lenses.streamreactor.connect.io.text.PrefixSuffixReader

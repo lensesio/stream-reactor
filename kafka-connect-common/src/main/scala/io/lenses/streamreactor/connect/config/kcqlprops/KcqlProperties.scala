@@ -18,29 +18,36 @@ package io.lenses.streamreactor.connect.config.kcqlprops
 import cats.implicits.catsSyntaxOptionId
 import enumeratum._
 
+import scala.reflect.ClassTag
 import scala.util.Try
 
 object KcqlProperties {
-  def fromStringMap[U <: EnumEntry, T <: Enum[U]](
+
+  def stringToString: String => String = identity[String]
+
+  def stringToInt: String => Int = _.toInt
+
+  def normaliseCase[U <: EnumEntry, T <: Enum[U]](
     schema: KcqlPropsSchema[U, T],
     map:    Map[String, String],
   ): KcqlProperties[U, T] =
     new KcqlProperties(
       schema,
       map.map {
-        case (k: String, v: String) => schema.keys.withNameInsensitive(k) -> v
+        case (k: String, v: String) => k.toLowerCase -> v
       },
     )
-
 }
 
 case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
   schema: KcqlPropsSchema[U, T],
-  map:    Map[U, String],
+  map:    Map[String, String],
 ) {
+  def containsKeyStartingWith(str: String): Boolean = map.keys.exists(k => k.startsWith(str))
+
   def getOptionalInt(key: U): Option[Int] =
     for {
-      value:  String <- map.get(key)
+      value:  String <- map.get(key.entryName)
       schema: PropsSchema <- schema.schema.get(key)
       _ <- schema match {
         case IntPropsSchema => value.some
@@ -49,9 +56,15 @@ case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
       i <- Try(value.toInt).toOption
     } yield i
 
+  def getOptionalChar(key: U): Option[Char] =
+    for {
+      value: Char <- map.get(key.entryName).filter(_.length == 1).flatMap(_.toCharArray.headOption)
+      _:     PropsSchema <- schema.schema.get(key).filter(_ == CharPropsSchema)
+    } yield value
+
   def getOptionalBoolean(key: U): Option[Boolean] =
     for {
-      value:  String <- map.get(key)
+      value:  String <- map.get(key.entryName)
       schema: PropsSchema <- schema.schema.get(key)
       _ <- schema match {
         case BooleanPropsSchema => value.some
@@ -60,20 +73,39 @@ case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
       b <- Try(value.toBoolean).toOption
     } yield b
 
+  def getOptionalSet[V](key: U)(implicit converter: String => V, ct: ClassTag[V]): Option[Set[V]] =
+    map.get(key.entryName) match {
+      case Some(value) if schema.schema.get(key).contains(SetPropsSchema()) =>
+        val elements = value.split(',').map(converter).toSet
+        Some(elements)
+      case _ => None
+    }
+
+  def getOptionalMap[K, V](keyPrefix: U, keyConverter: String => K, valueConverter: String => V): Option[Map[K, V]] = {
+    val mapKeyPrefix = keyPrefix.entryName + "."
+    val applicableEntries = map.collect {
+      case (k, v)
+          if k.startsWith(mapKeyPrefix) &&
+            schema.schema.get(keyPrefix).contains(MapPropsSchema()) =>
+        keyConverter(k.replace(mapKeyPrefix, "")) -> valueConverter(v)
+    }
+    Option.when(applicableEntries.nonEmpty)(applicableEntries)
+  }
+
   /*
   PKE - props enum (contains the prop keys)
   VE - target enum
    */
   def getEnumValue[VU <: EnumEntry, VT <: Enum[VU]](e: VT, key: U): Option[VU] =
     for {
-      enumString: String <- map.get(key)
+      enumString: String <- map.get(key.entryName)
       enu <- e.withNameInsensitiveOption(enumString)
       //value <- schema.schema
     } yield enu
 
   def getString(key: U): Option[String] =
     for {
-      value:  String <- map.get(key)
+      value:  String <- map.get(key.entryName)
       schema: PropsSchema <- schema.schema.get(key)
       _ <- schema match {
         case StringPropsSchema => value.some

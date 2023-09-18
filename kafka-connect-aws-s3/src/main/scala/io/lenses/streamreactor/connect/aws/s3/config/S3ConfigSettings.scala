@@ -111,11 +111,11 @@ object S3ConfigSettings {
   val PADDING_STRATEGY = s"$CONNECTOR_PREFIX.padding.strategy"
   val PADDING_STRATEGY_DOC =
     "Configure in order to pad the partition and offset on the sink output files. Options are `LeftPad`, `RightPad` or `NoOp`  (does not add padding). Defaults to `LeftPad`."
-  val PADDING_STRATEGY_DEFAULT = "LeftPad"
+  val PADDING_STRATEGY_DEFAULT = ""
 
-  val PADDING_LENGTH         = s"$CONNECTOR_PREFIX.padding.length"
-  val PADDING_LENGTH_DOC     = s"Length to pad the string up to if $PADDING_STRATEGY is set."
-  val PADDING_LENGTH_DEFAULT = 12
+  val PADDING_LENGTH     = s"$CONNECTOR_PREFIX.padding.length"
+  val PADDING_LENGTH_DOC = s"Length to pad the string up to if $PADDING_STRATEGY is set."
+  val PADDING_LENGTH_DEFAULT: Int = -1
 
   // TASK_INDEX isn't exposed as a connector property.  It is provided to the task from the connector in order
   // to distribute partitions between the different tasks.

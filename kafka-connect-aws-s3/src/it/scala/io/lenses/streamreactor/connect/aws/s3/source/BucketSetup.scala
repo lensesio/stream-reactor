@@ -44,6 +44,44 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
         ) should be(Right(true))
     }
 
+  def writeDataToBucket(
+    bucketName: String,
+    pathName:   String,
+  ): Unit = {
+    storageInterface.writeStringToFile(
+      bucketName,
+      pathName,
+      "someData",
+    )
+    ()
+  }
+
+  def setUpRootBucketData(bucketName: String, format: Format, formatOption: Option[FormatOptions]): Unit =
+    1 to 5 foreach {
+      fileNum =>
+        copyResourceToBucket(
+          s"/${format.entryName.toLowerCase}${generateFormatString(formatOption)}/$fileNum.${format.entryName.toLowerCase}",
+          bucketName,
+          s"0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}",
+        )
+
+        storageInterface.pathExists(
+          bucketName,
+          s"0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}",
+        ) should be(Right(true))
+
+        copyResourceToBucket(
+          s"/${format.entryName.toLowerCase}${generateFormatString(formatOption)}/$fileNum.${format.entryName.toLowerCase}",
+          bucketName,
+          s"0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}",
+        )
+
+        // not really a real index file but anything that has .indexes in the name should be ignored
+        writeDataToBucket(
+          bucketName,
+          s".indexes/00001/00000000000000000002",
+        )
+    }
   def totalFileLengthBytes(format: Format): Int = {
     1 to 5 map {
       fileNum: Int =>
