@@ -19,7 +19,7 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Kafka Compatibility
 
-* Kafka 2.8 -> 3.5 (Confluent 2.8 -> 7.5) - Stream Reactor 4.1.0+
+* Kafka 2.8 -> 3.5 (Confluent 6.2 -> 7.5) - Stream Reactor 4.1.0+
 * Kafka 3.1 (Confluent 7.1) - Stream Reactor 4.0.0 (Kafka 3.1 Build)
 * Kafka 2.8 (Confluent 6.2) - Stream Reactor 4.0.0 (Kafka 2.8 Build)
 * Kafka 2.5 (Confluent 5.5) - Stream reactor 2.0.0+
