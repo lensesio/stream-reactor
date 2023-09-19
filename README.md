@@ -19,7 +19,8 @@ You can find more on [lenses.io](http://www.lenses.io)
 A collection of components to build a real time ingestion pipeline.
 
 ## Kafka Compatibility
-* Kafka 2.8 -> 3.3 (Confluent 2.8 -> 7.3) - Upcoming Stream Reactor 4.1.0
+
+* Kafka 2.8 -> 3.5 (Confluent 2.8 -> 7.5) - Stream Reactor 4.1.0+
 * Kafka 3.1 (Confluent 7.1) - Stream Reactor 4.0.0 (Kafka 3.1 Build)
 * Kafka 2.8 (Confluent 6.2) - Stream Reactor 4.0.0 (Kafka 2.8 Build)
 * Kafka 2.5 (Confluent 5.5) - Stream reactor 2.0.0+
@@ -32,44 +33,34 @@ The following connectors have been deprecated and are no longer included in futu
 * Kudu
 * Hive
 
-The following connectors have been deprecated and are no longer included in any release from 3.0.
-
-* Blockchain
-* Bloomberg
-* Rethink
-* VoltDB
-
-The following connectors have been deprecated and are no longer included in any release from 4.0.
-
-* Coap
-* Hive 1.1
 
 ### Connectors
 
 **Please take a moment and read the documentation and make sure the software prerequisites are met!!**
 
-|Connector       | Type   | Description                                                                                   | Docs |
-|----------------|--------|-----------------------------------------------------------------------------------------------|------|
-| AWS S3         | Sink   | Copy data from Kafka to AWS S3.                                                     | [Docs](https://docs.lenses.io/4.0/integrations/connectors/stream-reactor/sinks/s3sinkconnector/)             |
-| AzureDocumentDb| Sink   | Copy data from Kafka and Azure Document Db.                                          | [Docs](https://docs.lenses.io/connectors/sink/azuredocdb.html)             |
-| Cassandra      | Source | Copy data from Cassandra to Kafka.                          | [Docs](https://docs.lenses.io/connectors/source/cassandra.html)            |
-| *Cassandra     | Sink   | Certified DSE Cassandra, copy data from Kafka to Cassandra.   | [Docs](https://docs.lenses.io/connectors/sink/cassandra.html)              |
-| Elastic 6      | Sink   | Copy data from Kafka to Elastic Search 6.x w. tcp or http      | [Docs](https://docs.lenses.io/connectors/sink/elastic6.html)               |
-| FTP/HTTP       | Source | Copy data from FTP/HTTP to Kafka.                       | [Docs](https://docs.lenses.io/connectors/source/ftp.html)                  |
-| Hazelcast      | Sink   | Copy data from Kafka to Hazelcast.                      | [Docs](https://docs.lenses.io/connectors/sink/hazelcast.html)              |
-| HBase          | Sink   | Copy data from Kafka to HBase.                              | [Docs](https://docs.lenses.io/connectors/sink/hbase.html)                  |
-| Hive           | Source | Copy data from Hive/HDFS to Kafka.                             | [Docs](https://docs.lenses.io/connectors/source/hive.html)                 |
-| Hive           | Sink   | Copy data from Kafka to Hive/HDFS                            | [Docs](https://docs.lenses.io/connectors/sink/hive.html)                   |
-| InfluxDb       | Sink   | Copy data from Kafka to InfluxDb.                                  | [Docs](https://docs.lenses.io/4.0/integrations/connectors/stream-reactor/sinks/influxsinkconnector/)|
-| Kudu           | Sink   | Copy data from Kafka to Kudu.                                | [Docs](https://docs.lenses.io/connectors/sink/kudu.html)                 |
-| JMS            | Source | Copy data from JMS topics/queues to Kafka.                                   | [Docs](https://docs.lenses.io/connectors/source/jms.html)                  |
-| JMS            | Sink   | Copy data from Kafka to JMS.                                  | [Docs](https://docs.lenses.io/connectors/sink/jms.html)                    |
-| MongoDB        | Sink   | Copy data from Kafka to MongoDB.                                    | [Docs](https://docs.lenses.io/connectors/sink/mongo.html)                  |
-| MQTT           | Source | Copy data from MQTT to Kafka.                                   | [Docs](https://docs.lenses.io/connectors/source/mqtt.html)                 |
-| MQTT           | Sink   | Copy data from Kafka to MQTT.                                     | [Docs](https://docs.lenses.io/connectors/sink/mqtt.html)                   |
-| Pulsar         | Source | Copy data from Pulsar to Kafka.                               | [Docs](https://docs.lenses.io/connectors/source/pulsar.html)                 |
-| Pulsar         | Sink   | Copy data from Kafka to Pulsar.                                 | [Docs](https://docs.lenses.io/connectors/sink/pulsar.html)                   |
-| Redis          | Sink   | Copy data from Kafka to Redis.                              | [Docs](https://docs.lenses.io/connectors/sink/redis.html)                  |
+|Connector       | Type   | Description                                                | Docs |
+|----------------|--------|------------------------------------------------------------|------|
+| AWS S3         | Sink   | Copy data from Kafka to AWS S3.                            | [Docs](https://docs.lenses.io/5.2/connectors/sinks/s3sinkconnector/)             |
+| AWS S3         | Source | Copy data from AWS S3 to Kafka.                   | [Docs](https://docs.lenses.io/5.2/connectors/sources/s3sourceconnector/)             |
+| AzureDocumentDb| Sink   | Copy data from Kafka and Azure Document Db.                | [Docs](https://docs.lenses.io/connectors/sink/azuredocdb.html)             |
+| Cassandra      | Source | Copy data from Cassandra to Kafka.                         | [Docs](https://docs.lenses.io/connectors/source/cassandra.html)            |
+| *Cassandra     | Sink   | Certified DSE Cassandra, copy data from Kafka to Cassandra. | [Docs](https://docs.lenses.io/connectors/sink/cassandra.html)              |
+| Elastic 6      | Sink   | Copy data from Kafka to Elastic Search 6.x w. tcp or http  | [Docs](https://docs.lenses.io/connectors/sink/elastic6.html)               |
+| FTP/HTTP       | Source | Copy data from FTP/HTTP to Kafka.                          | [Docs](https://docs.lenses.io/5.2/connectors/sources/ftpsourceconnector/)                  |
+| Hazelcast      | Sink   | Copy data from Kafka to Hazelcast.                         | [Docs](https://docs.lenses.io/connectors/sink/hazelcast.html)              |
+| HBase          | Sink   | Copy data from Kafka to HBase.                             | [Docs](https://docs.lenses.io/connectors/sink/hbase.html)                  |
+| Hive           | Source | Copy data from Hive/HDFS to Kafka.                         | [Docs](https://docs.lenses.io/connectors/source/hive.html)                 |
+| Hive           | Sink   | Copy data from Kafka to Hive/HDFS                          | [Docs](https://docs.lenses.io/connectors/sink/hive.html)                   |
+| InfluxDb       | Sink   | Copy data from Kafka to InfluxDb.                          | [Docs](https://docs.lenses.io/4.0/integrations/connectors/stream-reactor/sinks/influxsinkconnector/)|
+| Kudu           | Sink   | Copy data from Kafka to Kudu.                              | [Docs](https://docs.lenses.io/connectors/sink/kudu.html)                 |
+| JMS            | Source | Copy data from JMS topics/queues to Kafka.                 | [Docs](https://docs.lenses.io/connectors/source/jms.html)                  |
+| JMS            | Sink   | Copy data from Kafka to JMS.                               | [Docs](https://docs.lenses.io/connectors/sink/jms.html)                    |
+| MongoDB        | Sink   | Copy data from Kafka to MongoDB.                           | [Docs](https://docs.lenses.io/connectors/sink/mongo.html)                  |
+| MQTT           | Source | Copy data from MQTT to Kafka.                              | [Docs](https://docs.lenses.io/connectors/source/mqtt.html)                 |
+| MQTT           | Sink   | Copy data from Kafka to MQTT.                              | [Docs](https://docs.lenses.io/connectors/sink/mqtt.html)                   |
+| Pulsar         | Source | Copy data from Pulsar to Kafka.                            | [Docs](https://docs.lenses.io/connectors/source/pulsar.html)                 |
+| Pulsar         | Sink   | Copy data from Kafka to Pulsar.                            | [Docs](https://docs.lenses.io/connectors/sink/pulsar.html)                   |
+| Redis          | Sink   | Copy data from Kafka to Redis.                             | [Docs](https://docs.lenses.io/connectors/sink/redis.html)                  |
 
 
 ## Release Notes
