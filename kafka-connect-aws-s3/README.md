@@ -13,37 +13,23 @@ This connector supports the following modes:
 * avro
 * parquet
 * csv
-* byes
+* bytes
 * text
+
+## Sink Documentation (including configuration)
+
+Please see the [Lenses Stream Reactor S3 Sink Documentation](https://docs.lenses.io/5.3/connectors/sinks/s3sinkconnector/)
+
+
+## Source Documentation (including configuration)
+
+Please see the [Lenses Stream Reactor S3 Source Documentation](https://docs.lenses.io/5.3/connectors/sources/s3sourceconnector/)
+
 
 ## Building
 
-Build a fat jar in order to contain all the dependencies that are used by kafka connect.
+Build an assembly package in order to contain all the dependencies that are used by the connector.
 
 From the root of the stream reactor project issue the command:
 
-    gradle :kafka-connect-aws-s3:shadowJar
-
-## Running (alongside fast-data-dev)
-
-To run fast-data-dev with this connector for demonstration purposes issue this command.
-
-    docker run --rm -it --net=host \
-           -v stream-reactor/kafka-connect-aws-s3/build/libs/kafka-connect-aws-s3-2.0.0-2.4.0-all.jar:/connectors/kafka-connect-aws-s3.jar \
-           lensesio/fast-data-dev:2.3.0
-
-
-## Sink Configuration
-
-Please see the [S3 Sink configuration readme](README-sink.md)
-
-
-## Source Configuration
-
-Please see the [S3 Source configuration readme](README-source.md)
-
-
-## YAML Profile Support
-
-Please see the [YAML Profile readme](README-profiles.md)
-
+    sbt "project aws-s3" assembly
