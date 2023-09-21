@@ -70,7 +70,7 @@ object Dependencies {
     val kindProjectorVersion    = "0.13.2"
     val betterMonadicForVersion = "0.3.1"
 
-    val logbackVersion      = "1.4.6"
+    val logbackVersion      = "1.4.7"
     val scalaLoggingVersion = "3.9.5"
     val classGraphVersions  = "4.8.157"
 
@@ -80,12 +80,12 @@ object Dependencies {
     val jerseyCommonVersion = "3.1.1"
 
     val calciteVersion   = "1.34.0"
-    val awsSdkVersion    = "2.20.54"
+    val awsSdkVersion    = "2.20.69"
     val guavaVersion     = "31.0.1-jre"
     val guiceVersion     = "5.1.0"
     val javaxBindVersion = "2.3.1"
 
-    val jacksonVersion      = "2.14.2"
+    val jacksonVersion      = "2.15.1"
     val json4sVersion       = "4.0.6"
     val mockitoScalaVersion = "1.17.12"
     val snakeYamlVersion    = "2.0"
@@ -107,7 +107,7 @@ object Dependencies {
     val azureDocumentDbVersion          = "2.6.5"
     val scalaParallelCollectionsVersion = "1.0.4"
     val testcontainersScalaVersion      = "0.40.14"
-    val testcontainersVersion           = "1.17.6"
+    val testcontainersVersion           = "1.19.0"
 
     val hazelCastVersion          = "4.2.7"
     val hazelCastAzureVersion     = "2.1.2"
@@ -124,8 +124,6 @@ object Dependencies {
     val protocVersion                 = "3.11.4"
     val googleProtobufVersion         = "3.21.12"
     val protobufCompilerPluginVersion = "0.11.12"
-
-    val kuduVersion = "1.16.0"
 
     val mqttVersion = "1.2.5"
 
@@ -147,13 +145,12 @@ object Dependencies {
 
     val mongoDbVersion = "3.12.12"
 
-    val jedisVersion = "4.3.1"
+    val jedisVersion = "4.4.0"
     val gsonVersion  = "2.10.1"
 
     val hbaseClientVersion = "2.5.3"
 
     val nimbusJoseJwtVersion = "9.30.2"
-    val hiveVersion          = "3.1.3"
     val hadoopVersion        = "3.3.2"
 
     val junitVersion = "4.13.2"
@@ -162,15 +159,9 @@ object Dependencies {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
     }
 
-    object Elastic6Versions extends ElasticVersions() {
-      override val elastic4sVersion:     String = "6.7.8"
-      override val elasticSearchVersion: String = "6.8.23"
-      override val jnaVersion:           String = "3.0.9"
-    }
-
-    object Elastic7Versions extends ElasticVersions {
-      override val elastic4sVersion:     String = "7.17.2"
-      override val elasticSearchVersion: String = "7.17.2"
+    object Elastic8Versions extends ElasticVersions {
+      override val elastic4sVersion:     String = "8.9.2"
+      override val elasticSearchVersion: String = "8.10.1"
       override val jnaVersion:           String = "4.5.1"
     }
 
@@ -384,8 +375,6 @@ object Dependencies {
   lazy val googleProtobufJava = "com.google.protobuf" % "protobuf-java" % googleProtobufVersion
   lazy val googleProtobuf     = "com.google.protobuf" % "protobuf-java" % googleProtobufVersion % "protobuf"
 
-  lazy val kuduClient = "org.apache.kudu" % "kudu-client" % kuduVersion
-
   lazy val mqttClient = "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % mqttVersion
 
   lazy val pulsar = ("org.apache.pulsar" % "pulsar-client-original" % pulsarVersion).excludeAll("org.apache.avro")
@@ -432,9 +421,6 @@ object Dependencies {
       .exclude("com.fasterxml.jackson.core", "jackson-annotations")
 
   lazy val nimbusJoseJwt = hiveExcludes("com.nimbusds" % "nimbus-jose-jwt" % nimbusJoseJwtVersion)
-  lazy val hiveJdbc      = hiveExcludes("org.apache.hive" % "hive-jdbc" % hiveVersion)
-  lazy val hiveMetastore = hiveExcludes("org.apache.hive" % "hive-metastore" % hiveVersion)
-  lazy val hiveExec      = hiveExcludes("org.apache.hive" % "hive-exec" % hiveVersion classifier "core")
   lazy val airCompressor = "io.airlift" % "aircompressor" % "0.24"
 
   // testcontainers module only
@@ -445,8 +431,8 @@ object Dependencies {
   def elastic4sTestKit(v: String): ModuleID = "com.sksamuel.elastic4s" %% "elastic4s-testkit"       % v
   def elastic4sHttp(v:    String): ModuleID = "com.sksamuel.elastic4s" %% "elastic4s-http"          % v
 
-  def elasticSearch(v:         String): ModuleID = "org.elasticsearch"                 % "elasticsearch"   % v
-  def elasticSearchAnalysis(v: String): ModuleID = "org.codelibs.elasticsearch.module" % "analysis-common" % v
+  def elasticSearch(v:         String): ModuleID = "co.elastic.clients"                % "elasticsearch-java" % v
+  def elasticSearchAnalysis(v: String): ModuleID = "org.codelibs.elasticsearch.module" % "analysis-common"    % v
 
   def jna(v: String): ModuleID = "net.java.dev.jna" % "jna" % v
 
@@ -566,8 +552,6 @@ trait Dependencies {
     activeMqBroker,
   )
 
-  val kafkaConnectKuduDeps: Seq[ModuleID] = Seq(kuduClient)
-
   val kafkaConnectMqttDeps: Seq[ModuleID] = Seq(mqttClient, avro4s, avro4sJson) ++ bouncyCastle
 
   val kafkaConnectMqttTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainersScala, testContainersScalaToxiProxy)
@@ -587,15 +571,10 @@ trait Dependencies {
     testContainersScalaElasticsearch,
   )
 
-  val kafkaConnectElastic6Deps: Seq[ModuleID] =
-    elasticCommonDeps(Elastic6Versions) ++ Seq(elastic4sHttp(Elastic6Versions.elastic4sVersion))
+  val kafkaConnectElastic8Deps: Seq[ModuleID] =
+    elasticCommonDeps(Elastic8Versions) ++ Seq(elastic4sClient(Elastic8Versions.elastic4sVersion))
 
-  val kafkaConnectElastic6TestDeps: Seq[ModuleID] = baseTestDeps ++ elasticTestCommonDeps(Elastic6Versions)
-
-  val kafkaConnectElastic7Deps: Seq[ModuleID] =
-    elasticCommonDeps(Elastic7Versions) ++ Seq(elastic4sClient(Elastic7Versions.elastic4sVersion))
-
-  val kafkaConnectElastic7TestDeps: Seq[ModuleID] = baseTestDeps ++ elasticTestCommonDeps(Elastic7Versions)
+  val kafkaConnectElastic8TestDeps: Seq[ModuleID] = baseTestDeps ++ elasticTestCommonDeps(Elastic8Versions)
 
   val kafkaConnectFtpDeps: Seq[ModuleID] = Seq(commonsNet, commonsCodec, commonsIO, jsch)
 
@@ -607,32 +586,6 @@ trait Dependencies {
     hadoopHdfs,
     hadoopHdfsClient,
     hbaseClient,
-    nimbusJoseJwt,
-  )
-
-  val kafkaConnectHiveDeps: Seq[ModuleID] = Seq(
-    airCompressor,
-    nettyAll,
-    parquetAvro,
-    parquetColumn,
-    parquetEncoding,
-    parquetHadoop,
-    parquetHadoopBundle,
-    hiveJdbc,
-    hiveExec,
-    hadoopCommon,
-    hadoopAuth,
-    hadoopHdfs,
-    hadoopHdfsClient,
-    hadoopMapReduce,
-    hadoopMapReduceClient,
-    hadoopMapReduceClientCore,
-    hadoopClient,
-    hadoopDistCp,
-    hadoopMapreduceClientApp,
-    hadoopMapreduceClientCommon,
-    hadoopMapreduceClientJobClient,
-    hadoopMapreduceClientShuffle,
     nimbusJoseJwt,
   )
 

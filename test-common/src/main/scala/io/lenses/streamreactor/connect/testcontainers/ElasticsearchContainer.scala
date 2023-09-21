@@ -16,6 +16,7 @@ class ElasticsearchContainer(
   override val container: JavaElasticsearchContainer =
     new JavaElasticsearchContainer(dockerImage.withTag(dockerTag))
   container.withNetworkAliases(networkAlias)
+  container.withEnv("xpack.security.enabled", "false")
 
   lazy val hostNetwork = new HostNetwork()
 
