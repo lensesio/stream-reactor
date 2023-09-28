@@ -79,8 +79,13 @@ object EnvelopeWithSchemaTransformer {
     val schema = envelopeSchema(message, settings)
 
     val envelope = new Struct(schema)
-    if (settings.key) putWithOptional(envelope, "key", message.key)
-    if (settings.value) putWithOptional(envelope, "value", message.value)
+    if (settings.key) {
+      //only set the value when is not null. If the schema is null the schema does not contain the field
+      putWithOptional(envelope, "key", message.key)
+    }
+    if (settings.value) {
+      putWithOptional(envelope, "value", message.value)
+    }
     if (settings.metadata) envelope.put("metadata", metadataData(message))
     if (settings.headers) {
       Option(schema.field("headers")).foreach { field =>
@@ -109,7 +114,9 @@ object EnvelopeWithSchemaTransformer {
     }
 
   private def putWithOptional(envelope: Struct, key: String, value: SinkData): Struct =
-    envelope.put(key, toOptionalConnectData(value))
+    Option(envelope.schema().field(key)).fold(envelope) { _ =>
+      envelope.put(key, toOptionalConnectData(value))
+    }
 
   private def metadataData(message: MessageDetail): Struct = {
     val metadata = new Struct(MetadataSchema)
