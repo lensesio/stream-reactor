@@ -4,6 +4,7 @@ import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.cloud.config.TaskIndexKey
 import org.apache.avro.SchemaBuilder
 import org.apache.avro.file.CodecFactory
 import org.apache.avro.file.DataFileWriter
@@ -20,7 +21,12 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-class S3SourceAvroEnvelopeTest extends S3ProxyContainerTest with AnyFlatSpecLike with Matchers with EitherValues {
+class S3SourceAvroEnvelopeTest
+    extends S3ProxyContainerTest
+    with AnyFlatSpecLike
+    with Matchers
+    with EitherValues
+    with TaskIndexKey {
 
   def DefaultProps: Map[String, String] = Map(
     AWS_ACCESS_KEY                          -> Identity,
@@ -178,4 +184,5 @@ class S3SourceAvroEnvelopeTest extends S3ProxyContainerTest with AnyFlatSpecLike
     sourceRecord.timestamp() shouldBe 1234567890L
   }
 
+  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

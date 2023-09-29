@@ -18,14 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.StrictLogging
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.S3FormatWriter
-import io.lenses.streamreactor.connect.aws.s3.model.Offset.orderingByOffsetValue
-import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionField
+import io.lenses.streamreactor.connect.cloud.model.Offset.orderingByOffsetValue
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.KeyNamer
@@ -33,6 +26,19 @@ import io.lenses.streamreactor.connect.aws.s3.sink.seek._
 import io.lenses.streamreactor.connect.aws.s3.sink.transformers.TopicsTransformers
 import io.lenses.streamreactor.connect.aws.s3.sink.writer.S3Writer
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.formats.writer.S3FormatWriter
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.Offset
+import io.lenses.streamreactor.connect.cloud.model.Topic
+import io.lenses.streamreactor.connect.cloud.model.TopicPartition
+import io.lenses.streamreactor.connect.cloud.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.cloud.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.cloud.sink.config.PartitionField
+import io.lenses.streamreactor.connect.cloud.sink.BatchS3SinkError
+import io.lenses.streamreactor.connect.cloud.sink.FatalS3SinkError
+import io.lenses.streamreactor.connect.cloud.sink.SinkError
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.data.Schema
 
@@ -54,10 +60,10 @@ case class MapKey(topicPartition: TopicPartition, partitionValues: immutable.Map
   */
 class S3WriterManager(
   commitPolicyFn:    TopicPartition => Either[SinkError, CommitPolicy],
-  bucketAndPrefixFn: TopicPartition => Either[SinkError, S3Location],
+  bucketAndPrefixFn: TopicPartition => Either[SinkError, CloudLocation],
   keyNamerFn:        TopicPartition => Either[SinkError, KeyNamer],
   stagingFilenameFn: (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
-  finalFilenameFn:   (TopicPartition, Map[PartitionField, String], Offset) => Either[SinkError, S3Location],
+  finalFilenameFn:   (TopicPartition, Map[PartitionField, String], Offset) => Either[SinkError, CloudLocation],
   formatWriterFn:    (TopicPartition, File) => Either[SinkError, S3FormatWriter],
   indexManager:      IndexManager,
   transformerF:      MessageDetail => Either[RuntimeException, MessageDetail],
@@ -232,7 +238,7 @@ class S3WriterManager(
     } yield writer
 
   private def createWriter(
-    bucketAndPrefix: S3Location,
+    bucketAndPrefix: CloudLocation,
     topicPartition:  TopicPartition,
     partitionValues: Map[PartitionField, String],
   ): Either[SinkError, S3Writer] = {
@@ -304,7 +310,7 @@ object S3WriterManager extends LazyLogging {
     storageInterface: StorageInterface,
   ): S3WriterManager = {
 
-    val bucketAndPrefixFn: TopicPartition => Either[SinkError, S3Location] = topicPartition => {
+    val bucketAndPrefixFn: TopicPartition => Either[SinkError, CloudLocation] = topicPartition => {
       bucketOptsForTopic(config, topicPartition.topic) match {
         case Some(sBO) => sBO.bucketAndPrefix.asRight
         case None      => fatalErrorTopicNotConfigured(topicPartition).asLeft
@@ -342,7 +348,7 @@ object S3WriterManager extends LazyLogging {
       TopicPartition,
       immutable.Map[PartitionField, String],
       Offset,
-    ) => Either[SinkError, S3Location] = (topicPartition, partitionValues, offset) =>
+    ) => Either[SinkError, CloudLocation] = (topicPartition, partitionValues, offset) =>
       bucketOptsForTopic(config, topicPartition.topic) match {
         case Some(bucketOptions) =>
           for {

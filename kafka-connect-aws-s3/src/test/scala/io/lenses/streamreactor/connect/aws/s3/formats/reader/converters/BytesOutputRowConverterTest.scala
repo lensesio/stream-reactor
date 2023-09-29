@@ -16,9 +16,12 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.reader.converters
 
 import cats.implicits.catsSyntaxOptionId
-import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
+import io.lenses.streamreactor.connect.cloud.formats.bytes.BytesOutputRow
+import io.lenses.streamreactor.connect.cloud.formats.reader.converters.BytesOutputRowConverter
+import io.lenses.streamreactor.connect.cloud.model.Topic
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
 import org.apache.kafka.connect.data.Schema
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -27,8 +30,9 @@ import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 class BytesOutputRowConverterTest extends AnyFunSuite with Matchers {
+  implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   test("convert to SourceRecord and populate the key and value") {
-    val location     = S3Location("bucket", "myprefix".some, "a/b/c.txt".some)
+    val location     = CloudLocation("bucket", "myprefix".some, "a/b/c.txt".some)
     val lastModified = Instant.ofEpochMilli(10001)
 
     val valueBytes = "value".getBytes

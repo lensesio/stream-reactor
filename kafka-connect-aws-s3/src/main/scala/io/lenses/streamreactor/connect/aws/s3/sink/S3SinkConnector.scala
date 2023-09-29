@@ -17,8 +17,9 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfigDef
-import io.lenses.streamreactor.connect.aws.s3.config.TaskDistributor.distributeTasks
+import io.lenses.streamreactor.connect.cloud.config.TaskDistributor
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
@@ -45,6 +46,6 @@ class S3SinkConnector extends SinkConnector with LazyLogging {
 
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Creating $maxTasks tasks config")
-    distributeTasks(props, maxTasks)
+    new TaskDistributor(S3ConfigSettings.CONNECTOR_PREFIX).distributeTasks(props, maxTasks)
   }
 }

@@ -21,17 +21,23 @@ import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
 import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.HeaderToStringConverter
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ValueToSinkDataConverter
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
-import io.lenses.streamreactor.connect.aws.s3.utils.MapUtils
-import io.lenses.streamreactor.connect.aws.s3.utils.TimestampUtils
+import io.lenses.streamreactor.connect.cloud.common.utils.MapUtils
+import io.lenses.streamreactor.connect.cloud.common.utils.TimestampUtils
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskIdCreator
+import io.lenses.streamreactor.connect.cloud.formats.writer
+import io.lenses.streamreactor.connect.cloud.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.model.Offset
+import io.lenses.streamreactor.connect.cloud.model.Topic
+import io.lenses.streamreactor.connect.cloud.model.TopicPartition
+import io.lenses.streamreactor.connect.cloud.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.sink.conversion.HeaderToStringConverter
+import io.lenses.streamreactor.connect.cloud.sink.conversion.ValueToSinkDataConverter
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.sink.SinkRecord
@@ -45,7 +51,8 @@ import scala.util.Try
 
 class S3SinkTask extends SinkTask with ErrorHandler {
 
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private implicit val cloudLocationValidator = S3LocationValidator
+  private val manifest                        = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   private var writerManager: S3WriterManager = _
 
@@ -57,7 +64,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
 
     printAsciiHeader(manifest, "/aws-s3-sink-ascii.txt")
 
-    ConnectorTaskId.fromProps(fallbackProps) match {
+    new ConnectorTaskIdCreator(S3ConfigSettings.CONNECTOR_PREFIX).fromProps(fallbackProps) match {
       case Left(value)  => throw new IllegalArgumentException(value)
       case Right(value) => connectorTaskId = value
     }
@@ -150,7 +157,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
               case Some(k) => ValueToSinkDataConverter(k, Option(record.keySchema()))
               case None    => NullSinkData(Option(record.keySchema()))
             }
-            val msgDetails = MessageDetail(
+            val msgDetails = writer.MessageDetail(
               key     = key,
               value   = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
               headers = HeaderToStringConverter(record),

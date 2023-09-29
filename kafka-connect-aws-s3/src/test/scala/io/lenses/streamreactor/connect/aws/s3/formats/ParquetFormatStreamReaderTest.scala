@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetStreamReader
+import io.lenses.streamreactor.connect.cloud.formats.reader.ParquetStreamReader
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

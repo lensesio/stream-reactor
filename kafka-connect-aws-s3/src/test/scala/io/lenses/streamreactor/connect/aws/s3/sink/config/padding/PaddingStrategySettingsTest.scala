@@ -15,14 +15,14 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.config.padding
 import cats.implicits.catsSyntaxOptionId
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.PADDING_LENGTH
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.PADDING_STRATEGY
-import io.lenses.streamreactor.connect.aws.s3.sink.LeftPadPaddingStrategy
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.aws.s3.sink.config.TestConfigDefBuilder
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.LeftPadPaddingStrategy
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.PaddingStrategyConfigKeys
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-class PaddingStrategySettingsTest extends AnyFunSuite with Matchers {
+class PaddingStrategySettingsTest extends AnyFunSuite with Matchers with PaddingStrategyConfigKeys {
 
   test("getPaddingStrategy should return None when padding strategy is not provided") {
     val settings = TestConfigDefBuilder()
@@ -46,4 +46,6 @@ class PaddingStrategySettingsTest extends AnyFunSuite with Matchers {
     )
     settings.getPaddingStrategy should equal(LeftPadPaddingStrategy(12, '0').some)
   }
+
+  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

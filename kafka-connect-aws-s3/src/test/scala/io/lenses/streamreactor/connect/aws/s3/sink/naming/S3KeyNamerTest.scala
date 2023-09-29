@@ -16,19 +16,21 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.naming
 
 import cats.implicits.none
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.config.JsonFormatSelection
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.Values
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection.defaultPartitionSelection
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionField
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionPartitionField
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection
-import io.lenses.streamreactor.connect.aws.s3.sink.config.TopicPartitionField
-import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingService
-import io.lenses.streamreactor.connect.aws.s3.sink.LeftPadPaddingStrategy
-import io.lenses.streamreactor.connect.aws.s3.sink.PaddingStrategy
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
+import io.lenses.streamreactor.connect.cloud.sink.config.PartitionDisplay.Values
+import io.lenses.streamreactor.connect.cloud.sink.config.PartitionSelection.defaultPartitionSelection
+import io.lenses.streamreactor.connect.cloud.config.FormatSelection
+import io.lenses.streamreactor.connect.cloud.config.JsonFormatSelection
+import io.lenses.streamreactor.connect.cloud.model.Topic
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.LeftPadPaddingStrategy
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.PaddingService
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.PaddingStrategy
+import io.lenses.streamreactor.connect.cloud.sink.config.PartitionField
+import io.lenses.streamreactor.connect.cloud.sink.config.PartitionPartitionField
+import io.lenses.streamreactor.connect.cloud.sink.config.PartitionSelection
+import io.lenses.streamreactor.connect.cloud.sink.config.TopicPartitionField
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.MockitoSugar
 import org.scalatest.EitherValues
@@ -40,6 +42,7 @@ import java.nio.file.Files
 import java.util.UUID
 
 class S3KeyNamerTest extends AnyFunSuite with Matchers with OptionValues with EitherValues with MockitoSugar {
+  private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
 
   private val formatSelection:    FormatSelection    = JsonFormatSelection
   private val paddingStrategy:    PaddingStrategy    = LeftPadPaddingStrategy(3, '0')
@@ -48,12 +51,11 @@ class S3KeyNamerTest extends AnyFunSuite with Matchers with OptionValues with Ei
   private val fileNamer: S3FileNamer =
     new OffsetS3FileNamer(paddingStrategy, JsonFormatSelection.extension)
 
-  private val bucketAndPrefix = S3Location("my-bucket", Some("prefix"))
-  private val bucketNoPrefix  = S3Location("my-bucket", none)
-
-  private val TopicName = "my-topic"
-  private val Partition = 9
-  private val Offset    = 81L
+  private val bucketAndPrefix = CloudLocation("my-bucket", Some("prefix"))
+  private val bucketNoPrefix  = CloudLocation("my-bucket", none)
+  private val TopicName       = "my-topic"
+  private val Partition       = 9
+  private val Offset          = 81L
 
   private val topicPartition = Topic(TopicName).withPartition(Partition).atOffset(Offset)
 

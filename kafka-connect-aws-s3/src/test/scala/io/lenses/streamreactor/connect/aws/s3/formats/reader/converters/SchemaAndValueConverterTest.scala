@@ -16,8 +16,11 @@
 package io.lenses.streamreactor.connect.aws.s3.formats.reader.converters
 
 import cats.implicits.catsSyntaxOptionId
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
+import io.lenses.streamreactor.connect.cloud.formats.reader.converters.SchemaAndValueConverter
+import io.lenses.streamreactor.connect.cloud.model.Topic
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaAndValue
 import org.scalatest.funsuite.AnyFunSuite
@@ -27,13 +30,14 @@ import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 class SchemaAndValueConverterTest extends AnyFunSuite with Matchers {
+  implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
 
   test("converts a schema and value and populates the source record") {
     val value = new SchemaAndValue(
       Schema.OPTIONAL_STRING_SCHEMA,
       "lore ipsum",
     )
-    val location     = S3Location("bucket", "prefix".some, "a/b/c.txt".some)
+    val location     = CloudLocation("bucket", "prefix".some, "a/b/c.txt".some)
     val lastModified = Instant.ofEpochMilli(1000)
     val actual = new SchemaAndValueConverter(
       Map("a" -> "1").asJava,

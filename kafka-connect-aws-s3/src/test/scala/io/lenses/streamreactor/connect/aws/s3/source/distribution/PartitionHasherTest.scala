@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.distribution
 
+import io.lenses.streamreactor.connect.cloud.source.config.distribution.PartitionHasher
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers

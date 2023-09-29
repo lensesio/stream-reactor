@@ -17,21 +17,21 @@ package io.lenses.streamreactor.connect.aws.s3.sink.naming
 
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.toTraverseOps
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
-import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
-import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
-import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.createFileAndParents
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
-import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.KeysAndValues
-import io.lenses.streamreactor.connect.aws.s3.sink.config._
-import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingService
-import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
-import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
+import io.lenses.streamreactor.connect.cloud.config.FormatSelection
+import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.SinkData
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.FileUtils.createFileAndParents
+import io.lenses.streamreactor.connect.cloud.model.TopicPartition
+import io.lenses.streamreactor.connect.cloud.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.cloud.sink.config.PartitionDisplay.KeysAndValues
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.PaddingService
+import io.lenses.streamreactor.connect.cloud.sink.config._
+import io.lenses.streamreactor.connect.cloud.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
+import io.lenses.streamreactor.connect.cloud.sink.extractors.SinkDataExtractor
+import io.lenses.streamreactor.connect.cloud.sink.FatalS3SinkError
+import io.lenses.streamreactor.connect.cloud.sink.SinkError
 
 import java.io.File
 import java.util.UUID
@@ -65,12 +65,12 @@ class S3KeyNamer(
 
   private def addTrailingSlash(s: String): String = if (s.last == '/') s else s + '/'
 
-  private def prefix(bucketAndPrefix: S3Location): String =
+  private def prefix(bucketAndPrefix: CloudLocation): String =
     bucketAndPrefix.prefix.map(addTrailingSlash).getOrElse(DefaultPrefix)
 
   override def stagingFile(
     stagingDirectory: File,
-    bucketAndPrefix:  S3Location,
+    bucketAndPrefix:  CloudLocation,
     topicPartition:   TopicPartition,
     partitionValues:  Map[PartitionField, String],
   ): Either[FatalS3SinkError, File] =
@@ -103,10 +103,10 @@ class S3KeyNamer(
     if (partitionSelection.partitionDisplay == KeysAndValues) s"${partition.name()}=" else ""
 
   override def finalFilename(
-    bucketAndPrefix:      S3Location,
+    bucketAndPrefix:      CloudLocation,
     topicPartitionOffset: TopicPartitionOffset,
     partitionValues:      Map[PartitionField, String],
-  ): Either[FatalS3SinkError, S3Location] =
+  ): Either[FatalS3SinkError, CloudLocation] =
     Try(
       bucketAndPrefix.withPath(
         s"${prefix(bucketAndPrefix)}${buildPartitionPrefix(partitionValues)}/${fileNamer.fileName(topicPartitionOffset)}",

@@ -16,7 +16,8 @@
 package io.lenses.streamreactor.connect.aws.s3.stream
 
 import cats.implicits.catsSyntaxEitherId
-import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.stream.S3OutputStream
 
 import java.io.ByteArrayOutputStream
 

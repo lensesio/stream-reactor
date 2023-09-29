@@ -16,19 +16,22 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.config.AvroFormatSelection
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.AvroFormatWriter
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
-import io.lenses.streamreactor.connect.aws.s3.model.Offset
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
-import io.lenses.streamreactor.connect.aws.s3.stream.BuildLocalOutputStream
-import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
+import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.firstUsers
+import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.users
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.checkRecord
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.topic
+import io.lenses.streamreactor.connect.cloud.model.CompressionCodecName.UNCOMPRESSED
+import io.lenses.streamreactor.connect.cloud.model.location.FileUtils.toBufferedOutputStream
+import io.lenses.streamreactor.connect.cloud.config.AvroFormatSelection
+import io.lenses.streamreactor.connect.cloud.formats.writer.AvroFormatWriter
+import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.model.CompressionCodec
+import io.lenses.streamreactor.connect.cloud.model.Offset
+import io.lenses.streamreactor.connect.cloud.model.Topic
+import io.lenses.streamreactor.connect.cloud.stream.BuildLocalOutputStream
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

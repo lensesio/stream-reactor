@@ -15,7 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings.AllEnvelopeFields
+import io.lenses.streamreactor.connect.cloud.config.DataStorageSettings
+import io.lenses.streamreactor.connect.cloud.config.DataStorageSettings.AllEnvelopeFields
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite

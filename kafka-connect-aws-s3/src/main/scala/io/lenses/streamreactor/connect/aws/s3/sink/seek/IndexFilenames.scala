@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.seek
 
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.model.Offset
 
 import scala.util.Try
 

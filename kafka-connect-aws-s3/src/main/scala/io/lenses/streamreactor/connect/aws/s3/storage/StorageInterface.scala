@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.config.ObjectMetadata
+import io.lenses.streamreactor.connect.cloud.config.ObjectMetadata
 import software.amazon.awssdk.services.s3.model.S3Object
 
 import java.io.File

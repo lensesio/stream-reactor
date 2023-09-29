@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.naming
 
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingType.LeftPad
+import io.lenses.streamreactor.connect.cloud.model.Topic
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.PaddingType.LeftPad
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 class S3FileNamerTest extends AnyFunSuite with Matchers {

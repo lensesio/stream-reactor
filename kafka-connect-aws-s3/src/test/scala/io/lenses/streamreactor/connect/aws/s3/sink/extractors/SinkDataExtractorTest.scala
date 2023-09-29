@@ -15,12 +15,14 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.ArraySinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MapSinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionNamePath
-import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.MissingValue
-import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.UnexpectedType
+import io.lenses.streamreactor.connect.cloud.formats.writer.ArraySinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.MapSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.sink.config.PartitionNamePath
+import io.lenses.streamreactor.connect.cloud.sink.extractors.ExtractorErrorType.MissingValue
+import io.lenses.streamreactor.connect.cloud.sink.extractors.ExtractorErrorType.UnexpectedType
+import io.lenses.streamreactor.connect.cloud.sink.extractors.ExtractorError
+import io.lenses.streamreactor.connect.cloud.sink.extractors.SinkDataExtractor
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct

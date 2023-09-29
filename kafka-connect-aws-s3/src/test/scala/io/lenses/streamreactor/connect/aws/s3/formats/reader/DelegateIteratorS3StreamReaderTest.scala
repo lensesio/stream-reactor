@@ -15,6 +15,9 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.reader
 
+import io.lenses.streamreactor.connect.cloud.formats.reader.Converter
+import io.lenses.streamreactor.connect.cloud.formats.reader.DelegateIteratorS3StreamReader
+import io.lenses.streamreactor.connect.cloud.formats.reader.S3DataIterator
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.funsuite.AnyFunSuite

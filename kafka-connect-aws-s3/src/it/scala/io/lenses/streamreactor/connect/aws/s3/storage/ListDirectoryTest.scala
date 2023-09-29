@@ -3,9 +3,11 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import software.amazon.awssdk.core.sync.RequestBody
@@ -15,7 +17,8 @@ import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with LazyLogging {
 
-  override def cleanUpEnabled: Boolean = false
+  implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
+  override def cleanUpEnabled:         Boolean                = false
 
   override def setUpTestData(): Unit = {
     val requestBody = RequestBody.fromString("x")
@@ -39,7 +42,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
 
     val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
 
-    val topicRoot = S3Location(BucketName, "topic-1/".some)
+    val topicRoot = CloudLocation(BucketName, "topic-1/".some)
 
     val dirs = AwsS3DirectoryLister.findDirectories(
       topicRoot,
@@ -60,7 +63,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
 
     val taskId = ConnectorTaskId("sinkName", 1, 0)
 
-    val bucketRoot = S3Location(BucketName)
+    val bucketRoot = CloudLocation(BucketName)
 
     val dirs = AwsS3DirectoryLister.findDirectories(
       bucketRoot,
@@ -80,7 +83,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
 
     val taskId = ConnectorTaskId("sinkName", 1, 0)
 
-    val bucketRoot = S3Location(BucketName)
+    val bucketRoot = CloudLocation(BucketName)
 
     val dirs = AwsS3DirectoryLister.findDirectories(
       bucketRoot,
@@ -99,7 +102,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
 
     val taskId = ConnectorTaskId("sinkName", 1, 0)
 
-    val bucketRoot = S3Location(BucketName)
+    val bucketRoot = CloudLocation(BucketName)
 
     val dirs = AwsS3DirectoryLister.findDirectories(
       bucketRoot,

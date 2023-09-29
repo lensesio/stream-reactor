@@ -15,15 +15,16 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.StringSinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.TextFormatWriter
-import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
-import io.lenses.streamreactor.connect.aws.s3.utils.SampleData._
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.topic
+import io.lenses.streamreactor.connect.cloud.formats.FormatWriterException
+import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.StringSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.TextFormatWriter
+import io.lenses.streamreactor.connect.cloud.model.Offset
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

@@ -17,6 +17,9 @@ package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
+import io.lenses.streamreactor.connect.cloud.sink.commit.CommitContext
+import io.lenses.streamreactor.connect.cloud.sink.commit.ConditionCommitResult
+import io.lenses.streamreactor.connect.cloud.sink.commit.Count
 import org.mockito.MockitoSugar
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec

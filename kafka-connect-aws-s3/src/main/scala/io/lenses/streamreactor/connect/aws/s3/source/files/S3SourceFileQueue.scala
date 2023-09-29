@@ -19,17 +19,18 @@ import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileMetadata
 import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
 
 import java.time.Instant
 
 trait SourceFileQueue {
-  def next(): Either[FileListError, Option[S3Location]]
+  def next(): Either[FileListError, Option[CloudLocation]]
 }
 
 /**
@@ -39,17 +40,23 @@ trait SourceFileQueue {
 class S3SourceFileQueue private (
   private val taskId:        ConnectorTaskId,
   private val batchListerFn: Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]],
-  private var files:         Seq[S3Location],
+  private var files:         Seq[CloudLocation],
   private var lastSeenFile:  Option[FileMetadata],
+)(
+  implicit
+  cloudLocationValidator: CloudLocationValidator,
 ) extends SourceFileQueue
     with LazyLogging {
 
   def this(
     taskId:        ConnectorTaskId,
     batchListerFn: Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]],
+  )(
+    implicit
+    cloudLocationValidator: CloudLocationValidator,
   ) = this(taskId, batchListerFn, Seq.empty, None)
 
-  override def next(): Either[FileListError, Option[S3Location]] =
+  override def next(): Either[FileListError, Option[CloudLocation]] =
     files match {
       case ::(head, next) =>
         files = next
@@ -66,13 +73,13 @@ class S3SourceFileQueue private (
     }
 
   private def retrieveNextFile(
-  ): Either[FileListError, Option[S3Location]] = {
+  ): Either[FileListError, Option[CloudLocation]] = {
     val nextBatch: Either[FileListError, Option[ListResponse[String]]] = batchListerFn(lastSeenFile)
     nextBatch.flatMap {
       case Some(ListResponse(bucket, prefix, value, meta)) =>
         lastSeenFile = meta.some
         files = value.map(path =>
-          S3Location(
+          CloudLocation(
             bucket,
             prefix,
             path.some,
@@ -94,8 +101,11 @@ object S3SourceFileQueue {
   def from(
     batchListerFn:     Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]],
     getLastModifiedFn: (String, String) => Either[FileLoadError, Instant],
-    startingFile:      S3Location,
+    startingFile:      CloudLocation,
     taskId:            ConnectorTaskId,
+  )(
+    implicit
+    cloudLocationValidator: CloudLocationValidator,
   ): S3SourceFileQueue = {
     val lastSeen: Option[FileMetadata] = (startingFile.path, startingFile.timestamp) match {
       case (Some(filePath), None) =>

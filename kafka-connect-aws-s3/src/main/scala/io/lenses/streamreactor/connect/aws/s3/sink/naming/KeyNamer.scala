@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.naming
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
-import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
-import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionField
+import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.TopicPartition
+import io.lenses.streamreactor.connect.cloud.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.cloud.sink.config.PartitionField
+import io.lenses.streamreactor.connect.cloud.sink.FatalS3SinkError
+import io.lenses.streamreactor.connect.cloud.sink.SinkError
 
 import java.io.File
 
@@ -28,16 +28,16 @@ trait KeyNamer {
 
   def stagingFile(
     stagingDirectory: File,
-    bucketAndPrefix:  S3Location,
+    bucketAndPrefix:  CloudLocation,
     topicPartition:   TopicPartition,
     partitionValues:  Map[PartitionField, String],
   ): Either[FatalS3SinkError, File]
 
   def finalFilename(
-    bucketAndPrefix:      S3Location,
+    bucketAndPrefix:      CloudLocation,
     topicPartitionOffset: TopicPartitionOffset,
     partitionValues:      Map[PartitionField, String],
-  ): Either[FatalS3SinkError, S3Location]
+  ): Either[FatalS3SinkError, CloudLocation]
 
   def processPartitionValues(
     messageDetail:  MessageDetail,

@@ -15,13 +15,20 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.formats.writer._
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
-import io.lenses.streamreactor.connect.aws.s3.model.Offset
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData._
+import io.lenses.streamreactor.connect.cloud.formats.writer.ArraySinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.AvroFormatWriter
+import io.lenses.streamreactor.connect.cloud.formats.writer.ByteArraySinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.IntSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.MapSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.model.CompressionCodec
+import io.lenses.streamreactor.connect.cloud.model.Offset
+import io.lenses.streamreactor.connect.cloud.model.CompressionCodecName.UNCOMPRESSED
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
 import org.apache.kafka.connect.data.Schema

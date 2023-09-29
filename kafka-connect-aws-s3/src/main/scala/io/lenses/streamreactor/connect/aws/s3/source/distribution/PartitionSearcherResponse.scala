@@ -15,11 +15,11 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.distribution
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindResults
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
 
 case class PartitionSearcherResponse(
-  root:          S3Location,
+  root:          CloudLocation,
   allPartitions: Set[String],
   results:       DirectoryFindResults,
   error:         Option[Exception],

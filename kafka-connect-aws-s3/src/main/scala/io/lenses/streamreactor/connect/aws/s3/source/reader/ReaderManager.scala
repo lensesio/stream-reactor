@@ -20,9 +20,9 @@ import cats.effect.Ref
 import cats.implicits.toBifunctorOps
 import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.files.SourceFileQueue
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
 import org.apache.kafka.connect.source.SourceRecord
 
 import scala.util.Try
@@ -33,7 +33,7 @@ import scala.util.Try
 class ReaderManager(
   recordsLimit:    Int,
   fileSource:      SourceFileQueue,
-  readerBuilderF:  S3Location => Either[Throwable, ResultReader],
+  readerBuilderF:  CloudLocation => Either[Throwable, ResultReader],
   connectorTaskId: ConnectorTaskId,
   readerRef:       Ref[IO, Option[ResultReader]],
 ) extends LazyLogging {

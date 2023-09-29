@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config.processors
 
+import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers

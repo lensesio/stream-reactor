@@ -16,13 +16,13 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.transformers
 
 import cats.implicits.catsSyntaxEitherId
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.ByteArraySinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.StringSinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
-import io.lenses.streamreactor.connect.aws.s3.model.Offset
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
+import io.lenses.streamreactor.connect.cloud.formats.writer.ByteArraySinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.formats.writer.StringSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.model.Offset
+import io.lenses.streamreactor.connect.cloud.model.Topic
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 

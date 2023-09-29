@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.naming
 
-import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
-import io.lenses.streamreactor.connect.aws.s3.sink.PaddingStrategy
+import io.lenses.streamreactor.connect.cloud.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.PaddingStrategy
 
 trait S3FileNamer {
   def fileName(

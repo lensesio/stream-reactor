@@ -16,8 +16,8 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.writer
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.S3FormatWriter
-import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.cloud.formats.writer.S3FormatWriter
+import io.lenses.streamreactor.connect.cloud.model.Offset
 import org.apache.kafka.connect.data.Schema
 
 import java.io.File

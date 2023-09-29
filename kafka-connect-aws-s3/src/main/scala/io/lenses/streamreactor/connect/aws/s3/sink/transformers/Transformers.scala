@@ -16,13 +16,16 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.transformers
 
 import cats.implicits.catsSyntaxEitherId
-import io.lenses.streamreactor.connect.aws.s3.config._
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
+import io.lenses.streamreactor.connect.cloud.config.AvroFormatSelection
+import io.lenses.streamreactor.connect.cloud.config.JsonFormatSelection
+import io.lenses.streamreactor.connect.cloud.config.ParquetFormatSelection
+import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.model.Topic
 
 /**
   * Applies a sequence of transformations to a message.
+  *
   * @param transformers A sequence of transformations to apply.
   */
 case class SequenceTransformer(transformers: Transformer*) extends Transformer {

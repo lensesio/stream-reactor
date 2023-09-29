@@ -17,9 +17,11 @@ package io.lenses.streamreactor.connect.aws.s3.sink.config.padding
 
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
-import io.lenses.streamreactor.connect.aws.s3.sink.RightPadPaddingStrategy
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfigDefBuilder
-import io.lenses.streamreactor.connect.aws.s3.sink.config.kcqlprops.S3SinkPropsSchema
+import io.lenses.streamreactor.connect.cloud.sink.config.kcqlprops.S3SinkPropsSchema
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.PaddingService
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.PaddingType
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.RightPadPaddingStrategy
 import org.mockito.MockitoSugar._
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuite

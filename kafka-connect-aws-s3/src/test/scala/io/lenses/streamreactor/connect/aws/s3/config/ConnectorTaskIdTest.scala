@@ -16,60 +16,67 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import cats.implicits.catsSyntaxEitherId
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.TASK_INDEX
-import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionHasher
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskIdCreator
+import io.lenses.streamreactor.connect.cloud.config.TaskIndexKey
+import io.lenses.streamreactor.connect.cloud.source.config.distribution.PartitionHasher
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.jdk.CollectionConverters._
-class ConnectorTaskIdTest extends AnyWordSpec with Matchers {
+class ConnectorTaskIdTest extends AnyWordSpec with Matchers with TaskIndexKey {
   private val connectorName = "connectorName"
   "ConnectorTaskId" should {
     "create the instance" in {
-      val from = Map("a" -> "1", "b" -> "2", S3ConfigSettings.TASK_INDEX -> "0:2", "name" -> connectorName)
-      ConnectorTaskId.fromProps(from.asJava) shouldBe ConnectorTaskId(connectorName, 2, 0).asRight[String]
+      val from = Map("a" -> "1", "b" -> "2", TASK_INDEX -> "0:2", "name" -> connectorName)
+      new ConnectorTaskIdCreator(CONNECTOR_PREFIX).fromProps(from.asJava) shouldBe ConnectorTaskId(connectorName,
+                                                                                                   2,
+                                                                                                   0,
+      ).asRight[String]
     }
     "fail if max tasks is not valid integer" in {
-      val from   = Map("a" -> "1", "b" -> "2", S3ConfigSettings.TASK_INDEX -> "0:2a", "name" -> connectorName)
-      val actual = ConnectorTaskId.fromProps(from.asJava)
+      val from   = Map("a" -> "1", "b" -> "2", TASK_INDEX -> "0:2a", "name" -> connectorName)
+      val actual = new ConnectorTaskIdCreator(CONNECTOR_PREFIX).fromProps(from.asJava)
       actual match {
         case Left(e)  => e.getMessage shouldBe s"Invalid $TASK_INDEX. Expecting an integer but found:2a"
         case Right(_) => fail("Should have failed")
       }
     }
     "fail if task number is not a valid integer" in {
-      val from = Map("a" -> "1", "b" -> "2", S3ConfigSettings.TASK_INDEX -> "0a:2", "name" -> connectorName)
-      ConnectorTaskId.fromProps(from.asJava) match {
+      val from = Map("a" -> "1", "b" -> "2", TASK_INDEX -> "0a:2", "name" -> connectorName)
+      new ConnectorTaskIdCreator(CONNECTOR_PREFIX).fromProps(from.asJava) match {
         case Left(value) => value.getMessage shouldBe s"Invalid $TASK_INDEX. Expecting an integer but found:0a"
         case Right(_)    => fail("Should have failed")
       }
     }
     "fail if task number < 0" in {
-      val from = Map("a" -> "1", "b" -> "2", S3ConfigSettings.TASK_INDEX -> "-1:2", "name" -> connectorName)
-      ConnectorTaskId.fromProps(from.asJava) match {
+      val from = Map("a" -> "1", "b" -> "2", TASK_INDEX -> "-1:2", "name" -> connectorName)
+      new ConnectorTaskIdCreator(CONNECTOR_PREFIX).fromProps(from.asJava) match {
         case Left(value)  => value.getMessage shouldBe s"Invalid $TASK_INDEX. Expecting a positive integer but found:-1"
         case Right(value) => fail(s"Should have failed but got $value")
       }
 
     }
     "fail if max tasks is zero" in {
-      val from = Map("a" -> "1", "b" -> "2", S3ConfigSettings.TASK_INDEX -> "0:0", "name" -> connectorName)
-      ConnectorTaskId.fromProps(from.asJava) match {
+      val from = Map("a" -> "1", "b" -> "2", TASK_INDEX -> "0:0", "name" -> connectorName)
+      new ConnectorTaskIdCreator(CONNECTOR_PREFIX).fromProps(from.asJava) match {
         case Left(value)  => value.getMessage shouldBe s"Invalid $TASK_INDEX. Expecting a positive integer but found:0"
         case Right(value) => fail(s"Should have failed but got $value")
       }
     }
     "fail if max tasks is negative" in {
-      val from = Map("a" -> "1", "b" -> "2", S3ConfigSettings.TASK_INDEX -> "0:-1", "name" -> connectorName)
-      ConnectorTaskId.fromProps(from.asJava) match {
+      val from = Map("a" -> "1", "b" -> "2", TASK_INDEX -> "0:-1", "name" -> connectorName)
+      new ConnectorTaskIdCreator(CONNECTOR_PREFIX).fromProps(from.asJava) match {
         case Left(value)  => value.getMessage shouldBe s"Invalid $TASK_INDEX. Expecting a positive integer but found:-1"
         case Right(value) => fail(s"Should have failed but got $value")
       }
     }
 
     "own the partitions when max task is 1" in {
-      val from   = Map("a" -> "1", "b" -> "2", S3ConfigSettings.TASK_INDEX -> "0:1", "name" -> connectorName)
-      val actual = ConnectorTaskId.fromProps(from.asJava).getOrElse(fail("Should be valid"))
+      val from = Map("a" -> "1", "b" -> "2", TASK_INDEX -> "0:1", "name" -> connectorName)
+      val actual =
+        new ConnectorTaskIdCreator(CONNECTOR_PREFIX).fromProps(from.asJava).getOrElse(fail("Should be valid"))
 
       Seq("/myTopic/", "/anotherTopic/", "/thirdTopic/")
         .flatMap { value =>
@@ -82,15 +89,15 @@ class ConnectorTaskIdTest extends AnyWordSpec with Matchers {
     }
     "distribute the directory between two tasks" in {
 
-      val one = ConnectorTaskId.fromProps(Map("a" -> "1",
-                                              "b"                         -> "2",
-                                              S3ConfigSettings.TASK_INDEX -> "0:2",
-                                              "name"                      -> connectorName,
+      val one = new ConnectorTaskIdCreator(CONNECTOR_PREFIX).fromProps(Map("a" -> "1",
+                                                                           "b"        -> "2",
+                                                                           TASK_INDEX -> "0:2",
+                                                                           "name"     -> connectorName,
       ).asJava).getOrElse(fail("Should be valid"))
-      val two = ConnectorTaskId.fromProps(Map("a" -> "1",
-                                              "b"                         -> "2",
-                                              S3ConfigSettings.TASK_INDEX -> "1:2",
-                                              "name"                      -> connectorName,
+      val two = new ConnectorTaskIdCreator(CONNECTOR_PREFIX).fromProps(Map("a" -> "1",
+                                                                           "b"        -> "2",
+                                                                           TASK_INDEX -> "1:2",
+                                                                           "name"     -> connectorName,
       ).asJava).getOrElse(fail("Should be valid"))
 
       PartitionHasher.hash(2, "1") shouldBe 1
@@ -104,20 +111,20 @@ class ConnectorTaskIdTest extends AnyWordSpec with Matchers {
 
     "distribute the directories between three tasks" in {
 
-      val one = ConnectorTaskId.fromProps(Map("a" -> "1",
-                                              "b"                         -> "2",
-                                              S3ConfigSettings.TASK_INDEX -> "0:3",
-                                              "name"                      -> connectorName,
+      val one = new ConnectorTaskIdCreator(CONNECTOR_PREFIX).fromProps(Map("a" -> "1",
+                                                                           "b"        -> "2",
+                                                                           TASK_INDEX -> "0:3",
+                                                                           "name"     -> connectorName,
       ).asJava).getOrElse(fail("Should be valid"))
-      val two = ConnectorTaskId.fromProps(Map("a" -> "1",
-                                              "b"                         -> "2",
-                                              S3ConfigSettings.TASK_INDEX -> "1:3",
-                                              "name"                      -> connectorName,
+      val two = new ConnectorTaskIdCreator(CONNECTOR_PREFIX).fromProps(Map("a" -> "1",
+                                                                           "b"        -> "2",
+                                                                           TASK_INDEX -> "1:3",
+                                                                           "name"     -> connectorName,
       ).asJava).getOrElse(fail("Should be valid"))
-      val three = ConnectorTaskId.fromProps(Map("a" -> "1",
-                                                "b"                         -> "2",
-                                                S3ConfigSettings.TASK_INDEX -> "2:3",
-                                                "name"                      -> connectorName,
+      val three = new ConnectorTaskIdCreator(CONNECTOR_PREFIX).fromProps(Map("a" -> "1",
+                                                                             "b"        -> "2",
+                                                                             TASK_INDEX -> "2:3",
+                                                                             "name"     -> connectorName,
       ).asJava).getOrElse(fail("Should be valid"))
 
       PartitionHasher.hash(3, "1") shouldBe 1
@@ -136,4 +143,6 @@ class ConnectorTaskIdTest extends AnyWordSpec with Matchers {
       three.ownsDir("3") shouldBe false
     }
   }
+
+  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

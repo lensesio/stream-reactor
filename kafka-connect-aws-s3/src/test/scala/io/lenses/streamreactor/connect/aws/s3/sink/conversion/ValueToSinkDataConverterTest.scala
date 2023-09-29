@@ -15,8 +15,9 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MapSinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.ShortSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.MapSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.ShortSinkData
+import io.lenses.streamreactor.connect.cloud.sink.conversion.ValueToSinkDataConverter
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct

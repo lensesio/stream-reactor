@@ -17,17 +17,18 @@ package io.lenses.streamreactor.connect.aws.s3.sink.seek
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
-import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
-import io.lenses.streamreactor.connect.aws.s3.sink.FatalS3SinkError
-import io.lenses.streamreactor.connect.aws.s3.sink.NonFatalS3SinkError
-import io.lenses.streamreactor.connect.aws.s3.sink.SinkError
 import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processAsKey
 import io.lenses.streamreactor.connect.aws.s3.storage.FileDeleteError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
 import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.model.TopicPartition
+import io.lenses.streamreactor.connect.cloud.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.cloud.sink.FatalS3SinkError
+import io.lenses.streamreactor.connect.cloud.sink.NonFatalS3SinkError
+import io.lenses.streamreactor.connect.cloud.sink.SinkError
+
 class IndexManager(
   maxIndexes: Int,
 )(

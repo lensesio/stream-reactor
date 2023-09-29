@@ -17,19 +17,22 @@ package io.lenses.streamreactor.connect.aws.s3.sink.writer
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.S3FormatWriter
-import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.sink._
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitContext
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.aws.s3.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.aws.s3.storage.NonExistingFileError
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.storage.UploadFailedError
 import io.lenses.streamreactor.connect.aws.s3.storage.ZeroByteFileError
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.formats.writer.S3FormatWriter
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.Offset
+import io.lenses.streamreactor.connect.cloud.model.TopicPartition
+import io.lenses.streamreactor.connect.cloud.sink.commit.CommitContext
+import io.lenses.streamreactor.connect.cloud.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.cloud.sink.FatalS3SinkError
+import io.lenses.streamreactor.connect.cloud.sink.NonFatalS3SinkError
+import io.lenses.streamreactor.connect.cloud.sink.SinkError
 import org.apache.kafka.connect.data.Schema
 
 import java.io.File
@@ -41,7 +44,7 @@ class S3Writer(
   commitPolicy:      CommitPolicy,
   indexManager:      IndexManager,
   stagingFilenameFn: () => Either[SinkError, File],
-  finalFilenameFn:   Offset => Either[SinkError, S3Location],
+  finalFilenameFn:   Offset => Either[SinkError, CloudLocation],
   formatWriterFn:    File => Either[SinkError, S3FormatWriter],
   lastSeekedOffset:  Option[Offset],
 )(

@@ -17,8 +17,9 @@ package io.lenses.streamreactor.connect.aws.s3.source
 
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.TaskDistributor.distributeTasks
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfigDef
+import io.lenses.streamreactor.connect.cloud.config.TaskDistributor
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.ExactlyOnceSupport
@@ -46,7 +47,7 @@ class S3SourceConnector extends SourceConnector with LazyLogging {
 
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Creating $maxTasks tasks config")
-    distributeTasks(props, maxTasks)
+    new TaskDistributor(CONNECTOR_PREFIX).distributeTasks(props, maxTasks)
   }
 
   override def exactlyOnceSupport(connectorConfig: util.Map[String, String]): ExactlyOnceSupport =

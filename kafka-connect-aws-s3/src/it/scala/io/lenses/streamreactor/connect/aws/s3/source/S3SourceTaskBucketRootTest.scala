@@ -5,6 +5,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.source.S3SourceTaskTest.formats
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.cloud.config.TaskIndexKey
 import org.scalatest.EitherValues
 import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -15,7 +16,12 @@ import software.amazon.awssdk.services.s3.model.CreateBucketRequest
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
-class S3SourceTaskBucketRootTest extends S3ProxyContainerTest with AnyFlatSpecLike with Matchers with EitherValues {
+class S3SourceTaskBucketRootTest
+    extends S3ProxyContainerTest
+    with AnyFlatSpecLike
+    with Matchers
+    with EitherValues
+    with TaskIndexKey {
 
   def DefaultProps: Map[String, String] = Map(
     AWS_ACCESS_KEY                          -> Identity,
@@ -101,4 +107,6 @@ class S3SourceTaskBucketRootTest extends S3ProxyContainerTest with AnyFlatSpecLi
 
   private def createBucket(bucketName: String) =
     Try(s3Client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build())).toEither.map(_ => ())
+
+  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

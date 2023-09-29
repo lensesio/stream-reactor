@@ -15,9 +15,10 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.stream
 
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.Using
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
+import io.lenses.streamreactor.connect.cloud.formats.reader.Using
+import io.lenses.streamreactor.connect.cloud.model.location.FileUtils.toBufferedOutputStream
+import io.lenses.streamreactor.connect.cloud.model.Topic
+import io.lenses.streamreactor.connect.cloud.stream.BuildLocalOutputStream
 import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

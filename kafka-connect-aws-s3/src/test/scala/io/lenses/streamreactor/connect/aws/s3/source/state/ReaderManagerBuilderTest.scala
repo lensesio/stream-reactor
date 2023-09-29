@@ -16,20 +16,23 @@
 package io.lenses.streamreactor.connect.aws.s3.source.state
 
 import cats.effect.testing.scalatest.AsyncIOSpec
-import io.lenses.streamreactor.connect.aws.s3.config.AvroFormatSelection
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.source.config.OrderingType
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.cloud.config.AvroFormatSelection
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
 import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Matchers {
+  implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   "ReaderManagerBuilder" should "create a reader manager" in {
     val si = mock[StorageInterface]
-    val root = S3Location(
+    val root = CloudLocation(
       "bucket",
       Some("prefix1"),
       None,
@@ -37,8 +40,8 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
       None,
     )
     val path = "prefix1/subprefixA/subprefixB/"
-    var rootValue: Option[S3Location] = None
-    val contextF: S3Location => Option[S3Location] = { in =>
+    var rootValue: Option[CloudLocation] = None
+    val contextF: CloudLocation => Option[CloudLocation] = { in =>
       rootValue = Some(in)
       rootValue
     }

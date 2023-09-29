@@ -24,6 +24,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.cloud.config.TaskIndexKey
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.Schema
@@ -43,7 +44,8 @@ class S3SinkTaskJsonEnvelopeTest
     with Matchers
     with S3ProxyContainerTest
     with MockitoSugar
-    with LazyLogging {
+    with LazyLogging
+    with TaskIndexKey {
 
   import helper._
 
@@ -483,4 +485,5 @@ class S3SinkTaskJsonEnvelopeTest
     new String(Base64.getDecoder.decode(json3NodeValue.asText())) shouldBe "tom\nhardy"
   }
 
+  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

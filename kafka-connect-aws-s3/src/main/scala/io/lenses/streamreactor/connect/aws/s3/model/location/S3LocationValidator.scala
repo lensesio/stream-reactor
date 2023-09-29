@@ -16,13 +16,15 @@
 package io.lenses.streamreactor.connect.aws.s3.model.location
 
 import cats.data.Validated
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
 import software.amazon.awssdk.services.s3.internal.BucketUtils
 
 import scala.util.Try
 
-object S3LocationValidator {
+object S3LocationValidator extends CloudLocationValidator {
 
-  def validate(s3Location: S3Location, allowSlash: Boolean): Validated[Throwable, S3Location] =
+  def validate(s3Location: CloudLocation, allowSlash: Boolean): Validated[Throwable, CloudLocation] =
     Validated.fromEither(
       for {
         _ <- validateBucketName(s3Location.bucket).toEither

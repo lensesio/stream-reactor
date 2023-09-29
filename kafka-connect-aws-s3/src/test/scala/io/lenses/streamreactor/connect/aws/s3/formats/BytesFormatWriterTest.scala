@@ -15,12 +15,16 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.formats.writer._
-import io.lenses.streamreactor.connect.aws.s3.model.Offset
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
-import io.lenses.streamreactor.connect.aws.s3.utils.SampleData._
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.topic
+import io.lenses.streamreactor.connect.cloud.formats.writer.ByteArraySinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.BytesFormatWriter
+import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.model.Offset
+import io.lenses.streamreactor.connect.cloud.model.Topic
 import org.apache.commons.io.IOUtils
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec

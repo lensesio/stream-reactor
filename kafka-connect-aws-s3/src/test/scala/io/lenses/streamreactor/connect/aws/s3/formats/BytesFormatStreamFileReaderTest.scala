@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.formats.bytes.BytesOutputRow
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.BytesStreamFileReader
+import io.lenses.streamreactor.connect.cloud.formats.bytes.BytesOutputRow
+import io.lenses.streamreactor.connect.cloud.formats.reader.BytesStreamFileReader
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

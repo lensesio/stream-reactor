@@ -15,27 +15,36 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
+import io.lenses.streamreactor.connect.cloud.config.TaskDistributor
+import io.lenses.streamreactor.connect.cloud.config.TaskIndexKey
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.jdk.CollectionConverters._
-class TaskDistributorTest extends AnyWordSpec with Matchers {
+class TaskDistributorTest extends AnyWordSpec with Matchers with TaskIndexKey {
   "TaskDistributor" should {
     "distribute tasks" in {
       val tasks =
-        TaskDistributor.distributeTasks(Map.empty[String, String].asJava, 5).asScala.map(_.asScala.toMap).toList
+        new TaskDistributor(CONNECTOR_PREFIX).distributeTasks(Map.empty[String, String].asJava, 5).asScala.map(
+          _.asScala.toMap,
+        ).toList
       tasks shouldBe List(
-        Map(S3ConfigSettings.TASK_INDEX -> "0:5"),
-        Map(S3ConfigSettings.TASK_INDEX -> "1:5"),
-        Map(S3ConfigSettings.TASK_INDEX -> "2:5"),
-        Map(S3ConfigSettings.TASK_INDEX -> "3:5"),
-        Map(S3ConfigSettings.TASK_INDEX -> "4:5"),
+        Map(TASK_INDEX -> "0:5"),
+        Map(TASK_INDEX -> "1:5"),
+        Map(TASK_INDEX -> "2:5"),
+        Map(TASK_INDEX -> "3:5"),
+        Map(TASK_INDEX -> "4:5"),
       )
     }
     "handle 0 max tasks" in {
       val tasks =
-        TaskDistributor.distributeTasks(Map.empty[String, String].asJava, 0).asScala.map(_.asScala.toMap).toList
+        new TaskDistributor(CONNECTOR_PREFIX).distributeTasks(Map.empty[String, String].asJava, 0).asScala.map(
+          _.asScala.toMap,
+        ).toList
       tasks shouldBe List()
     }
   }
+
+  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

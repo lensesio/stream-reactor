@@ -16,16 +16,16 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.opencsv.CSVReader
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.CsvFormatWriter
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
-import io.lenses.streamreactor.connect.aws.s3.model.Offset
-import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorError
-import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.UnexpectedType
-import io.lenses.streamreactor.connect.aws.s3.utils.SampleData._
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.topic
+import io.lenses.streamreactor.connect.cloud.formats.writer.CsvFormatWriter
+import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.model.Offset
+import io.lenses.streamreactor.connect.cloud.sink.extractors.ExtractorError
+import io.lenses.streamreactor.connect.cloud.sink.extractors.ExtractorErrorType.UnexpectedType
 import org.apache.kafka.connect.data.Schema.STRING_SCHEMA
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder

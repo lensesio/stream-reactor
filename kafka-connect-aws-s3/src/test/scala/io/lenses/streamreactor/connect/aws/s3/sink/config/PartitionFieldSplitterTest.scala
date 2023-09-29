@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
+import io.lenses.streamreactor.connect.cloud.sink.config.PartitionFieldSplitter
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 

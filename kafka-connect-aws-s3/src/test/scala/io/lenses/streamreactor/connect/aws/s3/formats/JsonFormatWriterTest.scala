@@ -17,11 +17,18 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.NullNode
-import io.lenses.streamreactor.connect.aws.s3.formats.writer._
-import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.stream.S3ByteArrayOutputStream
 import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
-import io.lenses.streamreactor.connect.aws.s3.utils.SampleData._
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.recordsAsJson
+import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.topic
+import io.lenses.streamreactor.connect.cloud.formats.writer.ArraySinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.JsonFormatWriter
+import io.lenses.streamreactor.connect.cloud.formats.writer.MapSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.StringSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.model.Offset
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

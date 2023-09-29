@@ -23,6 +23,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.cloud.config.TaskIndexKey
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
@@ -42,7 +43,8 @@ class S3SinkTaskAvroEnvelopeTest
     with Matchers
     with S3ProxyContainerTest
     with MockitoSugar
-    with LazyLogging {
+    with LazyLogging
+    with TaskIndexKey {
 
   import helper._
 
@@ -372,4 +374,6 @@ class S3SinkTaskAvroEnvelopeTest
     headers3.get("h1").toString should be("record1-header3")
     headers3.get("h2") should be(3L)
   }
+
+  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

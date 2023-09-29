@@ -17,11 +17,13 @@ package io.lenses.streamreactor.connect.aws.s3.config
 
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfigDef
+import io.lenses.streamreactor.connect.cloud.config.CompressionCodecConfigKeys
+import io.lenses.streamreactor.connect.cloud.config.DeleteModeConfigKeys
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
-object CommonConfigDef {
+trait CommonConfigDef extends CompressionCodecConfigKeys with DeleteModeConfigKeys {
 
   def config: ConfigDef = new S3SourceConfigDef()
     .define(

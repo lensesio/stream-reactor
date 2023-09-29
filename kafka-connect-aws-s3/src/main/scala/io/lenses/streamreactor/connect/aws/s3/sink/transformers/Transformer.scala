@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.transformers
 
 import cats.implicits.catsSyntaxEitherId
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
 
 /**
   * A generic interface for transforming messages.

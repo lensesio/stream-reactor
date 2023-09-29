@@ -16,9 +16,14 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
 import com.typesafe.scalalogging.Logger
-import io.lenses.streamreactor.connect.aws.s3.model.Offset
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.cloud.model.Offset
+import io.lenses.streamreactor.connect.cloud.model.Topic
+import io.lenses.streamreactor.connect.cloud.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.cloud.sink.commit.CommitContext
+import io.lenses.streamreactor.connect.cloud.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.cloud.sink.commit.Count
+import io.lenses.streamreactor.connect.cloud.sink.commit.FileSize
+import io.lenses.streamreactor.connect.cloud.sink.commit.Interval
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

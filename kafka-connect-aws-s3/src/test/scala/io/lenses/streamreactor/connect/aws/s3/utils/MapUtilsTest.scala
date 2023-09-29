@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.utils
 
+import io.lenses.streamreactor.connect.cloud.common.utils.MapUtils
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 

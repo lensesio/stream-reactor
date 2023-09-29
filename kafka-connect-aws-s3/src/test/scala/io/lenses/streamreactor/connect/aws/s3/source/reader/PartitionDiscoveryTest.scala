@@ -19,8 +19,7 @@ import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxOptionId
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcher
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcherResponse
@@ -28,6 +27,9 @@ import io.lenses.streamreactor.connect.aws.s3.source.files.SourceFileQueue
 import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindResults
 import io.lenses.streamreactor.connect.aws.s3.storage.MockS3Client
 import io.lenses.streamreactor.connect.aws.s3.storage.S3Page
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
@@ -36,7 +38,8 @@ import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoSugar {
-  private val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
+  private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
+  private val connectorTaskId:                 ConnectorTaskId        = ConnectorTaskId("sinkName", 1, 1)
   "PartitionDiscovery" should "handle failure on PartitionSearcher and resume" in {
     val fileQueueProcessor: SourceFileQueue = mock[SourceFileQueue]
     val limit   = 10
@@ -61,7 +64,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
           _ <- if (c == 0) IO.raiseError(new RuntimeException("error")) else IO.unit
         } yield {
           List(
-            PartitionSearcherResponse(S3Location("bucket", None),
+            PartitionSearcherResponse(CloudLocation("bucket", None),
                                       Set("prefix1/", "prefix2/"),
                                       DirectoryFindResults(Set("prefix1/", "prefix2/")),
                                       None,
@@ -99,7 +102,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
     assert(
       state.partitionResponses == List(
         PartitionSearcherResponse(
-          S3Location("bucket", None),
+          CloudLocation("bucket", None),
           Set("prefix1/", "prefix2/"),
           DirectoryFindResults(Set("prefix1/", "prefix2/")),
           None,
@@ -128,7 +131,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         connectorTaskId,
         options,
         new PartitionSearcher(List(
-                                S3Location("bucket", None),
+                                CloudLocation("bucket", None),
                               ),
                               options,
                               connectorTaskId,
@@ -154,7 +157,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
     assert(
       state.partitionResponses == List(
         PartitionSearcherResponse(
-          S3Location("bucket", None),
+          CloudLocation("bucket", None),
           Set("prefix1/", "prefix2/"),
           DirectoryFindResults(Set.empty),
           None,
@@ -181,7 +184,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
       state <- Ref[IO].of(
         ReaderManagerState(
           List(PartitionSearcherResponse(
-            S3Location("bucket", None),
+            CloudLocation("bucket", None),
             Set("prefix1/"),
             DirectoryFindResults(Set("prefix1/")),
             None,
@@ -193,7 +196,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         connectorTaskId,
         options,
         new PartitionSearcher(List(
-                                S3Location("bucket", None),
+                                CloudLocation("bucket", None),
                               ),
                               options,
                               connectorTaskId,
@@ -219,7 +222,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
     assert(
       state.partitionResponses == List(
         PartitionSearcherResponse(
-          S3Location("bucket", None),
+          CloudLocation("bucket", None),
           Set("prefix1/", "prefix2/"),
           DirectoryFindResults(Set.empty),
           None,
@@ -250,7 +253,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         connectorTaskId,
         options,
         new PartitionSearcher(List(
-                                S3Location("bucket", "prefix1/".some),
+                                CloudLocation("bucket", "prefix1/".some),
                               ),
                               options,
                               connectorTaskId,
@@ -276,7 +279,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
     assert(
       state.partitionResponses == List(
         PartitionSearcherResponse(
-          S3Location("bucket", "prefix1/".some),
+          CloudLocation("bucket", "prefix1/".some),
           Set("prefix1/one/", "prefix1/two/", "prefix1/three/"),
           DirectoryFindResults(Set.empty),
           None,
@@ -308,7 +311,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
             taskId,
             options,
             new PartitionSearcher(List(
-                                    S3Location("bucket", "prefix1/".some),
+                                    CloudLocation("bucket", "prefix1/".some),
                                   ),
                                   options,
                                   taskId,
@@ -331,7 +334,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         assert(
           state.partitionResponses == List(
             PartitionSearcherResponse(
-              S3Location("bucket", "prefix1/".some),
+              CloudLocation("bucket", "prefix1/".some),
               Set(partition),
               DirectoryFindResults(Set.empty),
               None,

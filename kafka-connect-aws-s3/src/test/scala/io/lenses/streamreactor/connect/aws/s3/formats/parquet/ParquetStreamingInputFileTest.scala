@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.parquet
 
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.parquet.ParquetSeekableInputStream
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.parquet.ParquetStreamingInputFile
+import io.lenses.streamreactor.connect.cloud.formats.reader.parquet.ParquetSeekableInputStream
+import io.lenses.streamreactor.connect.cloud.formats.reader.parquet.ParquetStreamingInputFile
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

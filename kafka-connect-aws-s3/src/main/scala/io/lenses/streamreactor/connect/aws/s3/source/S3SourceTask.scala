@@ -23,10 +23,12 @@ import cats.implicits.catsSyntaxOptionId
 import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceState
 import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceTaskState
-import io.lenses.streamreactor.connect.aws.s3.utils.MapUtils
+import io.lenses.streamreactor.connect.cloud.common.utils.MapUtils
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask
 
@@ -35,7 +37,8 @@ import java.util.Collections
 import scala.jdk.CollectionConverters._
 class S3SourceTask extends SourceTask with LazyLogging {
 
-  private val contextOffsetFn: S3Location => Option[S3Location] =
+  implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
+  private val contextOffsetFn: CloudLocation => Option[CloudLocation] =
     SourceContextReader.getCurrentOffset(() => context)
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)

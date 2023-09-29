@@ -18,27 +18,36 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config._
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetFormatReader
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
-import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection.defaultPartitionSelection
-import io.lenses.streamreactor.connect.aws.s3.sink.config.LocalStagingArea
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.Values
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.OffsetS3FileNamer
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
-import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
+import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.config.DataStorageSettings
+import io.lenses.streamreactor.connect.cloud.config.ParquetFormatSelection
+import io.lenses.streamreactor.connect.cloud.formats.reader.ParquetFormatReader
+import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.SinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.model.CompressionCodecName.UNCOMPRESSED
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.Offset
+import io.lenses.streamreactor.connect.cloud.model.Topic
+import io.lenses.streamreactor.connect.cloud.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.cloud.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.cloud.sink.commit.Count
+import io.lenses.streamreactor.connect.cloud.sink.config.LocalStagingArea
+import io.lenses.streamreactor.connect.cloud.sink.config.PartitionDisplay.Values
+import io.lenses.streamreactor.connect.cloud.sink.config.PartitionSelection.defaultPartitionSelection
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.LeftPadPaddingStrategy
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.NoOpPaddingStrategy
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.PaddingService
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.PaddingStrategy
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
@@ -51,13 +60,14 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
   import helper._
 
   private val compressionCodec = UNCOMPRESSED.toCodec()
-  private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
+  private implicit val connectorTaskId:        ConnectorTaskId          = ConnectorTaskId("sinkName", 1, 1)
+  private implicit val cloudLocationValidator: S3LocationValidator.type = S3LocationValidator
 
   private val TopicName           = "myTopic"
   private val PathPrefix          = "streamReactorBackups"
   private val parquetFormatReader = new ParquetFormatReader
 
-  private val bucketAndPrefix = S3Location(BucketName, PathPrefix.some)
+  private val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
   private def parquetConfig = S3SinkConfig(
     S3Config(
       None,

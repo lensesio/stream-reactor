@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.Format
+import io.lenses.streamreactor.connect.cloud.config.Format
 
 /**
   * For a source, can extract the original partition so that the message can be returned to the original partition.

@@ -17,8 +17,11 @@ package io.lenses.streamreactor.connect.aws.s3.formats.reader.converters
 
 import cats.implicits.catsSyntaxOptionId
 import io.circe.Json
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
+import io.lenses.streamreactor.connect.cloud.formats.reader.converters.SchemalessEnvelopeConverter
+import io.lenses.streamreactor.connect.cloud.model.Topic
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.Assertion
@@ -32,6 +35,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 class SchemalessEnvelopeConverterTest extends AnyFunSuite with Matchers {
+  implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
 
   private val Header1Value = "header1"
   private val Header2Value = "header2"
@@ -44,7 +48,7 @@ class SchemalessEnvelopeConverterTest extends AnyFunSuite with Matchers {
 
   private val TargetTopic           = "target-topic"
   private val TargetPartition       = 0
-  private val s3Location            = S3Location("bucket", "prefix".some, "/a/b/c.avro".some)
+  private val s3Location            = CloudLocation("bucket", "prefix".some, "/a/b/c.avro".some)
   private val LastModifiedTimestamp = Instant.ofEpochMilli(1001)
 
   test("envelope with key, value, headers and metadata is mapped to a SourceRecord") {

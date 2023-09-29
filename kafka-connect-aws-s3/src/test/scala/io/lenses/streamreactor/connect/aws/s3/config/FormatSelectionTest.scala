@@ -15,9 +15,11 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
+import io.lenses.streamreactor.connect.cloud.config.FormatOptions.WithHeaders
+import io.lenses.streamreactor.connect.cloud.model.CompressionCodecName.UNCOMPRESSED
+import io.lenses.streamreactor.connect.cloud.config.CsvFormatSelection
+import io.lenses.streamreactor.connect.cloud.config.FormatSelection
+import io.lenses.streamreactor.connect.cloud.model.CompressionCodec
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

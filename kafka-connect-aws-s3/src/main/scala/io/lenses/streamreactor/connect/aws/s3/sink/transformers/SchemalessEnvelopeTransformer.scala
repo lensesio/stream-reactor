@@ -16,9 +16,16 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.transformers
 
 import cats.implicits.catsSyntaxEitherId
-import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings
-import io.lenses.streamreactor.connect.aws.s3.formats.writer._
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
+import io.lenses.streamreactor.connect.cloud.config.DataStorageSettings
+import io.lenses.streamreactor.connect.cloud.formats.writer.ArraySinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.ByteArraySinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.MapSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.PrimitiveSinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.SinkData
+import io.lenses.streamreactor.connect.cloud.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.model.Topic
 import org.apache.kafka.connect.data._
 
 import scala.jdk.CollectionConverters.ListHasAsScala

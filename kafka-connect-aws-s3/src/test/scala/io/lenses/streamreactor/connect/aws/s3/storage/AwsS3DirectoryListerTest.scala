@@ -17,8 +17,10 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import software.amazon.awssdk.services.s3.S3Client
@@ -26,6 +28,7 @@ import software.amazon.awssdk.services.s3.S3Client
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
+  private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
 
   private val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
 
@@ -40,11 +43,11 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
       ),
     )
 
-    check(S3Location("bucket", "prefix1/".some), Set.empty, Set.empty, Set("prefix1/"), s3Client)
+    check(CloudLocation("bucket", "prefix1/".some), Set.empty, Set.empty, Set("prefix1/"), s3Client)
 
-    check(S3Location("bucket", "prefix2/".some), Set.empty, Set.empty, Set("prefix2/"), s3Client)
-    check(S3Location("bucket", "prefix3/".some), Set.empty, Set.empty, Set.empty, s3Client)
-    check(S3Location("bucket", None), Set.empty, Set.empty, Set("prefix1/", "prefix2/"), s3Client)
+    check(CloudLocation("bucket", "prefix2/".some), Set.empty, Set.empty, Set("prefix2/"), s3Client)
+    check(CloudLocation("bucket", "prefix3/".some), Set.empty, Set.empty, Set.empty, s3Client)
+    check(CloudLocation("bucket", None), Set.empty, Set.empty, Set("prefix1/", "prefix2/"), s3Client)
   }
 
   "lister" should "list multiple pages" in {
@@ -65,7 +68,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     )
 
     AwsS3DirectoryLister.findDirectories(
-      S3Location("bucket", none),
+      CloudLocation("bucket", none),
       DirectoryFindCompletionConfig(1),
       Set.empty,
       Set.empty,
@@ -94,7 +97,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     )
 
     check(
-      S3Location("bucket", none),
+      CloudLocation("bucket", none),
       Set("prefix1/", "prefix4/"),
       Set.empty,
       Set("prefix2/", "prefix3/"),
@@ -123,7 +126,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     )
 
     check(
-      S3Location("bucket", none),
+      CloudLocation("bucket", none),
       Set.empty,
       Set.empty,
       Set("prefix2/", "prefix4/"),
@@ -133,7 +136,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     )
 
     check(
-      S3Location("bucket", none),
+      CloudLocation("bucket", none),
       Set.empty,
       Set.empty,
       Set("prefix1/", "prefix3/"),
@@ -143,7 +146,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     )
 
     check(
-      S3Location("bucket", none),
+      CloudLocation("bucket", none),
       Set("prefix2/", "prefix4/"),
       Set.empty,
       Set.empty,
@@ -153,7 +156,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     )
 
     check(
-      S3Location("bucket", none),
+      CloudLocation("bucket", none),
       Set("prefix1/", "prefix3/"),
       Set.empty,
       Set.empty,
@@ -163,7 +166,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     )
 
     check(
-      S3Location("bucket", none),
+      CloudLocation("bucket", none),
       Set("prefix2/"),
       Set.empty,
       Set("prefix4/"),
@@ -173,7 +176,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     )
 
     check(
-      S3Location("bucket", none),
+      CloudLocation("bucket", none),
       Set("prefix1/"),
       Set.empty,
       Set("prefix3/"),
@@ -184,7 +187,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
   }
 
   private def check(
-    location:         S3Location,
+    location:         CloudLocation,
     exclude:          Set[String],
     wildcardExcludes: Set[String],
     expected:         Set[String],
@@ -218,11 +221,11 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
       ),
     )
 
-    check(S3Location("bucket", "prefix1/".some), Set.empty, Set(".indexes"), Set("prefix1/"), s3Client)
+    check(CloudLocation("bucket", "prefix1/".some), Set.empty, Set(".indexes"), Set("prefix1/"), s3Client)
 
-    check(S3Location("bucket", "prefix2/".some), Set.empty, Set(".indexes"), Set("prefix2/"), s3Client)
-    check(S3Location("bucket", "prefix3/".some), Set.empty, Set(".indexes"), Set.empty, s3Client)
-    check(S3Location("bucket", None), Set.empty, Set(".indexes"), Set("prefix1/", "prefix2/"), s3Client)
+    check(CloudLocation("bucket", "prefix2/".some), Set.empty, Set(".indexes"), Set("prefix2/"), s3Client)
+    check(CloudLocation("bucket", "prefix3/".some), Set.empty, Set(".indexes"), Set.empty, s3Client)
+    check(CloudLocation("bucket", None), Set.empty, Set(".indexes"), Set("prefix1/", "prefix2/"), s3Client)
   }
 
 }

@@ -16,11 +16,11 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import cats.implicits.catsSyntaxOptionId
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.LineKey
-import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.PathKey
-import io.lenses.streamreactor.connect.aws.s3.source.ContextConstants.TimeStampKey
-import io.lenses.streamreactor.connect.aws.s3.source.SourceWatermark.partition
+import io.lenses.streamreactor.connect.cloud.source.ContextConstants.LineKey
+import io.lenses.streamreactor.connect.cloud.source.ContextConstants.PathKey
+import io.lenses.streamreactor.connect.cloud.source.ContextConstants.TimeStampKey
+import io.lenses.streamreactor.connect.cloud.source.SourceWatermark.partition
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
 import org.apache.kafka.connect.source.SourceTaskContext
 
 import java.time.Instant
@@ -31,8 +31,8 @@ object SourceContextReader {
 
   def getCurrentOffset(
     context:    () => SourceTaskContext,
-  )(sourceRoot: S3Location,
-  ): Option[S3Location] = {
+  )(sourceRoot: CloudLocation,
+  ): Option[CloudLocation] = {
     val key = partition(sourceRoot)
     for {
       offsetMap <- Try(context().offsetStorageReader.offset(key).asScala).toOption.filterNot(_ == null)
@@ -46,7 +46,7 @@ object SourceContextReader {
         path      = path.some,
         line      = line.some,
         timestamp = ts,
-      )
+      )(sourceRoot.cloudLocationValidator)
     }
   }
 

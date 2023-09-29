@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.config.processors
 
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import io.lenses.streamreactor.connect.cloud.config.processors.LowerCaseKeyConfigDefProcessor
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

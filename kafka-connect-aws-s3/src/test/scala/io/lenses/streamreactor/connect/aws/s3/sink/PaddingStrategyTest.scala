@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.LeftPadPaddingStrategy
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.RightPadPaddingStrategy
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 

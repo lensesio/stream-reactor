@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.utils
 import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.effect.unsafe.implicits.global
+import io.lenses.streamreactor.connect.cloud.common.utils.PollLoop
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 

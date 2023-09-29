@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor._
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -44,9 +45,11 @@ class CommonConfigDefTest extends AnyFlatSpec with Matchers with EitherValues {
     KCQL_CONFIG                 -> "SELECT * FROM DEFAULT",
     AWS_REGION                  -> "eu-west-1",
   )
-
+  val commonConfigDef = new CommonConfigDef {
+    override def connectorPrefix: String = CONNECTOR_PREFIX
+  }
   "CommonConfigDef" should "parse original properties" in {
-    val resultMap = CommonConfigDef.config.parse(DefaultProps.asJava).asScala
+    val resultMap = commonConfigDef.config.parse(DefaultProps.asJava).asScala
     resultMap should have size 18
     DeprecatedProps.filterNot { case (k, _) => k == KCQL_CONFIG }.foreach {
       case (k, _) => resultMap.get(k) should be(None)
@@ -55,7 +58,7 @@ class CommonConfigDefTest extends AnyFlatSpec with Matchers with EitherValues {
   }
 
   "CommonConfigDef" should "not parse deprecated properties" in {
-    Try(CommonConfigDef.config.parse(DeprecatedProps.asJava)).toEither.left.value.getMessage should startWith(
+    Try(commonConfigDef.config.parse(DeprecatedProps.asJava)).toEither.left.value.getMessage should startWith(
       "The following properties have been deprecated",
     )
   }

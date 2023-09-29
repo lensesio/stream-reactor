@@ -20,9 +20,10 @@ import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetFormatReader
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.cloud.config.TaskIndexKey
+import io.lenses.streamreactor.connect.cloud.formats.reader.ParquetFormatReader
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
@@ -41,7 +42,8 @@ class S3SinkTaskParquetEnvelopeTest
     with Matchers
     with S3ProxyContainerTest
     with MockitoSugar
-    with LazyLogging {
+    with LazyLogging
+    with TaskIndexKey {
 
   import helper._
 
@@ -211,4 +213,5 @@ class S3SinkTaskParquetEnvelopeTest
     headers3.get("h2") should be(3L)
   }
 
+  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

@@ -18,15 +18,15 @@ package io.lenses.streamreactor.connect.aws.s3.source.reader
 import cats.implicits.toBifunctorOps
 import cats.implicits.toShow
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.config.ReaderBuilderContext
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.S3StreamReader
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.SourceWatermark
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
-import io.lenses.streamreactor.connect.aws.s3.utils.IteratorOps
+import io.lenses.streamreactor.connect.cloud.common.utils.IteratorOps
+import io.lenses.streamreactor.connect.cloud.config
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.config.FormatSelection
+import io.lenses.streamreactor.connect.cloud.formats.reader.S3StreamReader
+import io.lenses.streamreactor.connect.cloud.model.Topic
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.source.SourceWatermark
 import org.apache.kafka.connect.source.SourceRecord
 
 import scala.annotation.tailrec
@@ -59,7 +59,7 @@ class ResultReader(
 
   override def close(): Unit = reader.close()
 
-  def source: S3Location = reader.getBucketAndPath
+  def source: CloudLocation = reader.getBucketAndPath
 
   def currentRecordIndex: Long = reader.currentRecordIndex
 }
@@ -73,7 +73,7 @@ object ResultReader extends LazyLogging {
     connectorTaskId:  ConnectorTaskId,
     storageInterface: StorageInterface,
     hasEnvelope:      Boolean,
-  ): S3Location => Either[Throwable, ResultReader] = { pathWithLine =>
+  ): CloudLocation => Either[Throwable, ResultReader] = { pathWithLine =>
     for {
       path        <- pathWithLine.path.toRight(new IllegalStateException("No path found"))
       inputStream <- storageInterface.getBlob(pathWithLine.bucket, path).leftMap(_.toException)
@@ -88,7 +88,7 @@ object ResultReader extends LazyLogging {
 
       partition = partitionFn(path).map(Int.box).orNull
       reader = format.toStreamReader(
-        ReaderBuilderContext(
+        config.ReaderBuilderContext(
           inputStream,
           pathWithLine,
           metadata,

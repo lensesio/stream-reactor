@@ -21,9 +21,11 @@ import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.source.files.SourceFileQueue
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.source.SourceRecord
 import org.mockito.MockitoSugar
@@ -35,10 +37,11 @@ import java.time.Instant
 import java.util.Collections
 
 class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with LazyLogging with BeforeAndAfter {
+  private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
 
   private val connectorTaskId               = ConnectorTaskId("mySource", 1, 1)
   private val recordsLimit                  = 10
-  private val bucketAndPrefix               = S3Location("test", "ing".some)
+  private val bucketAndPrefix               = CloudLocation("test", "ing".some)
   private val firstFileBucketAndPath        = bucketAndPrefix.withPath("test:ing/topic/9/0.json")
   private val firstFileBucketAndPathAndLine = firstFileBucketAndPath.atLine(0).withTimestamp(Instant.now)
 
@@ -68,8 +71,8 @@ class ReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with
 
   "poll" should "return single record when found" in {
 
-    val fileQueueProcessor: SourceFileQueue    = mock[SourceFileQueue]
-    var calledLocation:     Option[S3Location] = Option.empty
+    val fileQueueProcessor: SourceFileQueue       = mock[SourceFileQueue]
+    var calledLocation:     Option[CloudLocation] = Option.empty
 
     when(fileQueueProcessor.next()).thenReturn(
       Some(firstFileBucketAndPathAndLine).asRight,

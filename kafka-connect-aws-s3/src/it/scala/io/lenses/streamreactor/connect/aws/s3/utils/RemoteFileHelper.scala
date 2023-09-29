@@ -18,9 +18,9 @@ package io.lenses.streamreactor.connect.aws.s3.utils
 
 import cats.implicits.catsSyntaxOptionId
 import com.google.common.io.ByteStreams
-import io.lenses.streamreactor.connect.aws.s3.config.ObjectMetadata
 import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processAsKey
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.cloud.config.ObjectMetadata
 
 import java.io.File
 import java.io.InputStream

@@ -1,6 +1,6 @@
 package io.lenses.streamreactor.connect.aws.s3.utils
 
-import io.lenses.streamreactor.connect.aws.s3.model.Topic
+import io.lenses.streamreactor.connect.cloud.model.Topic
 import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.util.Utf8

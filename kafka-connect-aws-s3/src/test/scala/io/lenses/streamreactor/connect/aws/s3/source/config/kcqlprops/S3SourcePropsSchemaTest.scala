@@ -15,11 +15,11 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops
 
-import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.ReadTextModeEntry
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.ReadTextModeEnum
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3SourcePropsSchema
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.ReadTextModeEnum.Regex
+import io.lenses.streamreactor.connect.cloud.config.kcqlprops.S3PropsKeyEnum
+import io.lenses.streamreactor.connect.cloud.source.config.kcqlprops.ReadTextModeEnum.Regex
+import io.lenses.streamreactor.connect.cloud.source.config.kcqlprops.ReadTextModeEntry
+import io.lenses.streamreactor.connect.cloud.source.config.kcqlprops.ReadTextModeEnum
+import io.lenses.streamreactor.connect.cloud.source.config.kcqlprops.S3SourcePropsSchema
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

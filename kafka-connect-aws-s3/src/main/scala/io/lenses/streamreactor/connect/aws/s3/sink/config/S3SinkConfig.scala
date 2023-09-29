@@ -17,23 +17,26 @@ package io.lenses.streamreactor.connect.aws.s3.sink.config
 import cats.syntax.all._
 import com.datamountaineer.kcql.Kcql
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MAX_INDEX_FILES
-import io.lenses.streamreactor.connect.aws.s3.config._
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
-import io.lenses.streamreactor.connect.aws.s3.sink.config.kcqlprops.S3SinkProps
-import io.lenses.streamreactor.connect.aws.s3.sink.config.kcqlprops.S3SinkPropsSchema
-import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingService
-import io.lenses.streamreactor.connect.aws.s3.sink.naming.OffsetS3FileNamer
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.KeyNamer
-import io.lenses.streamreactor.connect.aws.s3.sink.naming.TopicPartitionOffsetS3FileNamer
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.OffsetS3FileNamer
 import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
+import io.lenses.streamreactor.connect.aws.s3.sink.naming.TopicPartitionOffsetS3FileNamer
+import io.lenses.streamreactor.connect.cloud.config.BytesFormatSelection
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.config.DataStorageSettings
+import io.lenses.streamreactor.connect.cloud.config.FormatSelection
+import io.lenses.streamreactor.connect.cloud.model.CompressionCodec
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.cloud.sink.commit.Count
+import io.lenses.streamreactor.connect.cloud.sink.config.kcqlprops.S3SinkProps
+import io.lenses.streamreactor.connect.cloud.sink.config.kcqlprops.S3SinkPropsSchema
+import io.lenses.streamreactor.connect.cloud.sink.config.padding.PaddingService
+import io.lenses.streamreactor.connect.cloud.sink.config.LocalStagingArea
+import io.lenses.streamreactor.connect.cloud.sink.config.PartitionSelection
 
 import java.util
 import scala.jdk.CollectionConverters._
@@ -44,7 +47,8 @@ object S3SinkConfig {
     props: util.Map[String, String],
   )(
     implicit
-    connectorTaskId: ConnectorTaskId,
+    connectorTaskId:        ConnectorTaskId,
+    cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, S3SinkConfig] =
     S3SinkConfig(S3SinkConfigDefBuilder(props))
 
@@ -52,7 +56,8 @@ object S3SinkConfig {
     s3ConfigDefBuilder: S3SinkConfigDefBuilder,
   )(
     implicit
-    connectorTaskId: ConnectorTaskId,
+    connectorTaskId:        ConnectorTaskId,
+    cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, S3SinkConfig] =
     for {
       sinkBucketOptions <- SinkBucketOptions(s3ConfigDefBuilder)
@@ -83,7 +88,8 @@ object SinkBucketOptions extends LazyLogging {
     config: S3SinkConfigDefBuilder,
   )(
     implicit
-    connectorTaskId: ConnectorTaskId,
+    connectorTaskId:        ConnectorTaskId,
+    cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, Seq[SinkBucketOptions]] =
     config.getKCQL.map { kcql: Kcql =>
       for {
@@ -105,8 +111,8 @@ object SinkBucketOptions extends LazyLogging {
           )
         }
         keyNamer     = S3KeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
-        stagingArea <- LocalStagingArea(config)
-        target      <- S3Location.splitAndValidate(kcql.getTarget, allowSlash = false)
+        stagingArea <- config.getLocalStagingArea()
+        target      <- CloudLocation.splitAndValidate(kcql.getTarget, allowSlash = false)
         storageSettings <- DataStorageSettings.from(
           Option(kcql.getProperties).map(_.asScala.toMap).getOrElse(Map.empty),
         )
@@ -154,7 +160,7 @@ object SinkBucketOptions extends LazyLogging {
 
 case class SinkBucketOptions(
   sourceTopic:        Option[String],
-  bucketAndPrefix:    S3Location,
+  bucketAndPrefix:    CloudLocation,
   formatSelection:    FormatSelection,
   keyNamer:           KeyNamer,
   partitionSelection: PartitionSelection,

@@ -31,7 +31,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
  * limitations under the License.
  */
 
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.Using
+import io.lenses.streamreactor.connect.cloud.formats.reader.Using
 import org.apache.avro.file.DataFileReader
 import org.apache.avro.file.SeekableByteArrayInput
 import org.apache.avro.generic.GenericDatumReader

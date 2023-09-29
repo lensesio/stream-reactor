@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.utils
 
+import io.lenses.streamreactor.connect.cloud.common.utils.IteratorOps
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 

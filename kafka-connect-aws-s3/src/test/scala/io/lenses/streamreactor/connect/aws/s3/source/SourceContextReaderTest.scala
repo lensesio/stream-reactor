@@ -16,7 +16,9 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import cats.implicits.catsSyntaxOptionId
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.mockito.Answers
 import org.mockito.MockitoSugar
@@ -30,9 +32,11 @@ class SourceContextReaderTest extends AnyFlatSpec with Matchers with MockitoSuga
 
   private val sourceTaskContext = mock[SourceTaskContext](Answers.RETURNS_DEEP_STUBS)
 
-  private val bucketName   = "bucket"
-  private val prefixName   = "prefixName"
-  private val rootLocation = S3Location(bucketName, prefixName.some)
+  private val bucketName = "bucket"
+  private val prefixName = "prefixName"
+
+  private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
+  private val rootLocation = CloudLocation(bucketName, prefixName.some)
 
   private val filePath = "prefixName/file.json"
 

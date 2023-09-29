@@ -18,12 +18,14 @@ package io.lenses.streamreactor.connect.aws.s3.source.files
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileLoadError
 import io.lenses.streamreactor.connect.aws.s3.storage.FileMetadata
 import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
 import org.mockito.ArgumentMatchers._
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
@@ -33,13 +35,14 @@ import org.scalatest.matchers.should.Matchers
 import java.time.Instant
 
 class S3SourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSugar with BeforeAndAfter {
+  private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
 
   private val taskId = ConnectorTaskId("topic", 1, 0)
   private val bucket = "bucket"
   private val prefix = "prefix"
   private val files: Seq[String] = (0 to 3).map(file => file.toString + ".json")
-  private val fileLocs: Seq[S3Location] = files.map(f =>
-    S3Location(
+  private val fileLocs: Seq[CloudLocation] = files.map(f =>
+    CloudLocation(
       bucket = bucket,
       prefix = prefix.some,
       path   = f.some,

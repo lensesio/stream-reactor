@@ -19,18 +19,19 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.AUTH_MODE
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.AWS_ACCESS_KEY
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.AWS_REGION
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.AWS_SECRET_KEY
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CUSTOM_ENDPOINT
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.ENABLE_VIRTUAL_HOST_BUCKETS
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.TASK_INDEX
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfigDefBuilder
+import io.lenses.streamreactor.connect.cloud.config.TaskIndexKey
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-class S3SourceConfigTest extends AnyFunSuite with Matchers {
+class S3SourceConfigTest extends AnyFunSuite with Matchers with TaskIndexKey {
   private val Identity:   String = "identity"
   private val Credential: String = "credential"
   private val BucketName: String = "mybucket"
@@ -72,4 +73,6 @@ class S3SourceConfigTest extends AnyFunSuite with Matchers {
     }
 
   }
+
+  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

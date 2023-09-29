@@ -20,11 +20,11 @@ import cats.effect.kernel.Ref
 import cats.implicits.toShow
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcherResponse
-import io.lenses.streamreactor.connect.aws.s3.utils.PollLoop
+import io.lenses.streamreactor.connect.cloud.common.utils.PollLoop
+import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
 
 object PartitionDiscovery extends LazyLogging {
 
@@ -34,7 +34,7 @@ object PartitionDiscovery extends LazyLogging {
     connectorTaskId:       ConnectorTaskId,
     settings:              PartitionSearcherOptions,
     partitionSearcher:     PartitionSearcherF,
-    readerManagerCreateFn: (S3Location, String) => IO[ReaderManager],
+    readerManagerCreateFn: (CloudLocation, String) => IO[ReaderManager],
     readerManagerState:    Ref[IO, ReaderManagerState],
     cancelledRef:          Ref[IO, Boolean],
   ): IO[Unit] = {
