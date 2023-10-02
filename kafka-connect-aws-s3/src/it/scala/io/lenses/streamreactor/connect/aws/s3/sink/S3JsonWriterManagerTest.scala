@@ -22,33 +22,33 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.sink.naming.OffsetS3FileNamer
-import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.users
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
-import io.lenses.streamreactor.connect.cloud.config.AvroFormatSelection
-import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.cloud.config.DataStorageSettings
-import io.lenses.streamreactor.connect.cloud.config.JsonFormatSelection
-import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.cloud.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.cloud.formats.writer.SinkData
-import io.lenses.streamreactor.connect.cloud.formats.writer.StructSinkData
-import io.lenses.streamreactor.connect.cloud.model.CompressionCodecName.UNCOMPRESSED
-import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
-import io.lenses.streamreactor.connect.cloud.model.Offset
-import io.lenses.streamreactor.connect.cloud.model.Topic
-import io.lenses.streamreactor.connect.cloud.model.TopicPartitionOffset
-import io.lenses.streamreactor.connect.cloud.sink.commit.CommitPolicy
-import io.lenses.streamreactor.connect.cloud.sink.commit.Count
-import io.lenses.streamreactor.connect.cloud.sink.config.LocalStagingArea
-import io.lenses.streamreactor.connect.cloud.sink.config.PartitionDisplay.Values
-import io.lenses.streamreactor.connect.cloud.sink.config.PartitionSelection.defaultPartitionSelection
-import io.lenses.streamreactor.connect.cloud.sink.config.padding.LeftPadPaddingStrategy
-import io.lenses.streamreactor.connect.cloud.sink.config.padding.NoOpPaddingStrategy
-import io.lenses.streamreactor.connect.cloud.sink.config.padding.PaddingService
-import io.lenses.streamreactor.connect.cloud.sink.config.padding.PaddingStrategy
+import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
+import io.lenses.streamreactor.connect.cloud.common.config.JsonFormatSelection
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
+import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
+import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingArea
+import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.Values
+import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionSelection.defaultPartitionSelection
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.LeftPadPaddingStrategy
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.NoOpPaddingStrategy
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetS3FileNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.S3KeyNamer
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -102,7 +102,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       batchDelete = true,
     )
 
-    val sink   = S3WriterManager.from(config)
+    val sink   = S3WriterManagerCreator.from(config)
     val topic  = Topic(TopicName)
     val offset = Offset(1)
     sink.write(
@@ -156,7 +156,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       batchDelete = true,
     )
 
-    val sink = S3WriterManager.from(config)
+    val sink = S3WriterManagerCreator.from(config)
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         val topic  = Topic(TopicName)

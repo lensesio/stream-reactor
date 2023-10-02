@@ -16,13 +16,69 @@
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import com.datamountaineer.streamreactor.common.config.base.traits.BaseSettings
+import com.datamountaineer.streamreactor.common.config.base.traits.WithConnectorPrefix
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions.ExcludeIndexes
+import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
+import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions.ExcludeIndexes
+import org.apache.kafka.common.config.ConfigDef
+import org.apache.kafka.common.config.ConfigDef.Importance
+import org.apache.kafka.common.config.ConfigDef.Type
 
 import scala.concurrent.duration.DurationLong
 
-trait SourcePartitionSearcherSettings extends BaseSettings {
+trait SourcePartitionSearcherSettingsKeys extends WithConnectorPrefix {
+
+  val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS: String = s"$CONNECTOR_PREFIX.partition.search.recurse.levels"
+  val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DOC: String =
+    "When searching for new partitions on the S3 filesystem, how many levels deep to recurse."
+  val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DEFAULT: Int = 0
+
+  val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS: String = s"$CONNECTOR_PREFIX.partition.search.interval"
+  val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DOC: String =
+    "The interval in milliseconds between searching for new partitions.  Defaults to 5 minutes."
+  val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DEFAULT: Long = 300000L
+
+  val SOURCE_PARTITION_SEARCH_MODE: String = s"$CONNECTOR_PREFIX.partition.search.continuous"
+  val SOURCE_PARTITION_SEARCH_MODE_DOC: String =
+    "If set to true, it will be continuously search for new partitions. Otherwise it is a one-off operation. Defaults to true."
+
+  def addSourcePartitionSearcherSettings(configDef: ConfigDef): ConfigDef =
+    configDef.define(
+      SOURCE_PARTITION_SEARCH_RECURSE_LEVELS,
+      Type.INT,
+      SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DEFAULT,
+      Importance.LOW,
+      SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DOC,
+      "Source",
+      3,
+      ConfigDef.Width.MEDIUM,
+      SOURCE_PARTITION_SEARCH_RECURSE_LEVELS,
+    )
+      .define(
+        SOURCE_PARTITION_SEARCH_MODE,
+        Type.BOOLEAN,
+        true,
+        Importance.LOW,
+        SOURCE_PARTITION_SEARCH_MODE_DOC,
+        "Source",
+        4,
+        ConfigDef.Width.MEDIUM,
+        SOURCE_PARTITION_SEARCH_MODE,
+      )
+      .define(
+        SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS,
+        Type.LONG,
+        SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DEFAULT,
+        Importance.LOW,
+        SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DOC,
+        "Source",
+        5,
+        ConfigDef.Width.MEDIUM,
+        SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS,
+      )
+}
+trait SourcePartitionSearcherSettings extends BaseSettings with SourcePartitionSearcherSettingsKeys {
 
   def getPartitionSearcherOptions(props: Map[String, _]): PartitionSearcherOptions =
     PartitionSearcherOptions(

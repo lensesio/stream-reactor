@@ -25,10 +25,11 @@ import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceState
-import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceTaskState
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.source.SourceContextReader
+import io.lenses.streamreactor.connect.cloud.common.source.state.S3SourceTaskState
 import io.lenses.streamreactor.connect.cloud.common.utils.MapUtils
-import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
-import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask
 

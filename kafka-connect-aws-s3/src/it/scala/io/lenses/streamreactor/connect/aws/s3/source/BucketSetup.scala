@@ -16,10 +16,10 @@
 
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
-import io.lenses.streamreactor.connect.cloud.config.Format
-import io.lenses.streamreactor.connect.cloud.config.FormatOptions
+import io.lenses.streamreactor.connect.cloud.common.config.Format
+import io.lenses.streamreactor.connect.cloud.common.config.FormatOptions
+import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.scalatest.matchers.should.Matchers
 
 import java.io.File

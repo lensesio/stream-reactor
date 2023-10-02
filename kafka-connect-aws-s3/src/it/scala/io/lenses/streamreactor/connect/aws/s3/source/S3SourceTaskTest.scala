@@ -3,21 +3,22 @@ package io.lenses.streamreactor.connect.aws.s3.source
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.cloud.config.Format.Bytes
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.source.S3SourceTaskTest.formats
+import io.lenses.streamreactor.connect.aws.s3.source.config.SourcePartitionSearcherSettingsKeys
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
-import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindCompletionConfig
-import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindResults
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
-import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.cloud.config.Format
-import io.lenses.streamreactor.connect.cloud.config.FormatOptions
-import io.lenses.streamreactor.connect.cloud.config.TaskIndexKey
-import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
-import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.config.Format.Bytes
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.Format
+import io.lenses.streamreactor.connect.cloud.common.config.FormatOptions
+import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindCompletionConfig
+import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindResults
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
 import org.scalatest.BeforeAndAfter
@@ -51,7 +52,8 @@ class S3SourceTaskTest
     with LazyLogging
     with BeforeAndAfter
     with Eventually
-    with TaskIndexKey {
+    with TaskIndexKey
+    with SourcePartitionSearcherSettingsKeys {
 
   override implicit def patienceConfig: PatienceConfig =
     PatienceConfig(timeout = Span(10, Seconds), interval = Span(500, Milliseconds))

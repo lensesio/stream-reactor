@@ -19,7 +19,7 @@ import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfigDef
-import io.lenses.streamreactor.connect.cloud.config.TaskDistributor
+import io.lenses.streamreactor.connect.cloud.common.config.TaskDistributor
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector

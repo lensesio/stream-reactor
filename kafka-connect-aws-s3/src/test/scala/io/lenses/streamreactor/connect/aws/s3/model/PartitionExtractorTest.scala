@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.model
 
-import io.lenses.streamreactor.connect.aws.s3.source.config.HierarchicalPartitionExtractor
+import io.lenses.streamreactor.connect.cloud.common.source.config.HierarchicalPartitionExtractor
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

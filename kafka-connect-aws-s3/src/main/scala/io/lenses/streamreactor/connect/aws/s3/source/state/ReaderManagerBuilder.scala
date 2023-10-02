@@ -18,13 +18,13 @@ package io.lenses.streamreactor.connect.aws.s3.source.state
 import cats.effect.IO
 import cats.effect.Ref
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.source.files.S3SourceFileQueue
-import io.lenses.streamreactor.connect.aws.s3.source.reader.ReaderManager
-import io.lenses.streamreactor.connect.aws.s3.source.reader.ResultReader
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
-import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
-import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.source.files.S3SourceFileQueue
+import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
+import io.lenses.streamreactor.connect.cloud.common.source.reader.ResultReader
+import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.apache.kafka.connect.errors.ConnectException
 
 /**

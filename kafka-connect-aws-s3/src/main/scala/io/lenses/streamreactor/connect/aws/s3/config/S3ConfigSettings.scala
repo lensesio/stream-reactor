@@ -88,20 +88,6 @@ object S3ConfigSettings {
   val POOL_MAX_CONNECTIONS_DOC = "Max connections in pool.  -1: Use default according to underlying client."
   val POOL_MAX_CONNECTIONS_DEFAULT: Int = -1
 
-  val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS: String = s"$CONNECTOR_PREFIX.partition.search.recurse.levels"
-  val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DOC: String =
-    "When searching for new partitions on the S3 filesystem, how many levels deep to recurse."
-  val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DEFAULT: Int = 0
-
-  val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS: String = s"$CONNECTOR_PREFIX.partition.search.interval"
-  val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DOC: String =
-    "The interval in milliseconds between searching for new partitions.  Defaults to 5 minutes."
-  val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DEFAULT: Long = 300000L
-
-  val SOURCE_PARTITION_SEARCH_MODE: String = s"$CONNECTOR_PREFIX.partition.search.continuous"
-  val SOURCE_PARTITION_SEARCH_MODE_DOC: String =
-    "If set to true, it will be continuously search for new partitions. Otherwise it is a one-off operation. Defaults to true."
-
   val SOURCE_ORDERING_TYPE:         String = s"$CONNECTOR_PREFIX.ordering.type"
   val SOURCE_ORDERING_TYPE_DOC:     String = "AlphaNumeric (the default)"
   val SOURCE_ORDERING_TYPE_DEFAULT: String = "AlphaNumeric"

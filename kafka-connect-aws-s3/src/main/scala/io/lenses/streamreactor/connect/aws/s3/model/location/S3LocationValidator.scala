@@ -16,8 +16,8 @@
 package io.lenses.streamreactor.connect.aws.s3.model.location
 
 import cats.data.Validated
-import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
-import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import software.amazon.awssdk.services.s3.internal.BucketUtils
 
 import scala.util.Try

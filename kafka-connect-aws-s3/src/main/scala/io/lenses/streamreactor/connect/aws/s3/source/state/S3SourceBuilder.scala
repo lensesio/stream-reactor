@@ -22,13 +22,14 @@ import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcher
-import io.lenses.streamreactor.connect.aws.s3.source.reader.PartitionDiscovery
-import io.lenses.streamreactor.connect.aws.s3.source.reader.ReaderManager
-import io.lenses.streamreactor.connect.aws.s3.source.reader.ReaderManagerState
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
-import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskIdCreator
-import io.lenses.streamreactor.connect.cloud.model.location.CloudLocation
-import io.lenses.streamreactor.connect.cloud.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.source.reader.PartitionDiscovery
+import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
+import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManagerState
+import io.lenses.streamreactor.connect.cloud.common.source.state.S3SourceTaskState
 
 import java.util
 import scala.jdk.CollectionConverters.IteratorHasAsScala

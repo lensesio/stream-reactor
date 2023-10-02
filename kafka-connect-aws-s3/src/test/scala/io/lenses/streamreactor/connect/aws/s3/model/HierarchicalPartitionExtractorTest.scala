@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.model
 
 import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.source.config.HierarchicalPartitionExtractor
+import io.lenses.streamreactor.connect.cloud.common.source.config.HierarchicalPartitionExtractor
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 

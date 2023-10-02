@@ -24,16 +24,16 @@ import com.opencsv.CSVReader
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.checkArray
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.schema
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.users
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
-import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.checkRecord
-import io.lenses.streamreactor.connect.cloud.config.TaskIndexKey
-import io.lenses.streamreactor.connect.cloud.formats.reader.ParquetFormatReader
-import io.lenses.streamreactor.connect.cloud.formats.writer.BytesFormatWriter
+import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.checkRecord
+import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
+import io.lenses.streamreactor.connect.cloud.common.formats.AvroFormatReader
+import io.lenses.streamreactor.connect.cloud.common.formats.reader.ParquetFormatReader
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.BytesFormatWriter
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
 import org.apache.commons.io.FileUtils
@@ -53,7 +53,6 @@ import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import java.io.File
 import java.io.StringReader
 import java.nio.file.Files
 import java.time.LocalDate
@@ -2305,17 +2304,6 @@ class S3SinkTaskTest
 
     val file1Reader = new StringReader(new String(file1Bytes))
     new CSVReader(file1Reader)
-  }
-
-  private def getResourcesDirectory(): Try[String] = {
-    val url = classOf[S3SinkTaskTest].getResource("/profiles/")
-    Try {
-      val uri = url.toURI
-      logger.info("Profile uri: {}", uri)
-      val profilePath = new File(uri).getAbsolutePath
-      logger.info("Profile path: {}", profilePath)
-      profilePath
-    }
   }
 
   override def connectorPrefix: String = CONNECTOR_PREFIX

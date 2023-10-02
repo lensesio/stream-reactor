@@ -27,16 +27,16 @@ import java.util
 import scala.jdk.CollectionConverters._
 import S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor
-import io.lenses.streamreactor.connect.cloud.config.CompressionCodecSettings
-import io.lenses.streamreactor.connect.cloud.config.DeleteModeSettings
-import io.lenses.streamreactor.connect.cloud.config.processors.ConfigDefProcessor
-import io.lenses.streamreactor.connect.cloud.config.processors.LowerCaseKeyConfigDefProcessor
-import io.lenses.streamreactor.connect.cloud.sink.config.LocalStagingAreaConfigKeys
-import io.lenses.streamreactor.connect.cloud.sink.config.LocalStagingAreaSettings
-import io.lenses.streamreactor.connect.cloud.sink.config.S3FlushConfigKeys
-import io.lenses.streamreactor.connect.cloud.sink.config.S3FlushSettings
-import io.lenses.streamreactor.connect.cloud.sink.config.padding.PaddingStrategyConfigKeys
-import io.lenses.streamreactor.connect.cloud.sink.config.padding.PaddingStrategySettings
+import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings
+import io.lenses.streamreactor.connect.cloud.common.config.DeleteModeSettings
+import io.lenses.streamreactor.connect.cloud.common.config.processors.ConfigDefProcessor
+import io.lenses.streamreactor.connect.cloud.common.config.processors.LowerCaseKeyConfigDefProcessor
+import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
+import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaSettings
+import io.lenses.streamreactor.connect.cloud.common.sink.config.S3FlushConfigKeys
+import io.lenses.streamreactor.connect.cloud.common.sink.config.S3FlushSettings
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategySettings
 
 object S3SinkConfigDef
     extends CommonConfigDef
@@ -46,46 +46,30 @@ object S3SinkConfigDef
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
-  override val config: ConfigDef = super.config
-    .define(
-      DISABLE_FLUSH_COUNT,
-      Type.BOOLEAN,
-      false,
-      Importance.LOW,
-      "Disable flush on reaching count",
-    )
-    .define(
-      LOCAL_TMP_DIRECTORY,
-      Type.STRING,
-      "",
-      Importance.LOW,
-      s"Local tmp directory for preparing the files",
-    )
-    .define(
-      SEEK_MAX_INDEX_FILES,
-      Type.INT,
-      SEEK_MAX_INDEX_FILES_DEFAULT,
-      Importance.LOW,
-      SEEK_MAX_INDEX_FILES_DOC,
-      "Sink Seek",
-      2,
-      ConfigDef.Width.LONG,
-      SEEK_MAX_INDEX_FILES,
-    )
-    .define(
-      PADDING_STRATEGY,
-      Type.STRING,
-      PADDING_STRATEGY_DEFAULT,
-      Importance.LOW,
-      PADDING_STRATEGY_DOC,
-    )
-    .define(
-      PADDING_LENGTH,
-      Type.INT,
-      PADDING_LENGTH_DEFAULT,
-      Importance.LOW,
-      PADDING_LENGTH_DOC,
-    )
+  override val config: ConfigDef = {
+    val configDef = super.config
+      .define(
+        DISABLE_FLUSH_COUNT,
+        Type.BOOLEAN,
+        false,
+        Importance.LOW,
+        "Disable flush on reaching count",
+      )
+      .define(
+        SEEK_MAX_INDEX_FILES,
+        Type.INT,
+        SEEK_MAX_INDEX_FILES_DEFAULT,
+        Importance.LOW,
+        SEEK_MAX_INDEX_FILES_DOC,
+        "Sink Seek",
+        2,
+        ConfigDef.Width.LONG,
+        SEEK_MAX_INDEX_FILES,
+      )
+    addLocalStagingAreaToConfigDef(configDef)
+    addPaddingToConfigDef(configDef)
+  }
+
 }
 
 class S3SinkConfigDef() extends ConfigDef with LazyLogging {

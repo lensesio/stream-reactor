@@ -16,13 +16,14 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.transformers
 
 import cats.implicits.catsSyntaxEitherId
-import io.lenses.streamreactor.connect.aws.s3.utils.SampleData
-import io.lenses.streamreactor.connect.cloud.formats.writer.ByteArraySinkData
-import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.cloud.formats.writer.StringSinkData
-import io.lenses.streamreactor.connect.cloud.formats.writer.StructSinkData
-import io.lenses.streamreactor.connect.cloud.model.Offset
-import io.lenses.streamreactor.connect.cloud.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.formats.writer
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.ByteArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.StringSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
+import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -30,7 +31,7 @@ import java.time.Instant
 
 class TopicsTransformersTest extends AnyFunSuite with Matchers {
   test("unmatched topic returns the same message detail") {
-    val messageDetail = MessageDetail(
+    val messageDetail = writer.MessageDetail(
       StringSinkData("key"),
       StructSinkData(SampleData.Users.head),
       Map("header1" -> StringSinkData("value1"), "header2" -> ByteArraySinkData("value2".getBytes())),
@@ -45,7 +46,7 @@ class TopicsTransformersTest extends AnyFunSuite with Matchers {
     ) eq messageDetail shouldBe true
   }
   test("apply the transformation for a given topic") {
-    val messageDetail = MessageDetail(
+    val messageDetail = writer.MessageDetail(
       StringSinkData("key"),
       StructSinkData(SampleData.Users.head),
       Map("header1" -> StringSinkData("value1"), "header2" -> ByteArraySinkData("value2".getBytes())),
@@ -70,7 +71,7 @@ class TopicsTransformersTest extends AnyFunSuite with Matchers {
     ) shouldBe messageDetail.copy(key = actualKey)
   }
   test("return the error from the transformer") {
-    val messageDetail = MessageDetail(
+    val messageDetail = writer.MessageDetail(
       StringSinkData("key"),
       StructSinkData(SampleData.Users.head),
       Map("header1" -> StringSinkData("value1"), "header2" -> ByteArraySinkData("value2".getBytes())),

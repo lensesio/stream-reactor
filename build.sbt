@@ -81,7 +81,7 @@ lazy val `cloud-common` = (project in file("kafka-connect-cloud-common"))
       Seq(
         name := "kafka-connect-cloud-common",
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= baseDeps ++ kafkaConnectS3Deps,
+        libraryDependencies ++= baseDeps ++ kafkaConnectCloudCommonDeps,
         publish / skip := true,
         packExcludeJars := Seq(
           "scala-.*\\.jar",
@@ -91,13 +91,11 @@ lazy val `cloud-common` = (project in file("kafka-connect-cloud-common"))
   )
   .configureAssembly()
   .configureTests(baseTestDeps)
-  //.configureIntegrationTests(kafkaConnectS3TestDeps)
-  //.configureFunctionalTests(kafkaConnectS3FuncTestDeps)
   .enablePlugins(PackPlugin)
 
 lazy val `aws-s3` = (project in file("kafka-connect-aws-s3"))
   .dependsOn(common)
-  .dependsOn(`cloud-common`)
+  .dependsOn(`cloud-common` % "compile->compile;test->test")
   .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++

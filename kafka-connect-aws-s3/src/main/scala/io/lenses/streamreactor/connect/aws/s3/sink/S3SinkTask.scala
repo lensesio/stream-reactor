@@ -26,18 +26,19 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
+import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
+import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.HeaderToStringConverter
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ValueToSinkDataConverter
+import io.lenses.streamreactor.connect.cloud.common.sink.writer.S3WriterManager
 import io.lenses.streamreactor.connect.cloud.common.utils.MapUtils
 import io.lenses.streamreactor.connect.cloud.common.utils.TimestampUtils
-import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.cloud.config.ConnectorTaskIdCreator
-import io.lenses.streamreactor.connect.cloud.formats.writer
-import io.lenses.streamreactor.connect.cloud.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.cloud.model.Offset
-import io.lenses.streamreactor.connect.cloud.model.Topic
-import io.lenses.streamreactor.connect.cloud.model.TopicPartition
-import io.lenses.streamreactor.connect.cloud.sink.SinkError
-import io.lenses.streamreactor.connect.cloud.sink.conversion.HeaderToStringConverter
-import io.lenses.streamreactor.connect.cloud.sink.conversion.ValueToSinkDataConverter
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.sink.SinkRecord
@@ -78,7 +79,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
       s3Client        <- AwsS3ClientCreator.make(config.s3Config)
       storageInterface = new AwsS3StorageInterface(connectorTaskId, s3Client, config.batchDelete)
       _               <- Try(setErrorRetryInterval(config.s3Config)).toEither
-      writerManager   <- Try(S3WriterManager.from(config)(connectorTaskId, storageInterface)).toEither
+      writerManager   <- Try(S3WriterManagerCreator.from(config)(connectorTaskId, storageInterface)).toEither
       _ <- Try(initialize(
         config.s3Config.connectorRetryConfig.numberOfRetries,
         config.s3Config.errorPolicy,
@@ -157,7 +158,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
               case Some(k) => ValueToSinkDataConverter(k, Option(record.keySchema()))
               case None    => NullSinkData(Option(record.keySchema()))
             }
-            val msgDetails = writer.MessageDetail(
+            val msgDetails = MessageDetail(
               key     = key,
               value   = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
               headers = HeaderToStringConverter(record),

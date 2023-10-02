@@ -26,7 +26,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.Deprecation
 import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor.DEP_AWS_SECRET_KEY
 import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor.DEP_CUSTOM_ENDPOINT
 import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor.DEP_ENABLE_VIRTUAL_HOST_BUCKETS
-import io.lenses.streamreactor.connect.cloud.config.processors.ConfigDefProcessor
+import io.lenses.streamreactor.connect.cloud.common.config.processors.ConfigDefProcessor
 
 import scala.collection.MapView
 import scala.collection.immutable.ListMap

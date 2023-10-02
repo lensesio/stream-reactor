@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
-import io.lenses.streamreactor.connect.cloud.config.TaskIndexKey
+import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
 import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers

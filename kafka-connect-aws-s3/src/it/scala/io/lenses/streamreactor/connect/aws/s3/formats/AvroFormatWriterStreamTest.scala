@@ -19,19 +19,20 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.users
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
-import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.checkRecord
-import io.lenses.streamreactor.connect.aws.s3.utils.SampleData.topic
-import io.lenses.streamreactor.connect.cloud.model.CompressionCodecName.UNCOMPRESSED
-import io.lenses.streamreactor.connect.cloud.model.location.FileUtils.toBufferedOutputStream
-import io.lenses.streamreactor.connect.cloud.config.AvroFormatSelection
-import io.lenses.streamreactor.connect.cloud.formats.writer.AvroFormatWriter
-import io.lenses.streamreactor.connect.cloud.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.cloud.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.cloud.formats.writer.StructSinkData
-import io.lenses.streamreactor.connect.cloud.model.CompressionCodec
-import io.lenses.streamreactor.connect.cloud.model.Offset
-import io.lenses.streamreactor.connect.cloud.model.Topic
-import io.lenses.streamreactor.connect.cloud.stream.BuildLocalOutputStream
+import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.checkRecord
+import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic
+import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
+import io.lenses.streamreactor.connect.cloud.common.formats.AvroFormatReader
+import io.lenses.streamreactor.connect.cloud.common.formats.writer
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.AvroFormatWriter
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
+import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.model.location.FileUtils.toBufferedOutputStream
+import io.lenses.streamreactor.connect.cloud.common.stream.BuildLocalOutputStream
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -47,13 +48,13 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyC
     val blobStream = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
 
     val avroFormatWriter = new AvroFormatWriter(blobStream)
-    avroFormatWriter.write(MessageDetail(NullSinkData(None),
-                                         StructSinkData(users.head),
-                                         Map.empty,
-                                         None,
-                                         topic,
-                                         1,
-                                         Offset(1),
+    avroFormatWriter.write(writer.MessageDetail(NullSinkData(None),
+                                                StructSinkData(users.head),
+                                                Map.empty,
+                                                None,
+                                                topic,
+                                                1,
+                                                Offset(1),
     ))
     avroFormatWriter.complete() should be(Right(()))
     val bytes = localFileAsBytes(localFile)
@@ -109,7 +110,7 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyC
     val avroFormatWriter = new AvroFormatWriter(blobStream)
     firstUsers.foreach(u =>
       avroFormatWriter.write(
-        MessageDetail(NullSinkData(None), StructSinkData(u), Map.empty, None, topic, 1, Offset(2)),
+        writer.MessageDetail(NullSinkData(None), StructSinkData(u), Map.empty, None, topic, 1, Offset(2)),
       ) should be(
         Right(()),
       ),
