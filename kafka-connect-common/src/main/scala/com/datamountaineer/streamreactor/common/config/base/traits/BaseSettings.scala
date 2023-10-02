@@ -19,8 +19,11 @@ import java.util
 
 import org.apache.kafka.common.config.types.Password
 
-trait BaseSettings {
+trait WithConnectorPrefix {
   def connectorPrefix: String
+
+}
+trait BaseSettings extends WithConnectorPrefix {
 
   def getString(key: String): String
 

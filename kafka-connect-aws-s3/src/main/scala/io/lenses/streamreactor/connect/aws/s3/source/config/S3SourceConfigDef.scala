@@ -20,10 +20,11 @@ import com.datamountaineer.streamreactor.common.config.base.traits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config._
-import io.lenses.streamreactor.connect.aws.s3.config.processors.ConfigDefProcessor
-import io.lenses.streamreactor.connect.aws.s3.config.processors.DeprecationConfigDefProcessor
-import io.lenses.streamreactor.connect.aws.s3.config.processors.LowerCaseKeyConfigDefProcessor
-import io.lenses.streamreactor.connect.aws.s3.config.processors.YamlProfileProcessor
+import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor
+import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings
+import io.lenses.streamreactor.connect.cloud.common.config.DeleteModeSettings
+import io.lenses.streamreactor.connect.cloud.common.config.processors.ConfigDefProcessor
+import io.lenses.streamreactor.connect.cloud.common.config.processors.LowerCaseKeyConfigDefProcessor
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
@@ -32,81 +33,54 @@ import java.util
 import scala.collection.immutable.ListMap
 import scala.jdk.CollectionConverters._
 
-object S3SourceConfigDef {
+object S3SourceConfigDef extends CommonConfigDef with SourcePartitionSearcherSettingsKeys {
 
-  val config: ConfigDef = CommonConfigDef.config
-    .define(
-      SOURCE_PARTITION_EXTRACTOR_TYPE,
-      Type.STRING,
-      null,
-      Importance.LOW,
-      SOURCE_PARTITION_EXTRACTOR_TYPE_DOC,
-      "Source",
-      1,
-      ConfigDef.Width.MEDIUM,
-      SOURCE_PARTITION_EXTRACTOR_TYPE,
-    )
-    .define(
-      SOURCE_PARTITION_EXTRACTOR_REGEX,
-      Type.STRING,
-      null,
-      Importance.LOW,
-      SOURCE_PARTITION_EXTRACTOR_REGEX_DOC,
-      "Source",
-      2,
-      ConfigDef.Width.MEDIUM,
-      SOURCE_PARTITION_EXTRACTOR_REGEX,
-    )
-    .define(
-      SOURCE_PARTITION_SEARCH_RECURSE_LEVELS,
-      Type.INT,
-      SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DEFAULT,
-      Importance.LOW,
-      SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DOC,
-      "Source",
-      3,
-      ConfigDef.Width.MEDIUM,
-      SOURCE_PARTITION_SEARCH_RECURSE_LEVELS,
-    )
-    .define(
-      SOURCE_PARTITION_SEARCH_MODE,
-      Type.BOOLEAN,
-      true,
-      Importance.LOW,
-      SOURCE_PARTITION_SEARCH_MODE_DOC,
-      "Source",
-      4,
-      ConfigDef.Width.MEDIUM,
-      SOURCE_PARTITION_SEARCH_MODE,
-    )
-    .define(
-      SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS,
-      Type.LONG,
-      SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DEFAULT,
-      Importance.LOW,
-      SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DOC,
-      "Source",
-      5,
-      ConfigDef.Width.MEDIUM,
-      SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS,
-    )
-    .define(
-      SOURCE_ORDERING_TYPE,
-      Type.STRING,
-      SOURCE_ORDERING_TYPE_DEFAULT,
-      Importance.LOW,
-      SOURCE_ORDERING_TYPE_DOC,
-      "Source",
-      6,
-      ConfigDef.Width.MEDIUM,
-      SOURCE_ORDERING_TYPE,
-    )
+  override def connectorPrefix: String = CONNECTOR_PREFIX
+
+  override val config: ConfigDef = {
+    val settings = super.config
+      .define(
+        SOURCE_PARTITION_EXTRACTOR_TYPE,
+        Type.STRING,
+        null,
+        Importance.LOW,
+        SOURCE_PARTITION_EXTRACTOR_TYPE_DOC,
+        "Source",
+        1,
+        ConfigDef.Width.MEDIUM,
+        SOURCE_PARTITION_EXTRACTOR_TYPE,
+      )
+      .define(
+        SOURCE_PARTITION_EXTRACTOR_REGEX,
+        Type.STRING,
+        null,
+        Importance.LOW,
+        SOURCE_PARTITION_EXTRACTOR_REGEX_DOC,
+        "Source",
+        2,
+        ConfigDef.Width.MEDIUM,
+        SOURCE_PARTITION_EXTRACTOR_REGEX,
+      )
+      .define(
+        SOURCE_ORDERING_TYPE,
+        Type.STRING,
+        SOURCE_ORDERING_TYPE_DEFAULT,
+        Importance.LOW,
+        SOURCE_ORDERING_TYPE_DOC,
+        "Source",
+        6,
+        ConfigDef.Width.MEDIUM,
+        SOURCE_ORDERING_TYPE,
+      )
+
+    addSourcePartitionSearcherSettings(settings)
+  }
 }
 
 class S3SourceConfigDef() extends ConfigDef with LazyLogging {
 
   private val processorChain: List[ConfigDefProcessor] =
-    List(new LowerCaseKeyConfigDefProcessor, new DeprecationConfigDefProcessor, new YamlProfileProcessor)
+    List(new LowerCaseKeyConfigDefProcessor, new DeprecationConfigDefProcessor)
 
   override def parse(jProps: util.Map[_, _]): util.Map[String, AnyRef] = {
     val scalaProps: Map[Any, Any] = jProps.asScala.toMap

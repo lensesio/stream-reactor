@@ -15,7 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.TASK_INDEX
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
+import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
 import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
@@ -23,7 +24,7 @@ import org.scalatest.matchers.should.Matchers
 import java.util
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-class S3SourceConnectorTest extends AnyFlatSpecLike with Matchers with OptionValues {
+class S3SourceConnectorTest extends AnyFlatSpecLike with Matchers with OptionValues with TaskIndexKey {
 
   "taskConfigs" should "deliver correct number of task configs" in {
 
@@ -38,4 +39,5 @@ class S3SourceConnectorTest extends AnyFlatSpecLike with Matchers with OptionVal
 
   }
 
+  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

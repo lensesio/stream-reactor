@@ -19,14 +19,17 @@ import cats.effect.IO
 import cats.effect.kernel.Ref
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcher
-import io.lenses.streamreactor.connect.aws.s3.source.reader.PartitionDiscovery
-import io.lenses.streamreactor.connect.aws.s3.source.reader.ReaderManager
-import io.lenses.streamreactor.connect.aws.s3.source.reader.ReaderManagerState
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.source.reader.PartitionDiscovery
+import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
+import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManagerState
+import io.lenses.streamreactor.connect.cloud.common.source.state.S3SourceTaskState
 
 import java.util
 import scala.jdk.CollectionConverters.IteratorHasAsScala
@@ -34,10 +37,13 @@ import scala.jdk.CollectionConverters.IteratorHasAsScala
 object S3SourceState extends StrictLogging {
   def make(
     props:           util.Map[String, String],
-    contextOffsetFn: S3Location => Option[S3Location],
+    contextOffsetFn: CloudLocation => Option[CloudLocation],
+  )(
+    implicit
+    cloudLocationValidator: CloudLocationValidator,
   ): IO[BuilderResult] =
     for {
-      connectorTaskId  <- IO.fromEither(ConnectorTaskId.fromProps(props))
+      connectorTaskId  <- IO.fromEither(new ConnectorTaskIdCreator(CONNECTOR_PREFIX).fromProps(props))
       config           <- IO.fromEither(S3SourceConfig.fromProps(props))
       s3Client         <- IO.fromEither(AwsS3ClientCreator.make(config.s3Config))
       storageInterface <- IO.delay(new AwsS3StorageInterface(connectorTaskId, s3Client, config.batchDelete))
@@ -53,7 +59,7 @@ object S3SourceState extends StrictLogging {
       readerManagerState <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
       cancelledRef       <- Ref[IO].of(false)
     } yield {
-      val readerManagerCreateFn: (S3Location, String) => IO[ReaderManager] = (root, path) => {
+      val readerManagerCreateFn: (CloudLocation, String) => IO[ReaderManager] = (root, path) => {
         ReaderManagerBuilder(
           root,
           path,

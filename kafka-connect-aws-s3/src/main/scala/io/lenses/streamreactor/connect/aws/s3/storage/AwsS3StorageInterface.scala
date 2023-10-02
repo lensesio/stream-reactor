@@ -16,9 +16,21 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.ObjectMetadata
-import io.lenses.streamreactor.connect.aws.s3.storage.ResultProcessors.processAsKey
+import io.lenses.streamreactor.connect.cloud.common.storage.ResultProcessors.processAsKey
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.ObjectMetadata
+import io.lenses.streamreactor.connect.cloud.common.storage.EmptyContentsStringError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
+import io.lenses.streamreactor.connect.cloud.common.storage.ListResponse
+import io.lenses.streamreactor.connect.cloud.common.storage.NonExistingFileError
+import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
+import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
+import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
+import io.lenses.streamreactor.connect.cloud.common.storage.ZeroByteFileError
 import org.apache.commons.io.IOUtils
 import software.amazon.awssdk.core.ResponseInputStream
 import software.amazon.awssdk.core.sync.RequestBody
@@ -61,6 +73,7 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
         listObjectsV2Response
           .contents()
           .asScala
+          .map(o => FileMetadata(o.key(), o.lastModified()))
           .toSeq,
       )
 
@@ -71,7 +84,7 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
   override def listRecursive[T](
     bucket:    String,
     prefix:    Option[String],
-    processFn: (String, Option[String], Seq[S3Object]) => Option[ListResponse[T]],
+    processFn: (String, Option[String], Seq[FileMetadata]) => Option[ListResponse[T]],
   ): Either[FileListError, Option[ListResponse[T]]] = {
     logger.debug(s"[{}] List path {}:{}", connectorTaskId.show, bucket, prefix)
     Try {
@@ -83,7 +96,13 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
 
       val pagReq = s3Client.listObjectsV2Paginator(options)
 
-      processFn(bucket, prefix, pagReq.iterator().asScala.flatMap(_.contents().asScala.toSeq).toSeq)
+      processFn(
+        bucket,
+        prefix,
+        pagReq.iterator().asScala.flatMap(_.contents().asScala.toSeq.map(o =>
+          new FileMetadata(o.key(), o.lastModified()),
+        )).toSeq,
+      )
     }.toEither.leftMap {
       ex: Throwable => FileListError(ex, bucket, prefix)
     }

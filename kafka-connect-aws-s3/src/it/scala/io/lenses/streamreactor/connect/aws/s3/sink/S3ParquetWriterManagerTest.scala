@@ -18,27 +18,36 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config._
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetFormatReader
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.SinkData
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.StructSinkData
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
-import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.CommitPolicy
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionSelection.defaultPartitionSelection
-import io.lenses.streamreactor.connect.aws.s3.sink.config.LocalStagingArea
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.Values
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.sink.config.padding.PaddingService
-import io.lenses.streamreactor.connect.aws.s3.sink.naming.OffsetS3FileNamer
-import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
-import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
+import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
+import io.lenses.streamreactor.connect.cloud.common.config.ParquetFormatSelection
+import io.lenses.streamreactor.connect.cloud.common.formats.reader.ParquetFormatReader
+import io.lenses.streamreactor.connect.cloud.common.formats.writer
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
+import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
+import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingArea
+import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.Values
+import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionSelection.defaultPartitionSelection
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.LeftPadPaddingStrategy
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.NoOpPaddingStrategy
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetS3FileNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.S3KeyNamer
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
@@ -51,13 +60,14 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
   import helper._
 
   private val compressionCodec = UNCOMPRESSED.toCodec()
-  private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
+  private implicit val connectorTaskId:        ConnectorTaskId          = ConnectorTaskId("sinkName", 1, 1)
+  private implicit val cloudLocationValidator: S3LocationValidator.type = S3LocationValidator
 
   private val TopicName           = "myTopic"
   private val PathPrefix          = "streamReactorBackups"
   private val parquetFormatReader = new ParquetFormatReader
 
-  private val bucketAndPrefix = S3Location(BucketName, PathPrefix.some)
+  private val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
   private def parquetConfig = S3SinkConfig(
     S3Config(
       None,
@@ -95,14 +105,21 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
 
   "parquet sink" should "write 2 records to parquet format in s3" in {
 
-    val sink = S3WriterManager.from(parquetConfig)
+    val sink = S3WriterManagerCreator.from(parquetConfig)
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         val topic  = Topic(TopicName)
         val offset = Offset(index.toLong + 1)
         sink.write(
           TopicPartitionOffset(topic, 1, offset),
-          MessageDetail(NullSinkData(None), StructSinkData(struct), Map.empty[String, SinkData], None, topic, 1, offset),
+          writer.MessageDetail(NullSinkData(None),
+                               StructSinkData(struct),
+                               Map.empty[String, SinkData],
+                               None,
+                               topic,
+                               1,
+                               offset,
+          ),
         )
     }
 
@@ -133,14 +150,21 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
       new Struct(secondSchema).put("name", "coco").put("designation", null).put("salary", 395.44),
     )
 
-    val sink = S3WriterManager.from(parquetConfig)
+    val sink = S3WriterManagerCreator.from(parquetConfig)
     firstUsers.concat(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
         val topic  = Topic(TopicName)
         val offset = Offset(index.toLong + 1)
         sink.write(
           TopicPartitionOffset(topic, 1, offset),
-          MessageDetail(NullSinkData(None), StructSinkData(user), Map.empty[String, SinkData], None, topic, 1, offset),
+          writer.MessageDetail(NullSinkData(None),
+                               StructSinkData(user),
+                               Map.empty[String, SinkData],
+                               None,
+                               topic,
+                               1,
+                               offset,
+          ),
         )
     }
     sink.close()

@@ -18,20 +18,25 @@ package io.lenses.streamreactor.connect.aws.s3.source.config
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toTraverseOps
 import com.datamountaineer.kcql.Kcql
-import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config.getString
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_ORDERING_TYPE
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_REGEX
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_TYPE
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodec
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.config.kcqlprops.S3SourcePropsSchema
-import io.lenses.streamreactor.connect.aws.s3.storage.FileListError
-import io.lenses.streamreactor.connect.aws.s3.storage.FileMetadata
-import io.lenses.streamreactor.connect.aws.s3.storage.ListResponse
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
+import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
+import io.lenses.streamreactor.connect.cloud.common.config.FormatSelection
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.source.config.OrderingType
+import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionExtractor
+import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
+import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.S3SourcePropsSchema
+import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
+import io.lenses.streamreactor.connect.cloud.common.storage.ListResponse
+import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 
 import java.util
 import scala.jdk.CollectionConverters.MapHasAsScala
@@ -74,7 +79,7 @@ case class S3SourceConfig(
 )
 
 case class SourceBucketOptions(
-  sourceBucketAndPrefix: S3Location,
+  sourceBucketAndPrefix: CloudLocation,
   targetTopic:           String,
   format:                FormatSelection,
   recordsLimit:          Int,
@@ -104,6 +109,8 @@ object SourceBucketOptions {
   private val DEFAULT_RECORDS_LIMIT = 10000
   private val DEFAULT_FILES_LIMIT   = 1000
 
+  implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
+
   def apply(
     config:             S3SourceConfigDefBuilder,
     partitionExtractor: Option[PartitionExtractor],
@@ -111,7 +118,7 @@ object SourceBucketOptions {
     config.getKCQL.map {
       kcql: Kcql =>
         for {
-          source <- S3Location.splitAndValidate(kcql.getSource, allowSlash = true)
+          source <- CloudLocation.splitAndValidate(kcql.getSource, allowSlash = true)
           format <- FormatSelection.fromKcql(kcql, S3SourcePropsSchema.schema)
           //extract the envelope. of not present default to false
           hasEnvelope <- extractEnvelope(Option(kcql.getProperties).map(_.asScala.toMap).getOrElse(Map.empty))

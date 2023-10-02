@@ -80,7 +80,7 @@ object Dependencies {
     val jerseyCommonVersion = "3.1.1"
 
     val calciteVersion   = "1.34.0"
-    val awsSdkVersion    = "2.20.54"
+    val awsSdkVersion    = "2.20.68"
     val guavaVersion     = "31.0.1-jre"
     val guiceVersion     = "5.1.0"
     val javaxBindVersion = "2.3.1"
@@ -511,6 +511,19 @@ trait Dependencies {
   ) ++ enumeratum ++ circe ++ http4s
 
   //Specific modules dependencies
+
+  val kafkaConnectCloudCommonDeps: Seq[ModuleID] = Seq(
+    parquetAvro,
+    parquetHadoop,
+    hadoopCommon,
+    hadoopMapReduce,
+    hadoopMapReduceClient,
+    hadoopMapReduceClientCore,
+    //javaxBind,
+    openCsv,
+    //guice,
+    //guiceAssistedInject,
+  )
 
   val kafkaConnectS3Deps: Seq[ModuleID] = Seq(
     s3Sdk,

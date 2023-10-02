@@ -3,18 +3,22 @@ package io.lenses.streamreactor.connect.aws.s3.source
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.Format.Bytes
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.Format
-import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.source.S3SourceTaskTest.formats
+import io.lenses.streamreactor.connect.aws.s3.source.config.SourcePartitionSearcherSettingsKeys
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
-import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindCompletionConfig
-import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindResults
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.cloud.common.config.Format.Bytes
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.Format
+import io.lenses.streamreactor.connect.cloud.common.config.FormatOptions
+import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindCompletionConfig
+import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindResults
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
 import org.scalatest.BeforeAndAfter
@@ -47,13 +51,15 @@ class S3SourceTaskTest
     with S3ProxyContainerTest
     with LazyLogging
     with BeforeAndAfter
-    with Eventually {
+    with Eventually
+    with TaskIndexKey
+    with SourcePartitionSearcherSettingsKeys {
 
   override implicit def patienceConfig: PatienceConfig =
     PatienceConfig(timeout = Span(10, Seconds), interval = Span(500, Milliseconds))
-
-  private var bucketSetupOpt: Option[BucketSetup] = None
-  def bucketSetup:            BucketSetup         = bucketSetupOpt.getOrElse(throw new IllegalStateException("Not initialised"))
+  implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
+  private var bucketSetupOpt:          Option[BucketSetup]    = None
+  def bucketSetup:                     BucketSetup            = bucketSetupOpt.getOrElse(throw new IllegalStateException("Not initialised"))
 
   def DefaultProps: Map[String, String] = Map(
     AWS_ACCESS_KEY                          -> Identity,
@@ -83,7 +89,7 @@ class S3SourceTaskTest
   }
 
   "task" should "retrieve subdirectories correctly" in {
-    val root = S3Location(BucketName, s"${bucketSetup.PrefixName}/avro/myTopic/".some)
+    val root = CloudLocation(BucketName, s"${bucketSetup.PrefixName}/avro/myTopic/".some)
     val dirs =
       AwsS3DirectoryLister.findDirectories(
         root,
@@ -337,4 +343,6 @@ class S3SourceTaskTest
     } finally {
       cleanup
     }
+
+  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

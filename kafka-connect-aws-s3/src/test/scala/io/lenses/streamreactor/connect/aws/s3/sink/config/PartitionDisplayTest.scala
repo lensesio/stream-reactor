@@ -16,12 +16,13 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
 import com.datamountaineer.kcql.Kcql
-import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEntry
-import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum
-import io.lenses.streamreactor.connect.aws.s3.config.kcqlprops.S3PropsKeyEnum.PartitionIncludeKeys
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.KeysAndValues
-import io.lenses.streamreactor.connect.aws.s3.sink.config.PartitionDisplay.Values
-import io.lenses.streamreactor.connect.aws.s3.sink.config.kcqlprops.S3SinkPropsSchema
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEnum.PartitionIncludeKeys
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEntry
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEnum
+import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.S3SinkPropsSchema
+import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay
+import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.KeysAndValues
+import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.Values
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter

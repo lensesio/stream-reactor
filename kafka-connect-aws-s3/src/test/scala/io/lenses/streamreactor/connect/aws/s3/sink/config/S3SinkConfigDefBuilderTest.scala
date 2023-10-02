@@ -15,11 +15,14 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.Count
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.FileSize
-import io.lenses.streamreactor.connect.aws.s3.sink.commit.Interval
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
+import io.lenses.streamreactor.connect.cloud.common.sink.commit.FileSize
+import io.lenses.streamreactor.connect.cloud.common.sink.commit.Interval
+import io.lenses.streamreactor.connect.cloud.common.sink.config.S3FlushSettings
 import org.mockito.MockitoSugar
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
@@ -35,6 +38,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
   val TopicName  = "myTopic"
   val BucketName = "mybucket"
 
+  private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   private implicit val connectorTaskId = ConnectorTaskId("connector", 1, 0)
 
   "S3SinkConfigDefBuilder" should "respect defined properties" in {

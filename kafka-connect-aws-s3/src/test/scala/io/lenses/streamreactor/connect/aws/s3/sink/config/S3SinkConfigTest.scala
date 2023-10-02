@@ -15,8 +15,10 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.config.DataStorageSettings
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -24,6 +26,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 
 class S3SinkConfigTest extends AnyFunSuite with Matchers {
   private implicit val connectorTaskId = ConnectorTaskId("connector", 1, 0)
+  private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   test("envelope and CSV storage is not allowed") {
     val props = Map(
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",

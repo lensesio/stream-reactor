@@ -13,6 +13,7 @@ ThisBuild / scalaVersion := Dependencies.scalaVersion
 lazy val subProjects: Seq[Project] = Seq(
   `query-language`,
   common,
+  `cloud-common`,
   `aws-s3`,
   `azure-documentdb`,
   cassandra,
@@ -72,8 +73,29 @@ lazy val common = (project in file("kafka-connect-common"))
   .configureAssembly()
   .configureTests(baseTestDeps)
 
+lazy val `cloud-common` = (project in file("kafka-connect-cloud-common"))
+  .dependsOn(common)
+  //.dependsOn(`test-common` % "fun->compile")
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-cloud-common",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectCloudCommonDeps,
+        publish / skip := true,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
+      ),
+  )
+  .configureAssembly()
+  .configureTests(baseTestDeps)
+  .enablePlugins(PackPlugin)
+
 lazy val `aws-s3` = (project in file("kafka-connect-aws-s3"))
   .dependsOn(common)
+  .dependsOn(`cloud-common` % "compile->compile;test->test")
   .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++

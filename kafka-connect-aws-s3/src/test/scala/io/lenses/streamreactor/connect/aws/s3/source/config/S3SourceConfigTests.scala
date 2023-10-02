@@ -16,14 +16,16 @@
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions.ExcludeIndexes
+import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
+import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
+import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions.ExcludeIndexes
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
-class S3SourceConfigTests extends AnyFunSuite with Matchers {
+class S3SourceConfigTests extends AnyFunSuite with Matchers with TaskIndexKey with SourcePartitionSearcherSettingsKeys {
   test("default recursive levels is 0") {
     S3SourceConfig.fromProps(
       Map(
@@ -82,4 +84,6 @@ class S3SourceConfigTests extends AnyFunSuite with Matchers {
         value.partitionSearcher shouldBe PartitionSearcherOptions(1, continuous = true, 1.seconds, ExcludeIndexes)
     }
   }
+
+  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

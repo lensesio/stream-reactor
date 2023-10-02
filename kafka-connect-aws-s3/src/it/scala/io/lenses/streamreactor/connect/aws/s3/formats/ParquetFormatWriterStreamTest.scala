@@ -16,18 +16,24 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.config.ParquetFormatSelection
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetFormatReader
-import io.lenses.streamreactor.connect.aws.s3.formats.writer._
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.BROTLI
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.LZ4
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.LZO
-import io.lenses.streamreactor.connect.aws.s3.model.CompressionCodecName.UNCOMPRESSED
-import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.model.location.FileUtils.toBufferedOutputStream
-import io.lenses.streamreactor.connect.aws.s3.stream.BuildLocalOutputStream
-import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
+import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.firstUsers
+import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.users
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.checkRecord
+import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic
+import io.lenses.streamreactor.connect.cloud.common.config.ParquetFormatSelection
+import io.lenses.streamreactor.connect.cloud.common.formats.reader.ParquetFormatReader
+import io.lenses.streamreactor.connect.cloud.common.formats.writer
+import io.lenses.streamreactor.connect.cloud.common.formats.writer._
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
+import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.BROTLI
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.LZ4
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.LZO
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
+import io.lenses.streamreactor.connect.cloud.common.model.location.FileUtils.toBufferedOutputStream
+import io.lenses.streamreactor.connect.cloud.common.stream.BuildLocalOutputStream
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.EitherValues
@@ -50,31 +56,31 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
 
     val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
-    parquetFormatWriter.write(MessageDetail(NullSinkData(None),
-                                            StructSinkData(users.head),
-                                            Map.empty,
-                                            None,
-                                            topic,
-                                            1,
-                                            Offset(1),
+    parquetFormatWriter.write(writer.MessageDetail(NullSinkData(None),
+                                                   StructSinkData(users.head),
+                                                   Map.empty,
+                                                   None,
+                                                   topic,
+                                                   1,
+                                                   Offset(1),
     ))
     parquetFormatWriter.getPointer should be(21)
-    parquetFormatWriter.write(MessageDetail(NullSinkData(None),
-                                            StructSinkData(users(1)),
-                                            Map.empty,
-                                            None,
-                                            topic,
-                                            1,
-                                            Offset(2),
+    parquetFormatWriter.write(writer.MessageDetail(NullSinkData(None),
+                                                   StructSinkData(users(1)),
+                                                   Map.empty,
+                                                   None,
+                                                   topic,
+                                                   1,
+                                                   Offset(2),
     ))
     parquetFormatWriter.getPointer should be(44)
-    parquetFormatWriter.write(MessageDetail(NullSinkData(None),
-                                            StructSinkData(users(2)),
-                                            Map.empty,
-                                            None,
-                                            topic,
-                                            1,
-                                            Offset(3),
+    parquetFormatWriter.write(writer.MessageDetail(NullSinkData(None),
+                                                   StructSinkData(users(2)),
+                                                   Map.empty,
+                                                   None,
+                                                   topic,
+                                                   1,
+                                                   Offset(3),
     ))
     parquetFormatWriter.getPointer should be(59)
     parquetFormatWriter.complete() should be(Right(()))
@@ -101,7 +107,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
     val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
     parquetFormatWriter.write(
-      MessageDetail(
+      writer.MessageDetail(
         NullSinkData(None),
         ArraySinkData(
           Seq(
@@ -126,7 +132,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
     val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
     parquetFormatWriter.write(
-      MessageDetail(
+      writer.MessageDetail(
         NullSinkData(None),
         MapSinkData(
           Map(
@@ -179,13 +185,13 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
 
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
     firstUsers.foreach(u =>
-      parquetFormatWriter.write(MessageDetail(NullSinkData(None),
-                                              StructSinkData(u),
-                                              Map.empty,
-                                              None,
-                                              topic,
-                                              1,
-                                              Offset(1),
+      parquetFormatWriter.write(writer.MessageDetail(NullSinkData(None),
+                                                     StructSinkData(u),
+                                                     Map.empty,
+                                                     None,
+                                                     topic,
+                                                     1,
+                                                     Offset(1),
       )) should be(
         Right(()),
       ),

@@ -17,13 +17,14 @@ package io.lenses.streamreactor.connect.aws.s3.source.state
 
 import cats.effect.IO
 import cats.effect.Ref
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.source.files.S3SourceFileQueue
-import io.lenses.streamreactor.connect.aws.s3.source.reader.ReaderManager
-import io.lenses.streamreactor.connect.aws.s3.source.reader.ResultReader
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.source.files.S3SourceFileQueue
+import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
+import io.lenses.streamreactor.connect.cloud.common.source.reader.ResultReader
+import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.apache.kafka.connect.errors.ConnectException
 
 /**
@@ -31,12 +32,15 @@ import org.apache.kafka.connect.errors.ConnectException
   */
 object ReaderManagerBuilder {
   def apply(
-    root:             S3Location,
+    root:             CloudLocation,
     path:             String,
     storageInterface: StorageInterface,
     connectorTaskId:  ConnectorTaskId,
-    contextOffsetFn:  S3Location => Option[S3Location],
-    findSboF:         S3Location => Option[SourceBucketOptions],
+    contextOffsetFn:  CloudLocation => Option[CloudLocation],
+    findSboF:         CloudLocation => Option[SourceBucketOptions],
+  )(
+    implicit
+    cloudLocationValidator: CloudLocationValidator,
   ): IO[ReaderManager] =
     for {
       sbo <- IO.fromEither(

@@ -15,7 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.reader
 
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.S3StreamReader
+import io.lenses.streamreactor.connect.cloud.common.formats.reader.S3StreamReader
+import io.lenses.streamreactor.connect.cloud.common.source.reader.ResultReader
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.source.SourceRecord
 import org.mockito.MockitoSugar

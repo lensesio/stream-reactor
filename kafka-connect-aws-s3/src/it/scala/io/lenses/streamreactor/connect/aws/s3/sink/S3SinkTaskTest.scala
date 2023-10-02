@@ -16,18 +16,24 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import cats.effect.unsafe.implicits.global
 import cats.effect.IO
 import cats.effect.Resource
+import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.opencsv.CSVReader
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
-import io.lenses.streamreactor.connect.aws.s3.formats.reader.ParquetFormatReader
-import io.lenses.streamreactor.connect.aws.s3.formats.writer.BytesFormatWriter
+import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.checkArray
+import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.firstUsers
+import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.schema
+import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.users
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.checkRecord
+import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
+import io.lenses.streamreactor.connect.cloud.common.formats.AvroFormatReader
+import io.lenses.streamreactor.connect.cloud.common.formats.reader.ParquetFormatReader
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.BytesFormatWriter
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
 import org.apache.commons.io.FileUtils
@@ -47,12 +53,11 @@ import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import java.io.File
 import java.io.StringReader
 import java.nio.file.Files
-import java.time.format.DateTimeFormatter
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.lang
 import java.util
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -62,10 +67,15 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with MockitoSugar with LazyLogging {
+class S3SinkTaskTest
+    extends AnyFlatSpec
+    with Matchers
+    with S3ProxyContainerTest
+    with MockitoSugar
+    with LazyLogging
+    with TaskIndexKey {
 
   import helper._
-  import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
 
   private val parquetFormatReader = new ParquetFormatReader()
   private val avroFormatReader    = new AvroFormatReader()
@@ -1989,40 +1999,6 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
 
   }
 
-  "S3SinkTask" should "read from profile" in {
-
-    val profileDir = getResourcesDirectory()
-      .getOrElse(fail("cannot get resources dir"))
-
-    val task = new S3SinkTask()
-
-    val props = Map(
-      "name"                       -> "sinkName",
-      "connect.s3.custom.endpoint" -> uri(),
-      PROFILES                     -> s"$profileDir/inttest1.yaml,$profileDir/inttest2.yaml",
-      TASK_INDEX                   -> "1:1",
-    ).asJava
-
-    task.start(props)
-    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
-    task.put(records.asJava)
-    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
-    task.stop()
-
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
-
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000000.json") should be(
-      """{"name":"sam","title":"mr","salary":100.43}""",
-    )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000001.json") should be(
-      """{"name":"laura","title":"ms","salary":429.06}""",
-    )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000002.json") should be(
-      """{"name":"tom","title":null,"salary":395.44}""",
-    )
-
-  }
-
   "S3SinkTask" should "not write duplicate offsets" in {
 
     val task = new S3SinkTask()
@@ -2330,14 +2306,5 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest
     new CSVReader(file1Reader)
   }
 
-  private def getResourcesDirectory(): Try[String] = {
-    val url = classOf[S3SinkTaskTest].getResource("/profiles/")
-    Try {
-      val uri = url.toURI
-      logger.info("Profile uri: {}", uri)
-      val profilePath = new File(uri).getAbsolutePath
-      logger.info("Profile path: {}", profilePath)
-      profilePath
-    }
-  }
+  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

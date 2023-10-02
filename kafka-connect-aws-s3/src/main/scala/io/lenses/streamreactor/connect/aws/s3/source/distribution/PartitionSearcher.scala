@@ -18,16 +18,17 @@ package io.lenses.streamreactor.connect.aws.s3.source.distribution
 import cats.effect.IO
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
-import io.lenses.streamreactor.connect.aws.s3.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
-import io.lenses.streamreactor.connect.aws.s3.storage.DirectoryFindCompletionConfig
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
+import io.lenses.streamreactor.connect.cloud.common.source.distribution.PartitionSearcherResponse
+import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindCompletionConfig
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response
 
 class PartitionSearcher(
-  roots:           Seq[S3Location],
+  roots:           Seq[CloudLocation],
   settings:        PartitionSearcherOptions,
   connectorTaskId: ConnectorTaskId,
   listS3ObjF:      ListObjectsV2Request => Iterator[ListObjectsV2Response],
@@ -50,7 +51,7 @@ class PartitionSearcher(
     }
 
   private def findNewPartitionsInRoot(
-    root:               S3Location,
+    root:               CloudLocation,
     settings:           PartitionSearcherOptions,
     originalPartitions: Set[String],
   ): IO[PartitionSearcherResponse] = {

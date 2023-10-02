@@ -16,11 +16,12 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfigDef
+import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfigDef
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.reflect.runtime.universe
-import scala.reflect.runtime.universe._
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 /**
   * Reads the constants in the S3ConfigSettings class and ensures that they are
@@ -29,35 +30,14 @@ import scala.reflect.runtime.universe._
   */
 class S3ConfigSettingsTest extends AnyFlatSpec with Matchers with LazyLogging {
 
-  private val currentMirror              = scala.reflect.runtime.currentMirror
-  private val instanceMirror             = currentMirror.reflect(S3ConfigSettings)
-  private val ignorePropertiesWithSuffix = Set("_DOC", "_DEFAULT", "_DISPLAY")
-
   "S3ConfigSettings" should "ensure all keys are lower case" in {
 
-    val docs = getMembersForClass(S3ConfigSettings)
-      .collect {
-        case m: MethodSymbol if m.isGetter && m.isPublic => (m.fullName, getValue(m))
-      }
-      .filterNot {
-        case (k, _) => ignorePropertiesWithSuffix.exists(k.contains(_))
-      }.toList
+    val configKeys =
+      S3SinkConfigDef.config.configKeys().keySet().asScala ++ S3SourceConfigDef.config.configKeys().keySet().asScala
 
-    docs.size shouldBe 38
-    docs.foreach {
-      case (k, v) =>
-        logger.info("method: {}, value: {}", k, v)
-        v.toLowerCase should be(v)
+    configKeys.size shouldBe 47
+    configKeys.foreach {
+      k => k.toLowerCase should be(k)
     }
   }
-
-  private def getMembersForClass(clazz: S3ConfigSettings.type) =
-    currentMirror
-      .classSymbol(clazz.getClass)
-      .toType
-      .members
-
-  private def getValue(method: universe.MethodSymbol) =
-    instanceMirror.reflectMethod(method).apply().toString()
-
 }

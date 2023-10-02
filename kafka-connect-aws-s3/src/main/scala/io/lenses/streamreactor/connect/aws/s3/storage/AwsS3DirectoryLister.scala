@@ -18,8 +18,10 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import cats.effect.IO
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.aws.s3.model.location.S3Location
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindCompletionConfig
+import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindResults
 import software.amazon.awssdk.services.s3.model._
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
@@ -30,7 +32,7 @@ object AwsS3DirectoryLister extends LazyLogging {
     * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
     */
   def findDirectories(
-    bucketAndPrefix:  S3Location,
+    bucketAndPrefix:  CloudLocation,
     completionConfig: DirectoryFindCompletionConfig,
     exclude:          Set[String],
     wildcardExcludes: Set[String],
@@ -60,7 +62,7 @@ object AwsS3DirectoryLister extends LazyLogging {
     * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
     */
   private def flattenPrefixes(
-    bucketAndPrefix:  S3Location,
+    bucketAndPrefix:  CloudLocation,
     prefixes:         Set[String],
     completionConfig: DirectoryFindCompletionConfig,
     exclude:          Set[String],
@@ -87,7 +89,7 @@ object AwsS3DirectoryLister extends LazyLogging {
     }
 
   private def createListObjectsRequest(
-    bucketAndPrefix: S3Location,
+    bucketAndPrefix: CloudLocation,
   ): ListObjectsV2Request = {
 
     val builder = ListObjectsV2Request
