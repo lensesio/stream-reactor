@@ -1,6 +1,7 @@
 package io.lenses.streamreactor.connect.testcontainers
 
-import cats.effect.{IO, Resource}
+import cats.effect.IO
+import cats.effect.Resource
 import io.lenses.streamreactor.connect.testcontainers.RedisContainer.defaultNetworkAlias
 import io.lenses.streamreactor.connect.testcontainers.RedisContainer.defaultPort
 import io.lenses.streamreactor.connect.testcontainers.RedisContainer.defaultTag

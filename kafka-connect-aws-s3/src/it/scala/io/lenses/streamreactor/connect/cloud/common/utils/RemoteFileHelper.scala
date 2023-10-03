@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.utils
+package io.lenses.streamreactor.connect.cloud.common.utils
 
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toBifunctorOps

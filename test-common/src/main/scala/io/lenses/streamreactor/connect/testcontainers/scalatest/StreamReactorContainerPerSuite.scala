@@ -1,30 +1,43 @@
 package io.lenses.streamreactor.connect.testcontainers.scalatest
 
-import cats.effect.{IO, Resource}
+import cats.effect.IO
+import cats.effect.Resource
 import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
 import io.lenses.streamreactor.connect.testcontainers.KafkaVersions.ConfluentVersion
 import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient
-import io.lenses.streamreactor.connect.testcontainers.{KafkaConnectContainer, SchemaRegistryContainer}
-import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig}
+import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer
+import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer
+import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.scalatest.concurrent.Eventually
-import org.scalatest.time.{Minute, Span}
-import org.scalatest.{AsyncTestSuite, BeforeAndAfterAll}
+import org.scalatest.time.Minute
+import org.scalatest.time.Span
+import org.scalatest.AsyncTestSuite
+import org.scalatest.BeforeAndAfterAll
 import org.testcontainers.containers.output.Slf4jLogConsumer
-import org.testcontainers.containers.{KafkaContainer, Network}
+import org.testcontainers.containers.KafkaContainer
+import org.testcontainers.containers.Network
 import org.testcontainers.utility.DockerImageName
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.time.Duration
-import java.util.{Properties, UUID}
+import java.util.Properties
+import java.util.UUID
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.IteratorHasAsScala
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
-trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually with LazyLogging { this: AsyncTestSuite =>
+trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually with LazyLogging {
+  this: AsyncTestSuite =>
 
   override implicit def patienceConfig: PatienceConfig = PatienceConfig(timeout = Span(1, Minute))
 
@@ -73,8 +86,8 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
     }
 
   private def connectPluginPath(): String = {
-    val regex           = s".*$connectorModule.*.jar"
-    Try{
+    val regex = s".*$connectorModule.*.jar"
+    Try {
       Files
         .find(artifactDir, 5, (p, _) => p.toFile.getName.matches(regex))
         .iterator()
@@ -82,30 +95,31 @@ trait StreamReactorContainerPerSuite extends BeforeAndAfterAll with Eventually w
         .next()
     } match {
       case Failure(exception) => fail(s"""Please run `sbt "project $connectorModule" assembly""", exception)
-      case Success(nextFile) => nextFile.getParent.toString
+      case Success(nextFile)  => nextFile.getParent.toString
     }
   }
 
   private def artifactDir = {
-    val artDir = Option(sys.props("artifact.dir"))
+    val artDir  = Option(sys.props("artifact.dir"))
     val userDir = sys.props("user.dir")
     logger.info("artDir: {} userDir: {}", artDir, userDir)
 
     Paths.get(artDir.getOrElse(userDir))
   }
 
-  def createProducer[K, V](keySer: Class[_], valueSer: Class[_]): Resource[IO, KafkaProducer[K, V]] = Resource.fromAutoCloseable {
-    IO {
-      val props = new Properties
-      props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers)
-      props.put(ProducerConfig.ACKS_CONFIG, "all")
-      props.put(ProducerConfig.RETRIES_CONFIG, 0)
-      props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySer)
-      props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSer)
-      schemaRegistryContainer.foreach(s => props.put(SCHEMA_REGISTRY_URL_CONFIG, s.hostNetwork.schemaRegistryUrl))
-      new KafkaProducer[K, V](props)
+  def createProducer[K, V](keySer: Class[_], valueSer: Class[_]): Resource[IO, KafkaProducer[K, V]] =
+    Resource.fromAutoCloseable {
+      IO {
+        val props = new Properties
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers)
+        props.put(ProducerConfig.ACKS_CONFIG, "all")
+        props.put(ProducerConfig.RETRIES_CONFIG, 0)
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySer)
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSer)
+        schemaRegistryContainer.foreach(s => props.put(SCHEMA_REGISTRY_URL_CONFIG, s.hostNetwork.schemaRegistryUrl))
+        new KafkaProducer[K, V](props)
+      }
     }
-  }
 
   def createConsumer(): KafkaConsumer[String, String] = {
     val props = new Properties

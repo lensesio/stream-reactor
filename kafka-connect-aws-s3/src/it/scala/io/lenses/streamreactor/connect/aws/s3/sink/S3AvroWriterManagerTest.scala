@@ -22,7 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.firstUsers
+import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
@@ -67,8 +67,8 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   private def avroConfig = S3SinkConfig(
     S3Config(
       None,
-      Some(container.identity.identity),
-      Some(container.identity.credential),
+      Some(s3Container.identity.identity),
+      Some(s3Container.identity.credential),
       AuthMode.Credentials,
     ),
     bucketOptions = Seq(

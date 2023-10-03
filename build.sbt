@@ -21,6 +21,7 @@ lazy val subProjects: Seq[Project] = Seq(
   elastic6,
   elastic7,
   ftp,
+  `gcp-storage`,
   hazelcast,
   hbase,
   hive,
@@ -137,6 +138,29 @@ lazy val `azure-datalake` = (project in file("kafka-connect-azure-datalake"))
   .configureAssembly(false)
   .configureTests(baseTestDeps)
   //.configureIntegrationTests(kafkaConnectAzureDatalakeTestDeps)
+  //.configureFunctionalTests(kafkaConnectAzureDatalakeFuncTestDeps)
+  .enablePlugins(PackPlugin)
+
+lazy val `gcp-storage` = (project in file("kafka-connect-gcp-storage"))
+  .dependsOn(common)
+  .dependsOn(`cloud-common` % "compile->compile;test->test;it->it")
+  .dependsOn(`test-common` % "fun->compile;it->compile")
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-gcp-storage",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectCloudCommonDeps ++ kafkaConnectGcpStorageDeps,
+        publish / skip := true,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
+      ),
+  )
+  .configureAssembly(false)
+  .configureTests(baseTestDeps)
+  .configureIntegrationTests(kafkaConnectGcpStorageTestDeps)
   //.configureFunctionalTests(kafkaConnectAzureDatalakeFuncTestDeps)
   .enablePlugins(PackPlugin)
 
@@ -470,11 +494,11 @@ lazy val `test-common` = (project in file("test-common"))
 
 addCommandAlias(
   "validateAll",
-  "headerCheck;test:headerCheck;it:headerCheck;fun:headerCheck;scalafmtCheckAll;",
+  "headerCheck;test:headerCheck;it:headerCheck;fun:headerCheck;scalafmtCheckAll;test-common/scalafmtCheck",
 )
 addCommandAlias(
   "formatAll",
-  "headerCreateAll;scalafmtAll;scalafmtSbt;",
+  "headerCreateAll;scalafmtAll;scalafmtSbt;test-common/scalafmt",
 )
 addCommandAlias("fullTest", ";test;it:test;fun:test")
 addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")

@@ -5,7 +5,7 @@ import cats.effect.kernel.Resource
 import com.mongodb.MongoClient
 import io.lenses.streamreactor.connect.testcontainers.MongoDBContainer.defaultNetworkAlias
 import io.lenses.streamreactor.connect.testcontainers.MongoDBContainer.defaultTag
-import org.testcontainers.containers.{MongoDBContainer => JavaMongoDBContainer}
+import org.testcontainers.containers.{ MongoDBContainer => JavaMongoDBContainer }
 import org.testcontainers.utility.DockerImageName
 
 class MongoDBContainer(

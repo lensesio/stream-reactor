@@ -17,7 +17,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
+import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.formats.AvroFormatReader
 import org.apache.avro.generic.GenericRecord

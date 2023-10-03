@@ -53,10 +53,8 @@ object DatalakeClientCreator extends ClientCreator[AzureConfig, DataLakeServiceC
   private def createHttpClient(config: AzureConfig): HttpClient = {
 
     val httpClientOptions = new HttpClientOptions()
-    config.timeouts.socketTimeout.foreach(millis => httpClientOptions.setConnectTimeout(Duration.ofMillis(millis)))
-    config.timeouts.connectionTimeout.foreach(millis =>
-      httpClientOptions.setConnectionIdleTimeout(Duration.ofMillis(millis)),
-    )
+    config.timeouts.socketTimeout.foreach(millis => httpClientOptions.setReadTimeout(Duration.ofMillis(millis)))
+    config.timeouts.connectionTimeout.foreach(millis => httpClientOptions.setConnectTimeout(Duration.ofMillis(millis)))
     config.connectionPoolConfig.foreach { cpc: ConnectionPoolConfig =>
       httpClientOptions.setMaximumConnectionPoolSize(cpc.maxConnections)
     }

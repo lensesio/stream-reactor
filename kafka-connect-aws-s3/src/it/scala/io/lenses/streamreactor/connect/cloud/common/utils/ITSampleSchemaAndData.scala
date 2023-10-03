@@ -1,4 +1,4 @@
-package io.lenses.streamreactor.connect.aws.s3.utils
+package io.lenses.streamreactor.connect.cloud.common.utils
 
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import org.apache.avro.generic.GenericData

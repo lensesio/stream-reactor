@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
+import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType

@@ -1,8 +1,10 @@
 package io.lenses.streamreactor.connect.testcontainers
 
 import io.lenses.streamreactor.connect.testcontainers.KafkaVersions.ConfluentVersion
-import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer.{defaultNetworkAlias, defaultPort}
-import org.testcontainers.containers.{GenericContainer, KafkaContainer}
+import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer.defaultNetworkAlias
+import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer.defaultPort
+import org.testcontainers.containers.GenericContainer
+import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
 
@@ -33,15 +35,15 @@ class SchemaRegistryContainer(
 }
 
 object SchemaRegistryContainer {
-  private val dockerImage                     = DockerImageName.parse("confluentinc/cp-schema-registry")
-  private val defaultNetworkAlias             = "schema-registry"
-  private val defaultPort                     = 8081
+  private val dockerImage         = DockerImageName.parse("confluentinc/cp-schema-registry")
+  private val defaultNetworkAlias = "schema-registry"
+  private val defaultPort         = 8081
 
   def apply(
-             confluentPlatformVersion: String = ConfluentVersion,
-             networkAlias:             String = defaultNetworkAlias,
-             schemaRegistryPort:       Int    = defaultPort,
-             kafkaContainer:           KafkaContainer,
+    confluentPlatformVersion: String = ConfluentVersion,
+    networkAlias:             String = defaultNetworkAlias,
+    schemaRegistryPort:       Int    = defaultPort,
+    kafkaContainer:           KafkaContainer,
   ): SchemaRegistryContainer =
     new SchemaRegistryContainer(dockerImage.withTag(confluentPlatformVersion).toString,
                                 networkAlias,

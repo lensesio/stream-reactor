@@ -4,8 +4,8 @@ import org.json4s.DefaultFormats
 import org.json4s.native.Serialization
 
 case class ConnectorConfiguration(
-                                   name:   String,
-                                   config: Map[String, ConfigValue[_]],
+  name:   String,
+  config: Map[String, ConfigValue[_]],
 ) {
 
   implicit val formats: DefaultFormats.type = DefaultFormats
@@ -21,7 +21,7 @@ case class ConnectorConfiguration(
   }
 
   private def transformConfigMap(
-                                  originalMap: Map[String, ConfigValue[_]],
+    originalMap: Map[String, ConfigValue[_]],
   ): Map[String, Any] = originalMap.view.mapValues(_.underlying).toMap
 
 }

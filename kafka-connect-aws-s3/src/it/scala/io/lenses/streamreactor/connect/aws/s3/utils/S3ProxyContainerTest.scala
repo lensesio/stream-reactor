@@ -11,11 +11,15 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.AWS_SECRET
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CUSTOM_ENDPOINT
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.ENABLE_VIRTUAL_HOST_BUCKETS
+import io.lenses.streamreactor.connect.aws.s3.sink.S3SinkTask
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
+import io.lenses.streamreactor.connect.cloud.common.sink.CloudPlatformEmulatorSuite
+import io.lenses.streamreactor.connect.testcontainers.PausableContainer
 import io.lenses.streamreactor.connect.testcontainers.S3Container
+import io.lenses.streamreactor.connect.testcontainers.TestContainersPausableContainer
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest
 import software.amazon.awssdk.services.s3.model.Delete
@@ -27,50 +31,47 @@ import java.nio.file.Files
 import scala.util.Try
 
 trait S3ProxyContainerTest
-    extends CloudPlatformEmulatorSuite[S3FileMetadata, AwsS3StorageInterface, S3Client]
+    extends CloudPlatformEmulatorSuite[S3FileMetadata, AwsS3StorageInterface, S3SinkTask, S3Client]
     with TaskIndexKey
     with LazyLogging {
 
-  val BucketName = "testbucket"
-
   implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("unit-tests", 1, 1)
 
-  override val container: S3Container = S3Container()
+  val s3Container = S3Container()
+  override val container: PausableContainer = new TestContainersPausableContainer(s3Container)
+
+  override val prefix: String = "connect.s3"
 
   override def createStorageInterface(client: S3Client): AwsS3StorageInterface =
     Try(new AwsS3StorageInterface(connectorTaskId, client, true)).toEither.leftMap(fail(_)).merge
 
   override def createClient(): S3Client = {
 
-    val uri: String = "http://127.0.0.1:" + container.getFirstMappedPort
-
     val s3Config: S3Config = S3Config(
       region                   = Some("eu-west-1"),
-      accessKey                = Some(container.identity.identity),
-      secretKey                = Some(container.identity.credential),
+      accessKey                = Some(s3Container.identity.identity),
+      secretKey                = Some(s3Container.identity.credential),
       authMode                 = AuthMode.Credentials,
-      customEndpoint           = Some(uri),
+      customEndpoint           = Some(s3Container.getEndpointUrl.toString),
       enableVirtualHostBuckets = true,
     )
 
     AwsS3ClientCreator.make(s3Config).leftMap(fail(_)).merge
   }
 
-  override def createDefaultProps(): Map[String, String] = {
+  override def createSinkTask() = new S3SinkTask()
 
-    val uri: String = "http://127.0.0.1:" + container.getFirstMappedPort
-
+  lazy val defaultProps: Map[String, String] =
     Map(
-      AWS_ACCESS_KEY              -> container.identity.identity,
-      AWS_SECRET_KEY              -> container.identity.credential,
+      AWS_ACCESS_KEY              -> s3Container.identity.identity,
+      AWS_SECRET_KEY              -> s3Container.identity.credential,
       AUTH_MODE                   -> AuthMode.Credentials.toString,
-      CUSTOM_ENDPOINT             -> uri,
+      CUSTOM_ENDPOINT             -> s3Container.getEndpointUrl.toString,
       ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
       "name"                      -> "s3SinkTaskBuildLocalTest",
       AWS_REGION                  -> "eu-west-1",
       TASK_INDEX                  -> "1:1",
     )
-  }
 
   val localRoot: File = Files.createTempDirectory("blah").toFile
   val localFile: File = Files.createTempFile("blah", "blah").toFile
