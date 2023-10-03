@@ -16,6 +16,7 @@ lazy val subProjects: Seq[Project] = Seq(
   `cloud-common`,
   `aws-s3`,
   `azure-documentdb`,
+  `azure-datalake`,
   cassandra,
   elastic6,
   elastic7,
@@ -114,6 +115,29 @@ lazy val `aws-s3` = (project in file("kafka-connect-aws-s3"))
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectS3TestDeps)
   .configureFunctionalTests(kafkaConnectS3FuncTestDeps)
+  .enablePlugins(PackPlugin)
+
+lazy val `azure-datalake` = (project in file("kafka-connect-azure-datalake"))
+  .dependsOn(common)
+  .dependsOn(`cloud-common` % "compile->compile;test->test")
+  .dependsOn(`test-common` % "fun->compile")
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-azure-datalake",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectCloudCommonDeps ++ kafkaConnectAzureDatalakeDeps,
+        publish / skip := true,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
+      ),
+  )
+  .configureAssembly()
+  .configureTests(baseTestDeps)
+  //.configureIntegrationTests(kafkaConnectAzureDatalakeTestDeps)
+  //.configureFunctionalTests(kafkaConnectAzureDatalakeFuncTestDeps)
   .enablePlugins(PackPlugin)
 
 lazy val `azure-documentdb` = (project in file("kafka-connect-azure-documentdb"))
