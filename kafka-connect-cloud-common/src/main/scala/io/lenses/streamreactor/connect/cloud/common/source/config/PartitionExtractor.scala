@@ -23,7 +23,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.Format
   */
 sealed trait PartitionExtractor {
 
-  def extract(remoteS3Path: String): Option[Int]
+  def extract(remotePath: String): Option[Int]
 }
 
 object PartitionExtractor extends LazyLogging {
@@ -44,8 +44,8 @@ class RegexPartitionExtractor(
     with LazyLogging {
   private val rc = pathRegex.r
   logger.debug("Initialised RegexPartitionExtractor with regex {}", pathRegex)
-  override def extract(remoteS3Path: String): Option[Int] =
-    Option(rc.findAllIn(remoteS3Path).group(1)).flatMap(_.toIntOption)
+  override def extract(remotePath: String): Option[Int] =
+    Option(rc.findAllIn(remotePath).group(1)).flatMap(_.toIntOption)
 }
 
 class HierarchicalPartitionExtractor()

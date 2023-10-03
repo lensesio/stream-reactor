@@ -22,7 +22,7 @@ import org.scalatest.matchers.should.Matchers
 
 class LowerCaseKeyConfigDefProcessorTest extends AnyFlatSpec with Matchers {
 
-  val processor = new LowerCaseKeyConfigDefProcessor()
+  val processor = new LowerCaseKeyConfigDefProcessor(CONNECTOR_PREFIX)
 
   "lower case key processor" should "leave non-relevant keys alone" in {
     processor.process(Map("ABC" -> "XYZ")) should be(Right(Map("ABC" -> "XYZ")))

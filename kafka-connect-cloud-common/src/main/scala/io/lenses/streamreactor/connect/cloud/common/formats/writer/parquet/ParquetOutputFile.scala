@@ -15,11 +15,11 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.formats.writer.parquet
 
-import io.lenses.streamreactor.connect.cloud.common.stream.S3OutputStream
+import io.lenses.streamreactor.connect.cloud.common.stream.CloudOutputStream
 import org.apache.parquet.io.OutputFile
 import org.apache.parquet.io.PositionOutputStream
 
-class ParquetOutputFile(multipartBlobStoreOutputStream: S3OutputStream) extends OutputFile {
+class ParquetOutputFile(multipartBlobStoreOutputStream: CloudOutputStream) extends OutputFile {
 
   override def create(blockSizeHint: Long): PositionOutputStream =
     new PositionOutputStreamWrapper(multipartBlobStoreOutputStream)
@@ -31,7 +31,7 @@ class ParquetOutputFile(multipartBlobStoreOutputStream: S3OutputStream) extends 
 
   override def defaultBlockSize(): Long = 0
 
-  class PositionOutputStreamWrapper(multipartBlobStoreOutputStream: S3OutputStream) extends PositionOutputStream {
+  class PositionOutputStreamWrapper(multipartBlobStoreOutputStream: CloudOutputStream) extends PositionOutputStream {
 
     override def getPos: Long = multipartBlobStoreOutputStream.getPointer
 

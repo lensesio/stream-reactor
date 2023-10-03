@@ -25,10 +25,8 @@ import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
-import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.formats.AvroFormatReader
-import io.lenses.streamreactor.connect.cloud.common.formats.writer
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
@@ -47,8 +45,8 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.LeftPadP
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.NoOpPaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetS3FileNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.S3KeyNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
@@ -58,22 +56,19 @@ import org.scalatest.matchers.should.Matchers
 
 class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
-  import helper._
   private val compressionCodec = UNCOMPRESSED.toCodec()
 
   private val TopicName        = "myTopic"
   private val PathPrefix       = "streamReactorBackups"
   private val avroFormatReader = new AvroFormatReader
 
-  private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
-
   private implicit val cloudLocationValidator = S3LocationValidator
   private val bucketAndPrefix                 = CloudLocation(BucketName, PathPrefix.some)
   private def avroConfig = S3SinkConfig(
     S3Config(
       None,
-      Some(Identity),
-      Some(Credential),
+      Some(container.identity.identity),
+      Some(container.identity.credential),
       AuthMode.Credentials,
     ),
     bucketOptions = Seq(
@@ -82,10 +77,10 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         bucketAndPrefix,
         commitPolicy    = CommitPolicy(Count(2)),
         formatSelection = AvroFormatSelection,
-        keyNamer = new S3KeyNamer(
+        keyNamer = new CloudKeyNamer(
           AvroFormatSelection,
           defaultPartitionSelection(Values),
-          new OffsetS3FileNamer(
+          new OffsetFileNamer(
             identity[String],
             AvroFormatSelection.extension,
           ),
@@ -154,13 +149,13 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       case (user, index) =>
         sink.write(
           TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)),
-          writer.MessageDetail(NullSinkData(None),
-                               StructSinkData(user),
-                               Map.empty[String, SinkData],
-                               None,
-                               Topic(TopicName),
-                               1,
-                               Offset((index + 1).toLong),
+          MessageDetail(NullSinkData(None),
+                        StructSinkData(user),
+                        Map.empty[String, SinkData],
+                        None,
+                        Topic(TopicName),
+                        1,
+                        Offset((index + 1).toLong),
           ),
         )
     }

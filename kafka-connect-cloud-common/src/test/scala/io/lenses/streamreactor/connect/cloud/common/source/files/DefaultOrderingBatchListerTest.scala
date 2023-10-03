@@ -18,8 +18,9 @@ package io.lenses.streamreactor.connect.cloud.common.source.files
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.TestFileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
-import io.lenses.streamreactor.connect.cloud.common.storage.ListResponse
+import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
@@ -39,13 +40,13 @@ class DefaultOrderingBatchListerTest
   private val bucket = "bucket"
   private val prefix = "prefix"
 
-  private val storageInterface = mock[StorageInterface]
+  private val storageInterface = mock[StorageInterface[TestFileMetadata]]
 
   private val listerFn = DefaultOrderingBatchLister.listBatch(storageInterface, bucket, prefix.some, 10) _
 
   "listBatch" should "return first result when no TopicPartitionOffset has been provided" in {
 
-    val serviceResponse: ListResponse[String] = mock[ListResponse[String]]
+    val serviceResponse: ListOfKeysResponse[TestFileMetadata] = mock[ListOfKeysResponse[TestFileMetadata]]
     when(storageInterface.list(bucket, prefix.some, None, 10))
       .thenReturn(serviceResponse.some.asRight)
 

@@ -16,46 +16,45 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.cloud.common.storage.ResultProcessors.processAsKey
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ObjectMetadata
-import io.lenses.streamreactor.connect.cloud.common.storage.EmptyContentsStringError
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
-import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
+import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
+import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.ListResponse
-import io.lenses.streamreactor.connect.cloud.common.storage.NonExistingFileError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadError
 import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
-import io.lenses.streamreactor.connect.cloud.common.storage.ZeroByteFileError
 import org.apache.commons.io.IOUtils
 import software.amazon.awssdk.core.ResponseInputStream
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model._
 
-import java.io.File
 import java.io.InputStream
 import java.nio.charset.Charset
+import java.time.Instant
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: S3Client, val batchDelete: Boolean)
-    extends StorageInterface
+class AwsS3StorageInterface(connectorTaskId: ConnectorTaskId, s3Client: S3Client, batchDelete: Boolean)
+    extends StorageInterface[S3FileMetadata]
     with LazyLogging {
 
   override def list(
     bucket:     String,
     prefix:     Option[String],
-    lastFile:   Option[FileMetadata],
+    lastFile:   Option[S3FileMetadata],
     numResults: Int,
-  ): Either[FileListError, Option[ListResponse[String]]] =
+  ): Either[FileListError, Option[ListOfKeysResponse[S3FileMetadata]]] =
     Try {
 
       val builder = ListObjectsV2Request
@@ -73,7 +72,7 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
         listObjectsV2Response
           .contents()
           .asScala
-          .map(o => FileMetadata(o.key(), o.lastModified()))
+          .map(o => S3FileMetadata(o.key(), o.lastModified()))
           .toSeq,
       )
 
@@ -81,11 +80,26 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
       ex: Throwable => FileListError(ex, bucket, prefix)
     }
 
-  override def listRecursive[T](
+  override def listFileMetaRecursive(
+    bucket: String,
+    prefix: Option[String],
+  ): Either[FileListError, Option[ListOfMetadataResponse[S3FileMetadata]]] =
+    listRecursive[ListOfMetadataResponse[S3FileMetadata], S3FileMetadata](bucket,
+                                                                          prefix,
+                                                                          processObjectsAsFileMeta[S3FileMetadata],
+    )
+
+  def listKeysRecursive(
+    bucket: String,
+    prefix: Option[String],
+  ): Either[FileListError, Option[ListOfKeysResponse[S3FileMetadata]]] =
+    listRecursive[ListOfKeysResponse[S3FileMetadata], String](bucket, prefix, processAsKey[S3FileMetadata])
+
+  private def listRecursive[LR <: ListResponse[T, S3FileMetadata], T](
     bucket:    String,
     prefix:    Option[String],
-    processFn: (String, Option[String], Seq[FileMetadata]) => Option[ListResponse[T]],
-  ): Either[FileListError, Option[ListResponse[T]]] = {
+    processFn: (String, Option[String], Seq[S3FileMetadata]) => Option[LR],
+  ): Either[FileListError, Option[LR]] = {
     logger.debug(s"[{}] List path {}:{}", connectorTaskId.show, bucket, prefix)
     Try {
       val options = ListObjectsV2Request
@@ -100,7 +114,7 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
         bucket,
         prefix,
         pagReq.iterator().asScala.flatMap(_.contents().asScala.toSeq.map(o =>
-          new FileMetadata(o.key(), o.lastModified()),
+          S3FileMetadata(o.key(), o.lastModified()),
         )).toSeq,
       )
     }.toEither.leftMap {
@@ -108,29 +122,24 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
     }
   }
 
-  override def uploadFile(source: File, bucket: String, path: String): Either[UploadError, Unit] = {
+  override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, Unit] = {
     logger.debug(s"[{}] AWS Uploading file from local {} to s3 {}:{}", connectorTaskId.show, source, bucket, path)
-    if (!source.exists()) {
-      NonExistingFileError(source).asLeft
-    } else if (source.length() == 0L) {
-      ZeroByteFileError(source).asLeft
-    } else {
-      Try {
+    for {
+      file <- source.validate.toEither
+      _ <- Try {
         s3Client.putObject(PutObjectRequest.builder()
                              .bucket(bucket)
                              .key(path)
-                             .contentLength(source.length())
+                             .contentLength(file.length())
                              .build(),
-                           source.toPath,
+                           file.toPath,
         )
         logger.debug(s"[{}] Completed upload from local {} to s3 {}:{}", connectorTaskId.show, source, bucket, path)
+      }.toEither.leftMap { ex: Throwable =>
+        logger.error(s"[{}] Failed upload from local {} to s3 {}:{}", connectorTaskId.show, source, bucket, path, ex)
+        UploadFailedError(ex, source.file)
       }
-        .toEither.leftMap { ex =>
-          logger.error(s"[{}] Failed upload from local {} to s3 {}:{}", connectorTaskId.show, source, bucket, path, ex)
-          UploadFailedError(ex, source)
-        }
-    }
-
+    } yield ()
   }
 
   override def pathExists(bucket: String, path: String): Either[FileLoadError, Boolean] = {
@@ -230,21 +239,20 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
       ).toEither.leftMap(ex => FileLoadError(ex, path))
     }
 
-  override def writeStringToFile(bucket: String, path: String, data: String): Either[UploadError, Unit] = {
+  override def writeStringToFile(bucket: String, path: String, data: UploadableString): Either[UploadError, Unit] = {
     logger.debug(s"[{}] Uploading file from data string ({}) to s3 {}:{}", connectorTaskId.show, data, bucket, path)
 
-    if (data.isEmpty) {
-      EmptyContentsStringError(data).asLeft
-    } else {
-      Try {
+    for {
+      content <- data.validate.toEither
+      _ <- Try {
         s3Client.putObject(
           PutObjectRequest
             .builder()
             .bucket(bucket)
             .key(path)
-            .contentLength(data.length.toLong)
+            .contentLength(content.length.toLong)
             .build(),
-          RequestBody.fromString(data, Charset.forName("UTF-8")),
+          RequestBody.fromString(content, Charset.forName("UTF-8")),
         )
         logger.debug(s"[{}] Completed upload from data string ({}) to s3 {}:{}",
                      connectorTaskId.show,
@@ -261,9 +269,13 @@ class AwsS3StorageInterface(val connectorTaskId: ConnectorTaskId, val s3Client: 
                        path,
                        ex,
           )
-          FileCreateError(ex, data)
+          FileCreateError(ex, content)
       }
-    }
+    } yield ()
   }
 
+  override def seekToFile(bucket: String, fileName: String, lastModified: Option[Instant]): Option[S3FileMetadata] =
+    lastModified
+      .map(lmValue => S3FileMetadata(fileName, lmValue))
+      .orElse(getMetadata(bucket, fileName).map(oMeta => S3FileMetadata(fileName, oMeta.lastModified)).toOption)
 }

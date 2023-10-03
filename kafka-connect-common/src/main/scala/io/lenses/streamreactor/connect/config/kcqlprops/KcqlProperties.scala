@@ -15,10 +15,14 @@
  */
 package io.lenses.streamreactor.connect.config.kcqlprops
 
+import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import enumeratum._
+import org.apache.kafka.common.config.ConfigException
 
 import scala.reflect.ClassTag
+import scala.util.Failure
+import scala.util.Success
 import scala.util.Try
 
 object KcqlProperties {
@@ -62,16 +66,33 @@ case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
       _:     PropsSchema <- schema.schema.get(key).filter(_ == CharPropsSchema)
     } yield value
 
-  def getOptionalBoolean(key: U): Option[Boolean] =
-    for {
-      value:  String <- map.get(key.entryName)
-      schema: PropsSchema <- schema.schema.get(key)
-      _ <- schema match {
-        case BooleanPropsSchema => value.some
-        case _                  => Option.empty[String]
-      }
-      b <- Try(value.toBoolean).toOption
-    } yield b
+  def getBooleanOrDefault(
+    key:     U,
+    default: Boolean,
+  ): Either[ConfigException, Boolean] =
+    map.get(key.entryName) match {
+      case Some("true")  => true.asRight
+      case Some("false") => false.asRight
+      case Some(_) => new ConfigException(
+          s"Invalid value for configuration [${key.entryName}]. The value must be one of: true, false.",
+        ).asLeft[Boolean]
+      case None => default.asRight
+    }
+
+  def getOptionalBoolean(key: U): Either[ConfigException, Option[Boolean]] = {
+    val maybePropertyVal: Option[String] = map.get(key.entryName)
+    val maybePropsSchema = schema.schema.get(key)
+    (maybePropertyVal, maybePropsSchema) match {
+      case (_, None) => new ConfigException(s"No schema found for ${key.entryName}").asLeft
+      case (None, _) => Option.empty.asRight
+      case (Some(propVal: String), Some(BooleanPropsSchema)) =>
+        Try(propVal.toBoolean) match {
+          case Failure(ex)    => new ConfigException(s"Invalid value for ${key.entryName}. Must be a boolean", ex).asLeft
+          case Success(value) => value.some.asRight
+        }
+      case _ => new ConfigException(s"No schema found for ${key.entryName}").asLeft
+    }
+  }
 
   def getOptionalSet[V](key: U)(implicit converter: String => V, ct: ClassTag[V]): Option[Set[V]] =
     map.get(key.entryName) match {

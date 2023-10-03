@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.formats
 
-import io.lenses.streamreactor.connect.cloud.common.stream.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.cloud.common.stream.CloudByteArrayOutputStream
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData._
 import io.lenses.streamreactor.connect.cloud.common.formats.writer._
@@ -44,7 +44,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "write byte output stream with avro for a single record" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
     avroFormatWriter.write(MessageDetail(NullSinkData(None),
                                          StructSinkData(SampleData.Users.head),
@@ -64,7 +64,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "write byte output stream with avro for multiple records" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
     SampleData.Users.take(3).foreach(u =>
       avroFormatWriter.write(MessageDetail(NullSinkData(None),
@@ -84,7 +84,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "write byte output stream with avro for a single primitive record" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
     avroFormatWriter.write(
       MessageDetail(NullSinkData(None),
@@ -106,7 +106,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "write byte output stream with avro for a multiple primitive records" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
     avroFormatWriter.write(
       MessageDetail(NullSinkData(None),
@@ -139,7 +139,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "write byte output stream with avro for single array record" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
     avroFormatWriter.write(
       MessageDetail(
@@ -170,7 +170,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "write byte output stream with avro for multiple array record" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
     avroFormatWriter.write(
       MessageDetail(
@@ -219,7 +219,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "throw an error when writing array without schema" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
     val caught = avroFormatWriter.write(
       MessageDetail(
@@ -245,7 +245,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
   "convert" should "write byte output stream with avro for multiple map records" in {
     val mapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA)
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
     avroFormatWriter.write(
       MessageDetail(
@@ -303,7 +303,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
   "convert" should "write byte to avro" in {
     val byteSchema = SchemaBuilder.bytes().build()
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
     avroFormatWriter.write(
       MessageDetail(

@@ -29,13 +29,13 @@ class BytesOutputRowConverter(
   watermarkPartition: java.util.Map[String, String],
   topic:              Topic,
   partition:          Integer,
-  s3Location:         CloudLocation,
+  location:           CloudLocation,
   lastModified:       Instant,
 ) extends Converter[BytesOutputRow] {
   override def convert(row: BytesOutputRow, index: Long): SourceRecord =
     new SourceRecord(
       watermarkPartition,
-      SourceWatermark.offset(s3Location, index, lastModified),
+      SourceWatermark.offset(location, index, lastModified),
       topic.value,
       partition,
       Schema.BYTES_SCHEMA,

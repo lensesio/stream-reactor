@@ -17,8 +17,8 @@ package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import com.datamountaineer.streamreactor.common.config.base.traits.BaseSettings
 import com.datamountaineer.streamreactor.common.config.base.traits.WithConnectorPrefix
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getLong
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions.ExcludeIndexes
 import org.apache.kafka.common.config.ConfigDef
@@ -84,7 +84,7 @@ trait SourcePartitionSearcherSettings extends BaseSettings with SourcePartitionS
     PartitionSearcherOptions(
       recurseLevels = getInt(SOURCE_PARTITION_SEARCH_RECURSE_LEVELS),
       continuous    = getBoolean(SOURCE_PARTITION_SEARCH_MODE),
-      interval = S3Config.getLong(props, SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS).getOrElse(
+      interval = getLong(props, SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS).getOrElse(
         SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DEFAULT,
       ).millis,
       wildcardExcludes = ExcludeIndexes,

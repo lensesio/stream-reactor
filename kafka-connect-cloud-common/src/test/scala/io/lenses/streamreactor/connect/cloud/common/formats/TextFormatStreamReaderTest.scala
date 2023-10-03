@@ -21,7 +21,7 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
-import io.lenses.streamreactor.connect.cloud.common.stream.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.cloud.common.stream.CloudByteArrayOutputStream
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic
 import org.scalatest.flatspec.AnyFlatSpec
@@ -51,7 +51,7 @@ class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
   }
 
   private def writeRecordsToOutputStream = {
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     SampleData.Users.take(3).foreach(data =>
       jsonFormatWriter.write(MessageDetail(NullSinkData(None),

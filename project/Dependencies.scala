@@ -5,9 +5,9 @@ import sbt.librarymanagement.InclExclRule
 
 object Dependencies {
 
-  val kafkaVersion = kafkaVersionAxis.kafkaVersion
+  val kafkaVersion: String = kafkaVersionAxis.kafkaVersion
 
-  val confluentVersion = kafkaVersionAxis.confluentPlatformVersion
+  val confluentVersion: String = kafkaVersionAxis.confluentPlatformVersion
 
   val globalExcludeDeps: Seq[InclExclRule] = Seq(
     "org.jboss.logging"        % "commons-logging-jboss-logging",
@@ -26,11 +26,11 @@ object Dependencies {
   )
 
   // scala versions
-  val scalaOrganization      = "org.scala-lang"
-  val scalaVersion           = "2.13.10"
-  val supportedScalaVersions = List(Dependencies.scalaVersion)
+  val scalaOrganization = "org.scala-lang"
+  val scalaVersion      = "2.13.10"
+  val supportedScalaVersions: Seq[String] = List(Dependencies.scalaVersion)
 
-  val commonResolvers = Seq(
+  val commonResolvers: Seq[MavenRepository] = Seq(
     Resolver sonatypeRepo "public",
     Resolver typesafeRepo "releases",
     Resolver.mavenLocal,
@@ -70,7 +70,7 @@ object Dependencies {
     val kindProjectorVersion    = "0.13.2"
     val betterMonadicForVersion = "0.3.1"
 
-    val logbackVersion      = "1.4.6"
+    val logbackVersion      = "1.4.7"
     val scalaLoggingVersion = "3.9.5"
     val classGraphVersions  = "4.8.157"
 
@@ -79,11 +79,15 @@ object Dependencies {
 
     val jerseyCommonVersion = "3.1.1"
 
-    val calciteVersion   = "1.34.0"
-    val awsSdkVersion    = "2.20.68"
-    val guavaVersion     = "31.0.1-jre"
-    val guiceVersion     = "5.1.0"
-    val javaxBindVersion = "2.3.1"
+    val calciteVersion = "1.34.0"
+    val awsSdkVersion  = "2.20.69"
+
+    val azureDataLakeVersion = "12.17.0"
+    val azureIdentityVersion = "1.8.1"
+    val gcpStorageVersion    = "2.26.1"
+    val guavaVersion         = "31.0.1-jre"
+    val guiceVersion         = "5.1.0"
+    val javaxBindVersion     = "2.3.1"
 
     val jacksonVersion      = "2.14.2"
     val json4sVersion       = "4.0.6"
@@ -188,7 +192,7 @@ object Dependencies {
   val circeGeneric = "io.circe" %% "circe-generic" % circeVersion
   val circeParser  = "io.circe" %% "circe-parser"  % circeVersion
   val circeRefined = "io.circe" %% "circe-refined" % circeVersion
-  val circe        = Seq(circeGeneric, circeParser)
+  val circe: Seq[ModuleID] = Seq(circeGeneric, circeParser)
 
   // logging
   val logback          = "ch.qos.logback"              % "logback-classic"  % logbackVersion
@@ -212,7 +216,7 @@ object Dependencies {
 
   val enumeratumCore  = "com.beachape" %% "enumeratum"       % enumeratumVersion
   val enumeratumCirce = "com.beachape" %% "enumeratum-circe" % enumeratumVersion
-  val enumeratum      = Seq(enumeratumCore, enumeratumCirce)
+  val enumeratum: Seq[ModuleID] = Seq(enumeratumCore, enumeratumCirce)
 
   val classGraph = "io.github.classgraph" % "classgraph" % classGraphVersions
 
@@ -244,14 +248,14 @@ object Dependencies {
   val http4sBlazeServer = "org.http4s" %% "http4s-blaze-server"      % http4sVersion
   val http4sBlazeClient = "org.http4s" %% "http4s-blaze-client"      % http4sVersion
   val http4sCirce       = "org.http4s" %% "http4s-circe"             % http4sVersion
-  val http4s            = Seq(http4sDsl, http4sAsyncClient, http4sBlazeServer, http4sCirce)
+  val http4s: Seq[ModuleID] = Seq(http4sDsl, http4sAsyncClient, http4sBlazeServer, http4sCirce)
 
-  val bouncyProv   = "org.bouncycastle" % "bcprov-jdk15on" % bouncyCastleVersion
-  val bouncyUtil   = "org.bouncycastle" % "bcutil-jdk15on" % bouncyCastleVersion
-  val bouncyPkix   = "org.bouncycastle" % "bcpkix-jdk15on" % bouncyCastleVersion
-  val bouncyBcpg   = "org.bouncycastle" % "bcpg-jdk15on"   % bouncyCastleVersion
-  val bouncyTls    = "org.bouncycastle" % "bctls-jdk15on"  % bouncyCastleVersion
-  val bouncyCastle = Seq(bouncyProv, bouncyUtil, bouncyPkix, bouncyBcpg, bouncyTls)
+  val bouncyProv = "org.bouncycastle" % "bcprov-jdk15on" % bouncyCastleVersion
+  val bouncyUtil = "org.bouncycastle" % "bcutil-jdk15on" % bouncyCastleVersion
+  val bouncyPkix = "org.bouncycastle" % "bcpkix-jdk15on" % bouncyCastleVersion
+  val bouncyBcpg = "org.bouncycastle" % "bcpg-jdk15on"   % bouncyCastleVersion
+  val bouncyTls  = "org.bouncycastle" % "bctls-jdk15on"  % bouncyCastleVersion
+  val bouncyCastle: Seq[ModuleID] = Seq(bouncyProv, bouncyUtil, bouncyPkix, bouncyBcpg, bouncyTls)
 
   lazy val avro           = "org.apache.avro"      % "avro"            % avroVersion
   lazy val avroProtobuf   = "org.apache.avro"      % "avro-protobuf"   % avroVersion
@@ -317,6 +321,10 @@ object Dependencies {
   lazy val stsSdk    = "software.amazon.awssdk" % "sts"      % awsSdkVersion
   lazy val javaxBind = "javax.xml.bind"         % "jaxb-api" % javaxBindVersion
 
+  lazy val azureDataLakeSdk: ModuleID = "com.azure" % "azure-storage-file-datalake" % azureDataLakeVersion
+  lazy val azureIdentity:    ModuleID = "com.azure" % "azure-identity"              % azureIdentityVersion
+
+  lazy val gcpStorageSdk       = "com.google.cloud"             % "google-cloud-storage" % gcpStorageVersion
   lazy val guava               = "com.google.guava"             % "guava"                % guavaVersion
   lazy val guice               = "com.google.inject"            % "guice"                % guiceVersion
   lazy val guiceAssistedInject = "com.google.inject.extensions" % "guice-assistedinject" % guiceVersion
@@ -519,30 +527,30 @@ trait Dependencies {
     hadoopMapReduce,
     hadoopMapReduceClient,
     hadoopMapReduceClientCore,
-    //javaxBind,
     openCsv,
-    //guice,
-    //guiceAssistedInject,
   )
 
   val kafkaConnectS3Deps: Seq[ModuleID] = Seq(
     s3Sdk,
     stsSdk,
-    parquetAvro,
-    parquetHadoop,
-    hadoopCommon,
-    hadoopMapReduce,
-    hadoopMapReduceClient,
-    hadoopMapReduceClientCore,
-    javaxBind,
-    openCsv,
-    guice,
-    guiceAssistedInject,
+    // TODO: are these still needed?
+    //javaxBind,
+    //guice,
+    //guiceAssistedInject,
+  )
+
+  val kafkaConnectAzureDatalakeDeps: Seq[ModuleID] = Seq(
+    azureDataLakeSdk,
+    azureIdentity,
+  )
+
+  val kafkaConnectGcpStorageDeps: Seq[ModuleID] = Seq(
+    gcpStorageSdk,
   )
 
   val compressionCodecDeps: Seq[ModuleID] = Seq(xz, lzo, lz4)
 
-  val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ testContainersScala
+  val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ testcontainersCore
 
   val kafkaConnectS3FuncTestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ s3Sdk
 

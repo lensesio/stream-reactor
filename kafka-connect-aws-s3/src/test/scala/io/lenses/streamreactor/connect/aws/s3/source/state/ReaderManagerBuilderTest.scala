@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.source.state
 import cats.effect.testing.scalatest.AsyncIOSpec
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
+import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
@@ -31,7 +32,7 @@ import org.scalatest.matchers.should.Matchers
 class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Matchers {
   implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   "ReaderManagerBuilder" should "create a reader manager" in {
-    val si = mock[StorageInterface]
+    val si = mock[StorageInterface[S3FileMetadata]]
     val root = CloudLocation(
       "bucket",
       Some("prefix1"),

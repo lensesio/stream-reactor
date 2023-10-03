@@ -18,8 +18,8 @@ package io.lenses.streamreactor.connect.cloud.common.config
 import cats.implicits.catsSyntaxEitherId
 import com.datamountaineer.kcql.Kcql
 import io.lenses.streamreactor.connect.cloud.common.config.FormatOptions.WithHeaders
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEntry
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEnum
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.converters.BytesOutputRowConverter
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.converters.SchemaAndValueConverter
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.converters.SchemaAndValueEnvelopeConverter
@@ -59,7 +59,7 @@ case class ReaderBuilderContext(
 )
 
 sealed trait FormatSelection {
-  def toStreamReader(input: ReaderBuilderContext): S3StreamReader
+  def toStreamReader(input: ReaderBuilderContext): CloudStreamReader
 
   def availableCompressionCodecs: Map[CompressionCodecName, Boolean] = Map(UNCOMPRESSED -> false)
 
@@ -71,7 +71,7 @@ case object FormatSelection {
 
   def fromKcql(
     kcql:            Kcql,
-    kcqlPropsSchema: KcqlPropsSchema[S3PropsKeyEntry, S3PropsKeyEnum.type],
+    kcqlPropsSchema: KcqlPropsSchema[PropsKeyEntry, PropsKeyEnum.type],
   ): Either[Throwable, FormatSelection] =
     Option(kcql.getStoredAs) match {
       case Some(storedAs) =>
@@ -113,7 +113,7 @@ case object FormatSelection {
 case object JsonFormatSelection extends FormatSelection {
   override def toStreamReader(
     input: ReaderBuilderContext,
-  ): S3StreamReader = {
+  ): CloudStreamReader = {
     val inner = new TextStreamReader(input.stream)
     val converter = if (input.hasEnvelope) {
       new SchemalessEnvelopeConverter(input.watermarkPartition,
@@ -127,7 +127,7 @@ case object JsonFormatSelection extends FormatSelection {
       converters.TextConverter(input)
     }
 
-    new DelegateIteratorS3StreamReader[String](inner, converter, input.bucketAndPath)
+    new DelegateIteratorCloudStreamReader[String](inner, converter, input.bucketAndPath)
   }
 
   override def extension: String = "json"
@@ -147,7 +147,7 @@ case object AvroFormatSelection extends FormatSelection {
 
   override def toStreamReader(
     input: ReaderBuilderContext,
-  ): S3StreamReader = {
+  ): CloudStreamReader = {
 
     val inner = new AvroStreamReader(input.stream)
     val converter = if (input.hasEnvelope) {
@@ -165,7 +165,7 @@ case object AvroFormatSelection extends FormatSelection {
                                   input.metadata.lastModified,
       )
     }
-    new DelegateIteratorS3StreamReader(inner, converter, input.bucketAndPath)
+    new DelegateIteratorCloudStreamReader(inner, converter, input.bucketAndPath)
 
   }
 
@@ -187,7 +187,7 @@ case object ParquetFormatSelection extends FormatSelection {
 
   override def toStreamReader(
     input: ReaderBuilderContext,
-  ): S3StreamReader = {
+  ): CloudStreamReader = {
     val inner = ParquetStreamReader.apply(input.stream, input.metadata.size, input.recreateInputStreamF)
     val converter = if (input.hasEnvelope) {
       new SchemaAndValueEnvelopeConverter(input.watermarkPartition,
@@ -204,7 +204,7 @@ case object ParquetFormatSelection extends FormatSelection {
                                   input.metadata.lastModified,
       )
     }
-    new DelegateIteratorS3StreamReader(inner, converter, input.bucketAndPath)
+    new DelegateIteratorCloudStreamReader(inner, converter, input.bucketAndPath)
   }
 
   override def extension: String = "parquet"
@@ -214,13 +214,13 @@ case object ParquetFormatSelection extends FormatSelection {
 case class TextFormatSelection(readTextMode: Option[ReadTextMode]) extends FormatSelection {
   override def toStreamReader(
     input: ReaderBuilderContext,
-  ): S3StreamReader = {
+  ): CloudStreamReader = {
     val inner = TextStreamReader(
       readTextMode,
       input.stream,
     )
     val converter = converters.TextConverter(input)
-    new DelegateIteratorS3StreamReader(
+    new DelegateIteratorCloudStreamReader(
       inner,
       converter,
       input.bucketAndPath,
@@ -234,10 +234,10 @@ case class TextFormatSelection(readTextMode: Option[ReadTextMode]) extends Forma
 case class CsvFormatSelection(formatOptions: Set[FormatOptions]) extends FormatSelection {
   override def toStreamReader(
     input: ReaderBuilderContext,
-  ): S3StreamReader = {
+  ): CloudStreamReader = {
     val inner     = new CsvStreamReader(input.stream, hasHeaders = formatOptions.contains(WithHeaders))
     val converter = converters.TextConverter(input)
-    new DelegateIteratorS3StreamReader(
+    new DelegateIteratorCloudStreamReader(
       inner,
       converter,
       input.bucketAndPath,
@@ -251,7 +251,7 @@ case class CsvFormatSelection(formatOptions: Set[FormatOptions]) extends FormatS
 object BytesFormatSelection extends FormatSelection {
   override def toStreamReader(
     input: ReaderBuilderContext,
-  ): S3StreamReader = {
+  ): CloudStreamReader = {
 
     val inner = new BytesStreamFileReader(input.stream, input.metadata.size)
     val converter = new BytesOutputRowConverter(input.watermarkPartition,
@@ -260,7 +260,7 @@ object BytesFormatSelection extends FormatSelection {
                                                 input.bucketAndPath,
                                                 input.metadata.lastModified,
     )
-    new DelegateIteratorS3StreamReader(
+    new DelegateIteratorCloudStreamReader(
       inner,
       converter,
       input.bucketAndPath,

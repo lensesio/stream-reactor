@@ -16,11 +16,11 @@
 package io.lenses.streamreactor.connect.cloud.common.sink.config.padding
 
 import cats.implicits.catsSyntaxEitherId
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEnum.PaddingCharacter
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEnum.PaddingLength
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEnum.PaddingSelection
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEntry
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEnum
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PaddingCharacter
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PaddingLength
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PaddingSelection
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingType.LeftPad
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties.stringToInt
@@ -49,11 +49,11 @@ object PaddingService {
   }
 
   private object KcqlPropsPaddingConfigDetector
-      extends PaddingConfigDetector[KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type]] {
-    override def configApplied(config: KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type]): Boolean =
+      extends PaddingConfigDetector[KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]] {
+    override def configApplied(config: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): Boolean =
       config.containsKeyStartingWith("padding.")
 
-    override def processConfig(config: KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type]): PaddingService =
+    override def processConfig(config: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): PaddingService =
       fromDefaults(
         config.getOptionalChar(PaddingCharacter),
         config.getOptionalMap[String, Int](PaddingLength, stringToString, stringToInt),
@@ -75,7 +75,7 @@ object PaddingService {
   }
   def fromConfig(
     confDef: PaddingStrategySettings,
-    props:   KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type],
+    props:   KcqlProperties[PropsKeyEntry, PropsKeyEnum.type],
   ): Either[Throwable, PaddingService] = {
     val cdConf = ConfigDefPaddingConfigDetector.configApplied(confDef)
     val kpConf = KcqlPropsPaddingConfigDetector.configApplied(props)

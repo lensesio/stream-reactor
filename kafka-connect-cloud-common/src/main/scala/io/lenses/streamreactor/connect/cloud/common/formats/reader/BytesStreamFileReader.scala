@@ -24,7 +24,7 @@ import scala.util.Try
 class BytesStreamFileReader(
   input: InputStream,
   size:  Long,
-) extends S3DataIterator[BytesOutputRow] {
+) extends CloudDataIterator[BytesOutputRow] {
 
   private var consumed: Boolean = false
 

@@ -1,12 +1,10 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import cats.implicits._
-import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.source.S3SourceTaskTest.formats
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourcePartitionSearcherSettingsKeys
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
-import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
 import org.scalatest.EitherValues
 import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -22,24 +20,15 @@ class S3SourceTaskBucketRootTest
     with AnyFlatSpecLike
     with Matchers
     with EitherValues
-    with TaskIndexKey
     with SourcePartitionSearcherSettingsKeys {
 
-  def DefaultProps: Map[String, String] = Map(
-    AWS_ACCESS_KEY                          -> Identity,
-    AWS_SECRET_KEY                          -> Credential,
-    AWS_REGION                              -> "eu-west-1",
-    AUTH_MODE                               -> AuthMode.Credentials.toString,
-    CUSTOM_ENDPOINT                         -> uri(),
-    ENABLE_VIRTUAL_HOST_BUCKETS             -> "true",
-    TASK_INDEX                              -> "0:1",
-    "name"                                  -> "s3-source",
+  def DefaultProps: Map[String, String] = defaultProps + (
     SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
   )
 
   private val TopicName = "myTopic"
 
-  override def cleanUpEnabled: Boolean = false
+  override def cleanUp(): Unit = ()
 
   "task" should "read files from root of bucket" in {
     forAll(formats) {
@@ -108,7 +97,6 @@ class S3SourceTaskBucketRootTest
   }
 
   private def createBucket(bucketName: String) =
-    Try(s3Client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build())).toEither.map(_ => ())
+    Try(client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build())).toEither.map(_ => ())
 
-  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

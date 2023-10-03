@@ -1,16 +1,21 @@
 package io.lenses.streamreactor.connect.aws.s3.utils
-
-import com.dimafeng.testcontainers.ForAllTestContainer
-import com.dimafeng.testcontainers.GenericContainer
+import cats.implicits.toBifunctorOps
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.AUTH_MODE
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.AWS_ACCESS_KEY
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.AWS_REGION
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.AWS_SECRET_KEY
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CUSTOM_ENDPOINT
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.ENABLE_VIRTUAL_HOST_BUCKETS
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
-import org.scalatest.BeforeAndAfter
-import org.scalatest.flatspec.AnyFlatSpec
-import org.testcontainers.containers.wait.strategy.Wait
+import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
+import io.lenses.streamreactor.connect.testcontainers.S3Container
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest
 import software.amazon.awssdk.services.s3.model.Delete
@@ -21,111 +26,72 @@ import java.io.File
 import java.nio.file.Files
 import scala.util.Try
 
-trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with LazyLogging with BeforeAndAfter {
-  private implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("unit-tests", 1, 1)
-  val Port:                             Int             = 8080
-  val Identity:                         String          = "identity"
-  val Credential:                       String          = "credential"
-  val BucketName:                       String          = "employees"
+trait S3ProxyContainerTest
+    extends CloudPlatformEmulatorSuite[S3FileMetadata, AwsS3StorageInterface, S3Client]
+    with TaskIndexKey
+    with LazyLogging {
 
-  var storageInterfaceOpt: Option[AwsS3StorageInterface] = None
-  var s3ClientOpt:         Option[S3Client]              = None
-  var helperOpt:           Option[RemoteFileHelper]      = None
+  val BucketName = "testbucket"
 
-  var localRoot: File = _
-  var localFile: File = _
+  implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("unit-tests", 1, 1)
 
-  implicit lazy val storageInterface: AwsS3StorageInterface =
-    storageInterfaceOpt.getOrElse(throw new IllegalStateException("Test not initialised"))
+  override val container: S3Container = S3Container()
 
-  lazy val s3Client: S3Client         = s3ClientOpt.getOrElse(throw new IllegalStateException("Test not initialised"))
-  lazy val helper:   RemoteFileHelper = helperOpt.getOrElse(throw new IllegalStateException("Test not initialised"))
+  override def createStorageInterface(client: S3Client): AwsS3StorageInterface =
+    Try(new AwsS3StorageInterface(connectorTaskId, client, true)).toEither.leftMap(fail(_)).merge
 
-  override val container: GenericContainer = GenericContainer(
-    dockerImage  = "andrewgaul/s3proxy:sha-ba0fd6d",
-    exposedPorts = Seq(Port),
-    env = Map[String, String](
-      "S3PROXY_ENDPOINT" -> ("http://0.0.0.0:" + Port),
-      // S3Proxy currently has an issue with authorization, therefore it is disabled for the time being
-      // https://github.com/gaul/s3proxy/issues/392
-      "S3PROXY_AUTHORIZATION" -> "none",
-      "S3PROXY_IDENTITY"      -> Identity,
-      "S3PROXY_CREDENTIAL"    -> Credential,
-      // using the AWS library requires this to be set for testing
-      "S3PROXY_IGNORE_UNKNOWN_HEADERS" -> "true",
-    ),
-    waitStrategy = Wait.forListeningPort(),
-  )
+  override def createClient(): S3Client = {
 
-  def uri(): String = "http://127.0.0.1:" + container.mappedPort(Port)
+    val uri: String = "http://127.0.0.1:" + container.getFirstMappedPort
 
-  def resume(): Unit = {
-    val _ = container.dockerClient.unpauseContainerCmd(container.containerId).exec();
+    val s3Config: S3Config = S3Config(
+      region                   = Some("eu-west-1"),
+      accessKey                = Some(container.identity.identity),
+      secretKey                = Some(container.identity.credential),
+      authMode                 = AuthMode.Credentials,
+      customEndpoint           = Some(uri),
+      enableVirtualHostBuckets = true,
+    )
+
+    AwsS3ClientCreator.make(s3Config).leftMap(fail(_)).merge
   }
 
-  def pause(): Unit = {
-    val _ = container.dockerClient.pauseContainerCmd(container.containerId).exec()
+  override def createDefaultProps(): Map[String, String] = {
+
+    val uri: String = "http://127.0.0.1:" + container.getFirstMappedPort
+
+    Map(
+      AWS_ACCESS_KEY              -> container.identity.identity,
+      AWS_SECRET_KEY              -> container.identity.credential,
+      AUTH_MODE                   -> AuthMode.Credentials.toString,
+      CUSTOM_ENDPOINT             -> uri,
+      ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
+      "name"                      -> "s3SinkTaskBuildLocalTest",
+      AWS_REGION                  -> "eu-west-1",
+      TASK_INDEX                  -> "1:1",
+    )
   }
 
-  override def afterStart(): Unit = {
+  val localRoot: File = Files.createTempDirectory("blah").toFile
+  val localFile: File = Files.createTempFile("blah", "blah").toFile
 
-    val (sI, sC) = {
-      for {
-        client           <- AwsS3ClientCreator.make(s3Config)
-        storageInterface <- Try(new AwsS3StorageInterface(connectorTaskId, client, true)).toEither
-      } yield (storageInterface, client)
-    }.getOrElse(fail("Failed to create S3 client"))
+  override def connectorPrefix: String = CONNECTOR_PREFIX
 
-    storageInterfaceOpt = Some(sI)
-    s3ClientOpt         = Some(sC)
-    helperOpt           = Some(new RemoteFileHelper(sI))
-
-    logger.debug("Creating test bucket")
-    createTestBucket() match {
-      case Left(err) =>
-        logger.error("Failed to create test bucket.", err)
-        fail("Failed to create test bucket.", err)
-      case Right(_) =>
-    }
-    setUpTestData()
-
-    localRoot = Files.createTempDirectory("blah").toFile
-    localFile = Files.createTempFile("blah", "blah").toFile
+  override def createBucket(): Unit = {
+    Try(
+      client.createBucket(CreateBucketRequest.builder().bucket(BucketName).build()),
+    ).toEither.leftMap(logger.error(" _", _))
+    ()
   }
 
-  def cleanUpEnabled: Boolean = true
-
-  def setUpTestData(): Unit = {}
-
-  def s3Config: S3Config = S3Config(
-    region                   = Some("us-east-1"),
-    accessKey                = Some(Identity),
-    secretKey                = Some(Credential),
-    authMode                 = AuthMode.Credentials,
-    customEndpoint           = Some(uri()),
-    enableVirtualHostBuckets = true,
-  )
-
-  after {
-    if (cleanUpEnabled) {
-      clearTestBucket()
-      setUpTestData()
-    }
-  }
-
-  def createTestBucket(): Either[Throwable, Unit] =
-    // It is fine if it already exists
-    Try(s3Client.createBucket(CreateBucketRequest.builder().bucket(BucketName).build())).toEither.map(_ => ())
-
-  def clearTestBucket(): Either[Throwable, Unit] =
+  override def cleanUp(): Unit = {
     Try {
-
-      val toDeleteArray = helper
-        .listBucketPath(BucketName, "")
+      val toDeleteArray = listBucketPath(BucketName, "")
         .map(ObjectIdentifier.builder().key(_).build())
       val delete = Delete.builder().objects(toDeleteArray: _*).build
-      s3Client.deleteObjects(DeleteObjectsRequest.builder().bucket(BucketName).delete(delete).build())
-
-    }.toEither.map(_ => ())
+      client.deleteObjects(DeleteObjectsRequest.builder().bucket(BucketName).delete(delete).build())
+    }
+    ()
+  }
 
 }

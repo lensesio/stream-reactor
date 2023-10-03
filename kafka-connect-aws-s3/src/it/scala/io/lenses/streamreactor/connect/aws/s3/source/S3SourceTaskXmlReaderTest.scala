@@ -1,11 +1,9 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import cats.implicits._
-import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourcePartitionSearcherSettingsKeys
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
-import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.EitherValues
 import org.scalatest.concurrent.Eventually.eventually
@@ -23,30 +21,21 @@ class S3SourceTaskXmlReaderTest
     with AnyFlatSpecLike
     with Matchers
     with EitherValues
-    with TaskIndexKey
     with SourcePartitionSearcherSettingsKeys {
 
-  def DefaultProps: Map[String, String] = Map(
-    AWS_ACCESS_KEY                          -> Identity,
-    AWS_SECRET_KEY                          -> Credential,
-    AWS_REGION                              -> "eu-west-1",
-    AUTH_MODE                               -> AuthMode.Credentials.toString,
-    CUSTOM_ENDPOINT                         -> uri(),
-    ENABLE_VIRTUAL_HOST_BUCKETS             -> "true",
-    TASK_INDEX                              -> "0:1",
-    "name"                                  -> "s3-source",
+  def DefaultProps: Map[String, String] = defaultProps + (
     SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
   )
 
   val PrefixName = "streamReactorBackups"
   val TopicName  = "myTopic"
 
-  override def cleanUpEnabled: Boolean = false
+  override def cleanUp(): Unit = ()
 
   override def setUpTestData(): Unit = {
     val res = Seq("/xml/employeedata0001.xml", "/xml/employeedata0002.xml").traverse { f =>
       val file = new File(getClass.getResource(f).toURI)
-      storageInterface.uploadFile(file, BucketName, "streamReactorBackups" + f)
+      storageInterface.uploadFile(UploadableFile(file), BucketName, "streamReactorBackups" + f)
     }
     res should be(Right(Vector((), ())))
     ()
@@ -56,13 +45,10 @@ class S3SourceTaskXmlReaderTest
 
     val task = new S3SourceTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql"                            -> s"insert into $TopicName select * from $BucketName:$PrefixName/xml STOREAS `TEXT` LIMIT 1000 PROPERTIES ( 'read.text.mode'='StartEndTag' , 'read.text.start.tag'='<Employee>' , 'read.text.end.tag'='</Employee>' )",
-          "connect.s3.partition.search.recurse.levels" -> "0",
-        ),
-      ).asJava
+    val props = (defaultProps ++ Map(
+      "connect.s3.kcql"                            -> s"insert into $TopicName select * from $BucketName:$PrefixName/xml STOREAS `TEXT` LIMIT 1000 PROPERTIES ( 'read.text.mode'='StartEndTag' , 'read.text.start.tag'='<Employee>' , 'read.text.end.tag'='</Employee>' )",
+      "connect.s3.partition.search.recurse.levels" -> "0",
+    )).asJava
 
     task.start(props)
 
@@ -122,5 +108,4 @@ class S3SourceTaskXmlReaderTest
       }
   }
 
-  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

@@ -17,9 +17,9 @@ package io.lenses.streamreactor.connect.cloud.common.sink.commit
 
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.Logger
-import io.lenses.streamreactor.connect.cloud.common.sink.config.S3FlushSettings.defaultFlushCount
-import io.lenses.streamreactor.connect.cloud.common.sink.config.S3FlushSettings.defaultFlushInterval
-import io.lenses.streamreactor.connect.cloud.common.sink.config.S3FlushSettings.defaultFlushSize
+import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings.defaultFlushCount
+import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings.defaultFlushInterval
+import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings.defaultFlushSize
 
 import scala.util.Try
 

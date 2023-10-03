@@ -29,13 +29,13 @@ class TextConverter(
   watermarkPartition: java.util.Map[String, String],
   topic:              Topic,
   partition:          Integer,
-  s3Location:         CloudLocation,
+  location:           CloudLocation,
   lastModified:       Instant,
 ) extends Converter[String] {
   override def convert(value: String, index: Long): SourceRecord =
     new SourceRecord(
       watermarkPartition,
-      SourceWatermark.offset(s3Location, index, lastModified),
+      SourceWatermark.offset(location, index, lastModified),
       topic.value,
       partition,
       null,

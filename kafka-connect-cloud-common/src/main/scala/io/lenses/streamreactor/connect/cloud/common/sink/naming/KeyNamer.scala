@@ -19,7 +19,7 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
-import io.lenses.streamreactor.connect.cloud.common.sink.FatalS3SinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
 
@@ -32,13 +32,13 @@ trait KeyNamer {
     bucketAndPrefix:  CloudLocation,
     topicPartition:   TopicPartition,
     partitionValues:  Map[PartitionField, String],
-  ): Either[FatalS3SinkError, File]
+  ): Either[FatalCloudSinkError, File]
 
   def finalFilename(
     bucketAndPrefix:      CloudLocation,
     topicPartitionOffset: TopicPartitionOffset,
     partitionValues:      Map[PartitionField, String],
-  ): Either[FatalS3SinkError, CloudLocation]
+  ): Either[FatalCloudSinkError, CloudLocation]
 
   def processPartitionValues(
     messageDetail:  MessageDetail,

@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.formats
 
-import io.lenses.streamreactor.connect.cloud.common.stream.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.cloud.common.stream.CloudByteArrayOutputStream
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.ByteArraySinkData
@@ -39,7 +39,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues 
 
   "round trip" should "round trip" in {
     val testBytes    = "Sausages".getBytes()
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream = new CloudByteArrayOutputStream()
     val writer       = new BytesFormatWriter(outputStream)
     writer.write(
       MessageDetail(NullSinkData(None),
@@ -57,7 +57,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues 
 
   "convert" should "write a string to byte stream" in {
 
-    val outputStream      = new S3ByteArrayOutputStream()
+    val outputStream      = new CloudByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(outputStream)
     bytesFormatWriter.write(
       MessageDetail(NullSinkData(None),
@@ -77,7 +77,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues 
 
   "convert" should "write binary with ValueOnly" in {
 
-    val outputStream      = new S3ByteArrayOutputStream()
+    val outputStream      = new CloudByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(outputStream)
     bytesFormatWriter.write(MessageDetail(NullSinkData(None),
                                           byteArrayValue,
@@ -100,7 +100,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues 
     val bytes: Array[Byte] = IOUtils.toByteArray(stream)
     val (bytes1, bytes2) = bytes.splitAt(bytes.length / 2)
 
-    val outputStream      = new S3ByteArrayOutputStream()
+    val outputStream      = new CloudByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(outputStream)
     bytesFormatWriter.write(MessageDetail(NullSinkData(None),
                                           ByteArraySinkData(bytes1, None),
@@ -129,7 +129,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues 
 
   "convert" should "throw error when avro value is supplied" in {
 
-    val outputStream      = new S3ByteArrayOutputStream()
+    val outputStream      = new CloudByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(outputStream)
     val caught =
       bytesFormatWriter.write(MessageDetail(NullSinkData(None),

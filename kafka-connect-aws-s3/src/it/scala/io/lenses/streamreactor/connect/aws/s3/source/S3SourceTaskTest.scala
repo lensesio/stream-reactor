@@ -3,18 +3,16 @@ package io.lenses.streamreactor.connect.aws.s3.source
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.source.S3SourceTaskTest.formats
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourcePartitionSearcherSettingsKeys
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
-import io.lenses.streamreactor.connect.cloud.common.config.Format.Bytes
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.Format
+import io.lenses.streamreactor.connect.cloud.common.config.Format.Bytes
 import io.lenses.streamreactor.connect.cloud.common.config.FormatOptions
-import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindCompletionConfig
@@ -52,7 +50,6 @@ class S3SourceTaskTest
     with LazyLogging
     with BeforeAndAfter
     with Eventually
-    with TaskIndexKey
     with SourcePartitionSearcherSettingsKeys {
 
   override implicit def patienceConfig: PatienceConfig =
@@ -60,24 +57,18 @@ class S3SourceTaskTest
   implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   private var bucketSetupOpt:          Option[BucketSetup]    = None
   def bucketSetup:                     BucketSetup            = bucketSetupOpt.getOrElse(throw new IllegalStateException("Not initialised"))
+  override def cleanUp():              Unit                   = ()
 
-  def DefaultProps: Map[String, String] = Map(
-    AWS_ACCESS_KEY                          -> Identity,
-    AWS_SECRET_KEY                          -> Credential,
-    AWS_REGION                              -> "eu-west-1",
-    AUTH_MODE                               -> AuthMode.Credentials.toString,
-    CUSTOM_ENDPOINT                         -> uri(),
-    ENABLE_VIRTUAL_HOST_BUCKETS             -> "true",
-    TASK_INDEX                              -> "1:1",
-    "name"                                  -> "s3-source",
-    SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
-    SOURCE_PARTITION_SEARCH_RECURSE_LEVELS  -> "0",
-  )
+  def DefaultProps: Map[String, String] = defaultProps ++
+    Seq(
+      SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
+      SOURCE_PARTITION_SEARCH_RECURSE_LEVELS  -> "0",
+    )
 
   "blobstore get input stream" should "reveal availability" in {
 
     val inputStream =
-      helper.remoteFileAsStream(BucketName, s"${bucketSetup.PrefixName}/json/${bucketSetup.TopicName}/0/399.json")
+      remoteFileAsStream(BucketName, s"${bucketSetup.PrefixName}/json/${bucketSetup.TopicName}/0/399.json")
     val initialAvailable = inputStream.available()
 
     var expectedAvailable = initialAvailable
@@ -96,7 +87,7 @@ class S3SourceTaskTest
         DirectoryFindCompletionConfig(0),
         Set.empty,
         Set.empty,
-        s3Client.listObjectsV2Paginator(_).iterator().asScala,
+        client.listObjectsV2Paginator(_).iterator().asScala,
         ConnectorTaskId("name", 1, 1),
       )
     dirs.unsafeRunSync() should be(DirectoryFindResults(Set("streamReactorBackups/avro/myTopic/0/")))
@@ -112,7 +103,7 @@ class S3SourceTaskTest
 
           val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
 
-          val props = DefaultProps
+          val props = defaultProps
             .combine(
               Map(
                 KCQL_CONFIG -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir/ STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
@@ -170,7 +161,7 @@ class S3SourceTaskTest
 
           val formatExtensionString = bucketSetup.generateFormatString(formatOptions)
 
-          val props = DefaultProps
+          val props = defaultProps
             .combine(
               Map(
                 KCQL_CONFIG -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir/ STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
@@ -242,7 +233,7 @@ class S3SourceTaskTest
         }
         task.initialize(context)
 
-        val props = DefaultProps
+        val props = defaultProps
           .combine(
             Map(
               KCQL_CONFIG                  -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190",
@@ -293,12 +284,10 @@ class S3SourceTaskTest
 
     val task = new S3SourceTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          KCQL_CONFIG -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}` LIMIT 190",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      KCQL_CONFIG -> s"insert into ${bucketSetup.TopicName} select * from $BucketName:${bucketSetup.PrefixName}/$dir STOREAS `${format.entryName}` LIMIT 190",
+    ),
+    ).asJava
 
     task.start(props)
     withCleanup(task.stop()) {
@@ -322,8 +311,6 @@ class S3SourceTaskTest
     }
   }
 
-  override def cleanUpEnabled: Boolean = false
-
   override def setUpTestData(): Unit = {
     if (bucketSetupOpt.isEmpty) {
       bucketSetupOpt = Some(new BucketSetup()(storageInterface))
@@ -344,5 +331,4 @@ class S3SourceTaskTest
       cleanup
     }
 
-  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

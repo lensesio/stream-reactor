@@ -28,51 +28,52 @@ trait SinkError {
 }
 
 // Cannot be retried, must be cleaned up
-case class FatalS3SinkError(message: String, exception: Throwable, topicPartition: TopicPartition) extends SinkError {
+case class FatalCloudSinkError(message: String, exception: Throwable, topicPartition: TopicPartition)
+    extends SinkError {
 
   override def rollBack(): Boolean = true
 
   override def topicPartitions(): Set[TopicPartition] = Set(topicPartition)
 }
 
-case object FatalS3SinkError {
+case object FatalCloudSinkError {
 
-  def apply(message: String, topicPartition: TopicPartition): FatalS3SinkError =
-    FatalS3SinkError(message, new IllegalStateException(message), topicPartition)
+  def apply(message: String, topicPartition: TopicPartition): FatalCloudSinkError =
+    FatalCloudSinkError(message, new IllegalStateException(message), topicPartition)
 
 }
 
 // Can be retried
-case class NonFatalS3SinkError(message: String, exception: Throwable) extends SinkError {
+case class NonFatalCloudSinkError(message: String, exception: Throwable) extends SinkError {
 
   override def rollBack(): Boolean = false
 
   override def topicPartitions(): Set[TopicPartition] = Set()
 }
 
-case object NonFatalS3SinkError {
-  def apply(message: String): NonFatalS3SinkError =
-    NonFatalS3SinkError(message, new IllegalStateException(message))
+case object NonFatalCloudSinkError {
+  def apply(message: String): NonFatalCloudSinkError =
+    NonFatalCloudSinkError(message, new IllegalStateException(message))
 
-  def apply(exception: Throwable): NonFatalS3SinkError =
-    NonFatalS3SinkError(exception.getMessage, exception)
+  def apply(exception: Throwable): NonFatalCloudSinkError =
+    NonFatalCloudSinkError(exception.getMessage, exception)
 }
 
-case object BatchS3SinkError {
-  def apply(mixedExceptions: Set[SinkError]): BatchS3SinkError =
-    BatchS3SinkError(
+case object BatchCloudSinkError {
+  def apply(mixedExceptions: Set[SinkError]): BatchCloudSinkError =
+    BatchCloudSinkError(
       mixedExceptions.collect {
-        case fatal: FatalS3SinkError => fatal
+        case fatal: FatalCloudSinkError => fatal
       },
       mixedExceptions.collect {
-        case fatal: NonFatalS3SinkError => fatal
+        case fatal: NonFatalCloudSinkError => fatal
       },
     )
 }
 
-case class BatchS3SinkError(
-  fatal:    Set[FatalS3SinkError],
-  nonFatal: Set[NonFatalS3SinkError],
+case class BatchCloudSinkError(
+  fatal:    Set[FatalCloudSinkError],
+  nonFatal: Set[NonFatalCloudSinkError],
 ) extends SinkError {
 
   def hasFatal: Boolean = fatal.nonEmpty
@@ -81,7 +82,7 @@ case class BatchS3SinkError(
     fatal.++(nonFatal)
       .headOption
       .map(_.exception)
-      .getOrElse(new IllegalStateException("No exception found in BatchS3SinkError"))
+      .getOrElse(new IllegalStateException("No exception found in BatchCloudSinkError"))
 
   override def message(): String =
     "fatal:\n" + fatal.map(_.message).mkString("\n") + "\n\nnonFatal:\n" + nonFatal.map(_.message).mkString(

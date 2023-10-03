@@ -28,8 +28,8 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 object SourceWatermark {
 
   /**
-    * Builds the source partition information from the S3Location
-    * @param root The S3Location
+    * Builds the source partition information from the CloudLocation
+    * @param root The CloudLocation
     * @return A map of partition information
     */
   def partition(root: CloudLocation): java.util.Map[String, String] =
@@ -39,8 +39,8 @@ object SourceWatermark {
     ).asJava
 
   /**
-    * Builds the source offset information from the S3Location
-    * @param bucketAndPath The S3Location
+    * Builds the source offset information from the CloudLocation
+    * @param bucketAndPath The CloudLocation
     * @param offset The offset
     * @param lastModified The last modified time of the file processed
     * @return A map of offset information

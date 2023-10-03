@@ -16,10 +16,10 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
 import com.datamountaineer.kcql.Kcql
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEnum.PartitionIncludeKeys
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEntry
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEnum
-import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.S3SinkPropsSchema
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
+import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.SinkPropsSchema
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.Values
@@ -32,8 +32,8 @@ import org.scalatest.matchers.should.Matchers
 class PartitionDisplayTest extends AnyFlatSpec with MockitoSugar with Matchers with BeforeAndAfter {
 
   private val kcql: Kcql = mock[Kcql]
-  private val emptyProps: KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type] =
-    KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type](schema = S3SinkPropsSchema.schema, map = Map.empty)
+  private val emptyProps: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type] =
+    KcqlProperties[PropsKeyEntry, PropsKeyEnum.type](schema = SinkPropsSchema.schema, map = Map.empty)
 
   before {
     reset(kcql)
@@ -54,11 +54,11 @@ class PartitionDisplayTest extends AnyFlatSpec with MockitoSugar with Matchers w
   "apply" should "recognise Keys from KCQL props" in {
     when(kcql.getWithPartitioner).thenReturn(null)
 
-    def keyValueProp(includeKeys: Boolean): KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type] =
-      KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type](schema = S3SinkPropsSchema.schema,
-                                                           map = Map(
-                                                             PartitionIncludeKeys.entryName -> includeKeys.toString,
-                                                           ),
+    def keyValueProp(includeKeys: Boolean): KcqlProperties[PropsKeyEntry, PropsKeyEnum.type] =
+      KcqlProperties[PropsKeyEntry, PropsKeyEnum.type](schema = SinkPropsSchema.schema,
+                                                       map = Map(
+                                                         PartitionIncludeKeys.entryName -> includeKeys.toString,
+                                                       ),
       )
     PartitionDisplay(kcql, keyValueProp(true), Values) should be(KeysAndValues)
     PartitionDisplay(kcql, keyValueProp(false), Values) should be(Values)

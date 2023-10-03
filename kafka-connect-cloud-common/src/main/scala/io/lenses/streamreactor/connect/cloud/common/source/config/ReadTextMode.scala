@@ -15,10 +15,10 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.source.config
 
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEntry
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEnum
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.CustomTextStreamReader
-import io.lenses.streamreactor.connect.cloud.common.formats.reader.S3DataIterator
+import io.lenses.streamreactor.connect.cloud.common.formats.reader.CloudDataIterator
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.ReadTextModeEntry
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.ReadTextModeEnum
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
@@ -31,31 +31,31 @@ import java.io.InputStream
 trait ReadTextMode {
   def createStreamReader(
     input: InputStream,
-  ): S3DataIterator[String]
+  ): CloudDataIterator[String]
 }
 
 object ReadTextMode {
   private val DEFAULT_TEXT_STREAM_BUFFER = 1024
-  def apply(props: KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type]): Option[ReadTextMode] = {
+  def apply(props: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): Option[ReadTextMode] = {
     val mode =
-      props.getEnumValue[ReadTextModeEntry, ReadTextModeEnum.type](ReadTextModeEnum, S3PropsKeyEnum.ReadTextMode)
+      props.getEnumValue[ReadTextModeEntry, ReadTextModeEnum.type](ReadTextModeEnum, PropsKeyEnum.ReadTextMode)
     mode match {
       case Some(ReadTextModeEnum.Regex) =>
         for {
-          readRegex <- props.getString(S3PropsKeyEnum.ReadRegex)
+          readRegex <- props.getString(PropsKeyEnum.ReadRegex)
         } yield RegexReadTextMode(readRegex)
       case Some(ReadTextModeEnum.StartEndTag) =>
         for {
-          startTag <- props.getString(S3PropsKeyEnum.ReadStartTag)
-          endTag   <- props.getString(S3PropsKeyEnum.ReadEndTag)
-          buffer   <- props.getOptionalInt(S3PropsKeyEnum.BufferSize).orElse(Some(DEFAULT_TEXT_STREAM_BUFFER))
+          startTag <- props.getString(PropsKeyEnum.ReadStartTag)
+          endTag   <- props.getString(PropsKeyEnum.ReadEndTag)
+          buffer   <- props.getOptionalInt(PropsKeyEnum.BufferSize).orElse(Some(DEFAULT_TEXT_STREAM_BUFFER))
         } yield StartEndTagReadTextMode(startTag, endTag, buffer)
 
       case Some(ReadTextModeEnum.StartEndLine) =>
         for {
-          startLine <- props.getString(S3PropsKeyEnum.ReadStartLine)
-          endLine   <- props.getString(S3PropsKeyEnum.ReadEndLine)
-          trim      <- props.getOptionalBoolean(S3PropsKeyEnum.ReadTrimLine).orElse(Some(false))
+          startLine <- props.getString(PropsKeyEnum.ReadStartLine)
+          endLine   <- props.getString(PropsKeyEnum.ReadEndLine)
+          trim      <- props.getOptionalBoolean(PropsKeyEnum.ReadTrimLine).toOption.flatten.orElse(Some(false))
         } yield StartEndLineReadTextMode(startLine, endLine, trim)
       case None => Option.empty
     }
@@ -65,7 +65,7 @@ object ReadTextMode {
 case class StartEndTagReadTextMode(startTag: String, endTag: String, buffer: Int) extends ReadTextMode {
   override def createStreamReader(
     input: InputStream,
-  ): S3DataIterator[String] = {
+  ): CloudDataIterator[String] = {
     val lineReader = new PrefixSuffixReader(
       input      = input,
       prefix     = startTag,
@@ -79,7 +79,7 @@ case class StartEndTagReadTextMode(startTag: String, endTag: String, buffer: Int
 case class StartEndLineReadTextMode(startLine: String, endLine: String, trim: Boolean) extends ReadTextMode {
   override def createStreamReader(
     input: InputStream,
-  ): S3DataIterator[String] = {
+  ): CloudDataIterator[String] = {
     val lineReader = new LineStartLineEndReader(
       input,
       startLine,
@@ -93,7 +93,7 @@ case class StartEndLineReadTextMode(startLine: String, endLine: String, trim: Bo
 case class RegexReadTextMode(regex: String) extends ReadTextMode {
   override def createStreamReader(
     input: InputStream,
-  ): S3DataIterator[String] = {
+  ): CloudDataIterator[String] = {
     val lineReader = new RegexMatchLineReader(
       input = input,
       regex = regex,

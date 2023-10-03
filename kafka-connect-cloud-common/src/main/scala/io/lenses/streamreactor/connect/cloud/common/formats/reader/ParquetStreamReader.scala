@@ -30,7 +30,7 @@ import scala.util.Try
 
 class ParquetStreamReader(
   reader: ParquetReader[GenericRecord],
-) extends S3DataIterator[SchemaAndValue]
+) extends CloudDataIterator[SchemaAndValue]
     with Using {
   private val parquetReaderIteratorAdaptor = new ParquetReaderIteratorAdaptor(reader)
   private val avroDataConverter            = new AvroData(100)

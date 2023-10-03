@@ -18,11 +18,11 @@ package io.lenses.streamreactor.connect.cloud.common.formats.writer
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
-import io.lenses.streamreactor.connect.cloud.common.stream.S3OutputStream
+import io.lenses.streamreactor.connect.cloud.common.stream.CloudOutputStream
 
 import scala.util.Try
 
-class BytesFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter with LazyLogging {
+class BytesFormatWriter(outputStream: CloudOutputStream) extends FormatWriter with LazyLogging {
 
   private var soiled = false
 

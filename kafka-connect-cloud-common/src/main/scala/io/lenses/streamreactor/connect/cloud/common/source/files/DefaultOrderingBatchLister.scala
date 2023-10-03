@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.cloud.common.source.files
 
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
-import io.lenses.streamreactor.connect.cloud.common.storage.ListResponse
+import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 
 /**
@@ -25,13 +25,13 @@ import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
   */
 object DefaultOrderingBatchLister extends BatchLister {
 
-  override def listBatch(
-    storageInterface: StorageInterface,
+  override def listBatch[SM <: FileMetadata](
+    storageInterface: StorageInterface[SM],
     bucket:           String,
     prefix:           Option[String],
     numResults:       Int,
-  )(lastFile:         Option[FileMetadata],
-  ): Either[FileListError, Option[ListResponse[String]]] =
+  )(lastFile:         Option[SM],
+  ): Either[FileListError, Option[ListOfKeysResponse[SM]]] =
     storageInterface
       .list(bucket, prefix, lastFile, numResults)
 }

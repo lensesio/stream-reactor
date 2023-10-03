@@ -16,22 +16,30 @@
 package io.lenses.streamreactor.connect.cloud.common.config
 
 import DataStorageSettings.AllEnvelopeFields
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
+import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.SinkPropsSchema
+import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.Assertion
+import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-class DataStorageSettingsTests extends AnyFunSuite with Matchers {
+class DataStorageSettingsTests extends AnyFunSuite with Matchers with EitherValues {
+
+  private def toKcqlProps(p: Map[String, String]): KcqlProperties[PropsKeyEntry, PropsKeyEnum.type] =
+    KcqlProperties[PropsKeyEntry, PropsKeyEnum.type](schema = SinkPropsSchema.schema, map = p)
 
   test("empty properties return defaults") {
     val properties      = Map.empty[String, String]
-    val storageSettings = DataStorageSettings.from(properties).getOrElse(fail("Should not have failed"))
+    val storageSettings = DataStorageSettings.from(toKcqlProps(properties)).getOrElse(fail("Should not have failed"))
     storageSettings shouldBe DataStorageSettings.Default
   }
 
   test("only envelope set to true returns all true") {
     val properties      = Map(DataStorageSettings.StoreEnvelopeKey -> "true")
-    val storageSettings = DataStorageSettings.from(properties)
+    val storageSettings = DataStorageSettings.from(toKcqlProps(properties))
     storageSettings shouldBe Right(DataStorageSettings(
       envelope = true,
       key      = true,
@@ -44,7 +52,7 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
   test("only envelope set to true but not all fields set returns error") {
     val properties = Map(DataStorageSettings.StoreEnvelopeKey -> "true", DataStorageSettings.StoreKeyKey -> "false")
     assertOnError(
-      DataStorageSettings.from(properties),
+      DataStorageSettings.from(toKcqlProps(properties)),
       s"If ${DataStorageSettings.StoreEnvelopeKey} is set to true, then setting selective fields is not allowed. Either set them all or leave them out, they default to true.",
     )
   }
@@ -59,7 +67,7 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
     )
 
     assertOnError(
-      DataStorageSettings.from(properties),
+      DataStorageSettings.from(toKcqlProps(properties)),
       s"If ${DataStorageSettings.StoreEnvelopeKey} is set to true then at least one of ${AllEnvelopeFields.mkString("[", ",", "]")} must be set to true.",
     )
   }
@@ -72,7 +80,7 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
       DataStorageSettings.StoreMetadataKey -> "false",
       DataStorageSettings.StoreHeadersKey  -> "false",
     )
-    val storageSettings = DataStorageSettings.from(properties)
+    val storageSettings = DataStorageSettings.from(toKcqlProps(properties))
     storageSettings shouldBe Right(DataStorageSettings(
       envelope = true,
       key      = true,
@@ -90,7 +98,7 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
       DataStorageSettings.StoreMetadataKey -> "true",
       DataStorageSettings.StoreHeadersKey  -> "false",
     )
-    val storageSettings = DataStorageSettings.from(properties)
+    val storageSettings = DataStorageSettings.from(toKcqlProps(properties))
     storageSettings shouldBe Right(DataStorageSettings(
       envelope = true,
       key      = false,
@@ -107,7 +115,7 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
       DataStorageSettings.StoreMetadataKey -> "false",
       DataStorageSettings.StoreHeadersKey  -> "true",
     )
-    val storageSettings = DataStorageSettings.from(properties)
+    val storageSettings = DataStorageSettings.from(toKcqlProps(properties))
     storageSettings shouldBe Right(DataStorageSettings(
       envelope = true,
       key      = false,
@@ -124,7 +132,7 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
       DataStorageSettings.StoreMetadataKey -> "true",
       DataStorageSettings.StoreHeadersKey  -> "true",
     )
-    val storageSettings = DataStorageSettings.from(properties)
+    val storageSettings = DataStorageSettings.from(toKcqlProps(properties))
     storageSettings shouldBe Right(DataStorageSettings(
       envelope = true,
       key      = true,
@@ -136,14 +144,14 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
   test("invalid envelope value") {
     val properties = Map(DataStorageSettings.StoreEnvelopeKey -> "invalid")
     assertOnError(
-      DataStorageSettings.from(properties),
+      DataStorageSettings.from(toKcqlProps(properties)),
       s"Invalid value for configuration [${DataStorageSettings.StoreEnvelopeKey}]. The value must be one of: true, false.",
     )
   }
   test("invalid key value") {
     val properties = Map(DataStorageSettings.StoreEnvelopeKey -> "true", DataStorageSettings.StoreKeyKey -> "invalid")
     assertOnError(
-      DataStorageSettings.from(properties),
+      DataStorageSettings.from(toKcqlProps(properties)),
       s"Invalid value for configuration [${DataStorageSettings.StoreKeyKey}]. The value must be one of: true, false.",
     )
   }
@@ -151,7 +159,7 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
     val properties =
       Map(DataStorageSettings.StoreEnvelopeKey -> "true", DataStorageSettings.StoreMetadataKey -> "invalid")
     assertOnError(
-      DataStorageSettings.from(properties),
+      DataStorageSettings.from(toKcqlProps(properties)),
       s"Invalid value for configuration [${DataStorageSettings.StoreMetadataKey}]. The value must be one of: true, false.",
     )
   }
@@ -159,7 +167,7 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
     val properties =
       Map(DataStorageSettings.StoreEnvelopeKey -> "true", DataStorageSettings.StoreHeadersKey -> "invalid")
     assertOnError(
-      DataStorageSettings.from(properties),
+      DataStorageSettings.from(toKcqlProps(properties)),
       s"Invalid value for configuration [${DataStorageSettings.StoreHeadersKey}]. The value must be one of: true, false.",
     )
   }
@@ -167,15 +175,11 @@ class DataStorageSettingsTests extends AnyFunSuite with Matchers {
     val properties = Map(DataStorageSettings.StoreEnvelopeKey -> "true", DataStorageSettings.StoreValueKey -> "invalid")
 
     assertOnError(
-      DataStorageSettings.from(properties),
+      DataStorageSettings.from(toKcqlProps(properties)),
       s"Invalid value for configuration [${DataStorageSettings.StoreValueKey}]. The value must be one of: true, false.",
     )
   }
 
   private def assertOnError(actual: Either[ConfigException, DataStorageSettings], msg: String): Assertion =
-    actual match {
-      case Left(value) =>
-        value.getMessage shouldBe msg
-      case Right(_) => fail("Should  have failed.")
-    }
+    actual.left.value.getMessage shouldBe msg
 }

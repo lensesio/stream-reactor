@@ -24,12 +24,12 @@ import scala.util.Try
 
 object S3LocationValidator extends CloudLocationValidator {
 
-  def validate(s3Location: CloudLocation, allowSlash: Boolean): Validated[Throwable, CloudLocation] =
+  def validate(location: CloudLocation, allowSlash: Boolean): Validated[Throwable, CloudLocation] =
     Validated.fromEither(
       for {
-        _ <- validateBucketName(s3Location.bucket).toEither
-        _ <- validatePrefix(allowSlash, s3Location.prefix).toEither
-      } yield s3Location,
+        _ <- validateBucketName(location.bucket).toEither
+        _ <- validatePrefix(allowSlash, location.prefix).toEither
+      } yield location,
     )
 
   private def validateBucketName(bucketName: String): Validated[Throwable, Unit] = Validated.fromTry(

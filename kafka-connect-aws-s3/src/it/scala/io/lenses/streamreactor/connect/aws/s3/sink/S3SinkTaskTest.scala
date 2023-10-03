@@ -22,18 +22,16 @@ import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.opencsv.CSVReader
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.checkArray
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.schema
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.users
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
-import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.checkRecord
-import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
 import io.lenses.streamreactor.connect.cloud.common.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.ParquetFormatReader
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.BytesFormatWriter
+import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.checkRecord
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
 import org.apache.commons.io.FileUtils
@@ -54,11 +52,11 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.StringReader
+import java.lang
 import java.nio.file.Files
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import java.lang
 import java.util
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
@@ -67,32 +65,15 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class S3SinkTaskTest
-    extends AnyFlatSpec
-    with Matchers
-    with S3ProxyContainerTest
-    with MockitoSugar
-    with LazyLogging
-    with TaskIndexKey {
+class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with MockitoSugar with LazyLogging {
 
-  import helper._
+  private val context = mock[SinkTaskContext]
 
   private val parquetFormatReader = new ParquetFormatReader()
   private val avroFormatReader    = new AvroFormatReader()
 
   private val PrefixName = "streamReactorBackups"
   private val TopicName  = "myTopic"
-
-  private def DefaultProps: Map[String, String] = Map(
-    AWS_ACCESS_KEY              -> Identity,
-    AWS_SECRET_KEY              -> Credential,
-    AUTH_MODE                   -> AuthMode.Credentials.toString,
-    CUSTOM_ENDPOINT             -> uri(),
-    ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
-    "name"                      -> "s3SinkTaskBuildLocalTest",
-    AWS_REGION                  -> "eu-west-1",
-    TASK_INDEX                  -> "1:1",
-  )
 
   private val partitionedData: List[Struct] = List(
     new Struct(schema).put("name", "first").put("title", "primary").put("salary", null),
@@ -168,12 +149,12 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
+    val props = (defaultProps
+      +
+        (
           "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_INTERVAL = 1",
         ),
-      ).asJava
+    ).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -201,12 +182,10 @@ class S3SinkTaskTest
     val task = new S3SinkTask()
 
     val prefixWithSlashes = "my/prefix/that/is/a/path"
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$prefixWithSlashes select * from $TopicName WITH_FLUSH_INTERVAL = 1",
-        ),
-      ).asJava
+    val props = (defaultProps
+      + (
+        "connect.s3.kcql" -> s"insert into $BucketName:$prefixWithSlashes select * from $TopicName WITH_FLUSH_INTERVAL = 1",
+      )).asJava
 
     val intercepted = intercept[IllegalArgumentException] {
       task.start(props)
@@ -218,14 +197,10 @@ class S3SinkTaskTest
 
   "S3SinkTask" should "flush for every record when configured flush count size of 1" in {
 
-    val task = new S3SinkTask()
+    val props =
+      (defaultProps + ("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1")).asJava
 
-    val props = DefaultProps
-      .combine(
-        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1"),
-      ).asJava
-
-    task.start(props)
+    val task = createTask(context, props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.put(records.asJava)
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -252,16 +227,10 @@ class S3SinkTaskTest
     */
   "S3SinkTask" should "flush on configured file size" in {
 
-    val task = new S3SinkTask()
+    val props =
+      defaultProps + ("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_SIZE = 80")
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_SIZE = 80",
-        ),
-      ).asJava
-
-    task.start(props)
+    val task = createTask(context, props.asJava)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.put(records.asJava)
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -277,16 +246,12 @@ class S3SinkTaskTest
 
   "S3SinkTask" should "flush on configured file size for Parquet" in {
 
-    val task = new S3SinkTask()
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `Parquet` WITH_FLUSH_SIZE = 20",
+    ),
+    ).asJava
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `Parquet` WITH_FLUSH_SIZE = 20",
-        ),
-      ).asJava
-
-    task.start(props)
+    val task = createTask(context, props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.put(records.asJava)
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -322,18 +287,12 @@ class S3SinkTaskTest
     */
   "S3SinkTask" should "put existing offsets to the context" in {
 
-    val task = new S3SinkTask()
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1",
+    ),
+    ).asJava
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1",
-        ),
-      ).asJava
-
-    val sinkTaskContext = mock[SinkTaskContext]
-    task.initialize(sinkTaskContext)
-    task.start(props)
+    val task = createTask(context, props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.put(records.asJava)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -352,21 +311,16 @@ class S3SinkTaskTest
       """{"name":"tom","title":null,"salary":395.44}""",
     )
 
-    verify(sinkTaskContext).offset(new TopicPartition("myTopic", 1), 2)
+    verify(context).offset(new TopicPartition("myTopic", 1), 2)
   }
 
   "S3SinkTask" should "skip when kafka connect resends the same offsets after opening" in {
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `Parquet` WITH_FLUSH_COUNT = 2",
-        ),
-      ).asJava
-    val context = mock[SinkTaskContext]
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `Parquet` WITH_FLUSH_COUNT = 2",
+    )).asJava
 
     var task: S3SinkTask = createTask(context, props)
-
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     verify(context, never).offset(new TopicPartition("myTopic", 1), 0)
     task.put(records.asJava)
@@ -436,16 +390,11 @@ class S3SinkTaskTest
 
   "S3SinkTask" should "write to parquet format" in {
 
-    val task = new S3SinkTask()
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"""insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET WITH_FLUSH_COUNT = 1""",
+    )).asJava
+    val task = createTask(context, props)
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"""insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET WITH_FLUSH_COUNT = 1""",
-        ),
-      ).asJava
-
-    task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.put(records.asJava)
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -465,12 +414,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1",
-        ),
-      ).asJava
+    val props = (
+      defaultProps + ("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1")
+    ).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -492,12 +438,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `TEXT` WITH_FLUSH_COUNT = 2",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `TEXT` WITH_FLUSH_COUNT = 2",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -519,12 +462,8 @@ class S3SinkTaskTest
     )
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `TEXT` WITH_FLUSH_COUNT = 2",
-        ),
-      ).asJava
+    val props =
+      (defaultProps + ("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `TEXT` WITH_FLUSH_COUNT = 2")).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -550,12 +489,9 @@ class S3SinkTaskTest
 
     val allRecords: List[SinkRecord] = records :+ extraRecord
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV_WITHHEADERS` WITH_FLUSH_COUNT = 2",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV_WITHHEADERS` WITH_FLUSH_COUNT = 2",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -594,12 +530,9 @@ class S3SinkTaskTest
 
     val allRecords: List[SinkRecord] = records :+ extraRecord
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` WITH_FLUSH_COUNT = 2",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` WITH_FLUSH_COUNT = 2",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -632,12 +565,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title,salary WITH_FLUSH_COUNT = 1",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title,salary WITH_FLUSH_COUNT = 1",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -697,12 +627,9 @@ class S3SinkTaskTest
         toSinkRecord(user, k)
     }
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title WITH_FLUSH_COUNT = 2",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title WITH_FLUSH_COUNT = 2",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -739,14 +666,10 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title,salary WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
-        ),
-      ).asJava
+    val props =
+      defaultProps + ("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title,salary WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1")
 
-    task.start(props)
+    task.start(props.asJava)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.put(headerPartitionedRecords.asJava)
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -785,12 +708,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES` WITH_FLUSH_COUNT = 2",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES` WITH_FLUSH_COUNT = 2",
+    )).asJava
 
     Try(task.start(props)) match {
       case Failure(exception) =>
@@ -810,12 +730,9 @@ class S3SinkTaskTest
     )
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES` WITH_FLUSH_COUNT = 1",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES` WITH_FLUSH_COUNT = 1",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -833,12 +750,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES`",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES`",
+    )).asJava
 
     Try(task.start(props)) match {
       case Failure(exception) =>
@@ -889,12 +803,9 @@ class S3SinkTaskTest
     )
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.phonePrefix,_header.region STOREAS `CSV` WITH_FLUSH_COUNT = 1",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.phonePrefix,_header.region STOREAS `CSV` WITH_FLUSH_COUNT = 1",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -924,12 +835,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.headerPartitionKey,_value.name STOREAS `CSV` WITH_FLUSH_COUNT = 1",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.headerPartitionKey,_value.name STOREAS `CSV` WITH_FLUSH_COUNT = 1",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -959,12 +867,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.hair,_header.feet STOREAS `CSV` WITH_FLUSH_COUNT = 1",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.hair,_header.feet STOREAS `CSV` WITH_FLUSH_COUNT = 1",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -988,12 +893,10 @@ class S3SinkTaskTest
       IO {
         val exMessage = intercept[IllegalArgumentException] {
           sinkTask.start(
-            DefaultProps.combine(
-              Map(
-                "aws.access.key"  -> "myAccessKey",
-                "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` WITH_FLUSH_COUNT = 1",
-              ),
-            ).asJava,
+            (defaultProps ++ Map(
+              "aws.access.key"  -> "myAccessKey",
+              "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` WITH_FLUSH_COUNT = 1",
+            )).asJava,
           )
         }.getMessage
 
@@ -1014,12 +917,9 @@ class S3SinkTaskTest
     )
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.intheader,_header.longheader STOREAS `CSV` WITH_FLUSH_COUNT = 1",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.intheader,_header.longheader STOREAS `CSV` WITH_FLUSH_COUNT = 1",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -1046,12 +946,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITH_FLUSH_COUNT = 1",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITH_FLUSH_COUNT = 1",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -1081,12 +978,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -1116,12 +1010,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _topic, _partition STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _topic, _partition STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -1151,12 +1042,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITH_FLUSH_COUNT = 1",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITH_FLUSH_COUNT = 1",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -1182,12 +1070,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -1212,12 +1097,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.region, _key.phonePrefix STOREAS `CSV` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.region, _key.phonePrefix STOREAS `CSV` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -1239,12 +1121,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.region, name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.region, name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -1266,12 +1145,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName select * from $TopicName PARTITIONBY _key.region, name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName select * from $TopicName PARTITIONBY _key.region, name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -1310,12 +1186,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 2 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 2 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
 
@@ -1357,12 +1230,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY jedi WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY jedi WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
 
@@ -1397,12 +1267,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
 
@@ -1438,12 +1305,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
 
@@ -1479,12 +1343,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
 
@@ -1532,12 +1393,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
 
@@ -1589,12 +1447,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
 
@@ -1636,12 +1491,10 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps ++
+      Map(
+        "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+      )).asJava
 
     task.start(props)
 
@@ -1731,12 +1584,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _value.user.name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _value.user.name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
 
@@ -1829,12 +1679,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.favourites.band, _key.`cost.centre.id` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.favourites.band, _key.`cost.centre.id` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
 
@@ -1901,12 +1748,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.header1.user.name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.header1.user.name WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
 
@@ -1929,13 +1773,13 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
+    val props = (defaultProps
+      ++
         Map(
           "connect.s3.kcql"       -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
           "connect.s3.write.mode" -> "BuildLocal",
         ),
-      ).asJava
+    ).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -1969,15 +1813,14 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "name"                           -> "s3SinkTaskBuildLocalTest",
-          "connect.s3.local.tmp.directory" -> tempDir.toString,
-          "connect.s3.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-          "connect.s3.write.mode"          -> "BuildLocal",
-        ),
-      ).asJava
+    val props = (defaultProps ++
+      Map(
+        "name"                           -> "s3SinkTaskBuildLocalTest",
+        "connect.s3.local.tmp.directory" -> tempDir.toString,
+        "connect.s3.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+        "connect.s3.write.mode"          -> "BuildLocal",
+      ),
+    ).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -2003,12 +1846,10 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `avro` WITH_FLUSH_COUNT = 3",
-        ),
-      ).asJava
+    val props = (defaultProps +
+      (
+        "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `avro` WITH_FLUSH_COUNT = 3",
+      )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -2030,27 +1871,24 @@ class S3SinkTaskTest
 
   "S3SinkTask" should "recover after a failure" in {
 
-    val task    = new S3SinkTask()
-    val context = mock[SinkTaskContext]
+    val task = new S3SinkTask()
     task.initialize(context)
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql"       -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `json` WITH_FLUSH_COUNT = 3",
-          ERROR_POLICY            -> "RETRY",
-          ERROR_RETRY_INTERVAL    -> "1",
-          HTTP_NBR_OF_RETRIES     -> "2",
-          HTTP_SOCKET_TIMEOUT     -> "200",
-          HTTP_CONNECTION_TIMEOUT -> "200",
-        ),
-      ).asJava
+    val props = (defaultProps ++
+      Map(
+        "connect.s3.kcql"       -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `json` WITH_FLUSH_COUNT = 3",
+        ERROR_POLICY            -> "RETRY",
+        ERROR_RETRY_INTERVAL    -> "1",
+        HTTP_NBR_OF_RETRIES     -> "2",
+        HTTP_SOCKET_TIMEOUT     -> "200",
+        HTTP_CONNECTION_TIMEOUT -> "200",
+      )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
 
     // things going to start failing as our server is down
-    pause()
+    container.pause()
 
     intercept[RetriableException] {
       task.put(records.asJava)
@@ -2058,7 +1896,7 @@ class S3SinkTaskTest
     intercept[RetriableException] {
       task.put(records.asJava)
     }
-    resume()
+    container.resume()
     task.put(records.asJava)
 
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -2074,26 +1912,24 @@ class S3SinkTaskTest
 
   "S3SinkTask" should "recover after a failure for single record commits" in {
 
-    val task    = new S3SinkTask()
-    val context = mock[SinkTaskContext]
+    val task = new S3SinkTask()
     task.initialize(context)
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql"       -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `avro` WITH_FLUSH_COUNT = 1",
-          ERROR_POLICY            -> "RETRY",
-          ERROR_RETRY_INTERVAL    -> "10",
-          HTTP_SOCKET_TIMEOUT     -> "200",
-          HTTP_CONNECTION_TIMEOUT -> "200",
-        ),
-      ).asJava
+    val props = (defaultProps ++
+      Map(
+        "connect.s3.kcql"       -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `avro` WITH_FLUSH_COUNT = 1",
+        ERROR_POLICY            -> "RETRY",
+        ERROR_RETRY_INTERVAL    -> "10",
+        HTTP_SOCKET_TIMEOUT     -> "200",
+        HTTP_CONNECTION_TIMEOUT -> "200",
+      ))
+      .asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
 
     // things going to start failing as our server is down
-    pause()
+    container.pause()
 
     intercept[RetriableException] {
       task.put(records.asJava)
@@ -2101,7 +1937,7 @@ class S3SinkTaskTest
     intercept[RetriableException] {
       task.put(records.asJava)
     }
-    resume()
+    container.resume()
     task.put(records.asJava)
 
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -2118,31 +1954,29 @@ class S3SinkTaskTest
 
   "S3SinkTask" should "continue processing records when a source file has been deleted" in {
 
-    val task    = new S3SinkTask()
-    val context = mock[SinkTaskContext]
+    val task = new S3SinkTask()
     task.initialize(context)
 
     val tmpDir = Files.createTempDirectory("myTestTempDir").toFile
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `json` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-          ERROR_POLICY                     -> "RETRY",
-          ERROR_RETRY_INTERVAL             -> "10",
-          HTTP_NBR_OF_RETRIES              -> "5",
-          "connect.s3.local.tmp.directory" -> tmpDir.getAbsolutePath,
-          HTTP_SOCKET_TIMEOUT              -> "200",
-          HTTP_CONNECTION_TIMEOUT          -> "200",
-        ),
-      ).asJava
+    val props = (defaultProps ++
+      Map(
+        "connect.s3.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `json` WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+        ERROR_POLICY                     -> "RETRY",
+        ERROR_RETRY_INTERVAL             -> "10",
+        HTTP_NBR_OF_RETRIES              -> "5",
+        "connect.s3.local.tmp.directory" -> tmpDir.getAbsolutePath,
+        HTTP_SOCKET_TIMEOUT              -> "200",
+        HTTP_CONNECTION_TIMEOUT          -> "200",
+      ),
+    ).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.put(records.slice(0, 1).asJava)
 
     // we need to stop the s3-like-proxy to let records build up
-    pause()
+    container.pause()
     val ex1 = intercept[RetriableException] {
       task.put(records.slice(1, 2).asJava)
     }
@@ -2151,7 +1985,7 @@ class S3SinkTaskTest
     FileUtils.deleteDirectory(tmpDir)
     tmpDir.exists() should be(false)
 
-    resume()
+    container.resume()
 
     task.put(records.slice(0, 3).asJava)
 
@@ -2181,12 +2015,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from `*` WITH_FLUSH_COUNT = 3 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from `*` WITH_FLUSH_COUNT = 3 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -2229,12 +2060,9 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _date.uuuu,_date.LL,_date.dd WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _date.uuuu,_date.LL,_date.dd WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -2253,14 +2081,11 @@ class S3SinkTaskTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql"             -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 3)",
-          "connect.s3.padding.strategy" -> "NoOp",
-          "connect.s3.padding.length"   -> "10",
-        ),
-      ).asJava
+    val props = (defaultProps ++ Map(
+      "connect.s3.kcql"             -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 3)",
+      "connect.s3.padding.strategy" -> "NoOp",
+      "connect.s3.padding.length"   -> "10",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -2306,5 +2131,4 @@ class S3SinkTaskTest
     new CSVReader(file1Reader)
   }
 
-  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

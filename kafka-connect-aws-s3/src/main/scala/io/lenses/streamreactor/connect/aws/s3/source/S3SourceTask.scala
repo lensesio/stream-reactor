@@ -28,7 +28,7 @@ import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceState
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.SourceContextReader
-import io.lenses.streamreactor.connect.cloud.common.source.state.S3SourceTaskState
+import io.lenses.streamreactor.connect.cloud.common.source.state.CloudSourceTaskState
 import io.lenses.streamreactor.connect.cloud.common.utils.MapUtils
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask
@@ -45,7 +45,7 @@ class S3SourceTask extends SourceTask with LazyLogging {
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   @volatile
-  private var s3SourceTaskState: Option[S3SourceTaskState] = None
+  private var s3SourceTaskState: Option[CloudSourceTaskState] = None
 
   @volatile
   private var cancelledRef: Option[Ref[IO, Boolean]] = None
@@ -89,7 +89,7 @@ class S3SourceTask extends SourceTask with LazyLogging {
       state.poll().unsafeRunSync().asJava
     }
 
-  private def stopInternal(state: S3SourceTaskState, signal: Ref[IO, Boolean], fiber: FiberIO[Unit]): Unit = {
+  private def stopInternal(state: CloudSourceTaskState, signal: Ref[IO, Boolean], fiber: FiberIO[Unit]): Unit = {
     (for {
       _ <- signal.set(true)
       _ <- state.close()
