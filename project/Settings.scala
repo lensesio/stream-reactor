@@ -205,7 +205,7 @@ object Settings extends Dependencies {
             hadoopCommon,
             hadoopMapReduceClientCore,
             woodstoxCore,
-          ) /*++ nettyOverrides*/ ++ avroOverrides,
+          ) ++ nettyOverrides ++ avroOverrides,
         ),
       )
   }

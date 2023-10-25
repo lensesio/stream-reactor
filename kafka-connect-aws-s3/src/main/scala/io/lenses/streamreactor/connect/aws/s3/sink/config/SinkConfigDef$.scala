@@ -38,7 +38,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategySettings
 
-object SinkConfigDef$
+object SinkConfigDef
     extends CommonConfigDef
     with FlushConfigKeys
     with LocalStagingAreaConfigKeys
@@ -72,7 +72,7 @@ object SinkConfigDef$
 
 }
 
-class SinkConfigDef$() extends ConfigDef with LazyLogging {
+class SinkConfigDef() extends ConfigDef with LazyLogging {
 
   private val processorChain: List[ConfigDefProcessor] =
     List(new LowerCaseKeyConfigDefProcessor(CONNECTOR_PREFIX), new DeprecationConfigDefProcessor)
@@ -108,7 +108,7 @@ class SinkConfigDef$() extends ConfigDef with LazyLogging {
 }
 
 case class SinkConfigDefBuilder(props: util.Map[String, String])
-    extends BaseConfig(S3ConfigSettings.CONNECTOR_PREFIX, SinkConfigDef$.config, props)
+    extends BaseConfig(S3ConfigSettings.CONNECTOR_PREFIX, SinkConfigDef.config, props)
     with KcqlSettings
     with ErrorPolicySettings
     with NumberRetriesSettings
