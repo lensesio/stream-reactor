@@ -38,6 +38,7 @@ class ConsumerGroupsWriterTest extends AnyFunSuite with Matchers {
         Right(())
       }
 
+      override def delete(bucket: String, path: String): Either[Throwable, Unit] = Right(())
       override def close(): Unit = {}
     }
 
@@ -71,7 +72,7 @@ class ConsumerGroupsWriterTest extends AnyFunSuite with Matchers {
         writes = writes :+ (path, source.array())
         Right(())
       }
-
+      override def delete(bucket: String, path: String): Either[Throwable, Unit] = Right(())
       override def close(): Unit = {}
     }
     val writer = new ConsumerGroupsWriter(location, uploader, taskId)
@@ -133,7 +134,7 @@ class ConsumerGroupsWriterTest extends AnyFunSuite with Matchers {
         writes = writes :+ (path, source.array())
         Right(())
       }
-
+      override def delete(bucket: String, path: String): Either[Throwable, Unit] = Right(())
       override def close(): Unit = {}
     }
     val writer = new ConsumerGroupsWriter(location, uploader, taskId)
@@ -169,7 +170,7 @@ class ConsumerGroupsWriterTest extends AnyFunSuite with Matchers {
     val uploader = new Uploader {
       override def upload(source: ByteBuffer, bucket: String, path: String): Either[Throwable, Unit] =
         Left(new RuntimeException("Boom!"))
-
+      override def delete(bucket: String, path: String): Either[Throwable, Unit] = Right(())
       override def close(): Unit = {}
     }
     val writer = new ConsumerGroupsWriter(location, uploader, taskId)
@@ -189,6 +190,107 @@ class ConsumerGroupsWriterTest extends AnyFunSuite with Matchers {
     result.left.getOrElse(fail("should not fail")).getMessage shouldBe "Boom!"
   }
 
+  test("write the offset and delete on empty value payload") {
+    val location = S3ObjectKey("bucket", None)
+    var writes   = Vector[(String, Array[Byte])]()
+
+    var deletes = Vector[String]()
+    val uploader = new Uploader {
+      override def upload(source: ByteBuffer, bucket: String, path: String): Either[Throwable, Unit] = {
+        writes = writes :+ (path, source.array())
+        Right(())
+      }
+      override def delete(bucket: String, path: String): Either[Throwable, Unit] = {
+        deletes = deletes :+ path
+        Right(())
+      }
+      override def close(): Unit = {}
+    }
+    val writer = new ConsumerGroupsWriter(location, uploader, taskId)
+    val records = List(
+      new SinkRecord(
+        "__consumer_offsets",
+        77,
+        null,
+        generateOffsetKey("group1", "topic1", 1),
+        null,
+        generateOffsetDetails(123L),
+        100,
+      ),
+      new SinkRecord(
+        "__consumer_offsets",
+        77,
+        null,
+        generateOffsetKey("group1", "topic1", 1),
+        null,
+        null,
+        100,
+      ),
+    )
+
+    writer.write(records) shouldBe Right(())
+    writes shouldBe empty
+    deletes should contain theSameElementsAs List(
+      "group1/topic1/1",
+    )
+  }
+
+  test("write, delete , write writes the offset") {
+    val location = S3ObjectKey("bucket", None)
+    var writes   = Vector[(String, Array[Byte])]()
+
+    var deletes = Vector[String]()
+    val uploader = new Uploader {
+      override def upload(source: ByteBuffer, bucket: String, path: String): Either[Throwable, Unit] = {
+        writes = writes :+ (path, source.array())
+        Right(())
+      }
+
+      override def delete(bucket: String, path: String): Either[Throwable, Unit] = {
+        deletes = deletes :+ path
+        Right(())
+      }
+
+      override def close(): Unit = {}
+    }
+    val writer = new ConsumerGroupsWriter(location, uploader, taskId)
+    val records = List(
+      new SinkRecord(
+        "__consumer_offsets",
+        77,
+        null,
+        generateOffsetKey("group1", "topic1", 1),
+        null,
+        generateOffsetDetails(123L),
+        100,
+      ),
+      new SinkRecord(
+        "__consumer_offsets",
+        77,
+        null,
+        generateOffsetKey("group1", "topic1", 1),
+        null,
+        null,
+        100,
+      ),
+      new SinkRecord(
+        "__consumer_offsets",
+        77,
+        null,
+        generateOffsetKey("group1", "topic1", 1),
+        null,
+        generateOffsetDetails(333L),
+        100,
+      ),
+    )
+
+    writer.write(records) shouldBe Right(())
+    val writesToLong = writes.map(w => (w._1, ByteBuffer.wrap(w._2).getLong))
+    writesToLong should contain theSameElementsAs List(
+      ("group1/topic1/1", 333L),
+    )
+    deletes shouldBe empty
+  }
   private def generateOffsetKey(group: String, topic: String, partition: Int): Array[Byte] = {
     val buffer = ByteBuffer.allocate(256)
     buffer.putShort(0.toShort)

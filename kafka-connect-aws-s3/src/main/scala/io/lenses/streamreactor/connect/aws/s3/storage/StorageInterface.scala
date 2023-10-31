@@ -68,4 +68,6 @@ trait StorageInterface {
 
 trait Uploader extends AutoCloseable {
   def upload(source: ByteBuffer, bucket: String, path: String): Either[Throwable, Unit]
+
+  def delete(bucket: String, path: String): Either[Throwable, Unit]
 }

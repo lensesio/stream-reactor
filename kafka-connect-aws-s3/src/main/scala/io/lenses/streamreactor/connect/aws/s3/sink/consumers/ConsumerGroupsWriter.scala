@@ -37,25 +37,37 @@ class ConsumerGroupsWriter(location: S3ObjectKey, uploader: Uploader, taskId: Co
     records.traverse(extractOffsets)
       .map(_.flatten)
       .map { offsets =>
-        offsets.foldLeft(Map.empty[GroupTopicPartition, Long]) {
-          case (acc, OffsetDetails(key, metadata)) =>
-            acc + (key.key -> metadata.offset)
+        offsets.foldLeft(Map.empty[GroupTopicPartition, OffsetAction]) {
+          case (acc, action: OffsetAction) =>
+            acc + (action.key -> action)
         }
       }.flatMap { map =>
         map.toList.traverse {
-          case (groupTopicPartition, offset) =>
-            val content = ByteBuffer.allocate(8).putLong(offset).rewind()
+          case (groupTopicPartition, action) =>
             val s3KeySuffix =
               s"${groupTopicPartition.group}/${groupTopicPartition.topic}/${groupTopicPartition.partition}"
             val s3Key = location.prefix.fold(s3KeySuffix)(prefix => s"$prefix/$s3KeySuffix")
-            logger.debug(s"[${taskId.show}] Uploading offset $offset to $s3Key")
-            val result = uploader.upload(
-              content,
-              location.bucket,
-              s3Key,
-            )
-            logger.debug(s"[${taskId.show}] Uploaded offset $offset to $s3Key")
-            result
+
+            action match {
+              case WriteOffset(offset) =>
+                val content = ByteBuffer.allocate(8).putLong(offset.metadata.offset).rewind()
+                logger.debug(s"[${taskId.show}] Uploading offset $offset to $s3Key")
+                val result = uploader.upload(
+                  content,
+                  location.bucket,
+                  s3Key,
+                )
+                logger.debug(s"[${taskId.show}] Uploaded offset $offset to $s3Key")
+                result
+              case DeleteOffset(_) =>
+                logger.debug(s"[${taskId.show}] Deleting offset $s3Key")
+                val result = uploader.delete(
+                  location.bucket,
+                  s3Key,
+                )
+                logger.debug(s"[${taskId.show}] Deleted offset $s3Key")
+                result
+            }
         }.map(_ => ())
       }
 }
@@ -68,7 +80,7 @@ object ConsumerGroupsWriter extends StrictLogging {
     * @param record The [[SinkRecord]] to extract the offset details from.
     * @return Either an error or the offset details.
     */
-  def extractOffsets(record: SinkRecord): Either[Throwable, Option[OffsetDetails]] =
+  def extractOffsets(record: SinkRecord): Either[Throwable, Option[OffsetAction]] =
     Option(record.key()) match {
       case None => Right(None)
       case Some(key) =>
@@ -92,9 +104,10 @@ object ConsumerGroupsWriter extends StrictLogging {
                     )
                     metadata <- OffsetAndMetadata.from(ByteBuffer.wrap(valueBytes))
                   } yield {
-                    Some(OffsetDetails(key, metadata))
+                    Some(WriteOffset(OffsetDetails(key, metadata)))
                   }
-                case None => Right(None)
+                case None =>
+                  Right(Some(DeleteOffset(key.key)))
               }
             } yield value
           } else {
@@ -116,3 +129,12 @@ object ConsumerGroupsWriter extends StrictLogging {
 }
 
 case class OffsetDetails(key: OffsetKey, metadata: OffsetAndMetadata)
+
+sealed trait OffsetAction {
+  def key: GroupTopicPartition
+}
+
+case class WriteOffset(offset: OffsetDetails) extends OffsetAction {
+  override def key: GroupTopicPartition = offset.key.key
+}
+case class DeleteOffset(key: GroupTopicPartition) extends OffsetAction

@@ -21,6 +21,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.ConnectorTaskId
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 
 import java.nio.ByteBuffer
@@ -44,6 +45,18 @@ class AwsS3Uploader(s3Client: S3Client, connectorTaskId: ConnectorTaskId) extend
     }
       .toEither.leftMap { ex =>
         logger.error(s"[{}] Failed upload to s3 {}:{}", connectorTaskId.show, source, bucket, path, ex)
+        ex
+      }
+  }
+
+  override def delete(bucket: String, path: String): Either[Throwable, Unit] = {
+    logger.debug(s"[{}] AWS Deleting from s3 {}:{}", connectorTaskId.show, bucket, path)
+    Try {
+      s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(path).build())
+      logger.debug(s"[{}] Completed delete from s3 {}:{}", connectorTaskId.show, bucket, path)
+    }
+      .toEither.leftMap { ex =>
+        logger.error(s"[{}] Failed delete from s3 {}:{}", connectorTaskId.show, bucket, path, ex)
         ex
       }
   }
