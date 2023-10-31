@@ -143,4 +143,9 @@ object S3ConfigSettings {
   val DELETE_MODE_DOC: String =
     "Cleaning index files for GCP Cloud Storage via the compatible S3 APIs requires individual delete requests. Options are `BatchDelete` or `SeparateDelete`. Defaults to `BatchDelete`."
   val DELETE_MODE_DEFAULT: String = "BatchDelete"
+
+  //used by the consumer groups sink
+  val S3_BUCKET_CONFIG: String = s"$CONNECTOR_PREFIX.location"
+  val S3_BUCKET_DOC: String =
+    "Specify the S3 bucket, and optionally, a prefix, where Kafka consumer group offsets will be stored."
 }

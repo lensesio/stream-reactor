@@ -81,7 +81,7 @@ trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with Laz
     helperOpt           = Some(new RemoteFileHelper(sI))
 
     logger.debug("Creating test bucket")
-    createTestBucket() match {
+    createTestBucket(BucketName) match {
       case Left(err) =>
         logger.error("Failed to create test bucket.", err)
         fail("Failed to create test bucket.", err)
@@ -108,20 +108,20 @@ trait S3ProxyContainerTest extends AnyFlatSpec with ForAllTestContainer with Laz
 
   after {
     if (cleanUpEnabled) {
-      clearTestBucket()
+      clearTestBucket(BucketName)
       setUpTestData()
     }
   }
 
-  def createTestBucket(): Either[Throwable, Unit] =
+  def createTestBucket(bucketName: String): Either[Throwable, Unit] =
     // It is fine if it already exists
-    Try(s3Client.createBucket(CreateBucketRequest.builder().bucket(BucketName).build())).toEither.map(_ => ())
+    Try(s3Client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build())).toEither.map(_ => ())
 
-  def clearTestBucket(): Either[Throwable, Unit] =
+  def clearTestBucket(bucketName: String): Either[Throwable, Unit] =
     Try {
 
       val toDeleteArray = helper
-        .listBucketPath(BucketName, "")
+        .listBucketPath(bucketName, "")
         .map(ObjectIdentifier.builder().key(_).build())
       val delete = Delete.builder().objects(toDeleteArray: _*).build
       s3Client.deleteObjects(DeleteObjectsRequest.builder().bucket(BucketName).delete(delete).build())
