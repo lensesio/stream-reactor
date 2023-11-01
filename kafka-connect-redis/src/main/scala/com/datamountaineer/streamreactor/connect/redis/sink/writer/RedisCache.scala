@@ -17,13 +17,17 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.config.base.settings.Projections
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
 import com.datamountaineer.streamreactor.common.schemas.StructHelper
+import com.datamountaineer.streamreactor.common.sink.DbWriter
 import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisKCQLSetting
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
+import redis.clients.jedis.Jedis
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Failure
@@ -40,8 +44,8 @@ import scala.util.Try
   * INSERT INTO FX- SELECT price from yahoo-fx PK symbol
   * SELECT price from yahoo-fx PK symbol WITHEXTRACT
   */
-class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
-
+class RedisCache(sinkSettings: RedisSinkSettings, jedis: Jedis) extends DbWriter with StrictLogging with ErrorHandler {
+  initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)
   private lazy val simpleJsonConverter = new SimpleJsonConverter()
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
@@ -133,4 +137,6 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
         }
         logger.debug(s"Wrote [${sinkRecords.size}] rows for topic [$topic]")
     }
+
+  override def close(): Unit = jedis.close()
 }

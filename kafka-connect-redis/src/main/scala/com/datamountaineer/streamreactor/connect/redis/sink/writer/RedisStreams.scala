@@ -17,13 +17,17 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.config.base.settings.Projections
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
+import com.datamountaineer.streamreactor.common.sink.DbWriter
 import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisKCQLSetting
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
+import redis.clients.jedis.Jedis
 import redis.clients.jedis.params.XAddParams
 
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -41,11 +45,16 @@ import scala.util.Try
   *
   * INSERT INTO stream1 SELECT * from cpuTopic STOREAS stream
   */
-class RedisStreams(sinkSettings: RedisSinkSettings) extends RedisWriter with PubSubSupport {
+class RedisStreams(sinkSettings: RedisSinkSettings, jedis: Jedis)
+    extends DbWriter
+    with StrictLogging
+    with ErrorHandler
+    with PubSubSupport {
+
+  initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)
 
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
-//    assert(c.getTarget.length > 0, "Add to your KCQL syntax : INSERT INTO REDIS_KEY_NAME ")
     assert(
       c.getSource.trim.nonEmpty,
       "You need to define one (1) topic to source data. Add to your KCQL syntax: SELECT * FROM topicName",
@@ -105,4 +114,6 @@ class RedisStreams(sinkSettings: RedisSinkSettings) extends RedisWriter with Pub
           logger.debug(s"Published [${sinkRecords.size}] messages for topic [$topic]")
       },
     )
+
+  override def close(): Unit = jedis.close()
 }
