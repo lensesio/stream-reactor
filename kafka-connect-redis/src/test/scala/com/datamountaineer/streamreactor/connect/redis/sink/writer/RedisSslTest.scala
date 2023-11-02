@@ -15,6 +15,7 @@
  */
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
+import com.datamountaineer.streamreactor.connect.redis.sink.JedisClientBuilder
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfig
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfigConstants
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
@@ -106,8 +107,7 @@ class RedisSslTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with
       val config   = RedisConfig(map.asJava)
       val settings = RedisSinkSettings(config)
 
-      val writer = new RedisCache(settings)
-      writer.createClient(settings)
+      val writer = new RedisCache(settings, JedisClientBuilder.createClient(settings))
 
       val props = System.getProperties
       props.containsKey("javax.net.ssl.keyStorePassword") shouldBe true
@@ -150,7 +150,7 @@ class RedisSslTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with
         val props     = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava
         val config    = RedisConfig(props)
         val settings  = RedisSinkSettings(config)
-        val writer    = new RedisCache(settings)
+        val writer    = new RedisCache(settings, JedisClientBuilder.createClient(settings))
 
         val childSchema = SchemaBuilder.struct().name("com.example.Child")
           .field("firstName", Schema.STRING_SCHEMA)
