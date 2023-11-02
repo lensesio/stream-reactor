@@ -16,6 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
+import com.datamountaineer.streamreactor.connect.redis.sink.JedisClientBuilder
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfig
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfigConstants
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConnectionInfo
@@ -60,8 +61,7 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with MockitoSugar with L
       val config         = RedisConfig(props)
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
       val settings       = RedisSinkSettings(config)
-      val writer         = new RedisPubSub(settings)
-      writer.createClient(settings)
+      val writer         = new RedisPubSub(settings, JedisClientBuilder.createClient(settings))
 
       val schema = SchemaBuilder.struct().name("com.example.Cpu")
         .field("type", Schema.STRING_SCHEMA)
