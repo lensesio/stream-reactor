@@ -16,6 +16,7 @@
 package com.datamountaineer.streamreactor.connect.redis.sink
 
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
+import com.datamountaineer.streamreactor.common.sink.DbWriter
 import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.datamountaineer.streamreactor.common.utils.ProgressCounter
@@ -40,7 +41,7 @@ import scala.jdk.CollectionConverters.ListHasAsScala
   * target sink
   */
 class RedisSinkTask extends SinkTask with StrictLogging {
-  var writer: List[RedisWriter] = List[RedisWriter]()
+  var writer: List[DbWriter] = List[DbWriter]()
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
@@ -84,34 +85,31 @@ class RedisSinkTask extends SinkTask with StrictLogging {
 
     val mode_STREAM = filterStream(settings)
 
+    val jedis = JedisClientBuilder.createClient(settings)
+
     //-- Start as many writers as required
     writer = (modeCache.kcqlSettings.headOption.map { _ =>
       logger.info(s"Starting [${modeCache.kcqlSettings.size}] KCQLs with Redis Cache mode")
-      val writer = new RedisCache(modeCache)
-      writer.createClient(settings)
+      val writer = new RedisCache(modeCache, jedis)
       List(writer)
     } ++ mode_INSERT_SS.kcqlSettings.headOption.map { _ =>
       logger.info(s"Starting ${mode_INSERT_SS.kcqlSettings.size}] KCQLs with Redis Insert Sorted Set mode")
-      val writer = new RedisInsertSortedSet(mode_INSERT_SS)
-      writer.createClient(settings)
+      val writer = new RedisInsertSortedSet(mode_INSERT_SS, jedis)
       List(writer)
     } ++ mode_PUBSUB.kcqlSettings.headOption.map { _ =>
       logger.info(s"Starting [${mode_PUBSUB.kcqlSettings.size}] KCQLs with Redis PubSub mode")
-      val writer = new RedisPubSub(mode_PUBSUB)
-      writer.createClient(settings)
+      val writer = new RedisPubSub(mode_PUBSUB, jedis)
       List(writer)
     } ++ mode_PK_SS.kcqlSettings.headOption.map { _ =>
       logger.info(s"Starting [${mode_PK_SS.kcqlSettings.size}] KCQLs with Redis Multiple Sorted Sets mode")
-      val writer = new RedisMultipleSortedSets(mode_PK_SS)
-      writer.createClient(settings)
+      val writer = new RedisMultipleSortedSets(mode_PK_SS, jedis)
       List(writer)
     } ++ mode_GEOADD.kcqlSettings.headOption.map { _ =>
       logger.info(s"Starting [${mode_GEOADD.kcqlSettings.size}] KCQLs with Redis Geo Add mode")
-      List(new RedisGeoAdd(mode_GEOADD))
+      List(new RedisGeoAdd(mode_GEOADD, jedis))
     } ++ mode_STREAM.kcqlSettings.headOption.map { _ =>
       logger.info(s"Starting [${mode_STREAM.kcqlSettings.size}] KCQLs with Redis Stream mode")
-      val writer = new RedisStreams(mode_STREAM)
-      writer.createClient(settings)
+      val writer = new RedisStreams(mode_STREAM, jedis)
       List(writer)
     }).flatten.toList
 
@@ -163,7 +161,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     * @param settings The RedisSinkSettings containing all kcqlConfigs.
     * @return A RedisSinkSettings object containing only the kcqlConfigs that use the PubSub mode.
     */
-  def filterModePubSub(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(
+  private def filterModePubSub(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(
     kcqlSettings =
       settings.kcqlSettings
         .filter { k =>
@@ -200,7 +198,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     * @param settings The RedisSinkSettings containing all kcqlConfigs.
     * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Geo Add mode.
     */
-  def filterGeoAddMode(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(
+  private def filterGeoAddMode(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(
     kcqlSettings =
       settings.kcqlSettings
         .filter { k =>
