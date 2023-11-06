@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.config.base.traits
+package io.lenses.streamreactor.connect.aws.s3.sink.consumers
 
-import org.apache.kafka.common.config.AbstractConfig
-import org.apache.kafka.common.config.ConfigDef
-
-import java.util
-
-abstract class BaseConfig(connectorPrefixStr: String, confDef: ConfigDef, props: util.Map[String, String])
-    extends AbstractConfig(confDef, props) {
-  val connectorPrefix: String = connectorPrefixStr
-}
+/**
+  * Mimics the Kafka core GroupTopicPartition class.
+  */
+case class GroupTopicPartition(
+  group:     String,
+  topic:     String,
+  partition: Int,
+)

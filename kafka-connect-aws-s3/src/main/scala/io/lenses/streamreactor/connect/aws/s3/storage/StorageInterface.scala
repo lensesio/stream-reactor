@@ -20,6 +20,7 @@ import software.amazon.awssdk.services.s3.model.S3Object
 
 import java.io.File
 import java.io.InputStream
+import java.nio.ByteBuffer
 import java.time.Instant
 
 case class FileMetadata(
@@ -63,4 +64,10 @@ trait StorageInterface {
   def writeStringToFile(bucket: String, path: String, data: String): Either[UploadError, Unit]
 
   def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit]
+}
+
+trait Uploader extends AutoCloseable {
+  def upload(source: ByteBuffer, bucket: String, path: String): Either[Throwable, Unit]
+
+  def delete(bucket: String, path: String): Either[Throwable, Unit]
 }
