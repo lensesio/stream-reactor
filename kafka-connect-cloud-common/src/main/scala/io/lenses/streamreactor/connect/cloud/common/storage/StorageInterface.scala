@@ -30,7 +30,6 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
 
   def pathExists(bucket: String, path: String): Either[FileLoadError, Boolean]
 
-  //@evolve
   def list(
     bucket:     String,
     prefix:     Option[String],
@@ -43,7 +42,6 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
     prefix: Option[String],
   ): Either[FileListError, Option[ListOfMetadataResponse[SM]]]
 
-  //@evolve
   def listKeysRecursive(
     bucket: String,
     prefix: Option[String],
@@ -59,7 +57,6 @@ trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
 
   def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String]
 
-  //@maybe evolve
   def getMetadata(bucket: String, path: String): Either[FileLoadError, ObjectMetadata]
 
   def writeStringToFile(bucket: String, path: String, data: UploadableString): Either[UploadError, Unit]
