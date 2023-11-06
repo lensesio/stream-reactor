@@ -60,4 +60,38 @@ class S3ConsumerGroupsSinkConfigTest extends AnyFunSuite with Matchers {
         )
     }
   }
+
+  test("remove the / from the prefix") {
+    S3ConsumerGroupsSinkConfig.fromProps(
+      Map(
+        S3_BUCKET_CONFIG -> "bucket:a/b/c/",
+        AWS_REGION       -> "eu-west-1",
+        AWS_ACCESS_KEY   -> "access",
+        AWS_SECRET_KEY   -> "secret",
+        AUTH_MODE        -> "credentials",
+        CUSTOM_ENDPOINT  -> "endpoint",
+      ).asJava,
+    ) match {
+      case Left(value) => fail("Expecting to build a config but got an error instead.", value)
+      case Right(value) =>
+        value should be(
+          S3ConsumerGroupsSinkConfig(
+            S3ObjectKey("bucket", "a/b/c".some),
+            S3Config(
+              Some("eu-west-1"),
+              Some("access"),
+              Some("secret"),
+              AuthMode.Credentials,
+              Some("endpoint"),
+              false,
+              ThrowErrorPolicy(),
+              RetryConfig(20, 60000),
+              RetryConfig(5, 50),
+              HttpTimeoutConfig(Some(60000), Some(60000)),
+              None,
+            ),
+          ),
+        )
+    }
+  }
 }

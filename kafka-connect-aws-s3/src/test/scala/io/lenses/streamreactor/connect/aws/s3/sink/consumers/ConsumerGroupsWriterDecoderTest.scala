@@ -65,14 +65,18 @@ class ConsumerGroupsWriterDecoderTest extends AnyFunSuite with Matchers {
     val value = valueBuffer.array
 
     val record = new SinkRecord("__consumer_offsets", 77, Schema.BYTES_SCHEMA, key, Schema.BYTES_SCHEMA, value, 100)
-    ConsumerGroupsWriter.extractOffsets(record) shouldBe Right(
+    val actual = ConsumerGroupsWriter.extractOffsets(record)
+    val expected = Right(
       Some(
-        OffsetDetails(
-          OffsetKey(0.toShort, GroupTopicPartition(group, topic, partition)),
-          OffsetAndMetadata(offset, -1, "metadata", commitTimestamp, -1L),
+        WriteOffset(
+          OffsetDetails(
+            OffsetKey(0.toShort, GroupTopicPartition(group, topic, partition)),
+            OffsetAndMetadata(offset, -1, "metadata", commitTimestamp, -1L),
+          ),
         ),
       ),
     )
+    actual shouldBe expected
   }
   test("return None if the record key is null") {
     val record = new SinkRecord("__consumer_offsets",
@@ -99,7 +103,8 @@ class ConsumerGroupsWriterDecoderTest extends AnyFunSuite with Matchers {
 
     val key    = buffer.array
     val record = new SinkRecord("__consumer_offsets", 77, Schema.BYTES_SCHEMA, key, Schema.BYTES_SCHEMA, null, 100)
-    ConsumerGroupsWriter.extractOffsets(record) shouldBe Right(None)
+    ConsumerGroupsWriter.extractOffsets(record) shouldBe
+      Right(Some(DeleteOffset(GroupTopicPartition("group", "topic", 11))))
   }
   test("return an error when the record key is non bytes") {
     val record = new SinkRecord("__consumer_offsets",
@@ -170,9 +175,11 @@ class ConsumerGroupsWriterDecoderTest extends AnyFunSuite with Matchers {
 
     ConsumerGroupsWriter.extractOffsets(record) shouldBe Right(
       Some(
-        OffsetDetails(
-          OffsetKey(0.toShort, GroupTopicPartition(group, topic, partition)),
-          OffsetAndMetadata(offset, leaderEpoch, "metadata", commitTimestamp, -1L),
+        WriteOffset(
+          OffsetDetails(
+            OffsetKey(0.toShort, GroupTopicPartition(group, topic, partition)),
+            OffsetAndMetadata(offset, leaderEpoch, "metadata", commitTimestamp, -1L),
+          ),
         ),
       ),
     )
@@ -207,9 +214,11 @@ class ConsumerGroupsWriterDecoderTest extends AnyFunSuite with Matchers {
     val record = new SinkRecord("__consumer_offsets", 77, Schema.BYTES_SCHEMA, key, Schema.BYTES_SCHEMA, value, -2)
     ConsumerGroupsWriter.extractOffsets(record) shouldBe Right(
       Some(
-        OffsetDetails(
-          OffsetKey(0.toShort, GroupTopicPartition(group, topic, partition)),
-          OffsetAndMetadata(offset, -1, "metadata", commitTimestamp, expireTimestamp),
+        WriteOffset(
+          OffsetDetails(
+            OffsetKey(0.toShort, GroupTopicPartition(group, topic, partition)),
+            OffsetAndMetadata(offset, -1, "metadata", commitTimestamp, expireTimestamp),
+          ),
         ),
       ),
     )

@@ -32,7 +32,11 @@ object S3ObjectKey {
       case bucket :: prefix :: Nil =>
         prefix.trim match {
           case "" => Right(S3ObjectKey(bucket))
-          case p  => Right(S3ObjectKey(bucket, Some(p)))
+          case p  =>
+            //remove / if p ends with /
+            if (p.endsWith("/")) Right(S3ObjectKey(bucket, Some(p.dropRight(1))))
+            else
+              Right(S3ObjectKey(bucket, Some(p)))
         }
       case _ => Left(new ConnectException(s"Invalid bucket and prefix $bucketAndPrefix"))
     }
