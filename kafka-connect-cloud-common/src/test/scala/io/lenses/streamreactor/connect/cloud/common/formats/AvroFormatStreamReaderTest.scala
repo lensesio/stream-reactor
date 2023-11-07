@@ -23,7 +23,7 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkDat
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
-import io.lenses.streamreactor.connect.cloud.common.stream.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.cloud.common.stream.CloudByteArrayOutputStream
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic
 import org.apache.kafka.connect.data.Struct
@@ -68,7 +68,7 @@ class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
   }
 
   private def writeRecordsToOutputStream = {
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(outputStream)
     SampleData.Users.take(3).foreach(str =>
       avroFormatWriter.write(MessageDetail(NullSinkData(None),

@@ -21,18 +21,20 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.FormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.ReaderBuilderContext
-import io.lenses.streamreactor.connect.cloud.common.formats.reader.S3StreamReader
+import io.lenses.streamreactor.connect.cloud.common.formats.reader.CloudStreamReader
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.source.SourceWatermark
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.utils.IteratorOps
 import org.apache.kafka.connect.source.SourceRecord
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
+
 import scala.annotation.tailrec
 import scala.util.Try
 
 class ResultReader(
-  reader: S3StreamReader,
+  reader: CloudStreamReader,
 ) extends LazyLogging
     with AutoCloseable {
 
@@ -47,7 +49,7 @@ class ResultReader(
   @tailrec
   private final def accumulate(
     limit:              Int,
-    reader:             S3StreamReader,
+    reader:             CloudStreamReader,
     accumulatedResults: Vector[SourceRecord],
   ): Vector[SourceRecord] =
     if (limit > 0 && reader.hasNext) {
@@ -65,12 +67,12 @@ class ResultReader(
 
 object ResultReader extends LazyLogging {
 
-  def create[I](
+  def create[SM <: FileMetadata](
     format:           FormatSelection,
     targetTopic:      String,
     partitionFn:      String => Option[Int],
     connectorTaskId:  ConnectorTaskId,
-    storageInterface: StorageInterface,
+    storageInterface: StorageInterface[SM],
     hasEnvelope:      Boolean,
   ): CloudLocation => Either[Throwable, ResultReader] = { pathWithLine =>
     for {
@@ -82,7 +84,7 @@ object ResultReader extends LazyLogging {
       )).toEither
 
       path <- pathWithLine.path.toRight(
-        new IllegalStateException(s"Invalid state reached. Missing path for S3 location:${pathWithLine.show}}"),
+        new IllegalStateException(s"Invalid state reached. Missing path for cloud location:${pathWithLine.show}}"),
       )
 
       partition = partitionFn(path).map(Int.box).orNull
@@ -104,7 +106,7 @@ object ResultReader extends LazyLogging {
           // The readers keep track of the current record index, which is used to calculate the watermark.
           // But the index starts at -1. So the first record is at index 0. This means until this fix the last record
           // is processed twice in case of a restart.
-          // DelegateIteratorS3StreamReader has been introduced with this change here, but it had to be compatible with the previous state.
+          // DelegateIteratorCloudStreamReader has been introduced with this change here, but it had to be compatible with the previous state.
           // The alternative would have been to add another flag in the offset watermark and to know it was the new version or not.
           // However this introduces more complexity.
 

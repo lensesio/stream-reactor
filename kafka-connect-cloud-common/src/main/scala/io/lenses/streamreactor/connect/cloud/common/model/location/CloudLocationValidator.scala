@@ -18,6 +18,6 @@ package io.lenses.streamreactor.connect.cloud.common.model.location
 import cats.data.Validated
 
 trait CloudLocationValidator {
-  def validate(s3Location: CloudLocation, allowSlash: Boolean): Validated[Throwable, CloudLocation]
+  def validate(location: CloudLocation, allowSlash: Boolean): Validated[Throwable, CloudLocation]
 
 }

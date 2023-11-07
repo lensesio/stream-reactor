@@ -35,7 +35,7 @@ class ParquetSeekableInputStream(is: InputStream, recreateStreamF: () => InputSt
     *
     * We will therefore need to also recreate the InceptionDelegatingInputStream in the event we want to seek backwards.
     *
-    * @param inputStream the actual inputStream containing Parquet data from S3
+    * @param inputStream the actual inputStream containing Parquet data from the cloud
     */
   private class InceptionDelegatingInputStream(inputStream: InputStream)
       extends DelegatingSeekableInputStream(inputStream) {

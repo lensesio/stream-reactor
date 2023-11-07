@@ -16,13 +16,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
-import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.ParquetFormatReader
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.common.TopicPartition
@@ -42,25 +38,11 @@ class S3SinkTaskParquetEnvelopeTest
     with Matchers
     with S3ProxyContainerTest
     with MockitoSugar
-    with LazyLogging
-    with TaskIndexKey {
-
-  import helper._
+    with LazyLogging {
 
   private val parquetFormatReader = new ParquetFormatReader()
   private val PrefixName          = "streamReactorBackups"
   private val TopicName           = "myTopic"
-
-  private def DefaultProps = Map(
-    AWS_ACCESS_KEY              -> Identity,
-    AWS_SECRET_KEY              -> Credential,
-    AUTH_MODE                   -> AuthMode.Credentials.toString,
-    CUSTOM_ENDPOINT             -> uri(),
-    ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
-    "name"                      -> "s3SinkTaskBuildLocalTest",
-    AWS_REGION                  -> "eu-west-1",
-    TASK_INDEX                  -> "1:1",
-  )
 
   private def toSinkRecord(
     user:      Struct,
@@ -83,12 +65,9 @@ class S3SinkTaskParquetEnvelopeTest
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true,'padding.length.partition'='12', 'padding.length.offset'='12')",
-        ),
-      ).asJava
+    val props = (defaultProps + (
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET` WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true,'padding.length.partition'='12', 'padding.length.offset'='12')",
+    )).asJava
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -213,5 +192,4 @@ class S3SinkTaskParquetEnvelopeTest
     headers3.get("h2") should be(3L)
   }
 
-  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

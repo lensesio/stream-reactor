@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.cloud.common.sink.config.padding
 
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
-import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.S3SinkPropsSchema
+import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.SinkPropsSchema
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategySettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingType
@@ -30,7 +30,7 @@ import org.scalatest.matchers.should.Matchers
 class PaddingServiceTest extends AnyFunSuite with Matchers with EitherValues {
   private val paddingStrategy = PaddingType.LeftPad.toPaddingStrategy(12, '0')
   private val fields          = Map("offset" -> paddingStrategy)
-  private val emptyProps      = S3SinkPropsSchema.schema.readProps()
+  private val emptyProps      = SinkPropsSchema.schema.readProps()
 
   test("PaddingService should return a padder for the specified field") {
     val paddingService = new PaddingService(fields)
@@ -53,7 +53,7 @@ class PaddingServiceTest extends AnyFunSuite with Matchers with EitherValues {
 
   test("PaddingService should return an error when both KCQL properties and ConfigDef padding configurations are set") {
     val rightPadConfigDef: PaddingStrategySettings = mockConfigDefPadding(RightPadPaddingStrategy(10, '-').some)
-    val kcqlProps = S3SinkPropsSchema.schema.readProps(
+    val kcqlProps = SinkPropsSchema.schema.readProps(
       "padding.length.partition" -> "5",
       "padding.char"             -> "#",
       "padding.type"             -> "RightPad",
@@ -64,7 +64,7 @@ class PaddingServiceTest extends AnyFunSuite with Matchers with EitherValues {
   }
 
   test("PaddingService should respect padding defined in KCQL properties") {
-    val kcqlProps = S3SinkPropsSchema.schema.readProps(
+    val kcqlProps = SinkPropsSchema.schema.readProps(
       "padding.length.partition" -> "5",
       "padding.char"             -> "#",
       "padding.type"             -> "RightPad",

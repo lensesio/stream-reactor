@@ -47,7 +47,7 @@ class SchemalessEnvelopeConverterTest extends AnyFunSuite with Matchers {
 
   private val TargetTopic           = "target-topic"
   private val TargetPartition       = 0
-  private val s3Location            = CloudLocation("bucket", "prefix".some, "/a/b/c.avro".some)
+  private val location              = CloudLocation("bucket", "prefix".some, "/a/b/c.avro".some)
   private val LastModifiedTimestamp = Instant.ofEpochMilli(1001)
 
   test("envelope with key, value, headers and metadata is mapped to a SourceRecord") {
@@ -206,7 +206,7 @@ class SchemalessEnvelopeConverterTest extends AnyFunSuite with Matchers {
     new SchemalessEnvelopeConverter(Map("partition" -> "abc").asJava,
                                     Topic(TargetTopic),
                                     TargetPartition,
-                                    s3Location,
+                                    location,
                                     LastModifiedTimestamp,
                                     instantF,
     )

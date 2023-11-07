@@ -26,7 +26,6 @@ import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.firstU
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.users
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
-import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.config.JsonFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
@@ -47,21 +46,18 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.LeftPadP
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.NoOpPaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetS3FileNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.S3KeyNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
-  import helper._
-
   private val compressionCodec = UNCOMPRESSED.toCodec()
 
   private val TopicName  = "myTopic"
   private val PathPrefix = "streamReactorBackups"
-  private implicit val connectorTaskId:        ConnectorTaskId          = ConnectorTaskId("sinkName", 1, 1)
   private implicit val cloudLocationValidator: S3LocationValidator.type = S3LocationValidator
 
   "json sink" should "write single json record" in {
@@ -70,8 +66,8 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     val config = S3SinkConfig(
       S3Config(
         None,
-        Some(Identity),
-        Some(Credential),
+        Some(container.identity.identity),
+        Some(container.identity.credential),
         AuthMode.Credentials,
       ),
       bucketOptions = Seq(
@@ -80,10 +76,10 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           bucketAndPrefix,
           commitPolicy    = CommitPolicy(Count(1)),
           formatSelection = JsonFormatSelection,
-          keyNamer = new S3KeyNamer(
+          keyNamer = new CloudKeyNamer(
             JsonFormatSelection,
             defaultPartitionSelection(Values),
-            new OffsetS3FileNamer(
+            new OffsetFileNamer(
               identity[String],
               JsonFormatSelection.extension,
             ),
@@ -124,8 +120,8 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     val config = S3SinkConfig(
       S3Config(
         None,
-        Some(Identity),
-        Some(Credential),
+        Some(container.identity.identity),
+        Some(container.identity.credential),
         AuthMode.Credentials,
       ),
       bucketOptions = Seq(
@@ -134,10 +130,10 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           bucketAndPrefix,
           commitPolicy    = CommitPolicy(Count(3)),
           formatSelection = JsonFormatSelection,
-          keyNamer = new S3KeyNamer(
+          keyNamer = new CloudKeyNamer(
             AvroFormatSelection,
             defaultPartitionSelection(Values),
-            new OffsetS3FileNamer(
+            new OffsetFileNamer(
               identity[String],
               JsonFormatSelection.extension,
             ),

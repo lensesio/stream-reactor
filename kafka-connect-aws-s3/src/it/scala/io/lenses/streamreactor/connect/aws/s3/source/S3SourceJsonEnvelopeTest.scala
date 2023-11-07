@@ -1,11 +1,8 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import cats.implicits._
-import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourcePartitionSearcherSettingsKeys
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
-import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.EitherValues
 import org.scalatest.concurrent.Eventually.eventually
@@ -23,25 +20,16 @@ class S3SourceJsonEnvelopeTest
     with AnyFlatSpecLike
     with Matchers
     with EitherValues
-    with TaskIndexKey
     with SourcePartitionSearcherSettingsKeys {
 
-  def DefaultProps: Map[String, String] = Map(
-    AWS_ACCESS_KEY                          -> Identity,
-    AWS_SECRET_KEY                          -> Credential,
-    AWS_REGION                              -> "eu-west-1",
-    AUTH_MODE                               -> AuthMode.Credentials.toString,
-    CUSTOM_ENDPOINT                         -> uri(),
-    ENABLE_VIRTUAL_HOST_BUCKETS             -> "true",
-    TASK_INDEX                              -> "0:1",
-    "name"                                  -> "s3-source",
+  def DefaultProps: Map[String, String] = defaultProps + (
     SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
   )
 
   val MyPrefix  = "backups"
   val TopicName = "myTopic"
 
-  override def cleanUpEnabled: Boolean = false
+  override def cleanUp(): Unit = ()
 
   override def setUpTestData(): Unit = {
     val envelopeJson =
@@ -53,7 +41,7 @@ class S3SourceJsonEnvelopeTest
       bw.write(envelopeJson)
       bw.flush()
       bw.close()
-      storageInterface.uploadFile(file, BucketName, s"$MyPrefix/json/0")
+      storageInterface.uploadFile(UploadableFile(file), BucketName, s"$MyPrefix/json/0")
       ()
     } finally {
       file.delete()
@@ -65,14 +53,11 @@ class S3SourceJsonEnvelopeTest
 
     val task = new S3SourceTask()
 
-    val props = DefaultProps
-      .combine(
-        Map(
-          "connect.s3.kcql"                            -> s"insert into $TopicName select * from $BucketName:$MyPrefix/json STOREAS `JSON` LIMIT 1000 PROPERTIES ('store.envelope'=true)",
-          "connect.s3.partition.search.recurse.levels" -> "0",
-          "connect.partition.search.continuous"        -> "false",
-        ),
-      ).asJava
+    val props = (defaultProps ++ Map(
+      "connect.s3.kcql"                            -> s"insert into $TopicName select * from $BucketName:$MyPrefix/json STOREAS `JSON` LIMIT 1000 PROPERTIES ('store.envelope'=true)",
+      "connect.s3.partition.search.recurse.levels" -> "0",
+      "connect.partition.search.continuous"        -> "false",
+    )).asJava
 
     task.start(props)
 
@@ -109,5 +94,4 @@ class S3SourceJsonEnvelopeTest
     sourceRecord.timestamp() shouldBe 1234567890L
   }
 
-  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

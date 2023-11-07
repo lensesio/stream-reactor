@@ -15,10 +15,10 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.source.config
 
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEntry
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEnum
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.ReadTextModeEnum
-import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.S3SourcePropsSchema
+import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.CloudSourcePropsSchema
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -29,9 +29,9 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
     ReadTextMode(
       readProps(
         Map(
-          S3PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.StartEndTag.entryName,
-          S3PropsKeyEnum.ReadStartTag.entryName -> "<p>",
-          S3PropsKeyEnum.ReadEndTag.entryName   -> "</p>",
+          PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.StartEndTag.entryName,
+          PropsKeyEnum.ReadStartTag.entryName -> "<p>",
+          PropsKeyEnum.ReadEndTag.entryName   -> "</p>",
         ),
       ),
     ) should be(Some(StartEndTagReadTextMode("<p>", "</p>", 1024)))
@@ -41,10 +41,10 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
     ReadTextMode(
       readProps(
         Map(
-          S3PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.StartEndTag.entryName,
-          S3PropsKeyEnum.ReadStartTag.entryName -> "<p>",
-          S3PropsKeyEnum.ReadEndTag.entryName   -> "</p>",
-          S3PropsKeyEnum.BufferSize.entryName   -> "2048",
+          PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.StartEndTag.entryName,
+          PropsKeyEnum.ReadStartTag.entryName -> "<p>",
+          PropsKeyEnum.ReadEndTag.entryName   -> "</p>",
+          PropsKeyEnum.BufferSize.entryName   -> "2048",
         ),
       ),
     ) should be(Some(StartEndTagReadTextMode("<p>", "</p>", 2048)))
@@ -54,8 +54,8 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
     ReadTextMode(
       readProps(
         Map(
-          S3PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.StartEndTag.entryName,
-          S3PropsKeyEnum.ReadStartTag.entryName -> "<p>",
+          PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.StartEndTag.entryName,
+          PropsKeyEnum.ReadStartTag.entryName -> "<p>",
         ),
       ),
     ) should be(Option.empty)
@@ -63,8 +63,8 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
     ReadTextMode(
       readProps(
         Map(
-          S3PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.StartEndTag.entryName,
-          S3PropsKeyEnum.ReadEndTag.entryName   -> "<p>",
+          PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.StartEndTag.entryName,
+          PropsKeyEnum.ReadEndTag.entryName   -> "<p>",
         ),
       ),
     ) should be(Option.empty)
@@ -74,8 +74,8 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
     ReadTextMode(
       readProps(
         Map(
-          S3PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.Regex.entryName,
-          S3PropsKeyEnum.ReadRegex.entryName    -> "$[A-Za-z]*^",
+          PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.Regex.entryName,
+          PropsKeyEnum.ReadRegex.entryName    -> "$[A-Za-z]*^",
         ),
       ),
     ) should be(Some(RegexReadTextMode("$[A-Za-z]*^")))
@@ -83,7 +83,7 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
 
   "ReadTextMode" should "return none when no regex is configured" in {
     ReadTextMode(readProps(Map(
-      S3PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.Regex.entryName,
+      PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.Regex.entryName,
     ))) should be(Option.empty)
   }
 
@@ -95,9 +95,9 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
     ReadTextMode(
       readProps(
         Map(
-          S3PropsKeyEnum.ReadTextMode.entryName  -> ReadTextModeEnum.StartEndLine.entryName,
-          S3PropsKeyEnum.ReadStartLine.entryName -> "SSM",
-          S3PropsKeyEnum.ReadEndLine.entryName   -> "",
+          PropsKeyEnum.ReadTextMode.entryName  -> ReadTextModeEnum.StartEndLine.entryName,
+          PropsKeyEnum.ReadStartLine.entryName -> "SSM",
+          PropsKeyEnum.ReadEndLine.entryName   -> "",
         ),
       ),
     ) should be(Some(StartEndLineReadTextMode("SSM", "", false)))
@@ -107,10 +107,10 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
     ReadTextMode(
       readProps(
         Map(
-          S3PropsKeyEnum.ReadTextMode.entryName  -> ReadTextModeEnum.StartEndLine.entryName,
-          S3PropsKeyEnum.ReadStartLine.entryName -> "SSM",
-          S3PropsKeyEnum.ReadEndLine.entryName   -> "",
-          S3PropsKeyEnum.ReadTrimLine.entryName  -> "true",
+          PropsKeyEnum.ReadTextMode.entryName  -> ReadTextModeEnum.StartEndLine.entryName,
+          PropsKeyEnum.ReadStartLine.entryName -> "SSM",
+          PropsKeyEnum.ReadEndLine.entryName   -> "",
+          PropsKeyEnum.ReadTrimLine.entryName  -> "true",
         ),
       ),
     ) should be(Some(StartEndLineReadTextMode("SSM", "", true)))
@@ -120,8 +120,8 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
     ReadTextMode(
       readProps(
         Map(
-          S3PropsKeyEnum.ReadTextMode.entryName  -> ReadTextModeEnum.StartEndLine.entryName,
-          S3PropsKeyEnum.ReadStartLine.entryName -> "SSM",
+          PropsKeyEnum.ReadTextMode.entryName  -> ReadTextModeEnum.StartEndLine.entryName,
+          PropsKeyEnum.ReadStartLine.entryName -> "SSM",
         ),
       ),
     ) should be(Option.empty)
@@ -129,14 +129,14 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
     ReadTextMode(
       readProps(
         Map(
-          S3PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.StartEndLine.entryName,
-          S3PropsKeyEnum.ReadEndLine.entryName  -> "",
+          PropsKeyEnum.ReadTextMode.entryName -> ReadTextModeEnum.StartEndLine.entryName,
+          PropsKeyEnum.ReadEndLine.entryName  -> "",
         ),
       ),
     ) should be(Option.empty)
   }
 
-  private def readProps(propsMap: Map[String, String]): KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type] =
-    S3SourcePropsSchema.schema.readPropsMap(propsMap)
+  private def readProps(propsMap: Map[String, String]): KcqlProperties[PropsKeyEntry, PropsKeyEnum.type] =
+    CloudSourcePropsSchema.schema.readPropsMap(propsMap)
 
 }

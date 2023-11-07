@@ -27,7 +27,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.U
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.ZSTD
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ToAvroDataConverter
-import io.lenses.streamreactor.connect.cloud.common.stream.S3OutputStream
+import io.lenses.streamreactor.connect.cloud.common.stream.CloudOutputStream
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 import org.apache.parquet.avro.AvroParquetWriter
@@ -38,8 +38,8 @@ import org.apache.parquet.hadoop.metadata.{ CompressionCodecName => ParquetCompr
 
 import scala.util.Try
 
-class ParquetFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: CompressionCodec)
-    extends S3FormatWriter
+class ParquetFormatWriter(outputStream: CloudOutputStream)(implicit compressionCodec: CompressionCodec)
+    extends FormatWriter
     with LazyLogging {
 
   private val parquetCompressionCodec: ParquetCompressionCodecName = {

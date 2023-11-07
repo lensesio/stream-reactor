@@ -56,14 +56,14 @@ import scala.annotation.nowarn
   * @param watermarkPartition The watermark partition
   * @param topic The target topic
   * @param partition The target partition; only used if the envelope does not contain a partition
-  * @param s3Location The S3 location of the object
+  * @param location The cloud location of the object
   * @param lastModified The last modified date of the object
   */
 class SchemalessEnvelopeConverter(
   watermarkPartition: java.util.Map[String, String],
   topic:              Topic,
   partition:          Integer,
-  s3Location:         CloudLocation,
+  location:           CloudLocation,
   lastModified:       Instant,
   instantF:           () => Instant = () => Instant.now(),
 ) extends Converter[String] {
@@ -86,7 +86,7 @@ class SchemalessEnvelopeConverter(
 
         val sourceRecord = new SourceRecord(
           watermarkPartition,
-          SourceWatermark.offset(s3Location, index, lastModified),
+          SourceWatermark.offset(location, index, lastModified),
           topic.value,
           metadata.flatMap(j => j("partition").get.asNumber.flatMap(_.toInt).map(Integer.valueOf)).getOrElse(partition),
           key.map { _ =>

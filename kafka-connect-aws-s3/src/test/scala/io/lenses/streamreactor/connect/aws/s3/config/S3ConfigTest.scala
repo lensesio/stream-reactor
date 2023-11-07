@@ -19,53 +19,11 @@ import com.datamountaineer.streamreactor.common.errors.NoopErrorPolicy
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
 import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.kafka.common.config.types.Password
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
 class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
-
-  "S3Config" should "get string value" in {
-    val map = Map(
-      "defined" -> "hello",
-      "blank"   -> "",
-    )
-    S3Config.getString(map, "defined") should be(Some("hello"))
-    S3Config.getString(map, "blank") should be(None)
-    S3Config.getString(map, "undefined") should be(None)
-  }
-
-  "S3Config" should "get password value" in {
-    val map = Map[String, Any](
-      "definedPass"   -> new Password("hello"),
-      "emptyPass"     -> new Password(""),
-      "definedString" -> "defined",
-      "emptyString"   -> "",
-    )
-    S3Config.getPassword(map, "definedPass") should be(Some("hello"))
-    S3Config.getPassword(map, "emptyPass") should be(None)
-    S3Config.getPassword(map, "undefined") should be(None)
-    S3Config.getPassword(map, "definedString") should be(Some("defined"))
-    S3Config.getPassword(map, "emptyString") should be(None)
-
-  }
-
-  "S3Config" should "get boolean value" in {
-    val map = Map[String, Any](
-      "trueBoolProp"    -> true,
-      "falseBoolProp"   -> false,
-      "trueStringProp"  -> "true",
-      "falseStringProp" -> "false",
-      "emptyProp"       -> "",
-    )
-    S3Config.getBoolean(map, "trueBoolProp") should be(Some(true))
-    S3Config.getBoolean(map, "falseBoolProp") should be(Some(false))
-    S3Config.getBoolean(map, "trueStringProp") should be(Some(true))
-    S3Config.getBoolean(map, "falseStringProp") should be(Some(false))
-    S3Config.getBoolean(map, "emptyProp") should be(None)
-    S3Config.getBoolean(map, "undefinedProp") should be(None)
-  }
 
   "S3Config" should "set error policies in a case insensitive way" in {
 

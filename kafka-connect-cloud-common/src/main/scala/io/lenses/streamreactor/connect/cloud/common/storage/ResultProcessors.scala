@@ -15,18 +15,18 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.storage
 
-object ResultProcessors {
+trait ResultProcessors {
 
-  def processObjectsAsFileMeta(
+  protected def processObjectsAsFileMeta[SM <: FileMetadata](
     bucket:    String,
     prefix:    Option[String],
-    objectSeq: Seq[FileMetadata],
-  ): Option[ListResponse[FileMetadata]] =
+    objectSeq: Seq[SM],
+  ): Option[ListOfMetadataResponse[SM]] =
     objectSeq
       .lastOption
       .map {
         last =>
-          ListResponse[FileMetadata](
+          ListOfMetadataResponse[SM](
             bucket,
             prefix,
             objectSeq,
@@ -34,14 +34,14 @@ object ResultProcessors {
           )
       }
 
-  def processAsKey(
+  protected def processAsKey[SM <: FileMetadata](
     bucket:    String,
     prefix:    Option[String],
-    objectSeq: Seq[FileMetadata],
-  ): Option[ListResponse[String]] =
+    objectSeq: Seq[SM],
+  ): Option[ListOfKeysResponse[SM]] =
     objectSeq.lastOption.map {
       last =>
-        ListResponse(
+        ListOfKeysResponse[SM](
           bucket,
           prefix,
           objectSeq.map(_.file),

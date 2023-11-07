@@ -19,6 +19,7 @@ import cats.implicits.catsSyntaxEitherId
 import cats.implicits.toBifunctorOps
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
+import io.lenses.streamreactor.connect.cloud.common.auth.ClientCreator
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.AwsCredentials
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider
@@ -35,7 +36,7 @@ import java.net.URI
 import java.time.Duration
 import scala.util.Try
 
-object AwsS3ClientCreator {
+object AwsS3ClientCreator extends ClientCreator[S3Config, S3Client] {
 
   private val missingCredentialsError =
     "Configured to use credentials however one or both of `AWS_ACCESS_KEY` or `AWS_SECRET_KEY` are missing."

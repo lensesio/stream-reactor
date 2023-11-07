@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfigDef
+import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkConfigDef
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfigDef
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -33,7 +33,7 @@ class S3ConfigSettingsTest extends AnyFlatSpec with Matchers with LazyLogging {
   "S3ConfigSettings" should "ensure all keys are lower case" in {
 
     val configKeys =
-      S3SinkConfigDef.config.configKeys().keySet().asScala ++ S3SourceConfigDef.config.configKeys().keySet().asScala
+      SinkConfigDef.config.configKeys().keySet().asScala ++ S3SourceConfigDef.config.configKeys().keySet().asScala
 
     configKeys.size shouldBe 47
     configKeys.foreach {

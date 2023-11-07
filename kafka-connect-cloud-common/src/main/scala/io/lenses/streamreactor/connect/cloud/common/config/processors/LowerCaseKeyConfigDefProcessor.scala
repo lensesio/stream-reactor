@@ -20,10 +20,10 @@ import cats.implicits.catsSyntaxEitherId
 /**
   * Ensures the keys coming into the sink are all lower cased.
   */
-class LowerCaseKeyConfigDefProcessor extends ConfigDefProcessor {
+class LowerCaseKeyConfigDefProcessor(prefix: String) extends ConfigDefProcessor {
   override def process(input: Map[String, Any]): Either[Throwable, Map[String, Any]] =
     input.map {
-      case (k: String, v) if k.toLowerCase.startsWith("connect.s3") => (k.toLowerCase, v)
+      case (k: String, v) if k.toLowerCase.startsWith(prefix) => (k.toLowerCase, v)
       case (k, v) => (k, v)
     }.asRight
 }

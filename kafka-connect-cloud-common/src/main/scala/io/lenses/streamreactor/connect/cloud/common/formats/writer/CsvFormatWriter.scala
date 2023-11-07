@@ -21,14 +21,14 @@ import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionNamePath
 import io.lenses.streamreactor.connect.cloud.common.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
 import io.lenses.streamreactor.connect.cloud.common.sink.extractors.SinkDataExtractor
-import io.lenses.streamreactor.connect.cloud.common.stream.S3OutputStream
+import io.lenses.streamreactor.connect.cloud.common.stream.CloudOutputStream
 import org.apache.kafka.connect.data.Schema
 
 import java.io.OutputStreamWriter
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
-class CsvFormatWriter(outputStream: S3OutputStream, writeHeaders: Boolean) extends S3FormatWriter with LazyLogging {
+class CsvFormatWriter(outputStream: CloudOutputStream, writeHeaders: Boolean) extends FormatWriter with LazyLogging {
 
   private val outputStreamWriter = new OutputStreamWriter(outputStream)
   private val csvWriter          = new CSVWriter(outputStreamWriter)

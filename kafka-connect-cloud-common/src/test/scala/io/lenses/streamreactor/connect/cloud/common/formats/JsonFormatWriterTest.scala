@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.NullNode
 import io.lenses.streamreactor.connect.cloud.common.formats.writer._
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
-import io.lenses.streamreactor.connect.cloud.common.stream.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.cloud.common.stream.CloudByteArrayOutputStream
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.recordsAsJson
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic
@@ -35,7 +35,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write byte output stream with json for a single record" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(MessageDetail(NullSinkData(None),
                                          StructSinkData(SampleData.Users.head),
@@ -52,7 +52,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write byte output stream with json for multiple records" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     SampleData.Users.take(3).foreach(e =>
       jsonFormatWriter.write(
@@ -66,7 +66,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write primitive to json for a single record without schemas" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(MessageDetail(NullSinkData(None),
                                          StringSinkData("bees", None),
@@ -85,7 +85,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write primitive with new line characters to single line" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(MessageDetail(NullSinkData(None),
                                          StringSinkData("apple\nbucket", None),
@@ -104,7 +104,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write primitive to json for a single record" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(
       MessageDetail(
@@ -126,7 +126,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write primitives to json for multiple records" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(
       MessageDetail(
@@ -161,7 +161,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write array to json for multiple records" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(
       MessageDetail(NullSinkData(None),
@@ -187,7 +187,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write map to json" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(
       MessageDetail(
@@ -214,7 +214,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
   "convert" should "write maps containing nulls as null in json" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(outputStream)
     jsonFormatWriter.write(
       MessageDetail(

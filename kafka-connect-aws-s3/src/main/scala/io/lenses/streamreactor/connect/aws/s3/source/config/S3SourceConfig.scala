@@ -15,31 +15,32 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
-import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toTraverseOps
 import com.datamountaineer.kcql.Kcql
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config.getString
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_ORDERING_TYPE
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_REGEX
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_TYPE
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
-import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
+import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
+import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getString
 import io.lenses.streamreactor.connect.cloud.common.config.FormatSelection
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.OrderingType
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionExtractor
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
-import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.S3SourcePropsSchema
+import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.CloudSourceProps
+import io.lenses.streamreactor.connect.cloud.common.source.config.kcqlprops.CloudSourcePropsSchema
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
-import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
-import io.lenses.streamreactor.connect.cloud.common.storage.ListResponse
+import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
+import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 
 import java.util
-import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 
 object S3SourceConfig {
@@ -89,8 +90,8 @@ case class SourceBucketOptions(
   hasEnvelope:           Boolean,
 ) {
   def createBatchListerFn(
-    storageInterface: StorageInterface,
-  ): Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]] =
+    storageInterface: StorageInterface[S3FileMetadata],
+  ): Option[S3FileMetadata] => Either[FileListError, Option[ListOfKeysResponse[S3FileMetadata]]] =
     orderingType
       .getBatchLister
       .listBatch(
@@ -118,10 +119,12 @@ object SourceBucketOptions {
     config.getKCQL.map {
       kcql: Kcql =>
         for {
-          source <- CloudLocation.splitAndValidate(kcql.getSource, allowSlash = true)
-          format <- FormatSelection.fromKcql(kcql, S3SourcePropsSchema.schema)
+          source     <- CloudLocation.splitAndValidate(kcql.getSource, allowSlash = true)
+          format     <- FormatSelection.fromKcql(kcql, CloudSourcePropsSchema.schema)
+          sourceProps = CloudSourceProps.fromKcql(kcql)
+
           //extract the envelope. of not present default to false
-          hasEnvelope <- extractEnvelope(Option(kcql.getProperties).map(_.asScala.toMap).getOrElse(Map.empty))
+          hasEnvelope <- extractEnvelope(sourceProps)
 
         } yield SourceBucketOptions(
           source,
@@ -137,14 +140,8 @@ object SourceBucketOptions {
         )
     }.toSeq.traverse(identity)
 
-  def extractEnvelope(properties: Map[String, String]): Either[Throwable, Option[Boolean]] = {
-    val envelope = properties.get(DataStorageSettings.StoreEnvelopeKey)
-    envelope match {
-      case Some(value) =>
-        Try(value.toBoolean.some).toEither.left.map(_ =>
-          new IllegalArgumentException(s"Invalid value for $S3Config.ENVELOPE_ENABLED. Must be a boolean"),
-        )
-      case None => Right(None)
-    }
-  }
+  private def extractEnvelope(
+    properties: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type],
+  ): Either[Throwable, Option[Boolean]] =
+    properties.getOptionalBoolean(PropsKeyEnum.StoreEnvelope)
 }

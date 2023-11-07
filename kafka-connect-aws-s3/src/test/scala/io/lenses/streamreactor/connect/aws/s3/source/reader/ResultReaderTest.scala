@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.reader
 
-import io.lenses.streamreactor.connect.cloud.common.formats.reader.S3StreamReader
+import io.lenses.streamreactor.connect.cloud.common.formats.reader.CloudStreamReader
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ResultReader
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.source.SourceRecord
@@ -29,7 +29,7 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   private val targetTopic = "MyTargetTopic"
   private val limit       = 10
-  private val reader      = mock[S3StreamReader]
+  private val reader      = mock[CloudStreamReader]
 
   private val result1 =
     new SourceRecord(Collections.emptyMap(),

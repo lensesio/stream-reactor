@@ -26,7 +26,7 @@ class S3Container(
   networkAlias: String           = defaultNetworkAlias,
   port:         Int              = defaultPort,
   val identity: S3Authentication = RandomAuthentication(),
-) extends GenericContainer[S3Container](dockerImage.withTag(dockerTag)) {
+) extends GenericContainer[S3Container](dockerImage.withTag(dockerTag)) with PausableContainer {
 
   withNetworkAliases(networkAlias)
   withExposedPorts(port)
@@ -55,6 +55,8 @@ class S3Container(
     new URI(
       s"http://$getHost:${getMappedPort(port)}",
     )
+
+  override def container: GenericContainer[_] = this
 }
 
 object S3Container {

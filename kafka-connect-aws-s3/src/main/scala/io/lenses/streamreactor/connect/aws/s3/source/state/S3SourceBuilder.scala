@@ -29,7 +29,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.source.reader.PartitionDiscovery
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManagerState
-import io.lenses.streamreactor.connect.cloud.common.source.state.S3SourceTaskState
+import io.lenses.streamreactor.connect.cloud.common.source.state.CloudSourceTaskState
 
 import java.util
 import scala.jdk.CollectionConverters.IteratorHasAsScala
@@ -76,7 +76,7 @@ object S3SourceState extends StrictLogging {
                                                           readerManagerState,
                                                           cancelledRef,
       )
-      BuilderResult(new S3SourceTaskState(readerManagerState.get.map(_.readerManagers)),
+      BuilderResult(new CloudSourceTaskState(readerManagerState.get.map(_.readerManagers)),
                     cancelledRef,
                     partitionDiscoveryLoop,
       )
@@ -84,7 +84,7 @@ object S3SourceState extends StrictLogging {
 }
 
 case class BuilderResult(
-  state:                  S3SourceTaskState,
+  state:                  CloudSourceTaskState,
   cancelledRef:           Ref[IO, Boolean],
   partitionDiscoveryLoop: IO[Unit],
 )

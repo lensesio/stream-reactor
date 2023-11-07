@@ -23,7 +23,7 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkDat
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.sink.extractors.ExtractorError
 import io.lenses.streamreactor.connect.cloud.common.sink.extractors.ExtractorErrorType.UnexpectedType
-import io.lenses.streamreactor.connect.cloud.common.stream.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.cloud.common.stream.CloudByteArrayOutputStream
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic
 import org.apache.kafka.connect.data.Schema.STRING_SCHEMA
@@ -42,7 +42,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
   "convert" should "write byte output stream with csv for a single record" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream = new CloudByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(outputStream, true)
     formatWriter.write(MessageDetail(NullSinkData(None),
                                      StructSinkData(SampleData.Users.head),
@@ -67,7 +67,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
   "convert" should "write byte output stream with csv for multiple records" in {
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream = new CloudByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(outputStream, true)
     SampleData.Users.take(3).foreach(e =>
       formatWriter.write(
@@ -122,7 +122,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
       .put("myInt32", 32)
       .put("myInt64", 64.toLong)
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream = new CloudByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(outputStream, true)
     formatWriter.write(MessageDetail(NullSinkData(None),
                                      StructSinkData(struct),
@@ -163,7 +163,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
     val struct = new Struct(schema)
       .put("myStringArray", List("cheese", "biscuits").asJava)
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream = new CloudByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(outputStream, true)
 
     val caught =
@@ -192,7 +192,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
              .put("myStringStruct", "myStringFieldValue"),
       )
 
-    val outputStream = new S3ByteArrayOutputStream()
+    val outputStream = new CloudByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(outputStream, true)
 
     val caught =

@@ -25,7 +25,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.U
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.XZ
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.ZSTD
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ToAvroDataConverter
-import io.lenses.streamreactor.connect.cloud.common.stream.S3OutputStream
+import io.lenses.streamreactor.connect.cloud.common.stream.CloudOutputStream
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import org.apache.avro.Schema
 import org.apache.avro.file.CodecFactory
@@ -35,8 +35,8 @@ import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 
 import scala.util.Try
 
-class AvroFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: CompressionCodec)
-    extends S3FormatWriter
+class AvroFormatWriter(outputStream: CloudOutputStream)(implicit compressionCodec: CompressionCodec)
+    extends FormatWriter
     with LazyLogging {
 
   private val avroCompressionCodec: CodecFactory = {
@@ -76,7 +76,7 @@ class AvroFormatWriter(outputStream: S3OutputStream)(implicit compressionCodec: 
 
   override def getPointer: Long = avroWriterState.fold(0L)(_.pointer)
 
-  private class AvroWriterState(outputStream: S3OutputStream, connectSchema: Option[ConnectSchema]) {
+  private class AvroWriterState(outputStream: CloudOutputStream, connectSchema: Option[ConnectSchema]) {
     private val schema: Schema                  = ToAvroDataConverter.convertSchema(connectSchema)
     private val writer: GenericDatumWriter[Any] = new GenericDatumWriter[Any](schema)
     private val fileWriter: DataFileWriter[Any] =

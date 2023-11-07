@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.cloud.common.formats
 
 import io.lenses.streamreactor.connect.cloud.common.formats.writer._
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
-import io.lenses.streamreactor.connect.cloud.common.stream.S3ByteArrayOutputStream
+import io.lenses.streamreactor.connect.cloud.common.stream.CloudByteArrayOutputStream
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic
 import org.scalatest.EitherValues
@@ -30,7 +30,7 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "write byte output stream with text format for a single record" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val jsonFormatWriter = new TextFormatWriter(outputStream)
     jsonFormatWriter.write(MessageDetail(NullSinkData(None),
                                          StringSinkData("Sausages"),
@@ -48,7 +48,7 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "write byte output stream with json for multiple records" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val jsonFormatWriter = new TextFormatWriter(outputStream)
     jsonFormatWriter.write(MessageDetail(NullSinkData(None),
                                          StringSinkData("Sausages"),
@@ -81,7 +81,7 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
   "convert" should "throw error when avro value is supplied" in {
 
-    val outputStream     = new S3ByteArrayOutputStream()
+    val outputStream     = new CloudByteArrayOutputStream()
     val textFormatWriter = new TextFormatWriter(outputStream)
     val caught =
       textFormatWriter.write(MessageDetail(NullSinkData(None),

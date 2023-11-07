@@ -18,13 +18,13 @@ package io.lenses.streamreactor.connect.cloud.common.formats.writer
 import LineSeparatorUtil.LineSeparatorBytes
 import io.lenses.streamreactor.connect.cloud.common.formats.FormatWriterException
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
-import io.lenses.streamreactor.connect.cloud.common.stream.S3OutputStream
+import io.lenses.streamreactor.connect.cloud.common.stream.CloudOutputStream
 
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class TextFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter {
+class TextFormatWriter(outputStream: CloudOutputStream) extends FormatWriter {
 
   override def write(messageDetail: MessageDetail): Either[Throwable, Unit] =
     Try {

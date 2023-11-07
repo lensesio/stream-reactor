@@ -20,7 +20,7 @@ import io.lenses.streamreactor.connect.io.text.OptionIteratorAdaptor
 class CustomTextStreamReader(
   lineReaderFn: () => Option[String],
   closeFn:      () => Unit,
-) extends S3DataIterator[String] {
+) extends CloudDataIterator[String] {
 
   private val adaptor = new OptionIteratorAdaptor(() => lineReaderFn())
 

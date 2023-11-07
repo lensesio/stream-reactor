@@ -16,6 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.users
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
@@ -23,7 +24,6 @@ import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.checkRecord
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic
 import io.lenses.streamreactor.connect.cloud.common.config.ParquetFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.ParquetFormatReader
-import io.lenses.streamreactor.connect.cloud.common.formats.writer
 import io.lenses.streamreactor.connect.cloud.common.formats.writer._
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
@@ -43,8 +43,12 @@ import org.scalatest.matchers.should.Matchers
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with EitherValues {
-  import helper._
+class ParquetFormatWriterStreamTest
+    extends AnyFlatSpec
+    with Matchers
+    with S3ProxyContainerTest
+    with EitherValues
+    with LazyLogging {
 
   implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
 
@@ -56,31 +60,31 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
 
     val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
-    parquetFormatWriter.write(writer.MessageDetail(NullSinkData(None),
-                                                   StructSinkData(users.head),
-                                                   Map.empty,
-                                                   None,
-                                                   topic,
-                                                   1,
-                                                   Offset(1),
+    parquetFormatWriter.write(MessageDetail(NullSinkData(None),
+                                            StructSinkData(users.head),
+                                            Map.empty,
+                                            None,
+                                            topic,
+                                            1,
+                                            Offset(1),
     ))
     parquetFormatWriter.getPointer should be(21)
-    parquetFormatWriter.write(writer.MessageDetail(NullSinkData(None),
-                                                   StructSinkData(users(1)),
-                                                   Map.empty,
-                                                   None,
-                                                   topic,
-                                                   1,
-                                                   Offset(2),
+    parquetFormatWriter.write(MessageDetail(NullSinkData(None),
+                                            StructSinkData(users(1)),
+                                            Map.empty,
+                                            None,
+                                            topic,
+                                            1,
+                                            Offset(2),
     ))
     parquetFormatWriter.getPointer should be(44)
-    parquetFormatWriter.write(writer.MessageDetail(NullSinkData(None),
-                                                   StructSinkData(users(2)),
-                                                   Map.empty,
-                                                   None,
-                                                   topic,
-                                                   1,
-                                                   Offset(3),
+    parquetFormatWriter.write(MessageDetail(NullSinkData(None),
+                                            StructSinkData(users(2)),
+                                            Map.empty,
+                                            None,
+                                            topic,
+                                            1,
+                                            Offset(3),
     ))
     parquetFormatWriter.getPointer should be(59)
     parquetFormatWriter.complete() should be(Right(()))
@@ -107,7 +111,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
     val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
     parquetFormatWriter.write(
-      writer.MessageDetail(
+      MessageDetail(
         NullSinkData(None),
         ArraySinkData(
           Seq(
@@ -132,7 +136,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
     val blobStream          = new BuildLocalOutputStream(toBufferedOutputStream(localFile), Topic("testTopic").withPartition(1))
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
     parquetFormatWriter.write(
-      writer.MessageDetail(
+      MessageDetail(
         NullSinkData(None),
         MapSinkData(
           Map(
@@ -185,13 +189,13 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Pro
 
     val parquetFormatWriter = new ParquetFormatWriter(blobStream)
     firstUsers.foreach(u =>
-      parquetFormatWriter.write(writer.MessageDetail(NullSinkData(None),
-                                                     StructSinkData(u),
-                                                     Map.empty,
-                                                     None,
-                                                     topic,
-                                                     1,
-                                                     Offset(1),
+      parquetFormatWriter.write(MessageDetail(NullSinkData(None),
+                                              StructSinkData(u),
+                                              Map.empty,
+                                              None,
+                                              topic,
+                                              1,
+                                              Offset(1),
       )) should be(
         Right(()),
       ),

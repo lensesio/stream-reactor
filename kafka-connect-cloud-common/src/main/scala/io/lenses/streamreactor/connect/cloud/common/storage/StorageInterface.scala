@@ -16,25 +16,15 @@
 package io.lenses.streamreactor.connect.cloud.common.storage
 
 import io.lenses.streamreactor.connect.cloud.common.config.ObjectMetadata
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 
-import java.io.File
 import java.io.InputStream
 import java.time.Instant
 
-case class FileMetadata(
-  file:         String,
-  lastModified: Instant,
-)
+trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
 
-case class ListResponse[T](
-  bucket:             String,
-  prefix:             Option[String],
-  files:              Seq[T],
-  latestFileMetadata: FileMetadata,
-)
-trait StorageInterface {
-
-  def uploadFile(source: File, bucket: String, path: String): Either[UploadError, Unit]
+  def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, Unit]
 
   def close(): Unit
 
@@ -43,15 +33,25 @@ trait StorageInterface {
   def list(
     bucket:     String,
     prefix:     Option[String],
-    lastFile:   Option[FileMetadata],
+    lastFile:   Option[SM],
     numResults: Int,
-  ): Either[FileListError, Option[ListResponse[String]]]
+  ): Either[FileListError, Option[ListOfKeysResponse[SM]]]
 
-  def listRecursive[T](
-    bucket:    String,
-    prefix:    Option[String],
-    processFn: (String, Option[String], Seq[FileMetadata]) => Option[ListResponse[T]],
-  ): Either[FileListError, Option[ListResponse[T]]]
+  def listFileMetaRecursive(
+    bucket: String,
+    prefix: Option[String],
+  ): Either[FileListError, Option[ListOfMetadataResponse[SM]]]
+
+  def listKeysRecursive(
+    bucket: String,
+    prefix: Option[String],
+  ): Either[FileListError, Option[ListOfKeysResponse[SM]]]
+
+  def seekToFile(
+    bucket:       String,
+    fileName:     String,
+    lastModified: Option[Instant],
+  ): Option[SM]
 
   def getBlob(bucket: String, path: String): Either[FileLoadError, InputStream]
 
@@ -59,7 +59,7 @@ trait StorageInterface {
 
   def getMetadata(bucket: String, path: String): Either[FileLoadError, ObjectMetadata]
 
-  def writeStringToFile(bucket: String, path: String, data: String): Either[UploadError, Unit]
+  def writeStringToFile(bucket: String, path: String, data: UploadableString): Either[UploadError, Unit]
 
   def deleteFiles(bucket: String, files: Seq[String]): Either[FileDeleteError, Unit]
 }

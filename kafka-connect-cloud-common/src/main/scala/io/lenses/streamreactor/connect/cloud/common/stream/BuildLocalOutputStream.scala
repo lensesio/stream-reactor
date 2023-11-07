@@ -18,14 +18,14 @@ package io.lenses.streamreactor.connect.cloud.common.stream
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
-import io.lenses.streamreactor.connect.cloud.common.sink.FatalS3SinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 
 import java.io.BufferedOutputStream
 import scala.util.Try
 
 class BuildLocalOutputStream(outputStream: BufferedOutputStream, topicPartition: TopicPartition)
-    extends S3OutputStream
+    extends CloudOutputStream
     with LazyLogging {
 
   private var pointer = 0
@@ -56,7 +56,7 @@ class BuildLocalOutputStream(outputStream: BufferedOutputStream, topicPartition:
   }.leftMap {
     case se: SinkError => se
     case to: Throwable =>
-      FatalS3SinkError(to.getMessage, topicPartition)
+      FatalCloudSinkError(to.getMessage, topicPartition)
   }
 
   private def validateRange(startOffset: Int, numberOfBytes: Int) = startOffset >= 0 && startOffset <= numberOfBytes

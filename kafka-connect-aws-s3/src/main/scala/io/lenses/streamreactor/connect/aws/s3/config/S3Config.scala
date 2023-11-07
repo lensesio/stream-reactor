@@ -21,7 +21,12 @@ import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import enumeratum.Enum
 import enumeratum.EnumEntry
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import org.apache.kafka.common.config.types.Password
+import io.lenses.streamreactor.connect.cloud.common.config.CloudConfig
+import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getBoolean
+import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getInt
+import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getLong
+import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getPassword
+import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getString
 
 import scala.collection.immutable
 
@@ -38,43 +43,6 @@ object AuthMode extends Enum[AuthMode] {
 }
 
 object S3Config {
-
-  def getString(props: Map[String, _], key: String): Option[String] =
-    props.get(key)
-      .collect {
-        case s: String if s.nonEmpty => s
-      }
-
-  def getPassword(props: Map[String, _], key: String): Option[String] =
-    props.get(key)
-      .collect {
-        case p: Password if p.value().nonEmpty => p.value()
-        case s: String if s.nonEmpty           => s
-      }
-
-  def getBoolean(props: Map[String, _], key: String): Option[Boolean] =
-    props.get(key)
-      .collect {
-        case b: Boolean => b
-        case "true"  => true
-        case "false" => false
-      }
-
-  def getLong(props: Map[String, _], key: String): Option[Long] =
-    props.get(key)
-      .collect {
-        case i: Int    => i.toLong
-        case l: Long   => l
-        case s: String => s.toLong
-      }
-
-  def getInt(props: Map[String, _], key: String): Option[Int] =
-    props.get(key)
-      .collect {
-        case i: Int    => i
-        case l: Long   => l.toInt
-        case i: String => i.toInt
-      }
 
   def apply(props: Map[String, _]): S3Config = S3Config(
     getString(props, AWS_REGION),
@@ -132,4 +100,4 @@ case class S3Config(
   httpRetryConfig:          RetryConfig                  = RetryConfig(HTTP_NBR_OF_RETIRES_DEFAULT, HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
   timeouts:                 HttpTimeoutConfig            = HttpTimeoutConfig(None, None),
   connectionPoolConfig:     Option[ConnectionPoolConfig] = Option.empty,
-)
+) extends CloudConfig

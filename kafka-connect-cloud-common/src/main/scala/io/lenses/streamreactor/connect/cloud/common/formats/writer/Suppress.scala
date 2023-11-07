@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.cloud.common.formats.writer
 
 import cats.implicits._
-import io.lenses.streamreactor.connect.cloud.common.sink.FatalS3SinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 
 import scala.util.Failure
 import scala.util.Success
@@ -24,12 +24,12 @@ import scala.util.Try
 
 object Suppress {
 
-  def apply(r: => Unit): Either[FatalS3SinkError, Unit] = {
+  def apply(r: => Unit): Either[FatalCloudSinkError, Unit] = {
     Try(r) match {
       case Failure(_) =>
       case Success(_) =>
     }
-    ().asRight[FatalS3SinkError]
+    ().asRight[FatalCloudSinkError]
   }
 
 }

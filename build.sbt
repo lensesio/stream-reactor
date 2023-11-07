@@ -95,14 +95,14 @@ lazy val `cloud-common` = (project in file("kafka-connect-cloud-common"))
 
 lazy val `aws-s3` = (project in file("kafka-connect-aws-s3"))
   .dependsOn(common)
-  .dependsOn(`cloud-common` % "compile->compile;test->test")
-  .dependsOn(`test-common` % "fun->compile")
+  .dependsOn(`cloud-common` % "compile->compile;test->test;it->it")
+  .dependsOn(`test-common` % "fun->compile;it->compile")
   .settings(
     settings ++
       Seq(
         name := "kafka-connect-aws-s3",
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= baseDeps ++ kafkaConnectS3Deps,
+        libraryDependencies ++= baseDeps ++ kafkaConnectCloudCommonDeps ++ kafkaConnectS3Deps,
         publish / skip := true,
         packExcludeJars := Seq(
           "scala-.*\\.jar",
@@ -446,11 +446,11 @@ lazy val `test-common` = (project in file("test-common"))
 
 addCommandAlias(
   "validateAll",
-  ";headerCheck;test:headerCheck;it:headerCheck;fun:headerCheck;scalafmtCheckAll;",
+  "headerCheck;test:headerCheck;it:headerCheck;fun:headerCheck;scalafmtCheckAll;",
 )
 addCommandAlias(
   "formatAll",
-  ";headerCreateAll;scalafmtAll;scalafmtSbt;",
+  "headerCreateAll;scalafmtAll;scalafmtSbt;",
 )
 addCommandAlias("fullTest", ";test;it:test;fun:test")
 addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")

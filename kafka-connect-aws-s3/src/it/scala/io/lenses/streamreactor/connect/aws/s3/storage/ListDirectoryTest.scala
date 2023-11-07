@@ -20,7 +20,8 @@ import scala.jdk.CollectionConverters.IteratorHasAsScala
 class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with LazyLogging {
 
   implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
-  override def cleanUpEnabled:         Boolean                = false
+
+  override def cleanUp(): Unit = ()
 
   override def setUpTestData(): Unit = {
     val requestBody = RequestBody.fromString("x")
@@ -30,7 +31,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
 
           for (offsetNo <- 1 to 2) {
             logger.debug(s"Writing $topic/$partitionNo/$offsetNo")
-            s3Client.putObject(
+            client.putObject(
               PutObjectRequest.builder().bucket(BucketName).key(s"$topic/$partitionNo/$offsetNo").build(),
               requestBody,
             )
@@ -51,7 +52,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
       DirectoryFindCompletionConfig(0),
       Set.empty,
       Set.empty,
-      s3Client.listObjectsV2Paginator(_).iterator().asScala,
+      client.listObjectsV2Paginator(_).iterator().asScala,
       connectorTaskId,
     ).unsafeRunSync()
 
@@ -72,7 +73,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
       DirectoryFindCompletionConfig(2),
       Set.empty,
       Set.empty,
-      s3Client.listObjectsV2Paginator(_).iterator().asScala,
+      client.listObjectsV2Paginator(_).iterator().asScala,
       taskId,
     ).unsafeRunSync()
 
@@ -92,7 +93,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
       DirectoryFindCompletionConfig(3),
       Set.empty,
       Set.empty,
-      s3Client.listObjectsV2Paginator(_).iterator().asScala,
+      client.listObjectsV2Paginator(_).iterator().asScala,
       taskId,
     ).unsafeRunSync()
 
@@ -111,7 +112,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
       DirectoryFindCompletionConfig(1),
       Set.empty,
       Set.empty,
-      s3Client.listObjectsV2Paginator(_).iterator().asScala,
+      client.listObjectsV2Paginator(_).iterator().asScala,
       taskId,
     ).unsafeRunSync()
 

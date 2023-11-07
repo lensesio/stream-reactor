@@ -28,18 +28,18 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
-import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.S3SinkProps
-import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.S3SinkPropsSchema
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingArea
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionSelection
+import io.lenses.streamreactor.connect.cloud.common.sink.config.WithTransformableDataStorage
+import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.CloudSinkProps
+import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.SinkPropsSchema
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetS3FileNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.S3KeyNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.TopicPartitionOffsetS3FileNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.TopicPartitionOffsetFileNamer
 
 import java.util
-import scala.jdk.CollectionConverters._
 
 object S3SinkConfig {
 
@@ -50,10 +50,10 @@ object S3SinkConfig {
     connectorTaskId:        ConnectorTaskId,
     cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, S3SinkConfig] =
-    S3SinkConfig(S3SinkConfigDefBuilder(props))
+    S3SinkConfig(SinkConfigDefBuilder(props))
 
   def apply(
-    s3ConfigDefBuilder: S3SinkConfigDefBuilder,
+    s3ConfigDefBuilder: SinkConfigDefBuilder,
   )(
     implicit
     connectorTaskId:        ConnectorTaskId,
@@ -85,7 +85,7 @@ case class S3SinkConfig(
 object SinkBucketOptions extends LazyLogging {
 
   def apply(
-    config: S3SinkConfigDefBuilder,
+    config: SinkConfigDefBuilder,
   )(
     implicit
     connectorTaskId:        ConnectorTaskId,
@@ -93,32 +93,30 @@ object SinkBucketOptions extends LazyLogging {
   ): Either[Throwable, Seq[SinkBucketOptions]] =
     config.getKCQL.map { kcql: Kcql =>
       for {
-        formatSelection   <- FormatSelection.fromKcql(kcql, S3SinkPropsSchema.schema)
-        sinkProps          = S3SinkProps.fromKcql(kcql)
+        formatSelection   <- FormatSelection.fromKcql(kcql, SinkPropsSchema.schema)
+        sinkProps          = CloudSinkProps.fromKcql(kcql)
         partitionSelection = PartitionSelection(kcql, sinkProps)
         paddingService    <- PaddingService.fromConfig(config, sinkProps)
 
         fileNamer = if (partitionSelection.isCustom) {
-          new TopicPartitionOffsetS3FileNamer(
+          new TopicPartitionOffsetFileNamer(
             paddingService.padderFor("partition"),
             paddingService.padderFor("offset"),
             formatSelection.extension,
           )
         } else {
-          new OffsetS3FileNamer(
+          new OffsetFileNamer(
             paddingService.padderFor("offset"),
             formatSelection.extension,
           )
         }
-        keyNamer     = S3KeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
-        stagingArea <- config.getLocalStagingArea()
-        target      <- CloudLocation.splitAndValidate(kcql.getTarget, allowSlash = false)
-        storageSettings <- DataStorageSettings.from(
-          Option(kcql.getProperties).map(_.asScala.toMap).getOrElse(Map.empty),
-        )
-        _           <- validateEnvelopeAndFormat(formatSelection, storageSettings)
-        commitPolicy = config.commitPolicy(kcql)
-        _           <- validateCommitPolicyForBytesFormat(formatSelection, commitPolicy)
+        keyNamer         = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
+        stagingArea     <- config.getLocalStagingArea()
+        target          <- CloudLocation.splitAndValidate(kcql.getTarget, allowSlash = false)
+        storageSettings <- DataStorageSettings.from(sinkProps)
+        _               <- validateEnvelopeAndFormat(formatSelection, storageSettings)
+        commitPolicy     = config.commitPolicy(kcql)
+        _               <- validateCommitPolicyForBytesFormat(formatSelection, commitPolicy)
       } yield {
         SinkBucketOptions(
           Option(kcql.getSource).filterNot(Set("*", "`*`").contains(_)),
@@ -167,7 +165,7 @@ case class SinkBucketOptions(
   commitPolicy:       CommitPolicy = CommitPolicy.Default,
   localStagingArea:   LocalStagingArea,
   dataStorage:        DataStorageSettings,
-)
+) extends WithTransformableDataStorage
 
 case class OffsetSeekerOptions(
   maxIndexFiles: Int,

@@ -19,21 +19,22 @@ import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.sink.transformers.TopicsTransformers
+import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.formats
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.S3FormatWriter
-import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
-import io.lenses.streamreactor.connect.cloud.common.sink.FatalS3SinkError
-import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
-import io.lenses.streamreactor.connect.cloud.common.sink.writer.S3WriterManager
+import io.lenses.streamreactor.connect.cloud.common.sink.transformers.TopicsTransformers
+import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 
 import java.io.File
@@ -46,8 +47,8 @@ object S3WriterManagerCreator extends LazyLogging {
   )(
     implicit
     connectorTaskId:  ConnectorTaskId,
-    storageInterface: StorageInterface,
-  ): S3WriterManager = {
+    storageInterface: StorageInterface[S3FileMetadata],
+  ): WriterManager[S3FileMetadata] = {
 
     val bucketAndPrefixFn: TopicPartition => Either[SinkError, CloudLocation] = topicPartition => {
       bucketOptsForTopic(config, topicPartition.topic) match {
@@ -100,24 +101,24 @@ object S3WriterManagerCreator extends LazyLogging {
         case None => fatalErrorTopicNotConfigured(topicPartition).asLeft
       }
 
-    val formatWriterFn: (TopicPartition, File) => Either[SinkError, S3FormatWriter] =
+    val formatWriterFn: (TopicPartition, File) => Either[SinkError, FormatWriter] =
       (topicPartition: TopicPartition, stagingFilename) =>
         bucketOptsForTopic(config, topicPartition.topic) match {
           case Some(bucketOptions) =>
             for {
-              formatWriter <- formats.writer.S3FormatWriter(
+              formatWriter <- formats.writer.FormatWriter(
                 bucketOptions.formatSelection,
                 stagingFilename,
                 topicPartition,
               )(config.compressionCodec)
             } yield formatWriter
-          case None => FatalS3SinkError("Can't find format choice in config", topicPartition).asLeft
+          case None => FatalCloudSinkError("Can't find format choice in config", topicPartition).asLeft
         }
 
     val indexManager = new IndexManager(config.offsetSeekerOptions.maxIndexFiles)
 
     val transformers = TopicsTransformers.from(config.bucketOptions)
-    new S3WriterManager(
+    new WriterManager(
       commitPolicyFn,
       bucketAndPrefixFn,
       keyNamerFn,
@@ -133,7 +134,7 @@ object S3WriterManagerCreator extends LazyLogging {
     config.bucketOptions.find(bo => bo.sourceTopic.isEmpty || bo.sourceTopic.contains(topic.value))
 
   private def fatalErrorTopicNotConfigured(topicPartition: TopicPartition): SinkError =
-    FatalS3SinkError(
+    FatalCloudSinkError(
       s"Can't find the KCQL for source topic [${topicPartition.topic}]. The topics defined via [topics] or [topics.regex] need to have an equivalent KCQL statement: INSERT INTO {S3_BUCKET} SELECT * FROM {TOPIC}.",
       topicPartition,
     )

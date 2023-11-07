@@ -18,10 +18,11 @@ package io.lenses.streamreactor.connect.aws.s3.source.state
 import cats.effect.IO
 import cats.effect.Ref
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
+import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
-import io.lenses.streamreactor.connect.cloud.common.source.files.S3SourceFileQueue
+import io.lenses.streamreactor.connect.cloud.common.source.files.CloudSourceFileQueue
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ResultReader
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
@@ -34,7 +35,7 @@ object ReaderManagerBuilder {
   def apply(
     root:             CloudLocation,
     path:             String,
-    storageInterface: StorageInterface,
+    storageInterface: StorageInterface[S3FileMetadata],
     connectorTaskId:  ConnectorTaskId,
     contextOffsetFn:  CloudLocation => Option[CloudLocation],
     findSboF:         CloudLocation => Option[SourceBucketOptions],
@@ -53,11 +54,11 @@ object ReaderManagerBuilder {
       adaptedSbo  = sbo.copy(sourceBucketAndPrefix = adaptedRoot)
       listingFn   = adaptedSbo.createBatchListerFn(storageInterface)
       source = contextOffsetFn(adaptedRoot).fold {
-        new S3SourceFileQueue(connectorTaskId, listingFn)
+        new CloudSourceFileQueue[S3FileMetadata](connectorTaskId, listingFn)
       } { location =>
-        S3SourceFileQueue.from(
+        CloudSourceFileQueue.from[S3FileMetadata](
           listingFn,
-          storageInterface.getMetadata(_, _).map(_.lastModified),
+          storageInterface,
           location,
           connectorTaskId,
         )

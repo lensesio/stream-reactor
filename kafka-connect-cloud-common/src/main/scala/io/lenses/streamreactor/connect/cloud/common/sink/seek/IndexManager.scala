@@ -17,25 +17,25 @@ package io.lenses.streamreactor.connect.cloud.common.sink.seek
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.cloud.common.storage.ResultProcessors.processAsKey
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
-import io.lenses.streamreactor.connect.cloud.common.sink.FatalS3SinkError
-import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalS3SinkError
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.IndexFilenames
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
-import io.lenses.streamreactor.connect.cloud.common.storage.ListResponse
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 
-class IndexManager(
+class IndexManager[SM <: FileMetadata](
   maxIndexes: Int,
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
-  storageInterface: StorageInterface,
+  storageInterface: StorageInterface[SM],
 ) extends LazyLogging {
 
   /**
@@ -50,26 +50,26 @@ class IndexManager(
         topicPartition.topic.value,
         topicPartition.partition,
       )
-    storageInterface.listRecursive(
+    storageInterface.listKeysRecursive(
       bucket,
       indexFileLocation.some,
-      processAsKey,
     )
       .leftMap { e =>
         val logLine = s"Couldn't retrieve listing for (${mostRecentIndexFile}})"
         logger.error("[{}] {}", connectorTaskId.show, logLine, e.exception)
-        new NonFatalS3SinkError(logLine, e.exception)
+        new NonFatalCloudSinkError(logLine, e.exception)
       }
       .flatMap {
         case None => 0.asRight
-        case Some(ListResponse(_, _, indexes, _)) =>
+        case Some(listResponse) =>
+          val indexes  = listResponse.files
           val filtered = indexes.filterNot(_ == mostRecentIndexFile)
           if (indexes.size > maxIndexes) {
             logAndReturnMaxExceededError(topicPartition, indexes)
           } else if (filtered.size == indexes.size) {
             val logLine = s"Latest file not found in index ($mostRecentIndexFile)"
             logger.error("[{}] {}", connectorTaskId.show, logLine)
-            NonFatalS3SinkError(logLine).asLeft
+            NonFatalCloudSinkError(logLine).asLeft
           } else {
             storageInterface
               .deleteFiles(bucket, filtered)
@@ -93,7 +93,7 @@ class IndexManager(
   private def logAndReturnMaxExceededError(topicPartition: TopicPartition, indexes: Seq[String]) = {
     val logLine = s"Too many index files have accumulated (${indexes.size} out of max $maxIndexes)"
     logger.error(s"[{}] {}", connectorTaskId.show, logLine)
-    FatalS3SinkError(logLine, topicPartition).asLeft
+    FatalCloudSinkError(logLine, topicPartition).asLeft
   }
 
   def write(
@@ -111,7 +111,7 @@ class IndexManager(
     logger.debug("[{}] Writing index {} pointing to file {}", connectorTaskId.show, indexPath, filePath)
 
     storageInterface
-      .writeStringToFile(bucket, indexPath, filePath)
+      .writeStringToFile(bucket, indexPath, UploadableString(filePath))
       .map(_ => indexPath)
       .leftMap {
         ex =>
@@ -121,7 +121,7 @@ class IndexManager(
                        filePath,
                        ex,
           )
-          NonFatalS3SinkError(ex.message())
+          NonFatalCloudSinkError(ex.message())
       }
 
   }
@@ -138,18 +138,19 @@ class IndexManager(
     bucket:         String,
   ): Either[SinkError, Option[TopicPartitionOffset]] = {
     val indexLocation = IndexFilenames.indexForTopicPartition(topicPartition.topic.value, topicPartition.partition)
-    storageInterface.listRecursive(
+    storageInterface.listKeysRecursive(
       bucket,
       indexLocation.some,
-      processAsKey,
     )
       .leftMap { e =>
         logger.error("Error retrieving listing", e.exception)
-        new NonFatalS3SinkError("Couldn't retrieve listing", e.exception)
+        new NonFatalCloudSinkError("Couldn't retrieve listing", e.exception)
       }
       .flatMap {
         case None => Option.empty[TopicPartitionOffset].asRight[SinkError]
-        case Some(ListResponse(bucket, _, files, _)) =>
+        case Some(response) =>
+          val bucket     = response.bucket
+          val files      = response.files
           val seekResult = seekAndClean(topicPartition, bucket, files)
           if (files.size > maxIndexes) {
             logAndReturnMaxExceededError(topicPartition, files)
@@ -194,15 +195,15 @@ class IndexManager(
       case err: FileLoadError =>
         val logLine = s"File load error while seeking: ${err.message()}"
         logger.error(s"[{}] {}", connectorTaskId.show, logLine, err.exception)
-        new NonFatalS3SinkError(logLine, err.exception)
+        new NonFatalCloudSinkError(logLine, err.exception)
       case err: FileDeleteError =>
         val logLine = s"File delete error while seeking: ${err.message()}"
         logger.error(s"[{}] {}", connectorTaskId.show, logLine, err.exception)
-        new NonFatalS3SinkError(logLine, err.exception)
+        new NonFatalCloudSinkError(logLine, err.exception)
       case err: Throwable =>
         val logLine = s"Error while seeking: ${err.getMessage}"
         logger.error(s"[{}] {}", connectorTaskId.show, logLine, err)
-        new NonFatalS3SinkError(logLine, err)
+        new NonFatalCloudSinkError(logLine, err)
     }
   }
 

@@ -16,8 +16,10 @@
 package io.lenses.streamreactor.connect.cloud.common.source.files
 
 import cats.implicits._
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.TestFileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
-import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
+import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
+import io.lenses.streamreactor.connect.cloud.common.storage.ListOfMetadataResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.ListResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.mockito.ArgumentMatchersSugar._
@@ -39,23 +41,26 @@ class DateOrderingBatchListerTest
     with OptionValues
     with EitherValues {
 
-  private val bucket:           String           = "bucket"
-  private val prefix:           String           = "prefix"
-  private val storageInterface: StorageInterface = mock[StorageInterface]
+  private val bucket:           String                             = "bucket"
+  private val prefix:           String                             = "prefix"
+  private val storageInterface: StorageInterface[TestFileMetadata] = mock[StorageInterface[TestFileMetadata]]
 
   private val NumResults: Int = 10
-  private val listerFn: Option[FileMetadata] => Either[FileListError, Option[ListResponse[String]]] =
-    DateOrderingBatchLister.listBatch(storageInterface, bucket, prefix.some, NumResults)
+  private val listerFn: Option[TestFileMetadata] => Either[
+    FileListError,
+    Option[ListResponse[String, TestFileMetadata]],
+  ] =
+    DateOrderingBatchLister.listBatch[TestFileMetadata](storageInterface, bucket, prefix.some, NumResults)
   private val instBase: Instant = Instant.now
   private def instant(no: Int): Instant = {
     require(no <= 100)
     instBase.minus((100 - no).toLong, ChronoUnit.DAYS)
   }
-  private val allFiles = (1 to 100).map(i => FileMetadata(s"/file$i", instant(i)))
+  private val allFiles = (1 to 100).map(i => TestFileMetadata(s"/file$i", instant(i)))
 
   "listBatch" should "return first result when no TopicPartitionOffset has been provided" in {
     val returnFiles = allFiles.slice(0, 10)
-    val storageInterfaceResponse: ListResponse[FileMetadata] = ListResponse[FileMetadata](
+    val storageInterfaceResponse: ListOfMetadataResponse[TestFileMetadata] = ListOfMetadataResponse[TestFileMetadata](
       bucket,
       prefix.some,
       returnFiles,
@@ -64,7 +69,7 @@ class DateOrderingBatchListerTest
 
     mockStorageInterface(storageInterfaceResponse)
 
-    listerFn(none).value.value should be(ListResponse[String](
+    listerFn(none).value.value should be(ListOfKeysResponse[TestFileMetadata](
       bucket,
       prefix.some,
       returnFiles.map(_.file),
@@ -75,10 +80,9 @@ class DateOrderingBatchListerTest
   "listBatch" should "return empty when no results are found" in {
 
     when(
-      storageInterface.listRecursive(
+      storageInterface.listFileMetaRecursive(
         eqTo(bucket),
         eqTo(prefix.some),
-        any[(String, Option[String], Seq[FileMetadata]) => Option[ListResponse[FileMetadata]]],
       ),
     ).thenReturn(none.asRight)
 
@@ -89,10 +93,9 @@ class DateOrderingBatchListerTest
     val exception = FileListError(new IllegalStateException("BadThingsHappened"), bucket, prefix.some)
 
     when(
-      storageInterface.listRecursive(
+      storageInterface.listFileMetaRecursive(
         eqTo(bucket),
         eqTo(prefix.some),
-        any[(String, Option[String], Seq[FileMetadata]) => Option[ListResponse[FileMetadata]]],
       ),
     ).thenReturn(
       exception.asLeft,
@@ -103,7 +106,7 @@ class DateOrderingBatchListerTest
 
   "listBatch" should "sort allFiles in order" in {
     val returnFiles = allFiles.slice(0, 10)
-    val storageInterfaceResponse: ListResponse[FileMetadata] = ListResponse[FileMetadata](
+    val storageInterfaceResponse: ListOfMetadataResponse[TestFileMetadata] = ListOfMetadataResponse[TestFileMetadata](
       bucket,
       prefix.some,
       returnFiles.reverse,
@@ -112,7 +115,7 @@ class DateOrderingBatchListerTest
 
     mockStorageInterface(storageInterfaceResponse)
 
-    listerFn(none).value.value should be(ListResponse[String](
+    listerFn(none).value.value should be(ListOfKeysResponse(
       bucket,
       prefix.some,
       returnFiles.map(_.file),
@@ -121,7 +124,7 @@ class DateOrderingBatchListerTest
   }
 
   "listBatch" should "return requested number of results in order" in {
-    val storageInterfaceResponse: ListResponse[FileMetadata] = ListResponse[FileMetadata](
+    val storageInterfaceResponse: ListOfMetadataResponse[TestFileMetadata] = ListOfMetadataResponse[TestFileMetadata](
       bucket,
       prefix.some,
       allFiles.reverse,
@@ -130,7 +133,7 @@ class DateOrderingBatchListerTest
 
     mockStorageInterface(storageInterfaceResponse)
 
-    listerFn(none).value.value should be(ListResponse[String](
+    listerFn(none).value.value should be(ListOfKeysResponse(
       bucket,
       prefix.some,
       allFiles.take(NumResults).map(_.file),
@@ -139,7 +142,7 @@ class DateOrderingBatchListerTest
   }
 
   "listBatch" should "resume from the next file in date order" in {
-    val storageInterfaceResponse: ListResponse[FileMetadata] = ListResponse[FileMetadata](
+    val storageInterfaceResponse: ListOfMetadataResponse[TestFileMetadata] = ListOfMetadataResponse[TestFileMetadata](
       bucket,
       prefix.some,
       allFiles.reverse,
@@ -148,25 +151,24 @@ class DateOrderingBatchListerTest
 
     mockStorageInterface(storageInterfaceResponse)
 
-    listerFn(allFiles(9).some).value.value should be(ListResponse[String](
+    listerFn(allFiles(9).some).value.value should be(ListOfKeysResponse(
       bucket,
       prefix.some,
       allFiles.slice(10, 20).map(_.file),
       allFiles(19),
     ))
-    listerFn(allFiles(19).some).value.value should be(ListResponse[String](
+    listerFn(allFiles(19).some).value.value should be(ListOfKeysResponse(
       bucket,
       prefix.some,
       allFiles.slice(20, 30).map(_.file),
       allFiles(29),
     ))
   }
-  private def mockStorageInterface(storageInterfaceResponse: ListResponse[FileMetadata]) =
+  private def mockStorageInterface(storageInterfaceResponse: ListOfMetadataResponse[TestFileMetadata]) =
     when(
-      storageInterface.listRecursive(
+      storageInterface.listFileMetaRecursive(
         eqTo(bucket),
         eqTo(prefix.some),
-        any[(String, Option[String], Seq[FileMetadata]) => Option[ListResponse[FileMetadata]]],
       ),
     ).thenReturn(storageInterfaceResponse.some.asRight)
 }

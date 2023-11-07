@@ -20,10 +20,13 @@ import com.typesafe.scalalogging.LazyLogging
 import java.nio.charset.CodingErrorAction
 import scala.io.Codec
 import scala.io.Source
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 object AsciiArtPrinter extends LazyLogging {
 
-  def printAsciiHeader(manifest: JarManifest, asciiArtResource: String): Unit = {
+  def printAsciiHeader(manifest: JarManifest, asciiArtResource: String): Unit = Try {
     implicit val codec: Codec = Codec("UTF-8")
     codec.onMalformedInput(CodingErrorAction.REPLACE)
     codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
@@ -33,5 +36,8 @@ object AsciiArtPrinter extends LazyLogging {
       ).mkString + s" ${manifest.version()}",
     )
     logger.info(manifest.printManifest())
+  } match {
+    case Failure(exception) => logger.error("Unable to print ASCII Art on startup", exception)
+    case Success(_)         => ()
   }
 }

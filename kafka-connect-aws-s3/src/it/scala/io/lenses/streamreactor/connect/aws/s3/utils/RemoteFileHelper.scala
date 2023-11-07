@@ -17,22 +17,26 @@
 package io.lenses.streamreactor.connect.aws.s3.utils
 
 import cats.implicits.catsSyntaxOptionId
+import cats.implicits.toBifunctorOps
 import com.google.common.io.ByteStreams
-import io.lenses.streamreactor.connect.cloud.common.storage.ResultProcessors.processAsKey
 import io.lenses.streamreactor.connect.cloud.common.config.ObjectMetadata
+import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
+import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
+import org.scalatest.Assertions.fail
 
 import java.io.File
 import java.io.InputStream
 import java.nio.file.Files
 
-class RemoteFileHelper(storageInterface: StorageInterface) {
+trait RemoteFileHelper[SI <: StorageInterface[_]] {
+
+  def storageInterface: SI
 
   def listBucketPath(bucketName: String, prefix: String): List[String] =
-    storageInterface.listRecursive(bucketName, prefix.some, processAsKey) match {
-      case Left(value)  => throw new RuntimeException(value.exception)
-      case Right(value) => value.map(_.files).toList.flatten
-    }
+    storageInterface.listKeysRecursive(bucketName, prefix.some)
+      .leftMap((f: FileListError) => fail(f.exception)).merge
+      .toList.flatMap(_.files)
 
   def remoteFileAsBytes(bucketName: String, fileName: String): Array[Byte] =
     streamToByteArray(remoteFileAsStream(bucketName, fileName))
@@ -41,10 +45,8 @@ class RemoteFileHelper(storageInterface: StorageInterface) {
     Files.readAllBytes(localFile.toPath)
 
   def remoteFileAsStream(bucketName: String, fileName: String): InputStream =
-    storageInterface.getBlob(bucketName, fileName) match {
-      case Left(value)  => throw new RuntimeException(value.exception)
-      case Right(value) => value
-    }
+    storageInterface.getBlob(bucketName, fileName)
+      .leftMap((f: FileLoadError) => fail(f.exception)).merge
 
   def remoteFileAsString(bucketName: String, fileName: String): String =
     streamToString(remoteFileAsStream(bucketName, fileName))
@@ -56,9 +58,7 @@ class RemoteFileHelper(storageInterface: StorageInterface) {
     ByteStreams.toByteArray(inputStream)
 
   def getMetadata(bucket: String, path: String): ObjectMetadata =
-    storageInterface.getMetadata(bucket, path) match {
-      case Left(value)  => throw new RuntimeException(value.exception)
-      case Right(value) => value
-    }
+    storageInterface.getMetadata(bucket, path)
+      .leftMap((f: FileLoadError) => fail(f.exception)).merge
 
 }

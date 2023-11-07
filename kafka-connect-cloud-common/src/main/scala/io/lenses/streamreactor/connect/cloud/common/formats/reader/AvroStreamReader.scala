@@ -24,7 +24,7 @@ import org.apache.kafka.connect.data.SchemaAndValue
 import java.io.InputStream
 import scala.util.Try
 
-class AvroStreamReader(input: InputStream) extends S3DataIterator[SchemaAndValue] {
+class AvroStreamReader(input: InputStream) extends CloudDataIterator[SchemaAndValue] {
   private val avroDataConverter = new AvroData(100)
 
   private val datumReader = new GenericDatumReader[GenericRecord]()

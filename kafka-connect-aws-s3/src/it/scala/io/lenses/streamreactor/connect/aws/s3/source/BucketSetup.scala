@@ -16,15 +16,18 @@
 
 package io.lenses.streamreactor.connect.aws.s3.source
 
+import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.config.Format
 import io.lenses.streamreactor.connect.cloud.common.config.FormatOptions
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.scalatest.matchers.should.Matchers
 
 import java.io.File
 
-class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers {
+class BucketSetup(implicit storageInterface: StorageInterface[S3FileMetadata]) extends Matchers {
 
   val PrefixName = "streamReactorBackups"
   val TopicName  = "myTopic"
@@ -51,7 +54,7 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
     storageInterface.writeStringToFile(
       bucketName,
       pathName,
-      "someData",
+      UploadableString("someData"),
     )
     ()
   }
@@ -112,7 +115,7 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
     val resource = classOf[S3ProxyContainerTest].getResource(resourceSourceFilename)
     require(resource != null)
     val _ = storageInterface.uploadFile(
-      new File(resource.getFile),
+      UploadableFile(new File(resource.getFile)),
       blobStoreContainerName,
       blobStoreTargetFilename,
     )

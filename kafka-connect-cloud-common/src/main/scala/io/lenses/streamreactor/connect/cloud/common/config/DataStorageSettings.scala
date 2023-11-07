@@ -19,6 +19,9 @@ import cats.data.ValidatedNel
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxTuple2Semigroupal
 import cats.implicits.catsSyntaxValidatedId
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
+import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 import org.apache.kafka.common.config.ConfigException
 
 /**
@@ -42,15 +45,20 @@ case class DataStorageSettings(
 
 object DataStorageSettings {
 
-  val StoreEnvelopeKey     = "store.envelope"
-  private val KeyPrefix    = "store.envelope.fields"
-  val StoreKeyKey          = s"$KeyPrefix.key"
-  val StoreHeadersKey      = s"$KeyPrefix.headers"
-  val StoreValueKey        = s"$KeyPrefix.value"
-  val StoreMetadataKey     = s"$KeyPrefix.metadata"
-  val AllEnvelopeFields    = List(StoreKeyKey, StoreValueKey, StoreHeadersKey, StoreMetadataKey)
-  val DefaultEnvelopeValue = false
-  val DefaultFieldsValue   = true
+  val StoreEnvelopeKey  = "store.envelope"
+  private val KeyPrefix = "store.envelope.fields"
+  val StoreKeyKey       = s"$KeyPrefix.key"
+  val StoreHeadersKey   = s"$KeyPrefix.headers"
+  val StoreValueKey     = s"$KeyPrefix.value"
+  val StoreMetadataKey  = s"$KeyPrefix.metadata"
+  val AllEnvelopeFields: Seq[String] = List(
+    PropsKeyEnum.StoreEnvelopeKey,
+    PropsKeyEnum.StoreEnvelopeValue,
+    PropsKeyEnum.StoreEnvelopeHeaders,
+    PropsKeyEnum.StoreEnvelopeMetadata,
+  ).map(_.entryName)
+  private val DefaultEnvelopeValue = false
+  private val DefaultFieldsValue   = true
 
   val Default: DataStorageSettings = DataStorageSettings(
     envelope = DefaultEnvelopeValue,
@@ -61,15 +69,16 @@ object DataStorageSettings {
   )
 
   def disabled: DataStorageSettings = Default
-  def enabled:  DataStorageSettings = DataStorageSettings(true, true, true, true, true)
+  def enabled: DataStorageSettings =
+    DataStorageSettings(envelope = true, key = true, value = true, metadata = true, headers = true)
 
-  def from(properties: Map[String, String]): Either[ConfigException, DataStorageSettings] =
+  def from(properties: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): Either[ConfigException, DataStorageSettings] =
     for {
-      envelope <- getBoolean(StoreEnvelopeKey, properties, DefaultEnvelopeValue)
-      key      <- getBoolean(StoreKeyKey, properties, DefaultFieldsValue)
-      metadata <- getBoolean(StoreMetadataKey, properties, DefaultFieldsValue)
-      headers  <- getBoolean(StoreHeadersKey, properties, DefaultFieldsValue)
-      value    <- getBoolean(StoreValueKey, properties, DefaultFieldsValue)
+      envelope <- properties.getBooleanOrDefault(PropsKeyEnum.StoreEnvelope, DefaultEnvelopeValue)
+      key      <- properties.getBooleanOrDefault(PropsKeyEnum.StoreEnvelopeKey, DefaultFieldsValue)
+      metadata <- properties.getBooleanOrDefault(PropsKeyEnum.StoreEnvelopeMetadata, DefaultFieldsValue)
+      headers  <- properties.getBooleanOrDefault(PropsKeyEnum.StoreEnvelopeHeaders, DefaultFieldsValue)
+      value    <- properties.getBooleanOrDefault(PropsKeyEnum.StoreEnvelopeValue, DefaultFieldsValue)
       result <- if (!envelope) {
         //if no envelope default
         Default.asRight[ConfigException]
@@ -112,37 +121,23 @@ object DataStorageSettings {
     */
   private def validateEnvelopeIsTrueAndAllFieldsSpecified(
     envelope:   Boolean,
-    properties: Map[String, String],
+    properties: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type],
   ): ValidatedNel[String, Unit] =
     if (!envelope) ().validNel
     else {
-      val key           = properties.get(StoreKeyKey)
-      val value         = properties.get(StoreValueKey)
-      val metadata      = properties.get(StoreMetadataKey)
-      val headers       = properties.get(StoreHeadersKey)
-      val allDefined    = key.isDefined && value.isDefined && metadata.isDefined && headers.isDefined
-      val allNotDefined = key.isEmpty && value.isEmpty && metadata.isEmpty && headers.isEmpty
+      val key      = properties.getOptionalBoolean(PropsKeyEnum.StoreEnvelopeKey)
+      val value    = properties.getOptionalBoolean(PropsKeyEnum.StoreEnvelopeValue)
+      val metadata = properties.getOptionalBoolean(PropsKeyEnum.StoreEnvelopeMetadata)
+      val headers  = properties.getOptionalBoolean(PropsKeyEnum.StoreEnvelopeHeaders)
+      val allDefined =
+        key.exists(_.isDefined) && value.exists(_.isDefined) && metadata.exists(_.isDefined) && headers.exists(
+          _.isDefined,
+        )
+      val allNotDefined =
+        key.exists(_.isEmpty) && value.exists(_.isEmpty) && metadata.exists(_.isEmpty) && headers.exists(_.isEmpty)
       if (allDefined || allNotDefined) ().validNel
       else
         s"If ${DataStorageSettings.StoreEnvelopeKey} is set to true, then setting selective fields is not allowed. Either set them all or leave them out, they default to true.".invalidNel
-    }
-
-  private def getBoolean(
-    key:        String,
-    properties: Map[String, String],
-    default:    Boolean,
-  ): Either[ConfigException, Boolean] =
-    properties.get(key) match {
-      case Some(value) =>
-        value match {
-          case "true"  => true.asRight
-          case "false" => false.asRight
-          case _ =>
-            new ConfigException(
-              s"Invalid value for configuration [$key]. The value must be one of: true, false.",
-            ).asLeft[Boolean]
-        }
-      case None => default.asRight
     }
 
 }

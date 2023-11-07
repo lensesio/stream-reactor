@@ -18,9 +18,9 @@ package io.lenses.streamreactor.connect.cloud.common.sink.config
 import com.datamountaineer.kcql.Kcql
 import enumeratum.Enum
 import enumeratum.EnumEntry
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEnum.PartitionIncludeKeys
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEntry
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEnum
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 
 import scala.collection.immutable
@@ -37,12 +37,12 @@ object PartitionDisplay extends Enum[PartitionDisplay] {
 
   def apply(
     kcql:    Kcql,
-    props:   KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type],
+    props:   KcqlProperties[PropsKeyEntry, PropsKeyEnum.type],
     default: PartitionDisplay,
   ): PartitionDisplay = fromProps(props).orElse(fromKcql(kcql)).getOrElse(default)
 
-  private def fromProps(props: KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type]): Option[PartitionDisplay] =
-    props.getOptionalBoolean(PartitionIncludeKeys).map {
+  private def fromProps(props: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): Option[PartitionDisplay] =
+    props.getOptionalBoolean(PartitionIncludeKeys).toOption.flatten.map {
       case true  => KeysAndValues
       case false => Values
     }

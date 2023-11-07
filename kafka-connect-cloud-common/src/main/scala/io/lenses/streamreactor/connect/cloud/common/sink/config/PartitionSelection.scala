@@ -16,8 +16,8 @@
 package io.lenses.streamreactor.connect.cloud.common.sink.config
 
 import com.datamountaineer.kcql.Kcql
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEntry
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.S3PropsKeyEnum
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import PartitionDisplay.KeysAndValues
 import PartitionDisplay.Values
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
@@ -36,7 +36,7 @@ object PartitionSelection {
 
   def apply(
     kcql:  Kcql,
-    props: KcqlProperties[S3PropsKeyEntry, S3PropsKeyEnum.type],
+    props: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type],
   ): PartitionSelection = {
     val fields: Seq[PartitionField] = PartitionField(kcql)
     if (fields.isEmpty) {

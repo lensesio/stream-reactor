@@ -26,7 +26,7 @@ object TextStreamReader {
   def apply(
     readTextMode: Option[ReadTextMode],
     input:        InputStream,
-  ): S3DataIterator[String] =
+  ): CloudDataIterator[String] =
     readTextMode.map(_.createStreamReader(input))
       .getOrElse(
         new TextStreamReader(
@@ -35,7 +35,7 @@ object TextStreamReader {
       )
 }
 
-class TextStreamReader(input: InputStream) extends S3DataIterator[String] {
+class TextStreamReader(input: InputStream) extends CloudDataIterator[String] {
 
   private val source = Source.fromInputStream(input, "UTF-8")
   protected val sourceLines: Iterator[String] = source.getLines()
