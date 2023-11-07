@@ -13,25 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.redis.sink.writer
+package com.datamountaineer.streamreactor.connect.redis.sink
 
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.sink.DbWriter
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
-import com.typesafe.scalalogging.StrictLogging
 import redis.clients.jedis.Jedis
 
 import java.io.File
 import java.io.FileNotFoundException
 
-/**
-  * Responsible for taking a sequence of SinkRecord and write them to Redis
-  */
-abstract class RedisWriter extends DbWriter with StrictLogging with ErrorHandler {
-
-  var jedis: Jedis = _
-
-  def createClient(sinkSettings: RedisSinkSettings): Unit = {
+object JedisClientBuilder {
+  def createClient(sinkSettings: RedisSinkSettings): Jedis = {
     val connection = sinkSettings.connectionInfo
 
     if (connection.isSslConnection) {
@@ -62,16 +53,8 @@ abstract class RedisWriter extends DbWriter with StrictLogging with ErrorHandler
       }
     }
 
-    jedis = new Jedis(connection.host, connection.port, connection.isSslConnection)
+    val jedis = new Jedis(connection.host, connection.port, connection.isSslConnection)
     connection.password.foreach(p => jedis.auth(p))
-
-    //initialize error tracker
-    initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)
+    jedis
   }
-
-  def close(): Unit =
-    if (jedis != null) {
-      jedis.close()
-    }
-
 }

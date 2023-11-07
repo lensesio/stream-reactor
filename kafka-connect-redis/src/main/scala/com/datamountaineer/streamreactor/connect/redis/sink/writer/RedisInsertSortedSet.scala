@@ -17,12 +17,16 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.config.base.settings.Projections
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
 import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
+import com.datamountaineer.streamreactor.common.sink.DbWriter
 import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisKCQLSetting
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
+import redis.clients.jedis.Jedis
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
@@ -40,8 +44,12 @@ import scala.util.Try
   * INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SortedSet
   * INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SortedSet (score=ts)
   */
-class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter with SortedSetSupport {
-
+class RedisInsertSortedSet(sinkSettings: RedisSinkSettings, jedis: Jedis)
+    extends DbWriter
+    with StrictLogging
+    with ErrorHandler
+    with SortedSetSupport {
+  initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
     assert(c.getTarget.nonEmpty, "Add to your KCQL syntax : INSERT INTO REDIS_KEY_NAME ")
@@ -124,4 +132,5 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
       },
     )
 
+  override def close(): Unit = jedis.close()
 }

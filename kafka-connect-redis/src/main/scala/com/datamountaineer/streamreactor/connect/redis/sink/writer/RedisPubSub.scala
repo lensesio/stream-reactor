@@ -17,12 +17,16 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.common.config.base.settings.Projections
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
 import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
+import com.datamountaineer.streamreactor.common.sink.DbWriter
 import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisKCQLSetting
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
+import redis.clients.jedis.Jedis
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
@@ -40,11 +44,14 @@ import scala.util.Try
   * SELECT * from cpuTopic STOREAS PubSub
   * SELECT * from cpuTopic STOREAS PubSub (channel=channel)
   */
-class RedisPubSub(sinkSettings: RedisSinkSettings) extends RedisWriter with PubSubSupport {
-
+class RedisPubSub(sinkSettings: RedisSinkSettings, jedis: Jedis)
+    extends DbWriter
+    with StrictLogging
+    with ErrorHandler
+    with PubSubSupport {
+  initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
-//    assert(c.getTarget.length > 0, "Add to your KCQL syntax : INSERT INTO REDIS_KEY_NAME ")
     assert(
       c.getSource.trim.nonEmpty,
       "You need to define one (1) topic to source data. Add to your KCQL syntax: SELECT * FROM topicName",
@@ -105,4 +112,5 @@ class RedisPubSub(sinkSettings: RedisSinkSettings) extends RedisWriter with PubS
       },
     )
 
+  override def close(): Unit = jedis.close()
 }

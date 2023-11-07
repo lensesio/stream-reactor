@@ -16,6 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
+import com.datamountaineer.streamreactor.connect.redis.sink.JedisClientBuilder
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfig
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfigConstants
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
@@ -66,8 +67,7 @@ class RedisCacheTest
       val props     = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava
       val config    = RedisConfig(props)
       val settings  = RedisSinkSettings(config)
-      val writer    = new RedisCache(settings)
-      writer.createClient(settings)
+      val writer    = new RedisCache(settings, JedisClientBuilder.createClient(settings))
 
       val json =
         """
@@ -99,8 +99,7 @@ class RedisCacheTest
       val props     = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava
       val config    = RedisConfig(props)
       val settings  = RedisSinkSettings(config)
-      val writer    = new RedisCache(settings)
-      writer.createClient(settings)
+      val writer    = new RedisCache(settings, JedisClientBuilder.createClient(settings))
 
       val childSchema = SchemaBuilder.struct().name("com.example.Child")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -154,8 +153,7 @@ class RedisCacheTest
       val props     = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava
       val config    = RedisConfig(props)
       val settings  = RedisSinkSettings(config)
-      val writer    = new RedisCache(settings)
-      writer.createClient(settings)
+      val writer    = new RedisCache(settings, JedisClientBuilder.createClient(settings))
 
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -190,8 +188,7 @@ class RedisCacheTest
 
       val config   = RedisConfig(props)
       val settings = RedisSinkSettings(config)
-      val writer   = new RedisCache(settings)
-      writer.createClient(settings)
+      val writer   = new RedisCache(settings, JedisClientBuilder.createClient(settings))
 
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -261,9 +258,8 @@ class RedisCacheTest
       val props    = base_Props.asJava
       val config   = RedisConfig(props)
       val settings = RedisSinkSettings(config)
-      val writer   = new RedisCache(settings)
+      val writer   = new RedisCache(settings, JedisClientBuilder.createClient(settings))
 
-      writer.createClient(settings)
       writer.write(Seq(nickRecord))
 
       val key = nick.get("firstName").toString + RedisConfigConstants.REDIS_PK_DELIMITER_DEFAULT_VALUE + nickJr.get(
@@ -280,8 +276,7 @@ class RedisCacheTest
       val props     = (base_Props + (RedisConfigConstants.REDIS_PK_DELIMITER -> delimiter)).asJava
       val config    = RedisConfig(props)
       val settings  = RedisSinkSettings(config)
-      val writer    = new RedisCache(settings)
-      writer.createClient(settings)
+      val writer    = new RedisCache(settings, JedisClientBuilder.createClient(settings))
 
       writer.write(Seq(nickRecord))
 
@@ -297,8 +292,7 @@ class RedisCacheTest
       val props     = base_Props.asJava
       val config    = RedisConfig(props)
       val settings  = RedisSinkSettings(config)
-      val writer    = new RedisCache(settings)
-      writer.createClient(settings)
+      val writer    = new RedisCache(settings, JedisClientBuilder.createClient(settings))
 
       writer.write(Seq(nickRecord))
 
