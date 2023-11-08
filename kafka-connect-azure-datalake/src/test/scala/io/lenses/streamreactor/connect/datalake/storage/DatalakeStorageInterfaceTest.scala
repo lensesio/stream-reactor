@@ -213,7 +213,7 @@ class DatalakeStorageInterfaceTest
     doNothing.when(fileClient).uploadFromFile(anyString(), anyBoolean)
 
     val fileSystemClient = mock[DataLakeFileSystemClient]
-    when(fileSystemClient.createFileIfNotExists(anyString())).thenReturn(fileClient)
+    when(fileSystemClient.createFile(anyString, anyBoolean)).thenReturn(fileClient)
 
     when(client.getFileSystemClient("test-bucket")).thenReturn(fileSystemClient)
 
@@ -221,7 +221,7 @@ class DatalakeStorageInterfaceTest
 
     val vInOrder: InOrder = inOrder(client, fileSystemClient, fileClient)
     vInOrder.verify(client).getFileSystemClient("test-bucket")
-    vInOrder.verify(fileSystemClient).createFileIfNotExists("test-path")
+    vInOrder.verify(fileSystemClient).createFile("test-path", true)
     vInOrder.verify(fileClient).uploadFromFile(testFile.getPath, true)
   }
 
@@ -230,8 +230,8 @@ class DatalakeStorageInterfaceTest
     val bucket = "test-bucket"
     val path   = "test-path"
 
-    when(client.getFileSystemClient(bucket).createFileIfNotExists(path).uploadFromFile(anyString(),
-                                                                                       ArgumentMatchers.eq(true),
+    when(client.getFileSystemClient(bucket).createFile(path, true).uploadFromFile(anyString(),
+                                                                                  ArgumentMatchers.eq(true),
     )).thenThrow(
       new IllegalStateException("Now remember, walk without rhythm, and we won't attract the worm."),
     )

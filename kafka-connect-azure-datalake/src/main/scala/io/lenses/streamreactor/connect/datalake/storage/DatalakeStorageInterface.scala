@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.datalake.storage
 
 import cats.implicits._
 import com.azure.core.http.rest.PagedIterable
+import com.azure.storage.file.datalake.DataLakeFileClient
 import com.azure.storage.file.datalake.DataLakeServiceClient
 import com.azure.storage.file.datalake.models.DataLakeStorageException
 import com.azure.storage.file.datalake.models.ListPathsOptions
@@ -79,7 +80,7 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     prefix:       Option[String],
     continuation: Option[Continuation],
     results:      Seq[PathItem],
-  ) =
+  ): Option[ListOfKeysResponse[DatalakeFileMetadata]] =
     Option.when(results.nonEmpty)(
       ListOfKeysResponse[DatalakeFileMetadata](
         bucket,
@@ -93,37 +94,8 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
       ),
     )
 
-  override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, Unit] = {
-    logger.debug(s"[{}] Uploading file from local {} to Data Lake {}:{}", connectorTaskId.show, source, bucket, path)
-    for {
-      file <- source.validate.toEither
-      _ <- Try {
-        val createFileClient = client.getFileSystemClient(bucket).createFileIfNotExists(path)
-        createFileClient.uploadFromFile(file.getPath, true)
-        logger.debug(s"[{}] Completed upload from local {} to Data Lake {}:{}",
-                     connectorTaskId.show,
-                     source,
-                     bucket,
-                     path,
-        )
-      }
-        .toEither.leftMap { ex =>
-          logger.error(s"[{}] Failed upload from local {} to Data Lake {}:{}",
-                       connectorTaskId.show,
-                       source,
-                       bucket,
-                       path,
-                       ex,
-          )
-          UploadFailedError(ex, file)
-        }
-    } yield ()
-
-  }
-
   override def close(): Unit = ()
 
-  // TODO: why does this throw an error if the path doesn't exist? Very strange behaviour from a method that purports to return a boolean.
   override def pathExists(bucket: String, path: String): Either[FileLoadError, Boolean] =
     Try(client.getFileSystemClient(bucket).getFileClient(path).exists().booleanValue()).toEither.recover {
       case ex: DataLakeStorageException if ex.getStatusCode.toString.startsWith("4") =>
@@ -180,6 +152,37 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
   override def getMetadata(bucket: String, path: String): Either[FileLoadError, ObjectMetadata] =
     throw new NotImplementedError("Required for source")
 
+  private def createFile(bucket: String, path: String): DataLakeFileClient =
+    client.getFileSystemClient(bucket).createFile(path, true)
+
+  override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, Unit] = {
+    logger.debug(s"[{}] Uploading file from local {} to Data Lake {}:{}", connectorTaskId.show, source, bucket, path)
+    for {
+      file <- source.validate.toEither
+      _ <- Try {
+        val createFileClient: DataLakeFileClient = createFile(bucket, path)
+        createFileClient.uploadFromFile(file.getPath, true)
+        logger.debug(s"[{}] Completed upload from local {} to Data Lake {}:{}",
+                     connectorTaskId.show,
+                     source,
+                     bucket,
+                     path,
+        )
+      }
+        .toEither.leftMap { ex =>
+          logger.error(s"[{}] Failed upload from local {} to Data Lake {}:{}",
+                       connectorTaskId.show,
+                       source,
+                       bucket,
+                       path,
+                       ex,
+          )
+          UploadFailedError(ex, file)
+        }
+    } yield ()
+
+  }
+
   override def writeStringToFile(bucket: String, path: String, data: UploadableString): Either[UploadError, Unit] = {
     logger.debug(
       s"[${connectorTaskId.show}] Uploading file from data string ({${data.data}}) to datalake $bucket:$path",
@@ -187,8 +190,8 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
     for {
       content <- data.validate.toEither
       _ <- Try {
-        val createFileClient = client.getFileSystemClient(bucket).createFile(path, true)
-        val bytes            = content.getBytes
+        val createFileClient: DataLakeFileClient = createFile(bucket, path)
+        val bytes = content.getBytes
         Using.resource(new ByteArrayInputStream(bytes)) {
           bais =>
             createFileClient.append(bais, 0, bytes.length.toLong)
