@@ -42,7 +42,11 @@ object ValueToSinkDataConverter {
     case bytesVal:  Array[Byte]    => ByteArraySinkData(bytesVal, schema.orElse(Some(Schema.OPTIONAL_BYTES_SCHEMA)))
     case bytesVal:  ByteBuffer     => ByteArraySinkData(bytesVal.array(), schema.orElse(Some(Schema.OPTIONAL_BYTES_SCHEMA)))
     case arrayVal:  Array[_]       => ArraySinkData(arrayVal.toList.asJava, schema)
-    case listVal:   util.List[_]   => ArraySinkData(listVal, schema)
+    case listVal:   util.List[_] => ArraySinkData(listVal, schema)
+    case decimal:   BigDecimal =>
+      DecimalSinkData.from(decimal.bigDecimal, schema.orElse(Some(DecimalSinkData.schemaFor(decimal.bigDecimal))))
+    case decimal: java.math.BigDecimal =>
+      DecimalSinkData.from(decimal, schema.orElse(Some(DecimalSinkData.schemaFor(decimal))))
     case null     => NullSinkData(schema)
     case otherVal => throw new ConnectException(s"Unsupported record $otherVal:${otherVal.getClass.getCanonicalName}")
   }

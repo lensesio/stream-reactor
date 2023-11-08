@@ -15,7 +15,10 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.writer
 
+import com.typesafe.scalalogging.StrictLogging
+import org.apache.kafka.connect.data.Decimal
 import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 
 sealed trait SinkData {
@@ -49,6 +52,29 @@ case class ByteSinkData(value: Byte, schema: Option[Schema] = None) extends Prim
 case class DoubleSinkData(value: Double, schema: Option[Schema] = None) extends PrimitiveSinkData
 
 case class FloatSinkData(value: Float, schema: Option[Schema] = None) extends PrimitiveSinkData
+
+case class DecimalSinkData(value: Array[Byte], schema: Option[Schema]) extends PrimitiveSinkData with StrictLogging {
+  override def safeValue: Any =
+    (for {
+      s <- schema
+      v <- Option(value)
+    } yield {
+      Decimal.toLogical(s, v)
+    }).orNull
+}
+object DecimalSinkData {
+  val PRECISION_FIELD = "precision"
+
+  def from(value: java.math.BigDecimal, schema: Option[Schema]): DecimalSinkData =
+    Option(value).fold(DecimalSinkData(null, schema)) { _ =>
+      DecimalSinkData(Decimal.fromLogical(schemaFor(value), value), schema.orElse(Some(schemaFor(value))))
+    }
+
+  def schemaFor(decimal: java.math.BigDecimal): Schema =
+    SchemaBuilder.bytes.name(Decimal.LOGICAL_NAME).parameter(Decimal.SCALE_FIELD,
+                                                             Integer.toString(decimal.scale()),
+    ).parameter(DecimalSinkData.PRECISION_FIELD, Integer.toString(decimal.precision())).optional().version(1).build()
+}
 
 case class StructSinkData(value: Struct) extends SinkData {
   override def schema(): Option[Schema] = Option(value.schema())

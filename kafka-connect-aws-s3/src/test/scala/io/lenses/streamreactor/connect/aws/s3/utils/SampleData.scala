@@ -19,6 +19,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.util.Utf8
+import org.apache.kafka.connect.data.Decimal
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
@@ -26,6 +27,8 @@ import org.scalacheck.Gen
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalacheck.Gen.Choose.chooseDouble
+
+import java.nio.ByteBuffer
 import java.util
 import scala.jdk.CollectionConverters.MapHasAsScala
 
@@ -36,6 +39,12 @@ object SampleData extends Matchers {
     .field("name", SchemaBuilder.string().required().build())
     .field("title", SchemaBuilder.string().optional().build())
     .field("salary", SchemaBuilder.float64().optional().build())
+    .build()
+
+  val UsersSchemaDecimal: Schema = SchemaBuilder.struct()
+    .field("name", SchemaBuilder.string().required().build())
+    .field("title", SchemaBuilder.string().optional().build())
+    .field("salary", Decimal.builder(18).optional().build())
     .build()
 
   val Users: List[Struct] = List(
@@ -49,6 +58,16 @@ object SampleData extends Matchers {
     new Struct(UsersSchema).put("name", "jim").put("title", "mr").put("salary", 395.44),
     new Struct(UsersSchema).put("name", "wilson").put("title", "dog").put("salary", 395.44),
     new Struct(UsersSchema).put("name", "milson").put("title", "dog").put("salary", 395.44),
+  )
+
+  val UsersWithDecimal = List(
+    new Struct(UsersSchemaDecimal)
+      .put("name", "sam")
+      .put("title", "mr")
+      .put(
+        "salary",
+        BigDecimal(100.43).setScale(18).bigDecimal,
+      ),
   )
 
   val AddressSchema = SchemaBuilder.struct()
@@ -90,6 +109,9 @@ object SampleData extends Matchers {
 
     } yield new Struct(UsersSchema).put("name", name).put("title", title).put("salary", salary)
 
+  def checkRecordField(genericRecord: GenericRecord, fieldName: String, value: Any): Assertion =
+    genericRecord.get(fieldName) should be(value)
+
   def checkRecord(genericRecord: GenericRecord, name: String, title: String, salary: Double): Assertion =
     checkRecord(genericRecord, name, Some(title), salary)
 
@@ -98,6 +120,19 @@ object SampleData extends Matchers {
     genericRecord.get("name").toString should be(name)
     Option(genericRecord.get("title")).fold(Option.empty[String])(e => Some(e.toString)) should be(title)
     genericRecord.get("salary") should be(salary)
+  }
+
+  def checkRecord(
+    genericRecord: GenericRecord,
+    name:          String,
+    title:         Option[String],
+    salary:        java.math.BigDecimal,
+  ): Assertion = {
+
+    genericRecord.get("name").toString should be(name)
+    Option(genericRecord.get("title")).fold(Option.empty[String])(e => Some(e.toString)) should be(title)
+    val byteBuffer = genericRecord.get("salary").asInstanceOf[ByteBuffer]
+    Decimal.toLogical(Decimal.builder(18).optional().build(), byteBuffer.array()) should be(salary)
   }
 
   def checkArray(genericRecord: GenericData.Array[Utf8], values: String*): Unit =
