@@ -38,7 +38,7 @@ class DatalakeSinkConnector extends SinkConnector with LazyLogging {
   override def config(): ConfigDef = DatalakeSinkConfigDef.config
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Creating S3 sink connector")
+    logger.info(s"Creating Azure Datalake sink connector")
     this.props.putAll(props)
   }
 

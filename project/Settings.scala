@@ -200,12 +200,12 @@ object Settings extends Dependencies {
           dependencyOverrides ++= Seq(
             googleProtobuf,
             googleProtobufJava,
-            nettyHandlerProxy,
-            nettyCodecSocks,
+            //nettyHandlerProxy,
+            //nettyCodecSocks,
             hadoopCommon,
             hadoopMapReduceClientCore,
             woodstoxCore,
-          ) ++ nettyOverrides ++ avroOverrides,
+          ) /* ++ nettyOverrides */ ++ avroOverrides,
         ),
       )
   }
