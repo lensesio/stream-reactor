@@ -40,11 +40,14 @@ import io.lenses.streamreactor.connect.aws.s3.sink.naming.S3KeyNamer
 import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import org.apache.avro.generic.GenericRecord
+import org.apache.kafka.connect.data.Decimal
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.nio.ByteBuffer
 
 class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
@@ -120,6 +123,69 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     genericRecords(0).get("name").toString should be("sam")
     genericRecords(1).get("name").toString should be("laura")
+
+  }
+
+  "avro sink" should "write BigDecimal" in {
+    val sink = S3WriterManager.from(avroConfig)
+    val usersWithDecimal1 =
+      new Struct(UsersSchemaDecimal)
+        .put("name", "sam")
+        .put("title", "mr")
+        .put(
+          "salary",
+          BigDecimal(100.43).setScale(18).bigDecimal,
+        )
+    val writeRes1 = sink.write(
+      TopicPartitionOffset(Topic(TopicName), 1, Offset(1L)),
+      MessageDetail(
+        NullSinkData(None),
+        StructSinkData(usersWithDecimal1),
+        Map.empty,
+        None,
+        Topic(TopicName),
+        1,
+        Offset(1L),
+      ),
+    )
+
+    writeRes1.isRight should be(true)
+
+    val usersWithDecimal2 =
+      new Struct(UsersSchemaDecimal)
+        .put("name", "maria")
+        .put("title", "ms")
+        .put(
+          "salary",
+          BigDecimal(100.43).setScale(18).bigDecimal,
+        )
+
+    val writeRes2 = sink.write(
+      TopicPartitionOffset(Topic(TopicName), 1, Offset(2L)),
+      MessageDetail(
+        NullSinkData(None),
+        StructSinkData(usersWithDecimal2),
+        Map.empty,
+        None,
+        Topic(TopicName),
+        1,
+        Offset(2L),
+      ),
+    )
+    writeRes2.isRight should be(true)
+    sink.close()
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
+
+    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2.avro")
+    val genericRecords: List[GenericRecord] = avroFormatReader.read(byteArray)
+    genericRecords.size should be(2)
+
+    genericRecords(0).get("name").toString should be("sam")
+    val bb1 = genericRecords(0).get("salary").asInstanceOf[ByteBuffer]
+    Decimal.toLogical(Decimal.builder(18).optional().build(), bb1.array()) should be(
+      BigDecimal(100.43).setScale(18).bigDecimal,
+    )
 
   }
 

@@ -15,15 +15,18 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.formats.writer
 
+import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.JsonFormatWriter._
 import io.lenses.streamreactor.connect.aws.s3.formats.writer.LineSeparatorUtil.LineSeparatorBytes
 import io.lenses.streamreactor.connect.aws.s3.sink._
 import io.lenses.streamreactor.connect.aws.s3.stream.S3OutputStream
+import org.apache.kafka.connect.json.DecimalFormat
 import org.apache.kafka.connect.json.JsonConverter
+import org.apache.kafka.connect.json.JsonConverterConfig
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
-class JsonFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter {
+class JsonFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter with StrictLogging {
 
   override def write(messageDetail: MessageDetail): Either[Throwable, Unit] = {
     val topic         = messageDetail.topic
@@ -33,8 +36,10 @@ class JsonFormatWriter(outputStream: S3OutputStream) extends S3FormatWriter {
       val dataBytes = messageDetail.value match {
         case data: PrimitiveSinkData =>
           Converter.fromConnectData(topic.value, valueSinkData.schema().orNull, data.safeValue)
+
         case StructSinkData(structVal) =>
           Converter.fromConnectData(topic.value, valueSinkData.schema().orNull, structVal)
+
         case MapSinkData(map, schema) =>
           Converter.fromConnectData(topic.value, schema.orNull, map)
         case ArraySinkData(array, schema) =>
@@ -67,7 +72,7 @@ object JsonFormatWriter {
   private val Converter = new JsonConverter()
 
   Converter.configure(
-    Map("schemas.enable" -> false).asJava,
+    Map("schemas.enable" -> "false", JsonConverterConfig.DECIMAL_FORMAT_CONFIG -> DecimalFormat.NUMERIC.name()).asJava,
     false,
   )
 }

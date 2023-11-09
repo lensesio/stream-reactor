@@ -62,6 +62,28 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
     checkRecord(genericRecords.head, "sam", "mr", 100.43)
   }
 
+  "convert" should "write decimal data from the header" in {
+
+    val outputStream     = new S3ByteArrayOutputStream()
+    val avroFormatWriter = new AvroFormatWriter(outputStream)
+    avroFormatWriter.write(
+      MessageDetail(NullSinkData(None),
+                    StructSinkData(SampleData.UsersWithDecimal.head),
+                    Map.empty,
+                    Some(Instant.now()),
+                    topic,
+                    0,
+                    Offset(0),
+      ),
+    )
+    avroFormatWriter.complete()
+
+    val genericRecords = avroFormatReader.read(outputStream.toByteArray)
+
+    genericRecords.size should be(1)
+    checkRecord(genericRecords.head, "sam", Some("mr"), BigDecimal(100.43).setScale(18).bigDecimal)
+  }
+
   "convert" should "write byte output stream with avro for multiple records" in {
 
     val outputStream     = new S3ByteArrayOutputStream()

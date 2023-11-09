@@ -187,6 +187,12 @@ class S3WriterManager(
       // commitException can not be recovered from
       _ <- rollOverTopicPartitionWriters(writer, topicPartitionOffset.toTopicPartition, messageDetail)
       // a processErr can potentially be recovered from in the next iteration.  Can be due to network problems
+      _ = logger.info(
+        s"""
+           |Writer:
+           |${writer}
+           |""".stripMargin,
+      )
       _         <- writer.write(messageDetail)
       commitRes <- commitWriters(writer, topicPartitionOffset.toTopicPartition)
     } yield commitRes
