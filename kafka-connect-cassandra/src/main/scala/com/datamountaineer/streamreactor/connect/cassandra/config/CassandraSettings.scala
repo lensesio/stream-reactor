@@ -65,6 +65,7 @@ case class CassandraSourceSetting(
   timeSliceDuration:       Long           = CassandraConfigConstants.TIMESLICE_DURATION_DEFAULT,
   timeSliceDelay:          Long           = CassandraConfigConstants.TIMESLICE_DELAY_DEFAULT,
   initialOffset:           String         = CassandraConfigConstants.INITIAL_OFFSET_DEFAULT,
+  dateFormatString:        String         = CassandraConfigConstants.DATE_FORMAT_STRING_DEFAULT,
   timeSliceMillis:         Long           = CassandraConfigConstants.TIME_SLICE_MILLIS_DEFAULT,
   mappingCollectionToJson: Boolean        = CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON_DEFAULT,
   connectTimeout:          Int            = CassandraConfigConstants.DEFAULT_CONNECT_TIMEOUT,
@@ -115,6 +116,7 @@ object CassandraSettings extends StrictLogging {
     val timeSliceDuration       = config.getLong(CassandraConfigConstants.TIMESLICE_DURATION)
     val timeSliceDelay          = config.getLong(CassandraConfigConstants.TIMESLICE_DELAY)
     val initialOffset           = config.getString(CassandraConfigConstants.INITIAL_OFFSET)
+    val dateFormatString        = config.getString(CassandraConfigConstants.DATE_FORMAT_STRING)
     val timeSliceMillis         = config.getLong(CassandraConfigConstants.TIME_SLICE_MILLIS)
     val mappingCollectionToJson = config.getBoolean(CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON)
 
@@ -158,6 +160,7 @@ object CassandraSettings extends StrictLogging {
         fetchSize               = fetchSize,
         timeSliceDuration       = timeSliceDuration,
         timeSliceDelay          = timeSliceDelay,
+        dateFormatString        = dateFormatString,
         initialOffset           = initialOffset,
         timeSliceMillis         = timeSliceMillis,
         mappingCollectionToJson = mappingCollectionToJson,

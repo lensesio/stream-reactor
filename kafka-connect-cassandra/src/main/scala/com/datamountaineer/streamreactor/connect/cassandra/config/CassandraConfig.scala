@@ -384,6 +384,17 @@ object CassandraConfigSource {
       CassandraConfigConstants.INITIAL_OFFSET,
     )
     .define(
+      CassandraConfigConstants.DATE_FORMAT_STRING,
+      Type.STRING,
+      CassandraConfigConstants.DATE_FORMAT_STRING_DEFAULT,
+      Importance.LOW,
+      CassandraConfigConstants.DATE_FORMAT_STRING_DOC,
+      "Import",
+      10,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.DATE_FORMAT_STRING,
+    )
+    .define(
       CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON,
       Type.BOOLEAN,
       CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON_DEFAULT,
