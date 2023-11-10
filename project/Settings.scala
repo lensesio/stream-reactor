@@ -172,7 +172,8 @@ object Settings extends Dependencies {
       "junit",
     )
 
-    def configureAssembly(): Project =
+    def configureAssembly(overrideNetty: Boolean): Project = {
+      val nettyDepOverrides = if (overrideNetty) nettyOverrides else Seq.empty
       project.settings(
         settings ++ Seq(
           assembly / assemblyOutputPath := {
@@ -200,14 +201,13 @@ object Settings extends Dependencies {
           dependencyOverrides ++= Seq(
             googleProtobuf,
             googleProtobufJava,
-            //nettyHandlerProxy,
-            //nettyCodecSocks,
             hadoopCommon,
             hadoopMapReduceClientCore,
             woodstoxCore,
-          ) /* ++ nettyOverrides */ ++ avroOverrides,
+          ) ++ nettyDepOverrides ++ avroOverrides,
         ),
       )
+    }
   }
 
   implicit final class ProjectFilterOps(project: Project) {
