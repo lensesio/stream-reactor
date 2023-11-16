@@ -92,19 +92,19 @@ jobs:
           files: "**/target/**/test-reports/*.xml"
           check_name: ${{ matrix.module }}-test-results
           comment_mode: off
-      - name: Publish coverage report
-        uses: 5monkeys/cobertura-action@master
+      - name: Rename coverage results
+        run : |
+          [ -f kafka-connect-${{ matrix.module }}/target/scala-2.13/coverage-report/cobertura.xml ] || mv kafka-connect-${{ matrix.module }}/target/scala-2.13/coverage-report/cobertura.xml kafka-connect-${{ matrix.module }}/target/scala-2.13/coverage-report/${{ matrix.module }}-cobertura.xml
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v3
         with:
+          name: ${{ matrix.module }}-coverage-report
           path: "**/target/**/coverage-report/*.xml"
-          minimum_coverage: 60
-          fail_below_threshold: false
-          report_name: ${{ matrix.module }}-coverage-report
-          only_changed_files: true
+          if-no-files-found: ignore
 
   integration-test:
     needs:
       - initiate
-      - scalafmt
     timeout-minutes: 30
     continue-on-error: true
     runs-on: ubuntu-latest
@@ -266,3 +266,23 @@ jobs:
         with:
           name: assembly-${{ matrix.module }}-${{ github.run_id }}
           path: ~/**/target/libs/*.jar
+
+  collate-coverage:
+    needs:
+      - test
+      - integration-test
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download coverage reports
+        uses: actions/download-artifact@v2
+        with:
+          name: '*-coverage-report'
+      - name: Publish coverage report
+        uses: 5monkeys/cobertura-action@master
+        with:
+          path: "**/target/**/coverage-report/*.xml"
+          minimum_coverage: 60
+          fail_below_threshold: false
+          report_name: unit-test-coverage-report
+          only_changed_files: true
