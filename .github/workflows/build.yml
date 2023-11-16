@@ -276,19 +276,16 @@ jobs:
   collate-coverage:
     needs:
       - test
-      - integration-test
+      #- integration-test
     timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
       - name: Download coverage reports
-        uses: actions/download-artifact@v2
-        with:
-          name: '*-coverage-report'
+        uses: actions/download-artifact@v3
       - name: Publish coverage report
         uses: 5monkeys/cobertura-action@master
         with:
           path: "**/target/**/coverage-report/*.xml"
           minimum_coverage: 60
           fail_below_threshold: false
-          report_name: unit-test-coverage-report
           only_changed_files: true
