@@ -1,5 +1,9 @@
 name: CI
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
   workflow_call:
@@ -94,7 +98,9 @@ jobs:
           comment_mode: off
       - name: Rename coverage results
         run : |
-          [ -f kafka-connect-${{ matrix.module }}/target/scala-2.13/coverage-report/cobertura.xml ] || mv kafka-connect-${{ matrix.module }}/target/scala-2.13/coverage-report/cobertura.xml kafka-connect-${{ matrix.module }}/target/scala-2.13/coverage-report/${{ matrix.module }}-cobertura.xml
+          if [ -f kafka-connect-${{ matrix.module }}/target/scala-2.13/coverage-report/cobertura.xml ]; then
+            mv kafka-connect-${{ matrix.module }}/target/scala-2.13/coverage-report/cobertura.xml kafka-connect-${{ matrix.module }}/target/scala-2.13/coverage-report/${{ matrix.module }}-cobertura.xml
+          fi
       - name: Archive code coverage results
         uses: actions/upload-artifact@v3
         with:
