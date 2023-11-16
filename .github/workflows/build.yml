@@ -68,7 +68,6 @@ jobs:
   test:
     needs:
       - initiate
-      - scalafmt
     timeout-minutes: 5
     runs-on: ubuntu-latest
     strategy:
@@ -96,8 +95,11 @@ jobs:
       - name: Publish coverage report
         uses: 5monkeys/cobertura-action@master
         with:
-          path: target/scala-2.13/scoverage-report/*.xml
+          path: "**/target/**/coverage-report/*.xml"
           minimum_coverage: 60
+          fail_below_threshold: false
+          report_name: ${{ matrix.module }}-coverage-report
+          only_changed_files: true
 
   integration-test:
     needs:
