@@ -83,7 +83,7 @@ jobs:
           distribution: 'temurin'
           cache: 'sbt'
       - name: Run tests
-        run: sbt "project ${{ matrix.module }}" test
+        run: sbt "project ${{ matrix.module }}" clean coverage test coverageReport
         env:
           JVM_OPTS: -Xmx3200m
       - name: Publish test results
@@ -93,6 +93,11 @@ jobs:
           files: "**/target/**/test-reports/*.xml"
           check_name: ${{ matrix.module }}-test-results
           comment_mode: off
+      - name: Publish coverage report
+        uses: 5monkeys/cobertura-action@master
+        with:
+          path: target/scala-2.13/scoverage-report/*.xml
+          minimum_coverage: 60
 
   integration-test:
     needs:
