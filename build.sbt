@@ -16,6 +16,7 @@ lazy val subProjects: Seq[Project] = Seq(
   `cloud-common`,
   `aws-s3`,
   `azure-documentdb`,
+  `azure-datalake`,
   cassandra,
   elastic6,
   elastic7,
@@ -55,7 +56,7 @@ lazy val `query-language` = (project in file("kafka-connect-query-language"))
         publish / skip := true,
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   .configureAntlr()
 
@@ -70,7 +71,7 @@ lazy val common = (project in file("kafka-connect-common"))
         publish / skip := true,
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
 
 lazy val `cloud-common` = (project in file("kafka-connect-cloud-common"))
@@ -89,7 +90,7 @@ lazy val `cloud-common` = (project in file("kafka-connect-cloud-common"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   .enablePlugins(PackPlugin)
 
@@ -110,10 +111,33 @@ lazy val `aws-s3` = (project in file("kafka-connect-aws-s3"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectS3TestDeps)
   .configureFunctionalTests(kafkaConnectS3FuncTestDeps)
+  .enablePlugins(PackPlugin)
+
+lazy val `azure-datalake` = (project in file("kafka-connect-azure-datalake"))
+  .dependsOn(common)
+  .dependsOn(`cloud-common` % "compile->compile;test->test")
+  .dependsOn(`test-common` % "fun->compile")
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-azure-datalake",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectCloudCommonDeps ++ kafkaConnectAzureDatalakeDeps,
+        publish / skip := true,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
+      ),
+  )
+  .configureAssembly(false)
+  .configureTests(baseTestDeps)
+  //.configureIntegrationTests(kafkaConnectAzureDatalakeTestDeps)
+  //.configureFunctionalTests(kafkaConnectAzureDatalakeFuncTestDeps)
   .enablePlugins(PackPlugin)
 
 lazy val `azure-documentdb` = (project in file("kafka-connect-azure-documentdb"))
@@ -131,7 +155,7 @@ lazy val `azure-documentdb` = (project in file("kafka-connect-azure-documentdb")
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   .enablePlugins(PackPlugin)
 
@@ -152,7 +176,7 @@ lazy val cassandra = (project in file("kafka-connect-cassandra"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectCassandraTestDeps)
   .configureFunctionalTests()
@@ -175,7 +199,7 @@ lazy val elastic6 = (project in file("kafka-connect-elastic6"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectElastic6TestDeps)
   .configureFunctionalTests()
@@ -197,7 +221,7 @@ lazy val elastic7 = (project in file("kafka-connect-elastic7"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectElastic7TestDeps)
   .configureFunctionalTests()
@@ -218,7 +242,7 @@ lazy val hazelcast = (project in file("kafka-connect-hazelcast"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   .disableParallel()
   .enablePlugins(PackPlugin)
@@ -238,7 +262,7 @@ lazy val influxdb = (project in file("kafka-connect-influxdb"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   .enablePlugins(PackPlugin)
 
@@ -262,7 +286,7 @@ lazy val jms = (project in file("kafka-connect-jms"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(kafkaConnectJmsTestDeps)
   .configureIntegrationTests(kafkaConnectJmsTestDeps)
   //.configureFunctionalTests(kafkaConnectS3FuncTestDeps)
@@ -284,7 +308,7 @@ lazy val kudu = (project in file("kafka-connect-kudu"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   .enablePlugins(PackPlugin)
 
@@ -304,7 +328,7 @@ lazy val mqtt = (project in file("kafka-connect-mqtt"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   .configureFunctionalTests()
   .configureIntegrationTests(kafkaConnectMqttTestDeps)
@@ -326,7 +350,7 @@ lazy val pulsar = (project in file("kafka-connect-pulsar"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   .enablePlugins(PackPlugin)
 
@@ -345,7 +369,7 @@ lazy val ftp = (project in file("kafka-connect-ftp"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectFtpTestDeps)
   .enablePlugins(PackPlugin)
@@ -365,7 +389,7 @@ lazy val hbase = (project in file("kafka-connect-hbase"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   .enablePlugins(PackPlugin)
 
@@ -384,7 +408,7 @@ lazy val hive = (project in file("kafka-connect-hive"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(kafkaConnectHiveTestDeps)
   .enablePlugins(PackPlugin)
 
@@ -405,7 +429,7 @@ lazy val mongodb = (project in file("kafka-connect-mongodb"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectMongoDbTestDeps)
   .configureFunctionalTests()
@@ -428,7 +452,7 @@ lazy val redis = (project in file("kafka-connect-redis"))
         ),
       ),
   )
-  .configureAssembly()
+  .configureAssembly(true)
   .configureTests(baseTestDeps ++ Seq(gson))
   .configureIntegrationTests(kafkaConnectRedisTestDeps)
   .configureFunctionalTests()
