@@ -494,11 +494,11 @@ lazy val `test-common` = (project in file("test-common"))
 
 addCommandAlias(
   "validateAll",
-  "headerCheck;test:headerCheck;it:headerCheck;fun:headerCheck;scalafmtCheckAll;test-common/scalafmtCheck",
+  "headerCheck;test:headerCheck;it:headerCheck;fun:headerCheck;scalafmtCheckAll;test-common/scalafmtCheck;test-common/headerCheck",
 )
 addCommandAlias(
   "formatAll",
-  "headerCreateAll;scalafmtAll;scalafmtSbt;test-common/scalafmt",
+  "headerCreateAll;scalafmtAll;scalafmtSbt;test-common/scalafmt;test-common/headerCreateAll",
 )
 addCommandAlias("fullTest", ";test;it:test;fun:test")
 addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")
