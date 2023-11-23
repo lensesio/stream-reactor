@@ -311,7 +311,7 @@ class S3SourceTaskTest
     }
   }
 
-  override def setUpTestData(): Unit = {
+  override def setUpTestData(): Either[Throwable, Unit] = {
     if (bucketSetupOpt.isEmpty) {
       bucketSetupOpt = Some(new BucketSetup()(storageInterface))
     }
@@ -320,7 +320,7 @@ class S3SourceTaskTest
         bucketSetup.setUpBucketData(BucketName, format, formatOptions, dir)
     }
 
-    bucketSetup.setUpBucketData(BucketName, Bytes, Option.empty, "bytesval")
+    bucketSetup.setUpBucketData(BucketName, Bytes, Option.empty, "bytesval").asRight
   }
 
   private def withCleanup[T](cleanup: => Unit)(fn: => T): Unit =

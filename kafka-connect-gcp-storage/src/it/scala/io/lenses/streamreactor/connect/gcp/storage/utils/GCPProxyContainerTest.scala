@@ -1,6 +1,6 @@
 package io.lenses.streamreactor.connect.gcp.storage.utils
 
-import cats.implicits.toBifunctorOps
+import cats.implicits.catsSyntaxApplicativeError
 import com.google.cloud.storage.BucketInfo
 import com.google.cloud.storage.Storage
 import com.typesafe.scalalogging.LazyLogging
@@ -37,10 +37,10 @@ trait GCPProxyContainerTest
 
   override val prefix: String = "connect.gcpstorage"
 
-  override def createStorageInterface(client: Storage): GCPStorageStorageInterface =
-    Try(new GCPStorageStorageInterface(connectorTaskId, client, true)).toEither.leftMap(fail(_)).merge
+  override def createStorageInterface(client: Storage): Either[Throwable, GCPStorageStorageInterface] =
+    Try(new GCPStorageStorageInterface(connectorTaskId, client, true)).toEither
 
-  override def createClient(): Storage = {
+  override def createClient(): Either[Throwable, Storage] = {
 
     val gcpConfig: GCPConfig = GCPConfig(
       projectId      = Some("test"),
@@ -49,7 +49,7 @@ trait GCPProxyContainerTest
       host           = Some(container.getEndpointUrl()),
     )
 
-    GCPStorageClientCreator.make(gcpConfig).leftMap(fail(_)).merge
+    GCPStorageClientCreator.make(gcpConfig)
   }
 
   override def createSinkTask() = new GCPStorageSinkTask()
@@ -69,21 +69,18 @@ trait GCPProxyContainerTest
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
-  override def createBucket(): Unit = {
-    Try(
-      client.create(BucketInfo.of(BucketName)),
-    ).toEither.leftMap(logger.error(" _", _))
-    ()
-  }
+  override def createBucket(): Either[Throwable, Unit] =
+    Try {
+      client.create(BucketInfo.of(BucketName))
+      ()
+    }.toEither
 
   override def cleanUp(): Unit = {
-    Try {
-      val toDeleteArray = listBucketPath(BucketName, "")
-      storageInterface.deleteFiles(BucketName, toDeleteArray)
-    } map {
-      case Left(err) => logger.error(" _", err)
-      case Right(_)  => ()
-    }
+    for {
+      toDeleteArray <- listBucketPathEither(BucketName, "")
+      _ <- storageInterface.deleteFiles(BucketName, toDeleteArray)
+        .recover(err => logger.error(" _", err))
+    } yield ()
     ()
   }
 

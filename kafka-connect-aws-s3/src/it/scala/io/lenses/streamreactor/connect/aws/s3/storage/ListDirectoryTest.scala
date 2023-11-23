@@ -1,6 +1,7 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import cats.effect.unsafe.implicits.global
+import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
@@ -23,7 +24,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
 
   override def cleanUp(): Unit = ()
 
-  override def setUpTestData(): Unit = {
+  override def setUpTestData(): Either[Throwable, Unit] = {
     val requestBody = RequestBody.fromString("x")
     Seq("topic-1", "topic-2").foreach {
       topic =>
@@ -38,7 +39,7 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
           }
         }
     }
-
+    ().asRight
   }
 
   "s3StorageInterface" should "list directories within a path" in {

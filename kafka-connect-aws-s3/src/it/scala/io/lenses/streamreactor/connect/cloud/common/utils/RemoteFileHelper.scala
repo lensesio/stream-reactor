@@ -33,10 +33,13 @@ trait RemoteFileHelper[SI <: StorageInterface[_]] {
 
   def storageInterface: SI
 
+  def listBucketPathEither(bucketName: String, prefix: String): Either[FileListError, List[String]] =
+    storageInterface
+      .listKeysRecursive(bucketName, prefix.some)
+      .map(_.toList.flatMap(_.files))
+
   def listBucketPath(bucketName: String, prefix: String): List[String] =
-    storageInterface.listKeysRecursive(bucketName, prefix.some)
-      .leftMap((f: FileListError) => fail(f.exception)).merge
-      .toList.flatMap(_.files)
+    listBucketPathEither(bucketName, prefix).getOrElse(fail("left found"))
 
   def remoteFileAsBytes(bucketName: String, fileName: String): Array[Byte] =
     streamToByteArray(remoteFileAsStream(bucketName, fileName))

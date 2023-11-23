@@ -30,12 +30,31 @@ sealed trait AuthMode
 
 object AuthMode {
 
+  /**
+    * Authentication mode using credentials from a string in configuration.
+    *
+    * @param credentials The credentials used for authentication.
+    */
   case class Credentials(credentials: Password) extends AuthMode
 
+  /**
+    * Authentication mode using a json file for credentials.
+    *
+    * @param filePath The path to the file containing json credentials.
+    */
   case class File(filePath: String) extends AuthMode
 
+  /**
+    * Default authentication mode without explicit credentials. This mode utilizes the Application Default Credentials (ADC) chain.
+    * ADC is a strategy used by the Google authentication libraries to automatically find credentials based on the application environment.
+    * The credentials are made available to Cloud Client Libraries and Google API Client Libraries, allowing the code to run seamlessly
+    * in both development and production environments without altering the authentication process for Google Cloud services and APIs.
+    */
   case object Default extends AuthMode
 
+  /**
+    * Authentication mode indicating no authentication is required.
+    */
   case object None extends AuthMode
 
 }

@@ -1,5 +1,6 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
+import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourcePartitionSearcherSettingsKeys
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.parquet.ParquetOutputFile
@@ -71,7 +72,7 @@ class S3SourceParquetEnvelopeTest
 
   override def cleanUp(): Unit = ()
 
-  override def setUpTestData(): Unit = {
+  override def setUpTestData(): Either[Throwable, Unit] = {
 
     val envelope = new org.apache.avro.generic.GenericData.Record(EnvelopeSchema)
     val key      = new org.apache.avro.generic.GenericData.Record(TransactionIdSchema)
@@ -120,7 +121,7 @@ class S3SourceParquetEnvelopeTest
       outputStream.flush()
       outputStream.close()
       storageInterface.uploadFile(UploadableFile(file), BucketName, s"$MyPrefix/parquet/0")
-      ()
+      ().asRight
     } finally {
       file.delete()
       ()

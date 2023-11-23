@@ -52,21 +52,21 @@ trait CommonConfigDef extends CompressionCodecConfigKeys with AuthModeSettingsCo
         Type.STRING,
         "",
         Importance.HIGH,
-        "Azure Account Name",
+        "GCP Project ID",
       )
       .define(
         GCP_QUOTA_PROJECT_ID,
         Type.STRING,
         "",
         Importance.HIGH,
-        "Azure Account Key",
+        "GCP Quota Project ID",
       )
       .define(
         HOST,
         Type.STRING,
         "",
         Importance.LOW,
-        "Azure endpoint",
+        "GCP Host",
       )
       .define(
         KCQL_CONFIG,

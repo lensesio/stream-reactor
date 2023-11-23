@@ -32,13 +32,13 @@ class S3SourceTaskXmlReaderTest
 
   override def cleanUp(): Unit = ()
 
-  override def setUpTestData(): Unit = {
+  override def setUpTestData(): Either[Throwable, Unit] = {
     val res = Seq("/xml/employeedata0001.xml", "/xml/employeedata0002.xml").traverse { f =>
       val file = new File(getClass.getResource(f).toURI)
       storageInterface.uploadFile(UploadableFile(file), BucketName, "streamReactorBackups" + f)
     }
     res should be(Right(Vector((), ())))
-    ()
+    ().asRight
   }
 
   "task" should "extract from xml files" in {

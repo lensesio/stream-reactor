@@ -1,6 +1,8 @@
 package io.lenses.streamreactor.connect.cloud.common.sink
 
+import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
+import cats.implicits.toBifunctorOps
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.utils.RemoteFileHelper
@@ -8,6 +10,8 @@ import io.lenses.streamreactor.connect.testcontainers.PausableContainer
 import org.scalatest.BeforeAndAfter
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
+
+import scala.util.Try
 
 trait CloudPlatformEmulatorSuite[SM <: FileMetadata, SI <: StorageInterface[SM], T <: CloudSinkTask[SM], C]
     extends AnyFlatSpec
@@ -20,32 +24,37 @@ trait CloudPlatformEmulatorSuite[SM <: FileMetadata, SI <: StorageInterface[SM],
   val prefix: String
   val BucketName = "testbucket"
 
-  case class CloudPlatformState(client: C, storageInterface: SI)
-
   val container: PausableContainer
 
-  var state: Option[CloudPlatformState] = None
+  var maybeClient:           Option[C]  = None
+  var maybeStorageInterface: Option[SI] = None
 
-  def client: C = state.map(_.client).getOrElse(fail("Unset client"))
+  def client: C = maybeClient.getOrElse(fail("Unset client"))
 
-  implicit def storageInterface: SI = state.map(_.storageInterface).getOrElse(fail("Unset SI"))
+  implicit def storageInterface: SI = maybeStorageInterface.getOrElse(fail("Unset SI"))
 
-  def createClient(): C
-  def createStorageInterface(client: C): SI
+  def createClient(): Either[Throwable, C]
+  def createStorageInterface(client: C): Either[Throwable, SI]
+
   val defaultProps: Map[String, String]
 
-  def createBucket(): Unit
+  def createBucket(): Either[Throwable, Unit]
 
   override protected def beforeAll(): Unit = {
-    container.start()
 
-    val client = createClient()
-    state = CloudPlatformState(
-      client,
-      createStorageInterface(client),
-    ).some
-    createBucket()
-    setUpTestData()
+    {
+      for {
+        _      <- Try(container.start()).toEither
+        client <- createClient()
+        sI     <- createStorageInterface(client)
+        _      <- createBucket()
+        _      <- setUpTestData()
+      } yield {
+        maybeClient           = client.some
+        maybeStorageInterface = sI.some
+      }
+    }.leftMap(fail(_))
+    ()
   }
 
   override protected def afterAll(): Unit =
@@ -55,7 +64,7 @@ trait CloudPlatformEmulatorSuite[SM <: FileMetadata, SI <: StorageInterface[SM],
     cleanUp()
   }
 
-  def setUpTestData(): Unit = ()
+  def setUpTestData(): Either[Throwable, Unit] = ().asRight
 
   def cleanUp(): Unit = ()
 

@@ -1,16 +1,9 @@
 package io.lenses.streamreactor.connect.aws.s3.utils
-import cats.implicits.toBifunctorOps
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.AUTH_MODE
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.AWS_ACCESS_KEY
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.AWS_REGION
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.AWS_SECRET_KEY
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CUSTOM_ENDPOINT
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.ENABLE_VIRTUAL_HOST_BUCKETS
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.sink.S3SinkTask
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
@@ -42,10 +35,10 @@ trait S3ProxyContainerTest
 
   override val prefix: String = "connect.s3"
 
-  override def createStorageInterface(client: S3Client): AwsS3StorageInterface =
-    Try(new AwsS3StorageInterface(connectorTaskId, client, true)).toEither.leftMap(fail(_)).merge
+  override def createStorageInterface(client: S3Client): Either[Throwable, AwsS3StorageInterface] =
+    Try(new AwsS3StorageInterface(connectorTaskId, client, true)).toEither
 
-  override def createClient(): S3Client = {
+  override def createClient(): Either[Throwable, S3Client] = {
 
     val s3Config: S3Config = S3Config(
       region                   = Some("eu-west-1"),
@@ -56,7 +49,7 @@ trait S3ProxyContainerTest
       enableVirtualHostBuckets = true,
     )
 
-    AwsS3ClientCreator.make(s3Config).leftMap(fail(_)).merge
+    AwsS3ClientCreator.make(s3Config)
   }
 
   override def createSinkTask() = new S3SinkTask()
@@ -78,12 +71,11 @@ trait S3ProxyContainerTest
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
-  override def createBucket(): Unit = {
-    Try(
-      client.createBucket(CreateBucketRequest.builder().bucket(BucketName).build()),
-    ).toEither.leftMap(logger.error(" _", _))
-    ()
-  }
+  override def createBucket(): Either[Throwable, Unit] =
+    Try {
+      client.createBucket(CreateBucketRequest.builder().bucket(BucketName).build())
+      ()
+    }.toEither
 
   override def cleanUp(): Unit = {
     Try {
