@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.gcp.storage.sink.config
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import io.lenses.streamreactor.connect.gcp.storage.model.location.GCPStorageLocationValidator
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -32,7 +33,7 @@ class GCPStorageSinkConfigTest extends AnyFunSuite with Matchers {
       "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    SinkBucketOptions(SinkConfigDefBuilder(props.asJava)) match {
+    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props.asJava)) match {
       case Left(value) => value.getMessage shouldBe "Envelope is not supported for format CSV."
       case Right(_)    => fail("Should fail since envelope and CSV storage is not allowed")
     }
@@ -43,7 +44,7 @@ class GCPStorageSinkConfigTest extends AnyFunSuite with Matchers {
       "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Parquet` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    SinkBucketOptions(SinkConfigDefBuilder(props.asJava)) match {
+    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props.asJava)) match {
       case Left(error) => fail("Should not fail since envelope and Parquet storage is allowed", error)
       case Right(_)    => succeed
     }
@@ -53,7 +54,7 @@ class GCPStorageSinkConfigTest extends AnyFunSuite with Matchers {
       "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Avro` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    SinkBucketOptions(SinkConfigDefBuilder(props.asJava)) match {
+    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props.asJava)) match {
       case Left(error) => fail("Should not fail since envelope and Avro storage is allowed", error)
       case Right(_)    => succeed
     }
@@ -63,7 +64,7 @@ class GCPStorageSinkConfigTest extends AnyFunSuite with Matchers {
       "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Json` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    SinkBucketOptions(SinkConfigDefBuilder(props.asJava)) match {
+    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props.asJava)) match {
       case Left(error) => fail("Should not fail since envelope and Json storage is allowed", error)
       case Right(_)    => succeed
     }
@@ -73,7 +74,7 @@ class GCPStorageSinkConfigTest extends AnyFunSuite with Matchers {
       "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Text` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    SinkBucketOptions(SinkConfigDefBuilder(props.asJava)) match {
+    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props.asJava)) match {
       case Left(value) => value.getMessage shouldBe "Envelope is not supported for format TEXT."
       case Right(_)    => fail("Should fail since text and envelope storage is not allowed")
     }
@@ -83,7 +84,7 @@ class GCPStorageSinkConfigTest extends AnyFunSuite with Matchers {
       "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Bytes` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    SinkBucketOptions(SinkConfigDefBuilder(props.asJava)) match {
+    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props.asJava)) match {
       case Left(value) => value.getMessage shouldBe "Envelope is not supported for format BYTES."
       case Right(_)    => fail("Should fail since envelope and bytes storage is not allowed")
     }

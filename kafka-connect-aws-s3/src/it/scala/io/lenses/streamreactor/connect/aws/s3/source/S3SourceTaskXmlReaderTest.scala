@@ -2,6 +2,7 @@ package io.lenses.streamreactor.connect.aws.s3.source
 
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourcePartitionSearcherSettingsKeys
+import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import org.apache.kafka.connect.source.SourceRecord
@@ -32,7 +33,7 @@ class S3SourceTaskXmlReaderTest
 
   override def cleanUp(): Unit = ()
 
-  override def setUpTestData(): Either[Throwable, Unit] = {
+  override def setUpTestData(storageInterface: AwsS3StorageInterface): Either[Throwable, Unit] = {
     val res = Seq("/xml/employeedata0001.xml", "/xml/employeedata0002.xml").traverse { f =>
       val file = new File(getClass.getResource(f).toURI)
       storageInterface.uploadFile(UploadableFile(file), BucketName, "streamReactorBackups" + f)

@@ -25,6 +25,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
+import io.lenses.streamreactor.connect.cloud.common.sink.WriterManagerCreator
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -41,13 +42,15 @@ class S3SinkTask
       S3LocationValidator,
     ) {
 
+  private val writerManagerCreator = new WriterManagerCreator[S3FileMetadata, S3SinkConfig]()
+
   def createWriterMan(props: Map[String, String]): Either[Throwable, WriterManager[S3FileMetadata]] =
     for {
       config          <- S3SinkConfig.fromProps(props.asJava)
       s3Client        <- AwsS3ClientCreator.make(config.s3Config)
       storageInterface = new AwsS3StorageInterface(connectorTaskId, s3Client, config.batchDelete)
       _               <- Try(setErrorRetryInterval(config.s3Config)).toEither
-      writerManager   <- Try(S3WriterManagerCreator.from(config)(connectorTaskId, storageInterface)).toEither
+      writerManager   <- Try(writerManagerCreator.from(config)(connectorTaskId, storageInterface)).toEither
       _ <- Try(initialize(
         config.s3Config.connectorRetryConfig.numberOfRetries,
         config.s3Config.errorPolicy,

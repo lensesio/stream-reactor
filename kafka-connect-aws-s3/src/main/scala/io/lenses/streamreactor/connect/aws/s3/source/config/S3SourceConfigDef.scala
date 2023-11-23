@@ -16,13 +16,10 @@
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import cats.implicits.catsSyntaxEitherId
-import com.datamountaineer.streamreactor.common.config.base.traits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.DeleteModeSettings
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor
-import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings
 import io.lenses.streamreactor.connect.cloud.common.config.processors.ConfigDefProcessor
 import io.lenses.streamreactor.connect.cloud.common.config.processors.LowerCaseKeyConfigDefProcessor
 import org.apache.kafka.common.config.ConfigDef
@@ -112,20 +109,5 @@ class S3SourceConfigDef() extends ConfigDef with LazyLogging {
     }
     remappedProps.asRight
   }
-
-}
-
-case class S3SourceConfigDefBuilder(props: util.Map[String, String])
-    extends BaseConfig(S3ConfigSettings.CONNECTOR_PREFIX, S3SourceConfigDef.config, props)
-    with KcqlSettings
-    with ErrorPolicySettings
-    with NumberRetriesSettings
-    with UserSettings
-    with ConnectionSettings
-    with CompressionCodecSettings
-    with SourcePartitionSearcherSettings
-    with DeleteModeSettings {
-
-  def getParsedValues: Map[String, _] = values().asScala.toMap
 
 }

@@ -16,26 +16,17 @@
 package io.lenses.streamreactor.connect.gcp.storage.sink.config
 
 import cats.implicits.catsSyntaxEitherId
-import com.datamountaineer.streamreactor.common.config.base.traits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings
 import io.lenses.streamreactor.connect.cloud.common.config.processors.ConfigDefProcessor
 import io.lenses.streamreactor.connect.cloud.common.config.processors.LowerCaseKeyConfigDefProcessor
 import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushConfigKeys
-import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
-import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaSettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
-import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategySettings
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES_DEFAULT
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES_DOC
-import io.lenses.streamreactor.connect.gcp.storage.config.AuthModeSettings
-import io.lenses.streamreactor.connect.gcp.storage.config.CommonConfigDef
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings
-import io.lenses.streamreactor.connect.gcp.storage.config.UploadConfigKeys
-import io.lenses.streamreactor.connect.gcp.storage.config.UploadSettings
+import io.lenses.streamreactor.connect.gcp.storage.config._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
@@ -111,23 +102,5 @@ class GCPStorageSinkConfigDef() extends ConfigDef with LazyLogging {
     }
     remappedProps.asRight
   }
-
-}
-
-case class SinkConfigDefBuilder(props: util.Map[String, String])
-    extends BaseConfig(GCPConfigSettings.CONNECTOR_PREFIX, GCPStorageSinkConfigDef.config, props)
-    with KcqlSettings
-    with ErrorPolicySettings
-    with NumberRetriesSettings
-    with UserSettings
-    with ConnectionSettings
-    with FlushSettings
-    with CompressionCodecSettings
-    with PaddingStrategySettings
-    with LocalStagingAreaSettings
-    with AuthModeSettings
-    with UploadSettings {
-
-  def getParsedValues: Map[String, _] = values().asScala.toMap
 
 }

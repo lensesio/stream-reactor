@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.gcp.storage.sink
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
+import io.lenses.streamreactor.connect.cloud.common.sink.WriterManagerCreator
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.gcp.storage.auth.GCPStorageClientCreator
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfig
@@ -40,13 +41,15 @@ class GCPStorageSinkTask
       GCPStorageLocationValidator,
     ) {
 
+  private val writerManagerCreator = new WriterManagerCreator[GCPStorageFileMetadata, GCPStorageSinkConfig]()
+
   def createWriterMan(props: Map[String, String]): Either[Throwable, WriterManager[GCPStorageFileMetadata]] =
     for {
       config          <- GCPStorageSinkConfig.fromProps(props.asJava)
       gcpClient       <- GCPStorageClientCreator.make(config.gcpConfig)
       storageInterface = new GCPStorageStorageInterface(connectorTaskId, gcpClient, config.avoidResumableUpload)
       _               <- Try(setErrorRetryInterval(config.gcpConfig)).toEither
-      writerManager   <- Try(GCPStorageWriterManagerCreator.from(config)(connectorTaskId, storageInterface)).toEither
+      writerManager   <- Try(writerManagerCreator.from(config)(connectorTaskId, storageInterface)).toEither
       _ <- Try(initialize(
         config.gcpConfig.connectorRetryConfig.numberOfRetries,
         config.gcpConfig.errorPolicy,

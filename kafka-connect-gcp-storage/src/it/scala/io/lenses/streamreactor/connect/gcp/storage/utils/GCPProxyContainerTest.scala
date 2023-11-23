@@ -69,7 +69,7 @@ trait GCPProxyContainerTest
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
-  override def createBucket(): Either[Throwable, Unit] =
+  override def createBucket(client: Storage): Either[Throwable, Unit] =
     Try {
       client.create(BucketInfo.of(BucketName))
       ()

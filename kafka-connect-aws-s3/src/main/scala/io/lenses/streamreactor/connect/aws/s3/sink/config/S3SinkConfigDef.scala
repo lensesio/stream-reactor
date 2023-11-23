@@ -16,29 +16,23 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
 import cats.implicits.catsSyntaxEitherId
-import com.datamountaineer.streamreactor.common.config.base.traits._
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config._
+import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor
+import io.lenses.streamreactor.connect.cloud.common.config.processors.ConfigDefProcessor
+import io.lenses.streamreactor.connect.cloud.common.config.processors.LowerCaseKeyConfigDefProcessor
+import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushConfigKeys
+import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
+import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
 import java.util
 import scala.jdk.CollectionConverters._
-import S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.config.DeleteModeSettings
-import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor
-import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings
-import io.lenses.streamreactor.connect.cloud.common.config.processors.ConfigDefProcessor
-import io.lenses.streamreactor.connect.cloud.common.config.processors.LowerCaseKeyConfigDefProcessor
-import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
-import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaSettings
-import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushConfigKeys
-import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings
-import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
-import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategySettings
 
-object SinkConfigDef
+object S3SinkConfigDef
     extends CommonConfigDef
     with FlushConfigKeys
     with LocalStagingAreaConfigKeys
@@ -72,7 +66,7 @@ object SinkConfigDef
 
 }
 
-class SinkConfigDef() extends ConfigDef with LazyLogging {
+class S3SinkConfigDef() extends ConfigDef with LazyLogging {
 
   private val processorChain: List[ConfigDefProcessor] =
     List(new LowerCaseKeyConfigDefProcessor(CONNECTOR_PREFIX), new DeprecationConfigDefProcessor)
@@ -104,22 +98,5 @@ class SinkConfigDef() extends ConfigDef with LazyLogging {
     }
     remappedProps.asRight
   }
-
-}
-
-case class SinkConfigDefBuilder(props: util.Map[String, String])
-    extends BaseConfig(S3ConfigSettings.CONNECTOR_PREFIX, SinkConfigDef.config, props)
-    with KcqlSettings
-    with ErrorPolicySettings
-    with NumberRetriesSettings
-    with UserSettings
-    with ConnectionSettings
-    with FlushSettings
-    with CompressionCodecSettings
-    with PaddingStrategySettings
-    with LocalStagingAreaSettings
-    with DeleteModeSettings {
-
-  def getParsedValues: Map[String, _] = values().asScala.toMap
 
 }

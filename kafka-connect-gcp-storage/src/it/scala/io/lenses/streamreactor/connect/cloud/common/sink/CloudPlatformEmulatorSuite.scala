@@ -26,19 +26,19 @@ trait CloudPlatformEmulatorSuite[SM <: FileMetadata, SI <: StorageInterface[SM],
 
   val container: PausableContainer
 
-  var maybeClient:           Option[C]  = None
   var maybeStorageInterface: Option[SI] = None
 
-  def client: C = maybeClient.getOrElse(fail("Unset client"))
+  var maybeClient: Option[C] = None
 
   implicit def storageInterface: SI = maybeStorageInterface.getOrElse(fail("Unset SI"))
+  def client:                    C  = maybeClient.getOrElse(fail("Unset client"))
 
   def createClient(): Either[Throwable, C]
   def createStorageInterface(client: C): Either[Throwable, SI]
 
   val defaultProps: Map[String, String]
 
-  def createBucket(): Either[Throwable, Unit]
+  def createBucket(client: C): Either[Throwable, Unit]
 
   override protected def beforeAll(): Unit = {
 
@@ -47,11 +47,11 @@ trait CloudPlatformEmulatorSuite[SM <: FileMetadata, SI <: StorageInterface[SM],
         _      <- Try(container.start()).toEither
         client <- createClient()
         sI     <- createStorageInterface(client)
-        _      <- createBucket()
-        _      <- setUpTestData()
+        _      <- createBucket(client)
+        _      <- setUpTestData(sI)
       } yield {
-        maybeClient           = client.some
         maybeStorageInterface = sI.some
+        maybeClient           = client.some
       }
     }.leftMap(fail(_))
     ()
@@ -64,7 +64,7 @@ trait CloudPlatformEmulatorSuite[SM <: FileMetadata, SI <: StorageInterface[SM],
     cleanUp()
   }
 
-  def setUpTestData(): Either[Throwable, Unit] = ().asRight
+  def setUpTestData(storageInterface: SI): Either[Throwable, Unit] = ().asRight
 
   def cleanUp(): Unit = ()
 

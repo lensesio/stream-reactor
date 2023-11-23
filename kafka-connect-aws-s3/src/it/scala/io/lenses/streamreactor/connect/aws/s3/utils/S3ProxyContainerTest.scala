@@ -71,7 +71,7 @@ trait S3ProxyContainerTest
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
-  override def createBucket(): Either[Throwable, Unit] =
+  override def createBucket(client: S3Client): Either[Throwable, Unit] =
     Try {
       client.createBucket(CreateBucketRequest.builder().bucket(BucketName).build())
       ()

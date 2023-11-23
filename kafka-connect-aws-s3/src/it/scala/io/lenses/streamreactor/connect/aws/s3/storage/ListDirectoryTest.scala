@@ -7,14 +7,13 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindCompletionConfig
 import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindResults
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import software.amazon.awssdk.core.sync.RequestBody
-import software.amazon.awssdk.services.s3.model.PutObjectRequest
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
@@ -24,18 +23,14 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
 
   override def cleanUp(): Unit = ()
 
-  override def setUpTestData(): Either[Throwable, Unit] = {
-    val requestBody = RequestBody.fromString("x")
+  override def setUpTestData(storageInterface: AwsS3StorageInterface): Either[Throwable, Unit] = {
     Seq("topic-1", "topic-2").foreach {
       topic =>
         for (partitionNo <- 1 to 10) {
 
           for (offsetNo <- 1 to 2) {
             logger.debug(s"Writing $topic/$partitionNo/$offsetNo")
-            client.putObject(
-              PutObjectRequest.builder().bucket(BucketName).key(s"$topic/$partitionNo/$offsetNo").build(),
-              requestBody,
-            )
+            storageInterface.writeStringToFile(BucketName, s"$topic/$partitionNo/$offsetNo", UploadableString("x"))
           }
         }
     }
