@@ -1,14 +1,15 @@
 package io.lenses.streamreactor.connect
+
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
-import io.confluent.kafka.serializers.KafkaJsonSerializer
-import io.lenses.streamreactor.connect.model.Order
-import io.lenses.streamreactor.connect.testcontainers.MongoDBContainer
-import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer
-import io.lenses.streamreactor.connect.testcontainers.connect.ConfigValue
-import io.lenses.streamreactor.connect.testcontainers.connect.ConnectorConfiguration
-import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient._
-import io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
+import _root_.io.confluent.kafka.serializers.KafkaJsonSerializer
+import _root_.io.lenses.streamreactor.connect.model.Order
+import _root_.io.lenses.streamreactor.connect.testcontainers.MongoDBContainer
+import _root_.io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer
+import _root_.io.lenses.streamreactor.connect.testcontainers.connect.ConfigValue
+import _root_.io.lenses.streamreactor.connect.testcontainers.connect.ConnectorConfiguration
+import _root_.io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient._
+import _root_.io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringSerializer
 import org.scalatest.flatspec.AsyncFlatSpec

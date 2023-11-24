@@ -1,10 +1,10 @@
 package io.lenses.streamreactor.connect
 
-import io.lenses.streamreactor.connect.MqttContainer.defaultNetworkAlias
-import io.lenses.streamreactor.connect.MqttContainer.defaultPort
-import io.lenses.streamreactor.connect.MqttContainer.defaultTag
-import io.lenses.streamreactor.connect.testcontainers.RandomAuthentication
-import io.lenses.streamreactor.connect.testcontainers.S3Authentication
+import _root_.io.lenses.streamreactor.connect.MqttContainer.defaultNetworkAlias
+import _root_.io.lenses.streamreactor.connect.MqttContainer.defaultPort
+import _root_.io.lenses.streamreactor.connect.MqttContainer.defaultTag
+import _root_.io.lenses.streamreactor.connect.testcontainers.RandomAuthentication
+import _root_.io.lenses.streamreactor.connect.testcontainers.S3Authentication
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName

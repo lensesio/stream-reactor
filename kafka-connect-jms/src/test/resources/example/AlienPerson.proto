@@ -1,6 +1,6 @@
 syntax = "proto3";
-package  datamountaineer.streamreactor.example.alien;
-option csharp_namespace = "datamountaineer.streamreactor.example.alien";
+package  lenses.streamreactor.example.alien;
+option csharp_namespace = "lenses.streamreactor.example.alien";
 option java_package = "io.lenses.streamreactor.example.alien";
 option java_multiple_files = true;
 message AddressedPerson {

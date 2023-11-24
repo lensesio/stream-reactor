@@ -2,12 +2,12 @@ package io.lenses.streamreactor.connect
 
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
-import io.confluent.kafka.serializers.KafkaAvroSerializer
-import io.lenses.streamreactor.connect.testcontainers.RedisContainer
-import io.lenses.streamreactor.connect.testcontainers.connect.ConfigValue
-import io.lenses.streamreactor.connect.testcontainers.connect.ConnectorConfiguration
-import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient.createConnector
-import io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
+import _root_.io.confluent.kafka.serializers.KafkaAvroSerializer
+import _root_.io.lenses.streamreactor.connect.testcontainers.RedisContainer
+import _root_.io.lenses.streamreactor.connect.testcontainers.connect.ConfigValue
+import _root_.io.lenses.streamreactor.connect.testcontainers.connect.ConnectorConfiguration
+import _root_.io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient.createConnector
+import _root_.io.lenses.streamreactor.connect.testcontainers.scalatest.StreamReactorContainerPerSuite
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericData
 import org.apache.kafka.clients.producer.ProducerRecord

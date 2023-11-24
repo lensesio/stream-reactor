@@ -76,16 +76,16 @@ trait ItTestBase extends AnyWordSpec with Matchers with MockitoSugar {
     s"INSERT INTO $target SELECT * FROM $source WITHFORMAT $format WITHTYPE $jmsType"
 
   def getKCQLStoreAsAddressedPerson(target: String, source: String, jmsType: String) =
-    s"INSERT INTO $target SELECT * FROM $source  STOREAS `datamountaineer.streamreactor.example.AddressedPerson` WITHTYPE $jmsType"
+    s"INSERT INTO $target SELECT * FROM $source  STOREAS `lenses.streamreactor.example.AddressedPerson` WITHTYPE $jmsType"
 
   def getKCQLEmptyStoredAsNonAddressedPerson(target: String, source: String, jmsType: String) =
-    s"INSERT INTO $target SELECT * FROM $source STOREAS `datamountaineer.streamreactor.example.NonAddressedPerson` WITHTYPE $jmsType"
+    s"INSERT INTO $target SELECT * FROM $source STOREAS `lenses.streamreactor.example.NonAddressedPerson` WITHTYPE $jmsType"
 
   def getKCQLStoreAsTimedPerson(target: String, source: String, jmsType: String, path: String) =
-    s"INSERT INTO $target SELECT * FROM $source STOREAS `datamountaineer.streamreactor.example.TimedPerson`(proto_path = $path, proto_file = `TimedPerson.proto`) WITHTYPE $jmsType WITHFORMAT $PROTO_FORMAT"
+    s"INSERT INTO $target SELECT * FROM $source STOREAS `lenses.streamreactor.example.TimedPerson`(proto_path = $path, proto_file = `TimedPerson.proto`) WITHTYPE $jmsType WITHFORMAT $PROTO_FORMAT"
 
   def getKCQLStoreAsWithFileAndPath(target: String, source: String, jmsType: String, file: String, path: String) =
-    s"INSERT INTO $target SELECT col1,col2 FROM $source STOREAS `datamountaineer.streamreactor.example.NonAddressedPerson`(proto_path = $path, proto_file = $file) WITHTYPE $jmsType"
+    s"INSERT INTO $target SELECT col1,col2 FROM $source STOREAS `lenses.streamreactor.example.NonAddressedPerson`(proto_path = $path, proto_file = $file) WITHTYPE $jmsType"
 
   def getKCQLStoredAsWithNameOnly(target: String, source: String, jmsType: String) =
     s"INSERT INTO $target SELECT * FROM $source STOREAS `io.lenses.streamreactor.example.NonAddressedPerson`  WITHTYPE $jmsType"
@@ -102,7 +102,7 @@ trait ItTestBase extends AnyWordSpec with Matchers with MockitoSugar {
     s"INSERT INTO $target SELECT col1,col2 FROM $source STOREAS NonAddressedPerson(proto_path = $path)  WITHTYPE $jmsType"
 
   def getKCQLStoredAsWithProtopath(target: String, source: String, jmsType: String, path: String) =
-    s"INSERT INTO $target SELECT col1,col2 FROM $source STOREAS `datamountaineer.streamreactor.example.alien.AlienPerson`(proto_path = $path)  WITHTYPE $jmsType"
+    s"INSERT INTO $target SELECT col1,col2 FROM $source STOREAS `lenses.streamreactor.example.alien.AlienPerson`(proto_path = $path)  WITHTYPE $jmsType"
 
   def getKCQLAvroSource(topic: String, queue: String, jmsType: String) =
     s"INSERT INTO $topic SELECT * FROM $queue WITHTYPE $jmsType WITHCONVERTER=$QUEUE_CONVERTER"
