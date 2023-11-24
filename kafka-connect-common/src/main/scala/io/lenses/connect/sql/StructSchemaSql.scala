@@ -60,17 +60,17 @@ object StructSchemaSql {
 
     def copy(query: SqlSelect, flatten: Boolean): Schema =
       if (!flatten) {
-        com.landoop.sql.Field.from(query)
-        implicit val kcqlContext = new SqlContext(com.landoop.sql.Field.from(query))
+        io.lenses.sql.Field.from(query)
+        implicit val kcqlContext = new SqlContext(io.lenses.sql.Field.from(query))
         copy()
       } else {
-        this.flatten(com.landoop.sql.Field.from(query))
+        this.flatten(io.lenses.sql.Field.from(query))
       }
 
     def copy()(implicit sqlContext: SqlContext): Schema =
       AvroSchemaExtension.copy(schema, Vector.empty)
 
-    def flatten(fields: Seq[com.landoop.sql.Field]): Schema = {
+    def flatten(fields: Seq[io.lenses.sql.Field]): Schema = {
       def allowOnlyStarSelection() =
         fields match {
           case Seq(f) if f.name == "*" => schema
@@ -96,7 +96,7 @@ object StructSchemaSql {
       schema
     }
 
-    private def createRecordSchemaForFlatten(fields: Seq[com.landoop.sql.Field]): Schema = {
+    private def createRecordSchemaForFlatten(fields: Seq[io.lenses.sql.Field]): Schema = {
       val builder = SchemaBuilder.struct().name(schema.name())
         .doc(schema.doc())
       Option(schema.parameters()).map(builder.parameters)
@@ -340,7 +340,7 @@ object StructSchemaSql {
     def withOptional(field: Field): Field =
       new Field(field.name(), field.index(), copyAsOptional(field.schema()))
 
-    def checkAllowedSchemas(schema: Schema, field: com.landoop.sql.Field): Unit =
+    def checkAllowedSchemas(schema: Schema, field: io.lenses.sql.Field): Unit =
       schema.`type`() match {
         case Schema.Type.ARRAY | Schema.Type.MAP =>
           throw new IllegalArgumentException(s"Can't flatten from schema:$schema by selecting '${field.name}'")

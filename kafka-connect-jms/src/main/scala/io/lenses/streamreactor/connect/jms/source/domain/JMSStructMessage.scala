@@ -37,7 +37,7 @@ object JMSStructMessage {
   private val offset          = Map.empty[String, String]
 
   def getSchema(): Schema =
-    SchemaBuilder.struct().name("com.datamountaineer.streamreactor.connect.jms")
+    SchemaBuilder.struct().name("io.lenses.streamreactor.connect.jms")
       .field("message_timestamp", Schema.OPTIONAL_INT64_SCHEMA)
       .field("correlation_id", Schema.OPTIONAL_STRING_SCHEMA)
       .field("redelivered", Schema.OPTIONAL_BOOLEAN_SCHEMA)

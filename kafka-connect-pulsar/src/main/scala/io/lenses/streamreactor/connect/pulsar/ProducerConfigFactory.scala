@@ -47,8 +47,8 @@ class ProducerConfigFactory(pulsarClient: PulsarClient) extends StrictLogging {
       if (kcql.getWithCompression != null) {
 
         val compressionType = kcql.getWithCompression match {
-          case com.datamountaineer.kcql.CompressionType.LZ4  => CompressionType.LZ4
-          case com.datamountaineer.kcql.CompressionType.ZLIB => CompressionType.ZLIB
+          case io.lenses.kcql.CompressionType.LZ4  => CompressionType.LZ4
+          case io.lenses.kcql.CompressionType.ZLIB => CompressionType.ZLIB
           case _ =>
             logger.warn(s"Unknown supported compression type ${kcql.getWithCompression.toString}. Defaulting to LZ4")
             CompressionType.LZ4

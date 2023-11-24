@@ -34,7 +34,7 @@ class PulsarSourceTaskTest extends AnyWordSpec with Matchers {
 
   "should start create a task with a converter" in {
     val kcql =
-      s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH = 10 WITHCONVERTER=`com.datamountaineer.streamreactor.connect.converters.source.JsonSimpleConverter` WITHSUBSCRIPTION = SHARED"
+      s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH = 10 WITHCONVERTER=`io.lenses.streamreactor.connect.converters.source.JsonSimpleConverter` WITHSUBSCRIPTION = SHARED"
 
     val props = Map(
       PulsarConfigConstants.HOSTS_CONFIG                   -> "pulsar://localhost:6650",

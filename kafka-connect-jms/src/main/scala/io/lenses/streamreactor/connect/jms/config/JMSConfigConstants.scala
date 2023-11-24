@@ -71,14 +71,14 @@ object JMSConfigConstants {
     """
       |Contains a canonical class name for the default converter of a raw JMS message bytes to a SourceRecord.
       |Overrides to the default can be done by using connect.jms.source.converters still.
-      |i.e. com.datamountaineer.streamreactor.connect.source.converters.AvroConverter""".stripMargin
+      |i.e. io.lenses.streamreactor.connect.source.converters.AvroConverter""".stripMargin
   private[config] val DEFAULT_SOURCE_CONVERTER_DISPLAY = "Default Source Converter class"
 
   val DEFAULT_SINK_CONVERTER_CONFIG = s"${CONNECTOR_PREFIX}.sink.default.converter"
   private[config] val DEFAULT_SINK_CONVERTER_DOC =
     """
       |Contains a canonical class name for the default converter from a SinkRecord to a raw JMS message.
-      |i.e. com.datamountaineer.streamreactor.connect.jms.sink.converters.AvroMessageConverter""".stripMargin
+      |i.e. io.lenses.streamreactor.connect.jms.sink.converters.AvroMessageConverter""".stripMargin
   private[config] val DEFAULT_SINK_CONVERTER_DISPLAY = "Default Sink Converter class"
 
   val HEADERS_CONFIG = s"${CONNECTOR_PREFIX}.headers"

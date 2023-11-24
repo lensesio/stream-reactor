@@ -1,7 +1,0 @@
-services:
-    renamer:
-        build:
-            context: .
-            dockerfile: Dockerfile
-        volumes:
-            - ../../:/stream-reactor/

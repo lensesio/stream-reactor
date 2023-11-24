@@ -73,7 +73,7 @@ class MqttTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorContaine
     ConnectorConfiguration(
       "mqtt-sink",
       Map(
-        "connector.class"          -> ConfigValue("com.datamountaineer.streamreactor.connect.mqtt.sink.MqttSinkConnector"),
+        "connector.class"          -> ConfigValue("io.lenses.streamreactor.connect.mqtt.sink.MqttSinkConnector"),
         "tasks.max"                -> ConfigValue(1),
         "topics"                   -> ConfigValue("orders"),
         KCQL_CONFIG                -> ConfigValue(s"INSERT INTO orders SELECT * FROM orders"),

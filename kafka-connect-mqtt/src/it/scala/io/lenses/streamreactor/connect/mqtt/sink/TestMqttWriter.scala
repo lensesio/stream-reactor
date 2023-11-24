@@ -258,7 +258,7 @@ class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestConta
 
     val props = Map(
       MqttConfigConstants.HOSTS_CONFIG                 -> getMqttConnectionUrl,
-      MqttConfigConstants.KCQL_CONFIG                  -> s"INSERT INTO $TARGET SELECT * FROM $TOPIC WITHCONVERTER=`com.datamountaineer.streamreactor.common.converters.sink.AvroConverter` WITHTARGET=string_field;INSERT INTO $TARGET SELECT * FROM $TOPIC2 WITHCONVERTER=`com.datamountaineer.streamreactor.common.converters.sink.AvroConverter` WITHTARGET=string_field",
+      MqttConfigConstants.KCQL_CONFIG                  -> s"INSERT INTO $TARGET SELECT * FROM $TOPIC WITHCONVERTER=`io.lenses.streamreactor.common.converters.sink.AvroConverter` WITHTARGET=string_field;INSERT INTO $TARGET SELECT * FROM $TOPIC2 WITHCONVERTER=`io.lenses.streamreactor.common.converters.sink.AvroConverter` WITHTARGET=string_field",
       MqttConfigConstants.QS_CONFIG                    -> "1",
       MqttConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES -> sinkAvroSchemas,
       MqttConfigConstants.CLEAN_SESSION_CONFIG         -> "true",

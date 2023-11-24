@@ -349,13 +349,13 @@ class KcqlNestedFieldTest extends AnyFunSuite {
   }
 
   test("parseWithConverter") {
-    var syntax = "SELECT * FROM topicA WITHCONVERTER=`com.datamountaineer.converter.Mine`"
+    var syntax = "SELECT * FROM topicA WITHCONVERTER=`io.lenses.converter.Mine`"
     var kcql   = Kcql.parse(syntax)
-    kcql.getWithConverter should be("com.datamountaineer.converter.Mine")
+    kcql.getWithConverter should be("io.lenses.converter.Mine")
 
-    syntax = "SELECT * FROM topicA WITHCONVERTER= `com.datamountaineer.ConverterA` "
+    syntax = "SELECT * FROM topicA WITHCONVERTER= `io.lenses.ConverterA` "
     kcql   = Kcql.parse(syntax)
-    kcql.getWithConverter should be("com.datamountaineer.ConverterA")
+    kcql.getWithConverter should be("io.lenses.ConverterA")
   }
 
   test("parseWithJmsSelector") {

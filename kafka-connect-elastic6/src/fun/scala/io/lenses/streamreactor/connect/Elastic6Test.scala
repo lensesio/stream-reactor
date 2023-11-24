@@ -89,7 +89,7 @@ class Elastic6Test extends AsyncFlatSpec with AsyncIOSpec with StreamReactorCont
     ConnectorConfiguration(
       "elastic-sink",
       Map(
-        "connector.class"              -> ConfigValue("com.datamountaineer.streamreactor.connect.elastic6.ElasticSinkConnector"),
+        "connector.class"              -> ConfigValue("io.lenses.streamreactor.connect.elastic6.ElasticSinkConnector"),
         "tasks.max"                    -> ConfigValue(1),
         "topics"                       -> ConfigValue("orders"),
         "connect.elastic.protocol"     -> ConfigValue("http"),

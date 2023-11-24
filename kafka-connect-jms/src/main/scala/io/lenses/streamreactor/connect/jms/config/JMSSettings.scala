@@ -22,9 +22,7 @@ import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 import io.lenses.streamreactor.connect.converters.source.Converter
 import io.lenses.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
 import io.lenses.streamreactor.connect.jms.source.converters.CommonJMSMessageConverter
-import io.lenses.streamreactor.connect.jms.source.converters.{
-  JMSSourceMessageConverter => JMSMessageSourceConverter,
-}
+import io.lenses.streamreactor.connect.jms.source.converters.{ JMSSourceMessageConverter => JMSMessageSourceConverter }
 import com.google.common.base.Splitter
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException

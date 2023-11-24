@@ -126,7 +126,7 @@ class CassandraTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorCon
       "cassandra-source",
       Map(
         "connector.class" -> ConfigValue(
-          "com.datamountaineer.streamreactor.connect.cassandra.source.CassandraSourceConnector",
+          "io.lenses.streamreactor.connect.cassandra.source.CassandraSourceConnector",
         ),
         "connect.cassandra.key.space" -> ConfigValue("source"),
         "connect.cassandra.kcql" -> ConfigValue(
@@ -145,7 +145,7 @@ class CassandraTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorCon
       "cassandra-sink",
       Map(
         "connector.class" -> ConfigValue(
-          "com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector",
+          "io.lenses.streamreactor.connect.cassandra.sink.CassandraSinkConnector",
         ),
         "tasks.max"                        -> ConfigValue(1),
         "topics"                           -> ConfigValue("orders"),

@@ -68,7 +68,7 @@ class MongoDBTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorConta
   private def sinkConfig(): ConnectorConfiguration = ConnectorConfiguration(
     "mongo-sink",
     Map[String, ConfigValue[_]](
-      "connector.class"          -> ConfigValue("com.datamountaineer.streamreactor.connect.mongodb.sink.MongoSinkConnector"),
+      "connector.class"          -> ConfigValue("io.lenses.streamreactor.connect.mongodb.sink.MongoSinkConnector"),
       "tasks.max"                -> ConfigValue(1),
       "topics"                   -> ConfigValue("orders"),
       "connect.mongo.kcql"       -> ConfigValue("INSERT INTO orders SELECT * FROM orders"),

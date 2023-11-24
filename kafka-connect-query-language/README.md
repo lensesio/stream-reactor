@@ -1,5 +1,5 @@
 ![CI](https://github.com/lensesio/kafka-connect-query-language/workflows/CI/badge.svg)
-[<img src="https://img.shields.io/badge/latest%20release-v2.9.0-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22%20AND%20a%3A%22kcql%22)
+[<img src="https://img.shields.io/badge/latest%20release-v2.9.0-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.lenses%22%20AND%20a%3A%22kcql%22)
 
 
 # Kafka Connect Query Language
@@ -29,7 +29,7 @@ To include it in your project you, include it in your connector.
 Maven
 ```bash
 <dependency>
-	<groupId>com.datamountaineer</groupId>
+	<groupId>io.lenses</groupId>
 	<artifactId>kcql</artifactId>
 	<version>LATEST</version>
 </dependency>

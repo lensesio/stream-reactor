@@ -35,7 +35,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     FtpSourceConfig.FileMaxAge       -> "P7D",
     FtpSourceConfig.KeyStyle         -> "string",
     FtpSourceConfig.fileFilter       -> ".*",
-    FtpSourceConfig.FileConverter    -> "com.datamountaineer.streamreactor.connect.ftp.source.SimpleFileConverter",
+    FtpSourceConfig.FileConverter    -> "io.lenses.streamreactor.connect.ftp.source.SimpleFileConverter",
   )
 
   val configTailWithSimpleFileConverter = Map(
@@ -48,7 +48,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     FtpSourceConfig.FileMaxAge       -> "P7D",
     FtpSourceConfig.KeyStyle         -> "string",
     FtpSourceConfig.fileFilter       -> ".*",
-    FtpSourceConfig.FileConverter    -> "com.datamountaineer.streamreactor.connect.ftp.source.SimpleFileConverter",
+    FtpSourceConfig.FileConverter    -> "io.lenses.streamreactor.connect.ftp.source.SimpleFileConverter",
   )
 
   val configWithMaxLinesFileConverter = Map(
@@ -61,7 +61,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     FtpSourceConfig.FileMaxAge       -> "P7D",
     FtpSourceConfig.KeyStyle         -> "string",
     FtpSourceConfig.fileFilter       -> ".*",
-    FtpSourceConfig.FileConverter    -> "com.datamountaineer.streamreactor.connect.ftp.source.MaxLinesFileConverter",
+    FtpSourceConfig.FileConverter    -> "io.lenses.streamreactor.connect.ftp.source.MaxLinesFileConverter",
   )
 
   val configSftpUpdateWithSimpleFileConverter = Map(
@@ -76,7 +76,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     FtpSourceConfig.FileMaxAge       -> "P7D",
     FtpSourceConfig.KeyStyle         -> "string",
     FtpSourceConfig.fileFilter       -> ".*",
-    FtpSourceConfig.FileConverter    -> "com.datamountaineer.streamreactor.connect.ftp.source.SimpleFileConverter",
+    FtpSourceConfig.FileConverter    -> "io.lenses.streamreactor.connect.ftp.source.SimpleFileConverter",
   )
 
   logger.info(s"fileContent1.size=${fileContent1.size}")

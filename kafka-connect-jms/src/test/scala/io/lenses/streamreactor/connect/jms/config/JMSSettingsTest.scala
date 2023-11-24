@@ -134,7 +134,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
     val props = getProps(s"$kcqlQ;$kcqlT", JMS_URL) ++
       Map(AvroConverter.SCHEMA_CONFIG -> getAvroProp(queueName)) ++
       Map(
-        JMSConfigConstants.DEFAULT_SOURCE_CONVERTER_CONFIG -> "com.datamountaineer.streamreactor.connect.converters.source.AvroConverter",
+        JMSConfigConstants.DEFAULT_SOURCE_CONVERTER_CONFIG -> "io.lenses.streamreactor.connect.converters.source.AvroConverter",
       )
     val config = JMSConfig(props.asJava)
 
@@ -281,7 +281,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
     val kcqlT = getKCQL(kafkaTopic1, topicName, "TOPIC")
     val props = getProps(s"$kcqlQ;$kcqlT", JMS_URL) ++
       Map(
-        JMSConfigConstants.DEFAULT_SINK_CONVERTER_CONFIG -> "com.datamountaineer.streamreactor.connect.jms.sink.converters.AvroMessageConverter",
+        JMSConfigConstants.DEFAULT_SINK_CONVERTER_CONFIG -> "io.lenses.streamreactor.connect.jms.sink.converters.AvroMessageConverter",
       )
 
     val config   = JMSConfig(props.asJava)

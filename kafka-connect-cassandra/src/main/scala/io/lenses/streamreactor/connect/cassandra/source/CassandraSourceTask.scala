@@ -212,6 +212,6 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     * @param table The table to check the queue size for.
     * @return The size of the queue.
     */
-  private[datamountaineer] def queueSize(table: String): Int =
+  private[lenses] def queueSize(table: String): Int =
     queues(table).size()
 }

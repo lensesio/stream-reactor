@@ -21,8 +21,8 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 
 @deprecated
 object FieldConverter {
-  def apply(field: Field): com.landoop.sql.Field =
-    com.landoop.sql.Field(
+  def apply(field: Field): io.lenses.sql.Field =
+    io.lenses.sql.Field(
       field.getName,
       field.getAlias,
       Option(field.getParentFields).map(_.asScala.toVector).orNull,

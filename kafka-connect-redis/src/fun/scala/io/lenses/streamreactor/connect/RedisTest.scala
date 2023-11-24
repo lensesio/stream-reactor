@@ -75,7 +75,7 @@ class RedisTest extends AsyncFlatSpec with AsyncIOSpec with StreamReactorContain
   private def sinkConfig(): ConnectorConfiguration = ConnectorConfiguration(
     "redis-sink",
     Map(
-      "connector.class"                     -> ConfigValue("com.datamountaineer.streamreactor.connect.redis.sink.RedisSinkConnector"),
+      "connector.class"                     -> ConfigValue("io.lenses.streamreactor.connect.redis.sink.RedisSinkConnector"),
       "tasks.max"                           -> ConfigValue(1),
       "topics"                              -> ConfigValue("redis"),
       "connect.redis.host"                  -> ConfigValue(container.networkAlias),

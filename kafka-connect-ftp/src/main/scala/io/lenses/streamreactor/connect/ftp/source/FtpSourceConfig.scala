@@ -98,14 +98,14 @@ object FtpSourceConfig {
     .define(
       FileConverter,
       Type.CLASS,
-      "com.datamountaineer.streamreactor.connect.ftp.source.SimpleFileConverter",
+      "io.lenses.streamreactor.connect.ftp.source.SimpleFileConverter",
       Importance.HIGH,
       s"TODO",
     )
     .define(
       SourceRecordConverter,
       Type.CLASS,
-      "com.datamountaineer.streamreactor.connect.ftp.source.NopSourceRecordConverter",
+      "io.lenses.streamreactor.connect.ftp.source.NopSourceRecordConverter",
       Importance.HIGH,
       s"TODO",
     )
