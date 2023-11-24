@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mqtt.connection
+package io.lenses.streamreactor.connect.mqtt.connection
 
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkSettings
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
-import com.datamountaineer.streamreactor.connect.mqtt.source.MqttSSLSocketFactory
+import io.lenses.streamreactor.connect.mqtt.config.MqttSinkSettings
+import io.lenses.streamreactor.connect.mqtt.config.MqttSourceSettings
+import io.lenses.streamreactor.connect.mqtt.source.MqttSSLSocketFactory
 import com.typesafe.scalalogging.StrictLogging
 import org.eclipse.paho.client.mqttv3.MqttClient
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions

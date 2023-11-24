@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.source
+package io.lenses.streamreactor.connect.cassandra.source
 
 import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.util.UUID
-import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSource
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSettings
+import io.lenses.streamreactor.connect.cassandra.TestConfig
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigSource
+import io.lenses.streamreactor.connect.cassandra.config.CassandraSettings
 import com.datastax.driver.core.CodecRegistry
 import com.datastax.driver.core._
 import org.apache.kafka.connect.data.Decimal

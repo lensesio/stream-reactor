@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mongodb.converters
+package io.lenses.streamreactor.connect.mongodb.converters
 
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfig
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfigConstants
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
+import io.lenses.streamreactor.connect.mongodb.config.MongoConfig
+import io.lenses.streamreactor.connect.mongodb.config.MongoConfigConstants
+import io.lenses.streamreactor.connect.mongodb.config.MongoSettings
 import org.bson.Document
 import org.json4s.jackson.JsonMethods._
 import org.scalatest.matchers.should.Matchers

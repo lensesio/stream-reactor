@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.influx.writers
+package io.lenses.streamreactor.connect.influx.writers
 
 import cats.implicits._
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.sink.DbWriter
-import com.datamountaineer.streamreactor.connect.influx.NanoClock
-import com.datamountaineer.streamreactor.connect.influx.ValidateStringParameterFn
-import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
+import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.common.sink.DbWriter
+import io.lenses.streamreactor.connect.influx.NanoClock
+import io.lenses.streamreactor.connect.influx.ValidateStringParameterFn
+import io.lenses.streamreactor.connect.influx.config.InfluxSettings
 import com.influxdb.client.InfluxDBClientFactory
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord

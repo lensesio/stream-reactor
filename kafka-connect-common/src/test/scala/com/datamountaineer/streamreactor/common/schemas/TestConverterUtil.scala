@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.schemas
+package io.lenses.streamreactor.common.schemas
 
-import com.datamountaineer.streamreactor.common.TestUtilsBase
-import com.datamountaineer.streamreactor.common.config.base.settings.Projections
-import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
+import io.lenses.streamreactor.common.TestUtilsBase
+import io.lenses.streamreactor.common.config.base.settings.Projections
+import io.lenses.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder

@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.redis.sink.config
+package io.lenses.streamreactor.connect.redis.sink.config
 
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
-import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
-import com.datamountaineer.streamreactor.common.rowkeys.StringKeyBuilder
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
+import io.lenses.streamreactor.common.rowkeys.StringKeyBuilder
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.SslConfigs
 

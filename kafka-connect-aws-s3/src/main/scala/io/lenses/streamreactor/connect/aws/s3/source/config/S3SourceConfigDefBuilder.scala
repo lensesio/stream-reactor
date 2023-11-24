@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
-import com.datamountaineer.streamreactor.common.config.base.traits._
+import io.lenses.streamreactor.common.config.base.traits._
 import io.lenses.streamreactor.connect.aws.s3.config.DeleteModeSettings
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
 import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings

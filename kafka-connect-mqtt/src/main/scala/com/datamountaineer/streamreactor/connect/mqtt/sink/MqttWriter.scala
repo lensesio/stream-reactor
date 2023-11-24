@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mqtt.sink
+package io.lenses.streamreactor.connect.mqtt.sink
 
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.converters.FieldConverter
-import com.datamountaineer.streamreactor.common.converters.ToJsonWithProjections
-import com.datamountaineer.streamreactor.common.converters.sink.Converter
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkSettings
-import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.converters.FieldConverter
+import io.lenses.streamreactor.common.converters.ToJsonWithProjections
+import io.lenses.streamreactor.common.converters.sink.Converter
+import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.connect.mqtt.config.MqttSinkSettings
+import io.lenses.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 import org.eclipse.paho.client.mqttv3.MqttClient

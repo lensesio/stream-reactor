@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.landoop.connect.sql
+package io.lenses.connect.sql
 
-import com.landoop.sql.SqlContext
+import io.lenses.sql.SqlContext
 import org.apache.calcite.sql.SqlSelect
 import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Schema

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hazelcast.writers
+package io.lenses.streamreactor.connect.hazelcast.writers
 
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
+import io.lenses.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
 import com.hazelcast.topic.ITopic
 import com.hazelcast.core.HazelcastInstance
 import org.apache.kafka.connect.sink.SinkRecord

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hbase
+package io.lenses.streamreactor.connect.hbase
 
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.generic.GenericData

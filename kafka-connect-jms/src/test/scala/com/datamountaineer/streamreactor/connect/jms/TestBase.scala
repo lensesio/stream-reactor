@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms
+package io.lenses.streamreactor.connect.jms
 
-import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
+import io.lenses.streamreactor.connect.jms.config.DestinationSelector
+import io.lenses.streamreactor.connect.jms.config.JMSConfigConstants
 import com.sksamuel.avro4s.AvroOutputStream
 import com.sksamuel.avro4s.AvroSchema
 import com.sksamuel.avro4s.Encoder

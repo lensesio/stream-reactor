@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hbase.config
+package io.lenses.streamreactor.connect.hbase.config
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
-import com.datamountaineer.streamreactor.connect.hbase.kerberos.KerberosSettings
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst._
+import io.lenses.streamreactor.connect.hbase.kerberos.KerberosSettings
 
 /**
   * Created by tomasfartaria on 10/04/2017.

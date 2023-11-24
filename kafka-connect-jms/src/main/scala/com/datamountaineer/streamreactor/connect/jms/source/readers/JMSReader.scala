@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms.source.readers
+package io.lenses.streamreactor.connect.jms.source.readers
 
-import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
-import com.datamountaineer.streamreactor.connect.jms.source.converters.JMSSourceMessageConverter
-import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
+import io.lenses.streamreactor.connect.jms.JMSSessionProvider
+import io.lenses.streamreactor.connect.jms.config.JMSSettings
+import io.lenses.streamreactor.connect.jms.source.converters.JMSSourceMessageConverter
+import io.lenses.streamreactor.connect.jms.source.domain.JMSStructMessage
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.SourceRecord

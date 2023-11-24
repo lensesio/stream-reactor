@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.cloud.common.sink.config
 
 import cats.implicits._
-import com.datamountaineer.kcql.Kcql
+import io.lenses.kcql.Kcql
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.BytesFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId

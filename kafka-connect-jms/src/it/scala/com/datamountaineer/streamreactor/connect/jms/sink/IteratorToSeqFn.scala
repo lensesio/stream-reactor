@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.jms.sink
+package io.lenses.streamreactor.connect.jms.sink
 
 object IteratorToSeqFn {
   def apply[T](iter: java.util.Iterator[T]): Seq[T] =

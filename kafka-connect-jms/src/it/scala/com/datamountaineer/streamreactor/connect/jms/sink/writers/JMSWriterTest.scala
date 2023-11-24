@@ -16,14 +16,14 @@
  *
  */
 
-package com.datamountaineer.streamreactor.connect.jms.sink.writers
+package io.lenses.streamreactor.connect.jms.sink.writers
 
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.jms.ItTestBase
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
-import com.datamountaineer.streamreactor.connect.jms.sink.IteratorToSeqFn
+import io.lenses.streamreactor.common.schemas.ConverterUtil
+import io.lenses.streamreactor.connect.jms.ItTestBase
+import io.lenses.streamreactor.connect.jms.config.JMSConfig
+import io.lenses.streamreactor.connect.jms.config.JMSConfigConstants
+import io.lenses.streamreactor.connect.jms.config.JMSSettings
+import io.lenses.streamreactor.connect.jms.sink.IteratorToSeqFn
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.IntNode
 import org.apache.activemq.ActiveMQConnectionFactory

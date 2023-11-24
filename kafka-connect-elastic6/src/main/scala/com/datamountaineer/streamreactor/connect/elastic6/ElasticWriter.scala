@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.elastic6
+package io.lenses.streamreactor.connect.elastic6
 
-import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticConfig
-import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticConfigConstants
-import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticSettings
+import io.lenses.streamreactor.connect.elastic6.config.ElasticConfig
+import io.lenses.streamreactor.connect.elastic6.config.ElasticConfigConstants
+import io.lenses.streamreactor.connect.elastic6.config.ElasticSettings
 import com.sksamuel.elastic4s.http.ElasticNodeEndpoint
 
 import scala.util.Failure

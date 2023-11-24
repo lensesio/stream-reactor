@@ -16,13 +16,13 @@
  *
  */
 
-package com.datamountaineer.streamreactor.connect.jms.sink.converters
+package io.lenses.streamreactor.connect.jms.sink.converters
 
-import com.datamountaineer.streamreactor.connect.jms.ItTestBase
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
-import com.datamountaineer.streamreactor.connect.jms.sink.AvroDeserializer
-import com.datamountaineer.streamreactor.example.AddressedPerson
+import io.lenses.streamreactor.connect.jms.ItTestBase
+import io.lenses.streamreactor.connect.jms.config.JMSConfig
+import io.lenses.streamreactor.connect.jms.config.JMSSettings
+import io.lenses.streamreactor.connect.jms.sink.AvroDeserializer
+import io.lenses.streamreactor.example.AddressedPerson
 import io.confluent.connect.avro.AvroData
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.avro.generic.GenericData

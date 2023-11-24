@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mongodb.sink
+package io.lenses.streamreactor.connect.mongodb.sink
 
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
-import com.datamountaineer.streamreactor.connect.mongodb.converters.SinkRecordConverter
+import io.lenses.streamreactor.connect.mongodb.config.MongoSettings
+import io.lenses.streamreactor.connect.mongodb.converters.SinkRecordConverter
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.ConnectException

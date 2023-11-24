@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.pulsar
+package io.lenses.streamreactor.connect.pulsar
 
-import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarConfigConstants
-import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSinkConfig
-import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSinkSettings
+import io.lenses.streamreactor.connect.pulsar.config.PulsarConfigConstants
+import io.lenses.streamreactor.connect.pulsar.config.PulsarSinkConfig
+import io.lenses.streamreactor.connect.pulsar.config.PulsarSinkSettings
 import org.apache.pulsar.client.api.CompressionType
 import org.apache.pulsar.client.api.MessageRoutingMode
 import org.apache.pulsar.client.api.ProducerBuilder

@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.converters.source
+package io.lenses.streamreactor.connect.converters.source
 
 import java.util.Collections
-import com.landoop.json.sql.JacksonJson
+import io.lenses.json.sql.JacksonJson
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
 

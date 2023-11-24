@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hazelcast
+package io.lenses.streamreactor.connect.hazelcast
 
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.util
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfigConstants
+import io.lenses.streamreactor.connect.hazelcast.config.HazelCastSinkConfigConstants
 import com.hazelcast.topic.Message
 import com.hazelcast.topic.MessageListener
 import org.apache.avro.generic.GenericDatumReader

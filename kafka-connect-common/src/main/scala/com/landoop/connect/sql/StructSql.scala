@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.landoop.connect.sql
+package io.lenses.connect.sql
 
 import java.util
-import com.landoop.connect.sql.StructSchemaSql._
-import com.landoop.sql.Field
-import com.landoop.sql.SqlContext
+import io.lenses.connect.sql.StructSchemaSql._
+import io.lenses.sql.Field
+import io.lenses.sql.SqlContext
 import org.apache.calcite.sql.SqlSelect
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct

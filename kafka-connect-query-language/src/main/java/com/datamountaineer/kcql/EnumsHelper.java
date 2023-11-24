@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.kcql;
+package io.lenses.kcql;
 
 public class EnumsHelper {
   public static <T extends Enum<T>> String mkString(T[] values) {

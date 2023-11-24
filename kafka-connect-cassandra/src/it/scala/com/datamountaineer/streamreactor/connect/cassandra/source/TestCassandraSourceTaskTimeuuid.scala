@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.cassandra.source
+package io.lenses.streamreactor.connect.cassandra.source
 
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.cassandra.ItTestConfig
+import io.lenses.streamreactor.common.schemas.ConverterUtil
+import io.lenses.streamreactor.connect.cassandra.ItTestConfig
 import com.datastax.driver.core.Session
 import com.fasterxml.jackson.databind.JsonNode
 import org.apache.kafka.common.config.ConfigException

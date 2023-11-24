@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.landoop.sql
+package io.lenses.sql
 
 import org.apache.calcite.sql.SqlSelect
 

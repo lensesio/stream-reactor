@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.pulsar.sink
+package io.lenses.streamreactor.connect.pulsar.sink
 
 import org.apache.pulsar.client.api.Producer
 import org.apache.pulsar.client.api.TypedMessageBuilder

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.landoop.connect.sql
+package io.lenses.connect.sql
 
-import com.landoop.connect.sql.StructSql._
+import io.lenses.connect.sql.StructSql._
 import com.sksamuel.avro4s.RecordFormat
 import com.sksamuel.avro4s.SchemaFor
 import com.sksamuel.avro4s.ToRecord

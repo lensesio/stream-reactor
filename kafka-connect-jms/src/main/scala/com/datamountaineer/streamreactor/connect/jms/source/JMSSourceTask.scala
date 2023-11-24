@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms.source
+package io.lenses.streamreactor.connect.jms.source
 
-import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import com.datamountaineer.streamreactor.common.utils.JarManifest
-import com.datamountaineer.streamreactor.common.utils.ProgressCounter
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
-import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
+import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.utils.ProgressCounter
+import io.lenses.streamreactor.connect.jms.config.JMSConfig
+import io.lenses.streamreactor.connect.jms.config.JMSConfigConstants
+import io.lenses.streamreactor.connect.jms.config.JMSSettings
+import io.lenses.streamreactor.connect.jms.source.readers.JMSReader
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mongodb.sink
+package io.lenses.streamreactor.connect.mongodb.sink
 
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfigConstants
+import io.lenses.streamreactor.connect.mongodb.config.MongoConfigConstants
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

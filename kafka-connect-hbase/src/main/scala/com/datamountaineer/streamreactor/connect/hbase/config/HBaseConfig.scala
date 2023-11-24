@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hbase.config
+package io.lenses.streamreactor.connect.hbase.config
 
-import com.datamountaineer.streamreactor.common.config.base.traits.BaseConfig
-import com.datamountaineer.streamreactor.common.config.base.traits.ErrorPolicySettings
-import com.datamountaineer.streamreactor.common.config.base.traits.KcqlSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.NumberRetriesSettings
+import io.lenses.streamreactor.common.config.base.traits.BaseConfig
+import io.lenses.streamreactor.common.config.base.traits.ErrorPolicySettings
+import io.lenses.streamreactor.common.config.base.traits.KcqlSettings
+import io.lenses.streamreactor.common.config.base.traits.NumberRetriesSettings
 
 import java.util
-import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigConstants.CONNECTOR_PREFIX
+import io.lenses.streamreactor.connect.hbase.config.HBaseConfigConstants.CONNECTOR_PREFIX
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type

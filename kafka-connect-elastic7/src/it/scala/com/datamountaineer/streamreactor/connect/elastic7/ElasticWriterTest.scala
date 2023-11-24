@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic7
+package io.lenses.streamreactor.connect.elastic7
 
-import com.datamountaineer.streamreactor.connect.elastic7.CreateLocalNodeClientUtil._
-import com.datamountaineer.streamreactor.connect.elastic7.config.ElasticConfig
-import com.datamountaineer.streamreactor.connect.elastic7.config.ElasticSettings
+import io.lenses.streamreactor.connect.elastic7.CreateLocalNodeClientUtil._
+import io.lenses.streamreactor.connect.elastic7.config.ElasticConfig
+import io.lenses.streamreactor.connect.elastic7.config.ElasticSettings
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.elasticsearch.common.settings.Settings

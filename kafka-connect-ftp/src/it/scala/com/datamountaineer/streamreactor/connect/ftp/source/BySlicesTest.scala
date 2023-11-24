@@ -1,9 +1,9 @@
-package com.datamountaineer.streamreactor.connect.ftp.source
+package io.lenses.streamreactor.connect.ftp.source
 
-import com.datamountaineer.streamreactor.connect.ftp.EmbeddedFtpServer
-import com.datamountaineer.streamreactor.connect.ftp.source.EndToEnd.Append
-import com.datamountaineer.streamreactor.connect.ftp.source.EndToEnd.DummyOffsetStorage
-import com.datamountaineer.streamreactor.connect.ftp.source.EndToEnd.FileSystem
+import io.lenses.streamreactor.connect.ftp.EmbeddedFtpServer
+import io.lenses.streamreactor.connect.ftp.source.EndToEnd.Append
+import io.lenses.streamreactor.connect.ftp.source.EndToEnd.DummyOffsetStorage
+import io.lenses.streamreactor.connect.ftp.source.EndToEnd.FileSystem
 import com.typesafe.scalalogging.StrictLogging
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite

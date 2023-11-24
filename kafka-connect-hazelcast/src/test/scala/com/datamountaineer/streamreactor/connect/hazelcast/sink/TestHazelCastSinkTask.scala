@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hazelcast.sink
+package io.lenses.streamreactor.connect.hazelcast.sink
 
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastConnectionConfig
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfig
-import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
-import com.datamountaineer.streamreactor.connect.hazelcast.MessageListenerImplJson
-import com.datamountaineer.streamreactor.connect.hazelcast.SlowTest
-import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
+import io.lenses.streamreactor.connect.hazelcast.config.HazelCastConnectionConfig
+import io.lenses.streamreactor.connect.hazelcast.config.HazelCastSinkConfig
+import io.lenses.streamreactor.connect.hazelcast.HazelCastConnection
+import io.lenses.streamreactor.connect.hazelcast.MessageListenerImplJson
+import io.lenses.streamreactor.connect.hazelcast.SlowTest
+import io.lenses.streamreactor.connect.hazelcast.TestBase
 import com.hazelcast.config.Config
 import com.hazelcast.core.Hazelcast
 import com.hazelcast.topic.ITopic

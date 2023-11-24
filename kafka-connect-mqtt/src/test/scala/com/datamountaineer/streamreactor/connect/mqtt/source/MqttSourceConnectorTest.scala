@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mqtt.source
+package io.lenses.streamreactor.connect.mqtt.source
 
 import java.util
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceConfig
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
+import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
+import io.lenses.streamreactor.connect.mqtt.config.MqttSourceConfig
+import io.lenses.streamreactor.connect.mqtt.config.MqttSourceSettings
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

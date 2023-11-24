@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.azure.documentdb.config
+package io.lenses.streamreactor.connect.azure.documentdb.config
 
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.errors.ErrorPolicy
 import com.microsoft.azure.documentdb.ConsistencyLevel
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException

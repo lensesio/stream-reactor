@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.landoop.connect.sql
+package io.lenses.connect.sql
 
 import java.nio.ByteBuffer
-import com.landoop.json.sql.JacksonJson
+import io.lenses.json.sql.JacksonJson
 import com.sksamuel.avro4s.AvroSchema
 import com.sksamuel.avro4s.RecordFormat
 import com.sksamuel.avro4s.SchemaFor

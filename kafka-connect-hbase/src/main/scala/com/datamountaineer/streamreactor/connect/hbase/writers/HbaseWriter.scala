@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hbase.writers
+package io.lenses.streamreactor.connect.hbase.writers
 
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.common.sink.DbWriter
-import com.datamountaineer.streamreactor.connect.hbase._
-import com.datamountaineer.streamreactor.connect.hbase.config.HBaseSettings
+import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.common.schemas.ConverterUtil
+import io.lenses.streamreactor.common.sink.DbWriter
+import io.lenses.streamreactor.connect.hbase._
+import io.lenses.streamreactor.connect.hbase.config.HBaseSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.TableName

@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
+package io.lenses.streamreactor.connect.azure.documentdb.sink
 
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.kcql.WriteModeEnum
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfig
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfigConstants
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbSinkSettings
+import io.lenses.kcql.Kcql
+import io.lenses.kcql.WriteModeEnum
+import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.common.errors.RetryErrorPolicy
+import io.lenses.streamreactor.common.schemas.ConverterUtil
+import io.lenses.streamreactor.connect.azure.documentdb.DocumentClientProvider
+import io.lenses.streamreactor.connect.azure.documentdb.config.DocumentDbConfig
+import io.lenses.streamreactor.connect.azure.documentdb.config.DocumentDbConfigConstants
+import io.lenses.streamreactor.connect.azure.documentdb.config.DocumentDbSinkSettings
 import com.microsoft.azure.documentdb._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException

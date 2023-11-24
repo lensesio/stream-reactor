@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.mqtt.sink
+package io.lenses.streamreactor.connect.mqtt.sink
 
-import com.datamountaineer.streamreactor.common.converters.sink.Converter
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkConfig
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkSettings
+import io.lenses.streamreactor.common.converters.sink.Converter
+import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
+import io.lenses.streamreactor.connect.mqtt.config.MqttSinkConfig
+import io.lenses.streamreactor.connect.mqtt.config.MqttSinkSettings
 import com.dimafeng.testcontainers.ForEachTestContainer
 import com.dimafeng.testcontainers.GenericContainer
 import com.typesafe.scalalogging.StrictLogging

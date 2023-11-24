@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.landoop.json.sql
+package io.lenses.json.sql
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node._
-import com.landoop.sql.Field
-import com.landoop.sql.SqlContext
+import io.lenses.sql.Field
+import io.lenses.sql.SqlContext
 import org.apache.calcite.sql.SqlSelect
 
 import scala.collection.mutable.ArrayBuffer

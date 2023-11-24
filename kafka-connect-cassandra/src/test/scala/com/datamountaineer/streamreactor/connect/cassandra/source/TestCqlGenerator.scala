@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.source
+package io.lenses.streamreactor.connect.cassandra.source
 
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSource
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSettings
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSourceSetting
+import io.lenses.streamreactor.common.schemas.ConverterUtil
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigSource
+import io.lenses.streamreactor.connect.cassandra.config.CassandraSettings
+import io.lenses.streamreactor.connect.cassandra.config.CassandraSourceSetting
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

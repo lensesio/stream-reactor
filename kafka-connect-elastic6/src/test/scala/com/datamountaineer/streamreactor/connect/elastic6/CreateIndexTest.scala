@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.elastic6
+package io.lenses.streamreactor.connect.elastic6
 
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.elastic6.indexname.CreateIndex
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.connect.elastic6.indexname.CreateIndex
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.scalatest.matchers.should.Matchers

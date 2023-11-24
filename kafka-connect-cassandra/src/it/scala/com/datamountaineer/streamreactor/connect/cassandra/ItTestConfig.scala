@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.cassandra
+package io.lenses.streamreactor.connect.cassandra
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
 import com.datastax.driver.core.Cluster.Builder
 import com.datastax.driver.core._
 import com.datastax.driver.core.utils.UUIDs

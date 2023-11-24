@@ -1,6 +1,6 @@
-package com.datamountaineer.streamreactor.connect.ftp.source
+package io.lenses.streamreactor.connect.ftp.source
 
-import com.datamountaineer.streamreactor.connect.ftp.source.EndToEnd.DummyOffsetStorage
+import io.lenses.streamreactor.connect.ftp.source.EndToEnd.DummyOffsetStorage
 import com.github.stefanbirkner.fakesftpserver.lambda.FakeSftpServer.withSftpServer
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord

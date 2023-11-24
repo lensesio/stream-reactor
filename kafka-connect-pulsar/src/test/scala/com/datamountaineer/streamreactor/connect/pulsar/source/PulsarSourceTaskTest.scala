@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.pulsar.source
+package io.lenses.streamreactor.connect.pulsar.source
 
-import com.datamountaineer.streamreactor.connect.converters.source.Converter
-import com.datamountaineer.streamreactor.connect.converters.source.JsonSimpleConverter
-import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarConfigConstants
-import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSourceConfig
-import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSourceSettings
+import io.lenses.streamreactor.connect.converters.source.Converter
+import io.lenses.streamreactor.connect.converters.source.JsonSimpleConverter
+import io.lenses.streamreactor.connect.pulsar.config.PulsarConfigConstants
+import io.lenses.streamreactor.connect.pulsar.config.PulsarSourceConfig
+import io.lenses.streamreactor.connect.pulsar.config.PulsarSourceSettings
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import scala.jdk.CollectionConverters.MapHasAsJava

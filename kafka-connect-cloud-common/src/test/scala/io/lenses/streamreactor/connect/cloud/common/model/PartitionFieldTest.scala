@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.model
 
-import com.datamountaineer.kcql.Kcql
+import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.connect.cloud.common.sink.config._
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec

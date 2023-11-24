@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms
+package io.lenses.streamreactor.connect.jms
 
-import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
+import io.lenses.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
 
-import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector
-import com.datamountaineer.streamreactor.connect.jms.config.DestinationType
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
-import com.datamountaineer.streamreactor.connect.jms.config.QueueDestination
-import com.datamountaineer.streamreactor.connect.jms.config.TopicDestination
+import io.lenses.streamreactor.connect.jms.config.DestinationSelector
+import io.lenses.streamreactor.connect.jms.config.DestinationType
+import io.lenses.streamreactor.connect.jms.config.JMSSettings
+import io.lenses.streamreactor.connect.jms.config.QueueDestination
+import io.lenses.streamreactor.connect.jms.config.TopicDestination
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.errors.ConnectException

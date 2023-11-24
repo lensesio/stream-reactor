@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.pulsar.sink
+package io.lenses.streamreactor.connect.pulsar.sink
 
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.pulsar.ProducerConfigFactory
-import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSinkSettings
+import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.connect.pulsar.ProducerConfigFactory
+import io.lenses.streamreactor.connect.pulsar.config.PulsarSinkSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.pulsar.client.api._

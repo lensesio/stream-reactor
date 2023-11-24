@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.azure.documentdb.converters
+package io.lenses.streamreactor.connect.azure.documentdb.converters
 
-import com.datamountaineer.streamreactor.connect.azure.documentdb.Json
+import io.lenses.streamreactor.connect.azure.documentdb.Json
 import com.microsoft.azure.documentdb.Document
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.DataException

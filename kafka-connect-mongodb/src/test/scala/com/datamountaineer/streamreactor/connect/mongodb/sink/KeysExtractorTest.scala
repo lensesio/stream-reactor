@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mongodb.sink
+package io.lenses.streamreactor.connect.mongodb.sink
 
 import java.util
-import com.datamountaineer.streamreactor.connect.mongodb.Json
+import io.lenses.streamreactor.connect.mongodb.Json
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.common.config.ConfigException

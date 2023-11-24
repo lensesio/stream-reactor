@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.sink
+package io.lenses.streamreactor.connect.cassandra.sink
 
 import java.util.UUID
-import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import io.lenses.streamreactor.connect.cassandra.TestConfig
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
 import com.datastax.driver.core.Session
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.Schema

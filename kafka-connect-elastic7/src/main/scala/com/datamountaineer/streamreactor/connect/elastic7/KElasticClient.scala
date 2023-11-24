@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.elastic7
+package io.lenses.streamreactor.connect.elastic7
 
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.elastic7.config.ElasticSettings
-import com.datamountaineer.streamreactor.connect.elastic7.indexname.CreateIndex.getIndexName
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.connect.elastic7.config.ElasticSettings
+import io.lenses.streamreactor.connect.elastic7.indexname.CreateIndex.getIndexName
 import com.sksamuel.elastic4s.requests.bulk.BulkRequest
 import com.sksamuel.elastic4s.requests.bulk.BulkResponse
 import com.sksamuel.elastic4s.ElasticClient

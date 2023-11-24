@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.influx.config
+package io.lenses.streamreactor.connect.influx.config
 
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 import com.influxdb.client.domain.WriteConsistency
 import org.apache.kafka.common.config.ConfigException
 import org.mockito.MockitoSugar

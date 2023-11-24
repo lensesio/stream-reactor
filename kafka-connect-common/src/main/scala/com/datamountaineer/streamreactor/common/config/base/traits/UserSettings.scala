@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.config.base.traits
+package io.lenses.streamreactor.common.config.base.traits
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.PASSWORD_SUFFIX
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.USERNAME_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.PASSWORD_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.USERNAME_SUFFIX
 
 /**
   * Created by andrew@datamountaineer.com on 29/07/2017.

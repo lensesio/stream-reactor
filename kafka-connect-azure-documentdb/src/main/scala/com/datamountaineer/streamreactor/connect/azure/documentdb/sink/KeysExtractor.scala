@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
+package io.lenses.streamreactor.connect.azure.documentdb.sink
 
 import java.text.SimpleDateFormat
 import java.util.TimeZone

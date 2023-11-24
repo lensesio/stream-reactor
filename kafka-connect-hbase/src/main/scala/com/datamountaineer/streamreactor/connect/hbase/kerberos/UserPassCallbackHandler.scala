@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hbase.kerberos
+package io.lenses.streamreactor.connect.hbase.kerberos
 
 import javax.security.auth.callback.Callback
 import javax.security.auth.callback.CallbackHandler

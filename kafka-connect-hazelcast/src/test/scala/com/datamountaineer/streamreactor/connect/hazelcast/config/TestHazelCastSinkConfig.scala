@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hazelcast.config
+package io.lenses.streamreactor.connect.hazelcast.config
 
-import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
+import io.lenses.streamreactor.connect.hazelcast.TestBase
 
 /**
   * Created by andrew@datamountaineer.com on 08/08/16.

@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.pulsar.sink
+package io.lenses.streamreactor.connect.pulsar.sink
 
-import com.datamountaineer.streamreactor.connect.pulsar.SlowTest
+import io.lenses.streamreactor.connect.pulsar.SlowTest
 
 import java.util
-import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarConfigConstants
+import io.lenses.streamreactor.connect.pulsar.config.PulsarConfigConstants
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar

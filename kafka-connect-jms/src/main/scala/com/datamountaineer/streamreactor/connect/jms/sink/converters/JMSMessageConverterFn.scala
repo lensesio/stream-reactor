@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms.sink.converters
+package io.lenses.streamreactor.connect.jms.sink.converters
 
-import com.datamountaineer.kcql.FormatType
+import io.lenses.kcql.FormatType
 
 object JMSMessageConverterFn {
   def apply(storedAs: FormatType): JMSSinkMessageConverter =

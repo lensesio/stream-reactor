@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.config.base.settings
+package io.lenses.streamreactor.common.config.base.settings
 
-import com.datamountaineer.kcql.Bucketing
-import com.datamountaineer.kcql.FormatType
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.kcql.Tag
-import com.datamountaineer.kcql.WriteModeEnum
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.converters.source.Converter
+import io.lenses.kcql.Bucketing
+import io.lenses.kcql.FormatType
+import io.lenses.kcql.Kcql
+import io.lenses.kcql.Tag
+import io.lenses.kcql.WriteModeEnum
+import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.errors.ErrorPolicyEnum
+import io.lenses.streamreactor.connect.converters.source.Converter
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 

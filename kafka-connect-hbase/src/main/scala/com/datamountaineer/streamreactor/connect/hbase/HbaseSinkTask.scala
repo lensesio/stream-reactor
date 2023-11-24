@@ -13,20 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hbase
+package io.lenses.streamreactor.connect.hbase
 
-import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
-import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import com.datamountaineer.streamreactor.common.utils.JarManifest
-import com.datamountaineer.streamreactor.common.utils.ProgressCounter
-import com.datamountaineer.streamreactor.connect.hbase.config.ConfigurationBuilder
-import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfig
-import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigConstants
-import com.datamountaineer.streamreactor.connect.hbase.config.HBaseSettings
-import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigExtension._
-import com.datamountaineer.streamreactor.connect.hbase.kerberos.KerberosLogin
-import com.datamountaineer.streamreactor.connect.hbase.writers.HbaseWriter
-import com.datamountaineer.streamreactor.connect.hbase.writers.WriterFactoryFn
+import io.lenses.streamreactor.common.errors.RetryErrorPolicy
+import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.utils.ProgressCounter
+import io.lenses.streamreactor.connect.hbase.config.ConfigurationBuilder
+import io.lenses.streamreactor.connect.hbase.config.HBaseConfig
+import io.lenses.streamreactor.connect.hbase.config.HBaseConfigConstants
+import io.lenses.streamreactor.connect.hbase.config.HBaseSettings
+import io.lenses.streamreactor.connect.hbase.config.HBaseConfigExtension._
+import io.lenses.streamreactor.connect.hbase.kerberos.KerberosLogin
+import io.lenses.streamreactor.connect.hbase.writers.HbaseWriter
+import io.lenses.streamreactor.connect.hbase.writers.WriterFactoryFn
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition

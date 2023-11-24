@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.redis.sink.writer
+package io.lenses.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.config.base.settings.Projections
-import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
-import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisKCQLSetting
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.config.base.settings.Projections
+import io.lenses.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
+import io.lenses.streamreactor.connect.json.SimpleJsonConverter
+import io.lenses.streamreactor.connect.redis.sink.config.RedisKCQLSetting
+import io.lenses.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord

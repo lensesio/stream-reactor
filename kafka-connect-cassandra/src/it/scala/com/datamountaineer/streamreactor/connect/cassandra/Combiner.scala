@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.cassandra
+package io.lenses.streamreactor.connect.cassandra
 
-import com.datamountaineer.streamreactor.connect.cassandra.sink.TestCassandraJsonWriter
-import com.datamountaineer.streamreactor.connect.cassandra.source.TestCassandraSourceConnector
-import com.datamountaineer.streamreactor.connect.cassandra.source.TestCassandraSourceTaskTimestamp
-import com.datamountaineer.streamreactor.connect.cassandra.source.TestCassandraSourceTaskTimestampLong
-import com.datamountaineer.streamreactor.connect.cassandra.source.TestCassandraSourceTaskTimeuuid
-import com.datamountaineer.streamreactor.connect.cassandra.source.TestCassandraSourceTaskTimeuuidLong
+import io.lenses.streamreactor.connect.cassandra.sink.TestCassandraJsonWriter
+import io.lenses.streamreactor.connect.cassandra.source.TestCassandraSourceConnector
+import io.lenses.streamreactor.connect.cassandra.source.TestCassandraSourceTaskTimestamp
+import io.lenses.streamreactor.connect.cassandra.source.TestCassandraSourceTaskTimestampLong
+import io.lenses.streamreactor.connect.cassandra.source.TestCassandraSourceTaskTimeuuid
+import io.lenses.streamreactor.connect.cassandra.source.TestCassandraSourceTaskTimeuuidLong
 import com.dimafeng.testcontainers.CassandraContainer
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.flatspec.AnyFlatSpec

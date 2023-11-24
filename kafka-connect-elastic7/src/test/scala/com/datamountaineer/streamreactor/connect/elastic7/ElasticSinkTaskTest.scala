@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.elastic7
+package io.lenses.streamreactor.connect.elastic7
 
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar

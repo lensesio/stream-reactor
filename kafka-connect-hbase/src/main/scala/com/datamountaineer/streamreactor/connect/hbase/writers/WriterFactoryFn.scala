@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hbase.writers
+package io.lenses.streamreactor.connect.hbase.writers
 
-import com.datamountaineer.streamreactor.connect.hbase.config.HBaseSettings
+import io.lenses.streamreactor.connect.hbase.config.HBaseSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.conf.Configuration
 

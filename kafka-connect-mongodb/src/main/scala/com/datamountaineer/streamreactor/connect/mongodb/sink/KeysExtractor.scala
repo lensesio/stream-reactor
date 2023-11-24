@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mongodb.sink
+package io.lenses.streamreactor.connect.mongodb.sink
 
 import java.text.SimpleDateFormat
 import java.util.TimeZone

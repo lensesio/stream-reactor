@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra
+package io.lenses.streamreactor.connect.cassandra
 
-import com.datamountaineer.streamreactor.common.config.SSLConfig
-import com.datamountaineer.streamreactor.common.config.SSLConfigContext
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import com.datamountaineer.streamreactor.connect.cassandra.config.LoadBalancingPolicy
+import io.lenses.streamreactor.common.config.SSLConfig
+import io.lenses.streamreactor.common.config.SSLConfigContext
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import io.lenses.streamreactor.connect.cassandra.config.LoadBalancingPolicy
 import com.datastax.driver.core.Cluster.Builder
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy
 import com.datastax.driver.core.policies.LatencyAwarePolicy

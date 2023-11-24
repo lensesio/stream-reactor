@@ -16,15 +16,15 @@
  *
  */
 
-package com.datamountaineer.streamreactor.connect.jms.source
+package io.lenses.streamreactor.connect.jms.source
 
-import com.datamountaineer.streamreactor.connect.fixtures.broker.testWithBroker
-import com.datamountaineer.streamreactor.connect.fixtures.broker.testWithBrokerOnPort
-import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
-import com.datamountaineer.streamreactor.connect.jms.ItTestBase
-import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
+import io.lenses.streamreactor.connect.fixtures.broker.testWithBroker
+import io.lenses.streamreactor.connect.fixtures.broker.testWithBrokerOnPort
+import io.lenses.streamreactor.connect.jms.config.DestinationSelector
+import io.lenses.streamreactor.connect.jms.config.JMSConfig
+import io.lenses.streamreactor.connect.jms.config.JMSSettings
+import io.lenses.streamreactor.connect.jms.ItTestBase
+import io.lenses.streamreactor.connect.jms.JMSSessionProvider
 import org.apache.activemq.ActiveMQConnection
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually

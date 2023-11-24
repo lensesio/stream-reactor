@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.config
 
-import com.datamountaineer.streamreactor.common.config.base.traits.KcqlSettings
+import io.lenses.streamreactor.common.config.base.traits.KcqlSettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategySettings
 
 trait CloudSinkConfigDefBuilder

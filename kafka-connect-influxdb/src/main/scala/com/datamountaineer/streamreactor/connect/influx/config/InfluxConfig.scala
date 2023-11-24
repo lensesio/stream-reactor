@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.influx.config
+package io.lenses.streamreactor.connect.influx.config
 
-import com.datamountaineer.streamreactor.common.config.base.traits.BaseConfig
-import com.datamountaineer.streamreactor.common.config.base.traits.ConsistencyLevelSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.DatabaseSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.ErrorPolicySettings
-import com.datamountaineer.streamreactor.common.config.base.traits.KcqlSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.NumberRetriesSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.UserSettings
+import io.lenses.streamreactor.common.config.base.traits.BaseConfig
+import io.lenses.streamreactor.common.config.base.traits.ConsistencyLevelSettings
+import io.lenses.streamreactor.common.config.base.traits.DatabaseSettings
+import io.lenses.streamreactor.common.config.base.traits.ErrorPolicySettings
+import io.lenses.streamreactor.common.config.base.traits.KcqlSettings
+import io.lenses.streamreactor.common.config.base.traits.NumberRetriesSettings
+import io.lenses.streamreactor.common.config.base.traits.UserSettings
 
 import java.util
 

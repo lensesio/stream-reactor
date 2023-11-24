@@ -16,10 +16,10 @@
  *
  */
 
-package com.datamountaineer.streamreactor.connect.jms.source
+package io.lenses.streamreactor.connect.jms.source
 
-import com.datamountaineer.streamreactor.connect.jms.ItTestBase
-import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
+import io.lenses.streamreactor.connect.jms.ItTestBase
+import io.lenses.streamreactor.connect.jms.source.domain.JMSStructMessage
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
 import org.apache.activemq.broker.jmx.QueueViewMBean

@@ -15,9 +15,9 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.config
 
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
+import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.errors.ErrorPolicyEnum
+import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 import io.lenses.streamreactor.connect.cloud.common.config.CloudConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse._
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getString

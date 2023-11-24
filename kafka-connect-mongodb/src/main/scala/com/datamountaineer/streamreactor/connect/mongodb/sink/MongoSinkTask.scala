@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mongodb.sink
+package io.lenses.streamreactor.connect.mongodb.sink
 
-import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import com.datamountaineer.streamreactor.common.utils.JarManifest
-import com.datamountaineer.streamreactor.common.utils.ProgressCounter
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfig
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfigConstants
+import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.utils.ProgressCounter
+import io.lenses.streamreactor.connect.mongodb.config.MongoConfig
+import io.lenses.streamreactor.connect.mongodb.config.MongoConfigConstants
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition

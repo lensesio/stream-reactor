@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.config
+package io.lenses.streamreactor.common.config
 
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers

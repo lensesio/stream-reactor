@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.redis.sink.config
+package io.lenses.streamreactor.connect.redis.sink.config
 
-import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSupport
+import io.lenses.streamreactor.connect.redis.sink.support.RedisMockSupport
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms.config
+package io.lenses.streamreactor.connect.jms.config
 
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.JMSSinkMessageConverter
-import com.datamountaineer.streamreactor.connect.jms.source.converters.JMSSourceMessageConverter
+import io.lenses.streamreactor.connect.jms.sink.converters.JMSSinkMessageConverter
+import io.lenses.streamreactor.connect.jms.source.converters.JMSSourceMessageConverter
 import org.mockito.MockitoSugar
 import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers

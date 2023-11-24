@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.influx.converters
+package io.lenses.streamreactor.connect.influx.converters
 
-import com.datamountaineer.streamreactor.connect.influx.NanoClock
-import com.datamountaineer.streamreactor.connect.influx.converters.SinkRecordParser.ParsedKeyValueSinkRecord
-import com.datamountaineer.streamreactor.connect.influx.converters.SinkRecordParser.ParsedSinkRecord
-import com.datamountaineer.streamreactor.connect.influx.helpers.Util
-import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails
-import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails.ConstantTag
-import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails.DynamicTag
-import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails.Path
+import io.lenses.streamreactor.connect.influx.NanoClock
+import io.lenses.streamreactor.connect.influx.converters.SinkRecordParser.ParsedKeyValueSinkRecord
+import io.lenses.streamreactor.connect.influx.converters.SinkRecordParser.ParsedSinkRecord
+import io.lenses.streamreactor.connect.influx.helpers.Util
+import io.lenses.streamreactor.connect.influx.writers.KcqlDetails
+import io.lenses.streamreactor.connect.influx.writers.KcqlDetails.ConstantTag
+import io.lenses.streamreactor.connect.influx.writers.KcqlDetails.DynamicTag
+import io.lenses.streamreactor.connect.influx.writers.KcqlDetails.Path
 import com.influxdb.client.domain.WritePrecision
 import com.influxdb.client.write.Point
 

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.config
+package io.lenses.streamreactor.common.config
 
-import com.datamountaineer.streamreactor.common.TestUtilsBase
+import io.lenses.streamreactor.common.TestUtilsBase
 import org.apache.kafka.common.config.ConfigException
 
 /**

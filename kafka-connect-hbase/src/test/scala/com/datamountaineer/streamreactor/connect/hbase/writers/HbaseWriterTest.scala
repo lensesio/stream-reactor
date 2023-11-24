@@ -31,16 +31,16 @@
 //
 //// If only the Apache Hadoop will get to refresh dependencies! guava 11.0.2
 //
-//package com.datamountaineer.streamreactor.connect.hbase.writers
+//package io.lenses.streamreactor.connect.hbase.writers
 //
-//import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
-//import com.datamountaineer.streamreactor.connect.hbase.config.{
+//import io.lenses.streamreactor.connect.hbase.BytesHelper._
+//import io.lenses.streamreactor.connect.hbase.config.{
 //  ConfigurationBuilder,
 //  HBaseConfig,
 //  HBaseConfigConstants,
 //  HBaseSettings
 //}
-//import com.datamountaineer.streamreactor.connect.hbase.{
+//import io.lenses.streamreactor.connect.hbase.{
 //  FieldsValuesExtractor,
 //  HbaseHelper,
 //  HbaseTableHelper,

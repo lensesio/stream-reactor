@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms.source.converters
+package io.lenses.streamreactor.connect.jms.source.converters
 
-import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
+import io.lenses.streamreactor.connect.jms.source.domain.JMSStructMessage
 import org.apache.kafka.connect.source.SourceRecord
 
 import javax.jms.Message

@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.config.base.traits
+package io.lenses.streamreactor.common.config.base.traits
 
-import com.datamountaineer.kcql.Field
-import com.datamountaineer.kcql.FormatType
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.kcql.WriteModeEnum
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.KCQL_PROP_SUFFIX
-import com.datamountaineer.streamreactor.common.rowkeys.StringGenericRowKeyBuilder
-import com.datamountaineer.streamreactor.common.rowkeys.StringKeyBuilder
-import com.datamountaineer.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
+import io.lenses.kcql.Field
+import io.lenses.kcql.FormatType
+import io.lenses.kcql.Kcql
+import io.lenses.kcql.WriteModeEnum
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.KCQL_PROP_SUFFIX
+import io.lenses.streamreactor.common.rowkeys.StringGenericRowKeyBuilder
+import io.lenses.streamreactor.common.rowkeys.StringKeyBuilder
+import io.lenses.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
 import org.apache.kafka.common.config.ConfigException
 
 import scala.collection.immutable.ListSet

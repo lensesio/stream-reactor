@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mongodb.sink
+package io.lenses.streamreactor.connect.mongodb.sink
 
 import java.io.File
 import java.io.FileNotFoundException
-import com.datamountaineer.kcql.WriteModeEnum
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfig
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfigConstants
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
+import io.lenses.kcql.WriteModeEnum
+import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.common.errors.RetryErrorPolicy
+import io.lenses.streamreactor.common.schemas.ConverterUtil
+import io.lenses.streamreactor.connect.mongodb.config.MongoConfig
+import io.lenses.streamreactor.connect.mongodb.config.MongoConfigConstants
+import io.lenses.streamreactor.connect.mongodb.config.MongoSettings
 import com.mongodb._
 import com.mongodb.client.model._
 import com.typesafe.scalalogging.StrictLogging

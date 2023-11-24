@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms.config
+package io.lenses.streamreactor.connect.jms.config
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst._
 
 object JMSConfigConstants {
 

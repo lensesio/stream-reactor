@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.rowkeys
+package io.lenses.streamreactor.common.rowkeys
 
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct

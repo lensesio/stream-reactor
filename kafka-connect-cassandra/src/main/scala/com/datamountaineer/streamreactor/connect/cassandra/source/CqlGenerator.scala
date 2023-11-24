@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.source
+package io.lenses.streamreactor.connect.cassandra.source
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSourceSetting
-import com.datamountaineer.streamreactor.connect.cassandra.config.TimestampType
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import io.lenses.streamreactor.connect.cassandra.config.CassandraSourceSetting
+import io.lenses.streamreactor.connect.cassandra.config.TimestampType
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 

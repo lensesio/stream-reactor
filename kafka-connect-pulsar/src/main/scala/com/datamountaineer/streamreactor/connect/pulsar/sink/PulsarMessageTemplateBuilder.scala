@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.pulsar.sink
+package io.lenses.streamreactor.connect.pulsar.sink
 
-import com.datamountaineer.kcql.Field
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.converters.FieldConverter
-import com.datamountaineer.streamreactor.common.converters.ToJsonWithProjections
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSinkSettings
+import io.lenses.kcql.Field
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.converters.FieldConverter
+import io.lenses.streamreactor.common.converters.ToJsonWithProjections
+import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.connect.pulsar.config.PulsarSinkSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 

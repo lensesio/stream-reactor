@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.mqtt.source
+package io.lenses.streamreactor.connect.mqtt.source
 
-import com.datamountaineer.streamreactor.common.converters.MsgKey
-import com.datamountaineer.streamreactor.common.serialization.AvroSerializer
-import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
-import com.datamountaineer.streamreactor.connect.converters.source.BytesConverter
-import com.datamountaineer.streamreactor.connect.converters.source.JsonSimpleConverter
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
+import io.lenses.streamreactor.common.converters.MsgKey
+import io.lenses.streamreactor.common.serialization.AvroSerializer
+import io.lenses.streamreactor.connect.converters.source.AvroConverter
+import io.lenses.streamreactor.connect.converters.source.BytesConverter
+import io.lenses.streamreactor.connect.converters.source.JsonSimpleConverter
+import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
 import com.dimafeng.testcontainers.ForAllTestContainer
 import com.dimafeng.testcontainers.GenericContainer
 import com.sksamuel.avro4s.AvroSchema

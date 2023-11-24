@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.sink
+package io.lenses.streamreactor.connect.cassandra.sink
 
 import org.json4s._
 import org.json4s.native.JsonMethods._

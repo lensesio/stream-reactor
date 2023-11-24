@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.redis.sink
+package io.lenses.streamreactor.connect.redis.sink
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfig
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfigConstants
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
-import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSupport
+import io.lenses.streamreactor.connect.redis.sink.config.RedisConfig
+import io.lenses.streamreactor.connect.redis.sink.config.RedisConfigConstants
+import io.lenses.streamreactor.connect.redis.sink.config.RedisSinkSettings
+import io.lenses.streamreactor.connect.redis.sink.support.RedisMockSupport
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

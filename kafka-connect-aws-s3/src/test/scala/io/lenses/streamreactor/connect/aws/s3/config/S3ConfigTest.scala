@@ -15,9 +15,9 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import com.datamountaineer.streamreactor.common.errors.NoopErrorPolicy
-import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
-import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
+import io.lenses.streamreactor.common.errors.NoopErrorPolicy
+import io.lenses.streamreactor.common.errors.RetryErrorPolicy
+import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

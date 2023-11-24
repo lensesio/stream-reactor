@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.elastic7
+package io.lenses.streamreactor.connect.elastic7
 
-import com.datamountaineer.streamreactor.connect.elastic7.config.ElasticConfigConstants
+import io.lenses.streamreactor.connect.elastic7.config.ElasticConfigConstants
 import org.apache.kafka.common.TopicPartition
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers

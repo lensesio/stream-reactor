@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.converters
+package io.lenses.streamreactor.common.converters
 
-import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
+import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 
 import java.nio.ByteBuffer
 import com.fasterxml.jackson.databind.JsonNode
-import com.landoop.connect.sql.StructSql._
-import com.landoop.json.sql.JsonSql._
-import com.landoop.json.sql.JacksonJson
-import com.landoop.sql.Field
+import io.lenses.connect.sql.StructSql._
+import io.lenses.json.sql.JsonSql._
+import io.lenses.json.sql.JacksonJson
+import io.lenses.sql.Field
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct

@@ -1,8 +1,8 @@
-package com.datamountaineer.streamreactor.connect
+package io.lenses.streamreactor.connect
 
-import com.datamountaineer.streamreactor.connect.MqttContainer.defaultNetworkAlias
-import com.datamountaineer.streamreactor.connect.MqttContainer.defaultPort
-import com.datamountaineer.streamreactor.connect.MqttContainer.defaultTag
+import io.lenses.streamreactor.connect.MqttContainer.defaultNetworkAlias
+import io.lenses.streamreactor.connect.MqttContainer.defaultPort
+import io.lenses.streamreactor.connect.MqttContainer.defaultTag
 import io.lenses.streamreactor.connect.testcontainers.RandomAuthentication
 import io.lenses.streamreactor.connect.testcontainers.S3Authentication
 import org.testcontainers.containers.GenericContainer

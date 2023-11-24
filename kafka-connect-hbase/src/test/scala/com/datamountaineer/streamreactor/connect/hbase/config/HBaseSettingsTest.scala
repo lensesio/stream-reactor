@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hbase.config
+package io.lenses.streamreactor.connect.hbase.config
 
-import com.datamountaineer.streamreactor.connect.hbase.GenericRowKeyBuilderBytes
-import com.datamountaineer.streamreactor.connect.hbase.StructFieldsRowKeyBuilderBytes
+import io.lenses.streamreactor.connect.hbase.GenericRowKeyBuilderBytes
+import io.lenses.streamreactor.connect.hbase.StructFieldsRowKeyBuilderBytes
 import org.apache.kafka.common.config.ConfigException
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers

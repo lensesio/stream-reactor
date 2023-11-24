@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.concurrent
+package io.lenses.streamreactor.common.concurrent
 
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hbase.avro
+package io.lenses.streamreactor.connect.hbase.avro
 
-import com.datamountaineer.streamreactor.connect.hbase.PersonAvroSchema
+import io.lenses.streamreactor.connect.hbase.PersonAvroSchema
 import org.apache.avro.Schema
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

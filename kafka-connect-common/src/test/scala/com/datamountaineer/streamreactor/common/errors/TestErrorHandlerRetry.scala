@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.errors
+package io.lenses.streamreactor.common.errors
 
-import com.datamountaineer.streamreactor.common.TestUtilsBase
+import io.lenses.streamreactor.common.TestUtilsBase
 import org.apache.kafka.connect.errors.RetriableException
 
 import scala.util.Failure

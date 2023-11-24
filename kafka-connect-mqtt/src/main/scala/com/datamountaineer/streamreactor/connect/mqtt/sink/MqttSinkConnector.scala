@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mqtt.sink
+package io.lenses.streamreactor.connect.mqtt.sink
 
-import com.datamountaineer.streamreactor.common.config.Helpers
-import com.datamountaineer.streamreactor.common.utils.JarManifest
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkConfig
+import io.lenses.streamreactor.common.config.Helpers
+import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
+import io.lenses.streamreactor.connect.mqtt.config.MqttSinkConfig
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task

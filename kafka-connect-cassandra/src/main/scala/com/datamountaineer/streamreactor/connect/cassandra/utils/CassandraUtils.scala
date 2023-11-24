@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.utils
+package io.lenses.streamreactor.connect.cassandra.utils
 
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode.BucketMode
-import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode.DAY
-import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode.HOUR
-import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode.MINUTE
-import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode.SECOND
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.connect.cassandra.config.BucketMode.BucketMode
+import io.lenses.streamreactor.connect.cassandra.config.BucketMode.DAY
+import io.lenses.streamreactor.connect.cassandra.config.BucketMode.HOUR
+import io.lenses.streamreactor.connect.cassandra.config.BucketMode.MINUTE
+import io.lenses.streamreactor.connect.cassandra.config.BucketMode.SECOND
 import com.datastax.driver.core.Cluster
 import org.apache.kafka.connect.errors.ConnectException
 

@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.mqtt.source
+package io.lenses.streamreactor.connect.mqtt.source
 
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.write

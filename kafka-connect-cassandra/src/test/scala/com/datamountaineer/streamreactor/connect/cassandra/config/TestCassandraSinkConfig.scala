@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.config
+package io.lenses.streamreactor.connect.cassandra.config
 
-import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
+import io.lenses.streamreactor.connect.cassandra.TestConfig
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

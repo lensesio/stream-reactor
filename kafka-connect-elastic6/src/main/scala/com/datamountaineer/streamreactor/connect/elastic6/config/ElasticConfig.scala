@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.elastic6.config
+package io.lenses.streamreactor.connect.elastic6.config
 
 import java.util
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.config.base.traits.BaseConfig
-import com.datamountaineer.streamreactor.common.config.base.traits.ErrorPolicySettings
-import com.datamountaineer.streamreactor.common.config.base.traits.NumberRetriesSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.WriteTimeoutSettings
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.config.base.traits.BaseConfig
+import io.lenses.streamreactor.common.config.base.traits.ErrorPolicySettings
+import io.lenses.streamreactor.common.config.base.traits.NumberRetriesSettings
+import io.lenses.streamreactor.common.config.base.traits.WriteTimeoutSettings
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type

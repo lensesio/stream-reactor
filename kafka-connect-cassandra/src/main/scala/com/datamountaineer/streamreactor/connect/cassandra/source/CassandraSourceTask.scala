@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.source
+package io.lenses.streamreactor.connect.cassandra.source
 
-import com.datamountaineer.streamreactor.common.queues.QueueHelpers
-import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import com.datamountaineer.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.queues.QueueHelpers
+import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.utils.JarManifest
 
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
-import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSource
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSettings
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSourceSetting
+import io.lenses.streamreactor.connect.cassandra.CassandraConnection
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigSource
+import io.lenses.streamreactor.connect.cassandra.config.CassandraSettings
+import io.lenses.streamreactor.connect.cassandra.config.CassandraSourceSetting
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord

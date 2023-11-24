@@ -16,8 +16,8 @@
 package io.lenses.streamreactor.connect.datalake.config
 
 import cats.syntax.all._
-import com.datamountaineer.streamreactor.common.config.base.traits.BaseSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.WithConnectorPrefix
+import io.lenses.streamreactor.common.config.base.traits.BaseSettings
+import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type

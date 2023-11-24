@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mongodb.config
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
+package io.lenses.streamreactor.connect.mongodb.config
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.errors.ErrorPolicy
 import com.mongodb.AuthenticationMechanism
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.SslConfigs

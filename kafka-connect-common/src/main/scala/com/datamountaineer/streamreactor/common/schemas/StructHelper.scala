@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.schemas
+package io.lenses.streamreactor.common.schemas
 
-import com.datamountaineer.streamreactor.common.schemas.SchemaHelper.SchemaExtensions
+import io.lenses.streamreactor.common.schemas.SchemaHelper.SchemaExtensions
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct

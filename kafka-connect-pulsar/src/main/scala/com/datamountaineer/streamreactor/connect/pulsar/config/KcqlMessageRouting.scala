@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.pulsar.config
+package io.lenses.streamreactor.connect.pulsar.config
 
-import com.datamountaineer.kcql.Kcql
+import io.lenses.kcql.Kcql
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.pulsar.client.api.MessageRoutingMode
 

@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hbase.writers
+package io.lenses.streamreactor.connect.hbase.writers
 
-import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
-import com.datamountaineer.streamreactor.connect.hbase.HbaseHelper
+import io.lenses.streamreactor.connect.hbase.BytesHelper._
+import io.lenses.streamreactor.connect.hbase.HbaseHelper
 import org.apache.hadoop.hbase.client.Connection
 import org.apache.hadoop.hbase.client.ConnectionFactory
 import org.apache.hadoop.hbase.client.Scan

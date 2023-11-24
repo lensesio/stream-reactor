@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.cloud.common.config.processors.kcql
 
 import cats.implicits.catsSyntaxEitherId
-import com.datamountaineer.kcql.Kcql
+import io.lenses.kcql.Kcql
 
 import scala.util.Try
 

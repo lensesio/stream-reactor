@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.landoop.json.sql
+package io.lenses.json.sql
 
 case class Person(name: String, address: Address)
 

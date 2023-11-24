@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mqtt.sink
+package io.lenses.streamreactor.connect.mqtt.sink
 
-import com.datamountaineer.streamreactor.common.converters.sink.Converter
-import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
-import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import com.datamountaineer.streamreactor.common.utils.JarManifest
-import com.datamountaineer.streamreactor.common.utils.ProgressCounter
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkConfig
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkSettings
+import io.lenses.streamreactor.common.converters.sink.Converter
+import io.lenses.streamreactor.common.errors.RetryErrorPolicy
+import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.utils.ProgressCounter
+import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
+import io.lenses.streamreactor.connect.mqtt.config.MqttSinkConfig
+import io.lenses.streamreactor.connect.mqtt.config.MqttSinkSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition

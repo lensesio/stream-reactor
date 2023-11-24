@@ -29,11 +29,11 @@
 // * limitations under the License.
 // */
 //
-//package com.datamountaineer.streamreactor.connect.cassandra.source
+//package io.lenses.streamreactor.connect.cassandra.source
 //
-//import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-//import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-//import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
+//import io.lenses.streamreactor.connect.cassandra.TestConfig
+//import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
+//import io.lenses.streamreactor.common.schemas.ConverterUtil
 //import com.fasterxml.jackson.databind.JsonNode
 //import org.mockito.MockitoSugar
 //import org.scalatest.{DoNotDiscover, Matchers, WordSpec}

@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hazelcast.writers
+package io.lenses.streamreactor.connect.hazelcast.writers
 
-import com.datamountaineer.streamreactor.common.concurrent.FutureAwaitWithFailFastFn
+import io.lenses.streamreactor.common.concurrent.FutureAwaitWithFailFastFn
 
 import java.util.concurrent.Executors
-import com.datamountaineer.streamreactor.common.concurrent.ExecutorExtension._
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastStoreAsType
-import com.datamountaineer.streamreactor.connect.hazelcast.config.TargetType
+import io.lenses.streamreactor.common.concurrent.ExecutorExtension._
+import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.common.schemas.ConverterUtil
+import io.lenses.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
+import io.lenses.streamreactor.connect.hazelcast.config.HazelCastStoreAsType
+import io.lenses.streamreactor.connect.hazelcast.config.TargetType
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 

@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.pulsar.config
+package io.lenses.streamreactor.connect.pulsar.config
 
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
-import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 
 /**
   * Created by andrew@datamountaineer.com on 27/08/2017.

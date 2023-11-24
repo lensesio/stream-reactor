@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.sink
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.converters.FieldConverter
-import com.datamountaineer.streamreactor.common.converters.ToJsonWithProjections
-import com.datamountaineer.streamreactor.common.errors.NoopErrorPolicy
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSinkSetting
-import com.landoop.json.sql.JacksonJson
+package io.lenses.streamreactor.connect.cassandra.sink
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.converters.FieldConverter
+import io.lenses.streamreactor.common.converters.ToJsonWithProjections
+import io.lenses.streamreactor.common.errors.NoopErrorPolicy
+import io.lenses.streamreactor.common.schemas.ConverterUtil
+import io.lenses.streamreactor.connect.cassandra.config.CassandraSinkSetting
+import io.lenses.json.sql.JacksonJson
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.matchers.should.Matchers

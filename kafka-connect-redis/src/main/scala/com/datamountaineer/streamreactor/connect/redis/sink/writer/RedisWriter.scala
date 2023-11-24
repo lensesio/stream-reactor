@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.redis.sink.writer
+package io.lenses.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.sink.DbWriter
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
+import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.common.sink.DbWriter
+import io.lenses.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import com.typesafe.scalalogging.StrictLogging
 import redis.clients.jedis.Jedis
 

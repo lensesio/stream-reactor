@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.pulsar.config
+package io.lenses.streamreactor.connect.pulsar.config
 
-import com.datamountaineer.kcql.Kcql
+import io.lenses.kcql.Kcql
 import org.apache.pulsar.client.api.SubscriptionType
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers

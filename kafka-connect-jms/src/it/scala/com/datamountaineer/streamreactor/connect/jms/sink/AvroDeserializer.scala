@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.jms.sink
+package io.lenses.streamreactor.connect.jms.sink
 
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericDatumReader

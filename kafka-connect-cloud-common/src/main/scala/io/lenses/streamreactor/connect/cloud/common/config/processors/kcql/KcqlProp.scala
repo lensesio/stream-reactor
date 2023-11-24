@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.config.processors.kcql
 
-import com.datamountaineer.kcql.Kcql
+import io.lenses.kcql.Kcql
 import enumeratum._
 
 import scala.collection.immutable

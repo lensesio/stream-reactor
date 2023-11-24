@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.source
+package io.lenses.streamreactor.connect.cassandra.source
 
 import java.math.RoundingMode
 import java.util.Date
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSourceSetting
+import io.lenses.streamreactor.connect.cassandra.config.CassandraSourceSetting
 import com.datastax.driver.core.ColumnDefinitions.Definition
 import com.datastax.driver.core.CodecRegistry
 import com.datastax.driver.core._

@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hazelcast.config
+package io.lenses.streamreactor.connect.hazelcast.config
 
-import com.datamountaineer.kcql.FormatType
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
-import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
-import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
-import com.datamountaineer.streamreactor.connect.hazelcast.config.TargetType.TargetType
+import io.lenses.kcql.FormatType
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
+import io.lenses.streamreactor.connect.hazelcast.HazelCastConnection
+import io.lenses.streamreactor.connect.hazelcast.config.TargetType.TargetType
 import com.hazelcast.core.HazelcastInstance
 import org.apache.kafka.connect.errors.ConnectException
 

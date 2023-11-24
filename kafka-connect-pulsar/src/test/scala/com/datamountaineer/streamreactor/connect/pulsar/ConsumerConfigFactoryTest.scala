@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.pulsar
+package io.lenses.streamreactor.connect.pulsar
 
-import com.datamountaineer.streamreactor.connect.pulsar.config._
+import io.lenses.streamreactor.connect.pulsar.config._
 import org.apache.pulsar.client.api.ConsumerBuilder
 import org.apache.pulsar.client.api.PulsarClient
 import org.apache.pulsar.client.api.SubscriptionType

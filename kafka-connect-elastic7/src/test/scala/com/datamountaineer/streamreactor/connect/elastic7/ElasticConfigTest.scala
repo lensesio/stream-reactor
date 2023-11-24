@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.elastic7
+package io.lenses.streamreactor.connect.elastic7
 
-import com.datamountaineer.streamreactor.connect.elastic7.config.ElasticConfig
-import com.datamountaineer.streamreactor.connect.elastic7.config.ElasticConfigConstants
+import io.lenses.streamreactor.connect.elastic7.config.ElasticConfig
+import io.lenses.streamreactor.connect.elastic7.config.ElasticConfigConstants
 
 class ElasticConfigTest extends TestBase {
   "A ElasticConfig should return the client mode and hostnames" in {

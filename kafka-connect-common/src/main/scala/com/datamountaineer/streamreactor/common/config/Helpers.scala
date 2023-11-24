@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.config
+package io.lenses.streamreactor.common.config
 
-import com.datamountaineer.kcql.Kcql
+import io.lenses.kcql.Kcql
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 

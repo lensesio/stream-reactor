@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect
+package io.lenses.streamreactor.connect
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
 import io.confluent.kafka.serializers.KafkaJsonSerializer

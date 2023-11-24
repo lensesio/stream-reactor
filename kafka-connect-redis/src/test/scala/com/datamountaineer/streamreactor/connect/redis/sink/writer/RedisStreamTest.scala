@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.redis.sink.writer
+package io.lenses.streamreactor.connect.redis.sink.writer
 
 /*
  * Copyright 2017 Datamountaineer.
@@ -31,9 +31,9 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
  * limitations under the License.
  */
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfig
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfigConstants
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
+import io.lenses.streamreactor.connect.redis.sink.config.RedisConfig
+import io.lenses.streamreactor.connect.redis.sink.config.RedisConfigConstants
+import io.lenses.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct

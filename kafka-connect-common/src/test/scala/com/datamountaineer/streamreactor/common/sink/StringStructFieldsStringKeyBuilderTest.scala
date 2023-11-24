@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.sink
+package io.lenses.streamreactor.common.sink
 
-import com.datamountaineer.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
+import io.lenses.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct

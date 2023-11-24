@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.offsets
+package io.lenses.streamreactor.common.offsets
 
-import com.datamountaineer.streamreactor.common.TestUtilsBase
+import io.lenses.streamreactor.common.TestUtilsBase
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

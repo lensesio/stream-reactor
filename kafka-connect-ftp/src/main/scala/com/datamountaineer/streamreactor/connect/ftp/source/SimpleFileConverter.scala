@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.ftp.source
+package io.lenses.streamreactor.connect.ftp.source
 
-import com.datamountaineer.streamreactor.connect.ftp.source.SourceRecordProducers.SourceRecordProducer
+import io.lenses.streamreactor.connect.ftp.source.SourceRecordProducers.SourceRecordProducer
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.storage.OffsetStorageReader
 

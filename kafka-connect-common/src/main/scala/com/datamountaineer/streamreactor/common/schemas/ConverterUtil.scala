@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.schemas
+package io.lenses.streamreactor.common.schemas
 
-import com.datamountaineer.streamreactor.common.schemas.StructHelper._
-import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
+import io.lenses.streamreactor.common.schemas.StructHelper._
+import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 import com.fasterxml.jackson.databind.JsonNode
 import io.confluent.connect.avro.AvroConverter
 import io.confluent.connect.avro.AvroData

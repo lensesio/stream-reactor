@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.influx
+package io.lenses.streamreactor.connect.influx
 
 import java.time.temporal.ChronoField
 import java.time.Clock

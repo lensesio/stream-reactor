@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mqtt.config
+package io.lenses.streamreactor.connect.mqtt.config
 
-import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
-import com.datamountaineer.streamreactor.connect.converters.source.BytesConverter
+import io.lenses.streamreactor.connect.converters.source.AvroConverter
+import io.lenses.streamreactor.connect.converters.source.BytesConverter
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

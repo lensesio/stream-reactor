@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.config.base.traits
+package io.lenses.streamreactor.common.config.base.traits
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.ALLOW_PARALLEL_WRITE_PROP_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.ALLOW_PARALLEL_WRITE_PROP_SUFFIX
 
 trait AllowParallelizationSettings extends BaseSettings {
   val allowParallelConstant: String = s"$connectorPrefix.$ALLOW_PARALLEL_WRITE_PROP_SUFFIX"

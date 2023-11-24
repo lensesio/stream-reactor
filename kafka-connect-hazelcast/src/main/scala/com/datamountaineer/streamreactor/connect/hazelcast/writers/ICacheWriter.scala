@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hazelcast.writers
+package io.lenses.streamreactor.connect.hazelcast.writers
 
-import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
+import io.lenses.streamreactor.connect.hazelcast.HazelCastConnection
+import io.lenses.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
 import com.hazelcast.core.HazelcastInstance
 import javax.cache.Cache
 import javax.cache.CacheManager

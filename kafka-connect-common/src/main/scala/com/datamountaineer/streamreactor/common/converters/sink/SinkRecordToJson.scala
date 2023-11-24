@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.converters.sink
+package io.lenses.streamreactor.common.converters.sink
 
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
+import io.lenses.streamreactor.common.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.landoop.json.sql.JacksonJson
+import io.lenses.json.sql.JacksonJson
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord

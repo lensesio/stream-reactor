@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic6
+package io.lenses.streamreactor.connect.elastic6
 
-import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticConfigConstants
+import io.lenses.streamreactor.connect.elastic6.config.ElasticConfigConstants
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.Schema

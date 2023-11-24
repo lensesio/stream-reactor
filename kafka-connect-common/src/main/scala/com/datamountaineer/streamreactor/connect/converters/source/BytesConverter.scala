@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.converters.source
+package io.lenses.streamreactor.connect.converters.source
 
-import com.datamountaineer.streamreactor.common.converters.MsgKey
+import io.lenses.streamreactor.common.converters.MsgKey
 
 import java.util.Collections
 import org.apache.kafka.connect.data.Schema

@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mongodb.converters
+package io.lenses.streamreactor.connect.mongodb.converters
 
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
 import java.util
 import java.util.TimeZone
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
+import io.lenses.streamreactor.connect.mongodb.config.MongoSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.ConnectException

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.azure.documentdb
+package io.lenses.streamreactor.connect.azure.documentdb
 
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbSinkSettings
+import io.lenses.streamreactor.connect.azure.documentdb.config.DocumentDbSinkSettings
 import com.microsoft.azure.documentdb.ConnectionPolicy
 import com.microsoft.azure.documentdb.DocumentClient
 import org.apache.http.HttpHost

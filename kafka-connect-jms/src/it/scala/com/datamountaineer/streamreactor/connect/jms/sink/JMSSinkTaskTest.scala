@@ -16,9 +16,9 @@
  *
  */
 
-package com.datamountaineer.streamreactor.connect.jms.sink
+package io.lenses.streamreactor.connect.jms.sink
 
-import com.datamountaineer.streamreactor.connect.jms.ItTestBase
+import io.lenses.streamreactor.connect.jms.ItTestBase
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.IntNode
 import org.apache.activemq.ActiveMQConnectionFactory

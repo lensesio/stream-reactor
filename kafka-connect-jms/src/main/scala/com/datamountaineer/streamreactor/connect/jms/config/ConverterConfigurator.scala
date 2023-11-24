@@ -13,21 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms.config
+package io.lenses.streamreactor.connect.jms.config
 
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.jms.converters.ConverterLoaders.connectorPropertyConverterLoader
-import com.datamountaineer.streamreactor.connect.jms.converters.ConverterLoaders.defaultKcqlConverterLoader
-import com.datamountaineer.streamreactor.connect.jms.converters.ConverterLoaders.kcqlConverterClassNameConverterLoader
-import com.datamountaineer.streamreactor.connect.jms.converters.ConverterLoaders.kcqlSinkFormatTypeConverterLoader
-import com.datamountaineer.streamreactor.connect.jms.converters.ConverterClassLoader
-import com.datamountaineer.streamreactor.connect.jms.converters.JMSMessageConverter
-import com.datamountaineer.streamreactor.connect.jms.converters.SinkConverterClassLoader
-import com.datamountaineer.streamreactor.connect.jms.converters.SourceConverterClassLoader
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.JMSSinkMessageConverter
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.JsonMessageConverter
-import com.datamountaineer.streamreactor.connect.jms.source.converters.JMSSourceMessageConverter
-import com.datamountaineer.streamreactor.connect.jms.source.converters.JMSStructMessageConverter
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.connect.jms.converters.ConverterLoaders.connectorPropertyConverterLoader
+import io.lenses.streamreactor.connect.jms.converters.ConverterLoaders.defaultKcqlConverterLoader
+import io.lenses.streamreactor.connect.jms.converters.ConverterLoaders.kcqlConverterClassNameConverterLoader
+import io.lenses.streamreactor.connect.jms.converters.ConverterLoaders.kcqlSinkFormatTypeConverterLoader
+import io.lenses.streamreactor.connect.jms.converters.ConverterClassLoader
+import io.lenses.streamreactor.connect.jms.converters.JMSMessageConverter
+import io.lenses.streamreactor.connect.jms.converters.SinkConverterClassLoader
+import io.lenses.streamreactor.connect.jms.converters.SourceConverterClassLoader
+import io.lenses.streamreactor.connect.jms.sink.converters.JMSSinkMessageConverter
+import io.lenses.streamreactor.connect.jms.sink.converters.JsonMessageConverter
+import io.lenses.streamreactor.connect.jms.source.converters.JMSSourceMessageConverter
+import io.lenses.streamreactor.connect.jms.source.converters.JMSStructMessageConverter
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.common.config.ConfigException
 

@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.influx
+package io.lenses.streamreactor.connect.influx
 
-import com.datamountaineer.streamreactor.connect.influx.converters.InfluxPoint
-import com.datamountaineer.streamreactor.connect.influx.writers.ValuesExtractor
-import com.landoop.json.sql.JacksonJson
+import io.lenses.streamreactor.connect.influx.converters.InfluxPoint
+import io.lenses.streamreactor.connect.influx.writers.ValuesExtractor
+import io.lenses.json.sql.JacksonJson
 import com.typesafe.scalalogging.LazyLogging
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.generic.GenericData

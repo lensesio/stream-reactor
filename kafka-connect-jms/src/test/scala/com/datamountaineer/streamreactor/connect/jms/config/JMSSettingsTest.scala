@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms.config
+package io.lenses.streamreactor.connect.jms.config
 
-import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
-import com.datamountaineer.streamreactor.connect.jms
-import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
-import com.datamountaineer.streamreactor.connect.jms.TestBase
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.AvroMessageConverter
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.JsonMessageConverter
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.ProtoMessageConverter
-import com.datamountaineer.streamreactor.connect.jms.source.converters.CommonJMSMessageConverter
-import com.datamountaineer.streamreactor.connect.jms.source.converters.JMSStructMessageConverter
+import io.lenses.streamreactor.connect.converters.source.AvroConverter
+import io.lenses.streamreactor.connect.jms
+import io.lenses.streamreactor.connect.jms.JMSSessionProvider
+import io.lenses.streamreactor.connect.jms.TestBase
+import io.lenses.streamreactor.connect.jms.sink.converters.AvroMessageConverter
+import io.lenses.streamreactor.connect.jms.sink.converters.JsonMessageConverter
+import io.lenses.streamreactor.connect.jms.sink.converters.ProtoMessageConverter
+import io.lenses.streamreactor.connect.jms.source.converters.CommonJMSMessageConverter
+import io.lenses.streamreactor.connect.jms.source.converters.JMSStructMessageConverter
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.EitherValues

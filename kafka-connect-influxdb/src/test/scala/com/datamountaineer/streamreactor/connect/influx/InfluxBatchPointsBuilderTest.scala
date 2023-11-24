@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.influx
+package io.lenses.streamreactor.connect.influx
 
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
-import com.datamountaineer.streamreactor.connect.influx.writers.InfluxBatchPointsBuilder
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.connect.influx.config.InfluxSettings
+import io.lenses.streamreactor.connect.influx.writers.InfluxBatchPointsBuilder
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.influxdb.client.domain.WriteConsistency
 import com.influxdb.client.write.Point
-import com.landoop.json.sql.JacksonJson
+import io.lenses.json.sql.JacksonJson
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct

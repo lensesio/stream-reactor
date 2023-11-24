@@ -1,8 +1,8 @@
-package com.datamountaineer.streamreactor.connect.mqtt.source
+package io.lenses.streamreactor.connect.mqtt.source
 
-import com.datamountaineer.streamreactor.connect.converters.source.BytesConverter
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
-import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
+import io.lenses.streamreactor.connect.converters.source.BytesConverter
+import io.lenses.streamreactor.connect.mqtt.config.MqttSourceSettings
+import io.lenses.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
 import com.dimafeng.testcontainers.ForAllTestContainer
 import com.dimafeng.testcontainers.GenericContainer
 import com.dimafeng.testcontainers.MultipleContainers

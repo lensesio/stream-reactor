@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms.sink.converters
+package io.lenses.streamreactor.connect.jms.sink.converters
 
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
-import com.datamountaineer.streamreactor.connect.jms.TestBase
-import com.datamountaineer.streamreactor.example.AddressedPerson
-import com.datamountaineer.streamreactor.example.TimedPerson
+import io.lenses.streamreactor.connect.jms.config.JMSConfig
+import io.lenses.streamreactor.connect.jms.config.JMSSetting
+import io.lenses.streamreactor.connect.jms.config.JMSSettings
+import io.lenses.streamreactor.connect.jms.TestBase
+import io.lenses.streamreactor.example.AddressedPerson
+import io.lenses.streamreactor.example.TimedPerson
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.DataException

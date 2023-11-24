@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.datalake.config
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst._
 
 object AzureConfigSettings {
 

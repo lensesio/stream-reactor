@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.redis.sink.writer
+package io.lenses.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.kcql.Kcql
+import io.lenses.kcql.Kcql
 import com.typesafe.scalalogging.StrictLogging
 
 import scala.jdk.CollectionConverters.MapHasAsScala

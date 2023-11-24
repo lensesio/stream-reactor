@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms.config
+package io.lenses.streamreactor.connect.jms.config
 
-import com.datamountaineer.kcql.FormatType
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
-import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
-import com.datamountaineer.streamreactor.connect.converters.source.Converter
-import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
-import com.datamountaineer.streamreactor.connect.jms.source.converters.CommonJMSMessageConverter
-import com.datamountaineer.streamreactor.connect.jms.source.converters.{
+import io.lenses.kcql.FormatType
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
+import io.lenses.streamreactor.connect.converters.source.Converter
+import io.lenses.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
+import io.lenses.streamreactor.connect.jms.source.converters.CommonJMSMessageConverter
+import io.lenses.streamreactor.connect.jms.source.converters.{
   JMSSourceMessageConverter => JMSMessageSourceConverter,
 }
 import com.google.common.base.Splitter

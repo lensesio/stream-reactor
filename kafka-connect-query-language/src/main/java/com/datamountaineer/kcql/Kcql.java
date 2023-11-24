@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.kcql;
+package io.lenses.kcql;
 
-import com.datamountaineer.kcql.antlr4.ConnectorLexer;
-import com.datamountaineer.kcql.antlr4.ConnectorParser;
-import com.datamountaineer.kcql.antlr4.ConnectorParserBaseListener;
+import io.lenses.kcql.antlr4.ConnectorLexer;
+import io.lenses.kcql.antlr4.ConnectorParser;
+import io.lenses.kcql.antlr4.ConnectorParserBaseListener;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.TerminalNode;
 

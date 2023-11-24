@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.cassandra
+package io.lenses.streamreactor.connect.cassandra
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigSink
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.DoNotDiscover

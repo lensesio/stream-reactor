@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hazelcast
+package io.lenses.streamreactor.connect.hazelcast
 
 import java.io.File
 import java.io.FileNotFoundException
 import java.net.URI
 import java.util.Properties
 import java.util.UUID
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastConnectionConfig
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSocketConfig
+import io.lenses.streamreactor.connect.hazelcast.config.HazelCastConnectionConfig
+import io.lenses.streamreactor.connect.hazelcast.config.HazelCastSocketConfig
 import com.hazelcast.cache.HazelcastCachingProvider
 import com.hazelcast.client.HazelcastClient
 import com.hazelcast.client.config.ClientConfig

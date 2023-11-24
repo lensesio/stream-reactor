@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.schemas
+package io.lenses.streamreactor.common.schemas
 
-import com.datamountaineer.streamreactor.common.config.base.settings.Projections
-import com.datamountaineer.streamreactor.common.schemas.StructHelper.StructExtension
-import com.datamountaineer.streamreactor.connect.converters.source.JsonSimpleConverter
-import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
+import io.lenses.streamreactor.common.config.base.settings.Projections
+import io.lenses.streamreactor.common.schemas.StructHelper.StructExtension
+import io.lenses.streamreactor.connect.converters.source.JsonSimpleConverter
+import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.Schema

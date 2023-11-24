@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.redis.sink.writer
+package io.lenses.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfig
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfigConstants
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConnectionInfo
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
+import io.lenses.streamreactor.connect.redis.sink.config.RedisConfig
+import io.lenses.streamreactor.connect.redis.sink.config.RedisConfigConstants
+import io.lenses.streamreactor.connect.redis.sink.config.RedisConnectionInfo
+import io.lenses.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import com.dimafeng.testcontainers
 import com.dimafeng.testcontainers.ForAllTestContainer
 import org.apache.kafka.connect.data.Schema

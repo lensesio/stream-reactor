@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms.converters
+package io.lenses.streamreactor.connect.jms.converters
 
 import cats.implicits._
-import com.datamountaineer.kcql.FormatType
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.JMSMessageConverterFn
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.JMSSinkMessageConverter
+import io.lenses.kcql.FormatType
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.connect.jms.sink.converters.JMSMessageConverterFn
+import io.lenses.streamreactor.connect.jms.sink.converters.JMSSinkMessageConverter
 import org.apache.kafka.common.config.ConfigException
 
 import scala.util.Try

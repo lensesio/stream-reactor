@@ -1,9 +1,9 @@
-package com.datamountaineer.streamreactor.connect
+package io.lenses.streamreactor.connect
 
 import _root_.io.lenses.streamreactor.connect.testcontainers.connect._
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants._
+import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants._
 import io.confluent.kafka.serializers.KafkaJsonSerializer
 import io.lenses.streamreactor.connect.model.Order
 import io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer

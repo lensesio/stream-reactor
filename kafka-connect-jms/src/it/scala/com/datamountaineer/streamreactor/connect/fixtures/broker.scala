@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.fixtures
+package io.lenses.streamreactor.connect.fixtures
 
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService

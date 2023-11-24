@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.sink
+package io.lenses.streamreactor.connect.cassandra.sink
 
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.concurrent.ExecutorExtension._
-import com.datamountaineer.streamreactor.common.concurrent.FutureAwaitWithFailFastFn
-import com.datamountaineer.streamreactor.common.converters.FieldConverter
-import com.datamountaineer.streamreactor.common.converters.ToJsonWithProjections
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSinkSetting
-import com.datamountaineer.streamreactor.connect.cassandra.config.DefaultValueServeStrategy
-import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
-import com.datamountaineer.streamreactor.connect.cassandra.utils.KeyUtils
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.concurrent.ExecutorExtension._
+import io.lenses.streamreactor.common.concurrent.FutureAwaitWithFailFastFn
+import io.lenses.streamreactor.common.converters.FieldConverter
+import io.lenses.streamreactor.common.converters.ToJsonWithProjections
+import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.connect.cassandra.CassandraConnection
+import io.lenses.streamreactor.connect.cassandra.config.CassandraSinkSetting
+import io.lenses.streamreactor.connect.cassandra.config.DefaultValueServeStrategy
+import io.lenses.streamreactor.connect.cassandra.utils.CassandraUtils
+import io.lenses.streamreactor.connect.cassandra.utils.KeyUtils
 import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.datastax.driver.core.exceptions.SyntaxError
 import com.datastax.driver.core.PreparedStatement

@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.source
+package io.lenses.streamreactor.connect.cassandra.source
 
-import com.datamountaineer.kcql.FormatType
-import com.datamountaineer.streamreactor.common.offsets.OffsetHandler
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSourceSetting
-import com.datamountaineer.streamreactor.connect.cassandra.config.TimestampType
-import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraResultSetWrapper.resultSetFutureToScala
-import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
+import io.lenses.kcql.FormatType
+import io.lenses.streamreactor.common.offsets.OffsetHandler
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import io.lenses.streamreactor.connect.cassandra.config.CassandraSourceSetting
+import io.lenses.streamreactor.connect.cassandra.config.TimestampType
+import io.lenses.streamreactor.connect.cassandra.utils.CassandraResultSetWrapper.resultSetFutureToScala
+import io.lenses.streamreactor.connect.cassandra.utils.CassandraUtils
 import com.datastax.driver.core._
 import com.datastax.driver.core.utils.UUIDs
 import com.typesafe.scalalogging.StrictLogging

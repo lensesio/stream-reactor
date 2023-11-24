@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.ftp.source
+package io.lenses.streamreactor.connect.ftp.source
 
 import better.files._
-import com.datamountaineer.streamreactor.connect.ftp.EmbeddedFtpServer
-import com.datamountaineer.streamreactor.connect.ftp.source.EndToEnd._
-import com.datamountaineer.streamreactor.connect.ftp.source.KeyStyle.KeyStyle
+import io.lenses.streamreactor.connect.ftp.EmbeddedFtpServer
+import io.lenses.streamreactor.connect.ftp.source.EndToEnd._
+import io.lenses.streamreactor.connect.ftp.source.KeyStyle.KeyStyle
 import com.github.stefanbirkner.fakesftpserver.lambda.FakeSftpServer.withSftpServer
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.Struct

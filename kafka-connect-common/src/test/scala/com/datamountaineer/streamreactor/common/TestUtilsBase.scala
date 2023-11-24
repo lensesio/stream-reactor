@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common
+package io.lenses.streamreactor.common
 
 import com.sksamuel.avro4s.RecordFormat
 import org.apache.avro.generic.GenericData

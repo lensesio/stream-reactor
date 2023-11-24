@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.ftp
+package io.lenses.streamreactor.connect.ftp
 
 import better.files.File
 import com.typesafe.scalalogging.StrictLogging

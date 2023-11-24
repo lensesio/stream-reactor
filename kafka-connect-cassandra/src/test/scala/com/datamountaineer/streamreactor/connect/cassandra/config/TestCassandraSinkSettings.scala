@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.config
+package io.lenses.streamreactor.connect.cassandra.config
 
 import java.util
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
-import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.errors.ErrorPolicyEnum
+import io.lenses.streamreactor.common.errors.RetryErrorPolicy
+import io.lenses.streamreactor.connect.cassandra.TestConfig
 import com.datastax.driver.core.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkTaskContext

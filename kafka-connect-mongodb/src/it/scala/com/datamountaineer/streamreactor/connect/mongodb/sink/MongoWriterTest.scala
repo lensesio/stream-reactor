@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.mongodb.sink
+package io.lenses.streamreactor.connect.mongodb.sink
 
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.kcql.WriteModeEnum
-import com.datamountaineer.streamreactor.common.errors.NoopErrorPolicy
-import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfig
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfigConstants
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
-import com.datamountaineer.streamreactor.connect.mongodb.Json
-import com.datamountaineer.streamreactor.connect.mongodb.Transaction
+import io.lenses.kcql.Kcql
+import io.lenses.kcql.WriteModeEnum
+import io.lenses.streamreactor.common.errors.NoopErrorPolicy
+import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
+import io.lenses.streamreactor.connect.mongodb.config.MongoConfig
+import io.lenses.streamreactor.connect.mongodb.config.MongoConfigConstants
+import io.lenses.streamreactor.connect.mongodb.config.MongoSettings
+import io.lenses.streamreactor.connect.mongodb.Json
+import io.lenses.streamreactor.connect.mongodb.Transaction
 import com.dimafeng.testcontainers.MongoDBContainer
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.InsertOneModel

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hbase.kerberos.utils
+package io.lenses.streamreactor.connect.hbase.kerberos.utils
 
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.Executors

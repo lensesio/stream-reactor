@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.config
 
-import com.datamountaineer.kcql.Kcql
+import io.lenses.kcql.Kcql
 import enumeratum.Enum
 import enumeratum.EnumEntry
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys

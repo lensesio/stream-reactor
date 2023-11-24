@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.ftp.source
+package io.lenses.streamreactor.connect.ftp.source
 
-import com.datamountaineer.streamreactor.connect.ftp.source
+import io.lenses.streamreactor.connect.ftp.source
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.net.ftp.FTPFile
 import org.mockito.MockitoSugar

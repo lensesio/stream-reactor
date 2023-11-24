@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mongodb
+package io.lenses.streamreactor.connect.mongodb
 
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.NoopErrorPolicy
-import com.datamountaineer.streamreactor.connect.mongodb.Transaction._
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
-import com.datamountaineer.streamreactor.connect.mongodb.sink.ConverterUtilProxy
-import com.datamountaineer.streamreactor.connect.mongodb.sink.SinkRecordToDocument
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.errors.NoopErrorPolicy
+import io.lenses.streamreactor.connect.mongodb.Transaction._
+import io.lenses.streamreactor.connect.mongodb.config.MongoSettings
+import io.lenses.streamreactor.connect.mongodb.sink.ConverterUtilProxy
+import io.lenses.streamreactor.connect.mongodb.sink.SinkRecordToDocument
 import com.mongodb.AuthenticationMechanism
 import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.data.Schema

@@ -29,10 +29,10 @@
 // *  limitations under the License.
 // */
 //
-//package com.datamountaineer.streamreactor.common.converters.sink
+//package io.lenses.streamreactor.common.converters.sink
 //
-//import com.datamountaineer.streamreactor.common.converters.MsgKey
-//import com.datamountaineer.streamreactor.common.converters.sink.AvroConverter
+//import io.lenses.streamreactor.common.converters.MsgKey
+//import io.lenses.streamreactor.common.converters.sink.AvroConverter
 //
 //import java.io.{BufferedWriter, File, FileWriter}
 //import java.nio.file.Paths

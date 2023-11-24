@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.elastic6
+package io.lenses.streamreactor.connect.elastic6
 
 import java.util
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.kcql.WriteModeEnum
-import com.datamountaineer.streamreactor.common.converters.FieldConverter
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticSettings
-import com.datamountaineer.streamreactor.connect.elastic6.indexname.CreateIndex
+import io.lenses.kcql.Kcql
+import io.lenses.kcql.WriteModeEnum
+import io.lenses.streamreactor.common.converters.FieldConverter
+import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.common.schemas.ConverterUtil
+import io.lenses.streamreactor.connect.elastic6.config.ElasticSettings
+import io.lenses.streamreactor.connect.elastic6.indexname.CreateIndex
 import com.fasterxml.jackson.databind.JsonNode
-import com.landoop.sql.Field
+import io.lenses.sql.Field
 import com.sksamuel.elastic4s.Indexable
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.typesafe.scalalogging.StrictLogging

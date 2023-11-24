@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.landoop.connect.sql
+package io.lenses.connect.sql
 
 import java.nio.ByteBuffer
 import com.fasterxml.jackson.databind.JsonNode
-import com.landoop.connect.sql.StructSql._
-import com.landoop.json.sql.JacksonJson
-import com.landoop.json.sql.JsonSql._
+import io.lenses.connect.sql.StructSql._
+import io.lenses.json.sql.JacksonJson
+import io.lenses.json.sql.JsonSql._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.calcite.sql.dialect.AnsiSqlDialect
 import org.apache.kafka.connect.data.Schema

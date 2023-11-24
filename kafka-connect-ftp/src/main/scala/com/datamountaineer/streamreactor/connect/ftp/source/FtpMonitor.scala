@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.ftp.source
+package io.lenses.streamreactor.connect.ftp.source
 
-import com.datamountaineer.streamreactor.connect.ftp.source.FtpProtocol.FtpProtocol
-import com.datamountaineer.streamreactor.connect.ftp.source.MonitorMode.MonitorMode
-import com.datamountaineer.streamreactor.connect.ftp.source.OpTimer.profile
+import io.lenses.streamreactor.connect.ftp.source.FtpProtocol.FtpProtocol
+import io.lenses.streamreactor.connect.ftp.source.MonitorMode.MonitorMode
+import io.lenses.streamreactor.connect.ftp.source.OpTimer.profile
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.IOUtils

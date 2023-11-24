@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.pulsar.source
+package io.lenses.streamreactor.connect.pulsar.source
 
 import java.util
 import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.converters.source.Converter
-import com.datamountaineer.streamreactor.common.concurrent.ExecutorExtension._
-import com.datamountaineer.streamreactor.common.queues.QueueHelpers
-import com.datamountaineer.streamreactor.connect.pulsar.ConsumerConfigFactory
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.connect.converters.source.Converter
+import io.lenses.streamreactor.common.concurrent.ExecutorExtension._
+import io.lenses.streamreactor.common.queues.QueueHelpers
+import io.lenses.streamreactor.connect.pulsar.ConsumerConfigFactory
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Schema

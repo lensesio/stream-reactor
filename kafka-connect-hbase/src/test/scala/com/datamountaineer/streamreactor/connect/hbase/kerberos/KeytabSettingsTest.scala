@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hbase.kerberos
+package io.lenses.streamreactor.connect.hbase.kerberos
 
-import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfig
-import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigConstants
+import io.lenses.streamreactor.connect.hbase.config.HBaseConfig
+import io.lenses.streamreactor.connect.hbase.config.HBaseConfigConstants
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers

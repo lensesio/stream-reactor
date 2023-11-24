@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.landoop.connect.sql
+package io.lenses.connect.sql
 
 import java.text.SimpleDateFormat
 import java.util.Date
-import com.landoop.json.sql.JacksonJson
+import io.lenses.json.sql.JacksonJson
 import com.sksamuel.avro4s.AvroSchema
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

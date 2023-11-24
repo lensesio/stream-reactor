@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mqtt.sink
+package io.lenses.streamreactor.connect.mqtt.sink
 
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants._
+import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
+import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 

@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.config.base.traits
+package io.lenses.streamreactor.common.config.base.traits
 
-import com.datamountaineer.streamreactor.common.errors
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.ERROR_POLICY_PROP_SUFFIX
+import io.lenses.streamreactor.common.errors
+import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.errors.ErrorPolicyEnum
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.ERROR_POLICY_PROP_SUFFIX
 
 trait ErrorPolicySettings extends BaseSettings {
   def errorPolicyConst = s"$connectorPrefix.$ERROR_POLICY_PROP_SUFFIX"

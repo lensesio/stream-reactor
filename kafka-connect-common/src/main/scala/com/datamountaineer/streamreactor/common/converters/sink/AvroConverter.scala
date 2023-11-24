@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.converters.sink
+package io.lenses.streamreactor.common.converters.sink
 
-import com.datamountaineer.streamreactor.common.converters.MsgKey
+import io.lenses.streamreactor.common.converters.MsgKey
 import io.confluent.connect.avro.AvroData
 
 import java.io.ByteArrayOutputStream

@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.influx.writers
+package io.lenses.streamreactor.connect.influx.writers
 
 import java.util.concurrent.TimeUnit
-import com.datamountaineer.kcql.Field
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.kcql.Tag
-import com.datamountaineer.streamreactor.connect.influx.NanoClock
-import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
-import com.datamountaineer.streamreactor.connect.influx.converters.InfluxPoint
-import com.datamountaineer.streamreactor.connect.influx.converters.SinkRecordParser
-import com.datamountaineer.streamreactor.connect.influx.helpers.Util
-import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails._
+import io.lenses.kcql.Field
+import io.lenses.kcql.Kcql
+import io.lenses.kcql.Tag
+import io.lenses.streamreactor.connect.influx.NanoClock
+import io.lenses.streamreactor.connect.influx.config.InfluxSettings
+import io.lenses.streamreactor.connect.influx.converters.InfluxPoint
+import io.lenses.streamreactor.connect.influx.converters.SinkRecordParser
+import io.lenses.streamreactor.connect.influx.helpers.Util
+import io.lenses.streamreactor.connect.influx.writers.KcqlDetails._
 import com.influxdb.client.write.Point
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException

@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms.sink.writers
+package io.lenses.streamreactor.connect.jms.sink.writers
 
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.JMSHeadersConverterWrapper
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.JMSSinkMessageConverter
+import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.common.schemas.ConverterUtil
+import io.lenses.streamreactor.connect.jms.JMSSessionProvider
+import io.lenses.streamreactor.connect.jms.config.JMSSetting
+import io.lenses.streamreactor.connect.jms.config.JMSSettings
+import io.lenses.streamreactor.connect.jms.sink.converters.JMSHeadersConverterWrapper
+import io.lenses.streamreactor.connect.jms.sink.converters.JMSSinkMessageConverter
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkRecord

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.influx.data
+package io.lenses.streamreactor.connect.influx.data
 
 case class FooInner(s: String, t: Double)
 case class Foo(v: Int, map: Map[String, FooInner])

@@ -1,6 +1,6 @@
-package com.datamountaineer.streamreactor.connect.cassandra.source
+package io.lenses.streamreactor.connect.cassandra.source
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
 import com.datastax.driver.core.Session
 
 import java.text.SimpleDateFormat

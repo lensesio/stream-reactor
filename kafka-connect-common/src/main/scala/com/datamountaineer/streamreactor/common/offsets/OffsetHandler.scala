@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.offsets
+package io.lenses.streamreactor.common.offsets
 
 import java.util
 import java.util.Collections

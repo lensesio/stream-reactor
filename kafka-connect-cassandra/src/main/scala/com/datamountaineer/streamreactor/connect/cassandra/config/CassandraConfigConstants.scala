@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.config
+package io.lenses.streamreactor.connect.cassandra.config
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.BATCH_SIZE_PROP_SUFFIX
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.CONSISTENCY_LEVEL_PROP_SUFFIX
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.ERROR_POLICY_PROP_SUFFIX
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.KCQL_PROP_SUFFIX
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.MAX_RETRIES_PROP_SUFFIX
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.PASSWORD_SUFFIX
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.PROGRESS_ENABLED_CONST
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.RETRY_INTERVAL_PROP_SUFFIX
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.THREAD_POLL_PROP_SUFFIX
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.USERNAME_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.BATCH_SIZE_PROP_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.CONSISTENCY_LEVEL_PROP_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.ERROR_POLICY_PROP_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.KCQL_PROP_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.MAX_RETRIES_PROP_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.PASSWORD_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.PROGRESS_ENABLED_CONST
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.RETRY_INTERVAL_PROP_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.THREAD_POLL_PROP_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.USERNAME_SUFFIX
 
 /**
   * Created by andrew@datamountaineer.com on 25/04/16.

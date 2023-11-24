@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.influx
+package io.lenses.streamreactor.connect.influx
 
-import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
-import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import com.datamountaineer.streamreactor.common.utils.JarManifest
-import com.datamountaineer.streamreactor.common.utils.ProgressCounter
-import com.datamountaineer.streamreactor.connect.influx.config.InfluxConfig
-import com.datamountaineer.streamreactor.connect.influx.config.InfluxConfigConstants
-import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
-import com.datamountaineer.streamreactor.connect.influx.writers.InfluxDbWriter
-import com.datamountaineer.streamreactor.connect.influx.writers.WriterFactoryFn
+import io.lenses.streamreactor.common.errors.RetryErrorPolicy
+import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.utils.ProgressCounter
+import io.lenses.streamreactor.connect.influx.config.InfluxConfig
+import io.lenses.streamreactor.connect.influx.config.InfluxConfigConstants
+import io.lenses.streamreactor.connect.influx.config.InfluxSettings
+import io.lenses.streamreactor.connect.influx.writers.InfluxDbWriter
+import io.lenses.streamreactor.connect.influx.writers.WriterFactoryFn
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition

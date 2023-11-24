@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.config
+package io.lenses.streamreactor.connect.cassandra.config
 
-import com.datamountaineer.kcql.Field
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
-import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
-import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode.BucketMode
-import com.datamountaineer.streamreactor.connect.cassandra.config.DefaultValueServeStrategy.DefaultValueServeStrategy
-import com.datamountaineer.streamreactor.connect.cassandra.config.TimestampType.TimestampType
+import io.lenses.kcql.Field
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
+import io.lenses.streamreactor.connect.cassandra.config.BucketMode.BucketMode
+import io.lenses.streamreactor.connect.cassandra.config.DefaultValueServeStrategy.DefaultValueServeStrategy
+import io.lenses.streamreactor.connect.cassandra.config.TimestampType.TimestampType
 import com.datastax.driver.core.ConsistencyLevel
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException

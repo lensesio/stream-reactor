@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mqtt.source
+package io.lenses.streamreactor.connect.mqtt.source
 
 import java.io.FileReader
 import java.security.KeyStore

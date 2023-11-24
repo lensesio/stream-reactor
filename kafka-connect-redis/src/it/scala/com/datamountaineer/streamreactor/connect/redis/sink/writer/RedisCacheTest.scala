@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.redis.sink.writer
+package io.lenses.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfig
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisConfigConstants
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
+import io.lenses.streamreactor.connect.redis.sink.config.RedisConfig
+import io.lenses.streamreactor.connect.redis.sink.config.RedisConfigConstants
+import io.lenses.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import com.dimafeng.testcontainers.ForAllTestContainer
 import com.dimafeng.testcontainers.GenericContainer
 import com.google.gson.Gson

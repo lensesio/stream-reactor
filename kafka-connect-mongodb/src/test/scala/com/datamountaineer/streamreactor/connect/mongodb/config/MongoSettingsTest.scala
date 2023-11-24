@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.mongodb.config
+package io.lenses.streamreactor.connect.mongodb.config
 
-import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
+import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

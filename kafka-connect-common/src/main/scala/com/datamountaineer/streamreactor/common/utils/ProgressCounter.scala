@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.utils
+package io.lenses.streamreactor.common.utils
 
 import java.text.SimpleDateFormat
 import java.util.Date

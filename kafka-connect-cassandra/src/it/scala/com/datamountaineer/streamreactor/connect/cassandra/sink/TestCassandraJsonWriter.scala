@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.cassandra.sink
+package io.lenses.streamreactor.connect.cassandra.sink
 
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.cassandra.ItTestConfig
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
+import io.lenses.streamreactor.common.errors.ErrorPolicyEnum
+import io.lenses.streamreactor.common.schemas.ConverterUtil
+import io.lenses.streamreactor.connect.cassandra.ItTestConfig
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigSink
 import com.datastax.driver.core.ConsistencyLevel
 import com.datastax.driver.core.Session
 import com.datastax.driver.core.utils.UUIDs

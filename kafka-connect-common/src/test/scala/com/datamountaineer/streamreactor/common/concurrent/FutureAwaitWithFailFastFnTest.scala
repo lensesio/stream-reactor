@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.common.concurrent
+package io.lenses.streamreactor.common.concurrent
 
-import com.datamountaineer.streamreactor.common.concurrent.ExecutorExtension._
+import io.lenses.streamreactor.common.concurrent.ExecutorExtension._
 import org.apache.kafka.connect.errors.ConnectException
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.TimeLimits

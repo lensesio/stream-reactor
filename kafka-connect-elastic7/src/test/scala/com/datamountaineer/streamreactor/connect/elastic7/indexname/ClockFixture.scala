@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.elastic7.indexname
+package io.lenses.streamreactor.connect.elastic7.indexname
 
 import java.time.Clock
 import java.time.Instant

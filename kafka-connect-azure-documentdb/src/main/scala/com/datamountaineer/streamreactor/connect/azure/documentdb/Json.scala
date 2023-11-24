@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.azure.documentdb
+package io.lenses.streamreactor.connect.azure.documentdb
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.json4s._

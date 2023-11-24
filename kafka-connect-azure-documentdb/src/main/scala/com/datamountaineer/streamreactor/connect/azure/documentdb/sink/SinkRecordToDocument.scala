@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
+package io.lenses.streamreactor.connect.azure.documentdb.sink
 
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbSinkSettings
-import com.datamountaineer.streamreactor.connect.azure.documentdb.converters.SinkRecordConverter
+import io.lenses.streamreactor.common.schemas.ConverterUtil
+import io.lenses.streamreactor.connect.azure.documentdb.config.DocumentDbSinkSettings
+import io.lenses.streamreactor.connect.azure.documentdb.converters.SinkRecordConverter
 import com.microsoft.azure.documentdb.Document
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct

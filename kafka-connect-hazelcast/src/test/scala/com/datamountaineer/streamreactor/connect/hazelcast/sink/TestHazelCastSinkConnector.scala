@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hazelcast.sink
+package io.lenses.streamreactor.connect.hazelcast.sink
 
-import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfigConstants
+import io.lenses.streamreactor.connect.hazelcast.TestBase
+import io.lenses.streamreactor.connect.hazelcast.config.HazelCastSinkConfigConstants
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 

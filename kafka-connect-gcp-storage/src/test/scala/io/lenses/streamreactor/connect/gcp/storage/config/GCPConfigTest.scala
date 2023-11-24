@@ -30,9 +30,9 @@ package io.lenses.streamreactor.connect.gcp.storage.config
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import com.datamountaineer.streamreactor.common.errors.NoopErrorPolicy
-import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
-import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
+import io.lenses.streamreactor.common.errors.NoopErrorPolicy
+import io.lenses.streamreactor.common.errors.RetryErrorPolicy
+import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 import com.typesafe.scalalogging.LazyLogging
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec

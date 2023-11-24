@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hbase.config
+package io.lenses.streamreactor.connect.hbase.config
 
 import java.io.File
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
-import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
-import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigConstants._
-import com.datamountaineer.streamreactor.connect.hbase.kerberos.Kerberos
-import com.datamountaineer.streamreactor.connect.hbase.GenericRowKeyBuilderBytes
-import com.datamountaineer.streamreactor.connect.hbase.RowKeyBuilderBytes
-import com.datamountaineer.streamreactor.connect.hbase.StructFieldsExtractorBytes
-import com.datamountaineer.streamreactor.connect.hbase.StructFieldsRowKeyBuilderBytes
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
+import io.lenses.streamreactor.connect.hbase.config.HBaseConfigConstants._
+import io.lenses.streamreactor.connect.hbase.kerberos.Kerberos
+import io.lenses.streamreactor.connect.hbase.GenericRowKeyBuilderBytes
+import io.lenses.streamreactor.connect.hbase.RowKeyBuilderBytes
+import io.lenses.streamreactor.connect.hbase.StructFieldsExtractorBytes
+import io.lenses.streamreactor.connect.hbase.StructFieldsRowKeyBuilderBytes
 import org.apache.kafka.common.config.ConfigException
 
 import scala.jdk.CollectionConverters.ListHasAsScala

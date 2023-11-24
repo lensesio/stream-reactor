@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms.config
+package io.lenses.streamreactor.connect.jms.config
 
 import cats.implicits.catsSyntaxEitherId
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.JMSSinkMessageConverter
-import com.datamountaineer.streamreactor.connect.jms.source.converters.JMSSourceMessageConverter
+import io.lenses.streamreactor.connect.jms.sink.converters.JMSSinkMessageConverter
+import io.lenses.streamreactor.connect.jms.source.converters.JMSSourceMessageConverter
 
 /**
   * ConverterConfigWrapper holds the configured converter.  There are only 2 implementations, for source or Sink.  This ensures that only one converter can be configured at a given time for a KCQL row.

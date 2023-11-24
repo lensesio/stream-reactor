@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.pulsar.source
+package io.lenses.streamreactor.connect.pulsar.source
 
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarConfigConstants
-import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSourceConfig
-import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSourceSettings
+import io.lenses.streamreactor.common.schemas.ConverterUtil
+import io.lenses.streamreactor.connect.pulsar.config.PulsarConfigConstants
+import io.lenses.streamreactor.connect.pulsar.config.PulsarSourceConfig
+import io.lenses.streamreactor.connect.pulsar.config.PulsarSourceSettings
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.pulsar.client.api.Message
 import org.apache.pulsar.client.api.MessageId

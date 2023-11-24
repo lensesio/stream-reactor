@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.elastic6
+package io.lenses.streamreactor.connect.elastic6
 
 import com.sksamuel.elastic4s.http.ElasticClient
 import com.sksamuel.elastic4s.http.ElasticProperties

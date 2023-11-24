@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.jms.source
+package io.lenses.streamreactor.connect.jms.source
 
-import com.datamountaineer.streamreactor.connect.jms.TestBase
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
+import io.lenses.streamreactor.connect.jms.TestBase
+import io.lenses.streamreactor.connect.jms.config.JMSConfigConstants
 import org.scalatest.BeforeAndAfterAll
 
 import java.util.UUID

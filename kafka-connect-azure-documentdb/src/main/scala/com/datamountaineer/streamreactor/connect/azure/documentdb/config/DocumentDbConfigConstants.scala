@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.azure.documentdb.config
+package io.lenses.streamreactor.connect.azure.documentdb.config
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.CONSISTENCY_LEVEL_PROP_SUFFIX
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.DATABASE_PROP_SUFFIX
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.ERROR_POLICY_PROP_SUFFIX
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.KCQL_PROP_SUFFIX
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.MAX_RETRIES_PROP_SUFFIX
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.PROGRESS_ENABLED_CONST
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.RETRY_INTERVAL_PROP_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.CONSISTENCY_LEVEL_PROP_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.DATABASE_PROP_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.ERROR_POLICY_PROP_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.KCQL_PROP_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.MAX_RETRIES_PROP_SUFFIX
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.PROGRESS_ENABLED_CONST
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.RETRY_INTERVAL_PROP_SUFFIX
 
 /**
   * Holds the constants used in the config.

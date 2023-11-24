@@ -29,10 +29,10 @@
 // *  limitations under the License.
 // */
 //
-//package com.datamountaineer.streamreactor.common.converters.sink
+//package io.lenses.streamreactor.common.converters.sink
 //
-//import com.datamountaineer.streamreactor.common.converters.MsgKey
-//import com.datamountaineer.streamreactor.common.converters.sink.BytesConverter
+//import io.lenses.streamreactor.common.converters.MsgKey
+//import io.lenses.streamreactor.common.converters.sink.BytesConverter
 //import org.apache.kafka.connect.data.Schema
 //import org.apache.kafka.connect.sink.SinkRecord
 //import org.scalatest.matchers.should.Matchers

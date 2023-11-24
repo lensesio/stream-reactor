@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.cassandra.utils
+package io.lenses.streamreactor.connect.cassandra.utils
 
 import java.time.Instant
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode
+import io.lenses.streamreactor.connect.cassandra.config.BucketMode
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

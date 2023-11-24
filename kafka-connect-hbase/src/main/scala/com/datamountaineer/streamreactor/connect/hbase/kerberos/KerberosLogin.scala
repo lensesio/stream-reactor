@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hbase.kerberos
+package io.lenses.streamreactor.connect.hbase.kerberos
 
 import java.io.IOException
 import java.net.InetAddress
 import java.security.PrivilegedAction
 
-import com.datamountaineer.streamreactor.connect.hbase.kerberos.utils.AsyncFunctionLoop
+import io.lenses.streamreactor.connect.hbase.kerberos.utils.AsyncFunctionLoop
 import com.typesafe.scalalogging.StrictLogging
 import javax.security.auth.login.LoginContext
 import org.apache.hadoop.conf.Configuration

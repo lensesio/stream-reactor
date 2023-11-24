@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.hazelcast.writers
+package io.lenses.streamreactor.connect.hazelcast.writers
 
 import java.io.ByteArrayOutputStream
-import com.datamountaineer.kcql.FormatType
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
+import io.lenses.kcql.FormatType
+import io.lenses.streamreactor.common.schemas.ConverterUtil
+import io.lenses.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
 import com.fasterxml.jackson.databind.JsonNode
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord

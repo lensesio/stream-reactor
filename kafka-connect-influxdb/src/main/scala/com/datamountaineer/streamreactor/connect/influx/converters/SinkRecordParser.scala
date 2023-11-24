@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.influx.converters
+package io.lenses.streamreactor.connect.influx.converters
 
-import com.datamountaineer.streamreactor.connect.influx.helpers.Util
-import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails.Path
-import com.datamountaineer.streamreactor.connect.influx.writers.ValuesExtractor
+import io.lenses.streamreactor.connect.influx.helpers.Util
+import io.lenses.streamreactor.connect.influx.writers.KcqlDetails.Path
+import io.lenses.streamreactor.connect.influx.writers.ValuesExtractor
 import com.fasterxml.jackson.databind.JsonNode
-import com.landoop.json.sql.JacksonJson
+import io.lenses.json.sql.JacksonJson
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.ftp.source
+package io.lenses.streamreactor.connect.ftp.source
 
-import com.datamountaineer.streamreactor.connect.ftp.source.MonitorMode.MonitorMode
+import io.lenses.streamreactor.connect.ftp.source.MonitorMode.MonitorMode
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 import org.apache.kafka.common.config.AbstractConfig
@@ -42,7 +42,7 @@ object FtpProtocol extends Enumeration {
   val FTPS, FTP, SFTP = Value
 }
 
-import com.datamountaineer.streamreactor.connect.ftp.source.KeyStyle._
+import io.lenses.streamreactor.connect.ftp.source.KeyStyle._
 
 object FtpSourceConfig {
   val Address               = "connect.ftp.address"

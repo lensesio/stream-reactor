@@ -16,15 +16,15 @@
  *
  */
 
-package com.datamountaineer.streamreactor.connect.jms.source
+package io.lenses.streamreactor.connect.jms.source
 
-import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
-import com.datamountaineer.streamreactor.connect.fixtures.broker.testWithBrokerOnPort
-import com.datamountaineer.streamreactor.connect.jms.ItTestBase
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
-import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
-import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
+import io.lenses.streamreactor.connect.converters.source.AvroConverter
+import io.lenses.streamreactor.connect.fixtures.broker.testWithBrokerOnPort
+import io.lenses.streamreactor.connect.jms.ItTestBase
+import io.lenses.streamreactor.connect.jms.config.JMSConfig
+import io.lenses.streamreactor.connect.jms.config.JMSSettings
+import io.lenses.streamreactor.connect.jms.source.domain.JMSStructMessage
+import io.lenses.streamreactor.connect.jms.source.readers.JMSReader
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.BeforeAndAfterAll

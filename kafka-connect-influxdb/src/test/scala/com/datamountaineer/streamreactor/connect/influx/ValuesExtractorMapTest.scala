@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datamountaineer.streamreactor.connect.influx
+package io.lenses.streamreactor.connect.influx
 
-import com.datamountaineer.streamreactor.connect.influx.converters.InfluxPoint
-import com.datamountaineer.streamreactor.connect.influx.data.Foo
-import com.datamountaineer.streamreactor.connect.influx.data.FooInner
-import com.datamountaineer.streamreactor.connect.influx.writers.ValuesExtractor
+import io.lenses.streamreactor.connect.influx.converters.InfluxPoint
+import io.lenses.streamreactor.connect.influx.data.Foo
+import io.lenses.streamreactor.connect.influx.data.FooInner
+import io.lenses.streamreactor.connect.influx.writers.ValuesExtractor
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.Struct
