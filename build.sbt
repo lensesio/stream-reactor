@@ -24,10 +24,8 @@ lazy val subProjects: Seq[Project] = Seq(
   `gcp-storage`,
   hazelcast,
   hbase,
-  hive,
   influxdb,
   jms,
-  kudu,
   mongodb,
   mqtt,
   pulsar,
@@ -317,25 +315,6 @@ lazy val jms = (project in file("kafka-connect-jms"))
   .disableParallel()
   .enablePlugins(PackPlugin, ProtocPlugin)
 
-lazy val kudu = (project in file("kafka-connect-kudu"))
-  .dependsOn(common)
-  .settings(
-    settings ++
-      Seq(
-        name := "kafka-connect-kudu",
-        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= baseDeps ++ kafkaConnectKuduDeps,
-        publish / skip := true,
-        packExcludeJars := Seq(
-          "scala-.*\\.jar",
-          "zookeeper-.*\\.jar",
-        ),
-      ),
-  )
-  .configureAssembly(true)
-  .configureTests(baseTestDeps)
-  .enablePlugins(PackPlugin)
-
 lazy val mqtt = (project in file("kafka-connect-mqtt"))
   .dependsOn(common)
   .dependsOn(`test-common` % "fun->compile")
@@ -415,25 +394,6 @@ lazy val hbase = (project in file("kafka-connect-hbase"))
   )
   .configureAssembly(true)
   .configureTests(baseTestDeps)
-  .enablePlugins(PackPlugin)
-
-lazy val hive = (project in file("kafka-connect-hive"))
-  .dependsOn(common)
-  .settings(
-    settings ++
-      Seq(
-        name := "kafka-connect-hive",
-        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= baseDeps ++ kafkaConnectHiveDeps,
-        publish / skip := true,
-        packExcludeJars := Seq(
-          "scala-.*\\.jar",
-          "zookeeper-.*\\.jar",
-        ),
-      ),
-  )
-  .configureAssembly(true)
-  .configureTests(kafkaConnectHiveTestDeps)
   .enablePlugins(PackPlugin)
 
 lazy val mongodb = (project in file("kafka-connect-mongodb"))

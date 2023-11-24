@@ -129,8 +129,6 @@ object Dependencies {
     val googleProtobufVersion         = "3.21.12"
     val protobufCompilerPluginVersion = "0.11.12"
 
-    val kuduVersion = "1.16.0"
-
     val mqttVersion = "1.2.5"
 
     val pulsarVersion = "2.10.0"
@@ -157,7 +155,6 @@ object Dependencies {
     val hbaseClientVersion = "2.5.3"
 
     val nimbusJoseJwtVersion = "9.30.2"
-    val hiveVersion          = "3.1.3"
     val hadoopVersion        = "3.3.2"
 
     val junitVersion = "4.13.2"
@@ -392,8 +389,6 @@ object Dependencies {
   lazy val googleProtobufJava = "com.google.protobuf" % "protobuf-java" % googleProtobufVersion
   lazy val googleProtobuf     = "com.google.protobuf" % "protobuf-java" % googleProtobufVersion % "protobuf"
 
-  lazy val kuduClient = "org.apache.kudu" % "kudu-client" % kuduVersion
-
   lazy val mqttClient = "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % mqttVersion
 
   lazy val pulsar = ("org.apache.pulsar" % "pulsar-client-original" % pulsarVersion).excludeAll("org.apache.avro")
@@ -440,9 +435,6 @@ object Dependencies {
       .exclude("com.fasterxml.jackson.core", "jackson-annotations")
 
   lazy val nimbusJoseJwt = hiveExcludes("com.nimbusds" % "nimbus-jose-jwt" % nimbusJoseJwtVersion)
-  lazy val hiveJdbc      = hiveExcludes("org.apache.hive" % "hive-jdbc" % hiveVersion)
-  lazy val hiveMetastore = hiveExcludes("org.apache.hive" % "hive-metastore" % hiveVersion)
-  lazy val hiveExec      = hiveExcludes("org.apache.hive" % "hive-exec" % hiveVersion classifier "core")
   lazy val airCompressor = "io.airlift" % "aircompressor" % "0.24"
 
   // testcontainers module only
@@ -590,8 +582,6 @@ trait Dependencies {
     activeMqBroker,
   )
 
-  val kafkaConnectKuduDeps: Seq[ModuleID] = Seq(kuduClient)
-
   val kafkaConnectMqttDeps: Seq[ModuleID] = Seq(mqttClient, avro4s, avro4sJson) ++ bouncyCastle
 
   val kafkaConnectMqttTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainersScala, testContainersScalaToxiProxy)
@@ -633,34 +623,6 @@ trait Dependencies {
     hbaseClient,
     nimbusJoseJwt,
   )
-
-  val kafkaConnectHiveDeps: Seq[ModuleID] = Seq(
-    airCompressor,
-    nettyAll,
-    parquetAvro,
-    parquetColumn,
-    parquetEncoding,
-    parquetHadoop,
-    parquetHadoopBundle,
-    hiveJdbc,
-    hiveExec,
-    hadoopCommon,
-    hadoopAuth,
-    hadoopHdfs,
-    hadoopHdfsClient,
-    hadoopMapReduce,
-    hadoopMapReduceClient,
-    hadoopMapReduceClientCore,
-    hadoopClient,
-    hadoopDistCp,
-    hadoopMapreduceClientApp,
-    hadoopMapreduceClientCommon,
-    hadoopMapreduceClientJobClient,
-    hadoopMapreduceClientShuffle,
-    nimbusJoseJwt,
-  )
-
-  val kafkaConnectHiveTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainersScala)
 
   val kafkaConnectMongoDbDeps: Seq[ModuleID] = Seq(json4sJackson, json4sNative, mongoDb)
 
