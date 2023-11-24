@@ -22,7 +22,9 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.FileSize
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Interval
+import io.lenses.streamreactor.connect.cloud.common.sink.config
 import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings
+import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import org.mockito.MockitoSugar
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
@@ -32,7 +34,7 @@ import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matchers with EitherValues {
+class S3S3S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matchers with EitherValues {
 
   val PrefixName = "streamReactorBackups"
   val TopicName  = "myTopic"
@@ -46,7 +48,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
     )
 
-    val kcql = SinkConfigDefBuilder(props.asJava).getKCQL
+    val kcql = S3SinkConfigDefBuilder(props.asJava).getKCQL
     kcql should have size 1
 
     val element = kcql.head
@@ -63,7 +65,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
     )
 
-    SinkBucketOptions(SinkConfigDefBuilder(props.asJava)) match {
+    CloudSinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
       case Left(value)  => fail(value.toString)
       case Right(value) => value.map(_.dataStorage) should be(List(DataStorageSettings.Default))
     }
@@ -74,7 +76,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `JSON` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    SinkBucketOptions(SinkConfigDefBuilder(props.asJava)) match {
+    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
       case Left(value)  => fail(value.toString)
       case Right(value) => value.map(_.dataStorage) should be(List(DataStorageSettings.enabled))
     }
@@ -85,7 +87,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `PARQUET` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false)",
     )
 
-    SinkBucketOptions(SinkConfigDefBuilder(props.asJava)) match {
+    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false)))
@@ -114,7 +116,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
            |""".stripMargin,
     )
 
-    SinkBucketOptions(SinkConfigDefBuilder(props.asJava)) match {
+    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false),
@@ -129,7 +131,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     )
 
     val commitPolicy =
-      SinkConfigDefBuilder(props.asJava).commitPolicy(SinkConfigDefBuilder(props.asJava).getKCQL.head)
+      S3SinkConfigDefBuilder(props.asJava).commitPolicy(S3SinkConfigDefBuilder(props.asJava).getKCQL.head)
 
     commitPolicy.conditions should be(
       Seq(
@@ -147,7 +149,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     )
 
     val commitPolicy =
-      SinkConfigDefBuilder(props.asJava).commitPolicy(SinkConfigDefBuilder(props.asJava).getKCQL.head)
+      S3SinkConfigDefBuilder(props.asJava).commitPolicy(S3SinkConfigDefBuilder(props.asJava).getKCQL.head)
 
     commitPolicy.conditions should be(
       Seq(
@@ -163,7 +165,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     )
 
     val commitPolicy =
-      SinkConfigDefBuilder(props.asJava).commitPolicy(SinkConfigDefBuilder(props.asJava).getKCQL.head)
+      S3SinkConfigDefBuilder(props.asJava).commitPolicy(S3SinkConfigDefBuilder(props.asJava).getKCQL.head)
 
     commitPolicy.conditions should be(
       Seq(
@@ -179,7 +181,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName BATCH = 150 STOREAS `CSV` LIMIT 550",
     )
 
-    val kcql = SinkConfigDefBuilder(props.asJava).getKCQL
+    val kcql = S3SinkConfigDefBuilder(props.asJava).getKCQL
 
     kcql.head.getBatchSize should be(150)
     kcql.head.getLimit should be(550)
@@ -190,7 +192,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false)",
     )
 
-    SinkBucketOptions(SinkConfigDefBuilder(props.asJava)) match {
+    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(List(DataStorageSettings(envelope = true,
@@ -207,7 +209,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false)",
     )
 
-    SinkBucketOptions(SinkConfigDefBuilder(props.asJava)) match {
+    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(List(DataStorageSettings(envelope = true,
@@ -224,7 +226,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES_VALUEONLY` WITH_FLUSH_COUNT = 1",
     )
 
-    SinkBucketOptions(SinkConfigDefBuilder(props.asJava)).left.value.getMessage should startWith(
+    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)).left.value.getMessage should startWith(
       "Unsupported format - BYTES_VALUEONLY.  Please note",
     )
   }
@@ -234,7 +236,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES` WITH_FLUSH_COUNT = 3",
     )
 
-    SinkBucketOptions(SinkConfigDefBuilder(props.asJava)).left.value.getMessage should startWith(
+    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)).left.value.getMessage should startWith(
       "FLUSH_COUNT > 1 is not allowed for BYTES",
     )
   }

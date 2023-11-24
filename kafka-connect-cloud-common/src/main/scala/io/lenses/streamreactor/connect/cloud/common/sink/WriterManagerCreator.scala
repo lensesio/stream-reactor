@@ -13,13 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.sink
+package io.lenses.streamreactor.connect.cloud.common.sink
 
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
-import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.formats
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
@@ -27,28 +24,29 @@ import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
-import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
-import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
+import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.transformers.TopicsTransformers
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 
 import java.io.File
 import scala.collection.immutable
 
-object S3WriterManagerCreator extends LazyLogging {
+class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig] extends LazyLogging {
 
   def from(
-    config: S3SinkConfig,
+    config: SC,
   )(
     implicit
     connectorTaskId:  ConnectorTaskId,
-    storageInterface: StorageInterface[S3FileMetadata],
-  ): WriterManager[S3FileMetadata] = {
+    storageInterface: StorageInterface[MD],
+  ): WriterManager[MD] = {
 
     val bucketAndPrefixFn: TopicPartition => Either[SinkError, CloudLocation] = topicPartition => {
       bucketOptsForTopic(config, topicPartition.topic) match {
@@ -130,12 +128,12 @@ object S3WriterManagerCreator extends LazyLogging {
     )
   }
 
-  private def bucketOptsForTopic(config: S3SinkConfig, topic: Topic): Option[SinkBucketOptions] =
+  private def bucketOptsForTopic(config: CloudSinkConfig, topic: Topic): Option[CloudSinkBucketOptions] =
     config.bucketOptions.find(bo => bo.sourceTopic.isEmpty || bo.sourceTopic.contains(topic.value))
 
   private def fatalErrorTopicNotConfigured(topicPartition: TopicPartition): SinkError =
     FatalCloudSinkError(
-      s"Can't find the KCQL for source topic [${topicPartition.topic}]. The topics defined via [topics] or [topics.regex] need to have an equivalent KCQL statement: INSERT INTO {S3_BUCKET} SELECT * FROM {TOPIC}.",
+      s"Can't find the KCQL for source topic [${topicPartition.topic}]. The topics defined via [topics] or [topics.regex] need to have an equivalent KCQL statement: INSERT INTO {DESTINATION} SELECT * FROM {TOPIC}.",
       topicPartition,
     )
 }

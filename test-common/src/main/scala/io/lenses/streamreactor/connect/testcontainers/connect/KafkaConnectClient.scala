@@ -1,6 +1,22 @@
+/*
+ * Copyright 2017-2023 Lenses.io Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.lenses.streamreactor.connect.testcontainers.connect
 
-import cats.effect.{IO, Resource}
+import cats.effect.IO
+import cats.effect.Resource
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer
 import io.lenses.streamreactor.connect.testcontainers.connect.KafkaConnectClient.ConnectorStatus
@@ -30,10 +46,10 @@ class KafkaConnectClient(kafkaConnectContainer: KafkaConnectContainer) extends S
   }
 
   def registerConnector(
-                         connector: ConnectorConfiguration,
-                         timeoutSeconds:         Long = 10L,
-                       ): Unit = {
-    val httpPost  = HttpRequest.newBuilder()
+    connector:      ConnectorConfiguration,
+    timeoutSeconds: Long = 10L,
+  ): Unit = {
+    val httpPost = HttpRequest.newBuilder()
       .POST(HttpRequest.BodyPublishers.ofString(connector.toJson()))
       .uri(URI.create(s"${kafkaConnectContainer.hostNetwork.restEndpointUrl}/connectors"))
       .header("Accept", "application/json")
@@ -60,7 +76,7 @@ class KafkaConnectClient(kafkaConnectContainer: KafkaConnectContainer) extends S
   }
 
   def getConnectorStatus(connectorName: String): ConnectorStatus = {
-    val httpGet  = HttpRequest.newBuilder()
+    val httpGet = HttpRequest.newBuilder()
       .GET()
       .uri(URI.create(s"${kafkaConnectContainer.hostNetwork.restEndpointUrl}/connectors/$connectorName/status"))
       .header("Accept", "application/json")
@@ -72,7 +88,7 @@ class KafkaConnectClient(kafkaConnectContainer: KafkaConnectContainer) extends S
   }
 
   def isConnectorConfigured(connectorName: String): Boolean = {
-    val httpGet  = HttpRequest.newBuilder()
+    val httpGet = HttpRequest.newBuilder()
       .uri(URI.create(s"${kafkaConnectContainer.hostNetwork.restEndpointUrl}/connectors/$connectorName"))
       .header("Accept", "application/json")
       .GET()
@@ -83,7 +99,7 @@ class KafkaConnectClient(kafkaConnectContainer: KafkaConnectContainer) extends S
     response.statusCode() == 200
   }
 
-  def awaitConnectorInRunningState(connectorName: String, timeoutSeconds: Long = 10L): Unit = {
+  def awaitConnectorInRunningState(connectorName: String, timeoutSeconds: Long = 10L): Unit =
     await().atMost(timeoutSeconds, TimeUnit.SECONDS).until { () =>
       try {
         val connectorState: String =
@@ -94,7 +110,6 @@ class KafkaConnectClient(kafkaConnectContainer: KafkaConnectContainer) extends S
         case _: Throwable => false
       }
     }
-  }
 
   private def checkRequestSuccessful(response: HttpResponse[String]): Unit =
     if (!isSuccess(response.statusCode())) {
@@ -133,12 +148,12 @@ object KafkaConnectClient {
   )
 
   def createConnector(
-                             connectorConfig: ConnectorConfiguration,
-                             timeoutSeconds: Long = 10L,
-                           )(
-                             implicit
-                             kafkaConnectClient: KafkaConnectClient,
-                           ): Resource[IO, String] =
+    connectorConfig: ConnectorConfiguration,
+    timeoutSeconds:  Long = 10L,
+  )(
+    implicit
+    kafkaConnectClient: KafkaConnectClient,
+  ): Resource[IO, String] =
     Resource.make(
       IO {
         val connectorName = connectorConfig.name

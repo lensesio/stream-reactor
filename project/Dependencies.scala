@@ -539,6 +539,8 @@ trait Dependencies {
     //guiceAssistedInject,
   )
 
+  val compressionCodecDeps: Seq[ModuleID] = Seq(xz, lzo, lz4)
+
   val kafkaConnectAzureDatalakeDeps: Seq[ModuleID] = Seq(
     azureDataLakeSdk,
     azureIdentity,
@@ -548,7 +550,8 @@ trait Dependencies {
     gcpStorageSdk,
   )
 
-  val compressionCodecDeps: Seq[ModuleID] = Seq(xz, lzo, lz4)
+  val kafkaConnectGcpStorageTestDeps: Seq[ModuleID] =
+    baseTestDeps ++ kafkaConnectGcpStorageDeps ++ compressionCodecDeps :+ testcontainersCore
 
   val kafkaConnectS3TestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ testcontainersCore
 

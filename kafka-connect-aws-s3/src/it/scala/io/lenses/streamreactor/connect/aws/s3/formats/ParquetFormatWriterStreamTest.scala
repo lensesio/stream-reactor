@@ -17,8 +17,8 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.firstUsers
-import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.users
+import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData.firstUsers
+import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData.users
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.checkRecord
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic

@@ -8,6 +8,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.source.S3SourceTaskTest.formats
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourcePartitionSearcherSettingsKeys
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
+import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.Format
@@ -311,7 +312,7 @@ class S3SourceTaskTest
     }
   }
 
-  override def setUpTestData(): Unit = {
+  override def setUpTestData(storageInterface: AwsS3StorageInterface): Either[Throwable, Unit] = {
     if (bucketSetupOpt.isEmpty) {
       bucketSetupOpt = Some(new BucketSetup()(storageInterface))
     }
@@ -320,7 +321,7 @@ class S3SourceTaskTest
         bucketSetup.setUpBucketData(BucketName, format, formatOptions, dir)
     }
 
-    bucketSetup.setUpBucketData(BucketName, Bytes, Option.empty, "bytesval")
+    bucketSetup.setUpBucketData(BucketName, Bytes, Option.empty, "bytesval").asRight
   }
 
   private def withCleanup[T](cleanup: => Unit)(fn: => T): Unit =

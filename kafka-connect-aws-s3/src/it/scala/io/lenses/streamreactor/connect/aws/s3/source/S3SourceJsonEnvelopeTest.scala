@@ -1,6 +1,8 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
+import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourcePartitionSearcherSettingsKeys
+import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import org.apache.kafka.connect.source.SourceRecord
@@ -31,7 +33,7 @@ class S3SourceJsonEnvelopeTest
 
   override def cleanUp(): Unit = ()
 
-  override def setUpTestData(): Unit = {
+  override def setUpTestData(storageInterface: AwsS3StorageInterface): Either[Throwable, Unit] = {
     val envelopeJson =
       """{"key":{"id":"1"},"value":{"id":"1","name":"John Smith","email":"js@johnsmith.com","card":"1234567890","ip":"192.168.0.2","country":"UK","currency":"GBP","timestamp":"2020-01-01T00:00:00.000Z"},"headers":{"header1":"value1","header2":123456789},"metadata":{"timestamp":1234567890,"topic":"myTopic","partition":3,"offset":0}}""".stripMargin
     val file = new java.io.File("00001.json")
@@ -42,7 +44,7 @@ class S3SourceJsonEnvelopeTest
       bw.flush()
       bw.close()
       storageInterface.uploadFile(UploadableFile(file), BucketName, s"$MyPrefix/json/0")
-      ()
+      ().asRight
     } finally {
       file.delete()
       ()

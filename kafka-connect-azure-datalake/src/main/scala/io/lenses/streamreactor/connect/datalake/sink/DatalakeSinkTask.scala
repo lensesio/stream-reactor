@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.datalake.sink
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
+import io.lenses.streamreactor.connect.cloud.common.sink.WriterManagerCreator
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.datalake.auth.DatalakeClientCreator
 import io.lenses.streamreactor.connect.datalake.config.AzureConfig
@@ -39,13 +40,15 @@ class DatalakeSinkTask
       DatalakeLocationValidator,
     ) {
 
+  private val writerManagerCreator = new WriterManagerCreator[DatalakeFileMetadata, DatalakeSinkConfig]()
+
   def createWriterMan(props: Map[String, String]): Either[Throwable, WriterManager[DatalakeFileMetadata]] =
     for {
       config          <- DatalakeSinkConfig.fromProps(props.asJava)
       s3Client        <- DatalakeClientCreator.make(config.s3Config)
       storageInterface = new DatalakeStorageInterface(connectorTaskId, s3Client)
       _               <- Try(setErrorRetryInterval(config.s3Config)).toEither
-      writerManager   <- Try(DatalakeWriterManagerCreator.from(config)(connectorTaskId, storageInterface)).toEither
+      writerManager   <- Try(writerManagerCreator.from(config)(connectorTaskId, storageInterface)).toEither
       _ <- Try(initialize(
         config.s3Config.connectorRetryConfig.numberOfRetries,
         config.s3Config.errorPolicy,

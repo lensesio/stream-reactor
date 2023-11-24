@@ -19,10 +19,9 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
-import io.lenses.streamreactor.connect.aws.s3.sink.config.OffsetSeekerOptions
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
-import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.utils.ITSampleSchemaAndData.firstUsers
+import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
+import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
@@ -36,9 +35,12 @@ import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.sink.WriterManagerCreator
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
+import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingArea
+import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.Values
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionSelection.defaultPartitionSelection
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.LeftPadPaddingStrategy
@@ -56,6 +58,8 @@ import org.scalatest.matchers.should.Matchers
 
 class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
+  private val writerManagerCreator = new WriterManagerCreator[S3FileMetadata, S3SinkConfig]()
+
   private val compressionCodec = UNCOMPRESSED.toCodec()
 
   private val TopicName        = "myTopic"
@@ -67,12 +71,12 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   private def avroConfig = S3SinkConfig(
     S3Config(
       None,
-      Some(container.identity.identity),
-      Some(container.identity.credential),
+      Some(s3Container.identity.identity),
+      Some(s3Container.identity.credential),
       AuthMode.Credentials,
     ),
     bucketOptions = Seq(
-      SinkBucketOptions(
+      CloudSinkBucketOptions(
         TopicName.some,
         bucketAndPrefix,
         commitPolicy    = CommitPolicy(Count(2)),
@@ -100,7 +104,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   )
 
   "avro sink" should "write 2 records to avro format in s3" in {
-    val sink = S3WriterManagerCreator.from(avroConfig)
+    val sink = writerManagerCreator.from(avroConfig)
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         val writeRes = sink.write(
@@ -144,7 +148,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       new Struct(secondSchema).put("name", "coco").put("designation", null).put("salary", 395.44),
     )
 
-    val sink = S3WriterManagerCreator.from(avroConfig)
+    val sink = writerManagerCreator.from(avroConfig)
     firstUsers.concat(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
         sink.write(

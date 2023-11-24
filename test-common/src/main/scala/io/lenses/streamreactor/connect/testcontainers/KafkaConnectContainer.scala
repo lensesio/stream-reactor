@@ -1,9 +1,26 @@
+/*
+ * Copyright 2017-2023 Lenses.io Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.lenses.streamreactor.connect.testcontainers
 
 import com.github.dockerjava.api.model.Ulimit
 import io.lenses.streamreactor.connect.testcontainers.KafkaVersions.ConfluentVersion
-import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer.{defaultNetworkAlias, defaultRestPort}
-import org.testcontainers.containers.{GenericContainer, KafkaContainer}
+import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer.defaultNetworkAlias
+import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer.defaultRestPort
+import org.testcontainers.containers.GenericContainer
+import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
 
@@ -73,21 +90,21 @@ class KafkaConnectContainer(
   }
 
   def installPackage(pkg: String): ExecResult =
-    rootExecInContainer(container = this, commands = Seq(s"microdnf","install",pkg))
+    rootExecInContainer(container = this, commands = Seq(s"microdnf", "install", pkg))
 }
 object KafkaConnectContainer {
-  private val dockerImage = DockerImageName.parse("confluentinc/cp-kafka-connect")
+  private val dockerImage         = DockerImageName.parse("confluentinc/cp-kafka-connect")
   private val defaultNetworkAlias = "connect"
   private val defaultRestPort     = 8083
 
   def apply(
-             confluentPlatformVersion: String                          = ConfluentVersion,
-             networkAlias:             String                          = defaultNetworkAlias,
-             restPort:                 Int                             = defaultRestPort,
-             connectPluginPath:        Option[String]                  = None,
-             kafkaContainer:           KafkaContainer,
-             schemaRegistryContainer:  Option[SchemaRegistryContainer] = None,
-             providedJars:             Seq[String]                     = Seq.empty,
+    confluentPlatformVersion: String                          = ConfluentVersion,
+    networkAlias:             String                          = defaultNetworkAlias,
+    restPort:                 Int                             = defaultRestPort,
+    connectPluginPath:        Option[String]                  = None,
+    kafkaContainer:           KafkaContainer,
+    schemaRegistryContainer:  Option[SchemaRegistryContainer] = None,
+    providedJars:             Seq[String]                     = Seq.empty,
   ): KafkaConnectContainer =
     new KafkaConnectContainer(dockerImage.withTag(confluentPlatformVersion).toString,
                               networkAlias,

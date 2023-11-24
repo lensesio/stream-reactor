@@ -16,17 +16,12 @@
 package io.lenses.streamreactor.connect.datalake.sink.config
 
 import cats.implicits.catsSyntaxEitherId
-import com.datamountaineer.streamreactor.common.config.base.traits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings
 import io.lenses.streamreactor.connect.cloud.common.config.processors.ConfigDefProcessor
 import io.lenses.streamreactor.connect.cloud.common.config.processors.LowerCaseKeyConfigDefProcessor
 import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushConfigKeys
-import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
-import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaSettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
-import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategySettings
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings._
 import io.lenses.streamreactor.connect.datalake.config._
 import org.apache.kafka.common.config.ConfigDef
@@ -102,22 +97,5 @@ class DatalakeSinkConfigDef() extends ConfigDef with LazyLogging {
     }
     remappedProps.asRight
   }
-
-}
-
-case class SinkConfigDefBuilder(props: util.Map[String, String])
-    extends BaseConfig(AzureConfigSettings.CONNECTOR_PREFIX, DatalakeSinkConfigDef.config, props)
-    with KcqlSettings
-    with ErrorPolicySettings
-    with NumberRetriesSettings
-    with UserSettings
-    with ConnectionSettings
-    with FlushSettings
-    with CompressionCodecSettings
-    with PaddingStrategySettings
-    with LocalStagingAreaSettings
-    with AuthModeSettings {
-
-  def getParsedValues: Map[String, _] = values().asScala.toMap
 
 }
