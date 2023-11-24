@@ -47,10 +47,7 @@ The following connectors have been deprecated and are no longer included in futu
 | FTP/HTTP        | Source | Copy data from FTP/HTTP to Kafka.                           | [Docs](https://docs.lenses.io/5.2/connectors/sources/ftpsourceconnector/)                            |
 | Hazelcast       | Sink   | Copy data from Kafka to Hazelcast.                          | [Docs](https://docs.lenses.io/connectors/sink/hazelcast.html)                                        |
 | HBase           | Sink   | Copy data from Kafka to HBase.                              | [Docs](https://docs.lenses.io/connectors/sink/hbase.html)                                            |
-| Hive            | Source | Copy data from Hive/HDFS to Kafka.                          | [Docs](https://docs.lenses.io/connectors/source/hive.html)                                           |
-| Hive            | Sink   | Copy data from Kafka to Hive/HDFS                           | [Docs](https://docs.lenses.io/connectors/sink/hive.html)                                             |
 | InfluxDb        | Sink   | Copy data from Kafka to InfluxDb.                           | [Docs](https://docs.lenses.io/4.0/integrations/connectors/stream-reactor/sinks/influxsinkconnector/) |
-| Kudu            | Sink   | Copy data from Kafka to Kudu.                               | [Docs](https://docs.lenses.io/connectors/sink/kudu.html)                                             |
 | JMS             | Source | Copy data from JMS topics/queues to Kafka.                  | [Docs](https://docs.lenses.io/connectors/source/jms.html)                                            |
 | JMS             | Sink   | Copy data from Kafka to JMS.                                | [Docs](https://docs.lenses.io/connectors/sink/jms.html)                                              |
 | MongoDB         | Sink   | Copy data from Kafka to MongoDB.                            | [Docs](https://docs.lenses.io/connectors/sink/mongo.html)                                            |
