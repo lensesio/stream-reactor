@@ -131,8 +131,6 @@ object Dependencies {
 
     val mqttVersion = "1.2.5"
 
-    val pulsarVersion = "2.10.0"
-
     val httpClientVersion       = "4.5.14"
     val commonsBeanUtilsVersion = "1.9.4"
     val commonsNetVersion       = "3.9.0"
@@ -151,8 +149,6 @@ object Dependencies {
 
     val jedisVersion = "4.3.1"
     val gsonVersion  = "2.10.1"
-
-    val hbaseClientVersion = "2.5.3"
 
     val nimbusJoseJwtVersion = "9.30.2"
     val hadoopVersion        = "3.3.2"
@@ -391,8 +387,6 @@ object Dependencies {
 
   lazy val mqttClient = "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % mqttVersion
 
-  lazy val pulsar = ("org.apache.pulsar" % "pulsar-client-original" % pulsarVersion).excludeAll("org.apache.avro")
-
   lazy val httpClient       = "org.apache.httpcomponents" % "httpclient"              % httpClientVersion
   lazy val commonsBeanUtils = "commons-beanutils"         % "commons-beanutils"       % commonsBeanUtilsVersion
   lazy val commonsNet       = "commons-net"               % "commons-net"             % commonsNetVersion
@@ -403,12 +397,6 @@ object Dependencies {
   lazy val betterFiles      = "com.github.pathikrit"     %% "better-files"            % betterFilesVersion
   lazy val ftpServer        = "org.apache.ftpserver"      % "ftpserver-core"          % ftpServerVersion
   lazy val fakeSftpServer   = "com.github.stefanbirkner"  % "fake-sftp-server-lambda" % fakeSftpServerVersion
-
-  lazy val hbaseClient = ("org.apache.hbase" % "hbase-client" % hbaseClientVersion)
-    .excludeAll(ExclusionRule(organization = "org.apache.hadoop"))
-    .excludeAll(ExclusionRule(organization = "org.mortbay.jetty"))
-    .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
-    .excludeAll(ExclusionRule(organization = "io.netty"))
 
   lazy val zookeeperServer = "org.apache.zookeeper" % "zookeeper" % zookeeperServerVersion
 
@@ -428,7 +416,6 @@ object Dependencies {
       .excludeAll(ExclusionRule(organization = "org.apache.calcite"))
       .excludeAll(ExclusionRule(organization = "org.apache.parquet"))
       .excludeAll(ExclusionRule(organization = "org.apache.calcite.avatica"))
-      .excludeAll(ExclusionRule(organization = "org.apache.hbase"))
       .excludeAll(ExclusionRule(organization = "org.apache.hadoop"))
       .excludeAll(ExclusionRule(organization = "io.netty"))
       .excludeAll(ExclusionRule(organization = "com.nibusds"))
@@ -586,8 +573,6 @@ trait Dependencies {
 
   val kafkaConnectMqttTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(testContainersScala, testContainersScalaToxiProxy)
 
-  val kafkaConnectPulsarDeps: Seq[ModuleID] = Seq(pulsar, avro4s, avro4sJson, avro, avroProtobuf)
-
   def elasticCommonDeps(v: ElasticVersions): Seq[ModuleID] = Seq(
     elastic4sCore(v.elastic4sVersion),
     jna(v.jnaVersion),
@@ -614,15 +599,6 @@ trait Dependencies {
   val kafkaConnectFtpDeps: Seq[ModuleID] = Seq(commonsNet, commonsCodec, commonsIO, jsch)
 
   val kafkaConnectFtpTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(mina, betterFiles, ftpServer, fakeSftpServer)
-
-  val kafkaConnectHbaseDeps: Seq[ModuleID] = Seq(
-    nettyAll,
-    hadoopCommon,
-    hadoopHdfs,
-    hadoopHdfsClient,
-    hbaseClient,
-    nimbusJoseJwt,
-  )
 
   val kafkaConnectMongoDbDeps: Seq[ModuleID] = Seq(json4sJackson, json4sNative, mongoDb)
 
