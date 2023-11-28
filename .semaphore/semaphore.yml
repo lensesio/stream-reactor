@@ -39,7 +39,7 @@ blocks:
       jobs:
         - name: Test
           commands:
-            - mvn "-Dcloud" -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean verify install dependency:analyze validate
+            - mvn -Dcloud -Pjenkins -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode --no-transfer-progress clean verify install dependency:analyze validate
             - . cve-scan
             - . cache-maven store
       epilogue:
@@ -58,7 +58,7 @@ blocks:
           commands:
             - git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
             - git fetch --unshallow || true
-            - mvn "-Dcloud" -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode -Pjenkins -DaltDeploymentRepository=confluent-codeartifact-internal::default::https://confluent-519856050701.d.codeartifact.us-west-2.amazonaws.com/maven/maven-snapshots/
+            - mvn -Dcloud -Pjenkins -U -Dmaven.wagon.http.retryHandler.count=10 --batch-mode -DaltDeploymentRepository=confluent-codeartifact-internal::default::https://confluent-519856050701.d.codeartifact.us-west-2.amazonaws.com/maven/maven-snapshots/
               -DrepositoryId=confluent-codeartifact-internal deploy -DskipTests
 
 
