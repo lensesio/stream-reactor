@@ -30,7 +30,9 @@ A collection of components to build a real time ingestion pipeline.
 The following connectors have been deprecated and are no longer included in future releases:
 
 * Kudu
+* HBase
 * Hive
+* Pulsar
 
 ### Connectors
 
@@ -46,15 +48,12 @@ The following connectors have been deprecated and are no longer included in futu
 | Elastic 6       | Sink   | Copy data from Kafka to Elastic Search 6.x w. tcp or http   | [Docs](https://docs.lenses.io/connectors/sink/elastic6.html)                                         |
 | FTP/HTTP        | Source | Copy data from FTP/HTTP to Kafka.                           | [Docs](https://docs.lenses.io/5.2/connectors/sources/ftpsourceconnector/)                            |
 | Hazelcast       | Sink   | Copy data from Kafka to Hazelcast.                          | [Docs](https://docs.lenses.io/connectors/sink/hazelcast.html)                                        |
-| HBase           | Sink   | Copy data from Kafka to HBase.                              | [Docs](https://docs.lenses.io/connectors/sink/hbase.html)                                            |
 | InfluxDb        | Sink   | Copy data from Kafka to InfluxDb.                           | [Docs](https://docs.lenses.io/4.0/integrations/connectors/stream-reactor/sinks/influxsinkconnector/) |
 | JMS             | Source | Copy data from JMS topics/queues to Kafka.                  | [Docs](https://docs.lenses.io/connectors/source/jms.html)                                            |
 | JMS             | Sink   | Copy data from Kafka to JMS.                                | [Docs](https://docs.lenses.io/connectors/sink/jms.html)                                              |
 | MongoDB         | Sink   | Copy data from Kafka to MongoDB.                            | [Docs](https://docs.lenses.io/connectors/sink/mongo.html)                                            |
 | MQTT            | Source | Copy data from MQTT to Kafka.                               | [Docs](https://docs.lenses.io/connectors/source/mqtt.html)                                           |
 | MQTT            | Sink   | Copy data from Kafka to MQTT.                               | [Docs](https://docs.lenses.io/connectors/sink/mqtt.html)                                             |
-| Pulsar          | Source | Copy data from Pulsar to Kafka.                             | [Docs](https://docs.lenses.io/connectors/source/pulsar.html)                                         |
-| Pulsar          | Sink   | Copy data from Kafka to Pulsar.                             | [Docs](https://docs.lenses.io/connectors/sink/pulsar.html)                                           |
 | Redis           | Sink   | Copy data from Kafka to Redis.                              | [Docs](https://docs.lenses.io/connectors/sink/redis.html)                                            |
 
 ## Release Notes

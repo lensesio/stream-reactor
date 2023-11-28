@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.config
 
-import com.datamountaineer.kcql.Kcql
+import io.lenses.kcql.Kcql
 
 import java.time.format.DateTimeFormatter
 import java.util.TimeZone

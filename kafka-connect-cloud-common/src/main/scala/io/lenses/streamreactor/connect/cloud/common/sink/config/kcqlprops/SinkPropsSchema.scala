@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops
 
-import com.datamountaineer.kcql.Kcql
+import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingType

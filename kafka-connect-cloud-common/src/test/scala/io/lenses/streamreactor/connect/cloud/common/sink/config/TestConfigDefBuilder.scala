@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.config
 
-import com.datamountaineer.streamreactor.common.config.base.traits.BaseConfig
+import io.lenses.streamreactor.common.config.base.traits.BaseConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategySettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys

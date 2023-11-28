@@ -23,7 +23,6 @@
         </encoder>
     </appender>
     <logger name="io.lenses" level="INFO"/>
-    <logger name="com.datamountaineer" level="INFO"/>
     <logger name="org.apache.kafka.connect.json.JsonConverterConfig" level="WARN"/>
     <root level="INFO">
         <appender-ref ref="stdout"/>

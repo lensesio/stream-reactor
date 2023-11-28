@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
-import com.datamountaineer.kcql.Kcql
+import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum

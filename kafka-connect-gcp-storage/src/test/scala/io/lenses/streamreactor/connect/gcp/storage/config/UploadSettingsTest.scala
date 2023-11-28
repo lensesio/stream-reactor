@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.config
 
-import com.datamountaineer.streamreactor.common.config.base.traits.BaseSettings
+import io.lenses.streamreactor.common.config.base.traits.BaseSettings
 import org.apache.kafka.common.config.types.Password
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers

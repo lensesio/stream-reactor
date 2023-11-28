@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.config.padding
 
-import com.datamountaineer.streamreactor.common.config.base.traits.BaseSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.WithConnectorPrefix
+import io.lenses.streamreactor.common.config.base.traits.BaseSettings
+import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
 import PaddingService.DefaultPadChar
 import PaddingService.DefaultPadLength
 import org.apache.kafka.common.config.ConfigDef

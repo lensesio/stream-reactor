@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import cats.implicits.toTraverseOps
-import com.datamountaineer.kcql.Kcql
+import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_ORDERING_TYPE
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SOURCE_PARTITION_EXTRACTOR_REGEX

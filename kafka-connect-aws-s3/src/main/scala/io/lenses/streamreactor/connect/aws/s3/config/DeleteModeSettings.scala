@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import com.datamountaineer.streamreactor.common.config.base.traits.BaseSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.WithConnectorPrefix
+import io.lenses.streamreactor.common.config.base.traits.BaseSettings
+import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
 import enumeratum.Enum
 import enumeratum.EnumEntry
 

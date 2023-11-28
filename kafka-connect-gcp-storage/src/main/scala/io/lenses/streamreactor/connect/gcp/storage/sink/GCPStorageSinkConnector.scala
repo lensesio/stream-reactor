@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.sink
 
-import com.datamountaineer.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.TaskDistributor
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings

@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.datalake.sink
 
-import com.datamountaineer.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings
 import io.lenses.streamreactor.connect.datalake.sink.config.DatalakeSinkConfigDef

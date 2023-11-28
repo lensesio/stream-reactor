@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.sink.config
 
-import com.datamountaineer.streamreactor.common.config.base.traits._
+import io.lenses.streamreactor.common.config.base.traits._
 import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfigDefBuilder
 import io.lenses.streamreactor.connect.gcp.storage.config.AuthModeSettings

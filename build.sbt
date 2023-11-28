@@ -23,12 +23,10 @@ lazy val subProjects: Seq[Project] = Seq(
   ftp,
   `gcp-storage`,
   hazelcast,
-  hbase,
   influxdb,
   jms,
   mongodb,
   mqtt,
-  pulsar,
   redis,
 )
 
@@ -338,25 +336,6 @@ lazy val mqtt = (project in file("kafka-connect-mqtt"))
   .disableParallel()
   .enablePlugins(PackPlugin)
 
-lazy val pulsar = (project in file("kafka-connect-pulsar"))
-  .dependsOn(common)
-  .settings(
-    settings ++
-      Seq(
-        name := "kafka-connect-pulsar",
-        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= baseDeps ++ kafkaConnectPulsarDeps,
-        publish / skip := true,
-        packExcludeJars := Seq(
-          "scala-.*\\.jar",
-          "zookeeper-.*\\.jar",
-        ),
-      ),
-  )
-  .configureAssembly(true)
-  .configureTests(baseTestDeps)
-  .enablePlugins(PackPlugin)
-
 lazy val ftp = (project in file("kafka-connect-ftp"))
   .dependsOn(common)
   .settings(
@@ -375,25 +354,6 @@ lazy val ftp = (project in file("kafka-connect-ftp"))
   .configureAssembly(true)
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectFtpTestDeps)
-  .enablePlugins(PackPlugin)
-
-lazy val hbase = (project in file("kafka-connect-hbase"))
-  .dependsOn(common)
-  .settings(
-    settings ++
-      Seq(
-        name := "kafka-connect-hbase",
-        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= baseDeps ++ kafkaConnectHbaseDeps,
-        publish / skip := true,
-        packExcludeJars := Seq(
-          "scala-.*\\.jar",
-          "zookeeper-.*\\.jar",
-        ),
-      ),
-  )
-  .configureAssembly(true)
-  .configureTests(baseTestDeps)
   .enablePlugins(PackPlugin)
 
 lazy val mongodb = (project in file("kafka-connect-mongodb"))

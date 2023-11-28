@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.cloud.common.config
 
 import cats.implicits.catsSyntaxEitherId
-import com.datamountaineer.kcql.Kcql
+import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.connect.cloud.common.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum

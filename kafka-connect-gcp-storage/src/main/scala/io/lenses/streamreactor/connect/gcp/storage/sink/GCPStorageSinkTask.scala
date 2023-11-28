@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.sink
 
-import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
-import com.datamountaineer.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.errors.RetryErrorPolicy
+import io.lenses.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.sink.WriterManagerCreator
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager

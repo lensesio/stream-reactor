@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.cloud.common.config
 
 import cats.Show
 import cats.implicits.toBifunctorOps
-import com.datamountaineer.streamreactor.common.config.base.traits.WithConnectorPrefix
+import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
 import io.lenses.streamreactor.connect.cloud.common.source.config.distribution.PartitionHasher
 
 import java.util

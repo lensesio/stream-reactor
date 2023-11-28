@@ -1,5 +1,5 @@
 {
-    "namespace": "com.datamountaineer.streamreactor.connect",
+    "namespace": "io.lenses.streamreactor.connect",
     "type": "record",
     "name": "Test",
     "fields": [

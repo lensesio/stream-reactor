@@ -15,9 +15,9 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.config
 
-import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.common.config.base.traits.BaseSettings
-import com.datamountaineer.streamreactor.common.config.base.traits.WithConnectorPrefix
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.config.base.traits.BaseSettings
+import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicyCondition
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count

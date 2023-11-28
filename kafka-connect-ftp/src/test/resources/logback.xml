@@ -21,8 +21,8 @@
             <pattern>%d{ISO8601} %-5p [%t] [%c] [%M:%L] %m%n</pattern>
         </encoder>
     </appender>
-    <logger name="com.datamountaineer.streamreactor.connect.ftp.source" level="DEBUG"/>
-    <logger name="com.datamountaineer.streamreactor.connect.ftp.source.ConnectFileMetaDataStore" level="INFO"/>
+    <logger name="io.lenses.streamreactor.connect.ftp.source" level="DEBUG"/>
+    <logger name="io.lenses.streamreactor.connect.ftp.source.ConnectFileMetaDataStore" level="INFO"/>
     <logger name="com.jcabi.manifests" level="ERROR"/>
     <logger name="org.apache.ftpserver.listener.nio.FtpLoggingFilter" level="WARN"/>
     <root level="INFO">

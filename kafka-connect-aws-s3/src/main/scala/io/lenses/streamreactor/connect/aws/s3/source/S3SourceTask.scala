@@ -20,8 +20,8 @@ import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxOptionId
-import com.datamountaineer.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import com.datamountaineer.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceState

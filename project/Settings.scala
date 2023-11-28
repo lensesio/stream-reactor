@@ -297,7 +297,7 @@ object Settings extends Dependencies {
         .enablePlugins(Antlr4Plugin)
         .settings(
           settings ++ Seq(
-            Antlr4 / antlr4PackageName := Some("com.datamountaineer.kcql.antlr4"),
+            Antlr4 / antlr4PackageName := Some("io.lenses.kcql.antlr4"),
           ),
         )
   }
