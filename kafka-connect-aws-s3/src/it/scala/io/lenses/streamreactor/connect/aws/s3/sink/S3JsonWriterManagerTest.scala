@@ -176,4 +176,74 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     )
   }
 
+  "json sink" should "write bigdecimal to json" in {
+
+    val bucketAndPrefix = S3Location(BucketName, PathPrefix.some)
+    val config = S3SinkConfig(
+      S3Config(
+        None,
+        Some(Identity),
+        Some(Credential),
+        AuthMode.Credentials,
+      ),
+      bucketOptions = Seq(
+        SinkBucketOptions(
+          TopicName.some,
+          bucketAndPrefix,
+          commitPolicy    = CommitPolicy(Count(1)),
+          formatSelection = JsonFormatSelection,
+          keyNamer = new S3KeyNamer(
+            AvroFormatSelection,
+            defaultPartitionSelection(Values),
+            new OffsetS3FileNamer(
+              identity[String],
+              JsonFormatSelection.extension,
+            ),
+            new PaddingService(Map[String, PaddingStrategy](
+              "partition" -> NoOpPaddingStrategy,
+              "offset"    -> LeftPadPaddingStrategy(12, 0),
+            )),
+          ),
+          localStagingArea   = LocalStagingArea(localRoot),
+          partitionSelection = defaultPartitionSelection(Values),
+          dataStorage        = DataStorageSettings.disabled,
+        ),
+      ),
+      offsetSeekerOptions = OffsetSeekerOptions(5),
+      compressionCodec,
+      batchDelete = true,
+    )
+
+    val sink = S3WriterManager.from(config)
+
+    val topic  = Topic(TopicName)
+    val offset = Offset(1L)
+    val usersWithDecimal =
+      new Struct(UsersSchemaDecimal)
+        .put("name", "sam")
+        .put("title", "mr")
+        .put(
+          "salary",
+          BigDecimal(100.43).setScale(18).bigDecimal,
+        )
+    sink.write(
+      TopicPartitionOffset(topic, 1, offset),
+      MessageDetail(NullSinkData(None),
+                    StructSinkData(usersWithDecimal),
+                    Map.empty[String, SinkData],
+                    None,
+                    topic,
+                    0,
+                    offset,
+      ),
+    )
+
+    sink.close()
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
+
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1.json") should be(
+      s"""{"name":"sam","title":"mr","salary":100.430000000000000000}""",
+    )
+  }
 }

@@ -20,7 +20,8 @@ import LineSeparatorUtil.LineSeparatorBytes
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.stream.CloudOutputStream
 import org.apache.kafka.connect.json.JsonConverter
-
+import org.apache.kafka.connect.json.DecimalFormat
+import org.apache.kafka.connect.json.JsonConverterConfig
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
 class JsonFormatWriter(outputStream: CloudOutputStream) extends FormatWriter {
@@ -67,7 +68,7 @@ object JsonFormatWriter {
   private val Converter = new JsonConverter()
 
   Converter.configure(
-    Map("schemas.enable" -> false).asJava,
+    Map("schemas.enable" -> "false", JsonConverterConfig.DECIMAL_FORMAT_CONFIG -> DecimalFormat.NUMERIC.name()).asJava,
     false,
   )
 }

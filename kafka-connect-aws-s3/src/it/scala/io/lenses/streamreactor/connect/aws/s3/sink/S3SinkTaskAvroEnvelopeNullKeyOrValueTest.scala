@@ -22,7 +22,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class S3SinkTaskAvroEnvelopeNullKeyOrValueTest
-  extends AnyFlatSpec
+    extends AnyFlatSpec
     with Matchers
     with S3ProxyContainerTest
     with MockitoSugar
