@@ -152,9 +152,8 @@ class CloudSourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSug
       mock[Option[TestFileMetadata] => Either[FileListError, Option[ListOfKeysResponse[TestFileMetadata]]]]
 
     def listBatch(
-      lastFileMeta: Option[TestFileMetadata],
     ): Either[FileListError, Option[ListOfKeysResponse[TestFileMetadata]]] = Right(None)
-    doAnswer(x => listBatch(x)).when(batchListerFn)(
+    doAnswer(listBatch()).when(batchListerFn)(
       any[Option[TestFileMetadata]],
     )
     val sourceFileQueue = new CloudSourceFileQueue(taskId, batchListerFn)
@@ -167,10 +166,9 @@ class CloudSourceFileQueueTest extends AnyFlatSpec with Matchers with MockitoSug
 
     val expected = Left(FileListError(null, bucket, s"$bucket/$prefix".some))
     def listBatch(
-      lastFileMeta: Option[TestFileMetadata],
     ): Either[FileListError, Option[ListOfKeysResponse[TestFileMetadata]]] = expected
 
-    doAnswer(x => listBatch(x)).when(batchListerFn)(
+    doAnswer(listBatch()).when(batchListerFn)(
       any[Option[TestFileMetadata]],
     )
     val sourceFileQueue = new CloudSourceFileQueue(taskId, batchListerFn)

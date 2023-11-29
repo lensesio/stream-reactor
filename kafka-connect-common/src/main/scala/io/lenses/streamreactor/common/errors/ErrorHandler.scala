@@ -38,9 +38,6 @@ trait ErrorHandler extends StrictLogging {
   def getErrorTrackerRetries: Int =
     errorTracker.get.retries
 
-  def errored(): Boolean =
-    errorTracker.get.retries != errorTracker.get.maxRetries
-
   def handleTry[A](t: Try[A]): Option[A] = {
     require(errorTracker.isDefined, "ErrorTracker is not set call. Initialize.")
     t match {

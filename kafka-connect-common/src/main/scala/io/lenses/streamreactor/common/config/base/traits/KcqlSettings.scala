@@ -72,9 +72,6 @@ trait KcqlSettings extends BaseSettings {
       (r.getSource, set)
     }.toMap
 
-  def getTableTopic(kcql: Set[Kcql] = getKCQL): Map[String, String] =
-    kcql.toList.map(r => (r.getSource, r.getTarget)).toMap
-
   def getFormat(formatType: FormatType => FormatType, kcql: Set[Kcql] = getKCQL): Map[String, FormatType] =
     kcql.toList.map(r => (r.getSource, formatType(r.getFormatType))).toMap
 

@@ -15,48 +15,15 @@
  */
 package io.lenses.streamreactor.common.queues
 
+import com.typesafe.scalalogging.StrictLogging
+
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
-
-import com.google.common.collect.Queues
-import com.typesafe.scalalogging.StrictLogging
-import org.apache.kafka.connect.source.SourceRecord
 
 /**
   * Created by r on 3/1/16.
   */
 object QueueHelpers extends StrictLogging {
-
-  implicit class LinkedBlockingQueueExtension[T](val lbq: LinkedBlockingQueue[T]) extends AnyVal {
-    def drainWithTimeoutTo(collection: util.Collection[_ >: T], maxElements: Int, timeout: Long, unit: TimeUnit): Int =
-      Queues.drain[T](lbq, collection, maxElements, timeout, unit)
-  }
-
-  def drainWithTimeoutNoGauva(
-    records:       util.ArrayList[SourceRecord],
-    batchSize:     Int,
-    lingerTimeout: Long,
-    queue:         LinkedBlockingQueue[SourceRecord],
-  ): Unit = {
-    var added    = 0
-    val deadline = System.nanoTime() + TimeUnit.NANOSECONDS.toNanos(lingerTimeout)
-
-    //wait for batch size or linger, which ever is first
-    while (added < batchSize) {
-      added += queue.drainTo(records, batchSize - added)
-      //still not at batch size, poll with timeout
-      if (added < batchSize) {
-        val record = queue.poll(deadline - System.nanoTime(), TimeUnit.NANOSECONDS)
-        record match {
-          case s: SourceRecord =>
-            records.add(s)
-            added += 1
-          case _ => added = batchSize
-        }
-      }
-    }
-  }
 
   /**
     * Drain the queue
