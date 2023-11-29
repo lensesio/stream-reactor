@@ -72,7 +72,6 @@ object Dependencies {
 
     val logbackVersion      = "1.4.7"
     val scalaLoggingVersion = "3.9.5"
-    val classGraphVersions  = "4.8.157"
 
     val wiremockJre8Version = "2.35.0"
     val parquetVersion      = "1.13.1"
@@ -86,7 +85,6 @@ object Dependencies {
     val azureIdentityVersion = "1.8.1"
     val gcpStorageVersion    = "2.26.1"
     val guavaVersion         = "31.0.1-jre"
-    val guiceVersion         = "5.1.0"
     val javaxBindVersion     = "2.3.1"
 
     val jacksonVersion      = "2.14.2"
@@ -101,19 +99,14 @@ object Dependencies {
 
     val californiumVersion  = "3.5.0"
     val bouncyCastleVersion = "1.70"
-    //val nettyVersion = "4.0.47.Final"
-    val nettyVersion = "4.1.71.Final"
+    val nettyVersion        = "4.1.71.Final"
 
-    val dropWizardMetricsVersion = "4.2.17"
-    val cassandraDriverVersion   = "3.11.3"
-    val jsonPathVersion          = "2.7.0"
+    val cassandraDriverVersion = "3.11.3"
+    val jsonPathVersion        = "2.7.0"
 
-    val azureDocumentDbVersion          = "2.6.5"
-    val scalaParallelCollectionsVersion = "1.0.4"
-    val testcontainersScalaVersion      = "0.40.14"
-    val testcontainersVersion           = "1.17.6"
-
-    val javaxCacheVersion = "1.1.1"
+    val azureDocumentDbVersion     = "2.6.5"
+    val testcontainersScalaVersion = "0.40.14"
+    val testcontainersVersion      = "1.17.6"
 
     val influxVersion = "6.8.0"
 
@@ -146,8 +139,6 @@ object Dependencies {
 
     val nimbusJoseJwtVersion = "9.30.2"
     val hadoopVersion        = "3.3.2"
-
-    val junitVersion = "4.13.2"
 
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
@@ -193,19 +184,14 @@ object Dependencies {
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
   val scalatestPlusScalaCheck =
     "org.scalatestplus" %% "scalatestplus-scalacheck" % scalatestPlusScalaCheckVersion
-  val scalaCheck      = "org.scalacheck" %% "scalacheck"      % scalaCheckVersion
-  val `mockito-scala` = "org.mockito"    %% "mockito-scala"   % mockitoScalaVersion
-  val junit           = "com.github.sbt"  % "junit-interface" % "0.13.3"
-
-  lazy val pegDown = "org.pegdown" % "pegdown" % "1.6.0"
+  val scalaCheck      = "org.scalacheck" %% "scalacheck"    % scalaCheckVersion
+  val `mockito-scala` = "org.mockito"    %% "mockito-scala" % mockitoScalaVersion
 
   val catsEffectScalatest = "org.typelevel" %% "cats-effect-testing-scalatest" % `cats-effect-testing`
 
   val enumeratumCore  = "com.beachape" %% "enumeratum"       % enumeratumVersion
   val enumeratumCirce = "com.beachape" %% "enumeratum-circe" % enumeratumVersion
   val enumeratum: Seq[ModuleID] = Seq(enumeratumCore, enumeratumCirce)
-
-  val classGraph = "io.github.classgraph" % "classgraph" % classGraphVersions
 
   val kafkaConnectJson: ModuleID = "org.apache.kafka" % "connect-json"  % kafkaVersion
   val kafkaClients:     ModuleID = "org.apache.kafka" % "kafka-clients" % kafkaVersion
@@ -272,26 +258,11 @@ object Dependencies {
     .exclude("org.apache.hadoop", "hadoop-auth")
     .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
 
-  lazy val hadoopAuth: ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-auth" % hadoopVersion)
-
-  lazy val hadoopClient: ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-client" % hadoopVersion)
-  lazy val hadoopDistCp: ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-distcp" % hadoopVersion)
-  lazy val hadoopMapreduceClientApp: ModuleID =
-    hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client-app" % hadoopVersion)
-  lazy val hadoopMapreduceClientCommon: ModuleID =
-    hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client-common" % hadoopVersion)
-  lazy val hadoopMapreduceClientJobClient: ModuleID =
-    hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client-jobclient" % hadoopVersion)
-  lazy val hadoopMapreduceClientShuffle: ModuleID =
-    hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client-shuffle" % hadoopVersion)
   lazy val hadoopMapReduce: ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce" % hadoopVersion)
   lazy val hadoopMapReduceClient: ModuleID =
     hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client" % hadoopVersion)
   lazy val hadoopMapReduceClientCore: ModuleID =
     hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion)
-  lazy val hadoopExec:       ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-exec" % hadoopVersion)
-  lazy val hadoopHdfs:       ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-hdfs" % hadoopVersion)
-  lazy val hadoopHdfsClient: ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-hdfs-client" % hadoopVersion)
 
   lazy val calciteCore = hiveExcludes("org.apache.calcite" % "calcite-core" % calciteVersion)
     .excludeAll(ExclusionRule(organization = "io.swagger"))
@@ -311,10 +282,8 @@ object Dependencies {
   lazy val azureDataLakeSdk: ModuleID = "com.azure" % "azure-storage-file-datalake" % azureDataLakeVersion
   lazy val azureIdentity:    ModuleID = "com.azure" % "azure-identity"              % azureIdentityVersion
 
-  lazy val gcpStorageSdk       = "com.google.cloud"             % "google-cloud-storage" % gcpStorageVersion
-  lazy val guava               = "com.google.guava"             % "guava"                % guavaVersion
-  lazy val guice               = "com.google.inject"            % "guice"                % guiceVersion
-  lazy val guiceAssistedInject = "com.google.inject.extensions" % "guice-assistedinject" % guiceVersion
+  lazy val gcpStorageSdk = "com.google.cloud" % "google-cloud-storage" % gcpStorageVersion
+  lazy val guava         = "com.google.guava" % "guava"                % guavaVersion
 
   lazy val json4sNative  = "org.json4s" %% "json4s-native"  % json4sVersion
   lazy val json4sJackson = "org.json4s" %% "json4s-jackson" % json4sVersion
@@ -345,8 +314,6 @@ object Dependencies {
   lazy val nettyTransport    = "io.netty" % "netty-transport-native-epoll" % nettyVersion classifier "linux-x86_64"
 
   lazy val azureDocumentDb = "com.microsoft.azure" % "azure-documentdb" % azureDocumentDbVersion
-  lazy val scalaParallelCollections =
-    "org.scala-lang.modules" %% "scala-parallel-collections" % scalaParallelCollectionsVersion
 
   // testcontainers
   lazy val testContainersScala = "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion
@@ -364,10 +331,7 @@ object Dependencies {
   lazy val testcontainersElasticsearch = "org.testcontainers" % "elasticsearch"  % testcontainersVersion
   lazy val testcontainersMongodb       = "org.testcontainers" % "mongodb"        % testcontainersVersion
 
-  lazy val dropWizardMetrics = "io.dropwizard.metrics" % "metrics-jmx" % dropWizardMetricsVersion
-
-  lazy val javaxCache = "javax.cache"  % "cache-api"            % javaxCacheVersion
-  lazy val influx     = "com.influxdb" % "influxdb-client-java" % influxVersion
+  lazy val influx = "com.influxdb" % "influxdb-client-java" % influxVersion
 
   lazy val jmsApi         = "javax.jms"           % "javax.jms-api"   % jmsApiVersion
   lazy val activeMq       = "org.apache.activemq" % "activemq-client" % activeMqVersion
@@ -461,7 +425,6 @@ trait Dependencies {
     jerseyCommon,
     avro4s,
     kafkaClients,
-    junit,
   ) ++ enumeratum ++ circe ++ http4s
 
   //Specific modules dependencies
@@ -504,10 +467,6 @@ trait Dependencies {
   val kafkaConnectS3Deps: Seq[ModuleID] = Seq(
     s3Sdk,
     stsSdk,
-    // TODO: are these still needed?
-    //javaxBind,
-    //guice,
-    //guiceAssistedInject,
   )
 
   val compressionCodecDeps: Seq[ModuleID] = Seq(xz, lzo, lz4)
@@ -532,15 +491,12 @@ trait Dependencies {
     cassandraDriver,
     jsonPath,
     nettyTransport,
-    //dropWizardMetrics
   )
 
   val kafkaConnectCassandraTestDeps: Seq[ModuleID] =
     baseTestDeps ++ Seq(testContainersScala, testContainersScalaCassandra)
 
-  val kafkaConnectAzureDocumentDbDeps: Seq[ModuleID] = Seq(azureDocumentDb,
-  //, scalaParallelCollections
-  )
+  val kafkaConnectAzureDocumentDbDeps: Seq[ModuleID] = Seq(azureDocumentDb)
 
   val kafkaConnectInfluxDbDeps: Seq[ModuleID] = Seq(influx, avro4s, avro4sJson)
 
