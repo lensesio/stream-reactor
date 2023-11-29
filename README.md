@@ -30,6 +30,7 @@ A collection of components to build a real time ingestion pipeline.
 The following connectors have been deprecated and are no longer included in future releases:
 
 * Kudu
+* Hazelcast
 * HBase
 * Hive
 * Pulsar
@@ -47,7 +48,6 @@ The following connectors have been deprecated and are no longer included in futu
 | *Cassandra      | Sink   | Certified DSE Cassandra, copy data from Kafka to Cassandra. | [Docs](https://docs.lenses.io/connectors/sink/cassandra.html)                                        |
 | Elastic 6       | Sink   | Copy data from Kafka to Elastic Search 6.x w. tcp or http   | [Docs](https://docs.lenses.io/connectors/sink/elastic6.html)                                         |
 | FTP/HTTP        | Source | Copy data from FTP/HTTP to Kafka.                           | [Docs](https://docs.lenses.io/5.2/connectors/sources/ftpsourceconnector/)                            |
-| Hazelcast       | Sink   | Copy data from Kafka to Hazelcast.                          | [Docs](https://docs.lenses.io/connectors/sink/hazelcast.html)                                        |
 | InfluxDb        | Sink   | Copy data from Kafka to InfluxDb.                           | [Docs](https://docs.lenses.io/4.0/integrations/connectors/stream-reactor/sinks/influxsinkconnector/) |
 | JMS             | Source | Copy data from JMS topics/queues to Kafka.                  | [Docs](https://docs.lenses.io/connectors/source/jms.html)                                            |
 | JMS             | Sink   | Copy data from Kafka to JMS.                                | [Docs](https://docs.lenses.io/connectors/sink/jms.html)                                              |

@@ -22,7 +22,6 @@ lazy val subProjects: Seq[Project] = Seq(
   elastic7,
   ftp,
   `gcp-storage`,
-  hazelcast,
   influxdb,
   jms,
   mongodb,
@@ -245,26 +244,6 @@ lazy val elastic7 = (project in file("kafka-connect-elastic7"))
   .configureTests(baseTestDeps)
   .configureIntegrationTests(kafkaConnectElastic7TestDeps)
   .configureFunctionalTests()
-  .enablePlugins(PackPlugin)
-
-lazy val hazelcast = (project in file("kafka-connect-hazelcast"))
-  .dependsOn(common)
-  .settings(
-    settings ++
-      Seq(
-        name := "kafka-connect-hazelcast",
-        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= baseDeps ++ kafkaConnectHazelCastDeps,
-        publish / skip := true,
-        packExcludeJars := Seq(
-          "scala-.*\\.jar",
-          "zookeeper-.*\\.jar",
-        ),
-      ),
-  )
-  .configureAssembly(true)
-  .configureTests(baseTestDeps)
-  .disableParallel()
   .enablePlugins(PackPlugin)
 
 lazy val influxdb = (project in file("kafka-connect-influxdb"))
