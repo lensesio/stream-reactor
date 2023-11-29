@@ -24,20 +24,16 @@ import io.lenses.streamreactor.common.config.base.const.TraitConfigConst._
 import org.apache.kafka.common.config.ConfigException
 
 trait ConnectionSettings extends BaseSettings {
-  val uriConst            = s"$connectorPrefix.$URI_SUFFIX"
-  val schemaRegistryConst = s"$connectorPrefix.$SCHEMA_REGISTRY_SUFFIX"
-  val urlConst            = s"$connectorPrefix.$URL_SUFFIX"
-  val hostConst           = s"$connectorPrefix.$CONNECTION_HOST_SUFFIX"
-  val hostsConst          = s"$connectorPrefix.$CONNECTION_HOSTS_SUFFIX"
-  val portConst           = s"$connectorPrefix.$CONNECTION_PORT_SUFFIX"
+  val urlConst   = s"$connectorPrefix.$URL_SUFFIX"
+  val hostConst  = s"$connectorPrefix.$CONNECTION_HOST_SUFFIX"
+  val hostsConst = s"$connectorPrefix.$CONNECTION_HOSTS_SUFFIX"
+  val portConst  = s"$connectorPrefix.$CONNECTION_PORT_SUFFIX"
 
-  def getPort              = getInt(portConst)
-  def getUri               = getString(uriConst)
-  def getSchemaRegistryUrl = getString(schemaRegistryConst)
+  def getPort = getInt(portConst)
 
   def getUrl: String = {
     val url = getString(urlConst)
-    if (url == null || url.trim.length == 0) {
+    if (url == null || url.trim.isEmpty) {
       throw new ConfigException(s"$urlConst has not been set")
     }
     url

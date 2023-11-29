@@ -147,7 +147,6 @@ class WriterManager[SM <: FileMetadata](
   ): Either[SinkError, Option[TopicPartitionOffset]] = {
     logger.debug(s"[{}] seekOffsetsForTopicPartition {}", connectorTaskId.show, topicPartition)
     for {
-      keyNamer        <- keyNamerFn(topicPartition)
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
       offset          <- indexManager.seek(topicPartition, bucketAndPrefix.bucket)
     } yield offset

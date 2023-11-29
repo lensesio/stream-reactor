@@ -76,8 +76,6 @@ case class BatchCloudSinkError(
   nonFatal: Set[NonFatalCloudSinkError],
 ) extends SinkError {
 
-  def hasFatal: Boolean = fatal.nonEmpty
-
   override def exception(): Throwable =
     fatal.++(nonFatal)
       .headOption

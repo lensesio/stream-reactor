@@ -46,8 +46,6 @@ case class CloudLocation(
   def fromStart(): CloudLocation =
     copy(line = -1.some)
 
-  def isFromStart: Boolean = line.contains(-1)
-
   def withPath(path: String): CloudLocation =
     copy(path = path.some)
 

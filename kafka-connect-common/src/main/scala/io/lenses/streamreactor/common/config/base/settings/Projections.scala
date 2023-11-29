@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.common.config.base.settings
 
-import io.lenses.kcql.Bucketing
+import com.typesafe.scalalogging.StrictLogging
 import io.lenses.kcql.FormatType
 import io.lenses.kcql.Kcql
 import io.lenses.kcql.Tag
@@ -23,7 +23,6 @@ import io.lenses.kcql.WriteModeEnum
 import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.common.errors.ErrorPolicyEnum
 import io.lenses.streamreactor.connect.converters.source.Converter
-import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 
 import scala.collection.immutable.ListSet
@@ -178,9 +177,6 @@ object Projections extends StrictLogging {
 
   def getDocType(kcql: Set[Kcql]): Map[String, String] =
     kcql.map(k => (k.getSource -> k.getDocType)).toMap
-
-  def getBucketing(kcql: Set[Kcql]): Map[String, Bucketing] =
-    kcql.map(k => (k.getSource -> k.getBucketing)).toMap
 
   def getWithKeys(kcql: Set[Kcql]): Map[String, Set[String]] =
     kcql.map(k => k.getSource -> k.getWithKeys.asScala.toSet).toMap

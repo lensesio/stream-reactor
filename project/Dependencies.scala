@@ -113,12 +113,6 @@ object Dependencies {
     val testcontainersScalaVersion      = "0.40.14"
     val testcontainersVersion           = "1.17.6"
 
-    val hazelCastVersion          = "4.2.7"
-    val hazelCastAzureVersion     = "2.1.2"
-    val hazelCastGcpVersion       = "2.1"
-    val hazelCastHibernateVersion = "2.2.1"
-    val hazelCastWmVersion        = "4.0"
-
     val javaxCacheVersion = "1.1.1"
 
     val influxVersion = "6.8.0"
@@ -372,8 +366,6 @@ object Dependencies {
 
   lazy val dropWizardMetrics = "io.dropwizard.metrics" % "metrics-jmx" % dropWizardMetricsVersion
 
-  lazy val hazelCastAll = "com.hazelcast" % "hazelcast-all" % hazelCastVersion
-
   lazy val javaxCache = "javax.cache"  % "cache-api"            % javaxCacheVersion
   lazy val influx     = "com.influxdb" % "influxdb-client-java" % influxVersion
 
@@ -545,11 +537,6 @@ trait Dependencies {
 
   val kafkaConnectCassandraTestDeps: Seq[ModuleID] =
     baseTestDeps ++ Seq(testContainersScala, testContainersScalaCassandra)
-
-  val kafkaConnectHazelCastDeps: Seq[ModuleID] = Seq(
-    hazelCastAll,
-    javaxCache,
-  )
 
   val kafkaConnectAzureDocumentDbDeps: Seq[ModuleID] = Seq(azureDocumentDb,
   //, scalaParallelCollections

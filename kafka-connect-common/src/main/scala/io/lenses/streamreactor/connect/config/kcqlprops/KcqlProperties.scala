@@ -20,7 +20,6 @@ import cats.implicits.catsSyntaxOptionId
 import enumeratum._
 import org.apache.kafka.common.config.ConfigException
 
-import scala.reflect.ClassTag
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -93,14 +92,6 @@ case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
       case _ => new ConfigException(s"No schema found for ${key.entryName}").asLeft
     }
   }
-
-  def getOptionalSet[V](key: U)(implicit converter: String => V, ct: ClassTag[V]): Option[Set[V]] =
-    map.get(key.entryName) match {
-      case Some(value) if schema.schema.get(key).contains(SetPropsSchema()) =>
-        val elements = value.split(',').map(converter).toSet
-        Some(elements)
-      case _ => None
-    }
 
   def getOptionalMap[K, V](keyPrefix: U, keyConverter: String => K, valueConverter: String => V): Option[Map[K, V]] = {
     val mapKeyPrefix = keyPrefix.entryName + "."

@@ -32,6 +32,4 @@ class OptionIteratorAdaptor(optional: () => Option[String]) extends Iterator[Str
     }
     .getOrElse(throw new IllegalStateException("Next called but no next value"))
 
-  def getLine(): Long = lineNumber
-
 }
