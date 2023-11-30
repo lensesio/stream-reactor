@@ -28,18 +28,15 @@ class S3SinkTaskAvroEnvelopeNullKeyOrValueTest
     with MockitoSugar
     with LazyLogging {
 
-  import helper._
-
   private val avroFormatReader = new AvroFormatReader()
 
   private val PrefixName = "streamReactorBackups"
   private val TopicName  = "myTopic"
 
   private def DefaultProps = Map(
-    AWS_ACCESS_KEY              -> Identity,
-    AWS_SECRET_KEY              -> Credential,
+    AWS_ACCESS_KEY              -> s3Container.identity.identity,
+    AWS_SECRET_KEY              -> s3Container.identity.credential,
     AUTH_MODE                   -> AuthMode.Credentials.toString,
-    CUSTOM_ENDPOINT             -> uri(),
     ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
     "name"                      -> "s3SinkTaskBuildLocalTest",
     AWS_REGION                  -> "eu-west-1",
