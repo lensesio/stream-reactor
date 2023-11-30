@@ -73,7 +73,7 @@ object SampleData extends Matchers {
       .put("title", "mr")
       .put(
         "salary",
-        BigDecimal(100.43).setScale(18).bigDecimal,
+        BigDecimal("100.43").setScale(18).bigDecimal,
       ),
   )
 

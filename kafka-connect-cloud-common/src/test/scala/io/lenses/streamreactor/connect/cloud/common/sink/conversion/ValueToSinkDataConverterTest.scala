@@ -71,7 +71,7 @@ class ValueToSinkDataConverterTest extends AnyFlatSpec with Matchers {
   }
 
   "convert" should "handle BigDecimal" in {
-    val decimal  = BigDecimal(123.456)
+    val decimal  = BigDecimal("123.456")
     val sinkData = ValueToSinkDataConverter.apply(decimal, Option.empty)
 
     sinkData match {

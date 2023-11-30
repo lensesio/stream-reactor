@@ -224,7 +224,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         .put("title", "mr")
         .put(
           "salary",
-          BigDecimal(100.43).setScale(18).bigDecimal,
+          BigDecimal("100.43").setScale(18).bigDecimal,
         )
     sink.write(
       TopicPartitionOffset(topic, 1, offset),

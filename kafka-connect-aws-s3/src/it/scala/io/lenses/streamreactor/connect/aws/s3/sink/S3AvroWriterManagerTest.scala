@@ -142,7 +142,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         .put("title", "mr")
         .put(
           "salary",
-          BigDecimal(100.43).setScale(18).bigDecimal,
+          BigDecimal("100.43").setScale(18).bigDecimal,
         )
     val writeRes1 = sink.write(
       TopicPartitionOffset(Topic(TopicName), 1, Offset(1L)),
@@ -165,7 +165,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         .put("title", "ms")
         .put(
           "salary",
-          BigDecimal(100.43).setScale(18).bigDecimal,
+          BigDecimal("100.43").setScale(18).bigDecimal,
         )
 
     val writeRes2 = sink.write(

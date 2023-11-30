@@ -81,7 +81,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
 
     genericRecords.size should be(1)
-    checkRecord(genericRecords.head, "sam", Some("mr"), BigDecimal(100.43).setScale(18).bigDecimal)
+    checkRecord(genericRecords.head, "sam", Some("mr"), BigDecimal("100.43").setScale(18).bigDecimal)
   }
 
   "convert" should "write byte output stream with avro for multiple records" in {
