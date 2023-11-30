@@ -49,12 +49,16 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingS
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
+import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.UsersSchemaDecimal
 import org.apache.avro.generic.GenericRecord
+import org.apache.kafka.connect.data.Decimal
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.nio.ByteBuffer
 
 class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
@@ -135,7 +139,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   }
 
   "avro sink" should "write BigDecimal" in {
-    val sink = S3WriterManager.from(avroConfig)
+    val sink = writerManagerCreator.from(avroConfig)
     val usersWithDecimal1 =
       new Struct(UsersSchemaDecimal)
         .put("name", "sam")

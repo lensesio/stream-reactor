@@ -50,6 +50,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingS
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
+import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.UsersSchemaDecimal
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -178,24 +179,24 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
   "json sink" should "write bigdecimal to json" in {
 
-    val bucketAndPrefix = S3Location(BucketName, PathPrefix.some)
+    val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
     val config = S3SinkConfig(
       S3Config(
         None,
-        Some(Identity),
-        Some(Credential),
+        Some(s3Container.identity.identity),
+        Some(s3Container.identity.credential),
         AuthMode.Credentials,
       ),
       bucketOptions = Seq(
-        SinkBucketOptions(
+        CloudSinkBucketOptions(
           TopicName.some,
           bucketAndPrefix,
           commitPolicy    = CommitPolicy(Count(1)),
           formatSelection = JsonFormatSelection,
-          keyNamer = new S3KeyNamer(
+          keyNamer = new CloudKeyNamer(
             AvroFormatSelection,
             defaultPartitionSelection(Values),
-            new OffsetS3FileNamer(
+            new OffsetFileNamer(
               identity[String],
               JsonFormatSelection.extension,
             ),
@@ -214,7 +215,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       batchDelete = true,
     )
 
-    val sink = S3WriterManager.from(config)
+    val sink = writerManagerCreator.from(config)
 
     val topic  = Topic(TopicName)
     val offset = Offset(1L)
