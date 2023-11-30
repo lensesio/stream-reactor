@@ -37,6 +37,7 @@ class S3SinkTaskAvroEnvelopeNullKeyOrValueTest
     AWS_ACCESS_KEY              -> s3Container.identity.identity,
     AWS_SECRET_KEY              -> s3Container.identity.credential,
     AUTH_MODE                   -> AuthMode.Credentials.toString,
+    CUSTOM_ENDPOINT             -> s3Container.getEndpointUrl.toString,
     ENABLE_VIRTUAL_HOST_BUCKETS -> "true",
     "name"                      -> "s3SinkTaskBuildLocalTest",
     AWS_REGION                  -> "eu-west-1",
