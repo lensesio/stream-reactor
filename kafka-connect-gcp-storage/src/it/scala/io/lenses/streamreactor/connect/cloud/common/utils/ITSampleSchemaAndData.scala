@@ -4,6 +4,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.util.Utf8
+import org.apache.kafka.connect.data.Decimal
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
@@ -17,6 +18,12 @@ object ITSampleSchemaAndData extends Matchers {
     .field("name", SchemaBuilder.string().required().build())
     .field("title", SchemaBuilder.string().optional().build())
     .field("salary", SchemaBuilder.float64().optional().build())
+    .build()
+
+  val UsersSchemaDecimal: Schema = SchemaBuilder.struct()
+    .field("name", SchemaBuilder.string().required().build())
+    .field("title", SchemaBuilder.string().optional().build())
+    .field("salary", Decimal.builder(18).optional().build())
     .build()
 
   val users: List[Struct] = List(

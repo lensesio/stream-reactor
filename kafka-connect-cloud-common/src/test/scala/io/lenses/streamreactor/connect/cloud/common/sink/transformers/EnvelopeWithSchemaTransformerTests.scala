@@ -187,6 +187,74 @@ class EnvelopeWithSchemaTransformerTests extends AnyFunSuite with Matchers {
     run(settings, expected)
   }
 
+  test("envelope with null key") {
+    val settings = DataStorageSettings.enabled.copy(key = false)
+    val expected = MessageDetail(
+      NullSinkData(None),
+      StructSinkData(SampleData.Users.head),
+      Map(
+        "header1" -> StringSinkData("value1", Some(Schema.STRING_SCHEMA)),
+        "header2" -> ByteArraySinkData("value2".getBytes(), Some(Schema.BYTES_SCHEMA)),
+      ),
+      Some(Instant.now()),
+      Topic("topic1"),
+      0,
+      Offset(12),
+    )
+    run(settings, expected)
+  }
+  test("envelope with null key but has schema") {
+    val settings = DataStorageSettings.enabled.copy(key = false)
+    val expected = MessageDetail(
+      NullSinkData(Some(Schema.OPTIONAL_STRING_SCHEMA)),
+      StructSinkData(SampleData.Users.head),
+      Map(
+        "header1" -> StringSinkData("value1", Some(Schema.STRING_SCHEMA)),
+        "header2" -> ByteArraySinkData("value2".getBytes(), Some(Schema.BYTES_SCHEMA)),
+      ),
+      Some(Instant.now()),
+      Topic("topic1"),
+      0,
+      Offset(12),
+    )
+    run(settings, expected)
+  }
+
+  test("envelope with null value") {
+    val settings = DataStorageSettings.enabled
+
+    val expected = MessageDetail(
+      StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA)),
+      NullSinkData(None),
+      Map(
+        "header1" -> StringSinkData("value1", Some(Schema.STRING_SCHEMA)),
+        "header2" -> ByteArraySinkData("value2".getBytes(), Some(Schema.BYTES_SCHEMA)),
+      ),
+      Some(Instant.now()),
+      Topic("topic1"),
+      0,
+      Offset(12),
+    )
+    run(settings, expected)
+  }
+
+  test("envelope with null value but has schema") {
+    val settings = DataStorageSettings.enabled
+
+    val expected = MessageDetail(
+      StringSinkData("key", Some(Schema.OPTIONAL_STRING_SCHEMA)),
+      NullSinkData(Some(SampleData.UsersSchema)),
+      Map(
+        "header1" -> StringSinkData("value1", Some(Schema.STRING_SCHEMA)),
+        "header2" -> ByteArraySinkData("value2".getBytes(), Some(Schema.BYTES_SCHEMA)),
+      ),
+      Some(Instant.now()),
+      Topic("topic1"),
+      0,
+      Offset(12),
+    )
+    run(settings, expected)
+  }
   private def run(settings: DataStorageSettings, expected: MessageDetail): Assertion = {
     val transformer = EnvelopeWithSchemaTransformer(Topic("topic1"), settings)
     val actual      = transformer.transform(expected).getOrElse(fail("Should have returned a message"))
@@ -209,7 +277,9 @@ class EnvelopeWithSchemaTransformerTests extends AnyFunSuite with Matchers {
       }
 
       if (settings.value) {
-        struct.get("value") shouldBe EnvelopeWithSchemaTransformer.toOptionalConnectData(expected.value)
+        Option(struct.schema().field("value")).foreach { _ =>
+          struct.get("value") shouldBe EnvelopeWithSchemaTransformer.toOptionalConnectData(expected.value)
+        }
       } else {
         struct.schema().field("value") shouldBe null
       }

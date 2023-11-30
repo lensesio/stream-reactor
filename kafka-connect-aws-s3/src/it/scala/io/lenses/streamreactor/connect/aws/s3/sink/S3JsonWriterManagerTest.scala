@@ -50,6 +50,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingS
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
+import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.UsersSchemaDecimal
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -176,4 +177,74 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     )
   }
 
+  "json sink" should "write bigdecimal to json" in {
+
+    val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
+    val config = S3SinkConfig(
+      S3Config(
+        None,
+        Some(s3Container.identity.identity),
+        Some(s3Container.identity.credential),
+        AuthMode.Credentials,
+      ),
+      bucketOptions = Seq(
+        CloudSinkBucketOptions(
+          TopicName.some,
+          bucketAndPrefix,
+          commitPolicy    = CommitPolicy(Count(1)),
+          formatSelection = JsonFormatSelection,
+          keyNamer = new CloudKeyNamer(
+            AvroFormatSelection,
+            defaultPartitionSelection(Values),
+            new OffsetFileNamer(
+              identity[String],
+              JsonFormatSelection.extension,
+            ),
+            new PaddingService(Map[String, PaddingStrategy](
+              "partition" -> NoOpPaddingStrategy,
+              "offset"    -> LeftPadPaddingStrategy(12, 0),
+            )),
+          ),
+          localStagingArea   = LocalStagingArea(localRoot),
+          partitionSelection = defaultPartitionSelection(Values),
+          dataStorage        = DataStorageSettings.disabled,
+        ),
+      ),
+      offsetSeekerOptions = OffsetSeekerOptions(5),
+      compressionCodec,
+      batchDelete = true,
+    )
+
+    val sink = writerManagerCreator.from(config)
+
+    val topic  = Topic(TopicName)
+    val offset = Offset(1L)
+    val usersWithDecimal =
+      new Struct(UsersSchemaDecimal)
+        .put("name", "sam")
+        .put("title", "mr")
+        .put(
+          "salary",
+          BigDecimal("100.43").setScale(18).bigDecimal,
+        )
+    sink.write(
+      TopicPartitionOffset(topic, 1, offset),
+      MessageDetail(NullSinkData(None),
+                    StructSinkData(usersWithDecimal),
+                    Map.empty[String, SinkData],
+                    None,
+                    topic,
+                    0,
+                    offset,
+      ),
+    )
+
+    sink.close()
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
+
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1.json") should be(
+      s"""{"name":"sam","title":"mr","salary":100.430000000000000000}""",
+    )
+  }
 }

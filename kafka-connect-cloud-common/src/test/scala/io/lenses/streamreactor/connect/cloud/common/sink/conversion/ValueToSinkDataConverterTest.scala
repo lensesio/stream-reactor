@@ -21,6 +21,7 @@ import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import org.apache.kafka.connect.data.Decimal
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
@@ -66,6 +67,33 @@ class ValueToSinkDataConverterTest extends AnyFlatSpec with Matchers {
         v shouldBe short
         schema.`type`() shouldBe Schema.INT16_SCHEMA.`type`()
       case _ =>
+    }
+  }
+
+  "convert" should "handle BigDecimal" in {
+    val decimal  = BigDecimal("123.456")
+    val sinkData = ValueToSinkDataConverter.apply(decimal, Option.empty)
+
+    sinkData match {
+      case DecimalSinkData(v, Some(schema)) =>
+        schema.`type`() shouldBe Schema.BYTES_SCHEMA.`type`()
+        schema.parameters().get(DecimalSinkData.PRECISION_FIELD) shouldBe "6"
+        schema.parameters().get(Decimal.SCALE_FIELD) shouldBe "3"
+        v shouldBe Decimal.fromLogical(schema, decimal.bigDecimal)
+      case _ => fail("Expected DecimalSinkData")
+    }
+  }
+  "convert" should "handle java.math.BigDecimal" in {
+    val decimal  = new java.math.BigDecimal("123.456")
+    val sinkData = ValueToSinkDataConverter.apply(decimal, Option.empty)
+
+    sinkData match {
+      case DecimalSinkData(v, Some(schema)) =>
+        schema.`type`() shouldBe Schema.BYTES_SCHEMA.`type`()
+        schema.parameters().get(DecimalSinkData.PRECISION_FIELD) shouldBe "6"
+        schema.parameters().get(Decimal.SCALE_FIELD) shouldBe "3"
+        v shouldBe Decimal.fromLogical(schema, decimal)
+      case _ => fail("Expected DecimalSinkData")
     }
   }
 }
