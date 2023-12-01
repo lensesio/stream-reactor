@@ -23,7 +23,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 
 class RedisGeoAddTest extends AnyWordSpec with Matchers with MockitoSugar with ForAllTestContainer {
 
-  override val container: Container = GenericContainer(
+  override val container = GenericContainer(
     dockerImage  = "redis:6-alpine",
     exposedPorts = Seq(6379),
   )
