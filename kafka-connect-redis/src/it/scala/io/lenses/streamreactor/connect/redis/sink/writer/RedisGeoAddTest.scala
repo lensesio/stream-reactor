@@ -4,7 +4,6 @@ import io.lenses.streamreactor.connect.redis.sink.config.RedisConfig
 import io.lenses.streamreactor.connect.redis.sink.config.RedisConfigConstants
 import io.lenses.streamreactor.connect.redis.sink.config.RedisConnectionInfo
 import io.lenses.streamreactor.connect.redis.sink.config.RedisSinkSettings
-import com.dimafeng.testcontainers.Container
 import com.dimafeng.testcontainers.ForAllTestContainer
 import com.dimafeng.testcontainers.GenericContainer
 import io.lenses.streamreactor.connect.redis.sink.JedisClientBuilder
