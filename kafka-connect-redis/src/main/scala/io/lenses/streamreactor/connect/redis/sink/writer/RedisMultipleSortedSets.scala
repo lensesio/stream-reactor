@@ -160,4 +160,5 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings, jedis: Jedis)
         logger.debug(s"Wrote [${sinkRecords.size}] rows for topic [$topic]")
     }
 
+  override def close(): Unit = jedis.close()
 }
