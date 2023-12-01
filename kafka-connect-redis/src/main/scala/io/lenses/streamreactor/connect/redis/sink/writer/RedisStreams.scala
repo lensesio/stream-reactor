@@ -22,8 +22,12 @@ import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 import io.lenses.streamreactor.connect.redis.sink.config.RedisKCQLSetting
 import io.lenses.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.common.sink.DbWriter
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
+import redis.clients.jedis.Jedis
 import redis.clients.jedis.params.XAddParams
 
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -41,7 +45,12 @@ import scala.util.Try
   *
   * INSERT INTO stream1 SELECT * from cpuTopic STOREAS stream
   */
-class RedisStreams(sinkSettings: RedisSinkSettings) extends RedisWriter with PubSubSupport {
+class RedisStreams(sinkSettings: RedisSinkSettings, jedis: Jedis)
+    extends DbWriter
+    with StrictLogging
+    with ErrorHandler
+    with PubSubSupport {
+  initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)
 
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
@@ -105,4 +114,5 @@ class RedisStreams(sinkSettings: RedisSinkSettings) extends RedisWriter with Pub
           logger.debug(s"Published [${sinkRecords.size}] messages for topic [$topic]")
       },
     )
+  override def close(): Unit = jedis.close()
 }

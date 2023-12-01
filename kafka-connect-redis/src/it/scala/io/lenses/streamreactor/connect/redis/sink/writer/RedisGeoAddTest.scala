@@ -6,6 +6,7 @@ import io.lenses.streamreactor.connect.redis.sink.config.RedisConnectionInfo
 import io.lenses.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import com.dimafeng.testcontainers.ForAllTestContainer
 import com.dimafeng.testcontainers.GenericContainer
+import io.lenses.streamreactor.connect.redis.sink.JedisClientBuilder
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
@@ -42,8 +43,7 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with MockitoSugar with F
       val config         = RedisConfig(props)
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
       val settings       = RedisSinkSettings(config)
-      val writer         = new RedisGeoAdd(settings)
-      writer.createClient(settings)
+      val writer         = new RedisGeoAdd(settings, JedisClientBuilder.createClient(settings))
 
       val schema = SchemaBuilder.struct().name("com.example.Cpu")
         .field("longitude", Schema.STRING_SCHEMA)
@@ -86,8 +86,7 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with MockitoSugar with F
       val config         = RedisConfig(props)
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
       val settings       = RedisSinkSettings(config)
-      val writer         = new RedisGeoAdd(settings)
-      writer.createClient(settings)
+      val writer         = new RedisGeoAdd(settings, JedisClientBuilder.createClient(settings))
 
       val schema = SchemaBuilder.struct().name("com.example.Cpu")
         .field("longitude", Schema.STRING_SCHEMA)
@@ -132,8 +131,7 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with MockitoSugar with F
       val config         = RedisConfig(props)
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
       val settings       = RedisSinkSettings(config)
-      val writer         = new RedisGeoAdd(settings)
-      writer.createClient(settings)
+      val writer         = new RedisGeoAdd(settings, JedisClientBuilder.createClient(settings))
 
       val schema = SchemaBuilder.struct().name("com.example.Cpu")
         .field("lng", Schema.STRING_SCHEMA)

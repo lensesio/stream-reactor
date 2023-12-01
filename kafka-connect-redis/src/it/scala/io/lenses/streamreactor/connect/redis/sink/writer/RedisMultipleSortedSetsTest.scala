@@ -16,6 +16,7 @@
 
 package io.lenses.streamreactor.connect.redis.sink.writer
 
+import io.lenses.streamreactor.connect.redis.sink.JedisClientBuilder
 import io.lenses.streamreactor.connect.redis.sink.RedisSinkTask
 import io.lenses.streamreactor.connect.redis.sink.config.RedisConfig
 import io.lenses.streamreactor.connect.redis.sink.config.RedisConfigConstants
@@ -61,8 +62,7 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with Mockito
 
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
       val settings       = RedisSinkSettings(config)
-      val writer         = new RedisMultipleSortedSets(settings)
-      writer.createClient(settings)
+      val writer         = new RedisMultipleSortedSets(settings, JedisClientBuilder.createClient(settings))
 
       val schema = SchemaBuilder.struct().name("com.example.device")
         .field("sensorID", Schema.STRING_SCHEMA)

@@ -56,12 +56,6 @@ class RedisStreamTest
     with BeforeAndAfterAll
     with MockitoSugar
     with ArgumentMatchersSugar {
-//
-//  val redisServer = new RedisServer(6379)
-//
-//  override def beforeAll() = redisServer.start()
-//
-//  override def afterAll() = redisServer.stop()
 
   "Redis Stream writer" should {
 
@@ -78,7 +72,8 @@ class RedisStreamTest
 
       val config   = RedisConfig(props)
       val settings = RedisSinkSettings(config)
-      val writer   = new RedisStreams(settings)
+      val jedis    = mock[Jedis]
+      val writer   = new RedisStreams(settings, jedis)
 
       val schema = SchemaBuilder.struct().name("com.example.Cpu")
         .field("type", Schema.STRING_SCHEMA)
@@ -90,9 +85,6 @@ class RedisStreamTest
         new Struct(schema).put("type", "Xeon").put("temperature", 60.4).put("voltage", 90.1).put("ts", 1482180657010L)
 
       val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
-
-      val jedis = mock[Jedis]
-      writer.jedis = jedis
 
       val map = new util.HashMap[String, String]()
       map.put("type", "Xeon")

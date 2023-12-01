@@ -15,15 +15,19 @@
  */
 package io.lenses.streamreactor.connect.redis.sink.writer
 
+import com.typesafe.scalalogging.StrictLogging
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.config.base.settings.Projections
+import io.lenses.streamreactor.common.errors.ErrorHandler
 import io.lenses.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
 import io.lenses.streamreactor.common.schemas.StructHelper
+import io.lenses.streamreactor.common.sink.DbWriter
 import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 import io.lenses.streamreactor.connect.redis.sink.config.RedisKCQLSetting
 import io.lenses.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
+import redis.clients.jedis.Jedis
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.control.Exception.allCatch
@@ -31,7 +35,12 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class RedisGeoAdd(sinkSettings: RedisSinkSettings) extends RedisWriter with GeoAddSupport {
+class RedisGeoAdd(sinkSettings: RedisSinkSettings, jedis: Jedis)
+    extends DbWriter
+    with StrictLogging
+    with ErrorHandler
+    with GeoAddSupport {
+  initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)
 
   private lazy val simpleJsonConverter = new SimpleJsonConverter()
 
@@ -135,4 +144,6 @@ class RedisGeoAdd(sinkSettings: RedisSinkSettings) extends RedisWriter with GeoA
     }
 
   def isDoubleNumber(s: String): Boolean = (allCatch opt s.toDouble).isDefined
+
+  override def close(): Unit = jedis.close()
 }
