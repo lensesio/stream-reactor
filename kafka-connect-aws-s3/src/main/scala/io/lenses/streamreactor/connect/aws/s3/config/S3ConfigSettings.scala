@@ -28,8 +28,6 @@ object S3ConfigSettings {
   val CUSTOM_ENDPOINT:             String = s"$CONNECTOR_PREFIX.custom.endpoint"
   val ENABLE_VIRTUAL_HOST_BUCKETS: String = s"$CONNECTOR_PREFIX.vhost.bucket"
 
-  val PROFILES: String = s"$CONNECTOR_PREFIX.config.profiles"
-
   val KCQL_CONFIG = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_DOC =
     "Contains the Kafka Connect Query Language describing the flow from Apache Kafka topics to Apache Hive tables."
@@ -92,4 +90,8 @@ object S3ConfigSettings {
   val SOURCE_ORDERING_TYPE_DOC:     String = "AlphaNumeric (the default)"
   val SOURCE_ORDERING_TYPE_DEFAULT: String = "AlphaNumeric"
 
+  // used by the consumer groups sink
+  val S3_BUCKET_CONFIG: String = s"$CONNECTOR_PREFIX.location"
+  val S3_BUCKET_DOC: String =
+    "Specify the S3 bucket, and optionally, a prefix, where Kafka consumer group offsets will be stored."
 }
