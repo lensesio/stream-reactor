@@ -15,14 +15,18 @@
  */
 package io.lenses.streamreactor.connect.redis.sink.writer
 
+import com.typesafe.scalalogging.StrictLogging
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.config.base.settings.Projections
+import io.lenses.streamreactor.common.errors.ErrorHandler
 import io.lenses.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
 import io.lenses.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
+import io.lenses.streamreactor.common.sink.DbWriter
 import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 import io.lenses.streamreactor.connect.redis.sink.config.RedisKCQLSetting
 import io.lenses.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import org.apache.kafka.connect.sink.SinkRecord
+import redis.clients.jedis.Jedis
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
@@ -40,7 +44,12 @@ import scala.util.Try
   * INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SortedSet
   * INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SortedSet (score=ts)
   */
-class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter with SortedSetSupport {
+class RedisInsertSortedSet(sinkSettings: RedisSinkSettings, jedis: Jedis)
+    extends DbWriter
+    with StrictLogging
+    with ErrorHandler
+    with SortedSetSupport {
+  initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)
 
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
@@ -124,4 +133,5 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
       },
     )
 
+  override def close(): Unit = jedis.close()
 }
