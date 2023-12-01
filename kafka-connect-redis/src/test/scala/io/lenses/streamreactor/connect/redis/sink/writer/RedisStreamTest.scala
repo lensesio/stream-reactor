@@ -86,9 +86,6 @@ class RedisStreamTest
 
       val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
 
-      val jedis = mock[Jedis]
-      writer.jedis = jedis
-
       val map = new util.HashMap[String, String]()
       map.put("type", "Xeon")
       map.put("temperature", "60.4")
