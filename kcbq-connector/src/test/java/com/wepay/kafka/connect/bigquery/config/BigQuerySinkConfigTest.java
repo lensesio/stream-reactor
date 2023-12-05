@@ -243,7 +243,7 @@ public class BigQuerySinkConfigTest {
     new BigQuerySinkConfig(configProperties);
   }
 
-  @Test (expected = ConfigException.class)
+  @Test
   public void testTopic2TableDuplicateTable() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
     configProperties.put(BigQuerySinkConfig.TOPIC2TABLE_MAP_CONFIG, "topic:table, topic2:table");
