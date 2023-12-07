@@ -11,5 +11,5 @@ semaphore:
   cve_scan: true
   extra_secrets:
   - kcbq_gcp
-  extra_deploy_args: "-Dcloud -Pjenkins"
-  extra_build_args: "-Dcloud -Pjenkins"
+  extra_deploy_args: "-Pjenkins"
+  extra_build_args: "-Pjenkins"
