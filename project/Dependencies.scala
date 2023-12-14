@@ -50,9 +50,10 @@ object Dependencies {
 
     val enumeratumVersion = "1.7.2"
 
-    val http4sVersion = "1.0.0-M32"
-    val avroVersion   = "1.11.0"
-    val avro4sVersion = "4.1.0"
+    val http4sVersion    = "1.0.0-M32"
+    val http4sJdkVersion = "1.0.0-M1"
+    val avroVersion      = "1.11.0"
+    val avro4sVersion    = "4.1.0"
 
     val catsVersion           = "2.9.0"
     val catsEffectVersion     = "3.4.8"
@@ -60,7 +61,7 @@ object Dependencies {
 
     val urlValidatorVersion       = "1.7"
     val circeVersion              = "0.15.0-M1"
-    val circeGenericExtrasVersion = "0.14.1"
+    val circeGenericExtrasVersion = "0.14.3"
     val circeJsonSchemaVersion    = "0.2.0"
     val shapelessVersion          = "2.3.10"
 
@@ -165,10 +166,13 @@ object Dependencies {
 
   val urlValidator = "commons-validator" % "commons-validator" % urlValidatorVersion
 
-  val circeGeneric = "io.circe" %% "circe-generic" % circeVersion
-  val circeParser  = "io.circe" %% "circe-parser"  % circeVersion
-  val circeRefined = "io.circe" %% "circe-refined" % circeVersion
-  val circe: Seq[ModuleID] = Seq(circeGeneric, circeParser)
+  val circeGeneric       = "io.circe" %% "circe-generic"        % circeVersion
+  val circeGenericExtras = "io.circe" %% "circe-generic-extras" % circeGenericExtrasVersion
+  val circeParser        = "io.circe" %% "circe-parser"         % circeVersion
+  val circeRefined       = "io.circe" %% "circe-refined"        % circeVersion
+  val circe: Seq[ModuleID] = Seq(circeGeneric, circeParser, circeGenericExtras)
+
+  val mustache = "com.github.spullara.mustache.java" % "compiler" % "0.9.10"
 
   // logging
   val logback          = "ch.qos.logback"              % "logback-classic"  % logbackVersion
@@ -214,12 +218,10 @@ object Dependencies {
   val confluentProtobufConverter: ModuleID =
     confluentExcludes("io.confluent" % "kafka-connect-protobuf-converter" % confluentVersion)
 
-  val http4sDsl         = "org.http4s" %% "http4s-dsl"               % http4sVersion
-  val http4sAsyncClient = "org.http4s" %% "http4s-async-http-client" % http4sVersion
-  val http4sBlazeServer = "org.http4s" %% "http4s-blaze-server"      % http4sVersion
-  val http4sBlazeClient = "org.http4s" %% "http4s-blaze-client"      % http4sVersion
-  val http4sCirce       = "org.http4s" %% "http4s-circe"             % http4sVersion
-  val http4s: Seq[ModuleID] = Seq(http4sDsl, http4sAsyncClient, http4sBlazeServer, http4sCirce)
+  val http4sDsl       = "org.http4s" %% "http4s-dsl"             % http4sVersion
+  val http4sJdkClient = "org.http4s" %% "http4s-jdk-http-client" % http4sJdkVersion
+  val http4sCirce     = "org.http4s" %% "http4s-circe"           % http4sVersion
+  val http4s: Seq[ModuleID] = Seq(http4sDsl, http4sJdkClient, http4sCirce)
 
   val bouncyProv = "org.bouncycastle" % "bcprov-jdk15on" % bouncyCastleVersion
   val bouncyUtil = "org.bouncycastle" % "bcutil-jdk15on" % bouncyCastleVersion

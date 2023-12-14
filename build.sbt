@@ -1,9 +1,9 @@
 import Dependencies.globalExcludeDeps
 import Dependencies.gson
-
-import Settings._
+import Dependencies.mustache
+import Settings.*
 import sbt.Keys.libraryDependencies
-import sbt._
+import sbt.*
 import sbt.Project.projectToLocalProject
 
 import java.io.File
@@ -22,6 +22,7 @@ lazy val subProjects: Seq[Project] = Seq(
   elastic7,
   ftp,
   `gcp-storage`,
+  http,
   influxdb,
   jms,
   mongodb,
@@ -245,6 +246,28 @@ lazy val elastic7 = (project in file("kafka-connect-elastic7"))
   .configureIntegrationTests(kafkaConnectElastic7TestDeps)
   .configureFunctionalTests()
   .enablePlugins(PackPlugin)
+
+lazy val http = (project in file("kafka-connect-http"))
+  .dependsOn(common)
+  //.dependsOn(`test-common` % "fun->compile")
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-http",
+        description := "Kafka Connect compatible connectors to move data between Kafka and http",
+        libraryDependencies ++= baseDeps ++ Seq(mustache),
+        publish / skip := true,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
+      ),
+  )
+  .configureAssembly(false)
+  .configureTests(baseTestDeps)
+  //.configureIntegrationTests()
+  //.configureFunctionalTests(kafkaConnectS3FuncTestDeps)
+  .enablePlugins(PackPlugin, ProtocPlugin)
 
 lazy val influxdb = (project in file("kafka-connect-influxdb"))
   .dependsOn(common)
