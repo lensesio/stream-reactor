@@ -23,6 +23,7 @@ import java.io.StringWriter
 case class Template(
   endpointTemplate: Mustache,
   contentTemplate:  Mustache,
+  headerTemplates:  Seq[(Mustache, Mustache)],
 ) {
   def process(
     sinkRecord: SinkRecord,
@@ -30,7 +31,10 @@ case class Template(
     ProcessedTemplate(
       executeTemplate(endpointTemplate, sinkRecord),
       executeTemplate(contentTemplate, sinkRecord),
-      Seq(),
+      headerTemplates.map {
+        case (keyTpl, valTpl) =>
+          executeTemplate(keyTpl, sinkRecord) -> executeTemplate(valTpl, sinkRecord)
+      },
     )
 
   private def executeTemplate(
@@ -38,9 +42,11 @@ case class Template(
     sinkRecord: SinkRecord,
   ): String = {
     val stringWriter = new StringWriter()
-    template.execute(stringWriter, sinkRecord)
-    stringWriter.flush()
-    stringWriter.toString
+    val newWriter    = template.execute(stringWriter, sinkRecord)
+    // really these writers are the same but checking the writer ref
+    // that is returned helps with testing.
+    newWriter.flush()
+    newWriter.toString
   }
 
 }

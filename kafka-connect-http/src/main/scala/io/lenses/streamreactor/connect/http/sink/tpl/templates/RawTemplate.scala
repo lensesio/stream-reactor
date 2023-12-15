@@ -31,8 +31,12 @@ case class RawTemplate(
 
     val endpointTemplate = mf.compile(new StringReader(endpoint), "endpoint")
     val contentTemplate  = mf.compile(new StringReader(content), "content")
-    //val headerTemplates = template.headers.map()
-    // TODO
-    Template(endpointTemplate, contentTemplate)
+    val headerTemplates = headers.zipWithIndex.map {
+      case ((tplKey, tplVal), idx) =>
+        mf.compile(new StringReader(tplKey), s"headerKey_$idx") -> mf.compile(new StringReader(tplVal),
+                                                                              s"headerVal_$idx",
+        )
+    }
+    Template(endpointTemplate, contentTemplate, headerTemplates)
   }
 }
