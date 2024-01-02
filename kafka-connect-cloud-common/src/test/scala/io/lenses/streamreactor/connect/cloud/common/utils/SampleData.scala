@@ -37,7 +37,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 
 object SampleData extends Matchers {
 
-  implicit val cloudLocationValidator: CloudLocationValidator = (s3Location: CloudLocation, allowSlash: Boolean) =>
+  implicit val cloudLocationValidator: CloudLocationValidator = (s3Location: CloudLocation) =>
     Validated.fromEither(Right(s3Location))
 
   val topic: Topic = Topic("niceTopic")

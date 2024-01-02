@@ -25,35 +25,35 @@ class GCPStorageLocationValidatorTest extends AnyFunSuite with Matchers with Val
 
   test("validate should succeed for a valid CloudLocation") {
     val validLocation = CloudLocation("valid-bucket", Some("valid-prefix"))
-    val result        = GCPStorageLocationValidator.validate(validLocation, allowSlash = true)
+    val result        = GCPStorageLocationValidator.validate(validLocation)
     result.value should be(validLocation)
   }
 
   test("validate should fail for an invalid bucket name") {
     val invalidLocation = CloudLocation("invalid@bucket", Some("valid-prefix"))
     val result: Validated[Throwable, CloudLocation] =
-      GCPStorageLocationValidator.validate(invalidLocation, allowSlash = true)
+      GCPStorageLocationValidator.validate(invalidLocation)
     result.leftValue.getMessage should be("Nested prefix not currently supported")
   }
 
-  test("validate should fail for an invalid prefix with slashes not allowed") {
-    val invalidLocation = CloudLocation("valid-bucket", Some("invalid/prefix"))
+  test("validate should fail for a prefix with slashes") {
+    val invalidLocation = CloudLocation("valid-bucket", Some("slash/prefix"))
     val result: Validated[Throwable, CloudLocation] =
-      GCPStorageLocationValidator.validate(invalidLocation, allowSlash = false)
-    result.leftValue.getMessage should be("Nested prefix not currently supported")
+      GCPStorageLocationValidator.validate(invalidLocation)
+    result.value should be(CloudLocation("valid-bucket", Some("slash/prefix")))
   }
 
   test("validate should succeed for a valid prefix with slashes not allowed") {
     val validLocation = CloudLocation("valid-bucket", Some("valid-prefix"))
     val result: Validated[Throwable, CloudLocation] =
-      GCPStorageLocationValidator.validate(validLocation, allowSlash = false)
+      GCPStorageLocationValidator.validate(validLocation)
     result.value should be(validLocation)
   }
 
   test("validate should succeed for a valid prefix with slashes allowed") {
     val validLocation = CloudLocation("valid-bucket", Some("valid-prefix"))
     val result: Validated[Throwable, CloudLocation] =
-      GCPStorageLocationValidator.validate(validLocation, allowSlash = true)
+      GCPStorageLocationValidator.validate(validLocation)
     result.value should be(validLocation)
   }
 }

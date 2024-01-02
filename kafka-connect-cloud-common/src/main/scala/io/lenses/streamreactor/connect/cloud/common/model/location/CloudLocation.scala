@@ -53,8 +53,8 @@ case class CloudLocation(
 
   def prefixOrDefault(): String = prefix.getOrElse("")
 
-  private def validate(allowSlash: Boolean): Validated[Throwable, CloudLocation] =
-    cloudLocationValidator.validate(this, allowSlash)
+  private def validate(): Validated[Throwable, CloudLocation] =
+    cloudLocationValidator.validate(this)
 
   override def toString: String = {
     val prefixStr    = prefix.map(p => s"$p/").getOrElse("")
@@ -69,16 +69,15 @@ case class CloudLocation(
 case object CloudLocation {
   def splitAndValidate(
     bucketAndPrefix: String,
-    allowSlash:      Boolean,
   )(
     implicit
     validator: CloudLocationValidator,
   ): Either[Throwable, CloudLocation] =
     bucketAndPrefix.split(":") match {
       case Array(bucket) =>
-        CloudLocation(bucket, None).validate(allowSlash).toEither
+        CloudLocation(bucket, None).validate().toEither
       case Array(bucket, path) =>
-        CloudLocation(bucket, Some(path)).validate(allowSlash).toEither
+        CloudLocation(bucket, Some(path)).validate().toEither
       case _ => new IllegalArgumentException("Invalid number of arguments provided to create BucketAndPrefix").asLeft
     }
 

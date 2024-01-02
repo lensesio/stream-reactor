@@ -119,7 +119,7 @@ object SourceBucketOptions {
     config.getKCQL.map {
       kcql: Kcql =>
         for {
-          source     <- CloudLocation.splitAndValidate(kcql.getSource, allowSlash = true)
+          source     <- CloudLocation.splitAndValidate(kcql.getSource)
           format     <- FormatSelection.fromKcql(kcql, CloudSourcePropsSchema.schema)
           sourceProps = CloudSourceProps.fromKcql(kcql)
 

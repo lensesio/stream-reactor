@@ -28,25 +28,19 @@ class DatalakeLocationValidatorTest extends AnyFunSuite with Matchers {
 
   test("DatalakeLocationValidator should validate a valid bucket name") {
     val location = CloudLocation("valid-bucket-name", none, "valid-path".some)
-    val result   = DatalakeLocationValidator.validate(location, allowSlash = false)
+    val result   = DatalakeLocationValidator.validate(location)
     result shouldBe Validated.Valid(location)
   }
 
   test("DatalakeLocationValidator should return an error for an invalid bucket name") {
     val location = CloudLocation("invalid_bucket_name", none, "valid-path".some)
-    val result   = DatalakeLocationValidator.validate(location, allowSlash = false)
+    val result   = DatalakeLocationValidator.validate(location)
     result shouldBe a[Validated.Invalid[_]]
   }
 
-  test("DatalakeLocationValidator should return an error if prefix contains a slash when not allowed") {
+  test("DatalakeLocationValidator should allow prefix with a slash in") {
     val location = CloudLocation("valid-bucket-name", "prefix/".some, "valid-path".some)
-    val result   = DatalakeLocationValidator.validate(location, allowSlash = false)
-    result shouldBe a[Validated.Invalid[_]]
-  }
-
-  test("DatalakeLocationValidator should allow prefix with a slash when allowed") {
-    val location = CloudLocation("valid-bucket-name", "prefix/".some, "valid-path".some)
-    val result   = DatalakeLocationValidator.validate(location, allowSlash = true)
+    val result   = DatalakeLocationValidator.validate(location)
     result shouldBe Validated.Valid(location)
   }
 }

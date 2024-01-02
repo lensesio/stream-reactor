@@ -26,29 +26,26 @@ import org.scalatest.matchers.should.Matchers
 class CloudLocationTest extends AnyFlatSpec with Matchers with EitherValues {
   implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
 
-  "bucketAndPrefix" should "reject prefixes with slashes" in {
-    expectException(
-      CloudLocation.splitAndValidate("bucket:/slash", allowSlash = false),
-      "Nested prefix not currently supported",
-    )
+  "bucketAndPrefix" should "accept prefixes with slashes" in {
+
+    CloudLocation.splitAndValidate("bucket:/slash").value should be(CloudLocation("bucket", "/slash".some))
+
   }
 
   "bucketAndPrefix" should "split the bucket and prefix" in {
-    CloudLocation.splitAndValidate("bucket:prefix", allowSlash = false).value should be(CloudLocation("bucket",
-                                                                                                      "prefix".some,
-    ))
+    CloudLocation.splitAndValidate("bucket:prefix").value should be(CloudLocation("bucket", "prefix".some))
   }
 
   "bucketAndPrefix" should "fail if given too many components to split" in {
     expectException(
-      CloudLocation.splitAndValidate("bucket:path:whatIsThis", false),
+      CloudLocation.splitAndValidate("bucket:path:whatIsThis"),
       "Invalid number of arguments provided to create BucketAndPrefix",
     )
   }
 
   "bucketAndPrefix" should "fail if not a valid bucket name" in {
     expectException(
-      CloudLocation.splitAndValidate("bucket-police-refu$e-this-name:path", allowSlash = true),
+      CloudLocation.splitAndValidate("bucket-police-refu$e-this-name:path"),
       "Bucket name should not contain '$'",
     )
   }

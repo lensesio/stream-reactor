@@ -24,11 +24,10 @@ import scala.util.Try
 
 object S3LocationValidator extends CloudLocationValidator {
 
-  def validate(location: CloudLocation, allowSlash: Boolean): Validated[Throwable, CloudLocation] =
+  def validate(location: CloudLocation): Validated[Throwable, CloudLocation] =
     Validated.fromEither(
       for {
         _ <- validateBucketName(location.bucket).toEither
-        _ <- validatePrefix(allowSlash, location.prefix).toEither
       } yield location,
     )
 
@@ -39,12 +38,4 @@ object S3LocationValidator extends CloudLocationValidator {
     },
   )
 
-  private def validatePrefix(allowSlash: Boolean, prefix: Option[String]): Validated[Throwable, Unit] =
-    Validated.fromEither(
-      Either.cond(
-        allowSlash || (!allowSlash && !prefix.exists(_.contains("/"))),
-        (),
-        new IllegalArgumentException("Nested prefix not currently supported"),
-      ),
-    )
 }

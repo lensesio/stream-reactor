@@ -64,7 +64,7 @@ object CloudSinkBucketOptions extends LazyLogging {
         }
         keyNamer         = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
         stagingArea     <- config.getLocalStagingArea()
-        target          <- CloudLocation.splitAndValidate(kcql.getTarget, allowSlash = false)
+        target          <- CloudLocation.splitAndValidate(kcql.getTarget)
         storageSettings <- DataStorageSettings.from(sinkProps)
         _               <- validateEnvelopeAndFormat(formatSelection, storageSettings)
         commitPolicy     = config.commitPolicy(kcql)
