@@ -3,14 +3,23 @@
 
 Join us on slack [![Alt text](images/slack.jpeg)](https://launchpass.com/lensesio)
 
-# Lenses for Apache Kafka
+# Lenses Connectors for Apache Kafka
 
-Lenses offers SQL (for data browsing and Kafka Streams), Kafka Connect connector management, cluster monitoring and
-more.
+Lenses.io is the leader in offering Apache 2 licensed Kafka Connectors (Stream Reactor) since 2016. 
 
-You can find more on [lenses.io](http://www.lenses.io)
+## Enterprise Support for Kafka Connectors 
 
-# Stream Reactor
+Lenses offers the leading Developer Experience solution for engineers building real-time applications on any Apache Kafka ([lenses.io](http://www.lenses.io)). Subscribed customers are entitled to full 24x7 support for selected Kafka Connectors. This includes priority over feature requests and security incident SLAs. Email info@lenses.io for more information. 
+
+## Engage with the Community
+
+Speak to us on our Community Slack channel (Register at https://launchpass.com/lensesio) or ask the Community a question in our [Ask Marios](http://www.lenses.io) forum. 
+
+## Kafka Connectors Roadmap
+
+A series of next-generation Connectors are in active development. Give us your feedback of which connectors we should be working on or to to get the latest information, send us an email at info@lenses.io
+
+# Stream Reactor Kafka Connectors
 
 ![Alt text](images/streamreactor-logo.png)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Flensesio%2Fstream-reactor.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Flensesio%2Fstream-reactor?ref=badge_shield)
