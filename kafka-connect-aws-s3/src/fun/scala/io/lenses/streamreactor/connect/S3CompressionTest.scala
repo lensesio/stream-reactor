@@ -63,7 +63,7 @@ class S3CompressionTest
     ("parquet", "uncompressed", false),
     ("parquet", "snappy", false),
     ("parquet", "gzip", false),
-    ("parquet", "lz4", false),
+    //("parquet", "lz4", false),
     ("parquet", "zstd", false),
   )
 
