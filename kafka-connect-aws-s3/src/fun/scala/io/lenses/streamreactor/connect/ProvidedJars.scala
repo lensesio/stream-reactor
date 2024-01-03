@@ -1,7 +1,6 @@
 package io.lenses.streamreactor.connect
 
 import com.github.luben.zstd.NoPool
-import com.hadoop.compression.lzo.LzopCodec
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.hadoop.io.compress.CompressionCodec
 import org.tukaani.xz.FilterOptions
@@ -13,7 +12,6 @@ object ProvidedJars extends LazyLogging {
 
   private val classesWithinJarsToProvide = Seq(
     classOf[FilterOptions],
-    classOf[LzopCodec],
     classOf[NoPool],
     classOf[CompressionCodec],
   )

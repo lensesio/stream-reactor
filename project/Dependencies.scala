@@ -38,7 +38,6 @@ object Dependencies {
     "typesafe" at "https://repo.typesafe.com/typesafe/releases/",
     "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
     "jitpack" at "https://jitpack.io",
-    "twitter" at "https://maven.twttr.com/",
   )
 
   object Versions {
@@ -95,7 +94,6 @@ object Dependencies {
 
     val xzVersion  = "1.9"
     val lz4Version = "1.8.0"
-    val lzoVersion = "0.4.19"
 
     val californiumVersion  = "3.5.0"
     val bouncyCastleVersion = "1.70"
@@ -363,7 +361,6 @@ object Dependencies {
 
   lazy val xz  = "org.tukaani"               % "xz"         % xzVersion
   lazy val lz4 = "org.lz4"                   % "lz4-java"   % lz4Version
-  lazy val lzo = "com.hadoop.gplcompression" % "hadoop-lzo" % lzoVersion
 
   def hiveExcludes(moduleID: ModuleID): ModuleID =
     moduleID
@@ -469,7 +466,7 @@ trait Dependencies {
     stsSdk,
   )
 
-  val compressionCodecDeps: Seq[ModuleID] = Seq(xz, lzo, lz4)
+  val compressionCodecDeps: Seq[ModuleID] = Seq(xz, lz4)
 
   val kafkaConnectAzureDatalakeDeps: Seq[ModuleID] = Seq(
     azureDataLakeSdk,
