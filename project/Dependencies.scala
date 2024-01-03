@@ -359,8 +359,8 @@ object Dependencies {
   lazy val jedis = "redis.clients"        % "jedis" % jedisVersion
   lazy val gson  = "com.google.code.gson" % "gson"  % gsonVersion
 
-  lazy val xz  = "org.tukaani"               % "xz"         % xzVersion
-  lazy val lz4 = "org.lz4"                   % "lz4-java"   % lz4Version
+  lazy val xz  = "org.tukaani" % "xz"       % xzVersion
+  lazy val lz4 = "org.lz4"     % "lz4-java" % lz4Version
 
   def hiveExcludes(moduleID: ModuleID): ModuleID =
     moduleID
