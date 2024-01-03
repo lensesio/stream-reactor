@@ -74,7 +74,7 @@ trait AuthModeSettingsConfigKeys extends WithConnectorPrefix {
     )
       .define(
         CREDENTIALS,
-        Type.STRING,
+        Type.PASSWORD,
         "",
         Importance.HIGH,
         "GCP Credentials if using 'credentials' auth mode.",
