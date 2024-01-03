@@ -160,24 +160,6 @@ abstract class CoreSinkTaskTestCases[SM <: FileMetadata, SI <: StorageInterface[
 
   }
 
-  unitUnderTest should "throw error if prefix contains a slash" in {
-
-    val task = createSinkTask()
-
-    val prefixWithSlashes = "my/prefix/that/is/a/path"
-    val props = (defaultProps
-      + (
-        s"$prefix.kcql" -> s"insert into $BucketName:$prefixWithSlashes select * from $TopicName WITH_FLUSH_INTERVAL = 1",
-      )).asJava
-
-    val intercepted = intercept[IllegalArgumentException] {
-      task.start(props)
-    }
-
-    intercepted.getMessage should be("Nested prefix not currently supported")
-
-  }
-
   unitUnderTest should "flush for every record when configured flush count size of 1" in {
 
     val props =

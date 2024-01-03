@@ -22,11 +22,10 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 object DatalakeLocationValidator extends CloudLocationValidator {
   private val ContainerNamePattern = "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$".r
 
-  def validate(location: CloudLocation, allowSlash: Boolean): Validated[Throwable, CloudLocation] =
+  def validate(location: CloudLocation): Validated[Throwable, CloudLocation] =
     Validated.fromEither(
       for {
         _ <- validateBucketName(location.bucket).toEither
-        _ <- validatePrefix(allowSlash, location.prefix).toEither
       } yield location,
     )
 
@@ -37,12 +36,4 @@ object DatalakeLocationValidator extends CloudLocationValidator {
       Validated.Invalid(new IllegalArgumentException("Nested prefix not currently supported"))
     }
 
-  private def validatePrefix(allowSlash: Boolean, prefix: Option[String]): Validated[Throwable, Unit] =
-    Validated.fromEither(
-      Either.cond(
-        allowSlash || (!allowSlash && !prefix.exists(_.contains("/"))),
-        (),
-        new IllegalArgumentException("Nested prefix not currently supported"),
-      ),
-    )
 }
