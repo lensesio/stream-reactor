@@ -20,7 +20,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 
 object GCPStorageLocationValidator extends CloudLocationValidator {
-  private val ContainerNamePattern = "^[a-z0-9][a-z0-9-\_]{1,61}[a-z0-9]$".r
+  private val ContainerNamePattern = "^[a-z0-9][a-z0-9-\_\.]{1,61}[a-z0-9]$".r
 
   def validate(location: CloudLocation): Validated[Throwable, CloudLocation] =
     Validated.fromEither(
