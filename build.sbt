@@ -116,7 +116,7 @@ lazy val `aws-s3` = (project in file("kafka-connect-aws-s3"))
 lazy val `azure-datalake` = (project in file("kafka-connect-azure-datalake"))
   .dependsOn(common)
   .dependsOn(`cloud-common` % "compile->compile;test->test")
-  .dependsOn(`test-common` % "fun->compile")
+  .dependsOn(`test-common` % "test->compile")
   .settings(
     settings ++
       Seq(
@@ -139,7 +139,7 @@ lazy val `azure-datalake` = (project in file("kafka-connect-azure-datalake"))
 lazy val `gcp-storage` = (project in file("kafka-connect-gcp-storage"))
   .dependsOn(common)
   .dependsOn(`cloud-common` % "compile->compile;test->test;it->it")
-  .dependsOn(`test-common` % "fun->compile;it->compile")
+  .dependsOn(`test-common` % "test->compile")
   .settings(
     settings ++
       Seq(
