@@ -18,7 +18,7 @@
 
 package io.lenses.streamreactor.connect.azure.servicebus.source
 
-import com.datamountaineer.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfig
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -26,7 +26,7 @@ import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class AzureServiceBusSourceConnector extends SourceConnector {
 

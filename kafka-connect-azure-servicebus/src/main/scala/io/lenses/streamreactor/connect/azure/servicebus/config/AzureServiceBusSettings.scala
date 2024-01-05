@@ -16,8 +16,9 @@
 
 package io.lenses.streamreactor.connect.azure.servicebus.config
 
-import com.datamountaineer.streamreactor.common.config.base.settings.Projections
-import com.datamountaineer.streamreactor.connect.converters.source.{BytesConverter, Converter}
+import io.lenses.streamreactor.common.config.base.settings.Projections
+import io.lenses.streamreactor.connect.converters.source.BytesConverter
+import io.lenses.streamreactor.connect.converters.source.Converter
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.servicebus.TargetType
 import io.lenses.streamreactor.connect.azure.servicebus.config.AbstractConfigExtensions._
@@ -25,17 +26,22 @@ import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 case class AzureServiceBusSettings(
-                                    sapName: String,
-                                    sapKey: Password,
-                                    namespace: String,
-                                    pollInterval: Long,
-                                    targetType: Map[String, TargetType.Value],
-                                    converters: Map[String, String],
-                                    projections: Projections,
-                                    setHeaders: Boolean)
+  sapName:        String,
+  sapKey:         Password,
+  namespace:      String,
+  pollInterval:   Long,
+  targetType:     Map[String, TargetType.Value],
+  converters:     Map[String, String],
+  projections:    Projections,
+  setHeaders:     Boolean,
+  evictInterval:  Int,
+  evictThreshold: Int,
+)
 
 object AzureServiceBusSettings extends StrictLogging {
   def apply(config: AzureServiceBusConfig): AzureServiceBusSettings = {
@@ -48,16 +54,17 @@ object AzureServiceBusSettings extends StrictLogging {
 
     if (namespace.isEmpty) {
       throw new ConnectException(
-        s"[${AzureServiceBusConfig.AZURE_SB_NAMESPACE}] not set")
+        s"[${AzureServiceBusConfig.AZURE_SB_NAMESPACE}] not set",
+      )
     }
 
-    val kcqls = config.getKCQL
+    val kcqls       = config.getKCQL
     val errorPolicy = config.getErrorPolicy
-    val maxRetries = config.getNumberRetries
+    val maxRetries  = config.getNumberRetries
 
     val targetType =
       kcqls.toList
-        .map(k => {
+        .map { k =>
           val storeAs = Option(k.getStoredAs) match {
             case Some(value) => TargetType.withName(value.toUpperCase)
             case None =>
@@ -65,42 +72,57 @@ object AzureServiceBusSettings extends StrictLogging {
               TargetType.TOPIC
           }
           k.getSource -> storeAs
-        })
+        }
         .toMap
 
     val converters = kcqls
-      .map(k => {
+      .map { k =>
         (k.getSource,
          if (k.getWithConverter == null)
            classOf[BytesConverter].getCanonicalName
-         else k.getWithConverter)
-      })
+         else k.getWithConverter,
+        )
+      }
       .toMap
 
     converters.values.foreach(clazz =>
       Try(Class.forName(clazz)) match {
         case Failure(_) =>
           throw new ConfigException(
-            s"Invalid [${AzureServiceBusConfig.KCQL}]. [$clazz] not found")
+            s"Invalid [${AzureServiceBusConfig.KCQL}]. [$clazz] not found",
+          )
         case Success(clz) =>
           if (!classOf[Converter].isAssignableFrom(clz)) {
             throw new ConfigException(
-              s"Invalid [${AzureServiceBusConfig.KCQL}]. [$clazz] is not inheriting Converter")
+              s"Invalid [${AzureServiceBusConfig.KCQL}]. [$clazz] is not inheriting Converter",
+            )
           }
-    })
+      },
+    )
 
     val setHeaders = config.getBoolean(AzureServiceBusConfig.SET_HEADERS)
-    val projections = Projections(kcqls = kcqls, errorPolicy = errorPolicy, errorRetries = maxRetries, defaultBatchSize = AzureServiceBusConfig.DEFAULT_BATCH_SIZE)
+    val projections = Projections(
+      kcqls            = kcqls,
+      props            = Map.empty,
+      errorPolicy      = errorPolicy,
+      errorRetries     = maxRetries,
+      defaultBatchSize = AzureServiceBusConfig.DEFAULT_BATCH_SIZE,
+    )
+
+    val evictInterval  = config.getInt(AzureServiceBusConfig.EVICT_UNCOMMITTED_MINUTES)
+    val evictThreshold = config.getInt(AzureServiceBusConfig.EVICT_THRESHOLD_MINUTES)
 
     AzureServiceBusSettings(
-      sapName = config.getString(AzureServiceBusConfig.AZURE_SAP_NAME),
-      sapKey = config.getPassword(AzureServiceBusConfig.AZURE_SAP_KEY),
-      namespace = namespace,
+      sapName      = config.getString(AzureServiceBusConfig.AZURE_SAP_NAME),
+      sapKey       = config.getPassword(AzureServiceBusConfig.AZURE_SAP_KEY),
+      namespace    = namespace,
       pollInterval = config.getLong(AzureServiceBusConfig.AZURE_POLL_INTERVAL),
-      targetType = targetType,
-      converters = converters,
-      setHeaders = setHeaders,
-      projections = projections
+      targetType   = targetType,
+      converters   = converters,
+      setHeaders   = setHeaders,
+      projections  = projections,
+      evictInterval = evictInterval,
+      evictThreshold = evictThreshold,
     )
   }
 }

@@ -16,7 +16,7 @@
 
 package io.lenses.streamreactor.connect.azure
 
-import com.datamountaineer.streamreactor.connect.converters.source.Converter
+import io.lenses.streamreactor.connect.converters.source.Converter
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfig
 import org.apache.kafka.common.config.ConfigException
@@ -33,7 +33,7 @@ package object servicebus extends StrictLogging {
   def getConverters(converters: Map[String, String], conf: Map[String, String]): Map[String, Converter] = {
     converters.map { case (topic, clazz) =>
       logger.info(s"Creating converter instance for $clazz")
-      val converter = Try(Class.forName(clazz).newInstance()) match {
+      val converter = Try(Class.forName(clazz).getDeclaredConstructor().newInstance()) match {
         case Success(value) => value.asInstanceOf[Converter]
         case Failure(_) => throw new ConfigException(s"Invalid [${AzureServiceBusConfig.KCQL}] is invalid. [$clazz] should have an empty ctor!")
       }

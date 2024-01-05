@@ -16,7 +16,7 @@
 
 package io.lenses.streamreactor.connect.azure.storage.config
 
-import com.datamountaineer.kcql.{FormatType, WriteModeEnum}
+import io.lenses.kcql.{FormatType, WriteModeEnum}
 import io.lenses.streamreactor.connect.azure.TestBase
 
 import scala.collection.JavaConverters._

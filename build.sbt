@@ -17,6 +17,8 @@ lazy val subProjects: Seq[Project] = Seq(
   `aws-s3`,
   `azure-documentdb`,
   `azure-datalake`,
+  `azure-servicebus`,
+  `azure-storage`,
   cassandra,
   elastic6,
   elastic7,
@@ -177,6 +179,44 @@ lazy val `azure-documentdb` = (project in file("kafka-connect-azure-documentdb")
   .configureAssembly(true)
   .configureTests(baseTestDeps)
   .enablePlugins(PackPlugin)
+
+lazy val `azure-servicebus` = (project in file("kafka-connect-azure-servicebus"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-azure-servicebus",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectAzureServiceBusDeps,
+        publish / skip := true,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
+      ),
+  )
+  .configureAssembly(true)
+  .configureTests(baseTestDeps)
+  .enablePlugins(PackPlugin)  
+
+lazy val `azure-storage` = (project in file("kafka-connect-azure-storage"))
+  .dependsOn(common)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-azure-storage",
+        description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
+        libraryDependencies ++= baseDeps ++ kafkaConnectAzureStorageDeps,
+        publish / skip := true,
+        packExcludeJars := Seq(
+          "scala-.*\\.jar",
+          "zookeeper-.*\\.jar",
+        ),
+      ),
+  )
+  .configureAssembly(true)
+  .configureTests(baseTestDeps)
+  .enablePlugins(PackPlugin)    
 
 lazy val cassandra = (project in file("kafka-connect-cassandra"))
   .dependsOn(common)

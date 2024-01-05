@@ -18,9 +18,7 @@
 
 package io.lenses.streamreactor.connect.azure.storage.sinks.writers
 
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.microsoft.azure.storage.queue.CloudQueueClient
-import com.microsoft.azure.storage.table.CloudTableClient
+import io.lenses.streamreactor.common.errors.ErrorHandler
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.storage.TargetType.TargetType
 import io.lenses.streamreactor.connect.azure.storage._
@@ -30,6 +28,7 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.util.{Failure, Success, Try}
+import com.azure.storage.queue.QueueClient
 
 object AzureStorageWriter {
   def apply(settings: AzureStorageSettings) = new AzureStorageWriter(settings)
@@ -66,7 +65,7 @@ class AzureStorageWriter(settings: AzureStorageSettings)
   //create the azure cloud clients
   private def initializeClient(
       settings: AzureStorageSettings,
-      targetType: TargetType): Either[CloudTableClient, CloudQueueClient] = {
+      targetType: TargetType): Either[CloudTableClient, QueueClient] = {
     val storageAccount = getStorageAccount(settings.account,
                                            settings.accountKey,
                                            settings.endpoint,

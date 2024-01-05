@@ -16,15 +16,14 @@
 
 package io.lenses.streamreactor.connect.azure.storage.sources
 
-import com.datamountaineer.streamreactor.connect.converters.source.Converter
-import com.microsoft.azure.storage.queue.{CloudQueueClient, CloudQueueMessage}
+import io.lenses.streamreactor.connect.converters.source.Converter
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.storage.config.{AzureStorageConfig, AzureStorageSettings}
 import io.lenses.streamreactor.connect.azure.storage.getQueueReferences
 import org.apache.kafka.connect.header.ConnectHeaders
 import org.apache.kafka.connect.source.SourceRecord
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 object AzureQueueStorageReader {

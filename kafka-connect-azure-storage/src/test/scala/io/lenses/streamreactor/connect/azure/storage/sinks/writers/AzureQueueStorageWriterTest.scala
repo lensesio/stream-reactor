@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.azure.storage.sinks.writers
 import io.lenses.streamreactor.connect.azure.TestBase
 import io.lenses.streamreactor.connect.azure.storage.config.{AzureStorageConfig, AzureStorageSettings}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class AzureQueueStorageWriterTest extends TestBase {
 

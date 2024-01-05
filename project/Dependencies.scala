@@ -82,6 +82,10 @@ object Dependencies {
 
     val azureDataLakeVersion = "12.17.0"
     val azureIdentityVersion = "1.8.1"
+    val azureServiceBusVersion = "7.14.7"
+    val azureDataTablesVersion = "12.3.17"
+    val azureQueueStorageVersion = "12.20.1"
+
     val gcpStorageVersion    = "2.26.1"
     val guavaVersion         = "31.0.1-jre"
     val javaxBindVersion     = "2.3.1"
@@ -279,6 +283,9 @@ object Dependencies {
 
   lazy val azureDataLakeSdk: ModuleID = "com.azure" % "azure-storage-file-datalake" % azureDataLakeVersion
   lazy val azureIdentity:    ModuleID = "com.azure" % "azure-identity"              % azureIdentityVersion
+  lazy val azureServiceBus:  ModuleID = "com.azure" % "azure-messaging-servicebus"  % azureServiceBusVersion
+  lazy val azureDataTables:  ModuleID = "com.azure" % "azure-data-tables"           % azureDataTablesVersion
+  lazy val azureQueueStorage: ModuleID = "com.azure" % "azure-storage-queue"        % azureQueueStorageVersion
 
   lazy val gcpStorageSdk = "com.google.cloud" % "google-cloud-storage" % gcpStorageVersion
   lazy val guava         = "com.google.guava" % "guava"                % guavaVersion
@@ -494,6 +501,8 @@ trait Dependencies {
     baseTestDeps ++ Seq(testContainersScala, testContainersScalaCassandra)
 
   val kafkaConnectAzureDocumentDbDeps: Seq[ModuleID] = Seq(azureDocumentDb)
+  val kafkaConnectAzureServiceBusDeps: Seq[ModuleID] = Seq(azureServiceBus)
+  val kafkaConnectAzureStorageDeps: Seq[ModuleID] = Seq(azureDataTables, azureQueueStorage)
 
   val kafkaConnectInfluxDbDeps: Seq[ModuleID] = Seq(influx, avro4s, avro4sJson)
 

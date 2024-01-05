@@ -18,8 +18,8 @@
 
 package io.lenses.streamreactor.connect.azure.storage.config
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
-import com.datamountaineer.streamreactor.common.config.base.traits._
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst._
+import io.lenses.streamreactor.common.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type, Width}
 

@@ -16,7 +16,7 @@
 
 package io.lenses.streamreactor.connect.azure
 
-import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
+import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.microsoft.azure.storage.queue.{CloudQueue, CloudQueueClient, CloudQueueMessage}
 import io.lenses.streamreactor.connect.azure.storage.config.AzureStorageConfig
@@ -30,7 +30,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import java.util
 import java.util.Date
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 
 trait TestBase extends AnyWordSpec with Matchers with MockitoSugar {

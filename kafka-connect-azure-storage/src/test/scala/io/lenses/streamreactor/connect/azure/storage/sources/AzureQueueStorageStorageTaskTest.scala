@@ -23,7 +23,7 @@ import io.lenses.streamreactor.connect.azure.storage.config.{AzureStorageConfig,
 import io.lenses.streamreactor.connect.azure.storage.getConverters
 import org.apache.kafka.connect.data.Struct
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class AzureQueueStorageStorageTaskTest extends TestBase {
   "should read from a queue as json with ack" in {

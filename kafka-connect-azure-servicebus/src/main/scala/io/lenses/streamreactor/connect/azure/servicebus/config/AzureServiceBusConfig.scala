@@ -16,11 +16,11 @@
 
 package io.lenses.streamreactor.connect.azure.servicebus.config
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.{
+import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.{
   ERROR_POLICY_PROP_SUFFIX,
   MAX_RETRIES_PROP_SUFFIX
 }
-import com.datamountaineer.streamreactor.common.config.base.traits._
+import io.lenses.streamreactor.common.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type, Width}
 
@@ -77,6 +77,16 @@ object AzureServiceBusConfig {
       |service bus message to the kafka message headers, source only"
       |""".stripMargin
   val SET_HEADERS_DEFAULT = false
+
+   val EVICT_UNCOMMITTED_MINUTES = s"$PREFIX.evict.interval.minutes"
+  private[config] val EVICT_UNCOMMITTED_MINUTES_DOC =
+    "Removes the uncommitted messages from the internal cache. Each Azure Service Bus message is linked to the Kafka record to be published. Failure to publish a record to Kafka will mean the message will not be acknowledged."
+  private[config] val EVICT_UNCOMMITTED_MINUTES_DEFAULT = 10
+
+  val EVICT_THRESHOLD_MINUTES = s"$PREFIX.evict.threshold.minutes"
+  private[config] val EVICT_THRESHOLD_MINUTES_DOC =
+    "The number of minutes after which an uncommitted entry becomes evictable from the connector cache."
+  private[config] val EVICT_THRESHOLD_MINUTES_DEFAULT = 10
 
   val config: ConfigDef = new ConfigDef()
     .define(
@@ -185,6 +195,28 @@ object AzureServiceBusConfig {
             3,
             ConfigDef.Width.MEDIUM,
             NBR_OF_RETRIES)
+    .define(
+      EVICT_UNCOMMITTED_MINUTES,
+      Type.INT,
+      EVICT_UNCOMMITTED_MINUTES_DEFAULT,
+      Importance.MEDIUM,
+      EVICT_UNCOMMITTED_MINUTES_DOC,
+      "Settings",
+      1,
+      ConfigDef.Width.MEDIUM,
+      EVICT_UNCOMMITTED_MINUTES_DOC,
+    )
+    .define(
+      EVICT_THRESHOLD_MINUTES,
+      Type.INT,
+      EVICT_THRESHOLD_MINUTES_DEFAULT,
+      Importance.MEDIUM,
+      EVICT_THRESHOLD_MINUTES_DOC,
+      "Settings",
+      2,
+      ConfigDef.Width.MEDIUM,
+      EVICT_THRESHOLD_MINUTES_DOC,
+    )            
 }
 
 case class AzureServiceBusConfig(props: util.Map[String, String])

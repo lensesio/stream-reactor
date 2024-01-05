@@ -55,6 +55,11 @@ case class Projections(
   errorPolicy:      ErrorPolicy              = ErrorPolicy(ErrorPolicyEnum.THROW),
   errorRetries:     Int                      = 0,
   kcqls:            Set[Kcql]                = Set.empty,
+  keyDelimiters:    Map[String, String]      = Map.empty,
+  sessions:         Map[String, String]      = Map.empty,
+  subscriptions:    Map[String, String]      = Map.empty,
+  acks:             Map[String, Boolean]     = Map.empty,
+  keys:             Map[String, Seq[String]] = Map.empty,
 )
 
 object Projections extends StrictLogging {
@@ -85,6 +90,11 @@ object Projections extends StrictLogging {
       errorPolicy      = errorPolicy,
       errorRetries     = errorRetries,
       kcqls            = kcqls,
+      keyDelimiters    = getKeyDelimiter(kcqls),
+      sessions         = getSessions(kcqls),
+      subscriptions    = getSubscriptions(kcqls),
+      acks             = getAcks(kcqls),
+      keys             = getKeys(kcqls),
     )
 
   def getAutoCreate(kcql: Set[Kcql]): Map[String, Boolean] =
@@ -198,4 +208,30 @@ object Projections extends StrictLogging {
             (source, converter)
         },
       ).toMap
+
+  def getKeyDelimiter(kcql: Set[Kcql]): Map[String, String] =
+    kcql.map { k =>
+      k.getSource -> k.getKeyDelimeter
+    }.toMap
+
+  def getSessions(kcql: Set[Kcql]): Map[String, String] =
+    kcql
+      .filterNot(k => Option(k.getWithSession).isEmpty)
+      .map(k => (k.getSource, k.getWithSession))
+      .toMap
+
+  def getSubscriptions(kcql: Set[Kcql]): Map[String, String] =
+    kcql.map(k => (k.getSource, k.getWithSubscription)).toMap
+
+  def getAcks(kcqls: Set[Kcql]): Map[String, Boolean] =
+    kcqls.map(k => (k.getSource, k.getWithAck)).toMap
+
+  def getKeys(kcql: Set[Kcql]): Map[String, Seq[String]] =
+    kcql
+      .map(k =>
+        k.getSource -> Option(k.getWithKeys)
+          .map(_.asScala.toSeq)
+          .getOrElse(Seq.empty[String])
+      )
+      .toMap
 }

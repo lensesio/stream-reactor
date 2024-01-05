@@ -19,7 +19,7 @@
 package io.lenses.streamreactor.connect.azure.servicebus.source
 
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
+import io.lenses.streamreactor.common.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.servicebus
 import io.lenses.streamreactor.connect.azure.servicebus.config.{AzureServiceBusConfig, AzureServiceBusSettings}
@@ -28,7 +28,7 @@ import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import java.util
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.BiConsumer
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 
 //noinspection VarCouldBeVal
@@ -61,6 +61,8 @@ class AzureServiceBusSourceTask extends SourceTask with StrictLogging {
     AzureServiceBusConfig.config.parse(conf)
     val configBase = AzureServiceBusConfig(conf)
     val settings = AzureServiceBusSettings(configBase)
+    evictInterval  = settings.evictInterval
+    evictThreshold = settings.evictThreshold
 
     interval = settings.pollInterval
 
@@ -77,14 +79,17 @@ class AzureServiceBusSourceTask extends SourceTask with StrictLogging {
     val now = System.currentTimeMillis()
 
     if (now > nextRead) {
-      val records = reader.read().map { r =>
-        recordsToCommit.put(
-          r.record,
-          MessageAndTimestamp(r.message,
-            r.source,
-            FiniteDuration(now,
-              MILLISECONDS)))
-        r.record
+      val tokenrecords: List[TokenAndSourceRecord] = reader.read()
+
+      val records: List[SourceRecord] = tokenrecords.map{ r => {
+          recordsToCommit.put(
+            r.record,
+            MessageAndTimestamp(r.message,
+              r.source,
+              FiniteDuration(now,
+                MILLISECONDS)))
+          r.record
+        }
       }
 
       if (enableProgress) {
@@ -122,20 +127,14 @@ class AzureServiceBusSourceTask extends SourceTask with StrictLogging {
       recordsToCommit.forEach(
         new BiConsumer[SourceRecord, MessageAndTimestamp] {
           override def accept(t: SourceRecord, u: MessageAndTimestamp): Unit =
-            evictIfApplicable(t, u, current)
+            if ((current - u.timestamp).toMinutes > evictThreshold) {
+              recordsToCommit.remove(t)
+              ()
+            }
         })
     }
     lastEvictedTimestamp = current
   }
-
-  private def evictIfApplicable(record: SourceRecord,
-                                msg: MessageAndTimestamp,
-                                now: FiniteDuration): Unit = {
-    if ((now - msg.timestamp).toMinutes > evictThreshold) {
-      recordsToCommit.remove(record)
-    }
-  }
-
   case class MessageAndTimestamp(message: ServiceBusReceivedMessage,
                                  source: String,
                                  timestamp: FiniteDuration)

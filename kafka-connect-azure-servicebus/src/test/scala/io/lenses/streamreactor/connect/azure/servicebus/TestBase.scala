@@ -20,7 +20,7 @@ import com.azure.core.util.{BinaryData, IterableStream}
 import com.azure.messaging.servicebus.administration.ServiceBusAdministrationClient
 import com.azure.messaging.servicebus.administration.models.{QueueRuntimeProperties, SubscriptionRuntimeProperties}
 import com.azure.messaging.servicebus.{ServiceBusReceivedMessage, ServiceBusReceiverClient}
-import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
+import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 import com.fasterxml.jackson.databind.JsonNode
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfig
 import org.apache.kafka.common.TopicPartition
@@ -33,7 +33,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import java.util
 import java.util.Date
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 
 trait TestBase extends AnyWordSpec with Matchers with MockitoSugar {
@@ -182,7 +182,7 @@ trait TestBase extends AnyWordSpec with Matchers with MockitoSugar {
                          "key",
                          schema,
                          record,
-                         i,
+                         i.toLong,
                          System.currentTimeMillis(),
                          TimestampType.CREATE_TIME)
         })

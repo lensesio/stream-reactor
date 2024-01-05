@@ -11,6 +11,11 @@ cass-test
 target/
 # Scala-IDE specific
 .idea
+.vscode
+.bloop
+.metals
+project/project
+project/metals.sbt
 /stream-reactor.iml
 */target
 /kafka-connect-elastic/kafka-connect-elastic.iml

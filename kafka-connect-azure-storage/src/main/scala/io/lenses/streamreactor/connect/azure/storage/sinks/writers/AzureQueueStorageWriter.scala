@@ -18,12 +18,11 @@
 
 package io.lenses.streamreactor.connect.azure.storage.sinks.writers
 
-import com.datamountaineer.kcql.FormatType
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
-import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
+import io.lenses.kcql.FormatType
+import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
+import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.microsoft.azure.storage.queue.{CloudQueue, CloudQueueClient, CloudQueueMessage}
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.storage.config.AzureStorageSettings
 import io.lenses.streamreactor.connect.azure.storage.getQueueReferences
@@ -31,15 +30,17 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.util.Try
+import com.azure.storage.queue.QueueClient
+import com.azure.storage.queue.implementation.models.QueueMessage
 
 object AzureQueueStorageWriter {
   def apply(settings: AzureStorageSettings,
-            queueClient: CloudQueueClient): AzureQueueStorageWriter =
+            queueClient: QueueClient): AzureQueueStorageWriter =
     new AzureQueueStorageWriter(settings, queueClient)
 }
 
 class AzureQueueStorageWriter(settings: AzureStorageSettings,
-                              client: CloudQueueClient)
+                              client: QueueClient)
     extends Writer
     with StrictLogging
     with ErrorHandler {
@@ -67,11 +68,11 @@ class AzureQueueStorageWriter(settings: AzureStorageSettings,
     })
   }
 
-  def convert(record: SinkRecord): CloudQueueMessage = {
+  def convert(record: SinkRecord): QueueMessage = {
     settings.projections.formats(record.topic()) match {
-      case FormatType.JSON => new CloudQueueMessage(toJson(record))
+      case FormatType.JSON => new QueueMessage(toJson(record))
       case FormatType.BINARY =>
-        new CloudQueueMessage(toJson(record).getBytes())
+        new QueueMessage(toJson(record).getBytes())
       case _ =>
         throw new ConnectException(
           s"Unknown WITHFORMAT type [${settings.projections.formats(record.topic()).toString}]")

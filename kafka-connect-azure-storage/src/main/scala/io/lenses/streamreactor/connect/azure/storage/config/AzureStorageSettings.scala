@@ -18,15 +18,15 @@
 
 package io.lenses.streamreactor.connect.azure.storage.config
 
-import com.datamountaineer.kcql.FormatType
-import com.datamountaineer.streamreactor.common.config.base.settings.Projections
-import com.datamountaineer.streamreactor.connect.converters.source.{BytesConverter, Converter}
+// import io.lenses.kcql.FormatType
+import io.lenses.streamreactor.common.config.base.settings.Projections
+import io.lenses.streamreactor.connect.converters.source.{BytesConverter, Converter}
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.storage.TargetType
 import io.lenses.streamreactor.connect.azure.storage.config.AbstractConfigExtensions._
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
-import org.apache.kafka.connect.errors.ConnectException
+// import org.apache.kafka.connect.errors.ConnectException
 
 import scala.util.{Failure, Success, Try}
 
@@ -102,7 +102,7 @@ object AzureStorageSettings extends StrictLogging {
       .toMap
 
     val setHeaders = config.getBoolean(AzureStorageConfig.SET_HEADERS)
-    val projections = Projections(kcqls = kcqls, errorPolicy = errorPolicy, errorRetries = maxRetries, defaultBatchSize = 100)
+    val projections = Projections(kcqls = kcqls, props = Map.empty, errorPolicy = errorPolicy, errorRetries = maxRetries, defaultBatchSize = 100)
 
     AzureStorageSettings(
       account = account,
@@ -118,15 +118,15 @@ object AzureStorageSettings extends StrictLogging {
     )
   }
 
-  private def getFormatType(format: FormatType): FormatType = {
-    if (format == null) {
-      FormatType.JSON
-    } else {
-      format match {
-        case FormatType.JSON | FormatType.BINARY =>
-        case _                                   => throw new ConnectException(s"Unknown WITHFORMAT type")
-      }
-      format
-    }
-  }
+  // private def getFormatType(format: FormatType): FormatType = {
+  //   if (format == null) {
+  //     FormatType.JSON
+  //   } else {
+  //     format match {
+  //       case FormatType.JSON | FormatType.BINARY =>
+  //       case _                                   => throw new ConnectException(s"Unknown WITHFORMAT type")
+  //     }
+  //     format
+  //   }
+  // }
 }

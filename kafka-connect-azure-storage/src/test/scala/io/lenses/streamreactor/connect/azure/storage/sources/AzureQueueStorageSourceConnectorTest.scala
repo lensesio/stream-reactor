@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.azure.storage.sources
 import io.lenses.streamreactor.connect.azure.TestBase
 import io.lenses.streamreactor.connect.azure.storage.config.AzureStorageConfig
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class AzureQueueStorageSourceConnectorTest extends TestBase {
   "should start and configure a connector" in {

@@ -22,12 +22,12 @@ import io.lenses.streamreactor.connect.azure.servicebus.config.{AzureServiceBusC
 import io.lenses.streamreactor.connect.azure.servicebus.{TestBase, getConverters}
 import org.apache.kafka.connect.source.SourceTaskContext
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class AzureServiceBusSourceTaskTest extends TestBase {
 
   "should process in a task" in {
-    val props = getProps(s"INSERT INTO kafka-topic SELECT * FROM $QUEUE  STOREAS queue WITHCONVERTER=`com.datamountaineer.streamreactor.connect.converters.source.JsonSimpleConverter`")
+    val props = getProps(s"INSERT INTO kafka-topic SELECT * FROM $QUEUE  STOREAS queue WITHCONVERTER=`io.lenses.streamreactor.connect.converters.source.JsonSimpleConverter`")
     val conf = AzureServiceBusConfig(props)
     val settings = AzureServiceBusSettings(conf)
     val reader = AzureServiceBusReader(CONNECTOR_NAME, settings, getConverters(settings.converters, props.asScala.toMap))

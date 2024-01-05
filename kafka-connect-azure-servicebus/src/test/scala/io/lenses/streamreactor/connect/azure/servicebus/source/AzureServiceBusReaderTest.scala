@@ -18,17 +18,16 @@
 
 package io.lenses.streamreactor.connect.azure.servicebus.source
 
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import io.lenses.streamreactor.connect.azure.servicebus.config.{AzureServiceBusConfig, AzureServiceBusSettings}
 import io.lenses.streamreactor.connect.azure.servicebus.{TestBase, _}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
-class AzureServiceBusReaderTest extends TestBase with ConverterUtil {
+class AzureServiceBusReaderTest extends TestBase {
 
   "should create a reader and read from a queue" in {
     val props = getProps(
-      s"INSERT INTO kafka-topic SELECT * FROM $QUEUE  STOREAS queue WITHCONVERTER=`com.datamountaineer.streamreactor.connect.converters.source.JsonSimpleConverter`")
+      s"INSERT INTO kafka-topic SELECT * FROM $QUEUE  STOREAS queue WITHCONVERTER=`io.lenses.streamreactor.connect.converters.source.JsonSimpleConverter`")
     val conf = AzureServiceBusConfig(props)
     val settings = AzureServiceBusSettings(conf)
     val reader = AzureServiceBusReader(CONNECTOR_NAME,
@@ -43,7 +42,7 @@ class AzureServiceBusReaderTest extends TestBase with ConverterUtil {
 
   "should create a reader and read from a topic" in {
     val props = getProps(
-      s"INSERT INTO kafka-topic SELECT * FROM $TOPIC STOREAS TOPIC WITHCONVERTER=`com.datamountaineer.streamreactor.connect.converters.source.JsonSimpleConverter` WITHSUBSCRIPTION = $CONNECTOR_NAME")
+      s"INSERT INTO kafka-topic SELECT * FROM $TOPIC STOREAS TOPIC WITHCONVERTER=`io.lenses.streamreactor.connect.converters.source.JsonSimpleConverter` WITHSUBSCRIPTION = $CONNECTOR_NAME")
     val conf = AzureServiceBusConfig(props)
     val settings = AzureServiceBusSettings(conf)
     val reader = AzureServiceBusReader(CONNECTOR_NAME,
@@ -60,7 +59,7 @@ class AzureServiceBusReaderTest extends TestBase with ConverterUtil {
 
   "should create a reader and read from a topic with session" in {
     val props = getProps(
-      s"INSERT INTO kafka-topic SELECT * FROM $TOPIC STOREAS TOPIC WITHCONVERTER=`com.datamountaineer.streamreactor.connect.converters.source.JsonSimpleConverter` WITHSUBSCRIPTION = $CONNECTOR_NAME WITHSESSION = lenses")
+      s"INSERT INTO kafka-topic SELECT * FROM $TOPIC STOREAS TOPIC WITHCONVERTER=`io.lenses.streamreactor.connect.converters.source.JsonSimpleConverter` WITHSUBSCRIPTION = $CONNECTOR_NAME WITHSESSION = lenses")
     val conf = AzureServiceBusConfig(props)
     val settings = AzureServiceBusSettings(conf)
     val reader = AzureServiceBusReader(CONNECTOR_NAME,

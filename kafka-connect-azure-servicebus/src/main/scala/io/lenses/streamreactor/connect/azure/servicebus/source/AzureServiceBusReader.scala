@@ -21,7 +21,7 @@ package io.lenses.streamreactor.connect.azure.servicebus.source
 import com.azure.messaging.servicebus._
 import com.azure.messaging.servicebus.administration.models.CreateSubscriptionOptions
 import com.azure.messaging.servicebus.administration.{ServiceBusAdministrationClient, ServiceBusAdministrationClientBuilder}
-import com.datamountaineer.streamreactor.connect.converters.source.Converter
+import io.lenses.streamreactor.connect.converters.source.Converter
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.servicebus
 import io.lenses.streamreactor.connect.azure.servicebus.config.{AzureServiceBusConfig, AzureServiceBusSettings}
@@ -29,7 +29,7 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.header.ConnectHeaders
 import org.apache.kafka.connect.source.SourceRecord
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 object AzureServiceBusReader {
@@ -210,7 +210,7 @@ class AzureServiceBusReader(name: String = "",
       s"Endpoint=sb://${settings.namespace}/;SharedAccessKeyName=${settings.sapName};SharedAccessKey=${settings.sapKey.value()}"
 
     clients = settings.projections.targets.map {
-      case (source, target) =>
+      case (source, _) =>
         createEntities(connStr, source)
 
         val subscriptionName =

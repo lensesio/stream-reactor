@@ -22,7 +22,7 @@ import io.lenses.streamreactor.connect.azure.storage.config.AzureStorageConfig
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class AzureStorageSinkTaskTest extends TestBase with MockitoSugar {
 

@@ -18,12 +18,7 @@
 
 package io.lenses.streamreactor.connect.azure.storage.sinks
 
-import com.datamountaineer.streamreactor.common.errors.{
-  ErrorPolicy,
-  ErrorPolicyEnum,
-  RetryErrorPolicy
-}
-import com.datamountaineer.streamreactor.common.utils.{
+import io.lenses.streamreactor.common.utils.{
   JarManifest,
   ProgressCounter
 }
@@ -36,7 +31,8 @@ import io.lenses.streamreactor.connect.azure.storage.sinks.writers.AzureStorageW
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
+import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 
 class AzureStorageSinkTask extends SinkTask with StrictLogging {
 

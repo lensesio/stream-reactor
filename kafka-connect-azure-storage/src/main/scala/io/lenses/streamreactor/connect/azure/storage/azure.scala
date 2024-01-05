@@ -18,9 +18,7 @@
 
 package io.lenses.streamreactor.connect.azure
 
-import com.datamountaineer.streamreactor.connect.converters.source.Converter
-import com.microsoft.azure.storage.CloudStorageAccount
-import com.microsoft.azure.storage.queue.{CloudQueue, CloudQueueClient}
+import io.lenses.streamreactor.connect.converters.source.Converter
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.storage.config.AzureStorageConfig
 import org.apache.kafka.common.config.ConfigException
@@ -28,6 +26,7 @@ import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.util.{Failure, Success, Try}
+import com.azure.storage.queue.QueueClient
 
 package object storage extends StrictLogging {
 
@@ -89,7 +88,7 @@ package object storage extends StrictLogging {
     }
   }
 
-  def getQueueReferences(client: CloudQueueClient, queueNames: Map[String, (Boolean, Boolean)]): Map[String, CloudQueue] = {
+  def getQueueReferences(client: QueueClient, queueNames: Map[String, (Boolean, Boolean)]): Map[String, Queue] = {
     queueNames.map{ case (queueName, (autocreate, encode)) =>
       val queueRef = client.getQueueReference(queueName)
 

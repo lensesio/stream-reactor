@@ -18,11 +18,10 @@
 
 package io.lenses.streamreactor.connect.azure.storage.sinks.writers
 
-import com.datamountaineer.kcql.WriteModeEnum
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.rowkeys.{StringGenericRowKeyBuilder, StringStructFieldsStringKeyBuilder}
-import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
-import com.microsoft.azure.storage.table.{CloudTableClient, DynamicTableEntity, EntityProperty, TableBatchOperation}
+import io.lenses.kcql.WriteModeEnum
+import io.lenses.streamreactor.common.errors.ErrorHandler
+//import io.lenses.streamreactor.common.rowkeys.{StringGenericRowKeyBuilder, StringStructFieldsStringKeyBuilder}
+import io.lenses.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.storage.config.{AzureStorageConfig, AzureStorageSettings}
 import org.apache.kafka.common.config.ConfigException
@@ -33,7 +32,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 
 import java.text.SimpleDateFormat
 import java.util
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 object AzureTableStorageWriter {

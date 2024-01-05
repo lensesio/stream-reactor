@@ -19,10 +19,10 @@ package io.lenses.streamreactor.connect.azure.servicebus.sink
 import com.azure.messaging.servicebus._
 import com.azure.messaging.servicebus.administration.models.{CreateQueueOptions, CreateTopicOptions}
 import com.azure.messaging.servicebus.administration.{ServiceBusAdministrationClient, ServiceBusAdministrationClientBuilder}
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.rowkeys._
-import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
-import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
+import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.common.rowkeys._
+import io.lenses.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
+import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.servicebus
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusSettings

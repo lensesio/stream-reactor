@@ -16,8 +16,7 @@
 
 package io.lenses.streamreactor.connect.azure.storage.sources
 
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
-import com.microsoft.azure.storage.queue.CloudQueueMessage
+import io.lenses.streamreactor.common.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.storage._
 import io.lenses.streamreactor.connect.azure.storage.config.{AzureStorageConfig, AzureStorageSettings}
