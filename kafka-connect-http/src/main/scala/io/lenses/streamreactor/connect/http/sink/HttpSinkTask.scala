@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Lenses.io Ltd
+ * Copyright 2017-2024 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,15 +19,16 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import io.lenses.streamreactor.common.utils.JarManifest
-import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig.fromJson
-import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.configProp
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
+import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig.fromJson
+import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.configProp
 import io.lenses.streamreactor.connect.http.sink.tpl.templates.ProcessedTemplate
 import io.lenses.streamreactor.connect.http.sink.tpl.templates.RawTemplate
 import io.lenses.streamreactor.connect.http.sink.tpl.templates.Template
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
+import org.http4s.client.Client
 import org.http4s.jdkhttpclient.JdkHttpClient
 
 import java.util
@@ -40,8 +41,18 @@ class HttpSinkTask extends SinkTask {
   private var maybeConfig: Option[HttpSinkConfig] = Option.empty
 
   private var maybeTemplate: Option[Template] = Option.empty
+
+  private var client:                Client[IO] = _
+  private var clientResourceRelease: IO[Unit]   = _
+
   override def start(props: util.Map[String, String]): Unit = {
     {
+      JdkHttpClient.simple[IO].allocated.unsafeRunSync() match {
+        case (cRes, cResRel) =>
+          client                = cRes
+          clientResourceRelease = cResRel
+      }
+
       for {
         propVal <- props.asScala.get(configProp).toRight(new IllegalArgumentException("No prop found"))
         config  <- fromJson(propVal)
@@ -57,29 +68,29 @@ class HttpSinkTask extends SinkTask {
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
+
+    // TODO: handle error if client hasn't been allocated
+
     val sinkRecords = records.asScala
     (maybeConfig, maybeTemplate) match {
       case (Some(config), Some(template)) =>
-        val sender         = new HttpRequestSender(config)
-        val clientResource = JdkHttpClient.simple[IO]
+        val sender = new HttpRequestSender(config)
 
-        clientResource.use {
-          client =>
-            sinkRecords.map {
-              record =>
-                val processed: ProcessedTemplate = template.process(record)
-                sender.sendHttpRequest(
-                  client,
-                  processed,
-                )
-            }.toSeq.sequence *> IO.unit
-        }.unsafeRunSync()
-      case _ => throw new IllegalArgumentException("Config or tmeplate not set")
+        sinkRecords.map {
+          record =>
+            val processed: ProcessedTemplate = template.process(record)
+            sender.sendHttpRequest(
+              client,
+              processed,
+            )
+        }.toSeq.sequence *> IO.unit
+      case _ => throw new IllegalArgumentException("Config or template not set")
     }
 
   }
 
-  override def stop(): Unit = ???
+  override def stop(): Unit =
+    clientResourceRelease.unsafeRunSync()
 
   override def version(): String = manifest.version()
 }
