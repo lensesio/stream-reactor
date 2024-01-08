@@ -44,6 +44,7 @@ public class BigQueryErrorResponses {
   private static final String BAD_REQUEST_REASON = "badRequest";
   private static final String INVALID_REASON = "invalid";
   private static final String INVALID_QUERY_REASON = "invalidQuery";
+  private static final String JOB_INTERNAL_ERROR = "jobInternalError";
   private static final String NOT_FOUND_REASON = "notFound";
   private static final String QUOTA_EXCEEDED_REASON = "quotaExceeded";
   private static final String RATE_LIMIT_EXCEEDED_REASON = "rateLimitExceeded";
@@ -82,6 +83,11 @@ public class BigQueryErrorResponses {
     return BAD_REQUEST_CODE == exception.getCode()
         && exception.getError() == null
         && exception.getReason() == null;
+  }
+
+  public static boolean isJobInternalError(BigQueryException exception) {
+    return BAD_REQUEST_CODE == exception.getCode()
+            && JOB_INTERNAL_ERROR.equals(exception.getReason());
   }
 
   public static boolean isQuotaExceededError(BigQueryException exception) {
