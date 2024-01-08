@@ -13,22 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.http.sink.config
+package io.lenses.streamreactor.connect.http.sink.tpl.substitutions
 
-import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.common.config.ConfigDef.Importance
-import org.apache.kafka.common.config.ConfigDef.Type
+import cats.implicits.catsSyntaxEitherId
+import org.apache.kafka.connect.sink.SinkRecord
 
-object HttpSinkConfigDef {
-
-  val configProp: String = "connect.http.config"
-  val config: ConfigDef =
-    new ConfigDef()
-      .define(
-        configProp,
-        Type.STRING,
-        Importance.HIGH,
-        "Configuration string",
-      )
-
+case object Offset extends SubstitutionType {
+  override def get(locator: Option[String], sinkRecord: SinkRecord): Either[SubstitutionError, AnyRef] =
+    Long.box(sinkRecord.kafkaOffset()).asRight
 }

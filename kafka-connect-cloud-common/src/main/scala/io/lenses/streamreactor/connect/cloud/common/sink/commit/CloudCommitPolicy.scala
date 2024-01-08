@@ -13,22 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.http.sink.config
+package io.lenses.streamreactor.connect.cloud.common.sink.commit
 
-import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.common.config.ConfigDef.Importance
-import org.apache.kafka.common.config.ConfigDef.Type
+import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings.defaultFlushCount
+import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings.defaultFlushInterval
+import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings.defaultFlushSize
 
-object HttpSinkConfigDef {
-
-  val configProp: String = "connect.http.config"
-  val config: ConfigDef =
-    new ConfigDef()
-      .define(
-        configProp,
-        Type.STRING,
-        Importance.HIGH,
-        "Configuration string",
-      )
+object CloudCommitPolicy extends LazyLogging {
+  val Default: CommitPolicy =
+    CommitPolicy(FileSize(defaultFlushSize), Interval(defaultFlushInterval), Count(defaultFlushCount))
 
 }

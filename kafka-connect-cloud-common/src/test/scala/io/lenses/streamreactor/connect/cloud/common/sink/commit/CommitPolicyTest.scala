@@ -19,11 +19,6 @@ import com.typesafe.scalalogging.Logger
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
-import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitContext
-import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
-import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
-import io.lenses.streamreactor.connect.cloud.common.sink.commit.FileSize
-import io.lenses.streamreactor.connect.cloud.common.sink.commit.Interval
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -46,12 +41,12 @@ class CommitPolicyTest extends AnyWordSpec with Matchers with MockitoSugar {
     val lastFlushTimeAdjusted: Option[Long] = lastFlushTimestampAdjust.fold(Option.empty[Long])(e => Some(nowTime + e))
     val tpo = TopicPartitionOffset(Topic("myTopic"), 1, Offset(100))
 
-    policy.shouldFlush(CommitContext(tpo,
-                                     count,
-                                     fileSize,
-                                     creationTimeAdjusted,
-                                     lastFlushTimeAdjusted,
-                                     "my/filename.txt",
+    policy.shouldFlush(CloudCommitContext(tpo,
+                                          count,
+                                          fileSize,
+                                          creationTimeAdjusted,
+                                          lastFlushTimeAdjusted,
+                                          "my/filename.txt",
     ))
   }
 

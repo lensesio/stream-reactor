@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Lenses.io Ltd
+ * Copyright 2017-2024 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,8 +31,10 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 class HttpSinkConnector extends SinkConnector with LazyLogging {
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
-  private var props: Option[Map[String, String]] = Option.empty
+  private var props:         Option[Map[String, String]] = Option.empty
+  private var maybeSinkName: Option[String]              = Option.empty
 
+  private def sinkName = maybeSinkName.getOrElse("Lenses.io HTTP Sink")
   override def version(): String = manifest.version()
 
   override def taskClass(): Class[_ <: Task] = classOf[HttpSinkTask]
@@ -40,14 +42,17 @@ class HttpSinkConnector extends SinkConnector with LazyLogging {
   override def config(): ConfigDef = HttpSinkConfigDef.config
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Creating S3 sink connector")
-    this.props = props.asScala.toMap.some
+    val propsAsScala = props.asScala.toMap
+    this.props         = propsAsScala.some
+    this.maybeSinkName = propsAsScala.get("name")
+
+    logger.info(s"[$sinkName] Creating HTTP sink connector")
   }
 
   override def stop(): Unit = ()
 
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
-    logger.info(s"Creating $maxTasks tasks config")
+    logger.info(s"[$sinkName] Creating $maxTasks tasks config")
     List.fill(maxTasks) {
       props.map(_.asJava).getOrElse(Map.empty[String, String].asJava)
     }.asJava

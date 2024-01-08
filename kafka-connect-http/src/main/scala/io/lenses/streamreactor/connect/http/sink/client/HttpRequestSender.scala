@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Lenses.io Ltd
+ * Copyright 2017-2024 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,43 +16,60 @@
 package io.lenses.streamreactor.connect.http.sink.client
 
 import cats.effect.IO
-import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
-import io.lenses.streamreactor.connect.http.sink.tpl.templates.ProcessedTemplate
+import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
 import org.http4s._
 import org.http4s.client.Client
 import org.http4s.headers.Authorization
+import org.http4s.headers.`Content-Type`
 import org.typelevel.ci.CIString
-class HttpRequestSender(config: HttpSinkConfig) {
+class HttpRequestSender(
+  sinkName:       String,
+  authentication: Option[Authentication], // ssl, basic, oauth2, proxy
+  method:         Method,
+  client:         Client[IO],
+) extends LazyLogging {
 
-  def sendHttpRequest(
-    client:            Client[IO],
-    processedTemplate: ProcessedTemplate,
-  ): IO[Unit] = {
-
-    val uri = Uri.unsafeFromString(processedTemplate.endpoint)
-
-    val clientHeaders: Headers = Headers(processedTemplate.headers.map {
-      case (name, value) =>
-        Header.ToRaw.rawToRaw(new Header.Raw(CIString(name), value))
-    }: _*)
-
-    val request = Request[IO](
-      method  = Method.fromString(config.method.entryName).getOrElse(Method.GET),
-      uri     = uri,
-      headers = clientHeaders,
-    ).withEntity(config.content)
-
-    // Add authentication if present
-    val authenticatedRequest = config.authentication.fold(request) {
-      case BasicAuthentication(username, password) =>
-        request.putHeaders(Authorization(BasicCredentials(username, password)))
+  private def buildHeaders(headers: Seq[(String, String)]): IO[Headers] =
+    IO {
+      Headers(headers.map {
+        case (name, value) =>
+          Header.ToRaw.rawToRaw(new Header.Raw(CIString(name), value))
+      }: _*)
     }
 
+  def sendHttpRequest(
+    processedTemplate: ProcessedTemplate,
+  ): IO[Unit] =
     for {
-      response <- client.expect[String](authenticatedRequest)
-      _        <- IO(println(s"Response: $response"))
-    } yield ()
+      tpl: ProcessedTemplate <- IO.pure(processedTemplate)
 
-  }
+      uri <- IO.pure(Uri.unsafeFromString(processedTemplate.endpoint))
+      _   <- IO.delay(logger.debug(s"[$sinkName] sending a http request to url $uri"))
+
+      clientHeaders: Headers <- buildHeaders(tpl.headers)
+
+      request <- IO {
+        Request[IO](
+          method  = method,
+          uri     = uri,
+          headers = clientHeaders,
+        ).withContentType(`Content-Type`(MediaType.application.xml)).withEntity(processedTemplate.content)
+      }
+      // Add authentication if present
+      authenticatedRequest <- IO {
+        authentication.fold(request) {
+          case BasicAuthentication(username, password) =>
+            request.putHeaders(Authorization(BasicCredentials(username, password)))
+        }
+      }
+      _ <- IO.delay(logger.debug(s"[$sinkName] Auth: $authenticatedRequest"))
+      response <- client.expect[String](authenticatedRequest).onError(e =>
+        IO {
+          logger.error(s"[$sinkName] error writing to HTTP endpoint", e.getMessage)
+        } *> IO.raiseError(e),
+      )
+      _ <- IO.delay(logger.trace(s"[$sinkName] Response: $response"))
+    } yield ()
 
 }

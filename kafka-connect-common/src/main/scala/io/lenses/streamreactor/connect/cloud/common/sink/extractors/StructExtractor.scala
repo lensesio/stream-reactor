@@ -21,6 +21,8 @@ import ExtractorErrorType.UnexpectedType
 import PrimitiveExtractor.anyToEither
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionNamePath
 import org.apache.kafka.connect.data.Schema.Type._
+import org.apache.kafka.connect.data.Decimal
+import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Struct
 
 /**
@@ -37,23 +39,29 @@ object StructExtractor extends LazyLogging {
   private def extractPrimitive(struct: Struct, fieldName: String): Either[ExtractorError, String] =
     Option(struct.schema().field(fieldName))
       .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
-        _.schema().`type`() match {
-          case INT8    => anyToEither(struct.getInt8(fieldName))
-          case INT16   => anyToEither(struct.getInt16(fieldName))
-          case INT32   => anyToEither(struct.getInt32(fieldName))
-          case INT64   => anyToEither(struct.getInt64(fieldName))
-          case FLOAT32 => anyToEither(struct.getFloat32(fieldName))
-          case FLOAT64 => anyToEither(struct.getFloat64(fieldName))
-          case BOOLEAN => anyToEither(struct.getBoolean(fieldName))
-          case STRING  => anyToEither(struct.getString(fieldName))
-          case BYTES =>
-            Option(struct.getBytes(fieldName))
-              .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String])(byteVal =>
-                new String(byteVal).asRight[ExtractorError],
-              )
-          case other => logger.error("Non-primitive values not supported: " + other)
-            ExtractorError(ExtractorErrorType.UnexpectedType).asLeft[String]
-        }
+        f: Field =>
+          (f.schema().`type`(), f.schema().name()) match {
+            case (INT8, _)    => anyToEither(struct.getInt8(fieldName))
+            case (INT16, _)   => anyToEither(struct.getInt16(fieldName))
+            case (INT32, _)   => anyToEither(struct.getInt32(fieldName))
+            case (INT64, _)   => anyToEither(struct.getInt64(fieldName))
+            case (FLOAT32, _) => anyToEither(struct.getFloat32(fieldName))
+            case (FLOAT64, _) => anyToEither(struct.getFloat64(fieldName))
+            case (BOOLEAN, _) => anyToEither(struct.getBoolean(fieldName))
+            case (STRING, _)  => anyToEither(struct.getString(fieldName))
+            case (BYTES, Decimal.LOGICAL_NAME) =>
+              struct.get(fieldName) match {
+                case bd: java.math.BigDecimal => anyToEither(bd.toPlainString)
+                case _ => ExtractorError(ExtractorErrorType.UnexpectedType).asLeft[String]
+              }
+            case (BYTES, _) =>
+              Option(struct.getBytes(fieldName))
+                .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String])(byteVal =>
+                  new String(byteVal).asRight[ExtractorError],
+                )
+            case (other, _) => logger.error("Non-primitive values not supported: " + other)
+              ExtractorError(ExtractorErrorType.UnexpectedType).asLeft[String]
+          }
 
       }
 

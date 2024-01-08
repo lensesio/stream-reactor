@@ -1,3 +1,4 @@
+import Dependencies.betterMonadicFor
 import Dependencies.globalExcludeDeps
 import Dependencies.googleProtobuf
 import Dependencies.googleProtobufJava
@@ -132,6 +133,7 @@ object Settings extends Dependencies {
         ("StreamReactor-Docs", "https://docs.lenses.io/5.0/integrations/connectors/stream-reactor/"),
       ),
     ),
+    betterMonadicFor,
   )
 
   val settings: Seq[Setting[_]] = commonSettings ++ Seq(

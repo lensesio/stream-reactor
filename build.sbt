@@ -1,6 +1,5 @@
 import Dependencies.globalExcludeDeps
 import Dependencies.gson
-import Dependencies.mustache
 import Settings.*
 import sbt.Keys.libraryDependencies
 import sbt.*
@@ -255,7 +254,7 @@ lazy val http = (project in file("kafka-connect-http"))
       Seq(
         name := "kafka-connect-http",
         description := "Kafka Connect compatible connectors to move data between Kafka and http",
-        libraryDependencies ++= baseDeps ++ Seq(mustache),
+        libraryDependencies ++= baseDeps ++ kafkaConnectHttpDeps,
         publish / skip := true,
         packExcludeJars := Seq(
           "scala-.*\\.jar",
@@ -264,8 +263,8 @@ lazy val http = (project in file("kafka-connect-http"))
       ),
   )
   .configureAssembly(false)
-  .configureTests(baseTestDeps)
-  //.configureIntegrationTests()
+  .configureTests(baseTestDeps ++ kafkaConnectHttpTestDeps)
+  .configureIntegrationTests(baseTestDeps ++ kafkaConnectHttpTestDeps)
   //.configureFunctionalTests(kafkaConnectS3FuncTestDeps)
   .enablePlugins(PackPlugin, ProtocPlugin)
 

@@ -13,22 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.http.sink.config
+package io.lenses.streamreactor.connect.http.sink.tpl.substitutions
 
-import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.common.config.ConfigDef.Importance
-import org.apache.kafka.common.config.ConfigDef.Type
+import cats.implicits.catsSyntaxOptionId
 
-object HttpSinkConfigDef {
-
-  val configProp: String = "connect.http.config"
-  val config: ConfigDef =
-    new ConfigDef()
-      .define(
-        configProp,
-        Type.STRING,
-        Importance.HIGH,
-        "Configuration string",
-      )
-
+object SubstitutionError {
+  def apply(msg: String): SubstitutionError = SubstitutionError(msg, Option.empty)
+  def apply(msg: String, throwable: Throwable): SubstitutionError = SubstitutionError(msg, throwable.some)
 }
+case class SubstitutionError(msg: String, throwable: Option[Throwable]) extends Throwable

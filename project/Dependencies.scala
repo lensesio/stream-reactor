@@ -73,8 +73,8 @@ object Dependencies {
     val logbackVersion      = "1.4.7"
     val scalaLoggingVersion = "3.9.5"
 
-    val wiremockJre8Version = "2.35.0"
-    val parquetVersion      = "1.13.1"
+    val wiremockVersion = "3.3.1"
+    val parquetVersion  = "1.13.1"
 
     val jerseyCommonVersion = "3.1.1"
 
@@ -87,7 +87,7 @@ object Dependencies {
     val guavaVersion         = "31.0.1-jre"
     val javaxBindVersion     = "2.3.1"
 
-    val jacksonVersion      = "2.14.2"
+    val jacksonVersion      = "2.15.3"
     val json4sVersion       = "4.0.6"
     val mockitoScalaVersion = "1.17.12"
     val snakeYamlVersion    = "2.0"
@@ -133,7 +133,7 @@ object Dependencies {
 
     val mongoDbVersion = "3.12.12"
 
-    val jedisVersion = "4.3.1"
+    val jedisVersion = "4.4.0"
     val gsonVersion  = "2.10.1"
 
     val nimbusJoseJwtVersion = "9.30.2"
@@ -172,7 +172,7 @@ object Dependencies {
   val circeRefined       = "io.circe" %% "circe-refined"        % circeVersion
   val circe: Seq[ModuleID] = Seq(circeGeneric, circeParser, circeGenericExtras)
 
-  val mustache = "com.github.spullara.mustache.java" % "compiler" % "0.9.10"
+  val betterMonadicFor = addCompilerPlugin("com.olegpy" %% "better-monadic-for" % Versions.betterMonadicForVersion)
 
   // logging
   val logback          = "ch.qos.logback"              % "logback-classic"  % logbackVersion
@@ -236,7 +236,7 @@ object Dependencies {
   lazy val avro4sJson     = "com.sksamuel.avro4s" %% "avro4s-json"     % avro4sVersion
   lazy val avro4sProtobuf = "com.sksamuel.avro4s" %% "avro4s-protobuf" % avro4sVersion
 
-  val `wiremock-jre8` = "com.github.tomakehurst" % "wiremock-jre8" % wiremockJre8Version
+  val `wiremock` = "org.wiremock" % "wiremock" % wiremockVersion
 
   val jerseyCommon = "org.glassfish.jersey.core" % "jersey-common" % jerseyCommonVersion
 
@@ -420,7 +420,7 @@ trait Dependencies {
     scalatestPlusScalaCheck,
     scalaCheck,
     `mockito-scala`,
-    `wiremock-jre8`,
+    `wiremock`,
     jerseyCommon,
     avro4s,
     kafkaClients,
@@ -486,6 +486,10 @@ trait Dependencies {
 
   val kafkaConnectS3FuncTestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ s3Sdk
 
+  val kafkaConnectHttpDeps: Seq[ModuleID] = Seq()
+
+  val kafkaConnectHttpTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(
+  )
   val kafkaConnectCassandraDeps: Seq[ModuleID] = Seq(
     cassandraDriver,
     jsonPath,

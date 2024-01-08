@@ -15,82 +15,177 @@
  */
 package io.lenses.streamreactor.connect.http.sink
 
-import cats.effect.IO
 import cats.effect.unsafe.implicits.global
-import cats.implicits._
+import cats.effect.IO
+import cats.effect.Ref
+import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.utils.JarManifest
-import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
+import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig.fromJson
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.configProp
-import io.lenses.streamreactor.connect.http.sink.tpl.templates.ProcessedTemplate
-import io.lenses.streamreactor.connect.http.sink.tpl.templates.RawTemplate
-import io.lenses.streamreactor.connect.http.sink.tpl.templates.Template
+import io.lenses.streamreactor.connect.http.sink.tpl.RawTemplate
+import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
-import org.http4s.client.Client
-import org.http4s.jdkhttpclient.JdkHttpClient
 
 import java.util
 import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-class HttpSinkTask extends SinkTask {
+class HttpSinkTask extends SinkTask with LazyLogging {
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
-  private var maybeConfig: Option[HttpSinkConfig] = Option.empty
+  implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
 
-  private var maybeTemplate: Option[Template] = Option.empty
+  private var maybeTemplate:      Option[TemplateType]      = Option.empty
+  private var maybeWriterManager: Option[HttpWriterManager] = Option.empty
+  private var maybeSinkName:      Option[String]            = Option.empty
+  private def sinkName = maybeSinkName.getOrElse("Lenses.io HTTP Sink")
 
-  private var client:                Client[IO] = _
-  private var clientResourceRelease: IO[Unit]   = _
+  private val errorRef: Ref[IO, List[Throwable]] = Ref.of[IO, List[Throwable]](List.empty).unsafeRunSync()
 
   override def start(props: util.Map[String, String]): Unit = {
-    {
-      JdkHttpClient.simple[IO].allocated.unsafeRunSync() match {
-        case (cRes, cResRel) =>
-          client                = cRes
-          clientResourceRelease = cResRel
-      }
 
-      for {
-        propVal <- props.asScala.get(configProp).toRight(new IllegalArgumentException("No prop found"))
-        config  <- fromJson(propVal)
-        template = RawTemplate(config.endpoint, config.content, config.headers)
-          .parse()
-      } yield {
-        this.maybeConfig   = config.some
-        this.maybeTemplate = template.some
-      }
-    }.leftMap(throw _)
-    ()
+    printAsciiHeader(manifest, "/http-sink-ascii.txt")
 
+    val propsAsScala = props.asScala
+    maybeSinkName = propsAsScala.get("name")
+
+    IO.fromEither(parseConfig(propsAsScala.get(configProp)))
+      .flatMap { config =>
+        val template      = RawTemplate(config.endpoint, config.content, config.headers)
+        val writerManager = HttpWriterManager(sinkName, config, template)
+
+        val refUpdateCallback: Throwable => Unit =
+          (err: Throwable) => {
+            {
+              for {
+                updated <- this.errorRef.getAndUpdate {
+                  lts => lts :+ err
+                }
+              } yield updated
+            }.unsafeRunSync()
+            ()
+
+          }
+        writerManager.start(refUpdateCallback)
+          .map { _ =>
+            this.maybeTemplate      = Some(template)
+            this.maybeWriterManager = Some(writerManager)
+          }
+      }
+      .recoverWith {
+        case e =>
+          // errors at this point simply need to be thrown
+          IO.raiseError[Unit](new RuntimeException("Unexpected error occurred during sink start", e))
+      }.unsafeRunSync()
   }
+
+  private def parseConfig(propVal: Option[String]): Either[Throwable, HttpSinkConfig] =
+    propVal.toRight(new IllegalArgumentException("No prop found"))
+      .flatMap(fromJson)
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
 
-    // TODO: handle error if client hasn't been allocated
+    logger.debug(s"[$sinkName] put call with ${records.size()} records")
+    val storedErrors = errorRef.get.unsafeRunSync()
 
-    val sinkRecords = records.asScala
-    (maybeConfig, maybeTemplate) match {
-      case (Some(config), Some(template)) =>
-        val sender = new HttpRequestSender(config)
+    if (storedErrors.nonEmpty) {
+      throw new ConnectException(s"Previous operation failed with error: " +
+        storedErrors.map(_.getMessage).mkString(";"))
 
-        sinkRecords.map {
-          record =>
-            val processed: ProcessedTemplate = template.process(record)
-            sender.sendHttpRequest(
-              client,
-              processed,
-            )
-        }.toSeq.sequence *> IO.unit
-      case _ => throw new IllegalArgumentException("Config or template not set")
+    } else {
+
+      logger.trace(s"[$sinkName] building template")
+      val template = maybeTemplate.getOrElse(throw new IllegalStateException("No template available in put"))
+      val writerManager =
+        maybeWriterManager.getOrElse(throw new IllegalStateException("No writer manager available in put"))
+
+      records
+        .asScala
+        .toSeq
+        .map {
+          rec =>
+            Topic(rec.topic()).withPartition(rec.kafkaPartition()).withOffset(Offset(rec.kafkaOffset())) -> rec
+        }
+        .groupBy {
+          case (tpo, _) => tpo.topic
+        }
+        .foreach {
+          case (tp, records) =>
+            val recs           = records.map(_._2)
+            val eitherRendered = template.renderRecords(recs)
+            eitherRendered match {
+              case Left(ex) =>
+                logger.error(s"[$sinkName] Template Rendering Failure", ex)
+                IO.raiseError(ex)
+              // rendering errors can not be recovered from as configuration should be amended
+
+              case Right(renderedRecs) =>
+                logger.trace(s"[$sinkName] Rendered successful: $renderedRecs")
+                writerManager
+                  .getWriter(tp)
+                  .flatMap {
+                    writer =>
+                      writer.add(renderedRecs)
+                  }
+                  .unsafeRunSync()
+            }
+
+        }
     }
+  }
+
+  override def preCommit(
+    currentOffsets: util.Map[KafkaTopicPartition, OffsetAndMetadata],
+  ): util.Map[KafkaTopicPartition, OffsetAndMetadata] = {
+
+    val writerManager =
+      maybeWriterManager.getOrElse(throw new IllegalStateException("No writer manager available in put"))
+
+    def getDebugInfo(in: util.Map[KafkaTopicPartition, OffsetAndMetadata]): String =
+      in.asScala.map {
+        case (k, v) =>
+          k.topic() + "-" + k.partition() + "=" + v.offset()
+      }.mkString(";")
+
+    logger.debug(s"[{}] preCommit with offsets={}",
+                 sinkName,
+                 getDebugInfo(Option(currentOffsets).getOrElse(new util.HashMap())): Any,
+    )
+
+    val topicPartitionOffsetTransformed: Map[TopicPartition, OffsetAndMetadata] =
+      Option(currentOffsets)
+        .getOrElse(new util.HashMap())
+        .asScala
+        .map {
+          case (tp, offsetAndMetadata) =>
+            Topic(tp.topic()).withPartition(tp.partition()) -> offsetAndMetadata
+        }
+        .toMap
+
+    (for {
+      offsets <- writerManager
+        .preCommit(topicPartitionOffsetTransformed)
+      tpoTransformed = offsets.map {
+        case (topicPartition, offsetAndMetadata) =>
+          (topicPartition.toKafka, offsetAndMetadata)
+      }.asJava
+      _ <- IO(logger.debug(s"[{}] Returning latest written offsets={}", sinkName, getDebugInfo(tpoTransformed)))
+    } yield tpoTransformed).unsafeRunSync()
 
   }
 
   override def stop(): Unit =
-    clientResourceRelease.unsafeRunSync()
+    maybeWriterManager.foreach(_.close.unsafeRunSync())
 
   override def version(): String = manifest.version()
 }

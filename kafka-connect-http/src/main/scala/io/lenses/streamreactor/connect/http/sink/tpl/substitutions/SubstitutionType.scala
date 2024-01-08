@@ -13,31 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.http.sink.client
+package io.lenses.streamreactor.connect.http.sink.tpl.substitutions
 
 import enumeratum.CirceEnum
 import enumeratum.Enum
 import enumeratum.EnumEntry
-import org.http4s.Method
+import org.apache.kafka.connect.sink.SinkRecord
 
-sealed trait HttpMethod extends EnumEntry {
-  def toHttp4sMethod: Method
+trait SubstitutionType extends EnumEntry {
+  def get(locator: Option[String], sinkRecord: SinkRecord): Either[SubstitutionError, AnyRef]
 }
 
-case object HttpMethod extends Enum[HttpMethod] with CirceEnum[HttpMethod] {
-
-  val values = findValues
-
-  case object Put extends HttpMethod {
-    override def toHttp4sMethod: Method = Method.PUT
-  }
-
-  case object Post extends HttpMethod {
-    override def toHttp4sMethod: Method = Method.POST
-  }
-
-  case object Patch extends HttpMethod {
-    override def toHttp4sMethod: Method = Method.PATCH
-  }
-
+case object SubstitutionType extends Enum[SubstitutionType] with CirceEnum[SubstitutionType] {
+  override def values: IndexedSeq[SubstitutionType] =
+    IndexedSeq(Header, Key, Offset, Partition, Timestamp, Topic, Value)
 }

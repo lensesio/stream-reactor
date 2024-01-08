@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Lenses.io Ltd
+ * Copyright 2017-2024 Lenses.io Ltd
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.http.sink
 
+import cats.implicits.none
 import io.lenses.streamreactor.connect.http.sink.client.BasicAuthentication
 import io.lenses.streamreactor.connect.http.sink.client.HttpMethod.Put
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
@@ -30,8 +31,12 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers {
       "http://myaddress.example.com",
       "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
       Seq("something" -> "somethingelse"),
+      none,
+      none,
+      none,
+      none,
     ).toJson should be(
-      """{"authentication":{"username":"user","password":"pass","type":"BasicAuthentication"},"method":"Put","endpoint":"http://myaddress.example.com","content":"<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>","headers":[["something","somethingelse"]]}""",
+      """{"authentication":{"username":"user","password":"pass","type":"BasicAuthentication"},"method":"Put","endpoint":"http://myaddress.example.com","content":"<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>","headers":[["something","somethingelse"]],"sslConfig":null,"batch":null,"errorThreshold":null,"uploadSyncPeriod":null}""",
     )
   }
 

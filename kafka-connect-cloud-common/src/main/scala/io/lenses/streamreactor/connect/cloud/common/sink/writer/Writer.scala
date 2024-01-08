@@ -18,8 +18,8 @@ package io.lenses.streamreactor.connect.cloud.common.sink.writer
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
@@ -27,14 +27,10 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
-import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitContext
+import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitContext
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
-import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
-import io.lenses.streamreactor.connect.cloud.common.storage.NonExistingFileError
-import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
-import io.lenses.streamreactor.connect.cloud.common.storage.UploadFailedError
-import io.lenses.streamreactor.connect.cloud.common.storage.ZeroByteFileError
+import io.lenses.streamreactor.connect.cloud.common.storage._
 import org.apache.kafka.connect.data.Schema
 
 import java.io.File
@@ -155,7 +151,7 @@ class Writer[SM <: FileMetadata](
   def shouldFlush: Boolean =
     writeState match {
       case Writing(commitState, _, file, uncommittedOffset) => commitPolicy.shouldFlush(
-          CommitContext(
+          CloudCommitContext(
             topicPartition.withOffset(uncommittedOffset),
             commitState.recordCount,
             commitState.lastKnownFileSize,

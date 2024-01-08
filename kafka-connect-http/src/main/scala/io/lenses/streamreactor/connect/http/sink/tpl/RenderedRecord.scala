@@ -13,22 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.http.sink.config
+package io.lenses.streamreactor.connect.http.sink.tpl
 
-import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.common.config.ConfigDef.Importance
-import org.apache.kafka.common.config.ConfigDef.Type
+import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 
-object HttpSinkConfigDef {
-
-  val configProp: String = "connect.http.config"
-  val config: ConfigDef =
-    new ConfigDef()
-      .define(
-        configProp,
-        Type.STRING,
-        Importance.HIGH,
-        "Configuration string",
-      )
-
-}
+case class RenderedRecord(
+  topicPartitionOffset: TopicPartitionOffset,
+  recordRendered:       String,
+  headersRendered:      Seq[(String, String)],
+  endpointRendered:     Option[String], // only for the first 1
+)

@@ -15,6 +15,11 @@
  */
 package io.lenses.streamreactor.common.config
 
+import io.circe.Decoder
+import io.circe.Encoder
+import io.circe.generic.semiauto.deriveDecoder
+import io.circe.generic.semiauto.deriveEncoder
+
 import java.io.FileInputStream
 import java.security.KeyStore
 import java.security.SecureRandom
@@ -38,7 +43,7 @@ object SSLConfigContext {
     * @param config An SSLConfig containing key and truststore credentials
     * @return a SSLContext
     */
-  def getSSLContext(config: SSLConfig): SSLContext = {
+  private def getSSLContext(config: SSLConfig): SSLContext = {
     val useClientCertAuth = config.useClientCert
 
     //is client certification authentication set
@@ -100,3 +105,10 @@ case class SSLConfig(
   keyStoreType:   String  = "JKS",
   trustStoreType: String  = "JKS",
 )
+
+object SSLConfig {
+
+  implicit val decoder: Decoder[SSLConfig] = deriveDecoder
+  implicit val encoder: Encoder[SSLConfig] = deriveEncoder
+
+}
