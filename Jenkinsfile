@@ -26,4 +26,5 @@ common {
           ['gcp/kcbq', 'creds',   '/tmp/creds.json', 'KCBQ_TEST_KEYFILE']
   ]
   timeoutHours = 2
+  mvnSkipDeploy = true
 }
