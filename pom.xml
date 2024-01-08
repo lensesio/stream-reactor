@@ -24,7 +24,7 @@
 
     <groupId>com.wepay.kcbq</groupId>
     <artifactId>kcbq-parent</artifactId>
-    <version>2.2.8-SNAPSHOT</version>
+    <version>2.3.12-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -38,7 +38,7 @@
         <confluent.version>5.5.1</confluent.version>
         <debezium.version>0.6.2</debezium.version>
         <google.auth.version>0.21.1</google.auth.version>
-        <google.cloud.version>1.119.0</google.cloud.version>
+        <google.cloud.version>2.10.9</google.cloud.version>
         <google.cloud.storage.version>1.113.4</google.cloud.storage.version>
         <google.protobuf.version>3.19.6</google.protobuf.version>
         <jackson.version>2.10.2</jackson.version>
@@ -82,7 +82,7 @@
         <connection>scm:git:git://github.com/confluentinc/kafka-connect-bigquery.git</connection>
         <developerConnection>scm:git:git@github.com:confluentinc/kafka-connect-bigquery.git</developerConnection>
         <url>https://github.com/confluentinc/kafka-connect-bigquery</url>
-        <tag>2.2.x</tag>
+        <tag>2.3.x</tag>
     </scm>
 
     <developers>

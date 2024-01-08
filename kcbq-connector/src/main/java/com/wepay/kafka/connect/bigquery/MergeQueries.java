@@ -20,6 +20,7 @@
 package com.wepay.kafka.connect.bigquery;
 
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.QueryJobConfiguration;
@@ -27,15 +28,20 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import com.google.common.annotations.VisibleForTesting;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
+import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.ExpectedInterruptException;
+import com.wepay.kafka.connect.bigquery.utils.SleepUtils;
 import com.wepay.kafka.connect.bigquery.write.batch.KCBQThreadPoolExecutor;
 import com.wepay.kafka.connect.bigquery.write.batch.MergeBatches;
+import com.wepay.kafka.connect.bigquery.write.row.BigQueryErrorResponses;
 import org.apache.kafka.connect.errors.ConnectException;
+import org.apache.kafka.connect.errors.RetriableException;
 import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -48,6 +54,7 @@ public class MergeQueries {
   public static final String INTERMEDIATE_TABLE_ITERATION_FIELD_NAME = "i";
   public static final String INTERMEDIATE_TABLE_PARTITION_TIME_FIELD_NAME = "partitionTime";
   public static final String INTERMEDIATE_TABLE_BATCH_NUMBER_FIELD = "batchNumber";
+  public static final String DESTINATION_TABLE_ALIAS = "dstTableAlias";
 
   private static final Logger logger = LoggerFactory.getLogger(MergeQueries.class);
 
@@ -138,7 +145,26 @@ public class MergeQueries {
           batchNumber, intTable(intermediateTable));
       String mergeFlushQuery = mergeFlushQuery(intermediateTable, destinationTable, batchNumber);
       logger.trace(mergeFlushQuery);
-      bigQuery.query(QueryJobConfiguration.of(mergeFlushQuery));
+
+      int attempt = 0;
+      boolean success = false;
+      while (!success) {
+        try {
+          bigQuery.query(QueryJobConfiguration.of(mergeFlushQuery));
+          success = true;
+        } catch (BigQueryException e) {
+          if (BigQueryErrorResponses.isCouldNotSerializeAccessError(e)) {
+            attempt++;
+            if (attempt == 30) {
+              throw new BigQueryConnectException("Failed to merge rows to destination table `" + destinationTable + "` within " + attempt 
+                                                  + "  attempts due to BQ write serialization error.", e);
+            }
+            SleepUtils.waitRandomTime(10000, 20000);
+          } else {
+            throw e;
+          }
+        }
+      }
       logger.trace("Merge from {} to {} completed",
           intTable(intermediateTable), destTable(destinationTable));
 
@@ -217,7 +243,7 @@ public class MergeQueries {
     final String value = INTERMEDIATE_TABLE_VALUE_FIELD_NAME;
     final String batch = INTERMEDIATE_TABLE_BATCH_NUMBER_FIELD;
 
-    return "MERGE " + table(destinationTable) + " "
+    return "MERGE " + table(destinationTable) + " " + DESTINATION_TABLE_ALIAS + " "
         + "USING ("
           + "SELECT * FROM ("
             + "SELECT ARRAY_AGG("
@@ -228,9 +254,9 @@ public class MergeQueries {
             + "GROUP BY " + String.join(", ", keyFields)
           + ")"
         + ") "
-        + "ON `" + destinationTable.getTable() + "`." + keyFieldName + "=src." + key + " "
+        + "ON " + DESTINATION_TABLE_ALIAS + "." + keyFieldName + "=src." + key + " "
         + "WHEN MATCHED AND src." + value + " IS NOT NULL "
-          + "THEN UPDATE SET " + valueColumns.stream().map(col -> "`" + col + "`=src." + value + "." + col).collect(Collectors.joining(", ")) + " "
+          + "THEN UPDATE SET " + valueColumns.stream().map(col -> DESTINATION_TABLE_ALIAS + ".`" + col + "`=src." + value + "." + col).collect(Collectors.joining(", ")) + " "
         + "WHEN MATCHED AND src." + value + " IS NULL "
           + "THEN DELETE "
         + "WHEN NOT MATCHED AND src." + value + " IS NOT NULL "
@@ -284,7 +310,7 @@ public class MergeQueries {
     final String value = INTERMEDIATE_TABLE_VALUE_FIELD_NAME;
     final String batch = INTERMEDIATE_TABLE_BATCH_NUMBER_FIELD;
 
-    return "MERGE " + table(destinationTable) + " "
+    return "MERGE " + table(destinationTable) + " " + DESTINATION_TABLE_ALIAS + " "
         + "USING ("
           + "SELECT * FROM ("
             + "SELECT ARRAY_AGG("
@@ -295,9 +321,9 @@ public class MergeQueries {
             + "GROUP BY " + String.join(", ", keyFields)
           + ")"
         + ") "
-        + "ON `" + destinationTable.getTable() + "`." + keyFieldName + "=src." + key + " "
+        + "ON " + DESTINATION_TABLE_ALIAS + "." + keyFieldName + "=src." + key + " "
         + "WHEN MATCHED "
-          + "THEN UPDATE SET " + valueColumns.stream().map(col -> "`" + col + "`=src." + value + "." + col).collect(Collectors.joining(", ")) + " "
+          + "THEN UPDATE SET " + valueColumns.stream().map(col -> DESTINATION_TABLE_ALIAS + ".`" + col + "`=src." + value + "." + col).collect(Collectors.joining(", ")) + " "
         + "WHEN NOT MATCHED "
           + "THEN INSERT (`"
             + keyFieldName + "`, "

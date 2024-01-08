@@ -25,7 +25,7 @@
     <parent>
         <groupId>com.wepay.kcbq</groupId>
         <artifactId>kcbq-parent</artifactId>
-        <version>2.2.8-SNAPSHOT</version>
+        <version>2.3.12-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
 

@@ -43,13 +43,13 @@ public class BigQueryConnectException extends ConnectException {
     super(thr);
   }
 
-  public BigQueryConnectException(Map<Long, List<BigQueryError>> errors) {
-    super(formatInsertAllErrors(errors));
+  public BigQueryConnectException(String tableInfo, Map<Long, List<BigQueryError>> errors) {
+    super(formatInsertAllErrors(tableInfo, errors));
   }
 
-  private static String formatInsertAllErrors(Map<Long, List<BigQueryError>> errorsMap) {
+  private static String formatInsertAllErrors(String tableInfo, Map<Long, List<BigQueryError>> errorsMap) {
     StringBuilder messageBuilder = new StringBuilder();
-    messageBuilder.append("table insertion failed for the following rows:");
+    messageBuilder.append(String.format("table: %s insertion failed for the following rows:", tableInfo));
     for (Map.Entry<Long, List<BigQueryError>> errorsEntry : errorsMap.entrySet()) {
       for (BigQueryError error : errorsEntry.getValue()) {
         messageBuilder.append(String.format(
