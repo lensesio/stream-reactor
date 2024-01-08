@@ -323,6 +323,9 @@ under the License.
                         <exclude>LICENSE.md</exclude>
                         <exclude>*.log</exclude>
                         <exclude>config/checkstyle/google_checks.xml</exclude>
+                        <exclude>.semaphore/**</exclude>
+                        <exclude>service.yml</exclude>
+                        <exclude>sonar-project.properties</exclude>
 
                         <!-- Automatically added by Jenkins during CI/CD builds -->
                         <exclude>.ci/*</exclude>
