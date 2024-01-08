@@ -27,4 +27,5 @@ common {
           ['gcp/kcbq', 'creds',   '/tmp/creds.json', 'GOOGLE_APPLICATION_CREDENTIALS']
   ]
   timeoutHours = 2
+  mvnSkipDeploy = true
 }
