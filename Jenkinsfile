@@ -32,4 +32,5 @@ common {
   downStreamValidate = false
   secret_file_list = getVaultSecretsList()
   timeoutHours = 2
+  mvnSkipDeploy = true
 }
