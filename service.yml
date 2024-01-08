@@ -1,0 +1,15 @@
+name: kafka-connect-bigquery
+lang: java
+lang_version: 8
+git:
+  enable: true
+codeowners:
+  enable: true
+semaphore:
+  enable: true
+  pipeline_type: cp
+  cve_scan: true
+  extra_secrets:
+  - kcbq_gcp
+  extra_deploy_args: "-Pjenkins"
+  extra_build_args: "-Pjenkins"
