@@ -81,16 +81,7 @@ class SchemaAndValueEnvelopeConverter(
     if (fields.contains("key")) {
       key       = struct.get("key")
       keySchema = struct.schema().field("key").schema()
-      if (keySchema.`type`() == Schema.Type.BYTES) {
-        // convert to array if it is a byte buffer. Otherwise the BytesArrayConverter will fail
-        // It's a shame the default BytesArrayConverter from Connect is only operating on byte[].
-        key match {
-          case bb: ByteBuffer =>
-            key = bb.array()
-          case _: Array[_] =>
-          //do nothing it's already an array and should be byte[]
-        }
-      }
+      key       = byteBufferToArray(keySchema, key)
     }
 
     var value:       Any    = null
@@ -98,16 +89,7 @@ class SchemaAndValueEnvelopeConverter(
     if (fields.contains("value")) {
       value       = struct.get("value")
       valueSchema = struct.schema().field("value").schema()
-      if (valueSchema.`type`() == Schema.Type.BYTES) {
-        // convert to array if it is a byte buffer. Otherwise the BytesArrayConverter will fail
-        // It's a shame the default BytesArrayConverter from Connect is only operating on byte[].
-        value match {
-          case bb: ByteBuffer =>
-            value = bb.array()
-          case _: Array[_] =>
-          //do nothing it's already an array and should be byte[]
-        }
-      }
+      value       = byteBufferToArray(valueSchema, value)
     }
 
     var headers: Headers = null
@@ -142,4 +124,14 @@ class SchemaAndValueEnvelopeConverter(
       headers,
     )
   }
+
+  private def byteBufferToArray(schema: Schema, value: Any): Any =
+    if (schema.`type`() != Schema.Type.BYTES) value
+    else {
+      val adjusted = Option(value).map {
+        case bb: ByteBuffer => bb.array()
+        case _ => value
+      }.orNull
+      adjusted
+    }
 }
