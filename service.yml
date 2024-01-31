@@ -13,3 +13,4 @@ semaphore:
   - kcbq_gcp
   extra_deploy_args: "-Pjenkins"
   extra_build_args: "-Pjenkins"
+  generate_connect_changelogs: true
