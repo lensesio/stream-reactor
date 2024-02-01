@@ -21,10 +21,12 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.source.SourceWatermark
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaAndValue
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.header.ConnectHeaders
 import org.apache.kafka.connect.header.Headers
 import org.apache.kafka.connect.source.SourceRecord
 
+import java.nio.ByteBuffer
 import java.time.Instant
 import scala.jdk.CollectionConverters.ListHasAsScala
 
@@ -72,22 +74,11 @@ class SchemaAndValueEnvelopeConverter(
         s"Invalid schema type [${schemaAndValue.schema().`type`()}]. Expected [${Schema.Type.STRUCT}]",
       )
     }
-    val struct = schemaAndValue.value().asInstanceOf[org.apache.kafka.connect.data.Struct]
+    val struct: Struct = schemaAndValue.value().asInstanceOf[org.apache.kafka.connect.data.Struct]
     val fields = struct.schema().fields().asScala.map(_.name()).toSet
 
-    var key:       Any    = null
-    var keySchema: Schema = null
-    if (fields.contains("key")) {
-      key       = struct.get("key")
-      keySchema = struct.schema().field("key").schema()
-    }
-
-    var value:       Any    = null
-    var valueSchema: Schema = null
-    if (fields.contains("value")) {
-      value       = struct.get("value")
-      valueSchema = struct.schema().field("value").schema()
-    }
+    val (key, keySchema)     = extractValueAndSchemaFor(struct, fields, "key")
+    val (value, valueSchema) = extractValueAndSchemaFor(struct, fields, "value")
 
     var headers: Headers = null
     if (fields.contains("headers")) {
@@ -113,12 +104,36 @@ class SchemaAndValueEnvelopeConverter(
       SourceWatermark.offset(location, index, lastModified),
       topic.value,
       partition,
-      keySchema,
-      key,
-      valueSchema,
-      value,
+      keySchema.orNull,
+      key.orNull,
+      valueSchema.orNull,
+      value.orNull,
       timestamp,
       headers,
     )
   }
+
+  private def byteBufferToArray(schema: Schema, value: Any): Any =
+    if (schema.`type`() != Schema.Type.BYTES) value
+    else {
+      val adjusted = Option(value).map {
+        case bb: ByteBuffer => bb.array()
+        case _ => value
+      }.orNull
+      adjusted
+    }
+
+  private def extractValueAndSchemaFor(
+    struct: Struct,
+    fields: Set[String],
+    field:  String,
+  ): (Option[Any], Option[Schema]) =
+    if (fields.contains(field)) {
+      val value          = struct.get(field)
+      val valueSchema    = struct.schema().field(field).schema()
+      val valueConverted = byteBufferToArray(valueSchema, value)
+      (Some(valueConverted), Some(valueSchema))
+    } else {
+      (None, None)
+    }
 }
