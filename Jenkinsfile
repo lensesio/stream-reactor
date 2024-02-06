@@ -33,4 +33,6 @@ common {
   secret_file_list = getVaultSecretsList()
   timeoutHours = 2
   mvnSkipDeploy = true
+  sonarqubeScannerEnable = true
+  sonarqubeQualityCheck = true
 }
