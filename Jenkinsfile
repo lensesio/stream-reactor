@@ -23,4 +23,6 @@ common {
   publish = false
   downStreamValidate = false
   mvnSkipDeploy = true
+  sonarqubeScannerEnable = true
+  sonarqubeQualityCheck = true
 }
