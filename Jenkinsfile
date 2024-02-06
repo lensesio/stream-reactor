@@ -28,4 +28,6 @@ common {
   ]
   timeoutHours = 2
   mvnSkipDeploy = true
+  sonarqubeScannerEnable = true
+  sonarqubeQualityCheck = true
 }
