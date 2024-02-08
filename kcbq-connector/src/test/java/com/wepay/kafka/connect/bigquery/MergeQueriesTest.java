@@ -20,10 +20,14 @@
 package com.wepay.kafka.connect.bigquery;
 
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableResult;
+import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.write.batch.KCBQThreadPoolExecutor;
 import com.wepay.kafka.connect.bigquery.write.batch.MergeBatches;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -38,8 +42,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyObject;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -48,6 +60,8 @@ public class MergeQueriesTest {
   private static final String KEY = "kafkaKey";
 
   private static final int BATCH_NUMBER = 42;
+  private static final int BIGQUERY_RETRY = 3;
+  private static final int BIGQUERY_RETRY_WAIT = 1000;
   private static final TableId DESTINATION_TABLE = TableId.of("ds1", "t");
   private static final TableId INTERMEDIATE_TABLE = TableId.of("ds1", "t_tmp_6_uuid_epoch");
   private static final Schema INTERMEDIATE_TABLE_SCHEMA = constructIntermediateTable();
@@ -66,7 +80,7 @@ public class MergeQueriesTest {
 
   private MergeQueries mergeQueries(boolean insertPartitionTime, boolean upsert, boolean delete) {
     return new MergeQueries(
-        KEY, insertPartitionTime, upsert, delete, mergeBatches, executor, bigQuery, schemaManager, context
+      KEY, insertPartitionTime, upsert, delete, BIGQUERY_RETRY, BIGQUERY_RETRY_WAIT, mergeBatches, executor, bigQuery, schemaManager, context
     );
   }
 
@@ -334,6 +348,95 @@ public class MergeQueriesTest {
     mergeQueries(false, true, true).mergeFlush(INTERMEDIATE_TABLE);
 
     assertEquals(1, mergeBatches.incrementBatch(INTERMEDIATE_TABLE));
+  }
+
+  @Test
+  public void testBigQueryJobInternalErrorRetry() throws InterruptedException {
+    // Arrange
+    mergeBatches.addToBatch(TEST_SINK_RECORD, INTERMEDIATE_TABLE, new HashMap<>());
+
+    TableResult tableResultReponse = mock(TableResult.class);
+    BigQueryError jobInternalError = new BigQueryError("jobInternalError", null, "The job encountered an internal error during execution and was unable to complete successfully.");
+    when(bigQuery.query(anyObject()))
+            .thenThrow(new BigQueryException(400, "mock job internal error", jobInternalError))
+            .thenReturn(tableResultReponse);
+    when(mergeBatches.destinationTableFor(INTERMEDIATE_TABLE)).thenReturn(DESTINATION_TABLE);
+    when(mergeBatches.incrementBatch(INTERMEDIATE_TABLE)).thenReturn(0);
+    when(mergeBatches.prepareToFlush(INTERMEDIATE_TABLE, 0)).thenReturn(true);
+    CountDownLatch latch = new CountDownLatch(1);
+    doAnswer(invocation -> {
+      Runnable runnable = invocation.getArgument(0);
+      runnable.run();
+      latch.countDown();
+      return null;
+    }).when(executor).execute(any());
+    MergeQueries mergeQueries = spy(mergeQueries(false, true, true));
+
+    // Act
+    mergeQueries.mergeFlush(INTERMEDIATE_TABLE);
+
+    // Assert
+    latch.await();
+    verify(bigQuery, times(3)).query(anyObject());
+  }
+
+  @Test
+  public void testBigQueryInvalidQueryErrorRetry() throws InterruptedException {
+    // Arrange
+    mergeBatches.addToBatch(TEST_SINK_RECORD, INTERMEDIATE_TABLE, new HashMap<>());
+
+
+    TableResult tableResultReponse = mock(TableResult.class);
+    BigQueryError jobInternalError = new BigQueryError("invalidQuery", null, "Could not serialize access to table my_table due to concurrent update");
+    when(bigQuery.query(anyObject()))
+            .thenThrow(new BigQueryException(400, "mock invalid query", jobInternalError))
+            .thenReturn(tableResultReponse);
+    when(mergeBatches.destinationTableFor(INTERMEDIATE_TABLE)).thenReturn(DESTINATION_TABLE);
+    when(mergeBatches.incrementBatch(INTERMEDIATE_TABLE)).thenReturn(0);
+    when(mergeBatches.prepareToFlush(INTERMEDIATE_TABLE, 0)).thenReturn(true);
+    CountDownLatch latch = new CountDownLatch(1);
+    doAnswer(invocation -> {
+      Runnable runnable = invocation.getArgument(0);
+      runnable.run();
+      latch.countDown();
+      return null;
+    }).when(executor).execute(any());
+    MergeQueries mergeQueries = mergeQueries(false, true, true);
+
+    // Act
+    mergeQueries.mergeFlush(INTERMEDIATE_TABLE);
+
+    // Assert
+    latch.await();
+    verify(bigQuery, times(3)).query(anyObject());
+  }
+
+
+  @Test(expected = BigQueryConnectException.class)
+  public void testBigQueryRetryExceeded() throws InterruptedException {
+    // Arrange
+    mergeBatches.addToBatch(TEST_SINK_RECORD, INTERMEDIATE_TABLE, new HashMap<>());
+
+    BigQueryError jobInternalError = new BigQueryError("invalidQuery", null, "Could not serialize access to table my_table due to concurrent update");
+    when(bigQuery.query(anyObject()))
+      .thenThrow(new BigQueryException(400, "mock invalid query", jobInternalError));
+    when(mergeBatches.destinationTableFor(INTERMEDIATE_TABLE)).thenReturn(DESTINATION_TABLE);
+    when(mergeBatches.incrementBatch(INTERMEDIATE_TABLE)).thenReturn(0);
+    when(mergeBatches.prepareToFlush(INTERMEDIATE_TABLE, 0)).thenReturn(true);
+    CountDownLatch latch = new CountDownLatch(1);
+    doAnswer(invocation -> {
+      Runnable runnable = invocation.getArgument(0);
+      runnable.run();
+      latch.countDown();
+      return null;
+    }).when(executor).execute(any());
+    MergeQueries mergeQueries = mergeQueries(false, true, true);
+
+    // Act
+    mergeQueries.mergeFlush(INTERMEDIATE_TABLE);
+
+    //Assert
+    latch.await();
   }
 
   private String table(TableId table) {

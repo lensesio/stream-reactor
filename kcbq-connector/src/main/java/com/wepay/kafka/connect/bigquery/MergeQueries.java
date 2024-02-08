@@ -27,6 +27,7 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import com.google.common.annotations.VisibleForTesting;
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.ExpectedInterruptException;
@@ -35,7 +36,6 @@ import com.wepay.kafka.connect.bigquery.write.batch.KCBQThreadPoolExecutor;
 import com.wepay.kafka.connect.bigquery.write.batch.MergeBatches;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryErrorResponses;
 import org.apache.kafka.connect.errors.ConnectException;
-import org.apache.kafka.connect.errors.RetriableException;
 import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +49,8 @@ import static com.wepay.kafka.connect.bigquery.utils.TableNameUtils.destTable;
 import static com.wepay.kafka.connect.bigquery.utils.TableNameUtils.intTable;
 
 public class MergeQueries {
+
+  private static final int WAIT_MAX_JITTER = 1000;
   public static final String INTERMEDIATE_TABLE_KEY_FIELD_NAME = "key";
   public static final String INTERMEDIATE_TABLE_VALUE_FIELD_NAME = "value";
   public static final String INTERMEDIATE_TABLE_ITERATION_FIELD_NAME = "i";
@@ -62,6 +64,8 @@ public class MergeQueries {
   private final boolean insertPartitionTime;
   private final boolean upsertEnabled;
   private final boolean deleteEnabled;
+  private final int bigQueryRetry;
+  private final long bigQueryRetryWait;
   private final MergeBatches mergeBatches;
   private final KCBQThreadPoolExecutor executor;
   private final BigQuery bigQuery;
@@ -78,9 +82,11 @@ public class MergeQueries {
       config.getKafkaKeyFieldName().orElseThrow(() ->
           new ConnectException("Kafka key field must be configured when upsert/delete is enabled")
       ),
-      config.getBoolean(config.BIGQUERY_PARTITION_DECORATOR_CONFIG),
-      config.getBoolean(config.UPSERT_ENABLED_CONFIG),
-      config.getBoolean(config.DELETE_ENABLED_CONFIG),
+      config.getBoolean(BigQuerySinkConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG),
+      config.getBoolean(BigQuerySinkConfig.UPSERT_ENABLED_CONFIG),
+      config.getBoolean(BigQuerySinkConfig.DELETE_ENABLED_CONFIG),
+      config.getInt(BigQuerySinkConfig.BIGQUERY_RETRY_CONFIG),
+      config.getLong(BigQuerySinkConfig.BIGQUERY_RETRY_WAIT_CONFIG),
       mergeBatches,
       executor,
       bigQuery,
@@ -94,6 +100,8 @@ public class MergeQueries {
                boolean insertPartitionTime,
                boolean upsertEnabled,
                boolean deleteEnabled,
+               int bigQueryRetry,
+               long bigQueryRetryWait,
                MergeBatches mergeBatches,
                KCBQThreadPoolExecutor executor,
                BigQuery bigQuery,
@@ -103,6 +111,8 @@ public class MergeQueries {
     this.insertPartitionTime = insertPartitionTime;
     this.upsertEnabled = upsertEnabled;
     this.deleteEnabled = deleteEnabled;
+    this.bigQueryRetry = bigQueryRetry;
+    this.bigQueryRetryWait = bigQueryRetryWait;
     this.mergeBatches = mergeBatches;
     this.executor = executor;
     this.bigQuery = bigQuery;
@@ -150,16 +160,19 @@ public class MergeQueries {
       boolean success = false;
       while (!success) {
         try {
+          if (attempt > 0) {
+            SleepUtils.waitRandomTime(this.bigQueryRetryWait, WAIT_MAX_JITTER);
+          }
           bigQuery.query(QueryJobConfiguration.of(mergeFlushQuery));
           success = true;
         } catch (BigQueryException e) {
-          if (BigQueryErrorResponses.isCouldNotSerializeAccessError(e)) {
-            attempt++;
-            if (attempt == 30) {
-              throw new BigQueryConnectException("Failed to merge rows to destination table `" + destinationTable + "` within " + attempt 
-                                                  + "  attempts due to BQ write serialization error.", e);
-            }
-            SleepUtils.waitRandomTime(10000, 20000);
+          if (attempt >= bigQueryRetry) {
+            throw new BigQueryConnectException("Failed to merge rows to destination table `" + destinationTable + "` within " + attempt
+              + "  attempts.", e);
+          } else if (BigQueryErrorResponses.isCouldNotSerializeAccessError(e)) {
+            logger.warn("Serialize access error while merging from {} to {}, retry attempt {}", intermediateTable, destinationTable, ++attempt);
+          } else if (BigQueryErrorResponses.isJobInternalError(e)) {
+            logger.warn("Job internal error while merging from {} to {}, retry attempt {}", intermediateTable, destinationTable, ++attempt);
           } else {
             throw e;
           }

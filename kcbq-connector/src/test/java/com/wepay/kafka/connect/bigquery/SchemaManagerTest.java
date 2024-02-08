@@ -905,6 +905,21 @@ public class SchemaManagerTest {
   }
 
   @Test
+  public void testUnionizeSchemaCaseInsensitive() {
+    com.google.cloud.bigquery.Schema s1 = com.google.cloud.bigquery.Schema.of(
+            Field.of("CAPS", LegacySQLTypeName.RECORD,
+                    Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.REQUIRED).build()
+            )
+    );
+    com.google.cloud.bigquery.Schema s2 = com.google.cloud.bigquery.Schema.of(
+            Field.of("caps", LegacySQLTypeName.RECORD,
+                    Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.NULLABLE).build()
+            )
+    );
+    assertUnion(makeNullable(s1), s1, s2);
+  }
+
+  @Test
   public void testFieldNameSanitizedOnCreateTable() {
     Schema embeddedStructWithInvalidFieldName = SchemaBuilder.struct()
         .field("embedded-invalid", Schema.INT32_SCHEMA)
