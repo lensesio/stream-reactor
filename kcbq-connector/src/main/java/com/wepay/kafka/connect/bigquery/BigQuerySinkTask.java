@@ -402,8 +402,9 @@ public class BigQuerySinkTask extends SinkTask {
     Optional<String> kafkaKeyFieldName = config.getKafkaKeyFieldName();
     Optional<String> kafkaDataFieldName = config.getKafkaDataFieldName();
     Optional<String> timestampPartitionFieldName = config.getTimestampPartitionFieldName();
+    Optional<Long> partitionExpiration = config.getPartitionExpirationMs();
     Optional<List<String>> clusteringFieldName = config.getClusteringPartitionFieldNames();
-    TimePartitioning.Type timePartitioningType = config.getTimePartitioningType();
+    Optional<TimePartitioning.Type> timePartitioningType = config.getTimePartitioningType();
     boolean allowNewBQFields = config.getBoolean(BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG);
     boolean allowReqFieldRelaxation = config.getBoolean(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG);
     boolean allowSchemaUnionization = config.getBoolean(BigQuerySinkConfig.ALLOW_SCHEMA_UNIONIZATION_CONFIG);
@@ -412,7 +413,7 @@ public class BigQuerySinkTask extends SinkTask {
                              allowNewBQFields, allowReqFieldRelaxation, allowSchemaUnionization,
                              sanitizeFieldNames,
                              kafkaKeyFieldName, kafkaDataFieldName,
-                             timestampPartitionFieldName, clusteringFieldName, timePartitioningType);
+                             timestampPartitionFieldName, partitionExpiration, clusteringFieldName, timePartitioningType);
   }
 
   private BigQueryWriter getBigQueryWriter() {

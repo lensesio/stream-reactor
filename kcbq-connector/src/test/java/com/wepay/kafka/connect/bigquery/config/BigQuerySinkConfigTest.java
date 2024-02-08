@@ -35,7 +35,6 @@ import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class BigQuerySinkConfigTest {
@@ -160,14 +159,52 @@ public class BigQuerySinkConfigTest {
     assertEquals(expectedClusteringPartitionFieldName, testClusteringPartitionFieldName.get());
   }
 
+  /**
+   * Test the default for the partition expiration is not present.
+   */
+  @Test
+  public void testEmptyPartitionExpirationMs() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
+    assertFalse(testConfig.getPartitionExpirationMs().isPresent());
+  }
+
+  /**
+   * Test the partition expiration is set correctly for a valid value.
+   */
+  @Test
+  public void testValidPartitionExpirationMs() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.BIGQUERY_PARTITION_EXPIRATION_CONFIG, "1");
+    BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
+    assertTrue(testConfig.getPartitionExpirationMs().isPresent());
+    assertEquals(Optional.of(1L), testConfig.getPartitionExpirationMs());
+  }
+
+  /**
+   * Test the partition expiration being non-positive errors correctly.
+   */
+  @Test (expected = ConfigException.class)
+  public void testMinimumPartitionExpirationMs() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.BIGQUERY_PARTITION_EXPIRATION_CONFIG, "0");
+    new BigQuerySinkConfig(configProperties);
+  }
+
   @Test
   public void testValidTimePartitioningTypes() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
 
     for (TimePartitioning.Type type : TimePartitioning.Type.values()) {
       configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, type.name());
-      assertEquals(type, new BigQuerySinkConfig(configProperties).getTimePartitioningType());
+      Optional<TimePartitioning.Type> timePartitioningType = new BigQuerySinkConfig(configProperties).getTimePartitioningType();
+      assertTrue(timePartitioningType.isPresent());
+      assertEquals(type, timePartitioningType.get());
     }
+
+    configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, BigQuerySinkConfig.TIME_PARTITIONING_TYPE_NONE);
+    Optional<TimePartitioning.Type> timePartitioningType = new BigQuerySinkConfig(configProperties).getTimePartitioningType();
+    assertEquals(Optional.empty(), timePartitioningType);
   }
 
   @Test(expected = ConfigException.class)

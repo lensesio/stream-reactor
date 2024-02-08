@@ -39,6 +39,7 @@ import org.apache.kafka.connect.sink.SinkConnector;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -146,7 +147,11 @@ public class BigQuerySinkConfig extends AbstractConfig {
   );
   private static final ConfigDef.Importance KEY_SOURCE_IMPORTANCE = ConfigDef.Importance.MEDIUM;
   private static final String KEY_SOURCE_DOC =
-          "Determines whether the keyfile config is the path to the credentials json, or the json itself";
+          "Determines whether the " + KEYFILE_CONFIG + " config is the path to the credentials json file "
+              + "or the raw json of the key itself. "
+              + "If set to " + GcpClientBuilder.KeySource.APPLICATION_DEFAULT.name() + ", the "
+              + KEYFILE_CONFIG + " should not be provided and the connector will use any GCP "
+              + "application default credentials that it can find on the Connect worker for authentication.";
 
   public static final String SANITIZE_TOPICS_CONFIG =                     "sanitizeTopics";
   private static final ConfigDef.Type SANITIZE_TOPICS_TYPE =              ConfigDef.Type.BOOLEAN;
@@ -436,21 +441,39 @@ public class BigQuerySinkConfig extends AbstractConfig {
   public static final String TIME_PARTITIONING_TYPE_CONFIG = "timePartitioningType";
   private static final ConfigDef.Type TIME_PARTITIONING_TYPE_TYPE = ConfigDef.Type.STRING;
   public static final String TIME_PARTITIONING_TYPE_DEFAULT = TimePartitioning.Type.DAY.name().toUpperCase();
+  public static final String TIME_PARTITIONING_TYPE_NONE = "NONE";
   private static final ConfigDef.Importance TIME_PARTITIONING_TYPE_IMPORTANCE = ConfigDef.Importance.LOW;
-  private static final List<String> TIME_PARTITIONING_TYPES = Stream.of(TimePartitioning.Type.values())
-      .map(TimePartitioning.Type::name)
+  private static final List<String> TIME_PARTITIONING_TYPES = Stream.concat(
+        Stream.of(TimePartitioning.Type.values()).map(TimePartitioning.Type::name),
+        Stream.of(TIME_PARTITIONING_TYPE_NONE))
       .collect(Collectors.toList());
   private static final String TIME_PARTITIONING_TYPE_DOC =
-      "The time partitioning type to use when creating tables. "
+      "The time partitioning type to use when creating tables, or '"
+          + TIME_PARTITIONING_TYPE_NONE + "' to create non-partitioned tables. "
           + "Existing tables will not be altered to use this partitioning type.";
 
+  public static final String BIGQUERY_PARTITION_EXPIRATION_CONFIG = "partitionExpirationMs";
+  private static final ConfigDef.Type BIGQUERY_PARTITION_EXPIRATION_TYPE = ConfigDef.Type.LONG;
+  private static final String BIGQUERY_PARTITION_EXPIRATION_DEFAULT = null;
+  private static final ConfigDef.Validator BIGQUERY_PARTITION_EXPIRATION_VALIDATOR = (name, value) -> {
+    if (value != null) {
+      ConfigDef.Range.atLeast(1).ensureValid(name, value);
+    }
+  };
+  private static final ConfigDef.Importance BIGQUERY_PARTITION_EXPIRATION_IMPORTANCE = ConfigDef.Importance.LOW;
+  private static final String BIGQUERY_PARTITION_EXPIRATION_DOC =
+      "The amount of time, in milliseconds, after which partitions should be deleted from the tables this "
+          + "connector creates. If this field is set, all data in partitions in this connector's tables that are "
+          + "older than the specified partition expiration time will be permanently deleted. "
+          + "Existing tables will not be altered to use this partition expiration time.";
+  
   public static final String MAX_RETRIES_CONFIG = "max.retries";
   private static final ConfigDef.Type MAX_RETRIES_TYPE = ConfigDef.Type.INT;
   private static final int MAX_RETRIES_DEFAULT = 10;
   private static final ConfigDef.Validator MAX_RETRIES_VALIDATOR = ConfigDef.Range.atLeast(1);
   private static final ConfigDef.Importance MAX_RETRIES_IMPORTANCE = ConfigDef.Importance.MEDIUM;
   private static final String MAX_RETRIES_DOC = "The maximum number of times to retry on retriable errors before failing the task.";
-  
+
   public static final String ENABLE_RETRIES_CONFIG = "enableRetries";
   private static final ConfigDef.Type ENABLE_RETRIES_TYPE = ConfigDef.Type.BOOLEAN;
   public static final Boolean ENABLE_RETRIES_DEFAULT = true;
@@ -734,6 +757,13 @@ public class BigQuerySinkConfig extends AbstractConfig {
               }
             }
         ).define(
+            BIGQUERY_PARTITION_EXPIRATION_CONFIG,
+            BIGQUERY_PARTITION_EXPIRATION_TYPE,
+            BIGQUERY_PARTITION_EXPIRATION_DEFAULT,
+            BIGQUERY_PARTITION_EXPIRATION_VALIDATOR,
+            BIGQUERY_PARTITION_EXPIRATION_IMPORTANCE,
+            BIGQUERY_PARTITION_EXPIRATION_DOC
+        ).define(
             MAX_RETRIES_CONFIG,
             MAX_RETRIES_TYPE,
             MAX_RETRIES_DEFAULT,
@@ -929,25 +959,37 @@ public class BigQuerySinkConfig extends AbstractConfig {
     return getBoolean(UPSERT_ENABLED_CONFIG) || getBoolean(DELETE_ENABLED_CONFIG);
   }
 
-  public TimePartitioning.Type getTimePartitioningType() {
+  public Optional<TimePartitioning.Type> getTimePartitioningType() {
     return parseTimePartitioningType(getString(TIME_PARTITIONING_TYPE_CONFIG));
   }
 
-  private TimePartitioning.Type parseTimePartitioningType(String rawPartitioningType) {
+  private Optional<TimePartitioning.Type> parseTimePartitioningType(String rawPartitioningType) {
     if (rawPartitioningType == null) {
       throw new ConfigException(TIME_PARTITIONING_TYPE_CONFIG,
           rawPartitioningType,
           "Must be one of " + String.join(", ", TIME_PARTITIONING_TYPES));
     }
 
+    if (TIME_PARTITIONING_TYPE_NONE.equals(rawPartitioningType)) {
+      return Optional.empty();
+    }
+
     try {
-      return TimePartitioning.Type.valueOf(rawPartitioningType);
+      return Optional.of(TimePartitioning.Type.valueOf(rawPartitioningType));
     } catch (IllegalArgumentException e) {
       throw new ConfigException(
           TIME_PARTITIONING_TYPE_CONFIG,
           rawPartitioningType,
           "Must be one of " + String.join(", ", TIME_PARTITIONING_TYPES));
     }
+  }
+
+  /**
+   * Returns the partition expiration in ms.
+   * @return Long that represents the partition expiration.
+   */
+  public Optional<Long> getPartitionExpirationMs() {
+    return Optional.ofNullable(getLong(BIGQUERY_PARTITION_EXPIRATION_CONFIG));
   }
 
   /**

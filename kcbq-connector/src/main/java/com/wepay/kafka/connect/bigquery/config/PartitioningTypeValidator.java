@@ -50,9 +50,9 @@ public class PartitioningTypeValidator extends MultiPropertyValidator<BigQuerySi
       return Optional.empty();
     }
 
-    TimePartitioning.Type timePartitioningType = config.getTimePartitioningType();
+    Optional<TimePartitioning.Type> timePartitioningType = config.getTimePartitioningType();
 
-    if (!TimePartitioning.Type.DAY.equals(timePartitioningType)) {
+    if (!Optional.of(TimePartitioning.Type.DAY).equals(timePartitioningType)) {
       return Optional.of(
           "Tables must be partitioned by DAY when using partition decorator syntax. "
               + "Either configure the connector with the DAY time partitioning type, "

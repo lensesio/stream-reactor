@@ -35,6 +35,7 @@ import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.GCS_BUC
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.KEYFILE_CONFIG;
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.KEY_SOURCE_CONFIG;
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.PROJECT_CONFIG;
+import static com.wepay.kafka.connect.bigquery.GcpClientBuilder.KeySource;
 
 public abstract class CredentialsValidator<ClientBuilder extends GcpClientBuilder<?>> extends MultiPropertyValidator<BigQuerySinkConfig> {
 
@@ -54,7 +55,15 @@ public abstract class CredentialsValidator<ClientBuilder extends GcpClientBuilde
   @Override
   protected Optional<String> doValidate(BigQuerySinkConfig config) {
     String keyFile = config.getKey();
-    if (keyFile == null || keyFile.isEmpty()) {
+    KeySource keySource = config.getKeySource();
+
+    if (keySource == KeySource.APPLICATION_DEFAULT && keyFile != null  && !keyFile.isEmpty()) {
+      String errorMessage = KEYFILE_CONFIG + " should not be provided if " + KEY_SOURCE_CONFIG
+              + " is " + KeySource.APPLICATION_DEFAULT;
+      return Optional.of(errorMessage);
+    }
+
+    if ((keyFile == null || keyFile.isEmpty()) && config.getKeySource() != GcpClientBuilder.KeySource.APPLICATION_DEFAULT) {
       // No credentials to validate
       return Optional.empty();
     }

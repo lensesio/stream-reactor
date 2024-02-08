@@ -26,6 +26,7 @@ import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -64,6 +65,18 @@ public class CredentialsValidatorTest {
     assertNotEquals(
         Optional.empty(),
         new CredentialsValidator.GcsCredentialsValidator().doValidate(config)
+    );
+  }
+
+  @Test
+  public void testKeyShouldNotBeProvidedIfUsingApplicationDefaultCredentials() {
+    BigQuerySinkConfig config = mock(BigQuerySinkConfig.class);
+    when(config.getKey()).thenReturn("key");
+    when(config.getKeySource()).thenReturn(GcpClientBuilder.KeySource.APPLICATION_DEFAULT);
+
+    assertTrue(
+            new CredentialsValidator.BigQueryCredentialsValidator().doValidate(config)
+                    .get().contains("should not be provided")
     );
   }
 }

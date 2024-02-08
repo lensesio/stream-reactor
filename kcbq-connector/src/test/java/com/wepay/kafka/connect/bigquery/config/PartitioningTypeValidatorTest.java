@@ -68,7 +68,7 @@ public class PartitioningTypeValidatorTest {
       BigQuerySinkConfig config = mock(BigQuerySinkConfig.class);
       when(config.getBoolean(BIGQUERY_PARTITION_DECORATOR_CONFIG)).thenReturn(true);
       when(config.getBoolean(TABLE_CREATE_CONFIG)).thenReturn(true);
-      when(config.getTimePartitioningType()).thenReturn(timePartitioningType);
+      when(config.getTimePartitioningType()).thenReturn(Optional.of(timePartitioningType));
   
       assertNotEquals(
           Optional.empty(),
@@ -82,7 +82,7 @@ public class PartitioningTypeValidatorTest {
     BigQuerySinkConfig config = mock(BigQuerySinkConfig.class);
     when(config.getBoolean(BIGQUERY_PARTITION_DECORATOR_CONFIG)).thenReturn(true);
     when(config.getBoolean(TABLE_CREATE_CONFIG)).thenReturn(true);
-    when(config.getTimePartitioningType()).thenReturn(TimePartitioning.Type.DAY);
+    when(config.getTimePartitioningType()).thenReturn(Optional.of(TimePartitioning.Type.DAY));
 
     assertEquals(
         Optional.empty(),

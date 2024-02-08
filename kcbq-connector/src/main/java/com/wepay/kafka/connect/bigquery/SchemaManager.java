@@ -71,8 +71,9 @@ public class SchemaManager {
   private final Optional<String> kafkaKeyFieldName;
   private final Optional<String> kafkaDataFieldName;
   private final Optional<String> timestampPartitionFieldName;
+  private final Optional<Long> partitionExpiration;
   private final Optional<List<String>> clusteringFieldName;
-  private final TimePartitioning.Type timePartitioningType;
+  private final Optional<TimePartitioning.Type> timePartitioningType;
   private final boolean intermediateTables;
   private final ConcurrentMap<TableId, Object> tableCreateLocks;
   private final ConcurrentMap<TableId, Object> tableUpdateLocks;
@@ -109,8 +110,9 @@ public class SchemaManager {
       Optional<String> kafkaKeyFieldName,
       Optional<String> kafkaDataFieldName,
       Optional<String> timestampPartitionFieldName,
+      Optional<Long> partitionExpiration,
       Optional<List<String>> clusteringFieldName,
-      TimePartitioning.Type timePartitioningType) {
+      Optional<TimePartitioning.Type> timePartitioningType) {
     this(
         schemaRetriever,
         schemaConverter,
@@ -122,6 +124,7 @@ public class SchemaManager {
         kafkaKeyFieldName,
         kafkaDataFieldName,
         timestampPartitionFieldName,
+        partitionExpiration,
         clusteringFieldName,
         timePartitioningType,
         false,
@@ -141,8 +144,9 @@ public class SchemaManager {
       Optional<String> kafkaKeyFieldName,
       Optional<String> kafkaDataFieldName,
       Optional<String> timestampPartitionFieldName,
+      Optional<Long> partitionExpiration,
       Optional<List<String>> clusteringFieldName,
-      TimePartitioning.Type timePartitioningType,
+      Optional<TimePartitioning.Type> timePartitioningType,
       boolean intermediateTables,
       ConcurrentMap<TableId, Object> tableCreateLocks,
       ConcurrentMap<TableId, Object> tableUpdateLocks,
@@ -157,6 +161,7 @@ public class SchemaManager {
     this.kafkaKeyFieldName = kafkaKeyFieldName;
     this.kafkaDataFieldName = kafkaDataFieldName;
     this.timestampPartitionFieldName = timestampPartitionFieldName;
+    this.partitionExpiration = partitionExpiration;
     this.clusteringFieldName = clusteringFieldName;
     this.timePartitioningType = timePartitioningType;
     this.intermediateTables = intermediateTables;
@@ -177,6 +182,7 @@ public class SchemaManager {
         kafkaKeyFieldName,
         kafkaDataFieldName,
         timestampPartitionFieldName,
+        partitionExpiration,
         clusteringFieldName,
         timePartitioningType,
         true,
@@ -575,19 +581,20 @@ public class SchemaManager {
       // pseudocolumn can be queried to filter out rows that are still in the streaming buffer
       builder.setTimePartitioning(TimePartitioning.of(Type.DAY));
     } else if (createSchema) {
-      TimePartitioning timePartitioning = TimePartitioning.of(timePartitioningType);
-      if (timestampPartitionFieldName.isPresent()) {
-        timePartitioning = timePartitioning.toBuilder().setField(timestampPartitionFieldName.get()).build();
-      }
-
-      builder.setTimePartitioning(timePartitioning);
-
-      if (timestampPartitionFieldName.isPresent() && clusteringFieldName.isPresent()) {
-        Clustering clustering = Clustering.newBuilder()
-            .setFields(clusteringFieldName.get())
-            .build();
-        builder.setClustering(clustering);
-      }
+      timePartitioningType.ifPresent(partitioningType -> {
+        TimePartitioning.Builder timePartitioningBuilder = TimePartitioning.of(partitioningType).toBuilder();
+        timestampPartitionFieldName.ifPresent(timePartitioningBuilder::setField);
+        partitionExpiration.ifPresent(timePartitioningBuilder::setExpirationMs);
+  
+        builder.setTimePartitioning(timePartitioningBuilder.build());
+  
+        if (timestampPartitionFieldName.isPresent() && clusteringFieldName.isPresent()) {
+          Clustering clustering = Clustering.newBuilder()
+              .setFields(clusteringFieldName.get())
+              .build();
+          builder.setClustering(clustering);
+        }
+      });
     }
 
     StandardTableDefinition tableDefinition = builder.build();
