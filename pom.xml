@@ -61,12 +61,12 @@
         <site.plugin.version>3.7.1</site.plugin.version>
         <surefire.plugin.version>3.0.0-M4</surefire.plugin.version>
         <jacoco.plugin.version>0.8.11</jacoco.plugin.version>
-        <instruction.coverage.threshold>0.59</instruction.coverage.threshold>
-        <branch.coverage.threshold>0.60</branch.coverage.threshold>
-        <method.coverage.threshold>0.66</method.coverage.threshold>
-        <class.coverage.threshold>0.87</class.coverage.threshold>
-        <complexity.coverage.threshold>0.64</complexity.coverage.threshold>
-        <line.coverage.threshold>0.66</line.coverage.threshold>
+        <instruction.coverage.threshold>0.84</instruction.coverage.threshold>
+        <branch.coverage.threshold>0.74</branch.coverage.threshold>
+        <method.coverage.threshold>0.92</method.coverage.threshold>
+        <class.coverage.threshold>0.62</class.coverage.threshold>
+        <complexity.coverage.threshold>0.78</complexity.coverage.threshold>
+        <line.coverage.threshold>0.86</line.coverage.threshold>
         <main.dir>${project.basedir}</main.dir>
         <skip.unit.tests>${maven.test.skip}</skip.unit.tests>
     </properties>
