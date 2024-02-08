@@ -22,18 +22,27 @@ package com.wepay.kafka.connect.bigquery.write.batch;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
 
-import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
+import com.google.cloud.bigquery.TableId;
+import com.wepay.kafka.connect.bigquery.utils.SinkRecordConverter;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
+import com.wepay.kafka.connect.bigquery.exception.ExpectedInterruptException;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
+import com.wepay.kafka.connect.bigquery.write.row.BigQueryErrorResponses;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 
-import org.apache.kafka.connect.errors.ConnectException;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Simple Table Writer that attempts to write all the rows it is given at once.
@@ -42,29 +51,26 @@ public class TableWriter implements Runnable {
 
   private static final Logger logger = LoggerFactory.getLogger(TableWriter.class);
 
-  private static final int BAD_REQUEST_CODE = 400;
-  private static final String INVALID_REASON = "invalid";
-  private static final String PAYLOAD_TOO_LARGE_REASON = "Request payload size exceeds the limit:";
-
   private final BigQueryWriter writer;
   private final PartitionedTableId table;
-  private final List<RowToInsert> rows;
-  private final String topic;
+  private final SortedMap<SinkRecord, RowToInsert> rows;
+  private final Consumer<Collection<RowToInsert>> onFinish;
 
   /**
    * @param writer the {@link BigQueryWriter} to use.
    * @param table the BigQuery table to write to.
    * @param rows the rows to write.
-   * @param topic the kafka source topic of this data.
+   * @param onFinish a callback to invoke after all rows have been written successfully, which is
+   *                 called with all the rows written by the writer
    */
   public TableWriter(BigQueryWriter writer,
                      PartitionedTableId table,
-                     List<RowToInsert> rows,
-                     String topic) {
+                     SortedMap<SinkRecord, RowToInsert> rows,
+                     Consumer<Collection<RowToInsert>> onFinish) {
     this.writer = writer;
     this.table = table;
     this.rows = rows;
-    this.topic = topic;
+    this.onFinish = onFinish;
   }
 
   @Override
@@ -74,16 +80,24 @@ public class TableWriter implements Runnable {
     int successCount = 0;
     int failureCount = 0;
 
+    List<Map.Entry<SinkRecord, RowToInsert>> rowsList = new ArrayList<>(rows.entrySet());
     try {
       while (currentIndex < rows.size()) {
-        List<RowToInsert> currentBatch =
-            rows.subList(currentIndex, Math.min(currentIndex + currentBatchSize, rows.size()));
+        List<Map.Entry<SinkRecord, RowToInsert>> currentBatchList =
+                rowsList.subList(currentIndex, Math.min(currentIndex + currentBatchSize, rows.size()));
         try {
-          writer.writeRows(table, currentBatch, topic);
+          SortedMap<SinkRecord, RowToInsert> currentBatch = new TreeMap<>(rows.comparator());
+          for (Map.Entry<SinkRecord, RowToInsert> record: currentBatchList) {
+            currentBatch.put(record.getKey(), record.getValue());
+          }
+          writer.writeRows(table, currentBatch);
           currentIndex += currentBatchSize;
           successCount++;
         } catch (BigQueryException err) {
-          logger.warn("Could not write batch of size {} to BigQuery.", currentBatch.size(), err);
+          logger.warn(
+              "Could not write batch of size {} to BigQuery. "
+                  + "Error code: {}, underlying error (if present): {}",
+              currentBatchList.size(), err.getCode(), err.getError(), err);
           if (isBatchSizeError(err)) {
             failureCount++;
             currentBatchSize = getNewBatchSize(currentBatchSize, err);
@@ -94,7 +108,7 @@ public class TableWriter implements Runnable {
         }
       }
     } catch (InterruptedException err) {
-      throw new ConnectException("Thread interrupted while writing to BigQuery.", err);
+      throw new ExpectedInterruptException("Thread interrupted while writing to BigQuery.");
     }
 
     // Common case is 1 successful call and 0 failed calls:
@@ -107,6 +121,7 @@ public class TableWriter implements Runnable {
       logger.debug(logMessage, rows.size(), successCount, failureCount);
     }
 
+    onFinish.accept(rows.values());
   }
 
   private static int getNewBatchSize(int currentBatchSize, Throwable err) {
@@ -140,76 +155,63 @@ public class TableWriter implements Runnable {
    *         size, or false otherwise.
    */
   private static boolean isBatchSizeError(BigQueryException exception) {
-    if (exception.getCode() == BAD_REQUEST_CODE
-        && exception.getError() == null
-        && exception.getReason() == null) {
-      /*
-       * 400 with no error or reason represents a request that is more than 10MB. This is not
-       * documented but is referenced slightly under "Error codes" here:
-       * https://cloud.google.com/bigquery/quota-policy
-       * (by decreasing the batch size we can eventually expect to end up with a request under 10MB)
-       */
-      return true;
-    } else if (exception.getCode() == BAD_REQUEST_CODE
-               && INVALID_REASON.equals(exception.getReason())) {
-      /*
-       * this is the error that the documentation claims google will return if a request exceeds
-       * 10MB. if this actually ever happens...
-       * todo distinguish this from other invalids (like invalid table schema).
-       */
-      return true;
-    } else if (exception.getCode() == BAD_REQUEST_CODE
-        && exception.getMessage() != null
-        && exception.getMessage().contains(PAYLOAD_TOO_LARGE_REASON)) {
-      return true;
-    }
-    return false;
+    /*
+     * 400 with no error or reason represents a request that is more than 10MB. This is not
+     * documented but is referenced slightly under "Error codes" here:
+     * https://cloud.google.com/bigquery/quota-policy
+     * (by decreasing the batch size we can eventually expect to end up with a request under 10MB)
+     */
+    return BigQueryErrorResponses.isUnspecifiedBadRequestError(exception)
+        || BigQueryErrorResponses.isRequestTooLargeError(exception)
+        || BigQueryErrorResponses.isTooManyRowsError(exception);
   }
 
-  public String getTopic() {
-    return topic;
-  }
 
   public static class Builder implements TableWriterBuilder {
     private final BigQueryWriter writer;
     private final PartitionedTableId table;
-    private final String topic;
 
-    private List<RowToInsert> rows;
-
-    private RecordConverter<Map<String, Object>> recordConverter;
+    private SortedMap<SinkRecord, RowToInsert> rows;
+    private SinkRecordConverter recordConverter;
+    private Consumer<Collection<RowToInsert>> onFinish;
 
     /**
      * @param writer the BigQueryWriter to use
      * @param table the BigQuery table to write to.
-     * @param topic the kafka source topic associated with the given table.
      * @param recordConverter the record converter used to convert records to rows
      */
-    public Builder(BigQueryWriter writer, PartitionedTableId table, String topic,
-                   RecordConverter<Map<String, Object>> recordConverter) {
+    public Builder(BigQueryWriter writer, PartitionedTableId table, SinkRecordConverter recordConverter) {
       this.writer = writer;
       this.table = table;
-      this.topic = topic;
 
-      this.rows = new ArrayList<>();
-
+      this.rows = new TreeMap<>(Comparator.comparing(SinkRecord::kafkaPartition)
+              .thenComparing(SinkRecord::kafkaOffset));
       this.recordConverter = recordConverter;
+
+      this.onFinish = null;
+    }
+
+    @Override
+    public void addRow(SinkRecord record, TableId table) {
+      rows.put(record, recordConverter.getRecordRow(record, table));
     }
 
     /**
-     * Add a record to the builder.
-     * @param rowToInsert the row to add
+     * Specify a callback to be invoked after all rows have been written. The callback will be
+     * invoked with the full list of rows written by this table writer.
+     * @param onFinish the callback to invoke; may not be null
+     * @throws IllegalStateException if invoked more than once on a single builder instance
      */
-    public void addRow(RowToInsert rowToInsert) {
-      rows.add(rowToInsert);
+    public void onFinish(Consumer<Collection<RowToInsert>> onFinish) {
+      if (this.onFinish != null) {
+        throw new IllegalStateException("Cannot overwrite existing finish callback");
+      }
+      this.onFinish = Objects.requireNonNull(onFinish, "Finish callback cannot be null");
     }
 
-    /**
-     * Create a {@link TableWriter} from this builder.
-     * @return a TableWriter containing the given writer, table, topic, and all added rows.
-     */
+    @Override
     public TableWriter build() {
-      return new TableWriter(writer, table, rows, topic);
+      return new TableWriter(writer, table, rows, onFinish != null ? onFinish : n -> { });
     }
   }
 }

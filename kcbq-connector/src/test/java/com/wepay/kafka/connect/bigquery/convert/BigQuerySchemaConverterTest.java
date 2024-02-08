@@ -25,9 +25,9 @@ import static org.junit.Assert.assertThrows;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 
-import com.google.common.collect.ImmutableList;
 import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
 
+import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
@@ -419,6 +419,28 @@ public class BigQuerySchemaConverterTest {
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
+    assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
+  }
+
+  @Test
+  public void testFieldNameSanitized() {
+    final String fieldName = "String Array";
+    com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            com.google.cloud.bigquery.Field.newBuilder(
+                FieldNameSanitizer.sanitizeName(fieldName),
+                LegacySQLTypeName.STRING
+            ).setMode(com.google.cloud.bigquery.Field.Mode.REPEATED).build()
+        );
+
+    Schema kafkaConnectArraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA).build();
+    Schema kafkaConnectTestSchema = SchemaBuilder
+        .struct()
+        .field(fieldName, kafkaConnectArraySchema)
+        .build();
+
+    com.google.cloud.bigquery.Schema bigQueryTestSchema =
+        new BigQuerySchemaConverter(false, true).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
   }
 

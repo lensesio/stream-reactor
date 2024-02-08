@@ -20,18 +20,13 @@
 package com.wepay.kafka.connect.bigquery;
 
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
-
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
-
 import com.wepay.kafka.connect.bigquery.utils.Version;
-
 import org.apache.kafka.common.config.Config;
 import org.apache.kafka.common.config.ConfigDef;
-
 import org.apache.kafka.common.config.ConfigValue;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,8 +41,8 @@ import java.util.Map;
  */
 public class BigQuerySinkConnector extends SinkConnector {
 
-  BigQuerySinkConfig config;
-  Map<String, String> configProperties;
+  private BigQuerySinkConfig config;
+  private Map<String, String> configProperties;
 
   private static final Logger logger = LoggerFactory.getLogger(BigQuerySinkConnector.class);
 
@@ -74,8 +69,6 @@ public class BigQuerySinkConnector extends SinkConnector {
     logger.trace("connector.start()");
     configProperties = properties;
     config = new BigQuerySinkConfig(properties);
-    // Revalidate here in case the connector has been upgraded and its old config is no longer valid
-    config.ensureValid();
   }
 
   @Override
@@ -94,12 +87,12 @@ public class BigQuerySinkConnector extends SinkConnector {
     logger.trace("connector.taskConfigs()");
     List<Map<String, String>> taskConfigs = new ArrayList<>();
     for (int i = 0; i < maxTasks; i++) {
-      // Copy configProperties so that tasks can't interfere with each others' configurations
       HashMap<String, String> taskConfig = new HashMap<>(configProperties);
       if (i == 0 && !config.getList(BigQuerySinkConfig.ENABLE_BATCH_CONFIG).isEmpty()) {
         // if batch loading is enabled, configure first task to do the GCS -> BQ loading
         taskConfig.put(BigQuerySinkTaskConfig.GCS_BQ_TASK_CONFIG, "true");
       }
+      taskConfig.put(BigQuerySinkTaskConfig.TASK_ID_CONFIG, Integer.toString(i));
       taskConfigs.add(taskConfig);
     }
     return taskConfigs;
