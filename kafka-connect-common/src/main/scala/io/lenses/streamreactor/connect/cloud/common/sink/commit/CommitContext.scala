@@ -26,7 +26,7 @@ trait CommitContext {
 
   def lastModified: Long = lastFlushedTimestamp.getOrElse(createdTimestamp)
 
-  def logFlush(flushing: Boolean, result: Seq[ConditionCommitResult]): Unit
+  def generateLogLine(flushing: Boolean, result: Seq[ConditionCommitResult]): String
 }
 
 /**
@@ -43,16 +43,9 @@ case class CloudCommitContext(
   partitionFile:        String,
 ) extends CommitContext
     with LazyLogging {
-  override def logFlush(flushing: Boolean, result: Seq[ConditionCommitResult]): Unit = {
+  override def generateLogLine(flushing: Boolean, result: Seq[ConditionCommitResult]): String = {
     val flushingOrNot = if (flushing) "" else "Not "
-    logger.debug(
-      "{}Flushing '{}' for {topic:'{}', partition:{}, offset:{}, {}}",
-      flushingOrNot,
-      partitionFile,
-      tpo.topic.value,
-      tpo.partition,
-      tpo.offset.value,
-      result.flatMap(_.logLine).mkString(", "),
-    )
+    s"${flushingOrNot}Flushing '$partitionFile' for {topic:'${tpo.topic.value}', partition:${tpo.partition}, offset:${tpo.offset.value}, ${result.flatMap(_.logLine).mkString(", ")}}"
   }
+
 }

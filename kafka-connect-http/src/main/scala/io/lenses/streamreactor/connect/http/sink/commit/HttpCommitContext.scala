@@ -49,16 +49,14 @@ case class HttpCommitContext(
   errors:               Map[String, Seq[Throwable]],
 ) extends CommitContext
     with LazyLogging {
-  override def logFlush(flushing: Boolean, result: Seq[ConditionCommitResult]): Unit = {
+
+  override def generateLogLine(flushing: Boolean, result: Seq[ConditionCommitResult]): String = {
     val flushingOrNot = if (flushing) "" else "Not "
     val committedOffsetGroups = committedOffsets.map(tpo =>
       s"topic:${tpo._1.topic}, partition:${tpo._1.partition}, offset:${tpo._2.value}",
     ).mkString(";")
     val logLine = result.flatMap(_.logLine).mkString(", ")
-    logger.debug(
-      s"[$sinkName] ${flushingOrNot}Flushing for $committedOffsetGroups because {}",
-      logLine,
-    )
+    s"[$sinkName] ${flushingOrNot}Flushing for $committedOffsetGroups because $logLine"
   }
 
   def resetErrors: HttpCommitContext = copy(errors = Map.empty)

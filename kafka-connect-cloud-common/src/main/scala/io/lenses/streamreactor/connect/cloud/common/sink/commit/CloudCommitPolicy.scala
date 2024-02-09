@@ -15,12 +15,11 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.commit
 
-import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings.defaultFlushCount
 import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings.defaultFlushInterval
 import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings.defaultFlushSize
 
-object CloudCommitPolicy extends LazyLogging {
+object CloudCommitPolicy {
   val Default: CommitPolicy =
     CommitPolicy(FileSize(defaultFlushSize), Interval(defaultFlushInterval), Count(defaultFlushCount))
 

@@ -47,7 +47,7 @@ case class CommitPolicy(logger: Logger, conditions: CommitPolicyCondition*) {
     }
 
     if (debugEnabled) {
-      context.logFlush(flush, res)
+      logger.debug(context.generateLogLine(flush, res))
     }
     flush
   }
