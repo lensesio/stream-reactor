@@ -15,9 +15,10 @@
  */
 package io.lenses.streamreactor.connect.http.sink
 
-import cats.effect.unsafe.implicits.global
+import cats.effect.Deferred
 import cats.effect.IO
 import cats.effect.Ref
+import cats.effect.unsafe.IORuntime
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.utils.JarManifest
@@ -34,7 +35,7 @@ import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
-
+import cats.syntax.all._
 import java.util
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -42,13 +43,12 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 
 class HttpSinkTask extends SinkTask with LazyLogging {
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
-
-  implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
-
+  implicit val runtime = IORuntime.global
   private var maybeTemplate:      Option[TemplateType]      = Option.empty
   private var maybeWriterManager: Option[HttpWriterManager] = Option.empty
   private var maybeSinkName:      Option[String]            = Option.empty
   private def sinkName = maybeSinkName.getOrElse("Lenses.io HTTP Sink")
+  private val deferred: Deferred[IO, Either[Throwable, Unit]] = Deferred.unsafe[IO, Either[Throwable, Unit]]
 
   private val errorRef: Ref[IO, List[Throwable]] = Ref.of[IO, List[Throwable]](List.empty).unsafeRunSync()
 
@@ -59,11 +59,11 @@ class HttpSinkTask extends SinkTask with LazyLogging {
     val propsAsScala = props.asScala
     maybeSinkName = propsAsScala.get("name")
 
-    IO.fromEither(parseConfig(propsAsScala.get(configProp)))
+    IO
+      .fromEither(parseConfig(propsAsScala.get(configProp)))
       .flatMap { config =>
         val template      = RawTemplate(config.endpoint, config.content, config.headers)
-        val writerManager = HttpWriterManager(sinkName, config, template)
-
+        val writerManager = HttpWriterManager(sinkName, config, template, deferred)
         val refUpdateCallback: Throwable => Unit =
           (err: Throwable) => {
             {
@@ -185,7 +185,10 @@ class HttpSinkTask extends SinkTask with LazyLogging {
   }
 
   override def stop(): Unit =
-    maybeWriterManager.foreach(_.close.unsafeRunSync())
+    (for {
+      _ <- maybeWriterManager.traverse(_.close)
+      _ <- deferred.complete(().asRight)
+    } yield ()).unsafeRunSync()
 
   override def version(): String = manifest.version()
 }

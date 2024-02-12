@@ -29,6 +29,8 @@ trait CommitContext {
   def logFlush(flushing: Boolean, result: Seq[ConditionCommitResult]): Unit
 }
 
+
+
 /**
   * @param tpo              the [[TopicPartitionOffset]] of the last record written
   * @param count            the number of records written thus far to the file
