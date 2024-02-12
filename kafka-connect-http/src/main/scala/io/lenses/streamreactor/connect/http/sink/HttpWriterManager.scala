@@ -18,7 +18,9 @@ package io.lenses.streamreactor.connect.http.sink
 import cats.effect.FiberIO
 import cats.effect.IO
 import cats.effect.Ref
+import cats.effect.kernel.Deferred
 import cats.effect.kernel.Outcome
+import cats.effect.kernel.Temporal
 import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toTraverseOps
@@ -37,9 +39,6 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.http4s.jdkhttpclient.JdkHttpClient
 
 import java.net.http.HttpClient
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.TimeUnit
 import scala.collection.immutable.Queue
 
 object HttpWriterManager {
@@ -47,7 +46,15 @@ object HttpWriterManager {
   val DefaultErrorThreshold   = 5
   val DefaultUploadSyncPeriod = 5
 
-  def apply(sinkName: String, config: HttpSinkConfig, template: TemplateType): HttpWriterManager = {
+  def apply(
+    sinkName:  String,
+    config:    HttpSinkConfig,
+    template:  TemplateType,
+    terminate: Deferred[IO, Either[Throwable, Unit]],
+  )(
+    implicit
+    t: Temporal[IO],
+  ): HttpWriterManager = {
 
     // in certain circumstances we want a customised http client.
     val clientCreate = config match {
@@ -73,6 +80,7 @@ object HttpWriterManager {
           config.batch.map(_.toCommitPolicy).getOrElse(HttpCommitPolicy.Default),
           cResRel,
           Ref.unsafe(Map[Topic, HttpWriter]()),
+          terminate,
           config.errorThreshold.getOrElse(DefaultErrorThreshold),
           config.uploadSyncPeriod.getOrElse(DefaultUploadSyncPeriod),
         )
@@ -87,10 +95,13 @@ class HttpWriterManager(
   commitPolicy:      CommitPolicy,
   val close:         IO[Unit],
   writersRef:        Ref[IO, Map[Topic, HttpWriter]],
+  deferred:          Deferred[IO, Either[Throwable, Unit]],
   errorThreshold:    Int,
   uploadSyncPeriod:  Int,
+)(
+  implicit
+  t: Temporal[IO],
 ) extends LazyLogging {
-  private val scheduler: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
 
   private def createNewHttpWriter(): HttpWriter =
     new HttpWriter(
@@ -140,18 +151,22 @@ class HttpWriterManager(
     } yield res
   }
 
-  def start(errCallback: Throwable => Unit): IO[Unit] =
+  def start(errCallback: Throwable => Unit): IO[Unit] = {
+    import scala.concurrent.duration._
     for {
       _ <- IO(logger.info(s"[$sinkName] starting HttpWriterManager"))
-      runnable: Runnable = () => {
-        process().flatMap {
-          resultList =>
-            handleResult(resultList, errCallback)
-        }.unsafeRunSync()
-        ()
-      }
-      _ <- IO.delay(scheduler.scheduleAtFixedRate(runnable, 0, uploadSyncPeriod.toLong, TimeUnit.SECONDS))
+      _ <- fs2
+        .Stream
+        .fixedRate(uploadSyncPeriod.millis)
+        .evalMap(_ => process().flatMap(handleResult(_, errCallback)).void)
+        .interruptWhen(deferred)
+        .onComplete(fs2.Stream.eval(close))
+        .compile
+        .drain
+        .background
+        .allocated
     } yield ()
+  }
 
   private def handleResult(
     writersResult: List[Either[Throwable, _]],

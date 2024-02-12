@@ -24,7 +24,6 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.time.Minute
 import org.scalatest.time.Span
-
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
