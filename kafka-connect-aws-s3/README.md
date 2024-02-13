@@ -1,6 +1,10 @@
 # AWS S3 Connector
 
-This is a Kafka Connect connector for AWS S3.
+This is an enterprise Apache Kafka Connector developed by Lenses.io to source & sink to/from AWS S3.  
+
+For full details about features, use cases it supports and how to get enterprise support from Lenses.io visit https://lenses.io/connect/kafka-to-aws-s3/
+
+See a [quick intro](https://vimeo.com/874891392) into how it fits into your Apache Kafka and data architecture. How to use the Connector to [backup/restore](https://vimeo.com/874893270) a Kafka topic when using the Connector through Lenses.io. Or how to [source complex data](https://vimeo.com/876384955) including XML data.
 
 This connector supports the following modes:
 
