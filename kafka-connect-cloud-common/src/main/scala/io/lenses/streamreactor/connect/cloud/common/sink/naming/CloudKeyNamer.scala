@@ -30,10 +30,10 @@ import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.cloud.common.sink.config.DatePartitionField
+import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionNamePath
 import io.lenses.streamreactor.connect.cloud.common.sink.config.HeaderPartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.config.KeyPartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
-import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionNamePath
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionPartitionField
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionSelection
 import io.lenses.streamreactor.connect.cloud.common.sink.config.TopicPartitionField

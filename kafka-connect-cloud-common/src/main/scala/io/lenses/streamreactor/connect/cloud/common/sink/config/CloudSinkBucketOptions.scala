@@ -24,6 +24,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.config.FormatSelection
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
 import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.CloudSinkProps
@@ -114,7 +115,7 @@ case class CloudSinkBucketOptions(
   formatSelection:    FormatSelection,
   keyNamer:           KeyNamer,
   partitionSelection: PartitionSelection,
-  commitPolicy:       CommitPolicy = CommitPolicy.Default,
+  commitPolicy:       CommitPolicy = CloudCommitPolicy.Default,
   localStagingArea:   LocalStagingArea,
   dataStorage:        DataStorageSettings,
 ) extends WithTransformableDataStorage

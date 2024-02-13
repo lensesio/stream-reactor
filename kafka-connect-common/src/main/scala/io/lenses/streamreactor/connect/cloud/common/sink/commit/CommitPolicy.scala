@@ -17,9 +17,6 @@ package io.lenses.streamreactor.connect.cloud.common.sink.commit
 
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.Logger
-import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings.defaultFlushCount
-import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings.defaultFlushInterval
-import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushSettings.defaultFlushSize
 
 import scala.util.Try
 
@@ -48,25 +45,15 @@ case class CommitPolicy(logger: Logger, conditions: CommitPolicyCondition*) {
       case ConditionCommitResult(true, _) => true
       case _                              => false
     }
-    val flushingOrNot = if (flush) "" else "Not "
 
-    if (debugEnabled)
-      logger.debug(
-        "{}Flushing '{}' for {topic:'{}', partition:{}, offset:{}, {}}",
-        flushingOrNot,
-        context.partitionFile,
-        context.tpo.topic.value,
-        context.tpo.partition,
-        context.tpo.offset.value,
-        res.flatMap(_.logLine).mkString(", "),
-      )
+    if (debugEnabled) {
+      logger.debug(context.generateLogLine(flush, res))
+    }
     flush
   }
 }
 
 object CommitPolicy extends LazyLogging {
-  val Default: CommitPolicy =
-    CommitPolicy(FileSize(defaultFlushSize), Interval(defaultFlushInterval), Count(defaultFlushCount))
   def apply(conditions: CommitPolicyCondition*): CommitPolicy =
     CommitPolicy(logger, conditions: _*)
 }

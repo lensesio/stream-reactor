@@ -15,20 +15,37 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.commit
 
+import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
+
+trait CommitContext {
+  def count:                Long
+  def fileSize:             Long
+  def createdTimestamp:     Long
+  def lastFlushedTimestamp: Option[Long]
+
+  def lastModified: Long = lastFlushedTimestamp.getOrElse(createdTimestamp)
+
+  def generateLogLine(flushing: Boolean, result: Seq[ConditionCommitResult]): String
+}
 
 /**
   * @param tpo              the [[TopicPartitionOffset]] of the last record written
   * @param count            the number of records written thus far to the file
   * @param createdTimestamp the time in milliseconds when the the file was created/accessed first time
   */
-case class CommitContext(
+case class CloudCommitContext(
   tpo:                  TopicPartitionOffset,
   count:                Long,
   fileSize:             Long,
   createdTimestamp:     Long,
   lastFlushedTimestamp: Option[Long],
   partitionFile:        String,
-) {
-  def lastModified: Long = lastFlushedTimestamp.getOrElse(createdTimestamp)
+) extends CommitContext
+    with LazyLogging {
+  override def generateLogLine(flushing: Boolean, result: Seq[ConditionCommitResult]): String = {
+    val flushingOrNot = if (flushing) "" else "Not "
+    s"${flushingOrNot}Flushing '$partitionFile' for {topic:'${tpo.topic.value}', partition:${tpo.partition}, offset:${tpo.offset.value}, ${result.flatMap(_.logLine).mkString(", ")}}"
+  }
+
 }

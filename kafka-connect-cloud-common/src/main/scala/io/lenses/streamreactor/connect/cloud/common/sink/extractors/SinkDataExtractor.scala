@@ -17,12 +17,7 @@ package io.lenses.streamreactor.connect.cloud.common.sink.extractors
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.ArraySinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.ByteArraySinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.MapSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.PrimitiveSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer._
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionNamePath
 
 /**
