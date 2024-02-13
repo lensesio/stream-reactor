@@ -72,4 +72,8 @@ object GCPConfigSettings {
     s"Maximum index files to allow per topic/partition.  Advisable to not raise this: if a large number of files build up this means there is a problem with file deletion."
   val SEEK_MAX_INDEX_FILES_DEFAULT = 5
 
+  val SOURCE_ORDERING_TYPE:         String = s"$CONNECTOR_PREFIX.ordering.type"
+  val SOURCE_ORDERING_TYPE_DOC:     String = "AlphaNumeric (the default)"
+  val SOURCE_ORDERING_TYPE_DEFAULT: String = "AlphaNumeric"
+
 }

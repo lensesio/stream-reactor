@@ -19,7 +19,7 @@ import cats.implicits.catsSyntaxOptionId
 import com.google.cloud.TransportOptions
 import com.google.cloud.http.HttpTransportOptions
 import io.lenses.streamreactor.connect.gcp.storage.config.AuthMode
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfig
+import io.lenses.streamreactor.connect.gcp.storage.config.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.HttpTimeoutConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.RetryConfig
 import org.apache.commons.io.IOUtils
@@ -36,7 +36,7 @@ class GCPStorageClientCreatorTest extends AnyFunSuite with Matchers with EitherV
 
   private val jsonCredsUrl: URL = getClass.getResource("/test-gcp-credentials.json")
 
-  private val defaultConfig = GCPConfig(
+  private val defaultConfig = GCPConnectionConfig(
     host           = Some("custom-host"),
     projectId      = Some("project-id"),
     quotaProjectId = Some("quota-project-id"),

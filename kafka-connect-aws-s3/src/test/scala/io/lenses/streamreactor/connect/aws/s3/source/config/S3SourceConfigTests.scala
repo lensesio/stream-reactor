@@ -18,13 +18,14 @@ package io.lenses.streamreactor.connect.aws.s3.source.config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
+import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions.ExcludeIndexes
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
 
-class S3SourceConfigTests extends AnyFunSuite with Matchers with TaskIndexKey with SourcePartitionSearcherSettingsKeys {
+class S3SourceConfigTests extends AnyFunSuite with Matchers with TaskIndexKey with CloudSourceSettingsKeys {
   test("default recursive levels is 0") {
     S3SourceConfig.fromProps(
       Map(

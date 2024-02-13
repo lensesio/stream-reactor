@@ -11,7 +11,7 @@ import io.lenses.streamreactor.connect.gcp.storage.auth.GCPStorageClientCreator
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings._
 import io.lenses.streamreactor.connect.gcp.storage.config.AuthMode
 import io.lenses.streamreactor.connect.gcp.storage.config.AuthModeSettingsConfigKeys
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfig
+import io.lenses.streamreactor.connect.gcp.storage.config.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.UploadConfigKeys
 import io.lenses.streamreactor.connect.gcp.storage.sink.GCPStorageSinkTask
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageFileMetadata
@@ -42,7 +42,7 @@ trait GCPProxyContainerTest
 
   override def createClient(): Either[Throwable, Storage] = {
 
-    val gcpConfig: GCPConfig = GCPConfig(
+    val gcpConfig: GCPConnectionConfig = GCPConnectionConfig(
       projectId      = Some("test"),
       quotaProjectId = Option.empty,
       authMode       = AuthMode.None,

@@ -27,6 +27,7 @@ sealed trait PartitionExtractor {
 }
 
 object PartitionExtractor extends LazyLogging {
+
   def apply(extractorType: String, extractorRegex: Option[String]): Option[PartitionExtractor] =
     extractorType.toLowerCase match {
       case "regex" =>

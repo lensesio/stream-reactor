@@ -21,8 +21,8 @@ import io.lenses.streamreactor.connect.cloud.common.config.PropertiesHelper
 import io.lenses.streamreactor.connect.cloud.common.consumers.CloudObjectKey
 
 case class S3ConsumerGroupsSinkConfig(
-  location: CloudObjectKey,
-  config:   S3Config,
+                                       location: CloudObjectKey,
+                                       config:   S3ConnectionConfig,
 )
 
 object S3ConsumerGroupsSinkConfig extends PropertiesHelper {
@@ -46,7 +46,7 @@ object S3ConsumerGroupsSinkConfig extends PropertiesHelper {
     } yield {
       S3ConsumerGroupsSinkConfig(
         bucket,
-        S3Config(props),
+        S3ConnectionConfig(props),
       )
     }
 }

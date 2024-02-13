@@ -1,11 +1,11 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import cats.implicits.catsSyntaxEitherId
-import io.lenses.streamreactor.connect.aws.s3.source.config.SourcePartitionSearcherSettingsKeys
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.parquet.ParquetOutputFile
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
+import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
 import io.lenses.streamreactor.connect.cloud.common.stream.CloudByteArrayOutputStream
 import org.apache.avro.SchemaBuilder
 import org.apache.kafka.connect.source.SourceRecord
@@ -28,7 +28,7 @@ class S3SourceParquetEnvelopeTest
     with AnyFlatSpecLike
     with Matchers
     with EitherValues
-    with SourcePartitionSearcherSettingsKeys {
+    with CloudSourceSettingsKeys {
 
   def DefaultProps: Map[String, String] = defaultProps + (
     SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",

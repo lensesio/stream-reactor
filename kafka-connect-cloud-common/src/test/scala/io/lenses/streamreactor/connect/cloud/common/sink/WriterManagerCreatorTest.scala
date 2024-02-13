@@ -16,10 +16,10 @@
 package io.lenses.streamreactor.connect.cloud.common.sink
 
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
-import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata

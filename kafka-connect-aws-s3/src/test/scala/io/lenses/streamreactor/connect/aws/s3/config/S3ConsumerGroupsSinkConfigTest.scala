@@ -40,7 +40,7 @@ class S3ConsumerGroupsSinkConfigTest extends AnyFunSuite with Matchers {
         value should be(
           S3ConsumerGroupsSinkConfig(
             CloudObjectKey("bucket", "a/b/c".some),
-            S3Config(
+            S3ConnectionConfig(
               Some("eu-west-1"),
               Some("access"),
               Some("secret"),
@@ -74,7 +74,7 @@ class S3ConsumerGroupsSinkConfigTest extends AnyFunSuite with Matchers {
         value should be(
           S3ConsumerGroupsSinkConfig(
             CloudObjectKey("bucket", "a/b/c".some),
-            S3Config(
+            S3ConnectionConfig(
               Some("eu-west-1"),
               Some("access"),
               Some("secret"),

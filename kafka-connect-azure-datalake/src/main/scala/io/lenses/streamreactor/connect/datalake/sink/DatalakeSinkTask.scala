@@ -21,7 +21,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.sink.WriterManagerCreator
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.datalake.auth.DatalakeClientCreator
-import io.lenses.streamreactor.connect.datalake.config.AzureConfig
+import io.lenses.streamreactor.connect.datalake.config.AzureConnectionConfig
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings
 import io.lenses.streamreactor.connect.datalake.model.location.DatalakeLocationValidator
 import io.lenses.streamreactor.connect.datalake.sink.config.DatalakeSinkConfig
@@ -54,7 +54,7 @@ class DatalakeSinkTask
       )).toEither
     } yield writerManager
 
-  private def setErrorRetryInterval(s3Config: AzureConfig): Unit =
+  private def setErrorRetryInterval(s3Config: AzureConnectionConfig): Unit =
     //if error policy is retry set retry interval
     s3Config.errorPolicy match {
       case RetryErrorPolicy() => context.timeout(s3Config.connectorRetryConfig.errorRetryInterval)

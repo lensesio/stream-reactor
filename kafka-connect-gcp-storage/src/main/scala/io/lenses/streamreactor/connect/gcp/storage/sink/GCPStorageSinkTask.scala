@@ -21,7 +21,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.sink.WriterManagerCreator
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.gcp.storage.auth.GCPStorageClientCreator
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfig
+import io.lenses.streamreactor.connect.gcp.storage.config.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings
 import io.lenses.streamreactor.connect.gcp.storage.model.location.GCPStorageLocationValidator
 import io.lenses.streamreactor.connect.gcp.storage.sink.config.GCPStorageSinkConfig
@@ -55,7 +55,7 @@ class GCPStorageSinkTask
       )).toEither
     } yield writerManager
 
-  private def setErrorRetryInterval(gcpConfig: GCPConfig): Unit =
+  private def setErrorRetryInterval(gcpConfig: GCPConnectionConfig): Unit =
     //if error policy is retry set retry interval
     gcpConfig.errorPolicy match {
       case RetryErrorPolicy() => context.timeout(gcpConfig.connectorRetryConfig.errorRetryInterval)

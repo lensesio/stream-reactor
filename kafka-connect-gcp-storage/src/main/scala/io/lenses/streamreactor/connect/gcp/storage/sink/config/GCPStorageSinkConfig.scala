@@ -16,12 +16,12 @@
 package io.lenses.streamreactor.connect.gcp.storage.sink.config
 
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
-import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfig
+import io.lenses.streamreactor.connect.gcp.storage.config.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES
 
 object GCPStorageSinkConfig {
@@ -49,7 +49,7 @@ object GCPStorageSinkConfig {
         gcpConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
       )
     } yield GCPStorageSinkConfig(
-      GCPConfig(gcpConfigDefBuilder.getParsedValues, authMode),
+      GCPConnectionConfig(gcpConfigDefBuilder.getParsedValues, authMode),
       sinkBucketOptions,
       offsetSeekerOptions,
       gcpConfigDefBuilder.getCompressionCodec(),
@@ -59,9 +59,9 @@ object GCPStorageSinkConfig {
 }
 
 case class GCPStorageSinkConfig(
-  gcpConfig:            GCPConfig,
-  bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
-  offsetSeekerOptions:  OffsetSeekerOptions,
-  compressionCodec:     CompressionCodec,
-  avoidResumableUpload: Boolean,
+                                 gcpConfig:            GCPConnectionConfig,
+                                 bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
+                                 offsetSeekerOptions:  OffsetSeekerOptions,
+                                 compressionCodec:     CompressionCodec,
+                                 avoidResumableUpload: Boolean,
 ) extends CloudSinkConfig

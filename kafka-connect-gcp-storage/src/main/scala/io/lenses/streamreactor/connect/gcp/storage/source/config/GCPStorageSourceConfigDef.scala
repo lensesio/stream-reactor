@@ -13,29 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.source.config
+package io.lenses.streamreactor.connect.gcp.storage.source.config
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.config._
-import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor
 import io.lenses.streamreactor.connect.cloud.common.config.CloudConfigDef
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
+import io.lenses.streamreactor.connect.gcp.storage.config.CommonConfigDef
+import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.CONNECTOR_PREFIX
 import org.apache.kafka.common.config.ConfigDef
 
-object S3SourceConfigDef extends CommonConfigDef with CloudSourceSettingsKeys {
+object GCPStorageSourceConfigDef extends CommonConfigDef with CloudSourceSettingsKeys {
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
   override val config: ConfigDef = {
-
     val settings = super.config
+
     addSourceOrderingSettings(settings)
     addSourcePartitionSearcherSettings(settings)
     addSourcePartitionExtractorSettings(settings)
   }
 }
 
-class S3SourceConfigDef()
-    extends CloudConfigDef(CONNECTOR_PREFIX, new DeprecationConfigDefProcessor())
-    with LazyLogging {}
+class GCPStorageSourceConfigDef() extends CloudConfigDef(CONNECTOR_PREFIX) with LazyLogging {}

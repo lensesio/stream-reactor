@@ -59,7 +59,7 @@ class GCPConfigTest extends AnyFlatSpec with Matchers with LazyLogging with Mock
     forAll(errorPolicyValuesMap) {
       (name, value, clazz) =>
         logger.debug("Executing {}", name)
-        GCPConfig(Map("connect.gcpstorage.error.policy" -> value), authMode).errorPolicy should be(clazz)
+        GCPConnectionConfig(Map("connect.gcpstorage.error.policy" -> value), authMode).errorPolicy should be(clazz)
     }
   }
 
@@ -75,7 +75,7 @@ class GCPConfigTest extends AnyFlatSpec with Matchers with LazyLogging with Mock
     forAll(retryValuesMap) {
       (name: String, ret: Any, interval: Any, result: RetryConfig) =>
         logger.debug("Executing {}", name)
-        GCPConfig(Map(
+        GCPConnectionConfig(Map(
                     "connect.gcpstorage.max.retries"    -> ret,
                     "connect.gcpstorage.retry.interval" -> interval,
                   ),
@@ -88,7 +88,7 @@ class GCPConfigTest extends AnyFlatSpec with Matchers with LazyLogging with Mock
     forAll(retryValuesMap) {
       (name: String, ret: Any, interval: Any, result: RetryConfig) =>
         logger.debug("Executing {}", name)
-        GCPConfig(Map(
+        GCPConnectionConfig(Map(
                     "connect.gcpstorage.http.max.retries"    -> ret,
                     "connect.gcpstorage.http.retry.interval" -> interval,
                   ),

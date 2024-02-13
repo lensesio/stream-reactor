@@ -15,26 +15,25 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MAX_INDEX_FILES
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConnectionConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.traits.{CloudPropertiesReader, CloudSinkConfig}
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.config
-import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
-import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfig
-import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
+import io.lenses.streamreactor.connect.cloud.common.sink.config.{CloudSinkBucketOptions, OffsetSeekerOptions}
 
-object S3SinkConfig {
+import scala.util.Try
 
-  def fromProps(
-    props: Map[String, String],
-  )(
-    implicit
-    connectorTaskId:        ConnectorTaskId,
-    cloudLocationValidator: CloudLocationValidator,
-  ): Either[Throwable, S3SinkConfig] =
-    S3SinkConfig(S3SinkConfigDefBuilder(props))
+object S3SinkConfigReader extends CloudPropertiesReader[S3SinkConfig] {
+
+  override def fromProps(props: Map[String, String])(implicit connectorTaskId: ConnectorTaskId, cloudLocationValidator: CloudLocationValidator): Either[Throwable, S3SinkConfig] = {
+    for {
+      conf <- Try(S3SinkConfigDefBuilder(props)).toEither
+      s3SinkConfig <- S3SinkConfigReader.apply(conf)
+    } yield s3SinkConfig
+  }
 
   def apply(
     s3ConfigDefBuilder: S3SinkConfigDefBuilder,
@@ -49,7 +48,7 @@ object S3SinkConfig {
         s3ConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
       )
     } yield S3SinkConfig(
-      S3Config(s3ConfigDefBuilder.getParsedValues),
+      S3ConnectionConfig(s3ConfigDefBuilder.getParsedValues),
       sinkBucketOptions,
       offsetSeekerOptions,
       s3ConfigDefBuilder.getCompressionCodec(),
@@ -59,9 +58,9 @@ object S3SinkConfig {
 }
 
 case class S3SinkConfig(
-  s3Config:            S3Config,
-  bucketOptions:       Seq[CloudSinkBucketOptions] = Seq.empty,
-  offsetSeekerOptions: OffsetSeekerOptions,
-  compressionCodec:    CompressionCodec,
-  batchDelete:         Boolean,
+                         s3Config:            S3ConnectionConfig,
+                         bucketOptions:       Seq[CloudSinkBucketOptions] = Seq.empty,
+                         offsetSeekerOptions: OffsetSeekerOptions,
+                         compressionCodec:    CompressionCodec,
+                         batchDelete:         Boolean,
 ) extends CloudSinkConfig

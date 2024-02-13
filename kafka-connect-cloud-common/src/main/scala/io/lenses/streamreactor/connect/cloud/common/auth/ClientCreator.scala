@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.auth
 
-import io.lenses.streamreactor.connect.cloud.common.config.CloudConfig
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudConnectionConfig
 
-trait ClientCreator[CT <: CloudConfig, X] {
+trait ClientCreator[CT <: CloudConnectionConfig, X] {
   def make(config: CT): Either[Throwable, X]
 }

@@ -16,12 +16,12 @@
 package io.lenses.streamreactor.connect.datalake.sink.config
 
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
-import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
-import io.lenses.streamreactor.connect.datalake.config.AzureConfig
+import io.lenses.streamreactor.connect.datalake.config.AzureConnectionConfig
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings.SEEK_MAX_INDEX_FILES
 
 object DatalakeSinkConfig {
@@ -49,7 +49,7 @@ object DatalakeSinkConfig {
         s3ConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
       )
     } yield DatalakeSinkConfig(
-      AzureConfig(s3ConfigDefBuilder.getParsedValues, authMode),
+      AzureConnectionConfig(s3ConfigDefBuilder.getParsedValues, authMode),
       sinkBucketOptions,
       offsetSeekerOptions,
       s3ConfigDefBuilder.getCompressionCodec(),
@@ -58,8 +58,8 @@ object DatalakeSinkConfig {
 }
 
 case class DatalakeSinkConfig(
-  s3Config:            AzureConfig,
-  bucketOptions:       Seq[CloudSinkBucketOptions] = Seq.empty,
-  offsetSeekerOptions: OffsetSeekerOptions,
-  compressionCodec:    CompressionCodec,
+                               s3Config:            AzureConnectionConfig,
+                               bucketOptions:       Seq[CloudSinkBucketOptions] = Seq.empty,
+                               offsetSeekerOptions: OffsetSeekerOptions,
+                               compressionCodec:    CompressionCodec,
 ) extends CloudSinkConfig

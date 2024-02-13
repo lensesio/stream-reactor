@@ -13,22 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.datalake.config
+package io.lenses.streamreactor.connect.gcp.storage.config
 
 import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.common.errors.ErrorPolicyEnum
 import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
-import io.lenses.streamreactor.connect.cloud.common.config.CloudConfig
-import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getInt
-import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getLong
+import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse._
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getString
-import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings._
+import GCPConfigSettings.ERROR_POLICY
+import GCPConfigSettings.ERROR_POLICY_DEFAULT
+import GCPConfigSettings.ERROR_RETRY_INTERVAL
+import GCPConfigSettings.ERROR_RETRY_INTERVAL_DEFAULT
+import GCPConfigSettings.GCP_PROJECT_ID
+import GCPConfigSettings.GCP_QUOTA_PROJECT_ID
+import GCPConfigSettings.HOST
+import GCPConfigSettings.HTTP_CONNECTION_TIMEOUT
+import GCPConfigSettings.HTTP_ERROR_RETRY_INTERVAL
+import GCPConfigSettings.HTTP_ERROR_RETRY_INTERVAL_DEFAULT
+import GCPConfigSettings.HTTP_NBR_OF_RETIRES_DEFAULT
+import GCPConfigSettings.HTTP_NBR_OF_RETRIES
+import GCPConfigSettings.HTTP_SOCKET_TIMEOUT
+import GCPConfigSettings.NBR_OF_RETIRES_DEFAULT
+import GCPConfigSettings.NBR_OF_RETRIES
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudConnectionConfig
 
-object AzureConfig {
+object GCPConnectionConfig {
 
-  def apply(props: Map[String, _], authMode: AuthMode): AzureConfig = AzureConfig(
+  def apply(props: Map[String, _], authMode: AuthMode): GCPConnectionConfig = GCPConnectionConfig(
+    getString(props, GCP_PROJECT_ID),
+    getString(props, GCP_QUOTA_PROJECT_ID),
     authMode,
-    getString(props, ENDPOINT),
+    getString(props, HOST),
     getErrorPolicy(props),
     RetryConfig(
       getInt(props, NBR_OF_RETRIES).getOrElse(NBR_OF_RETIRES_DEFAULT),
@@ -42,9 +57,6 @@ object AzureConfig {
       getLong(props, HTTP_SOCKET_TIMEOUT),
       getLong(props, HTTP_CONNECTION_TIMEOUT),
     ),
-    ConnectionPoolConfig(
-      getInt(props, POOL_MAX_CONNECTIONS),
-    ),
   )
 
   private def getErrorPolicy(props: Map[String, _]) =
@@ -57,19 +69,13 @@ case class RetryConfig(numberOfRetries: Int, errorRetryInterval: Long)
 
 case class HttpTimeoutConfig(socketTimeout: Option[Long], connectionTimeout: Option[Long])
 
-case class ConnectionPoolConfig(maxConnections: Int)
-
-object ConnectionPoolConfig {
-  def apply(maxConns: Option[Int]): Option[ConnectionPoolConfig] =
-    maxConns.filterNot(_ == -1).map(ConnectionPoolConfig(_))
-}
-
-case class AzureConfig(
+case class GCPConnectionConfig(
+  projectId:            Option[String],
+  quotaProjectId:       Option[String],
   authMode:             AuthMode,
-  endpoint:             Option[String]               = None,
-  errorPolicy:          ErrorPolicy                  = ThrowErrorPolicy(),
-  connectorRetryConfig: RetryConfig                  = RetryConfig(NBR_OF_RETIRES_DEFAULT, ERROR_RETRY_INTERVAL_DEFAULT),
-  httpRetryConfig:      RetryConfig                  = RetryConfig(HTTP_NBR_OF_RETIRES_DEFAULT, HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
-  timeouts:             HttpTimeoutConfig            = HttpTimeoutConfig(None, None),
-  connectionPoolConfig: Option[ConnectionPoolConfig] = Option.empty,
-) extends CloudConfig
+  host:                 Option[String]    = None,
+  errorPolicy:          ErrorPolicy       = ThrowErrorPolicy(),
+  connectorRetryConfig: RetryConfig       = RetryConfig(NBR_OF_RETIRES_DEFAULT, ERROR_RETRY_INTERVAL_DEFAULT),
+  httpRetryConfig:      RetryConfig       = RetryConfig(HTTP_NBR_OF_RETIRES_DEFAULT, HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
+  timeouts:             HttpTimeoutConfig = HttpTimeoutConfig(None, None),
+) extends CloudConnectionConfig

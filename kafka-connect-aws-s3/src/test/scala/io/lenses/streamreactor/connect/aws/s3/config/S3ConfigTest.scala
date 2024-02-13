@@ -41,7 +41,7 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
     forAll(errorPolicyValuesMap) {
       (name, value, clazz) =>
         logger.debug("Executing {}", name)
-        S3Config(Map("connect.s3.error.policy" -> value)).errorPolicy should be(clazz)
+        S3ConnectionConfig(Map("connect.s3.error.policy" -> value)).errorPolicy should be(clazz)
     }
   }
 
@@ -57,7 +57,7 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
     forAll(retryValuesMap) {
       (name: String, ret: Any, interval: Any, result: RetryConfig) =>
         logger.debug("Executing {}", name)
-        S3Config(Map(
+        S3ConnectionConfig(Map(
           "connect.s3.max.retries"    -> ret,
           "connect.s3.retry.interval" -> interval,
         )).connectorRetryConfig should be(result)
@@ -68,7 +68,7 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
     forAll(retryValuesMap) {
       (name: String, ret: Any, interval: Any, result: RetryConfig) =>
         logger.debug("Executing {}", name)
-        S3Config(Map(
+        S3ConnectionConfig(Map(
           "connect.s3.http.max.retries"    -> ret,
           "connect.s3.http.retry.interval" -> interval,
         )).httpRetryConfig should be(result)

@@ -24,12 +24,9 @@ import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
 import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcher
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
-import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
-import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
-import io.lenses.streamreactor.connect.cloud.common.source.reader.PartitionDiscovery
-import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
-import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManagerState
-import io.lenses.streamreactor.connect.cloud.common.source.state.CloudSourceTaskState
+import io.lenses.streamreactor.connect.cloud.common.model.location.{CloudLocation, CloudLocationValidator}
+import io.lenses.streamreactor.connect.cloud.common.source.reader.{PartitionDiscovery, ReaderManager, ReaderManagerState}
+import io.lenses.streamreactor.connect.cloud.common.source.state.{BuilderResult, CloudSourceTaskState, ReaderManagerBuilder}
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
@@ -82,8 +79,4 @@ object S3SourceState extends StrictLogging {
     }
 }
 
-case class BuilderResult(
-  state:                  CloudSourceTaskState,
-  cancelledRef:           Ref[IO, Boolean],
-  partitionDiscoveryLoop: IO[Unit],
-)
+

@@ -21,12 +21,12 @@ import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 import enumeratum.Enum
 import enumeratum.EnumEntry
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.cloud.common.config.CloudConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getBoolean
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getInt
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getLong
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getPassword
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getString
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudConnectionConfig
 
 import scala.collection.immutable
 
@@ -42,9 +42,9 @@ object AuthMode extends Enum[AuthMode] {
 
 }
 
-object S3Config {
+object S3ConnectionConfig {
 
-  def apply(props: Map[String, _]): S3Config = S3Config(
+  def apply(props: Map[String, _]): S3ConnectionConfig = S3ConnectionConfig(
     getString(props, AWS_REGION),
     getPassword(props, AWS_ACCESS_KEY),
     getPassword(props, AWS_SECRET_KEY),
@@ -88,7 +88,7 @@ object ConnectionPoolConfig {
     maxConns.filterNot(_ == -1).map(ConnectionPoolConfig(_))
 }
 
-case class S3Config(
+case class S3ConnectionConfig(
   region:                   Option[String],
   accessKey:                Option[String],
   secretKey:                Option[String],
@@ -100,4 +100,4 @@ case class S3Config(
   httpRetryConfig:          RetryConfig                  = RetryConfig(HTTP_NBR_OF_RETIRES_DEFAULT, HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
   timeouts:                 HttpTimeoutConfig            = HttpTimeoutConfig(None, None),
   connectionPoolConfig:     Option[ConnectionPoolConfig] = Option.empty,
-) extends CloudConfig
+) extends CloudConnectionConfig

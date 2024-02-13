@@ -13,16 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.source.config
+package io.lenses.streamreactor.connect.gcp.storage.source.config
 
-import io.lenses.streamreactor.connect.aws.s3.config.{DeleteModeSettings, S3ConfigSettings}
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceConfigDefBuilder
+import io.lenses.streamreactor.connect.gcp.storage.config.AuthModeSettings
+import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings
 
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-case class S3SourceConfigDefBuilder(props: Map[String, String])
-    extends CloudSourceConfigDefBuilder(S3ConfigSettings.CONNECTOR_PREFIX, S3SourceConfigDef.config, props)
-    with DeleteModeSettings {
+case class GCPStorageSourceConfigDefBuilder(props: Map[String, String])
+    extends CloudSourceConfigDefBuilder(GCPConfigSettings.CONNECTOR_PREFIX, GCPStorageSourceConfigDef.config, props)
+    with AuthModeSettings {
 
   def getParsedValues: Map[String, _] = values().asScala.toMap
 
