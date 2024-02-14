@@ -60,7 +60,7 @@ public class BigQueryHelper {
 
     logger.debug("Using filtered keyfile config");
     try (InputStream credentialsStream = new ByteArrayInputStream(keyfileConfig.getBytes(StandardCharsets.UTF_8))) {
-      logger.debug("Attempting to authenticate with BigQuery using provided json key");
+      logger.debug("Attempting to authenticate with BigQuery using filtered json key");
       return new BigQueryOptions.DefaultBigqueryFactory().create(
           BigQueryOptions.newBuilder()
           .setProjectId(projectName)

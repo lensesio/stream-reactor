@@ -5,7 +5,6 @@
 package com.wepay.kafka.connect.bigquery.filter;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -27,14 +26,14 @@ public class GcpCredsFilter {
     /**
      * This accepts the credentials config specified in the connector
      * and returns a byte array with filtered configs.
-     * <p>Here creds config itself holds the credentials JSON string.
-     * @param credsConfig Creds config file
+     * <p>Here creds config itself holds the credentials JSON string or path to it.
+     * @param credsConfig Creds config file path or the stringified credentials
      * @param isFilePath Boolean to find if the credsConfig points to file path
      * @return string with filtered creds
      */
     public static String filterCreds(String credsConfig, boolean isFilePath) {
         try {
-            JsonNode keyfileNode = null;
+            JsonNode keyfileNode;
 
             if(isFilePath) {
                 keyfileNode = new ObjectMapper().readTree(new File(credsConfig));
@@ -53,9 +52,15 @@ public class GcpCredsFilter {
                 }
             }
 
+            // After filtering, any empty keyfile node will be translated as "{}" string
+            // which is non-empty. That's why we check whether the node is itself empty.
+            if(keyfileNode.size() == 0) {
+                throw new BigQueryConnectException("The keyfile does not contain valid fields. Please recheck the keyfile config.");
+            }
+
             return new ObjectMapper().writer()
                     .withDefaultPrettyPrinter().writeValueAsString(keyfileNode);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new BigQueryConnectException("Failed to access Keyfile config: ", e);
         }
     }
