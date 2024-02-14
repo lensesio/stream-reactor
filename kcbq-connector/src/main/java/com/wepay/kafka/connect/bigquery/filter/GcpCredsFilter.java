@@ -63,7 +63,7 @@ public class GcpCredsFilter {
             return new ObjectMapper().writer()
                     .withDefaultPrettyPrinter().writeValueAsString(keyfileNode);
         } catch (Exception e) {
-            throw new BigQueryConnectException("Failed to access Keyfile config: ", e);
+            throw new BigQueryConnectException("Failed to access " + KEYFILE_CONFIG + " config: ", e);
         }
     }
 }
