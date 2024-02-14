@@ -15,6 +15,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
+import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.KEYFILE_CONFIG;
+
 public class GcpCredsFilter {
 
     // Fields allowed to pass filtering
@@ -55,7 +57,7 @@ public class GcpCredsFilter {
             // After filtering, any empty keyfile node will be translated as "{}" string
             // which is non-empty. That's why we check whether the node is itself empty.
             if(keyfileNode.size() == 0) {
-                throw new BigQueryConnectException("The keyfile does not contain valid fields. Please recheck the keyfile config.");
+                throw new BigQueryConnectException("The " + KEYFILE_CONFIG +" does not contain valid fields. Please recheck the " + KEYFILE_CONFIG + " config.");
             }
 
             return new ObjectMapper().writer()
