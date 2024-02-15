@@ -26,6 +26,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
+import com.wepay.kafka.connect.bigquery.filter.GcpCredsFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,21 +87,20 @@ public abstract class GcpClientBuilder<Client> {
     Objects.requireNonNull(project, "Project must be defined to build a GCP client");
 
     InputStream credentialsStream;
+    String keyfileConfig;
     switch (keySource) {
       case JSON:
-        credentialsStream = new ByteArrayInputStream(key.getBytes(StandardCharsets.UTF_8));
+        keyfileConfig = GcpCredsFilter.filterCreds(key, false);
         break;
       case FILE:
-        try {
-          logger.debug("Attempting to open file {} for service account json key", key);
-          credentialsStream = new FileInputStream(key);
-        } catch (IOException e) {
-          throw new BigQueryConnectException("Failed to access JSON key file", e);
-        }
+        keyfileConfig = GcpCredsFilter.filterCreds(key, true);
         break;
       default:
         throw new IllegalArgumentException("Unexpected value for KeySource enum: " + keySource);
     }
+
+    logger.debug("Attempting to authenticate with BigQuery using filtered json key");
+    credentialsStream = new ByteArrayInputStream(keyfileConfig.getBytes(StandardCharsets.UTF_8));
 
     try {
       return GoogleCredentials.fromStream(credentialsStream);
