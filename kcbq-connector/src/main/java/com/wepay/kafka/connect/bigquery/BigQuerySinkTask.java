@@ -26,17 +26,16 @@ import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
 import com.google.common.annotations.VisibleForTesting;
-
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
+import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.utils.TopicToTableResolver;
 import com.wepay.kafka.connect.bigquery.utils.Version;
-
 import com.wepay.kafka.connect.bigquery.write.batch.GCSBatchTableWriter;
 import com.wepay.kafka.connect.bigquery.write.batch.KCBQThreadPoolExecutor;
 import com.wepay.kafka.connect.bigquery.write.batch.TableWriter;
@@ -45,7 +44,6 @@ import com.wepay.kafka.connect.bigquery.write.row.AdaptiveBigQueryWriter;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 import com.wepay.kafka.connect.bigquery.write.row.GCSToBQWriter;
 import com.wepay.kafka.connect.bigquery.write.row.SimpleBigQueryWriter;
-
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigException;
@@ -53,7 +51,6 @@ import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,6 +126,13 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private PartitionedTableId getRecordTable(SinkRecord record) {
+    // Dynamically update topicToBaseTableIds mapping. topicToBaseTableIds was used to be
+    // constructed when connector starts hence new topic configuration needed connector to restart.
+    // Dynamic update shall not require connector restart and shall compute table id in runtime.
+    if (!topicsToBaseTableIds.containsKey(record.topic())) {
+      TopicToTableResolver.updateTopicToTable(config, record.topic(), topicsToBaseTableIds);
+    }
+
     TableId baseTableId = topicsToBaseTableIds.get(record.topic());
 
     PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
@@ -147,7 +151,12 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private RowToInsert getRecordRow(SinkRecord record) {
-    return RowToInsert.of(getRowId(record), recordConverter.convertRecord(record));
+    Map<String,Object> convertedRecord = recordConverter.convertRecord(record);
+    if (config.getBoolean(config.SANITIZE_FIELD_NAME_CONFIG)) {
+      convertedRecord = FieldNameSanitizer.replaceInvalidKeys(convertedRecord);
+    }
+
+    return RowToInsert.of(getRowId(record), convertedRecord);
   }
 
   private String getRowId(SinkRecord record) {
@@ -224,8 +233,9 @@ public class BigQuerySinkTask extends SinkTask {
       return testBigQuery;
     }
     String projectName = config.getString(config.PROJECT_CONFIG);
-    String keyFilename = config.getString(config.KEYFILE_CONFIG);
-    return new BigQueryHelper().connect(projectName, keyFilename);
+    String keyFile = config.getString(config.KEYFILE_CONFIG);
+    String keySource = config.getString(config.KEY_SOURCE_CONFIG);
+    return new BigQueryHelper().setKeySource(keySource).connect(projectName, keyFile);
   }
 
   private SchemaManager getSchemaManager(BigQuery bigQuery) {
@@ -255,8 +265,10 @@ public class BigQuerySinkTask extends SinkTask {
       return testGcs;
     }
     String projectName = config.getString(config.PROJECT_CONFIG);
-    String keyFilename = config.getString(config.KEYFILE_CONFIG);
-    return new GCSBuilder(projectName).setKeyFileName(keyFilename).build();
+    String key = config.getString(config.KEYFILE_CONFIG);
+    String keySource = config.getString(config.KEY_SOURCE_CONFIG);
+    return new GCSBuilder(projectName).setKey(key).setKeySource(keySource).build();
+
   }
 
   private GCSToBQWriter getGcsWriter() {

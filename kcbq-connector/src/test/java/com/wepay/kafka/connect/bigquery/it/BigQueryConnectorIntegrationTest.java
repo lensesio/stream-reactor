@@ -59,10 +59,12 @@ public class BigQueryConnectorIntegrationTest {
   public static final String KEYFILE_PROPERTY = "keyfile";
   public static final String PROJECT_PROPERTY = "project";
   public static final String DATASET_PROPERTY = "dataset";
+  public static final String KEY_SOURCE_PROPERTY = "keySource";
 
   private static String keyfile;
   private static String project;
   private static String dataset;
+  private static String keySource;
 
   private static BigQuery bigQuery;
 
@@ -108,11 +110,13 @@ public class BigQueryConnectorIntegrationTest {
             + "' property must be specified in test properties file"
         );
       }
+
+      keySource = properties.getProperty(KEY_SOURCE_PROPERTY);
     }
   }
 
   private static void initializeBigQuery() throws Exception {
-    bigQuery = new BigQueryHelper().connect(project, keyfile);
+    bigQuery = new BigQueryHelper().setKeySource(keySource).connect(project, keyfile);
   }
 
   private static List<Byte> boxByteArray(byte[] bytes) {

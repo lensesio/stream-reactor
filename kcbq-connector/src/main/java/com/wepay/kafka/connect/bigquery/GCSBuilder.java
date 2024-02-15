@@ -30,69 +30,80 @@ import org.slf4j.LoggerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Convenience class for creating a {@link com.google.cloud.storage.Storage} instance
  */
 public class GCSBuilder {
-  private static final Logger logger = LoggerFactory.getLogger(GCSBuilder.class);
+    private static final Logger logger = LoggerFactory.getLogger(GCSBuilder.class);
 
-  private final String projectName;
-  private String keyFileName;
+    private final String projectName;
+    private String key;
+    private String keySource;
 
-  public GCSBuilder(String projectName) {
-    this.projectName = projectName;
-    this.keyFileName = null;
-  }
-
-  public GCSBuilder setKeyFileName(String keyFileName) {
-    this.keyFileName = keyFileName;
-    return this;
-  }
-
-  public Storage build() {
-    return connect(projectName, keyFileName);
-  }
-
-  /**
-   * Returns a default {@link Storage} instance for the specified project with credentials provided
-   * in the specified file.
-   *
-   * @param projectName The name of the GCS project to work with
-   * @param keyFilename The name of a file containing a JSON key that can be used to provide
-   *                    credentials to GCS, or null if no authentication should be performed.
-   * @return The resulting Storage object.
-   */
-  private Storage connect(String projectName, String keyFilename) {
-    if (keyFilename == null) {
-      return connect(projectName);
+    public GCSBuilder(String projectName) {
+        this.projectName = projectName;
+        this.key = null;
     }
 
-    logger.debug("Attempting to open file {} for service account json key", keyFilename);
-    try (InputStream credentialsStream = new FileInputStream(keyFilename)) {
-      logger.debug("Attempting to authenticate with GCS using provided json key");
-      return StorageOptions.newBuilder()
-          .setProjectId(projectName)
-          .setCredentials(GoogleCredentials.fromStream(credentialsStream))
-          .build()
-          .getService();
-    } catch (IOException err) {
-      throw new GCSConnectException("Failed to access json key file", err);
+    public GCSBuilder setKeySource(String keySourceType) {
+        this.keySource = keySourceType;
+        return this;
     }
-  }
 
-  /**
-   * Returns a default {@link Storage} instance for the specified project with no authentication
-   * credentials.
-   *
-   * @param projectName The name of the GCS project to work with
-   * @return The resulting Storage object.
-   */
-  private Storage connect(String projectName) {
-    logger.debug("Attempting to access BigQuery without authentication");
-    return StorageOptions.newBuilder()
-        .setProjectId(projectName)
-        .build()
-        .getService();
-  }
+    public GCSBuilder setKey(String keyFile) {
+        this.key = keyFile;
+        return this;
+    }
+    public Storage build() {
+        return connect(projectName, key);
+    }
+
+    /**
+     * Returns a default {@link Storage} instance for the specified project with credentials provided
+     * in the specified file.
+     *
+     * @param projectName The name of the GCS project to work with
+     * @param key The name of a file containing a JSON key that can be used to provide
+     *                    credentials to GCS, or null if no authentication should be performed.
+     * @return The resulting Storage object.
+     */
+    private Storage connect(String projectName, String key) {
+        if (key == null) {
+            return connect(projectName);
+        }
+        try {
+            InputStream credentialsStream;
+            if (keySource != null && keySource.equals("JSON")) {
+                credentialsStream = new ByteArrayInputStream(key.getBytes(StandardCharsets.UTF_8));
+            } else {
+                credentialsStream = new FileInputStream(key);
+            }
+            return StorageOptions.newBuilder()
+                .setProjectId(projectName)
+                .setCredentials(GoogleCredentials.fromStream(credentialsStream))
+                .build()
+                .getService();
+        } catch (IOException err) {
+            throw new GCSConnectException("Failed to access json key file", err);
+        }
+    }
+
+    /**
+     * Returns a default {@link Storage} instance for the specified project with no authentication
+     * credentials.
+     *
+     * @param projectName The name of the GCS project to work with
+     * @return The resulting Storage object.
+     */
+    private Storage connect(String projectName) {
+        logger.debug("Attempting to access BigQuery without authentication");
+        return StorageOptions.newBuilder()
+            .setProjectId(projectName)
+            .build()
+            .getService();
+    }
 }
+

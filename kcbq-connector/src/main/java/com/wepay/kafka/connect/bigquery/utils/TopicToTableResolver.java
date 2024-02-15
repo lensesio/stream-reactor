@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A utility class that will resolve topic names to table names based on format strings using regex
@@ -44,47 +46,55 @@ public class TopicToTableResolver {
    */
   public static Map<String, TableId> getTopicsToTables(BigQuerySinkConfig config) {
     Map<String, String> topicsToDatasets = config.getTopicsToDatasets();
-    List<Map.Entry<Pattern, String>> patterns = config.getSinglePatterns(
-        BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG);
+
     List<String> topics = config.getList(BigQuerySinkConfig.TOPICS_CONFIG);
     Boolean sanitize = config.getBoolean(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG);
+
     Map<String, TableId> matches = new HashMap<>();
     for (String value : topics) {
-      String match = null;
-      String previousPattern = null;
-      for (Map.Entry<Pattern, String> pattern : patterns) {
-        Matcher patternMatcher = pattern.getKey().matcher(value);
-        if (patternMatcher.matches()) {
-          if (match != null) {
-            String secondMatch = pattern.getKey().toString();
-            throw new ConfigException("Value '" + value
-              + "' for property '" + BigQuerySinkConfig.TOPICS_CONFIG
-              + "' matches " + BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG
-              + " regexes for both '" + previousPattern
-              + "' and '" + secondMatch + "'"
-            );
-          }
-          String formatString = pattern.getValue();
-          try {
-            match = patternMatcher.replaceAll(formatString);
-            previousPattern = pattern.getKey().toString();
-          } catch (IndexOutOfBoundsException err) {
-            throw new ConfigException("Format string '" + formatString
-              + "' is invalid in property '" + BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG
-              + "'", err);
-          }
-        }
-      }
+      String match = getTopicToTableSingleMatch(config, value);
       if (match == null) {
         match = value;
       }
+
       if (sanitize) {
-        match = sanitizeTableName(match);
+        match = FieldNameSanitizer.sanitizeName(match);
       }
+
       String dataset = topicsToDatasets.get(value);
       matches.put(value, TableId.of(dataset, match));
     }
+
     return matches;
+  }
+
+  /**
+   * Update Map detailing BigQuery table for respective topic should write to.
+   *
+   * @param config Config that contains properties used to generate the map.
+   * @param topicName The name of respective topic to map with table.
+   * @param topicToTable Map containing data for topic to respective table.
+   */
+  public static void updateTopicToTable(BigQuerySinkConfig config, String topicName,
+      Map<String, TableId> topicToTable) {
+    // Though the methods getTopicsToTable and updateTopicToTable are similar but code is not merged
+    // as they slightly operate in different way. Former fetches complete topicsToDatasets map and
+    // act on same while latter only fetches single match for dataset as required by topicName.
+    Boolean sanitize = config.getBoolean(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG);
+    String match = getTopicToTableSingleMatch(config, topicName);
+
+    if (match == null) {
+      match = topicName;
+    }
+
+    if (sanitize) {
+      match = FieldNameSanitizer.sanitizeName(match);
+    }
+
+    String dataset = config.getTopicToDataset(topicName);
+    // Do not check for dataset being null as TableId construction shall take care of same in below
+    // line.
+    topicToTable.put(topicName, TableId.of(dataset, match));
   }
 
   /**
@@ -108,13 +118,43 @@ public class TopicToTableResolver {
   }
 
   /**
-   * Strips illegal characters from a table name. BigQuery only allows alpha-numeric and
-   * underscore. Everything illegal is converted to an underscore.
+   * Return a String specifying table corresponding to topic.
    *
-   * @param tableName The table name to sanitize.
-   * @return A clean table name with only alpha-numerics and underscores.
+   * @param config Config that contains properties for configured patterns.
+   * @param topicName The name of topic for which match is to be found.
+   * @return A String resulting match of table for topic name.
    */
-  private static String sanitizeTableName(String tableName) {
-    return tableName.replaceAll("[^a-zA-Z0-9_]", "_");
+  private static String getTopicToTableSingleMatch(BigQuerySinkConfig config, String topicName) {
+    String match = null;
+    String previousPattern = null;
+
+    List<Map.Entry<Pattern, String>> patterns = config.getSinglePatterns(
+        BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG);
+
+    for (Map.Entry<Pattern, String> pattern : patterns) {
+      Matcher patternMatcher = pattern.getKey().matcher(topicName);
+      if (patternMatcher.matches()) {
+        if (match != null) {
+          String secondMatch = pattern.getKey().toString();
+          throw new ConfigException("Value '" + topicName
+              + "' for property '" + BigQuerySinkConfig.TOPICS_CONFIG
+              + "' matches " + BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG
+              + " regexes for both '" + previousPattern
+              + "' and '" + secondMatch + "'"
+          );
+        }
+        String formatString = pattern.getValue();
+        try {
+          match = patternMatcher.replaceAll(formatString);
+          previousPattern = pattern.getKey().toString();
+        } catch (IndexOutOfBoundsException err) {
+          throw new ConfigException("Format string '" + formatString
+              + "' is invalid in property '" + BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG
+              + "'", err);
+        }
+      }
+    }
+
+    return match;
   }
 }

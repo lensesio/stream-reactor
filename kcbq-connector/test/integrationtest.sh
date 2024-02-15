@@ -24,20 +24,19 @@
 set -ex
 
 if [[ -t 1 ]]; then
-  KCBQ_TEST_COLORS='true'
+	NORMAL="$(tput sgr0)"
+	BOLD="$(tput bold)"
+	RED="$(tput setaf 1)"
+	GREEN="$(tput setaf 2)"
+	YELLOW="$(tput setaf 3)"
 else
-  KCBQ_TEST_COLORS='false'
+	unset NORMAL BOLD RED GREEN YELLOW
 fi
-
-NORMAL='\033[0m'
-BOLD='\033[1m'
-RED='\033[1;31m'
-GREEN='\033[1;32m'
-YELLOW='\033[1;33m'
 
 usage() {
   echo -e "usage: $0\n" \
-       "[-k|--key-file <JSON key file>] (path must be absolute; relative paths will not work)\n" \
+       "[-k|--key-file <JSON key file or JSON key string>]\n" \
+       "[-k|--key-source <JSON or FILE>] (path must be absolute; relative paths will not work)\n" \
        "[-p|--project <BigQuery project>]\n" \
        "[-d|--dataset <BigQuery project>]\n" \
        "[-b|--bucket <cloud Storage bucket>\n]" \
@@ -61,33 +60,12 @@ usage() {
   exit ${1:-0}
 }
 
-error() {
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$RED" 1>&2
-  echo -ne "$0: $@" 1>&2
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$NORMAL"
-  echo
-}
+msg() { printf "$1%s: $2$NORMAL\n" "$(basename $0)"; }
+error() { msg "$RED" "$*"; exit 1; } >&2
+warn() { msg "$YELLOW" "$*"; } >&2
+statusupdate() { msg "$GREEN" "$*"; }
+log() { msg "$BOLD" "$*"; }
 
-warn() {
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$YELLOW" 1>&2
-  echo -ne "$0: $@" 1>&2
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$NORMAL"
-  echo
-}
-
-statusupdate() {
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$GREEN"
-  echo -ne "$0: $@"
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$NORMAL"
-  echo
-}
-
-log() {
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$BOLD"
-  echo -ne "$0: $@"
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$NORMAL"
-  echo
-}
 
 BASE_DIR=$(dirname "$0")
 
@@ -105,6 +83,7 @@ KCBQ_TEST_PROJECT=${KCBQ_TEST_PROJECT:-$project}
 KCBQ_TEST_DATASET=${KCBQ_TEST_DATASET:-$dataset}
 KCBQ_TEST_BUCKET=${KCBQ_TEST_BUCKET:-$bucket}
 KCBQ_TEST_FOLDER=${KCBQ_TEST_FOLDER:-$folder}
+KCBQ_TEST_KEYSOURCE=${KCBQ_TEST_KEYSOURCE:-$keysource}
 
 # Capture any command line flags
 while [[ $# -gt 0 ]]; do
@@ -137,6 +116,11 @@ while [[ $# -gt 0 ]]; do
     -h|--help|'-?')
         usage 0
         ;;
+    -kf|--key-source)
+            [[ -z "$2" ]] && { error "key filename must follow $1 flag"; usage 1; }
+            shift
+            KCBQ_TEST_KEYSOURCE="$1"
+            ;;
     *)
         error "unrecognized option: '$1'"; usage 1
         ;;
@@ -152,6 +136,13 @@ done
 
 ####################################################################################################
 # Schema Registry Docker initialization
+
+if echo | xargs --no-run-if-empty; then
+        xargs() { command xargs --no-run-if-empty "$@"; }
+else
+        xargs() { command xargs "$@"; }
+fi 2> /dev/null
+
 
 dockercleanup() {
   log 'Cleaning up leftover Docker containers'
@@ -223,7 +214,13 @@ docker start -a "$POPULATE_DOCKER_NAME"
 # Deleting existing BigQuery tables/bucket
 warn 'Deleting existing BigQuery test tables and existing GCS bucket'
 
-TEST_TABLES="$(basename "$BASE_DIR"/resources/test_schemas/* | sed -E -e 's/[^a-zA-Z0-9_]/_/g' -e 's/^(.*)$/kcbq_test_\1/' | xargs echo -n)"
+unset TEST_TABLES
+unset TEST_TOPICS
+for file in "$BASE_DIR"/resources/test_schemas/*; do
+        TEST_TABLES+="${TEST_TABLES:+ }kcbq_test_$(basename "${file/-/_}")"
+        TEST_TOPICS+="${TEST_TOPICS:+,}kcbq_test_$(basename "$file")"
+done
+
 mvn -f "$BASE_DIR/.." clean test-compile
 mvn -f "$BASE_DIR/.." exec:java -Dexec.mainClass=com.wepay.kafka.connect.bigquery.it.utils.TableClearer \
   -Dexec.classpathScope=test \
@@ -246,28 +243,24 @@ cp "$RESOURCES_DIR/standalone-template.properties" "$STANDALONE_PROPS"
 
 CONNECTOR_PROPS="$DOCKER_DIR/connect/properties/connector.properties"
 cp "$RESOURCES_DIR/connector-template.properties" "$CONNECTOR_PROPS"
+cat << EOF >> $CONNECTOR_PROPS
+project=$KCBQ_TEST_PROJECT
+datasets=.*=$KCBQ_TEST_DATASET
+gcsBucketName=$KCBQ_TEST_BUCKET
+gcsFolderName=$KCBQ_TEST_FOLDER
+topics=$TEST_TOPICS
 
-echo "project=$KCBQ_TEST_PROJECT" >> "$CONNECTOR_PROPS"
-
-echo "datasets=.*=$KCBQ_TEST_DATASET" >> "$CONNECTOR_PROPS"
-
-echo "gcsBucketName=$KCBQ_TEST_BUCKET" >> "$CONNECTOR_PROPS"
-
-echo "gcsFolderName=$KCBQ_TEST_FOLDER" >> "$CONNECTOR_PROPS"
-
-echo -n 'topics=' >> "$CONNECTOR_PROPS"
-basename "$BASE_DIR"/resources/test_schemas/* \
-  | sed -E 's/^(.*)$/kcbq_test_\1/' \
-  | xargs echo -n \
-  | tr ' ' ',' \
-  >> "$CONNECTOR_PROPS"
-echo >> "$CONNECTOR_PROPS"
+EOF
 
 CONNECT_DOCKER_IMAGE='kcbq/connect'
 CONNECT_DOCKER_NAME='kcbq_test_connect'
 
 cp "$BASE_DIR"/../target/components/packages/wepay-kafka-connect-bigquery-*.zip "$DOCKER_DIR/connect/kcbq.zip"
-cp "$KCBQ_TEST_KEYFILE" "$DOCKER_DIR/connect/key.json"
+if [[ "$KCBQ_TEST_KEYSOURCE" == "JSON" ]]; then
+    echo "$KCBQ_TEST_KEYFILE" > "$DOCKER_DIR/connect/key.json"
+else
+    cp "$KCBQ_TEST_KEYFILE" "$DOCKER_DIR/connect/key.json"
+fi
 
 if ! dockerimageexists "$CONNECT_DOCKER_IMAGE"; then
   docker build -q -t "$CONNECT_DOCKER_IMAGE" "$DOCKER_DIR/connect"
@@ -286,12 +279,14 @@ statusupdate 'Verifying that test data made it successfully to BigQuery'
 
 TEST_RESOURCE_DIR="$BASE_DIR/../src/test/resources"
 [[ ! -d "$TEST_RESOURCE_DIR" ]] && mkdir -p "$TEST_RESOURCE_DIR"
-INTEGRATION_TEST_PROPERTIES_FILE="$TEST_RESOURCE_DIR/test.properties"
 
-echo "keyfile=$KCBQ_TEST_KEYFILE" > "$INTEGRATION_TEST_PROPERTIES_FILE"
-echo "project=$KCBQ_TEST_PROJECT" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
-echo "dataset=$KCBQ_TEST_DATASET" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
-echo "bucket=$KCBQ_TEST_BUCKET" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
-echo "folder=$KCBQ_TEST_FOLDER" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
+cat << EOF > "$TEST_RESOURCE_DIR/test.properties"
+keyfile=$KCBQ_TEST_KEYFILE
+project=$KCBQ_TEST_PROJECT
+dataset=$KCBQ_TEST_DATASET
+bucket=$KCBQ_TEST_BUCKET
+folder=$KCBQ_TEST_FOLDER
+keysource=$KCBQ_TEST_KEYSOURCE
+EOF
 
 mvn -f "$BASE_DIR/.." clean test-compile -Dskip.unit.tests=true failsafe:integration-test@verify-docker-test

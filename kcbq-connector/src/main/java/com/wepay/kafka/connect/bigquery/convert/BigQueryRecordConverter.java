@@ -20,31 +20,26 @@
 package com.wepay.kafka.connect.bigquery.convert;
 
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
-
-import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.DebeziumLogicalConverters;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.KafkaLogicalConverters;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.LogicalConverterRegistry;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.LogicalTypeConverter;
 import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
-
-import org.apache.kafka.connect.data.Date;
-import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.data.Timestamp;
 import org.apache.kafka.connect.sink.SinkRecord;
 
 import java.nio.ByteBuffer;
-
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Class for converting from {@link SinkRecord SinkRecords} and BigQuery rows, which are represented
@@ -52,6 +47,11 @@ import java.util.Set;
  */
 public class BigQueryRecordConverter implements RecordConverter<Map<String, Object>> {
 
+  private static final Set<Class> BASIC_TYPES = new HashSet(
+          Arrays.asList(
+            Boolean.class, Character.class, Byte.class, Short.class,
+                  Integer.class, Long.class, Float.class, Double.class, String.class)
+          );
   private boolean shouldConvertSpecialDouble;
 
   static {
@@ -74,11 +74,58 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
    */
   public Map<String, Object> convertRecord(SinkRecord kafkaConnectRecord) {
     Schema kafkaConnectSchema = kafkaConnectRecord.valueSchema();
+    Object kafkaConnectValue = kafkaConnectRecord.value();
+    if (kafkaConnectSchema == null) {
+      if (kafkaConnectValue instanceof Map) {
+        return (Map<String, Object>) convertSchemalessRecord(kafkaConnectValue);
+      }
+      throw new ConversionConnectException("Only Map objects supported in absence of schema for " +
+              "record conversion to BigQuery format.");
+    }
     if (kafkaConnectSchema.type() != Schema.Type.STRUCT) {
       throw new
           ConversionConnectException("Top-level Kafka Connect schema must be of type 'struct'");
     }
     return convertStruct(kafkaConnectRecord.value(), kafkaConnectSchema);
+  }
+
+  private Object convertSchemalessRecord(Object value) {
+    if (value == null) {
+      return null;
+    }
+    if (value instanceof Double) {
+      return convertDouble((Double) value);
+    }
+    if (BASIC_TYPES.contains(value.getClass())) {
+      return value;
+    }
+    if (value instanceof byte[] || value instanceof ByteBuffer) {
+      return convertBytes(value);
+    }
+    if (value instanceof List) {
+      return
+          ((List) value).stream().map(
+                  v -> convertSchemalessRecord(v)
+          ).collect(Collectors.toList());
+    }
+    if (value instanceof Map) {
+      return
+        ((Map<Object, Object>) value).entrySet().stream().collect(
+                Collectors.toMap(
+                        entry -> {
+                          if (!(entry.getKey() instanceof String)) {
+                            throw new ConversionConnectException(
+                                    "Failed to convert record to bigQuery format: " +
+                                    "Map objects in absence of schema needs to have string value keys. ");
+                          }
+                          return entry.getKey();
+                        },
+                        entry -> convertSchemalessRecord(entry.getValue())
+                )
+        );
+    }
+    throw new ConversionConnectException("Unsupported class " + value.getClass() +
+            " found in schemaless record data. Can't convert record to bigQuery format");
   }
 
   @SuppressWarnings("unchecked")
@@ -104,9 +151,7 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
       case STRUCT:
         return convertStruct(kafkaConnectObject, kafkaConnectSchema);
       case BYTES:
-        ByteBuffer byteBuffer = (ByteBuffer) kafkaConnectObject;
-        byte[] bytes = byteBuffer.array();
-        return Base64.getEncoder().encodeToString(bytes);
+        return convertBytes(kafkaConnectObject);
       case BOOLEAN:
         return (Boolean) kafkaConnectObject;
       case FLOAT32:
@@ -210,5 +255,16 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
       }
     }
     return kafkaConnectDouble;
+  }
+
+  private String convertBytes(Object kafkaConnectObject) {
+    byte[] bytes;
+    if (kafkaConnectObject instanceof ByteBuffer) {
+      ByteBuffer byteBuffer = (ByteBuffer) kafkaConnectObject;
+      bytes = byteBuffer.array();
+    } else {
+      bytes = (byte[]) kafkaConnectObject;
+    }
+    return Base64.getEncoder().encodeToString(bytes);
   }
 }

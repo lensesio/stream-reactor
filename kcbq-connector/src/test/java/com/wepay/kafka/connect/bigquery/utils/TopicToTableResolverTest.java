@@ -20,6 +20,7 @@
 package com.wepay.kafka.connect.bigquery.utils;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.google.cloud.bigquery.TableId;
 
@@ -108,6 +109,129 @@ public class TopicToTableResolverTest {
     );
     BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
     TopicToTableResolver.getTopicsToTables(testConfig);
+  }
+
+  @Test
+  public void testUpdateTopicToTable() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
+    configProperties.put(
+        BigQuerySinkConfig.DATASETS_CONFIG,
+        ".*=scratch"
+    );
+    configProperties.put(
+        BigQuerySinkConfig.TOPICS_CONFIG,
+        "sanitize-me,db_debezium_identity_profiles_info.foo,db.core.cluster-0.users"
+    );
+    configProperties.put(
+        BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG,
+        "db_debezium_identity_profiles_(.*)=$1,db\\.(.*)\\.(.*)\\.(.*)=$1_$3"
+    );
+    Map<String, TableId> topicsToTables = new HashMap<>();
+    topicsToTables.put("sanitize-me", TableId.of("scratch", "sanitize_me"));
+    topicsToTables.put("db_debezium_identity_profiles_info.foo",
+        TableId.of("scratch", "info_foo"));
+    topicsToTables.put("db.core.cluster-0.users", TableId.of("scratch", "core_users"));
+
+    String testTopicName = "new_topic";
+    // Create shallow copy of map, deep copy not needed.
+    Map<String, TableId> expectedTopicsToTables = new HashMap<>(topicsToTables);
+    expectedTopicsToTables.put(testTopicName, TableId.of("scratch", testTopicName));
+
+    BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
+    TopicToTableResolver.updateTopicToTable(testConfig, testTopicName, topicsToTables);
+
+    assertEquals(expectedTopicsToTables, topicsToTables);
+  }
+
+  @Test
+  public void testUpdateTopicToTableWithTableSanitization() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
+    configProperties.put(
+        BigQuerySinkConfig.DATASETS_CONFIG,
+        ".*=scratch"
+    );
+    configProperties.put(
+        BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG,
+        "db_debezium_identity_profiles_(.*)=$1,db\\.(.*)\\.(.*)\\.(.*)=$1_$3"
+    );
+
+    String testTopicName = "1new.topic";
+    Map<String, TableId> topicsToTables = new HashMap<>();
+    // Create shallow copy of map, deep copy not needed.
+    Map<String, TableId> expectedTopicsToTables = new HashMap<>(topicsToTables);
+    expectedTopicsToTables.put(testTopicName, TableId.of("scratch", "_1new_topic"));
+
+    BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
+    TopicToTableResolver.updateTopicToTable(testConfig, testTopicName, topicsToTables);
+
+    assertEquals(expectedTopicsToTables, topicsToTables);
+  }
+
+  @Test
+  public void testUpdateTopicToTableWithRegex() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
+    configProperties.put(
+        BigQuerySinkConfig.DATASETS_CONFIG,
+        ".*=scratch"
+    );
+    configProperties.put(
+        BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG,
+        "db_debezium_identity_profiles_(.*)=$1,db\\.(.*)\\.(.*)\\.(.*)=$1_$3,new_topic_(.*)=$1"
+    );
+
+    String testTopicName = "new_topic_abc.def";
+    Map<String, TableId> topicsToTables = new HashMap<>();
+    // Create shallow copy of map, deep copy not needed.
+    Map<String, TableId> expectedTopicsToTables = new HashMap<>(topicsToTables);
+    expectedTopicsToTables.put(testTopicName, TableId.of("scratch", "abc_def"));
+
+    BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
+    TopicToTableResolver.updateTopicToTable(testConfig, testTopicName, topicsToTables);
+
+    assertEquals(expectedTopicsToTables, topicsToTables);
+  }
+
+  @Test(expected = ConfigException.class)
+  public void testUpdateTopicToTableWithInvalidRegex() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
+    configProperties.put(
+        BigQuerySinkConfig.DATASETS_CONFIG,
+        ".*=scratch"
+    );
+    configProperties.put(
+        BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG,
+        ".*=$1"
+    );
+
+    String testTopicName = "new_topic_abc.def";
+    Map<String, TableId> topicsToTables = new HashMap<>();
+
+    BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
+    TopicToTableResolver.updateTopicToTable(testConfig, testTopicName, topicsToTables);
+  }
+
+  @Test(expected = ConfigException.class)
+  public void testUpdateTopicToTableWithMultipleMatches() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
+    configProperties.put(
+        BigQuerySinkConfig.DATASETS_CONFIG,
+        ".*=scratch"
+    );
+    configProperties.put(
+        BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG,
+        "(.*)=$1,new_topic_(.*)=$1"
+    );
+
+    String testTopicName = "new_topic_abc.def";
+    Map<String, TableId> topicsToTables = new HashMap<>();
+
+    BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
+    TopicToTableResolver.updateTopicToTable(testConfig, testTopicName, topicsToTables);
   }
 
   @Test

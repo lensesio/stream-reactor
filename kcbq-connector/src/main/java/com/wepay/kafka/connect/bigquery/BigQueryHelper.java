@@ -40,6 +40,7 @@ import java.nio.charset.StandardCharsets;
  */
 public class BigQueryHelper {
   private static final Logger logger = LoggerFactory.getLogger(BigQueryHelper.class);
+  private static String keySource;
 
   /**
    * Returns a default {@link BigQuery} instance for the specified project with credentials provided
@@ -47,30 +48,49 @@ public class BigQueryHelper {
    * from specific datasets.
    *
    * @param projectName The name of the BigQuery project to work with
-   * @param keyFilename The name of a file containing a JSON key that can be used to provide
+   * @param key The google credentials JSON key that can be used to provide
    *                    credentials to BigQuery, or null if no authentication should be performed.
    * @return The resulting BigQuery object.
    */
-  public BigQuery connect(String projectName, String keyFilename) {
-    if (keyFilename == null) {
+  public BigQuery connect(String projectName, String key) {
+    if (key == null) {
       return connect(projectName);
     }
 
-    String keyfileConfig = GcpCredsFilter.filterCreds(keyFilename, true);
+    InputStream credentialsStream;
+    try {
+      String keyfileConfig;
+      if (keySource != null && keySource.equals("JSON")) {
+        keyfileConfig = GcpCredsFilter.filterCreds(key, false);
+      } else {
+        keyfileConfig = GcpCredsFilter.filterCreds(key, true);
+      }
 
-    logger.debug("Using filtered keyfile config");
-    try (InputStream credentialsStream = new ByteArrayInputStream(keyfileConfig.getBytes(StandardCharsets.UTF_8))) {
       logger.debug("Attempting to authenticate with BigQuery using filtered json key");
+      credentialsStream = new ByteArrayInputStream(keyfileConfig.getBytes(StandardCharsets.UTF_8));
       return new
           BigQueryOptions.DefaultBigQueryFactory().create(
-          BigQueryOptions.newBuilder()
-          .setProjectId(projectName)
-          .setCredentials(GoogleCredentials.fromStream(credentialsStream))
-          .build()
+              BigQueryOptions.newBuilder()
+                  .setProjectId(projectName)
+                  .setCredentials(GoogleCredentials.fromStream(credentialsStream))
+                  .build()
       );
     } catch (IOException err) {
       throw new BigQueryConnectException("Failed to access json key file", err);
     }
+  }
+  /**
+   * Returns a default {@link BigQuery} instance for the specified project with credentials provided
+   * in the specified file, which can then be used for creating, updating, and inserting into tables
+   * from specific datasets.
+   *
+   * @param keySource The type of key config we can expect. This is either a String
+   *                        representation of the Google credentials file, or the path to the Google credentials file.
+   * @return The resulting BigQuery object.
+   */
+  public BigQueryHelper setKeySource(String keySource) {
+    this.keySource = keySource;
+    return this;
   }
 
   /**
@@ -84,9 +104,9 @@ public class BigQueryHelper {
   public BigQuery connect(String projectName) {
     logger.debug("Attempting to access BigQuery without authentication");
     return new BigQueryOptions.DefaultBigQueryFactory().create(
-        BigQueryOptions.newBuilder()
-        .setProjectId(projectName)
-        .build()
+            BigQueryOptions.newBuilder()
+                .setProjectId(projectName)
+                .build()
     );
   }
 }
