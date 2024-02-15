@@ -25,12 +25,14 @@ import com.google.cloud.bigquery.BigQueryOptions;
 
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
+import com.wepay.kafka.connect.bigquery.filter.GcpCredsFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Convenience class for creating a default {@link com.google.cloud.bigquery.BigQuery} instance,
@@ -54,9 +56,11 @@ public class BigQueryHelper {
       return connect(projectName);
     }
 
-    logger.debug("Attempting to open file {} for service account json key", keyFilename);
-    try (InputStream credentialsStream = new FileInputStream(keyFilename)) {
-      logger.debug("Attempting to authenticate with BigQuery using provided json key");
+    String keyfileConfig = GcpCredsFilter.filterCreds(keyFilename, true);
+
+    logger.debug("Using filtered keyfile config");
+    try (InputStream credentialsStream = new ByteArrayInputStream(keyfileConfig.getBytes(StandardCharsets.UTF_8))) {
+      logger.debug("Attempting to authenticate with BigQuery using filtered json key");
       return new BigQueryOptions.DefaultBigqueryFactory().create(
           BigQueryOptions.newBuilder()
           .setProjectId(projectName)
