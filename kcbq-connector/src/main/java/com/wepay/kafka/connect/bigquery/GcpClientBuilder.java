@@ -19,14 +19,18 @@
 
 package com.wepay.kafka.connect.bigquery;
 
+import com.google.api.gax.rpc.FixedHeaderProvider;
+import com.google.api.gax.rpc.HeaderProvider;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import com.google.common.annotations.VisibleForTesting;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.filter.GcpCredsFilter;
+import com.wepay.kafka.connect.bigquery.utils.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +41,9 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
+import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.CONNECTOR_RUNTIME_PROVIDER_CONFIG;
+import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.CONNECTOR_RUNTIME_PROVIDER_DEFAULT;
+import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.CONNECTOR_RUNTIME_PROVIDER_TYPES;
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.PROJECT_CONFIG;
 
 public abstract class GcpClientBuilder<Client> {
@@ -46,7 +53,9 @@ public abstract class GcpClientBuilder<Client> {
   }
 
   private static final Logger logger = LoggerFactory.getLogger(GcpClientBuilder.class);
-
+  private static final String USER_AGENT_HEADER_KEY = "user-agent";
+  private static final String USER_AGENT_HEADER_FORMAT = "%s (GPN: Confluent;) Google BigQuery Sink/%s";
+  private HeaderProvider headerProvider = null;
   private String project = null;
   private KeySource keySource = null;
   private String key = null;
@@ -54,7 +63,8 @@ public abstract class GcpClientBuilder<Client> {
   public GcpClientBuilder<Client> withConfig(BigQuerySinkConfig config) {
     return withProject(config.getString(PROJECT_CONFIG))
         .withKeySource(config.getKeySource())
-        .withKey(config.getKey());
+        .withKey(config.getKey())
+        .withUserAgent(config.getString(CONNECTOR_RUNTIME_PROVIDER_CONFIG));
   }
 
   public GcpClientBuilder<Client> withProject(String project) {
@@ -74,8 +84,19 @@ public abstract class GcpClientBuilder<Client> {
     return this;
   }
 
+  public GcpClientBuilder<Client> withUserAgent(String userAgent) {
+    if (!CONNECTOR_RUNTIME_PROVIDER_TYPES.contains(userAgent)) {
+      logger.warn(String.format("Invalid Kafka runtime provider value received. Provider : %s. Defaulting to %s",
+              userAgent, CONNECTOR_RUNTIME_PROVIDER_DEFAULT));
+      userAgent = CONNECTOR_RUNTIME_PROVIDER_DEFAULT;
+    }
+    this.headerProvider = FixedHeaderProvider.create(USER_AGENT_HEADER_KEY,
+            String.format(USER_AGENT_HEADER_FORMAT, userAgent, Version.version()));
+    return this;
+  }
+
   public Client build() {
-    return doBuild(project, credentials());
+    return doBuild(project, credentials(), headerProvider);
   }
 
   private GoogleCredentials credentials() {
@@ -116,13 +137,14 @@ public abstract class GcpClientBuilder<Client> {
     }
   }
 
-  protected abstract Client doBuild(String project, GoogleCredentials credentials);
+  protected abstract Client doBuild(String project, GoogleCredentials credentials, HeaderProvider userAgent);
 
   public static class BigQueryBuilder extends GcpClientBuilder<BigQuery> {
     @Override
-    protected BigQuery doBuild(String project, GoogleCredentials credentials) {
+    protected BigQuery doBuild(String project, GoogleCredentials credentials, HeaderProvider headerProvider) {
       BigQueryOptions.Builder builder = BigQueryOptions.newBuilder()
-          .setProjectId(project);
+          .setProjectId(project)
+          .setHeaderProvider(headerProvider);
 
       if (credentials != null) {
         builder.setCredentials(credentials);
@@ -136,9 +158,10 @@ public abstract class GcpClientBuilder<Client> {
 
   public static class GcsBuilder extends GcpClientBuilder<Storage> {
     @Override
-    protected Storage doBuild(String project, GoogleCredentials credentials) {
+    protected Storage doBuild(String project, GoogleCredentials credentials, HeaderProvider headerProvider) {
       StorageOptions.Builder builder = StorageOptions.newBuilder()
-          .setProjectId(project);
+          .setProjectId(project)
+          .setHeaderProvider(headerProvider);
 
       if (credentials != null) {
         builder.setCredentials(credentials);
@@ -148,5 +171,10 @@ public abstract class GcpClientBuilder<Client> {
 
       return builder.build().getService();
     }
+  }
+
+  @VisibleForTesting
+  HeaderProvider getHeaderProvider() {
+    return this.headerProvider;
   }
 }

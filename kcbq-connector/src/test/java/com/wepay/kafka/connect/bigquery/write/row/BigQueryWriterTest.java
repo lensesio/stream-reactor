@@ -20,6 +20,8 @@
 package com.wepay.kafka.connect.bigquery.write.row;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.mock;
@@ -229,7 +231,7 @@ public class BigQueryWriterTest {
     assertEquals("test_topic-1-1", varArgs.getAllValues().get(1).getRows().get(0).getId());
   }
 
-  @Test(expected = BigQueryConnectException.class)
+  @Test
   public void testBigQueryCompleteFailure() {
     final String topic = "test_topic";
     final String dataset = "scratch";
@@ -271,9 +273,10 @@ public class BigQueryWriterTest {
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(sinkRecordList);
-    testTask.flush(Collections.emptyMap());
+    Exception expectedEx =  assertThrows(BigQueryConnectException.class, 
+                                        () -> testTask.flush(Collections.emptyMap())); 
+    assertTrue(expectedEx.getCause().getMessage().contains("test_topic"));
   }
-
   /**
    * Utility method for making and retrieving properties based on provided parameters.
    * @param bigqueryRetry The number of retries.
