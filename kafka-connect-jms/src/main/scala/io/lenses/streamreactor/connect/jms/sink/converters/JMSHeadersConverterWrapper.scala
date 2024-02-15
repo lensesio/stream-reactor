@@ -21,6 +21,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import javax.jms.Message
 import javax.jms.Session
 import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.util.Try
 
 class JMSHeadersConverterWrapper(headers: Map[String, String], delegate: JMSSinkMessageConverter)
     extends JMSSinkMessageConverter {
@@ -29,7 +30,7 @@ class JMSHeadersConverterWrapper(headers: Map[String, String], delegate: JMSSink
     val response = delegate.convert(record, session, setting)
     val message  = response._2
     for (header <- record.headers().asScala) {
-      message.setStringProperty(header.key(), header.value().toString)
+      message.setStringProperty(header.key(), Try(header.value().toString).toOption.orNull)
     }
     message.setStringProperty("JMSXGroupID", record.kafkaPartition().toString)
     for ((key, value) <- headers) {
