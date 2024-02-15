@@ -64,10 +64,10 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     this.schemaManager = schemaManager;
   }
 
-  private boolean isTableMissingSchema(BigQueryException e) {
+  private boolean isTableMissingSchema(BigQueryException exception) {
     // If a table is missing a schema, it will raise a BigQueryException that the input is invalid
     // For more information about BigQueryExceptions, see: https://cloud.google.com/bigquery/troubleshooting-errors
-    return e.getReason() != null && e.getReason().equalsIgnoreCase("invalid");
+    return exception.getReason() != null && exception.getReason().equalsIgnoreCase("invalid");
   }
 
   /**
@@ -77,9 +77,10 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
    * @see BigQueryWriter#performWriteRequest(PartitionedTableId, List, String)
    */
   @Override
-  public Map<Long, List<BigQueryError>> performWriteRequest(PartitionedTableId tableId,
-                                                               List<InsertAllRequest.RowToInsert> rows,
-                                                               String topic) {
+  public Map<Long, List<BigQueryError>> performWriteRequest(
+      PartitionedTableId tableId,
+      List<InsertAllRequest.RowToInsert> rows,
+      String topic) {
     InsertAllResponse writeResponse = null;
     InsertAllRequest request = null;
 
@@ -92,11 +93,11 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
               && onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
         attemptSchemaUpdate(tableId, topic);
       }
-    } catch (BigQueryException e) {
-      if (isTableMissingSchema(e)) {
+    } catch (BigQueryException exception) {
+      if (isTableMissingSchema(exception)) {
         attemptSchemaUpdate(tableId, topic);
       } else {
-        throw e;
+        throw exception;
       }
     }
 
@@ -104,12 +105,13 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     int attemptCount = 0;
     while (writeResponse == null || writeResponse.hasErrors()) {
       logger.trace("insertion failed");
-      if (writeResponse == null || onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
+      if (writeResponse == null
+          || onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
         try {
           // If the table was missing its schema, we never received a writeResponse
           logger.debug("re-attempting insertion");
           writeResponse = bigQuery.insertAll(request);
-        } catch (BigQueryException e) {
+        } catch (BigQueryException exception) {
           // no-op, we want to keep retrying the insert
         }
       } else {
@@ -117,8 +119,9 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
       }
       attemptCount++;
       if (attemptCount >= AFTER_UPDATE_RETY_LIMIT) {
-        throw new BigQueryConnectException("Failed to write rows after BQ schema update within "
-                                           + AFTER_UPDATE_RETY_LIMIT + " attempts for: " + tableId.getBaseTableId());
+        throw new BigQueryConnectException(
+            "Failed to write rows after BQ schema update within "
+                + AFTER_UPDATE_RETY_LIMIT + " attempts for: " + tableId.getBaseTableId());
       }
     }
     logger.debug("table insertion completed successfully");
@@ -129,7 +132,8 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     try {
       schemaManager.updateSchema(tableId.getBaseTableId(), topic);
     } catch (BigQueryException exception) {
-      throw new BigQueryConnectException("Failed to update table schema for: " + tableId.getBaseTableId(), exception);
+      throw new BigQueryConnectException(
+          "Failed to update table schema for: " + tableId.getBaseTableId(), exception);
     }
   }
 

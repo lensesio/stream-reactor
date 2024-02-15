@@ -75,9 +75,10 @@ public abstract class BigQueryWriter {
    * @param topic The Kafka topic that the row data came from.
    * @return map from failed row id to the BigQueryError.
    */
-  protected abstract Map<Long, List<BigQueryError>> performWriteRequest(PartitionedTableId tableId,
-                                                                        List<InsertAllRequest.RowToInsert> rows,
-                                                                        String topic)
+  protected abstract Map<Long, List<BigQueryError>> performWriteRequest(
+      PartitionedTableId tableId,
+      List<InsertAllRequest.RowToInsert> rows,
+      String topic)
       throws BigQueryException, BigQueryConnectException;
 
   /**
@@ -120,14 +121,15 @@ public abstract class BigQueryWriter {
           // table insertion completed with no reported errors
           return;
         } else if (isPartialFailure(rows, failedRowsMap)) {
-            logger.info("{} rows succeeded, {} rows failed", rows.size() - failedRowsMap.size(), failedRowsMap.size());
-            // update insert rows and retry in case of partial failure
-            rows = getFailedRows(rows, failedRowsMap.keySet());
-            mostRecentException = new BigQueryConnectException(failedRowsMap);
-            retryCount++;
+          logger.info("{} rows succeeded, {} rows failed",
+              rows.size() - failedRowsMap.size(), failedRowsMap.size());
+          // update insert rows and retry in case of partial failure
+          rows = getFailedRows(rows, failedRowsMap.keySet());
+          mostRecentException = new BigQueryConnectException(failedRowsMap);
+          retryCount++;
         } else {
-            // throw an exception in case of complete failure
-            throw new BigQueryConnectException(failedRowsMap);
+          // throw an exception in case of complete failure
+          throw new BigQueryConnectException(failedRowsMap);
         }
       } catch (BigQueryException err) {
         mostRecentException = err;
@@ -169,7 +171,8 @@ public abstract class BigQueryWriter {
    * @param failedRowsMap A map from failed row index to the BigQueryError.
    * @return isPartialFailure.
    */
-  private boolean isPartialFailure(List<InsertAllRequest.RowToInsert> rows, Map<Long, List<BigQueryError>> failedRowsMap) {
+  private boolean isPartialFailure(List<InsertAllRequest.RowToInsert> rows,
+                                   Map<Long, List<BigQueryError>> failedRowsMap) {
     return failedRowsMap.size() < rows.size();
   }
 

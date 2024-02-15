@@ -41,6 +41,7 @@ import java.lang.reflect.InvocationTargetException;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +60,38 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final ConfigDef.Importance TOPICS_IMPORTANCE =  ConfigDef.Importance.HIGH;
   private static final String TOPICS_DOC =
       "A list of Kafka topics to read from";
+
+  public static final String ENABLE_BATCH_CONFIG =                         "enableBatchLoad";
+  private static final ConfigDef.Type ENABLE_BATCH_TYPE =                  ConfigDef.Type.LIST;
+  private static final List<String> ENABLE_BATCH_DEFAULT =                 Collections.emptyList();
+  private static final ConfigDef.Importance ENABLE_BATCH_IMPORTANCE =      ConfigDef.Importance.LOW;
+  private static final String ENABLE_BATCH_DOC =
+      "Beta Feature; use with caution: The sublist of topics to be batch loaded through GCS";
+
+  public static final String BATCH_LOAD_INTERVAL_SEC_CONFIG =             "batchLoadIntervalSec";
+  private static final ConfigDef.Type BATCH_LOAD_INTERVAL_SEC_TYPE =      ConfigDef.Type.INT;
+  private static final Integer BATCH_LOAD_INTERVAL_SEC_DEFAULT =          120;
+  private static final ConfigDef.Importance BATCH_LOAD_INTERVAL_SEC_IMPORTANCE =
+      ConfigDef.Importance.LOW;
+  private static final String BATCH_LOAD_INTERVAL_SEC_DOC =
+      "The interval, in seconds, in which to attempt to run GCS to BQ load jobs. Only relevant "
+      + "if enableBatchLoad is configured.";
+
+  public static final String GCS_BUCKET_NAME_CONFIG =                     "gcsBucketName";
+  private static final ConfigDef.Type GCS_BUCKET_NAME_TYPE =              ConfigDef.Type.STRING;
+  private static final Object GCS_BUCKET_NAME_DEFAULT =                   "";
+  private static final ConfigDef.Importance GCS_BUCKET_NAME_IMPORTANCE =  ConfigDef.Importance.HIGH;
+  private static final String GCS_BUCKET_NAME_DOC =
+      "The name of the bucket in which gcs blobs used to batch load to BigQuery "
+      + "should be located. Only relevant if enableBatchLoad is configured.";
+
+  public static final String GCS_FOLDER_NAME_CONFIG =                     "gcsFolderName";
+  private static final ConfigDef.Type GCS_FOLDER_NAME_TYPE =              ConfigDef.Type.STRING;
+  private static final Object GCS_FOLDER_NAME_DEFAULT =                   "";
+  private static final ConfigDef.Importance GCS_FOLDER_NAME_IMPORTANCE =  ConfigDef.Importance.MEDIUM;
+  private static final String GCS_FOLDER_NAME_DOC =
+          "The name of the folder under the bucket in which gcs blobs used to batch load to BigQuery "
+                  + "should be located. Only relevant if enableBatchLoad is configured.";
 
   public static final String TOPICS_TO_TABLES_CONFIG =                     "topicsToTables";
   private static final ConfigDef.Type TOPICS_TO_TABLES_TYPE =              ConfigDef.Type.LIST;
@@ -128,6 +161,24 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final String AVRO_DATA_CACHE_SIZE_DOC =
       "The size of the cache to use when converting schemas from Avro to Kafka Connect";
 
+  public static final String CONVERT_DOUBLE_SPECIAL_VALUES_CONFIG =    "convertDoubleSpecialValues";
+  public static final ConfigDef.Type CONVERT_DOUBLE_SPECIAL_VALUES_TYPE =   ConfigDef.Type.BOOLEAN;
+  public static final Boolean CONVERT_DOUBLE_SPECIAL_VALUES_DEFAULT =       false;
+  public static final ConfigDef.Importance CONVERT_DOUBLE_SPECIAL_VALUES_IMPORTANCE =
+      ConfigDef.Importance.LOW;
+  public static final String CONVERT_DOUBLE_SPECIAL_VALUES_DOC =
+          "Should +Infinity be converted to Double.MAX_VALUE and -Infinity and NaN be "
+          + "converted to Double.MIN_VALUE so they can make it to BigQuery";
+
+  public static final String ALL_BQ_FIELDS_NULLABLE_CONFIG = "allBQFieldsNullable";
+  private static final ConfigDef.Type ALL_BQ_FIELDS_NULLABLE_TYPE = ConfigDef.Type.BOOLEAN;
+  private static final Boolean ALL_BQ_FIELDS_NULLABLE_DEFAULT = false;
+  private static final ConfigDef.Importance ALL_BQ_FIELDS_NULLABLE_IMPORTANCE =
+      ConfigDef.Importance.LOW;
+  private static final String ALL_BQ_FIELDS_NULLABLE_DOC =
+      "If true, no fields in any produced BigQuery schema will be REQUIRED. All "
+      + "non-nullable avro fields will be translated as NULLABLE (or REPEATED, if arrays).";
+
   static {
     config = new ConfigDef()
         .define(
@@ -135,6 +186,30 @@ public class BigQuerySinkConfig extends AbstractConfig {
             TOPICS_TYPE,
             TOPICS_IMPORTANCE,
             TOPICS_DOC
+        ).define(
+            ENABLE_BATCH_CONFIG,
+            ENABLE_BATCH_TYPE,
+            ENABLE_BATCH_DEFAULT,
+            ENABLE_BATCH_IMPORTANCE,
+            ENABLE_BATCH_DOC
+        ).define(
+            BATCH_LOAD_INTERVAL_SEC_CONFIG,
+            BATCH_LOAD_INTERVAL_SEC_TYPE,
+            BATCH_LOAD_INTERVAL_SEC_DEFAULT,
+            BATCH_LOAD_INTERVAL_SEC_IMPORTANCE,
+            BATCH_LOAD_INTERVAL_SEC_DOC
+        ).define(
+            GCS_BUCKET_NAME_CONFIG,
+            GCS_BUCKET_NAME_TYPE,
+            GCS_BUCKET_NAME_DEFAULT,
+            GCS_BUCKET_NAME_IMPORTANCE,
+            GCS_BUCKET_NAME_DOC
+        ).define(
+            GCS_FOLDER_NAME_CONFIG,
+            GCS_FOLDER_NAME_TYPE,
+            GCS_FOLDER_NAME_DEFAULT,
+            GCS_FOLDER_NAME_IMPORTANCE,
+            GCS_FOLDER_NAME_DOC
         ).define(
             TOPICS_TO_TABLES_CONFIG,
             TOPICS_TO_TABLES_TYPE,
@@ -184,7 +259,19 @@ public class BigQuerySinkConfig extends AbstractConfig {
             AVRO_DATA_CACHE_SIZE_VALIDATOR,
             AVRO_DATA_CACHE_SIZE_IMPORTANCE,
             AVRO_DATA_CACHE_SIZE_DOC
-        );
+        ).define(
+            ALL_BQ_FIELDS_NULLABLE_CONFIG,
+            ALL_BQ_FIELDS_NULLABLE_TYPE,
+            ALL_BQ_FIELDS_NULLABLE_DEFAULT,
+            ALL_BQ_FIELDS_NULLABLE_IMPORTANCE,
+            ALL_BQ_FIELDS_NULLABLE_DOC
+        ).define(
+            CONVERT_DOUBLE_SPECIAL_VALUES_CONFIG,
+            CONVERT_DOUBLE_SPECIAL_VALUES_TYPE,
+            CONVERT_DOUBLE_SPECIAL_VALUES_DEFAULT,
+            CONVERT_DOUBLE_SPECIAL_VALUES_IMPORTANCE,
+            CONVERT_DOUBLE_SPECIAL_VALUES_DOC
+         );
   }
 
   @SuppressWarnings("unchecked")
@@ -350,8 +437,8 @@ public class BigQuerySinkConfig extends AbstractConfig {
    */
   public SchemaConverter<Schema> getSchemaConverter() {
     return getBoolean(INCLUDE_KAFKA_DATA_CONFIG)
-        ? new KafkaDataBQSchemaConverter()
-        : new BigQuerySchemaConverter();
+        ? new KafkaDataBQSchemaConverter(getBoolean(ALL_BQ_FIELDS_NULLABLE_CONFIG))
+        : new BigQuerySchemaConverter(getBoolean(ALL_BQ_FIELDS_NULLABLE_CONFIG));
   }
 
   /**
@@ -360,8 +447,8 @@ public class BigQuerySinkConfig extends AbstractConfig {
    */
   public RecordConverter<Map<String, Object>> getRecordConverter() {
     return getBoolean(INCLUDE_KAFKA_DATA_CONFIG)
-        ? new KafkaDataBQRecordConverter()
-        : new BigQueryRecordConverter();
+        ? new KafkaDataBQRecordConverter(getBoolean(CONVERT_DOUBLE_SPECIAL_VALUES_CONFIG))
+        : new BigQueryRecordConverter(getBoolean(CONVERT_DOUBLE_SPECIAL_VALUES_CONFIG));
   }
 
   /**
@@ -421,6 +508,18 @@ public class BigQuerySinkConfig extends AbstractConfig {
   }
 
   /**
+   * Verifies that a bucket is specified if GCS batch loading is enabled.
+   * @throws ConfigException Exception thrown if no bucket is specified and batch loading is on.
+   */
+  private void verifyBucketSpecified() throws ConfigException {
+    // Throw an exception if GCS Batch loading will be used but no bucket is specified
+    if (getString(GCS_BUCKET_NAME_CONFIG).equals("")
+        && !getList(ENABLE_BATCH_CONFIG).isEmpty()) {
+      throw new ConfigException("Batch loading enabled for some topics, but no bucket specified");
+    }
+  }
+
+  /**
    * Return the ConfigDef object used to define this config's fields.
    *
    * @return The ConfigDef object used to define this config's fields.
@@ -431,9 +530,11 @@ public class BigQuerySinkConfig extends AbstractConfig {
 
   protected BigQuerySinkConfig(ConfigDef config, Map<String, String> properties) {
     super(config, properties);
+    verifyBucketSpecified();
   }
 
   public BigQuerySinkConfig(Map<String, String> properties) {
     super(config, properties);
+    verifyBucketSpecified();
   }
 }

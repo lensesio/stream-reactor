@@ -19,15 +19,23 @@
 
 package com.wepay.kafka.connect.bigquery.it;
 
-import static com.google.cloud.bigquery.LegacySQLTypeName.*;
+import static com.google.cloud.bigquery.LegacySQLTypeName.BOOLEAN;
+import static com.google.cloud.bigquery.LegacySQLTypeName.BYTES;
+import static com.google.cloud.bigquery.LegacySQLTypeName.DATE;
+import static com.google.cloud.bigquery.LegacySQLTypeName.FLOAT;
+import static com.google.cloud.bigquery.LegacySQLTypeName.INTEGER;
+import static com.google.cloud.bigquery.LegacySQLTypeName.STRING;
+import static com.google.cloud.bigquery.LegacySQLTypeName.TIMESTAMP;
+
 import static org.junit.Assert.assertEquals;
 
-import com.google.api.gax.paging.Page;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TableResult;
 
 import com.wepay.kafka.connect.bigquery.BigQueryHelper;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
@@ -121,26 +129,26 @@ public class BigQueryConnectorIntegrationTest {
     }
     switch (field.getAttribute()) {
       case PRIMITIVE:
-        if (fieldSchema.getType().getValue().equals(BOOLEAN)) {
+        if (fieldSchema.getType().equals(BOOLEAN)) {
           return field.getBooleanValue();
-        } else if (fieldSchema.getType().getValue().equals(BYTES)) {
+        } else if (fieldSchema.getType().equals(BYTES)) {
           // Do this in order for assertEquals() to work when this is an element of two compared
           // lists
           return boxByteArray(field.getBytesValue());
-        } else if (fieldSchema.getType().getValue().equals(DATE)) {
+        } else if (fieldSchema.getType().equals(DATE)) {
           DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
           long millisecondsSinceEpoch = LocalDate.parse(field.getStringValue(), dateFormatter)
                   .atStartOfDay(ZoneOffset.UTC)
                   .toInstant()
                   .toEpochMilli();
           return millisecondsSinceEpoch;
-        } else if (fieldSchema.getType().getValue().equals(FLOAT)) {
+        } else if (fieldSchema.getType().equals(FLOAT)) {
           return field.getDoubleValue();
-        } else if (fieldSchema.getType().getValue().equals(INTEGER)) {
+        } else if (fieldSchema.getType().equals(INTEGER)) {
           return field.getLongValue();
-        } else if (fieldSchema.getType().getValue().equals(STRING)) {
+        } else if (fieldSchema.getType().equals(STRING)) {
           return field.getStringValue();
-        } else if (fieldSchema.getType().getValue().equals(TIMESTAMP)) {
+        } else if (fieldSchema.getType().equals(TIMESTAMP)) {
           return field.getTimestampValue();
         } else {
           throw new RuntimeException("Cannot convert primitive field type "
@@ -153,7 +161,7 @@ public class BigQueryConnectorIntegrationTest {
         }
         return result;
       case RECORD:
-        List<Field> recordSchemas = fieldSchema.getFields();
+        List<Field> recordSchemas = fieldSchema.getSubFields();
         List<FieldValue> recordFields = field.getRecordValue();
         return convertRow(recordSchemas, recordFields);
       default:
@@ -175,14 +183,16 @@ public class BigQueryConnectorIntegrationTest {
   private List<List<Object>> readAllRows(String tableName) {
     Table table = bigQuery.getTable(dataset, tableName);
     Schema schema = table.getDefinition().getSchema();
-    Page<List<FieldValue>> page = table.list();
 
     List<List<Object>> rows = new ArrayList<>();
-    while (page != null) {
-      for (List<FieldValue> row : page.getValues()) {
-        rows.add(convertRow(schema.getFields(), row));
+    TableResult tableResult = table.list();
+
+    while (tableResult != null) {
+      Iterable<FieldValueList> fieldValueLists = tableResult.iterateAll();
+      for (FieldValueList fieldValueList : fieldValueLists) {
+        rows.add(convertRow(schema.getFields(), fieldValueList));
       }
-      page = page.getNextPage();
+      tableResult = tableResult.getNextPage();
     }
     return rows;
   }
@@ -279,6 +289,77 @@ public class BigQueryConnectorIntegrationTest {
     expectedRows.add(Arrays.asList(3L, 1468275102000000L, 1468195200000L));
 
     testRows(expectedRows, readAllRows("kcbq_test_logical_types"));
+  }
+
+  @Test
+  public void testGCSLoad() {
+    List<List<Object>> expectedRows = new ArrayList<>();
+
+    /* {"row":1,
+        "null_prim":null,
+        "boolean_prim":false,
+        "int_prim":4242,
+        "long_prim":42424242424242,
+        "float_prim":42.42,
+        "double_prim":42424242.42424242,
+        "string_prim":"forty-two",
+        "bytes_prim":"\u0000\u000f\u001e\u002d\u003c\u004b\u005a\u0069\u0078"}
+     */
+    expectedRows.add(Arrays.asList(
+        1L,
+        null,
+        false,
+        4242L,
+        42424242424242L,
+        42.42,
+        42424242.42424242,
+        "forty-two",
+        boxByteArray(new byte[] { 0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78 })
+    ));
+    /* {"row":2,
+        "null_prim":{"int":5},
+        "boolean_prim":true,
+        "int_prim":4354,
+        "long_prim":435443544354,
+        "float_prim":43.54,
+        "double_prim":435443.544354,
+        "string_prim":"forty-three",
+        "bytes_prim":"\u0000\u000f\u001e\u002d\u003c\u004b\u005a\u0069\u0078"}
+    */
+    expectedRows.add(Arrays.asList(
+        2L,
+        5L,
+        true,
+        4354L,
+        435443544354L,
+        43.54,
+        435443.544354,
+        "forty-three",
+        boxByteArray(new byte[] { 0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78 })
+    ));
+    /* {"row":3,
+        "null_prim":{"int":8},
+        "boolean_prim":false,
+        "int_prim":1993,
+        "long_prim":199319931993,
+        "float_prim":19.93,
+        "double_prim":199319.931993,
+        "string_prim":"nineteen",
+        "bytes_prim":"\u0000\u000f\u001e\u002d\u003c\u004b\u005a\u0069\u0078"}
+    */
+    expectedRows.add(Arrays.asList(
+        3L,
+        8L,
+        false,
+        1993L,
+        199319931993L,
+        19.93,
+        199319.931993,
+        "nineteen",
+        boxByteArray(new byte[] { 0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78 })
+    ));
+
+    testRows(expectedRows, readAllRows("kcbq_test_gcs_load"));
   }
 
   private void testRows(

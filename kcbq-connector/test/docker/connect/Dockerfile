@@ -17,7 +17,10 @@
 # under the License.
 #
 
-FROM confluent/platform:3.0.0
+FROM confluentinc/cp-kafka-connect-base:4.1.2
+
+RUN ["apt", "update"]
+RUN ["apt", "install", "unzip"]
 
 COPY connect-docker.sh /usr/local/bin/
 
@@ -26,8 +29,8 @@ RUN ["chmod", "+x", "/usr/local/bin/connect-docker.sh"]
 RUN ["mkdir", "/usr/logs"]
 RUN ["chmod", "a+rwx", "/usr/logs"]
 
-RUN ["mkdir", "/usr/share/java/kafka-connect-bigquery"]
-RUN ["chmod", "a+rwx", "/usr/share/java/kafka-connect-bigquery"]
+RUN ["mkdir", "-p", "/usr/local/share/kafka/plugins/kafka-connect-bigquery"]
+RUN ["chmod", "a+rwx", "/usr/local/share/kafka/plugins/kafka-connect-bigquery"]
 
-USER confluent
+USER root
 ENTRYPOINT ["/usr/local/bin/connect-docker.sh"]

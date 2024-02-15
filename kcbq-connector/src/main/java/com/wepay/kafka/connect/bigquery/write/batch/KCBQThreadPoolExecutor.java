@@ -21,7 +21,6 @@ package com.wepay.kafka.connect.bigquery.write.batch;
 
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
-import io.netty.util.internal.ConcurrentSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -44,7 +44,9 @@ public class KCBQThreadPoolExecutor extends ThreadPoolExecutor {
 
   private static final Logger logger = LoggerFactory.getLogger(KCBQThreadPoolExecutor.class);
 
-  private ConcurrentSet<Throwable> encounteredErrors = new ConcurrentSet<>();
+
+  private ConcurrentHashMap.KeySetView<Throwable, Boolean> encounteredErrors =
+      ConcurrentHashMap.newKeySet();
 
   /**
    * @param config the {@link BigQuerySinkTaskConfig}

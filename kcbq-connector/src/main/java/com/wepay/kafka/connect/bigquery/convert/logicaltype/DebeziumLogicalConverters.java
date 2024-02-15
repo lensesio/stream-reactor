@@ -19,7 +19,7 @@
 
 package com.wepay.kafka.connect.bigquery.convert.logicaltype;
 
-import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.LegacySQLTypeName;
 
 import io.debezium.time.Date;
 import io.debezium.time.MicroTime;
@@ -62,7 +62,7 @@ public class DebeziumLogicalConverters {
     public DateConverter() {
       super(Date.SCHEMA_NAME,
             Schema.Type.INT32,
-            Field.Type.date());
+            LegacySQLTypeName.DATE);
     }
 
     @Override
@@ -84,7 +84,7 @@ public class DebeziumLogicalConverters {
     public MicroTimeConverter() {
       super(MicroTime.SCHEMA_NAME,
             Schema.Type.INT64,
-            Field.Type.time());
+            LegacySQLTypeName.TIME);
     }
 
     @Override
@@ -115,7 +115,7 @@ public class DebeziumLogicalConverters {
     public MicroTimestampConverter() {
       super(MicroTimestamp.SCHEMA_NAME,
             Schema.Type.INT64,
-            Field.Type.timestamp());
+            LegacySQLTypeName.TIMESTAMP);
     }
 
     @Override
@@ -146,7 +146,7 @@ public class DebeziumLogicalConverters {
     public TimeConverter() {
       super(Time.SCHEMA_NAME,
             Schema.Type.INT32,
-            Field.Type.time());
+            LegacySQLTypeName.TIME);
     }
 
     @Override
@@ -166,7 +166,7 @@ public class DebeziumLogicalConverters {
     public TimestampConverter() {
       super(Timestamp.SCHEMA_NAME,
             Schema.Type.INT64,
-            Field.Type.timestamp());
+            LegacySQLTypeName.TIMESTAMP);
     }
 
     @Override
@@ -186,7 +186,7 @@ public class DebeziumLogicalConverters {
     public ZonedTimestampConverter() {
       super(ZonedTimestamp.SCHEMA_NAME,
             Schema.Type.STRING,
-            Field.Type.timestamp());
+            LegacySQLTypeName.TIMESTAMP);
     }
 
     @Override

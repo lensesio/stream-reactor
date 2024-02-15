@@ -18,7 +18,7 @@
 # under the License.
 #
 
-unzip -j -d /usr/share/java/kafka-connect-bigquery /usr/share/java/kafka-connect-bigquery/kcbq.zip 'wepay-kafka-connect-bigquery-*/lib/*.jar'
+unzip -j -d /usr/local/share/kafka/plugins/kafka-connect-bigquery/ /usr/local/share/kafka/plugins/kafka-connect-bigquery/kcbq.zip 'wepay-kafka-connect-bigquery-*/lib/*.jar'
 
 connect-standalone \
     /etc/kafka-connect-bigquery/standalone.properties \

@@ -13,6 +13,7 @@ target/
 *.iml
 *.iws
 *.ipr
+.DS_STORE
 
 # Eclipse
 .classpath
@@ -25,3 +26,4 @@ key.json
 test.conf
 kcbq-connector/src/test/resources/test.properties
 kcbq-connector/test/docker/connect/properties/
+kcbq-connector/out/

@@ -19,36 +19,6 @@
 
 package com.wepay.kafka.connect.bigquery;
 
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.BigQueryError;
-import com.google.cloud.bigquery.BigQueryException;
-import com.google.cloud.bigquery.InsertAllRequest;
-import com.google.cloud.bigquery.InsertAllResponse;
-import com.google.cloud.bigquery.TableId;
-
-import com.google.cloud.bigquery.TableInfo;
-import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
-import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
-import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
-import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
-import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.RejectedExecutionException;
-
-import org.apache.kafka.common.record.TimestampType;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.errors.ConnectException;
-import org.apache.kafka.connect.sink.SinkRecord;
-import org.apache.kafka.connect.sink.SinkTaskContext;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -58,6 +28,38 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.InsertAllRequest;
+import com.google.cloud.bigquery.InsertAllResponse;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.storage.Storage;
+
+import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
+import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
+import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
+
+import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.errors.ConnectException;
+import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.kafka.connect.sink.SinkTaskContext;
+
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
 
 public class BigQuerySinkTaskTest {
   private static SinkTaskPropertiesFactory propertiesFactory;
@@ -76,13 +78,15 @@ public class BigQuerySinkTaskTest {
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, ".*=scratch");
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Storage storage = mock(Storage.class);
+
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
     InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
 
     when(bigQuery.insertAll(anyObject())).thenReturn(insertAllResponse);
     when(insertAllResponse.hasErrors()).thenReturn(false);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
 
@@ -100,6 +104,7 @@ public class BigQuerySinkTaskTest {
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, ".*=scratch");
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Storage storage = mock(Storage.class);
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
     InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
 
@@ -108,22 +113,24 @@ public class BigQuerySinkTaskTest {
 
     SchemaRetriever schemaRetriever = mock(SchemaRetriever.class);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
 
     testTask.put(Collections.singletonList(spoofSinkRecord(topic)));
     testTask.flush(Collections.emptyMap());
     verify(bigQuery, times(1)).insertAll(any(InsertAllRequest.class));
-    verify(schemaRetriever, times(1)).setLastSeenSchema(any(TableId.class), any(String.class), any(Schema.class));
+    verify(schemaRetriever, times(1)).setLastSeenSchema(any(TableId.class),
+        any(String.class), any(Schema.class));
   }
 
   @Test
   public void testEmptyPut() {
     Map<String, String> properties = propertiesFactory.getProperties();
     BigQuery bigQuery = mock(BigQuery.class);
+    Storage storage = mock(Storage.class);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
     testTask.start(properties);
 
     testTask.put(Collections.emptyList());
@@ -140,8 +147,9 @@ public class BigQuerySinkTaskTest {
 
     Map<String, String> properties = propertiesFactory.getProperties();
     BigQuery bigQuery = mock(BigQuery.class);
+    Storage storage = mock(Storage.class);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
     testTask.start(properties);
 
     SinkRecord emptyRecord = spoofSinkRecord(topic, simpleSchema, null);
@@ -150,6 +158,7 @@ public class BigQuerySinkTaskTest {
   }
 
   @Captor ArgumentCaptor<InsertAllRequest> captor;
+
   @Test
   public void testPutWhenPartitioningOnMessageTime() {
     final String topic = "test-topic";
@@ -160,17 +169,19 @@ public class BigQuerySinkTaskTest {
     properties.put(BigQuerySinkTaskConfig.BIGQUERY_MESSAGE_TIME_PARTITIONING_CONFIG, "true");
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Storage storage = mock(Storage.class);
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
     InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
 
     when(bigQuery.insertAll(anyObject())).thenReturn(insertAllResponse);
     when(insertAllResponse.hasErrors()).thenReturn(false);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
 
-    testTask.put(Collections.singletonList(spoofSinkRecord(topic, "value", "message text", TimestampType.CREATE_TIME, 1509007584334L)));
+    testTask.put(Collections.singletonList(spoofSinkRecord(topic, "value", "message text",
+        TimestampType.CREATE_TIME, 1509007584334L)));
     testTask.flush(Collections.emptyMap());
     ArgumentCaptor<InsertAllRequest> argument = ArgumentCaptor.forClass(InsertAllRequest.class);
 
@@ -189,17 +200,19 @@ public class BigQuerySinkTaskTest {
     properties.put(BigQuerySinkTaskConfig.BIGQUERY_MESSAGE_TIME_PARTITIONING_CONFIG, "true");
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Storage storage = mock(Storage.class);
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
     InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
 
     when(bigQuery.insertAll(anyObject())).thenReturn(insertAllResponse);
     when(insertAllResponse.hasErrors()).thenReturn(false);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
 
-    testTask.put(Collections.singletonList(spoofSinkRecord(topic, "value", "message text", TimestampType.NO_TIMESTAMP_TYPE, null)));
+    testTask.put(Collections.singletonList(spoofSinkRecord(topic, "value", "message text",
+        TimestampType.NO_TIMESTAMP_TYPE, null)));
   }
 
   // It's important that the buffer be completely wiped after a call to flush, since any execption
@@ -215,11 +228,12 @@ public class BigQuerySinkTaskTest {
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Storage storage = mock(Storage.class);
     when(bigQuery.insertAll(any(InsertAllRequest.class)))
         .thenThrow(new RuntimeException("This is a test"));
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
 
@@ -237,9 +251,10 @@ public class BigQuerySinkTaskTest {
   public void testEmptyFlush() {
     Map<String, String> properties = propertiesFactory.getProperties();
     BigQuery bigQuery = mock(BigQuery.class);
+    Storage storage = mock(Storage.class);
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
 
@@ -258,6 +273,7 @@ public class BigQuerySinkTaskTest {
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Storage storage = mock(Storage.class);
 
     InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
     when(bigQuery.insertAll(anyObject()))
@@ -269,7 +285,7 @@ public class BigQuerySinkTaskTest {
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(Collections.singletonList(spoofSinkRecord(topic)));
@@ -290,6 +306,7 @@ public class BigQuerySinkTaskTest {
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Storage storage = mock(Storage.class);
 
     InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
     BigQueryError quotaExceededError = new BigQueryError("quotaExceeded", null, null);
@@ -302,7 +319,7 @@ public class BigQuerySinkTaskTest {
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(Collections.singletonList(spoofSinkRecord(topic)));
@@ -323,6 +340,7 @@ public class BigQuerySinkTaskTest {
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Storage storage = mock(Storage.class);
 
     InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
     BigQueryError quotaExceededError = new BigQueryError("quotaExceeded", null, null);
@@ -332,7 +350,7 @@ public class BigQuerySinkTaskTest {
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(Collections.singletonList(spoofSinkRecord(topic)));
@@ -350,13 +368,14 @@ public class BigQuerySinkTaskTest {
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
 
     BigQuery bigQuery  = mock(BigQuery.class);
+    Storage storage = mock(Storage.class);
     InsertAllResponse fakeResponse = mock(InsertAllResponse.class);
     when(fakeResponse.hasErrors()).thenReturn(false);
     when(fakeResponse.getInsertErrors()).thenReturn(Collections.emptyMap());
     when(bigQuery.insertAll(any(InsertAllRequest.class))).thenReturn(fakeResponse);
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
 
@@ -374,7 +393,8 @@ public class BigQuerySinkTaskTest {
     Map<String, String> badProperties = propertiesFactory.getProperties();
     badProperties.remove(BigQuerySinkConfig.TOPICS_CONFIG);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(mock(BigQuery.class), null);
+    BigQuerySinkTask testTask =
+        new BigQuerySinkTask(mock(BigQuery.class), null, mock(Storage.class));
     testTask.start(badProperties);
   }
 
@@ -383,7 +403,8 @@ public class BigQuerySinkTaskTest {
     assertNotNull(new BigQuerySinkTask().version());
   }
 
-  // Existing tasks should succeed upon stop is called. New tasks should be rejected once task is stopped.
+  // Existing tasks should succeed upon stop is called. New tasks should be rejected once task is
+  // stopped.
   @Test(expected = RejectedExecutionException.class)
   public void testStop() {
     final String dataset = "scratch";
@@ -400,7 +421,8 @@ public class BigQuerySinkTaskTest {
     when(bigQuery.insertAll(anyObject())).thenReturn(insertAllResponse);
     when(insertAllResponse.hasErrors()).thenReturn(false);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    Storage storage = mock(Storage.class);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(Collections.singletonList(spoofSinkRecord(topic)));
@@ -436,14 +458,16 @@ public class BigQuerySinkTaskTest {
    * @param timestamp The timestamp in milliseconds
    * @return The spoofed SinkRecord.
    */
-  public static SinkRecord spoofSinkRecord(String topic, String field, String value, TimestampType timestampType, Long timestamp) {
+  public static SinkRecord spoofSinkRecord(String topic, String field, String value,
+                                           TimestampType timestampType, Long timestamp) {
     Schema basicRowSchema = SchemaBuilder
             .struct()
             .field(field, Schema.STRING_SCHEMA)
             .build();
     Struct basicRowValue = new Struct(basicRowSchema);
     basicRowValue.put(field, value);
-    return new SinkRecord(topic, 0, null, null, basicRowSchema, basicRowValue, 0, timestamp, timestampType);
+    return new SinkRecord(topic, 0, null, null,
+        basicRowSchema, basicRowValue, 0, timestamp, timestampType);
   }
 
   /**

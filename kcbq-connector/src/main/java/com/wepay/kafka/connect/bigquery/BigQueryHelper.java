@@ -61,7 +61,8 @@ public class BigQueryHelper {
     logger.debug("Using filtered keyfile config");
     try (InputStream credentialsStream = new ByteArrayInputStream(keyfileConfig.getBytes(StandardCharsets.UTF_8))) {
       logger.debug("Attempting to authenticate with BigQuery using filtered json key");
-      return new BigQueryOptions.DefaultBigqueryFactory().create(
+      return new
+          BigQueryOptions.DefaultBigQueryFactory().create(
           BigQueryOptions.newBuilder()
           .setProjectId(projectName)
           .setCredentials(GoogleCredentials.fromStream(credentialsStream))
@@ -82,7 +83,7 @@ public class BigQueryHelper {
    */
   public BigQuery connect(String projectName) {
     logger.debug("Attempting to access BigQuery without authentication");
-    return new BigQueryOptions.DefaultBigqueryFactory().create(
+    return new BigQueryOptions.DefaultBigQueryFactory().create(
         BigQueryOptions.newBuilder()
         .setProjectId(projectName)
         .build()

@@ -75,8 +75,10 @@ public class SchemaManager {
    */
   public void updateSchema(TableId table, String topic) {
     Schema kafkaConnectSchema = schemaRetriever.retrieveSchema(table, topic);
-    logger.info("Attempting to update table `{}` with schema {}", table, kafkaConnectSchema);
-    bigQuery.update(constructTableInfo(table, kafkaConnectSchema));
+    TableInfo tableInfo = constructTableInfo(table, kafkaConnectSchema);
+    logger.info("Attempting to update table `{}` with schema {}",
+        table, tableInfo.getDefinition().getSchema());
+    bigQuery.update(tableInfo);
   }
 
   // package private for testing.
