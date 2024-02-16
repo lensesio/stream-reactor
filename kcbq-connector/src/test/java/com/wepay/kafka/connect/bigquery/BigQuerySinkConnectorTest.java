@@ -19,13 +19,10 @@
 
 package com.wepay.kafka.connect.bigquery;
 
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.Table;
-import com.google.cloud.bigquery.TableId;
-import com.wepay.kafka.connect.bigquery.api.KafkaSchemaRecordType;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
-import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -36,12 +33,27 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class BigQuerySinkConnectorTest {
   private static SinkPropertiesFactory propertiesFactory;
+
+  // Would just use Mockito, but can't provide the name of an anonymous class to the config file
+  public static class MockSchemaRetriever implements SchemaRetriever {
+    @Override
+    public void configure(Map<String, String> properties) {
+      // Shouldn't be called
+    }
+
+    @Override
+    public Schema retrieveKeySchema(SinkRecord record){
+      return null;
+    }
+
+    @Override
+    public Schema retrieveValueSchema(SinkRecord record){
+      return null;
+    }
+  }
 
   @BeforeClass
   public static void initializePropertiesFactory() {
@@ -59,14 +71,14 @@ public class BigQuerySinkConnectorTest {
 
     BigQuerySinkConnector testConnector = new BigQuerySinkConnector();
 
-    testConnector.configProperties = properties;
-    testConnector.config = new BigQuerySinkConfig(properties);
+    testConnector.start(properties);
 
     for (int i : new int[] { 1, 2, 10, 100 }) {
       Map<String, String> expectedProperties = new HashMap<>(properties);
       List<Map<String, String>> taskConfigs = testConnector.taskConfigs(i);
       assertEquals(i, taskConfigs.size());
       for (int j = 0; j < i; j++) {
+        expectedProperties.put(BigQuerySinkTaskConfig.TASK_ID_CONFIG, Integer.toString(j));
         assertEquals(
             "Connector properties should match task configs",
             expectedProperties,
