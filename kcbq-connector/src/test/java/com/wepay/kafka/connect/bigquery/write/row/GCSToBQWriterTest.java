@@ -29,6 +29,7 @@ import com.wepay.kafka.connect.bigquery.SchemaManager;
 import com.wepay.kafka.connect.bigquery.SinkPropertiesFactory;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -163,7 +164,8 @@ public class GCSToBQWriterTest {
     properties.put(BigQuerySinkConfig.BIGQUERY_RETRY_CONFIG, bigqueryRetry);
     properties.put(BigQuerySinkConfig.BIGQUERY_RETRY_WAIT_CONFIG, bigqueryRetryWait);
     properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
-    properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
+    properties.put(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG, dataset);
+    properties.put(BigQuerySinkTaskConfig.TASK_ID_CONFIG, "9");
     // gcs config
     properties.put(BigQuerySinkConfig.ENABLE_BATCH_CONFIG, topic);
     properties.put(BigQuerySinkConfig.GCS_BUCKET_NAME_CONFIG, "myBucket");

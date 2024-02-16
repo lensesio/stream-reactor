@@ -26,35 +26,30 @@ import com.google.cloud.bigquery.InsertAllRequest;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 /**
  * A class for writing lists of rows to a BigQuery table.
  */
 public abstract class BigQueryWriter {
 
-  private static final int FORBIDDEN = 403;
-  private static final int INTERNAL_SERVICE_ERROR = 500;
-  private static final int BAD_GATEWAY = 502;
-  private static final int SERVICE_UNAVAILABLE = 503;
-  private static final String QUOTA_EXCEEDED_REASON = "quotaExceeded";
-  private static final String RATE_LIMIT_EXCEEDED_REASON = "rateLimitExceeded";
-
   private static final int WAIT_MAX_JITTER = 1000;
 
   private static final Logger logger = LoggerFactory.getLogger(BigQueryWriter.class);
 
-  private static final Random random = new Random();
-
-  private int retries;
-  private long retryWaitMs;
+  private final int retries;
+  private final long retryWaitMs;
+  private final Random random;
 
   /**
    * @param retries the number of times to retry a request if BQ returns an internal service error
@@ -65,6 +60,8 @@ public abstract class BigQueryWriter {
   public BigQueryWriter(int retries, long retryWaitMs) {
     this.retries = retries;
     this.retryWaitMs = retryWaitMs;
+
+    this.random = new Random();
   }
 
   /**
@@ -72,13 +69,11 @@ public abstract class BigQueryWriter {
    * errors that happen as a result.
    * @param tableId The PartitionedTableId.
    * @param rows The rows to write.
-   * @param topic The Kafka topic that the row data came from.
    * @return map from failed row id to the BigQueryError.
    */
   protected abstract Map<Long, List<BigQueryError>> performWriteRequest(
-      PartitionedTableId tableId,
-      List<InsertAllRequest.RowToInsert> rows,
-      String topic)
+          PartitionedTableId tableId,
+          SortedMap<SinkRecord, InsertAllRequest.RowToInsert> rows)
       throws BigQueryException, BigQueryConnectException;
 
   /**
@@ -88,7 +83,7 @@ public abstract class BigQueryWriter {
    * @return the InsertAllRequest.
    */
   protected InsertAllRequest createInsertAllRequest(PartitionedTableId tableId,
-                                                    List<InsertAllRequest.RowToInsert> rows) {
+                                                    Collection<InsertAllRequest.RowToInsert> rows) {
     return InsertAllRequest.newBuilder(tableId.getFullTableId(), rows)
         .setIgnoreUnknownValues(false)
         .setSkipInvalidRows(false)
@@ -98,12 +93,10 @@ public abstract class BigQueryWriter {
   /**
    * @param table The BigQuery table to write the rows to.
    * @param rows The rows to write.
-   * @param topic The Kafka topic that the row data came from.
    * @throws InterruptedException if interrupted.
    */
   public void writeRows(PartitionedTableId table,
-                        List<InsertAllRequest.RowToInsert> rows,
-                        String topic)
+                        SortedMap<SinkRecord, InsertAllRequest.RowToInsert> rows)
       throws BigQueryConnectException, BigQueryException, InterruptedException {
     logger.debug("writing {} row{} to table {}", rows.size(), rows.size() != 1 ? "s" : "", table);
 
@@ -116,7 +109,7 @@ public abstract class BigQueryWriter {
         waitRandomTime();
       }
       try {
-        failedRowsMap = performWriteRequest(table, rows, topic);
+        failedRowsMap = performWriteRequest(table, rows);
         if (failedRowsMap.isEmpty()) {
           // table insertion completed with no reported errors
           return;
@@ -124,7 +117,7 @@ public abstract class BigQueryWriter {
           logger.info("{} rows succeeded, {} rows failed",
               rows.size() - failedRowsMap.size(), failedRowsMap.size());
           // update insert rows and retry in case of partial failure
-          rows = getFailedRows(rows, failedRowsMap.keySet(), topic, table);
+          rows = getFailedRows(rows, failedRowsMap.keySet(), table);
           mostRecentException = new BigQueryConnectException(failedRowsMap);
           retryCount++;
         } else {
@@ -133,27 +126,17 @@ public abstract class BigQueryWriter {
         }
       } catch (BigQueryException err) {
         mostRecentException = err;
-        if (err.getCode() == INTERNAL_SERVICE_ERROR
-            || err.getCode() == SERVICE_UNAVAILABLE
-            || err.getCode() == BAD_GATEWAY) {
-          // backend error: https://cloud.google.com/bigquery/troubleshooting-errors
-          /* for BAD_GATEWAY: https://cloud.google.com/storage/docs/json_api/v1/status-codes
-             todo possibly this page is inaccurate for bigquery, but the message we are getting
-             suggest it's an internal backend error and we should retry, so lets take that at face
-             value. */
+        if (BigQueryErrorResponses.isBackendError(err)) {
           logger.warn("BQ backend error: {}, attempting retry", err.getCode());
           retryCount++;
-        } else if (err.getCode() == FORBIDDEN
-                   && err.getError() != null
-                   && QUOTA_EXCEEDED_REASON.equals(err.getReason())) {
-          // quota exceeded error
+        } else if (BigQueryErrorResponses.isQuotaExceededError(err)) {
           logger.warn("Quota exceeded for table {}, attempting retry", table);
           retryCount++;
-        } else if (err.getCode() == FORBIDDEN
-                   && err.getError() != null
-                   && RATE_LIMIT_EXCEEDED_REASON.equals(err.getReason())) {
-          // rate limit exceeded error
+        } else if (BigQueryErrorResponses.isRateLimitExceededError(err)) {
           logger.warn("Rate limit exceeded for table {}, attempting retry", table);
+          retryCount++;
+        } else if (BigQueryErrorResponses.isIOError(err)){
+          logger.warn("IO Exception: {}, attempting retry", err.getCause().getMessage());
           retryCount++;
         } else {
           throw err;
@@ -171,7 +154,7 @@ public abstract class BigQueryWriter {
    * @param failedRowsMap A map from failed row index to the BigQueryError.
    * @return isPartialFailure.
    */
-  private boolean isPartialFailure(List<InsertAllRequest.RowToInsert> rows,
+  private boolean isPartialFailure(SortedMap<SinkRecord, InsertAllRequest.RowToInsert> rows,
                                    Map<Long, List<BigQueryError>> failedRowsMap) {
     return failedRowsMap.size() < rows.size();
   }
@@ -182,17 +165,18 @@ public abstract class BigQueryWriter {
    * @param failRowsSet A set of failed row index.
    * @return A list of failed rows.
    */
-  private List<InsertAllRequest.RowToInsert> getFailedRows(List<InsertAllRequest.RowToInsert> rows,
+  private SortedMap<SinkRecord, InsertAllRequest.RowToInsert> getFailedRows(SortedMap<SinkRecord, InsertAllRequest.RowToInsert> rows,
                                                            Set<Long> failRowsSet,
-                                                           String topic,
                                                            PartitionedTableId table) {
-    List<InsertAllRequest.RowToInsert> failRows = new ArrayList<>();
-    for (int index = 0; index < rows.size(); index++) {
+    SortedMap<SinkRecord, InsertAllRequest.RowToInsert> failRows = new TreeMap<>(rows.comparator());
+    int index = 0;
+    for (Map.Entry<SinkRecord, InsertAllRequest.RowToInsert> row: rows.entrySet()) {
       if (failRowsSet.contains((long)index)) {
-        failRows.add(rows.get(index));
+        failRows.put(row.getKey(), row.getValue());
       }
+      index++;
     }
-    logger.debug("{} rows from topic {} failed to be written to table {}.", rows.size(), topic, table.getFullTableName());
+    logger.debug("{} rows failed to be written to table {}.", rows.size(), table.getFullTableName());
     return failRows;
   }
 

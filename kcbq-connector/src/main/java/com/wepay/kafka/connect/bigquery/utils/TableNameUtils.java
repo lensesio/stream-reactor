@@ -17,26 +17,21 @@
  * under the License.
  */
 
-package com.wepay.kafka.connect.bigquery.write.batch;
+package com.wepay.kafka.connect.bigquery.utils;
 
 import com.google.cloud.bigquery.TableId;
-import org.apache.kafka.connect.sink.SinkRecord;
 
-/**
- * Interface for building a {@link TableWriter} or TableWriterGCS.
- */
-public interface TableWriterBuilder {
+public class TableNameUtils {
 
-  /**
-   * Add a record to the builder.
-   * @param sinkRecord the row to add.
-   * @param table the table the row will be written to.
-   */
-  void addRow(SinkRecord sinkRecord, TableId table);
+  public static String table(TableId table) {
+    return String.format("table `%s`.`%s`", table.getDataset(), table.getTable());
+  }
 
-  /**
-   * Create a {@link TableWriter} from this builder.
-   * @return a TableWriter containing the given writer, table, topic, and all added rows.
-   */
-  Runnable build();
+  public static String intTable(TableId table) {
+    return "intermediate " + table(table);
+  }
+
+  public static String destTable(TableId table) {
+    return "destination " + table(table);
+  }
 }

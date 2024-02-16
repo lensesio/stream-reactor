@@ -19,12 +19,18 @@
 
 package com.wepay.kafka.connect.bigquery.config;
 
+import com.google.cloud.storage.Bucket;
+import com.google.cloud.storage.Storage;
+import com.google.common.annotations.VisibleForTesting;
+import com.wepay.kafka.connect.bigquery.GcpClientBuilder;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.AUTO_CREATE_BUCKET_CONFIG;
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.ENABLE_BATCH_CONFIG;
 import static com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig.GCS_BUCKET_NAME_CONFIG;
 
@@ -35,7 +41,7 @@ public class GcsBucketValidator extends MultiPropertyValidator<BigQuerySinkConfi
   }
 
   private static final Collection<String> DEPENDENTS = Collections.unmodifiableCollection(Arrays.asList(
-      ENABLE_BATCH_CONFIG
+      ENABLE_BATCH_CONFIG, AUTO_CREATE_BUCKET_CONFIG
   ));
 
   @Override
@@ -45,18 +51,46 @@ public class GcsBucketValidator extends MultiPropertyValidator<BigQuerySinkConfi
 
   @Override
   protected Optional<String> doValidate(BigQuerySinkConfig config) {
+    Storage gcs;
+    try {
+      gcs  = new GcpClientBuilder.GcsBuilder()
+          .withConfig(config)
+          .build();
+    } catch (RuntimeException e) {
+      return Optional.of(String.format(
+          "Failed to construct GCS client%s",
+          e.getMessage() != null ? ": " + e.getMessage() : ""
+      ));
+    }
+    return doValidate(gcs, config);
+  }
+
+  @VisibleForTesting
+  Optional<String> doValidate(Storage gcs, BigQuerySinkConfig config) {
     List<String> batchLoadedTopics = config.getList(ENABLE_BATCH_CONFIG);
     if (batchLoadedTopics ==  null || batchLoadedTopics.isEmpty()) {
       // Batch loading is disabled; no need to validate the GCS bucket
       return Optional.empty();
     }
 
-    String bucket = config.getString(GCS_BUCKET_NAME_CONFIG);
-    if (bucket == null || bucket.trim().isEmpty()) {
+    String bucketName = config.getString(GCS_BUCKET_NAME_CONFIG);
+    if (bucketName == null || bucketName.trim().isEmpty()) {
       return Optional.of("When GCS batch loading is enabled, a bucket must be provided");
     }
 
-    // No need to validate that the bucket exists; we create it automatically if it doesn't
+    if (config.getBoolean(AUTO_CREATE_BUCKET_CONFIG)) {
+      return Optional.empty();
+    }
+
+    Bucket bucket = gcs.get(bucketName);
+    if (bucket == null) {
+      return Optional.of(String.format(
+          "Automatic bucket creation is disabled but the GCS bucket %s does not exist. "
+              + "Please either manually create this table before restarting the connector or enable automatic bucket creation "
+              + "by the connector",
+          bucketName
+      ));
+    }
 
     return Optional.empty();
   }
