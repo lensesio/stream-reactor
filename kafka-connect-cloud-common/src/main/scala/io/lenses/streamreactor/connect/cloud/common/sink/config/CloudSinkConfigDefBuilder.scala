@@ -17,9 +17,11 @@ package io.lenses.streamreactor.connect.cloud.common.sink.config
 
 import io.lenses.streamreactor.common.config.base.traits.KcqlSettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategySettings
+import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings
 
 trait CloudSinkConfigDefBuilder
     extends KcqlSettings
     with FlushSettings
     with LocalStagingAreaSettings
-    with PaddingStrategySettings {}
+    with PaddingStrategySettings
+    with CompressionCodecSettings {}

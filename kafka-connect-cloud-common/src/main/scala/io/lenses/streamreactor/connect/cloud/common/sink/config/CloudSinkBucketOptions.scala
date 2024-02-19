@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.BytesFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.config.FormatSelection
+import io.lenses.streamreactor.connect.cloud.common.config.JsonFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitPolicy
@@ -47,6 +48,7 @@ object CloudSinkBucketOptions extends LazyLogging {
     config.getKCQL.map { kcql: Kcql =>
       for {
         formatSelection   <- FormatSelection.fromKcql(kcql, SinkPropsSchema.schema)
+        fileExtension      = extractFileExtension(config, formatSelection)
         sinkProps          = CloudSinkProps.fromKcql(kcql)
         partitionSelection = PartitionSelection(kcql, sinkProps)
         paddingService    <- PaddingService.fromConfig(config, sinkProps)
@@ -55,12 +57,12 @@ object CloudSinkBucketOptions extends LazyLogging {
           new TopicPartitionOffsetFileNamer(
             paddingService.padderFor("partition"),
             paddingService.padderFor("offset"),
-            formatSelection.extension,
+            fileExtension,
           )
         } else {
           new OffsetFileNamer(
             paddingService.padderFor("offset"),
-            formatSelection.extension,
+            fileExtension,
           )
         }
         keyNamer         = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
@@ -107,6 +109,14 @@ object CloudSinkBucketOptions extends LazyLogging {
       else
         new IllegalArgumentException(s"Envelope is not supported for format ${format.extension.toUpperCase()}.").asLeft
     }
+
+  private def extractFileExtension(config: CloudSinkConfigDefBuilder, formatSelection: FormatSelection): String = {
+    // Avro or Parquet do not change filenames when compressed; guards for JSON only.
+    if (formatSelection != JsonFormatSelection)
+      return formatSelection.extension
+
+    config.getCompressionCodec().extension.getOrElse(formatSelection.extension)
+  }
 }
 
 case class CloudSinkBucketOptions(

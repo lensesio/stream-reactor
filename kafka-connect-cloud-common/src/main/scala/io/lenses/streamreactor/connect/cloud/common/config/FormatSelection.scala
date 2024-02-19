@@ -111,6 +111,11 @@ case object FormatSelection {
 }
 
 case object JsonFormatSelection extends FormatSelection {
+  override def availableCompressionCodecs: Map[CompressionCodecName, Boolean] = Map(
+    UNCOMPRESSED -> true,
+    GZIP         -> true, // Only applies to sink currently.
+  )
+
   override def toStreamReader(
     input: ReaderBuilderContext,
   ): CloudStreamReader = {

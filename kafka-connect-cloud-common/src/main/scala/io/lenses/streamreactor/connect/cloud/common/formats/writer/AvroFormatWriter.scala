@@ -41,12 +41,12 @@ class AvroFormatWriter(outputStream: CloudOutputStream)(implicit compressionCode
 
   private val avroCompressionCodec: CodecFactory = {
     compressionCodec match {
-      case CompressionCodec(UNCOMPRESSED, _)      => CodecFactory.nullCodec()
-      case CompressionCodec(SNAPPY, _)            => CodecFactory.snappyCodec()
-      case CompressionCodec(BZIP2, _)             => CodecFactory.bzip2Codec()
-      case CompressionCodec(ZSTD, Some(level))    => CodecFactory.zstandardCodec(level)
-      case CompressionCodec(DEFLATE, Some(level)) => CodecFactory.deflateCodec(level)
-      case CompressionCodec(XZ, Some(level))      => CodecFactory.xzCodec(level)
+      case CompressionCodec(UNCOMPRESSED, _, _)      => CodecFactory.nullCodec()
+      case CompressionCodec(SNAPPY, _, _)            => CodecFactory.snappyCodec()
+      case CompressionCodec(BZIP2, _, _)             => CodecFactory.bzip2Codec()
+      case CompressionCodec(ZSTD, Some(level), _)    => CodecFactory.zstandardCodec(level)
+      case CompressionCodec(DEFLATE, Some(level), _) => CodecFactory.deflateCodec(level)
+      case CompressionCodec(XZ, Some(level), _)      => CodecFactory.xzCodec(level)
       case _ =>
         throw new IllegalArgumentException("No or invalid compressionCodec specified - does codec require a level?")
     }

@@ -16,7 +16,6 @@
 package io.lenses.streamreactor.connect.datalake.sink.config
 
 import io.lenses.streamreactor.common.config.base.traits._
-import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfigDefBuilder
 import io.lenses.streamreactor.connect.datalake.config.AuthModeSettings
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings
@@ -31,7 +30,6 @@ case class DatalakeSinkConfigDefBuilder(props: util.Map[String, String])
     with NumberRetriesSettings
     with UserSettings
     with ConnectionSettings
-    with CompressionCodecSettings
     with AuthModeSettings {
 
   def getParsedValues: Map[String, _] = values().asScala.toMap

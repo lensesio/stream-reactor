@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.aws.s3.sink.config
 import io.lenses.streamreactor.common.config.base.traits._
 import io.lenses.streamreactor.connect.aws.s3.config.DeleteModeSettings
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
-import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfigDefBuilder
 
 import java.util
@@ -31,7 +30,6 @@ case class S3SinkConfigDefBuilder(props: util.Map[String, String])
     with NumberRetriesSettings
     with UserSettings
     with ConnectionSettings
-    with CompressionCodecSettings
     with DeleteModeSettings {
 
   def getParsedValues: Map[String, _] = values().asScala.toMap

@@ -25,7 +25,7 @@ trait CompressionCodecConfigKeys extends WithConnectorPrefix {
 
   def COMPRESSION_CODEC = s"$connectorPrefix.compression.codec"
 
-  val COMPRESSION_CODEC_DOC = "Compression codec to use for Avro or Parquet."
+  val COMPRESSION_CODEC_DOC = "Compression codec to use for Avro, Parquet or JSON."
   val COMPRESSION_CODEC_DEFAULT: String = UNCOMPRESSED.entryName
 
   def COMPRESSION_LEVEL = s"$connectorPrefix.compression.level"
@@ -41,9 +41,25 @@ trait CompressionCodecSettings extends BaseSettings with CompressionCodecConfigK
       CompressionCodecName.withNameInsensitiveOption(getString(COMPRESSION_CODEC)).getOrElse(
         CompressionCodecName.UNCOMPRESSED,
       )
-    val level    = getInt(COMPRESSION_LEVEL)
-    val levelOpt = Option.when(level != -1)(level.toInt)
 
-    CompressionCodec(codec, levelOpt)
+    val level     = getInt(COMPRESSION_LEVEL)
+    val levelOpt  = Option.when(level != -1)(level.toInt)
+    val extension = getCompressedFileExtension(codec)
+
+    CompressionCodec(codec, levelOpt, extension)
   }
+
+  private def getCompressedFileExtension(codec: CompressionCodecName): Option[String] =
+    codec match {
+      case CompressionCodecName.UNCOMPRESSED => None
+      case CompressionCodecName.SNAPPY       => Some("sz")
+      case CompressionCodecName.GZIP         => Some("gz")
+      case CompressionCodecName.LZO          => Some("lzo")
+      case CompressionCodecName.BROTLI       => Some("br")
+      case CompressionCodecName.LZ4          => Some("lz4")
+      case CompressionCodecName.BZIP2        => Some("bz2")
+      case CompressionCodecName.ZSTD         => Some("zst")
+      case CompressionCodecName.DEFLATE      => Some("gz")
+      case CompressionCodecName.XZ           => Some("xz")
+    }
 }
