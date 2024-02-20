@@ -41,28 +41,6 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
 
   override def taskClass(): Class[_ <: Task] = classOf[JMSSourceTask]
 
-  def kcqlTaskScaling(maxTasks: Int): util.List[util.Map[String, String]] = {
-    val raw = configProps.get(JMSConfigConstants.KCQL)
-    require(raw.nonEmpty, s"No ${JMSConfigConstants.KCQL} provided!")
-
-    //sql1, sql2
-    val kcqls  = raw.map(_.split(";"))
-    val groups = ConnectorUtils.groupPartitions(kcqls.toList.asJava, maxTasks).asScala
-
-    //split up the kcql statement based on the number of tasks.
-    groups
-      .filterNot(_.isEmpty)
-      .map { g =>
-        (configProps + (JMSConfigConstants.KCQL -> g.asScala.mkString(";"))).asJava
-      }
-  }.asJava
-
-  def defaultTaskScaling(maxTasks: Int): util.List[util.Map[String, String]] = {
-    val raw = configProps.get(JMSConfigConstants.KCQL)
-    require(raw != null && raw.nonEmpty, s"No ${JMSConfigConstants.KCQL} provided!")
-    (1 to maxTasks).map(_ => configProps.asJava).toList.asJava
-  }
-
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     val config    = new JMSConfig(configProps)
     val scaleType = config.getString(JMSConfigConstants.TASK_PARALLELIZATION_TYPE).toLowerCase()
@@ -82,4 +60,31 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
   override def stop(): Unit = {}
 
   override def version(): String = manifest.version()
+
+  private def kcqlTaskScaling(maxTasks: Int): util.List[util.Map[String, String]] = {
+    val raw = getRawKcqlString
+
+    //sql1, sql2
+    val kcqls: Array[String] = raw.map(e => e.split(";")).getOrElse(Array.empty)
+    val groups = ConnectorUtils.groupPartitions(kcqls.toList.asJava, maxTasks).asScala
+
+    //split up the kcql statement based on the number of tasks.
+    groups
+      .filterNot(_.isEmpty)
+      .map { g: util.List[String] =>
+        (configProps + (JMSConfigConstants.KCQL -> g.asScala.mkString(";"))).asJava
+      }
+  }.asJava
+
+  private def defaultTaskScaling(maxTasks: Int): util.List[util.Map[String, String]] = {
+    getRawKcqlString
+    (1 to maxTasks).map(_ => configProps.asJava).toList.asJava
+  }
+
+  private def getRawKcqlString: Option[String] = {
+    val raw: Option[String] = configProps.get(JMSConfigConstants.KCQL)
+    require(raw.nonEmpty, s"No ${JMSConfigConstants.KCQL} provided!")
+    raw
+  }
+
 }

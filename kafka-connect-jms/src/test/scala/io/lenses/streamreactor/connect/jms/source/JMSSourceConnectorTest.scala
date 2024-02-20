@@ -46,9 +46,9 @@ class JMSSourceConnectorTest extends TestBase with BeforeAndAfterAll {
 
     val connector = new JMSSourceConnector()
     connector.start(props = props.asJava)
-    val configs = connector.taskConfigs(3)
-    val config1 = configs.asScala.head.asScala
-    val config2 = configs.asScala.last.asScala
+    val configs = connector.taskConfigs(3).asScala
+    val config1 = configs.head.asScala
+    val config2 = configs.last.asScala
     config1(JMSConfigConstants.KCQL) shouldBe kcqlQ
     config2(JMSConfigConstants.KCQL) shouldBe kcqlT
     connector.stop()
