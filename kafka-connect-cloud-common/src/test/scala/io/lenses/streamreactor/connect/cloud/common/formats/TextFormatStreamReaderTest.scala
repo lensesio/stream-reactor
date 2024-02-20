@@ -26,11 +26,14 @@ import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
 
 import java.io.ByteArrayInputStream
 import java.time.Instant
 
 class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
+  private implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
 
   "read" should "take read through all records" in {
 

@@ -26,12 +26,15 @@ import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
 
 import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
+  private implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
 
   "convert" should "write byte output stream with json for a single record" in {
 
