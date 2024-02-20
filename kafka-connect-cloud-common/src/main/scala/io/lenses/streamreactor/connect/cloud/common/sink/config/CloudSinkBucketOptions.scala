@@ -35,6 +35,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.TopicPartitionOffsetFileNamer
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 
 object CloudSinkBucketOptions extends LazyLogging {
 
