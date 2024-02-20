@@ -34,6 +34,7 @@ import java.util.function.BiConsumer
 import javax.jms.Message
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Failure
 import scala.util.Success
@@ -61,7 +62,7 @@ class JMSSourceTask extends SourceTask with StrictLogging {
     val conf = if (context.configs().isEmpty) props else context.configs()
 
     JMSConfig.config.parse(conf)
-    val config   = new JMSConfig(conf)
+    val config   = new JMSConfig(conf.asScala.toMap)
     val settings = JMSSettings(config, sink = false)
     reader         = JMSReader(settings)
     enableProgress = config.getBoolean(JMSConfigConstants.PROGRESS_COUNTER_ENABLED)

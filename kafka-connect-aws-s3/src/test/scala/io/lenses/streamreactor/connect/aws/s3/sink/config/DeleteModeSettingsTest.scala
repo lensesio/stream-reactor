@@ -20,8 +20,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
-import scala.jdk.CollectionConverters.MapHasAsJava
-
 class DeleteModeSettingsTest extends AnyFlatSpec with Matchers with LazyLogging {
   private val deleteModeMap = Table[String, String, Boolean](
     ("testName", "value", "expected"),
@@ -36,7 +34,7 @@ class DeleteModeSettingsTest extends AnyFlatSpec with Matchers with LazyLogging 
         S3SinkConfigDefBuilder(Map(
           "connect.s3.kcql"        -> "abc",
           "connect.s3.delete.mode" -> value,
-        ).asJava).batchDelete() should be(expected)
+        )).batchDelete() should be(expected)
     }
   }
 }

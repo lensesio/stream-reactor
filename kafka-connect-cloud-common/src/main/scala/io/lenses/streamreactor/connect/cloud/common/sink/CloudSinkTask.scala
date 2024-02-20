@@ -62,7 +62,7 @@ abstract class CloudSinkTask[SM <: FileMetadata](
 
     printAsciiHeader(manifest, sinkAsciiArtResource)
 
-    new ConnectorTaskIdCreator(connectorPrefix).fromProps(fallbackProps) match {
+    new ConnectorTaskIdCreator(connectorPrefix).fromProps(fallbackProps.asScala.toMap) match {
       case Left(value)  => throw new IllegalArgumentException(value)
       case Right(value) => connectorTaskId = value
     }

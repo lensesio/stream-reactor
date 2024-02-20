@@ -24,7 +24,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter._
 import java.util
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfter {
   val ELASTIC_SEARCH_HOSTNAMES = "localhost:9300"
@@ -54,25 +53,25 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfter {
 
   def getElasticSinkConfigProps(
     clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-  ): util.Map[String, String] =
+  ): Map[String, String] =
     getBaseElasticSinkConfigProps(QUERY, clusterName)
 
   def getBaseElasticSinkConfigProps(
     query:       String,
     clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-  ): util.Map[String, String] =
+  ): Map[String, String] =
     Map(
       "topics"                               -> TOPIC,
       ElasticConfigConstants.HOSTS           -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
       ElasticConfigConstants.PROTOCOL        -> ElasticConfigConstants.PROTOCOL_DEFAULT,
       ElasticConfigConstants.KCQL            -> query,
-    ).asJava
+    )
 
   def getElasticSinkConfigPropsHTTPClient(
     auth:        Boolean = false,
     clusterName: String  = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-  ): util.Map[String, String] =
+  ): Map[String, String] =
     Map(
       ElasticConfigConstants.HOSTS           -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
@@ -84,5 +83,5 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfter {
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD -> (if (auth) BASIC_AUTH_PASSWORD
                                                                  else
                                                                    ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT),
-    ).asJava
+    )
 }

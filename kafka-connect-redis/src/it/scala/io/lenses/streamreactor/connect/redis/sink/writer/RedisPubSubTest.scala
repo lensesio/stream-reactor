@@ -36,7 +36,6 @@ import redis.clients.jedis.Jedis
 import redis.clients.jedis.JedisPubSub
 
 import scala.collection.mutable.ListBuffer
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 class RedisPubSubTest extends AnyWordSpec with Matchers with MockitoSugar with LazyLogging with ForAllTestContainer {
 
@@ -56,7 +55,7 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with MockitoSugar with L
         RedisConfigConstants.REDIS_HOST  -> "localhost",
         RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG -> KCQL,
-      ).asJava
+      )
 
       val config         = RedisConfig(props)
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)

@@ -35,7 +35,6 @@ import org.scalatest.time.Span
 import java.util.UUID
 import javax.jms.Message
 import javax.jms.Session
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.reflect.io.Path
 
@@ -64,7 +63,7 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     val kcql  = getKCQL(kafkaTopic, queueName, "QUEUE")
     val props = getProps(kcql, brokerUrl)
 
-    val config   = JMSConfig(props.asJava)
+    val config   = JMSConfig(props)
     val settings = JMSSettings(config, false)
     val reader   = JMSReader(settings)
 
@@ -89,7 +88,7 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     val avroMessages = getBytesMessage(messageCount, session)
     avroMessages.foreach(m => avroProducer.send(m))
 
-    val config   = JMSConfig(props.asJava)
+    val config   = JMSConfig(props)
     val settings = JMSSettings(config, sink = false)
     val reader   = JMSReader(settings)
 
@@ -125,7 +124,7 @@ class JMSReaderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
     val messageSelector = "Fruit='apples'"
     val kcql            = kcqlWithMessageSelector(kafkaTopic, topicName, messageSelector)
     val props           = getProps(kcql, brokerUrl)
-    val config          = JMSConfig(props.asJava)
+    val config          = JMSConfig(props)
     val settings        = JMSSettings(config, false)
     val reader          = JMSReader(settings)
 

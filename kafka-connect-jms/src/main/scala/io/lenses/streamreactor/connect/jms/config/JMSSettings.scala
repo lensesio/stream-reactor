@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.jms.config
 
+import com.google.common.base.Splitter
+import com.typesafe.scalalogging.StrictLogging
 import io.lenses.kcql.FormatType
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.errors.ErrorPolicy
@@ -23,13 +25,10 @@ import io.lenses.streamreactor.connect.converters.source.Converter
 import io.lenses.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
 import io.lenses.streamreactor.connect.jms.source.converters.CommonJMSMessageConverter
 import io.lenses.streamreactor.connect.jms.source.converters.{ JMSSourceMessageConverter => JMSMessageSourceConverter }
-import com.google.common.base.Splitter
-import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsScala
 
 case class JMSSetting(
   source:           String,
@@ -119,7 +118,7 @@ object JMSSettings extends StrictLogging {
     val settings = kcql.map { r =>
       val jmsName = if (sink) r.getTarget else r.getSource
 
-      val converters = JMSConnectorConverters(sink)(r, config.props.asScala.toMap) match {
+      val converters = JMSConnectorConverters(sink)(r, config.props) match {
         case None                    => throw new ConfigException("Converters should not be empty")
         case Some(Left(exception))   => throw exception
         case Some(Right(converters)) => converters

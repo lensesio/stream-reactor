@@ -19,8 +19,6 @@ import io.lenses.streamreactor.connect.cassandra.TestConfig
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.jdk.CollectionConverters.MapHasAsJava
-
 /**
   * Created by andrew@datamountaineer.com on 28/04/16.
   * stream-reactor
@@ -35,7 +33,7 @@ class TestCassandraSourceSettings extends AnyWordSpec with Matchers with TestCon
       CassandraConfigConstants.KCQL            -> IMPORT_QUERY_ALL,
       CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
       CassandraConfigConstants.POLL_INTERVAL   -> "1000",
-    ).asJava
+    )
 
     val taskConfig = CassandraConfigSource(props)
     val settings   = CassandraSettings.configureSource(taskConfig).toList
@@ -57,7 +55,7 @@ class TestCassandraSourceSettings extends AnyWordSpec with Matchers with TestCon
       CassandraConfigConstants.KCQL           -> "INSERT INTO cassandra-source SELECT * FROM orders PK created",
       CassandraConfigConstants.POLL_INTERVAL  -> "1000",
     )
-    val taskConfig = CassandraConfigSource(map.asJava)
+    val taskConfig = CassandraConfigSource(map)
     val settings   = CassandraSettings.configureSource(taskConfig).toList
     settings.size shouldBe 1
   }

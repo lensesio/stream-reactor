@@ -37,6 +37,7 @@ import javax.jms.Message
 import javax.jms.MessageListener
 import javax.jms.Session
 import javax.jms.TextMessage
+import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.language.reflectiveCalls
 import scala.reflect.io.Path
 import scala.util.Using.{ resource => using }
@@ -105,16 +106,17 @@ class JMSSinkTaskTest extends ItTestBase with BeforeAndAfterAll with MockitoSuga
 
         val kcql      = s"${getKCQL(topicName, kafkaTopic1, "TOPIC")};${getKCQL(queueName, kafkaTopic2, "QUEUE")}"
         val props     = getSinkProps(kcql, kafkaTopic1, brokerUrl)
+        val javaProps = props.asJava
         val context   = mock[SinkTaskContext]
         val topicsSet = new util.HashSet[TopicPartition]()
         topicsSet.add(new TopicPartition(kafkaTopic1, 0))
         topicsSet.add(new TopicPartition(kafkaTopic2, 0))
         when(context.assignment()).thenReturn(topicsSet)
-        when(context.configs()).thenReturn(props)
+        when(context.configs()).thenReturn(javaProps)
 
         val task = new JMSSinkTask
         task.initialize(context)
-        task.start(props)
+        task.start(javaProps)
 
         val records = new java.util.ArrayList[SinkRecord]
         records.add(record1)

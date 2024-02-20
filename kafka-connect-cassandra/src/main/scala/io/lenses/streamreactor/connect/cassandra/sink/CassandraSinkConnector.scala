@@ -68,7 +68,7 @@ class CassandraSinkConnector extends SinkConnector with StrictLogging {
     //check input topics
     Helpers.checkInputTopics(CassandraConfigConstants.KCQL, props.asScala.toMap)
     configProps = props
-    Try(new CassandraConfigSink(props)) match {
+    Try(new CassandraConfigSink(props.asScala.toMap)) match {
       case Failure(f) =>
         throw new ConnectException(s"Couldn't start Cassandra sink due to configuration error: ${f.getMessage}", f)
       case _ =>

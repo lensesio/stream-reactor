@@ -15,12 +15,12 @@
  */
 package io.lenses.streamreactor.common.config.base.traits
 
-import java.util
-
 import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.common.config.ConfigDef
 
-abstract class BaseConfig(connectorPrefixStr: String, confDef: ConfigDef, props: util.Map[String, String])
-    extends AbstractConfig(confDef, props) {
+import scala.jdk.CollectionConverters.MapHasAsJava
+
+abstract class BaseConfig(connectorPrefixStr: String, confDef: ConfigDef, props: Map[String, String])
+    extends AbstractConfig(confDef, props.asJava) {
   val connectorPrefix: String = connectorPrefixStr
 }

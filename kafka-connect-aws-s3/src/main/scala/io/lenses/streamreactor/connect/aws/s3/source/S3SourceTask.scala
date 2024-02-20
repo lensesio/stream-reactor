@@ -63,8 +63,9 @@ class S3SourceTask extends SourceTask with LazyLogging {
 
     logger.debug(s"Received call to S3SourceTask.start with ${props.size()} properties")
 
-    val contextProperties = Option(context).flatMap(c => Option(c.configs()).map(_.asScala.toMap)).getOrElse(Map.empty)
-    val mergedProperties  = MapUtils.mergeProps(contextProperties, props.asScala.toMap).asJava
+    val contextProperties: Map[String, String] =
+      Option(context).flatMap(c => Option(c.configs()).map(_.asScala.toMap)).getOrElse(Map.empty)
+    val mergedProperties: Map[String, String] = MapUtils.mergeProps(contextProperties, props.asScala.toMap)
     (for {
       result <- S3SourceState.make(mergedProperties, contextOffsetFn)
       fiber  <- result.partitionDiscoveryLoop.start

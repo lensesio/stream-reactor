@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.elastic7.config
 
-import java.util
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.config.base.traits.BaseConfig
 import io.lenses.streamreactor.common.config.base.traits.ErrorPolicySettings
@@ -199,7 +198,7 @@ object ElasticConfig {
   *
   * Holds config, extends AbstractConfig.
   */
-case class ElasticConfig(props: util.Map[String, String])
+case class ElasticConfig(props: Map[String, String])
     extends BaseConfig(ElasticConfigConstants.CONNECTOR_PREFIX, ElasticConfig.config, props)
     with WriteTimeoutSettings
     with ErrorPolicySettings

@@ -20,8 +20,6 @@ import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
-import java.util
-
 object RedisConfig {
 
   val config: ConfigDef = new ConfigDef()
@@ -136,7 +134,7 @@ object RedisConfig {
   *
   * Holds config, extends AbstractConfig.
   */
-case class RedisConfig(props: util.Map[String, String])
+case class RedisConfig(props: Map[String, String])
     extends BaseConfig(RedisConfigConstants.CONNECTOR_PREFIX, RedisConfig.config, props)
     with KcqlSettings
     with ErrorPolicySettings

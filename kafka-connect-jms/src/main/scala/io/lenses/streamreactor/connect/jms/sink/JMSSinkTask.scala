@@ -31,6 +31,7 @@ import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
 import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
   * <h1>JMSSinkTask</h1>
@@ -52,7 +53,7 @@ class JMSSinkTask extends SinkTask with StrictLogging {
 
     val conf = if (context.configs().isEmpty) props else context.configs()
     JMSConfig.config.parse(conf)
-    val sinkConfig = new JMSConfig(conf)
+    val sinkConfig = new JMSConfig(conf.asScala.toMap)
     val settings   = JMSSettings(sinkConfig, sink = true)
     enableProgress = sinkConfig.getBoolean(JMSConfigConstants.PROGRESS_COUNTER_ENABLED)
 

@@ -20,8 +20,6 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.jdk.CollectionConverters.MapHasAsJava
-
 class TestCassandraSinkConfig extends AnyWordSpec with BeforeAndAfter with Matchers with TestConfig {
 
   "A CassandraConfig should return configured for username and password" in {
@@ -31,7 +29,7 @@ class TestCassandraSinkConfig extends AnyWordSpec with BeforeAndAfter with Match
       CassandraConfigConstants.USERNAME       -> USERNAME,
       CassandraConfigConstants.PASSWD         -> PASSWD,
       CassandraConfigConstants.KCQL           -> QUERY_ALL,
-    ).asJava
+    )
 
     val taskConfig = CassandraConfigSink(props)
     taskConfig.getString(CassandraConfigConstants.CONTACT_POINTS) shouldBe CONTACT_POINT
@@ -54,7 +52,7 @@ class TestCassandraSinkConfig extends AnyWordSpec with BeforeAndAfter with Match
       CassandraConfigConstants.TRUST_STORE_PATH   -> TRUST_STORE_PATH,
       CassandraConfigConstants.TRUST_STORE_PASSWD -> TRUST_STORE_PASSWORD,
       CassandraConfigConstants.KCQL               -> QUERY_ALL,
-    ).asJava
+    )
 
     val taskConfig = CassandraConfigSink(props)
     taskConfig.getString(CassandraConfigConstants.CONTACT_POINTS) shouldBe CONTACT_POINT
@@ -81,7 +79,7 @@ class TestCassandraSinkConfig extends AnyWordSpec with BeforeAndAfter with Match
       CassandraConfigConstants.KEY_STORE_PATH     -> KEYSTORE_PATH,
       CassandraConfigConstants.KEY_STORE_PASSWD   -> KEYSTORE_PASSWORD,
       CassandraConfigConstants.KCQL               -> QUERY_ALL,
-    ).asJava
+    )
 
     val taskConfig = CassandraConfigSink(props)
     taskConfig.getString(CassandraConfigConstants.CONTACT_POINTS) shouldBe CONTACT_POINT

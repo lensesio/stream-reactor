@@ -33,7 +33,6 @@ import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
@@ -62,9 +61,9 @@ class S3ConsumerGroupsSinkTask extends SinkTask with ErrorHandler {
     logger.debug(s"[{}] S3ConsumerGroupSinkTask.start", fallbackProps.get("name"))
 
     val contextProps = Option(context).flatMap(c => Option(c.configs())).map(_.asScala.toMap).getOrElse(Map.empty)
-    val props        = MapUtils.mergeProps(contextProps, fallbackProps.asScala.toMap).asJava
+    val props        = MapUtils.mergeProps(contextProps, fallbackProps.asScala.toMap)
     (for {
-      taskId   <- new ConnectorTaskIdCreator(CONNECTOR_PREFIX).fromProps(fallbackProps)
+      taskId   <- new ConnectorTaskIdCreator(CONNECTOR_PREFIX).fromProps(fallbackProps.asScala.toMap)
       config   <- S3ConsumerGroupsSinkConfig.fromProps(props)
       s3Client <- AwsS3ClientCreator.make(config.config)
       uploader  = new AwsS3Uploader(s3Client, taskId)

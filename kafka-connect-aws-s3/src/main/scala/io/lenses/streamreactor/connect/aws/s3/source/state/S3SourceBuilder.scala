@@ -31,12 +31,11 @@ import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManagerState
 import io.lenses.streamreactor.connect.cloud.common.source.state.CloudSourceTaskState
 
-import java.util
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 object S3SourceState extends StrictLogging {
   def make(
-    props:           util.Map[String, String],
+    props:           Map[String, String],
     contextOffsetFn: CloudLocation => Option[CloudLocation],
   )(
     implicit

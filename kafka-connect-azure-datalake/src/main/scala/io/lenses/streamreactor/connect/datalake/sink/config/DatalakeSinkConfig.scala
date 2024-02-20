@@ -24,12 +24,10 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOpti
 import io.lenses.streamreactor.connect.datalake.config.AzureConfig
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings.SEEK_MAX_INDEX_FILES
 
-import java.util
-
 object DatalakeSinkConfig {
 
   def fromProps(
-    props: util.Map[String, String],
+    props: Map[String, String],
   )(
     implicit
     connectorTaskId:        ConnectorTaskId,

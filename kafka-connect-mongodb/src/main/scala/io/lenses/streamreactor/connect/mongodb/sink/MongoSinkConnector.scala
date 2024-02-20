@@ -66,7 +66,7 @@ class MongoSinkConnector extends SinkConnector with StrictLogging {
     */
   override def start(props: util.Map[String, String]): Unit = {
     Helpers.checkInputTopics(MongoConfigConstants.KCQL_CONFIG, props.asScala.toMap)
-    Try(MongoConfig(props)) match {
+    Try(MongoConfig(props.asScala.toMap)) match {
       case Failure(f) =>
         throw new ConnectException(s"Couldn't start Mongo sink due to configuration error: ${f.getMessage}", f)
       case _ =>

@@ -47,7 +47,7 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
     */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
 
-    val settings = MqttSourceSettings(MqttSourceConfig(configProps))
+    val settings = MqttSourceSettings(MqttSourceConfig(configProps.asScala.toMap))
     val kcql     = settings.kcql
     if (maxTasks == 1 || kcql.length == 1) {
       Collections.singletonList(configProps)

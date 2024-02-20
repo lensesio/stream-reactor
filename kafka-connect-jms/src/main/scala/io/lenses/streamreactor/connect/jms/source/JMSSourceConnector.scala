@@ -35,7 +35,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
   * stream-reactor
   */
 class JMSSourceConnector extends SourceConnector with StrictLogging {
-  private var configProps: util.Map[String, String] = _
+  private var configProps: Map[String, String] = _
   private val configDef = JMSConfig.config
   private val manifest  = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
@@ -43,31 +43,24 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
 
   def kcqlTaskScaling(maxTasks: Int): util.List[util.Map[String, String]] = {
     val raw = configProps.get(JMSConfigConstants.KCQL)
-    require(raw != null && raw.nonEmpty, s"No ${JMSConfigConstants.KCQL} provided!")
+    require(raw.nonEmpty, s"No ${JMSConfigConstants.KCQL} provided!")
 
     //sql1, sql2
-    val kcqls  = raw.split(";")
+    val kcqls  = raw.map(_.split(";"))
     val groups = ConnectorUtils.groupPartitions(kcqls.toList.asJava, maxTasks).asScala
 
     //split up the kcql statement based on the number of tasks.
     groups
       .filterNot(_.isEmpty)
       .map { g =>
-        val taskConfigs = new java.util.HashMap[String, String]
-        taskConfigs.putAll(configProps)
-        taskConfigs.put(JMSConfigConstants.KCQL, g.asScala.mkString(";")) //overwrite
-        taskConfigs.asScala.toMap.asJava
+        (configProps + (JMSConfigConstants.KCQL -> g.asScala.mkString(";"))).asJava
       }
   }.asJava
 
   def defaultTaskScaling(maxTasks: Int): util.List[util.Map[String, String]] = {
     val raw = configProps.get(JMSConfigConstants.KCQL)
     require(raw != null && raw.nonEmpty, s"No ${JMSConfigConstants.KCQL} provided!")
-    (1 to maxTasks).map { _ =>
-      val taskConfigs: util.Map[String, String] = new java.util.HashMap[String, String]
-      taskConfigs.putAll(configProps)
-      taskConfigs
-    }.toList.asJava
+    (1 to maxTasks).map(_ => configProps.asJava).toList.asJava
   }
 
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
@@ -81,7 +74,8 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
   override def config(): ConfigDef = configDef
 
   override def start(props: util.Map[String, String]): Unit = {
-    val config = new JMSConfig(props)
+    val scalaProps = props.asScala.toMap
+    val config     = new JMSConfig(scalaProps)
     configProps = config.props
   }
 

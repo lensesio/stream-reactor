@@ -20,8 +20,6 @@ import cats.implicits.toBifunctorOps
 import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
 import io.lenses.streamreactor.connect.cloud.common.source.config.distribution.PartitionHasher
 
-import java.util
-
 case class ConnectorTaskId(name: String, maxTasks: Int, taskNo: Int) {
   def ownsDir(dirPath: String): Boolean =
     if (maxTasks == 1) true
@@ -43,9 +41,9 @@ object ConnectorTaskId {
 }
 
 class ConnectorTaskIdCreator(val connectorPrefix: String) extends TaskIndexKey {
-  def fromProps(props: util.Map[String, String]): Either[Throwable, ConnectorTaskId] = {
+  def fromProps(props: Map[String, String]): Either[Throwable, ConnectorTaskId] = {
     for {
-      taskIndexString <- Option(props.get(TASK_INDEX)).toRight(s"Missing $TASK_INDEX")
+      taskIndexString <- props.get(TASK_INDEX).toRight(s"Missing $TASK_INDEX")
       taskIndex        = taskIndexString.split(":")
       _               <- if (taskIndex.size != 2) Left(s"Invalid $TASK_INDEX. Expecting TaskNumber:MaxTask format.") else Right(())
       maxTasks <- taskIndex(1).toIntOption.toRight(
@@ -58,7 +56,7 @@ class ConnectorTaskIdCreator(val connectorPrefix: String) extends TaskIndexKey {
       )
       _ <- if (taskNumber < 0) Left(s"Invalid $TASK_INDEX. Expecting a positive integer but found:${taskIndex(0)}")
       else Right(())
-      maybeTaskName <- Option(props.get("name")).filter(_.trim.nonEmpty).toRight("Missing connector name")
+      maybeTaskName <- props.get("name").filter(_.trim.nonEmpty).toRight("Missing connector name")
     } yield ConnectorTaskId(maybeTaskName, maxTasks, taskNumber)
   }.leftMap(new IllegalArgumentException(_))
 

@@ -24,8 +24,6 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketO
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.jdk.CollectionConverters.MapHasAsJava
-
 class S3SinkConfigTest extends AnyFunSuite with Matchers {
   private implicit val connectorTaskId = ConnectorTaskId("connector", 1, 0)
   private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
@@ -34,7 +32,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    CloudSinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
+    CloudSinkBucketOptions(S3SinkConfigDefBuilder(props)) match {
       case Left(value) => value.getMessage shouldBe "Envelope is not supported for format CSV."
       case Right(_)    => fail("Should fail since envelope and CSV storage is not allowed")
     }
@@ -45,7 +43,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Parquet` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
+    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props)) match {
       case Left(error) => fail("Should not fail since envelope and Parquet storage is allowed", error)
       case Right(_)    => succeed
     }
@@ -55,7 +53,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Avro` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
+    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props)) match {
       case Left(error) => fail("Should not fail since envelope and Avro storage is allowed", error)
       case Right(_)    => succeed
     }
@@ -65,7 +63,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Json` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
+    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props)) match {
       case Left(error) => fail("Should not fail since envelope and Json storage is allowed", error)
       case Right(_)    => succeed
     }
@@ -75,7 +73,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Text` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
+    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props)) match {
       case Left(value) => value.getMessage shouldBe "Envelope is not supported for format TEXT."
       case Right(_)    => fail("Should fail since text and envelope storage is not allowed")
     }
@@ -85,7 +83,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Bytes` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props.asJava)) match {
+    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props)) match {
       case Left(value) => value.getMessage shouldBe "Envelope is not supported for format BYTES."
       case Right(_)    => fail("Should fail since envelope and bytes storage is not allowed")
     }

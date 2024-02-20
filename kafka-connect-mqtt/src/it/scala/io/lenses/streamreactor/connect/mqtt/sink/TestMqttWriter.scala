@@ -45,8 +45,6 @@ import java.nio.file.Paths
 import java.util.UUID
 import scala.collection.mutable
 import scala.io.Source
-import scala.jdk.CollectionConverters.MapHasAsJava
-import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -207,7 +205,7 @@ class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestConta
       MqttConfigConstants.USER_CONFIG                -> mqttUser,
     )
 
-    val config   = MqttSinkConfig(props.asJava)
+    val config   = MqttSinkConfig(props)
     val settings = MqttSinkSettings(config)
 
     val convertersMap = settings.sinksToConverters.map {
@@ -267,7 +265,7 @@ class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestConta
       MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG   -> "1000",
       MqttConfigConstants.PASSWORD_CONFIG              -> mqttPassword,
       MqttConfigConstants.USER_CONFIG                  -> mqttUser,
-    ).asJava
+    )
 
     val config   = MqttSinkConfig(props)
     val settings = MqttSinkSettings(config)
@@ -283,7 +281,7 @@ class TestMqttWriter extends AnyWordSpec with MqttCallback with ForEachTestConta
             )
         }
 
-        converter.initialize(props.asScala.toMap)
+        converter.initialize(props)
         topic -> converter
     }
 

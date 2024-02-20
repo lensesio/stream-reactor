@@ -18,7 +18,6 @@ import redis.clients.jedis.Jedis
 import redis.clients.jedis.args.GeoUnit
 
 import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 class RedisGeoAddTest extends AnyWordSpec with Matchers with MockitoSugar with ForAllTestContainer {
 
@@ -38,7 +37,7 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with MockitoSugar with F
         RedisConfigConstants.REDIS_HOST  -> "localhost",
         RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG -> KCQL,
-      ).asJava
+      )
 
       val config         = RedisConfig(props)
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
@@ -81,7 +80,7 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with MockitoSugar with F
         RedisConfigConstants.REDIS_HOST  -> "localhost",
         RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG -> KCQL,
-      ).asJava
+      )
 
       val config         = RedisConfig(props)
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)
@@ -126,7 +125,7 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with MockitoSugar with F
         RedisConfigConstants.REDIS_HOST  -> "localhost",
         RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG -> KCQL,
-      ).asJava
+      )
 
       val config         = RedisConfig(props)
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)

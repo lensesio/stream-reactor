@@ -35,7 +35,6 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 class TestCassandraTypeConverter extends AnyWordSpec with TestConfig with Matchers with MockitoSugar {
 
@@ -285,7 +284,7 @@ class TestCassandraTypeConverter extends AnyWordSpec with TestConfig with Matche
       CassandraConfigConstants.POLL_INTERVAL              -> "1000",
       CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON -> mappingCollectionToJson.toString,
     )
-    val taskConfig = CassandraConfigSource(config.asJava);
+    val taskConfig = CassandraConfigSource(config)
     CassandraSettings.configureSource(taskConfig).toList.head
   }
 

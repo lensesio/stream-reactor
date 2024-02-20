@@ -22,8 +22,6 @@ import io.lenses.streamreactor.common.config.base.traits.KcqlSettings
 import io.lenses.streamreactor.common.config.base.traits.NumberRetriesSettings
 import io.lenses.streamreactor.common.config.base.traits.UserSettings
 
-import java.util
-
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
@@ -152,7 +150,7 @@ object MongoConfig {
     .withClientSslSupport()
 }
 
-case class MongoConfig(props: util.Map[String, String])
+case class MongoConfig(props: Map[String, String])
     extends BaseConfig(MongoConfigConstants.CONNECTOR_PREFIX, MongoConfig.config, props)
     with KcqlSettings
     with DatabaseSettings

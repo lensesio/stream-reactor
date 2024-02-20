@@ -33,6 +33,7 @@ import org.apache.kafka.connect.sink.SinkTask
 import java.util
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
   * <h1>RedisSinkTask</h1>
@@ -56,7 +57,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     val conf = if (context.configs().isEmpty) props else context.configs()
 
     RedisConfig.config.parse(conf)
-    val sinkConfig = new RedisConfig(conf)
+    val sinkConfig = new RedisConfig(conf.asScala.toMap)
     val settings   = RedisSinkSettings(sinkConfig)
     enableProgress = sinkConfig.getBoolean(RedisConfigConstants.PROGRESS_COUNTER_ENABLED)
 

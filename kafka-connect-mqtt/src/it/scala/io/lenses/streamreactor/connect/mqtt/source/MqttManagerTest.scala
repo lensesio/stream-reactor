@@ -46,7 +46,6 @@ import java.nio.file.Paths
 import java.util
 import java.util.UUID
 import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers with StrictLogging {
 
@@ -452,10 +451,8 @@ class MqttManagerTest extends AnyWordSpec with ForAllTestContainer with Matchers
         MqttConfigConstants.HOSTS_CONFIG                   -> getMqttConnectionUrl,
         MqttConfigConstants.QS_CONFIG                      -> qs.toString,
       )
-      val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
-                                        sourcesToConvMap,
-                                        MqttSourceSettings(MqttSourceConfig(props.asJava)),
-      )
+      val mqttManager =
+        new MqttManager(MqttClientConnectionFn.apply, sourcesToConvMap, MqttSourceSettings(MqttSourceConfig(props)))
       Thread.sleep(2000)
 
       val message = "message"

@@ -32,7 +32,6 @@ import org.scalatest.concurrent.Eventually
 import java.util.UUID
 import javax.jms.Session
 import javax.naming.NameNotFoundException
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
 
 class JMSSessionProviderTest extends ItTestBase with BeforeAndAfterAll with Eventually {
@@ -45,7 +44,7 @@ class JMSSessionProviderTest extends ItTestBase with BeforeAndAfterAll with Even
     val queueName  = UUID.randomUUID().toString
     val kcql       = getKCQL(kafkaTopic, queueName, "QUEUE")
     val props      = getProps(kcql, brokerUrl)
-    val config     = JMSConfig(props.asJava)
+    val config     = JMSConfig(props)
     val settings   = JMSSettings(config, forAJmsConsumer)
     val provider   = JMSSessionProvider(settings, forAJmsConsumer)
     provider.queueConsumers.size shouldBe 1
@@ -60,7 +59,7 @@ class JMSSessionProviderTest extends ItTestBase with BeforeAndAfterAll with Even
     val topicName  = UUID.randomUUID().toString
     val kcql       = getKCQL(kafkaTopic, topicName, "TOPIC")
     val props      = getProps(kcql, brokerUrl)
-    val config     = JMSConfig(props.asJava)
+    val config     = JMSConfig(props)
     val settings   = JMSSettings(config, forAJmsConsumer)
     val provider   = JMSSessionProvider(settings, forAJmsConsumer)
     provider.queueConsumers.size shouldBe 0
@@ -75,7 +74,7 @@ class JMSSessionProviderTest extends ItTestBase with BeforeAndAfterAll with Even
     val queueName  = UUID.randomUUID().toString
     val kcql       = getKCQL(kafkaTopic, queueName, "QUEUE")
     val props      = getProps(kcql, brokerUrl)
-    val config     = JMSConfig(props.asJava)
+    val config     = JMSConfig(props)
     val settings   = JMSSettings(config, forAJmsProducer)
     val provider   = JMSSessionProvider(settings, forAJmsProducer)
     provider.queueConsumers.size shouldBe 0
@@ -90,7 +89,7 @@ class JMSSessionProviderTest extends ItTestBase with BeforeAndAfterAll with Even
     val topicName  = UUID.randomUUID().toString
     val kcql       = getKCQL(kafkaTopic, topicName, "TOPIC")
     val props      = getProps(kcql, brokerUrl)
-    val config     = JMSConfig(props.asJava)
+    val config     = JMSConfig(props)
     val settings   = JMSSettings(config, forAJmsProducer)
     val provider   = JMSSessionProvider(settings, forAJmsProducer)
     provider.queueConsumers.size shouldBe 0
@@ -105,7 +104,7 @@ class JMSSessionProviderTest extends ItTestBase with BeforeAndAfterAll with Even
     val topicName  = UUID.randomUUID().toString
     val kcql       = getKCQL(kafkaTopic, topicName, "TOPIC")
     val props      = getProps(kcql, brokerUrl)
-    val config     = JMSConfig(props.asJava)
+    val config     = JMSConfig(props)
     val settings   = JMSSettings(config, forAJmsProducer)
     val provider   = JMSSessionProvider(settings, forAJmsProducer)
     provider.close().isSuccess shouldBe true
@@ -119,7 +118,7 @@ class JMSSessionProviderTest extends ItTestBase with BeforeAndAfterAll with Even
       val topicName       = UUID.randomUUID().toString
       val kcql            = getKCQL(kafkaTopic, topicName, "TOPIC")
       val props           = getProps(kcql, brokerUrl)
-      val config          = JMSConfig(props.asJava)
+      val config          = JMSConfig(props)
       val validSettings   = JMSSettings(config, forAJmsConsumer)
       val invalidSettings = validSettings.copy(destinationSelector = DestinationSelector.JNDI)
 
