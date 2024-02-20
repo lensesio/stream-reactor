@@ -33,7 +33,7 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
-class S3S3S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matchers with EitherValues {
+class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matchers with EitherValues {
 
   val PrefixName = "streamReactorBackups"
   val TopicName  = "myTopic"
