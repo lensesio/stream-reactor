@@ -42,24 +42,9 @@ trait CompressionCodecSettings extends BaseSettings with CompressionCodecConfigK
         CompressionCodecName.UNCOMPRESSED,
       )
 
-    val level     = getInt(COMPRESSION_LEVEL)
-    val levelOpt  = Option.when(level != -1)(level.toInt)
-    val extension = getCompressedFileExtension(codec)
+    val level    = getInt(COMPRESSION_LEVEL)
+    val levelOpt = Option.when(level != -1)(level.toInt)
 
-    CompressionCodec(codec, levelOpt, extension)
+    CompressionCodec(codec, levelOpt, CompressionCodecName.toFileExtension(codec))
   }
-
-  private def getCompressedFileExtension(codec: CompressionCodecName): Option[String] =
-    codec match {
-      case CompressionCodecName.UNCOMPRESSED => None
-      case CompressionCodecName.SNAPPY       => Some("sz")
-      case CompressionCodecName.GZIP         => Some("gz")
-      case CompressionCodecName.LZO          => Some("lzo")
-      case CompressionCodecName.BROTLI       => Some("br")
-      case CompressionCodecName.LZ4          => Some("lz4")
-      case CompressionCodecName.BZIP2        => Some("bz2")
-      case CompressionCodecName.ZSTD         => Some("zst")
-      case CompressionCodecName.DEFLATE      => Some("gz")
-      case CompressionCodecName.XZ           => Some("xz")
-    }
 }

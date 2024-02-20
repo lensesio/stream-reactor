@@ -22,7 +22,6 @@ import io.lenses.streamreactor.connect.cloud.common.config.BytesFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.config.FormatSelection
-import io.lenses.streamreactor.connect.cloud.common.config.JsonFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitPolicy
@@ -33,9 +32,9 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.SinkPr
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.FileExtensionNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.TopicPartitionOffsetFileNamer
-import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 
 object CloudSinkBucketOptions extends LazyLogging {
 
@@ -49,7 +48,7 @@ object CloudSinkBucketOptions extends LazyLogging {
     config.getKCQL.map { kcql: Kcql =>
       for {
         formatSelection   <- FormatSelection.fromKcql(kcql, SinkPropsSchema.schema)
-        fileExtension      = extractFileExtension(config.getCompressionCodec(), formatSelection)
+        fileExtension      = FileExtensionNamer.fileExtension(config.getCompressionCodec(), formatSelection)
         sinkProps          = CloudSinkProps.fromKcql(kcql)
         partitionSelection = PartitionSelection(kcql, sinkProps)
         paddingService    <- PaddingService.fromConfig(config, sinkProps)
@@ -110,14 +109,6 @@ object CloudSinkBucketOptions extends LazyLogging {
       else
         new IllegalArgumentException(s"Envelope is not supported for format ${format.extension.toUpperCase()}.").asLeft
     }
-
-  private def extractFileExtension(compressionCodec: CompressionCodec, formatSelection: FormatSelection): String = {
-    // Avro or Parquet do not change filenames when compressed; guards for JSON only.
-    if (formatSelection != JsonFormatSelection)
-      return formatSelection.extension
-
-    compressionCodec.extension.getOrElse(formatSelection.extension)
-  }
 }
 
 case class CloudSinkBucketOptions(
