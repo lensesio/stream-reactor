@@ -25,7 +25,7 @@ trait CompressionCodecConfigKeys extends WithConnectorPrefix {
 
   def COMPRESSION_CODEC = s"$connectorPrefix.compression.codec"
 
-  val COMPRESSION_CODEC_DOC = "Compression codec to use for Avro or Parquet."
+  val COMPRESSION_CODEC_DOC = "Compression codec to use for Avro, Parquet or JSON."
   val COMPRESSION_CODEC_DEFAULT: String = UNCOMPRESSED.entryName
 
   def COMPRESSION_LEVEL = s"$connectorPrefix.compression.level"
@@ -41,9 +41,10 @@ trait CompressionCodecSettings extends BaseSettings with CompressionCodecConfigK
       CompressionCodecName.withNameInsensitiveOption(getString(COMPRESSION_CODEC)).getOrElse(
         CompressionCodecName.UNCOMPRESSED,
       )
+
     val level    = getInt(COMPRESSION_LEVEL)
     val levelOpt = Option.when(level != -1)(level.toInt)
 
-    CompressionCodec(codec, levelOpt)
+    CompressionCodec(codec, levelOpt, CompressionCodecName.toFileExtension(codec))
   }
 }

@@ -20,9 +20,13 @@ import enumeratum.Enum
 import enumeratum.EnumEntry
 
 sealed trait CompressionCodecName extends EnumEntry {
-  def withLevel(level: Int): CompressionCodec = CompressionCodec(this, level.some)
+  def withLevel(level: Int): CompressionCodec =
+    CompressionCodec(this, level.some, CompressionCodecName.toFileExtension(this))
 
-  def toCodec(): CompressionCodec = CompressionCodec(this)
+  def toCodec(): CompressionCodec = CompressionCodec(
+    compressionCodec = this,
+    extension        = CompressionCodecName.toFileExtension(this),
+  )
 }
 
 object CompressionCodecName extends Enum[CompressionCodecName] {
@@ -39,6 +43,28 @@ object CompressionCodecName extends Enum[CompressionCodecName] {
   case object XZ           extends CompressionCodecName
 
   override def values: IndexedSeq[CompressionCodecName] = findValues
+
+  def toFileExtension(codecName: CompressionCodecName): Option[String] = codecName match {
+    case CompressionCodecName.UNCOMPRESSED => None
+    case CompressionCodecName.SNAPPY       => Some("sz")
+    case CompressionCodecName.GZIP         => Some("gz")
+    case CompressionCodecName.LZO          => Some("lzo")
+    case CompressionCodecName.BROTLI       => Some("br")
+    case CompressionCodecName.LZ4          => Some("lz4")
+    case CompressionCodecName.BZIP2        => Some("bz2")
+    case CompressionCodecName.ZSTD         => Some("zst")
+    case CompressionCodecName.DEFLATE      => Some("gz")
+    case CompressionCodecName.XZ           => Some("xz")
+  }
 }
 
-case class CompressionCodec(compressionCodec: CompressionCodecName, level: Option[Int] = Option.empty)
+/**
+  * @param extension
+  *   Some format selections have compression built-in, such as Avro and Parquet.
+  *   Text formats like CSV and JSON do not, and require an update to the file extension when compressed.
+  */
+case class CompressionCodec(
+  compressionCodec: CompressionCodecName,
+  level:            Option[Int]    = Option.empty,
+  extension:        Option[String] = None,
+)

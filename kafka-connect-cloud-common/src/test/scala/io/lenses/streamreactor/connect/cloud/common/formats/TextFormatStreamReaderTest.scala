@@ -26,27 +26,27 @@ import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
 
 import java.io.ByteArrayInputStream
 import java.time.Instant
 
 class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
+  private implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
 
   "read" should "take read through all records" in {
 
     val byteArrayInputStream: ByteArrayInputStream = writeRecordsToOutputStream
-    val avroFormatStreamReader =
-      new TextStreamReader(
-        byteArrayInputStream,
-      )
+    val jsonTextFormatStreamReader = new TextStreamReader(byteArrayInputStream)
 
-    avroFormatStreamReader.hasNext should be(true)
-    avroFormatStreamReader.next() should be(SampleData.recordsAsJson(0))
-    avroFormatStreamReader.hasNext should be(true)
-    avroFormatStreamReader.next() should be(SampleData.recordsAsJson(1))
-    avroFormatStreamReader.hasNext should be(true)
-    avroFormatStreamReader.next() should be(SampleData.recordsAsJson(2))
-    avroFormatStreamReader.hasNext should be(false)
+    jsonTextFormatStreamReader.hasNext should be(true)
+    jsonTextFormatStreamReader.next() should be(SampleData.recordsAsJson(0))
+    jsonTextFormatStreamReader.hasNext should be(true)
+    jsonTextFormatStreamReader.next() should be(SampleData.recordsAsJson(1))
+    jsonTextFormatStreamReader.hasNext should be(true)
+    jsonTextFormatStreamReader.next() should be(SampleData.recordsAsJson(2))
+    jsonTextFormatStreamReader.hasNext should be(false)
 
   }
 

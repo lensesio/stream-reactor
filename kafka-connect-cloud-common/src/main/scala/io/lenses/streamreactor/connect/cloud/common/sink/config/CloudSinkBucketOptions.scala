@@ -32,6 +32,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.SinkPr
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.FileExtensionNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.TopicPartitionOffsetFileNamer
 
@@ -47,6 +48,7 @@ object CloudSinkBucketOptions extends LazyLogging {
     config.getKCQL.map { kcql: Kcql =>
       for {
         formatSelection   <- FormatSelection.fromKcql(kcql, SinkPropsSchema.schema)
+        fileExtension      = FileExtensionNamer.fileExtension(config.getCompressionCodec(), formatSelection)
         sinkProps          = CloudSinkProps.fromKcql(kcql)
         partitionSelection = PartitionSelection(kcql, sinkProps)
         paddingService    <- PaddingService.fromConfig(config, sinkProps)
@@ -55,12 +57,12 @@ object CloudSinkBucketOptions extends LazyLogging {
           new TopicPartitionOffsetFileNamer(
             paddingService.padderFor("partition"),
             paddingService.padderFor("offset"),
-            formatSelection.extension,
+            fileExtension,
           )
         } else {
           new OffsetFileNamer(
             paddingService.padderFor("offset"),
-            formatSelection.extension,
+            fileExtension,
           )
         }
         keyNamer         = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)

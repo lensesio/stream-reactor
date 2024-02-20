@@ -16,7 +16,6 @@
 package io.lenses.streamreactor.connect.gcp.storage.sink.config
 
 import io.lenses.streamreactor.common.config.base.traits._
-import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfigDefBuilder
 import io.lenses.streamreactor.connect.gcp.storage.config.AuthModeSettings
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings
@@ -32,7 +31,6 @@ case class GCPStorageSinkConfigDefBuilder(props: util.Map[String, String])
     with NumberRetriesSettings
     with UserSettings
     with ConnectionSettings
-    with CompressionCodecSettings
     with AuthModeSettings
     with UploadSettings {
 

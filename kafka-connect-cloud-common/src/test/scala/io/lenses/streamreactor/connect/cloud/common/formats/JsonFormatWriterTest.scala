@@ -26,12 +26,81 @@ import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
+import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.GZIP
+
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
+import java.io.ByteArrayInputStream
+import io.lenses.streamreactor.connect.cloud.common.formats.reader.TextStreamReader
 
 import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
+  private implicit val compressionCodec: CompressionCodec = UNCOMPRESSED.toCodec()
+
+  "convert" should "write compressed byte output stream with json for a single record" in {
+    implicit val compressionCodec = GZIP.toCodec()
+
+    val outputStream     = new CloudByteArrayOutputStream()
+    val jsonFormatWriter = new JsonFormatWriter(outputStream)
+
+    jsonFormatWriter.write(
+      MessageDetail(
+        NullSinkData(None),
+        StructSinkData(SampleData.Users.head),
+        Map.empty,
+        Some(Instant.now()),
+        topic,
+        0,
+        Offset(0),
+      ),
+    )
+    jsonFormatWriter.complete()
+
+    val byteArrayInputStream       = new ByteArrayInputStream(outputStream.toByteArray)
+    val compressedStream           = new GzipCompressorInputStream(byteArrayInputStream)
+    val jsonTextFormatStreamReader = new TextStreamReader(compressedStream)
+
+    jsonTextFormatStreamReader.hasNext should be(true)
+    jsonTextFormatStreamReader.next() should be(SampleData.recordsAsJson(0))
+  }
+
+  "convert" should "write compressed byte output stream with json for multiple records" in {
+    implicit val compressionCodec = GZIP.toCodec()
+
+    val outputStream     = new CloudByteArrayOutputStream()
+    val jsonFormatWriter = new JsonFormatWriter(outputStream)
+
+    SampleData.Users.take(3).foreach(sampleUser =>
+      jsonFormatWriter.write(
+        MessageDetail(
+          NullSinkData(None),
+          StructSinkData(sampleUser),
+          Map.empty,
+          Some(Instant.now()),
+          topic,
+          0,
+          Offset(0),
+        ),
+      ),
+    )
+    jsonFormatWriter.complete()
+
+    val byteArrayInputStream       = new ByteArrayInputStream(outputStream.toByteArray)
+    val compressedStream           = new GzipCompressorInputStream(byteArrayInputStream)
+    val jsonTextFormatStreamReader = new TextStreamReader(compressedStream)
+
+    jsonTextFormatStreamReader.hasNext should be(true)
+    jsonTextFormatStreamReader.next() should be(SampleData.recordsAsJson(0))
+    jsonTextFormatStreamReader.hasNext should be(true)
+    jsonTextFormatStreamReader.next() should be(SampleData.recordsAsJson(1))
+    jsonTextFormatStreamReader.hasNext should be(true)
+    jsonTextFormatStreamReader.next() should be(SampleData.recordsAsJson(2))
+    jsonTextFormatStreamReader.hasNext should be(false)
+  }
 
   "convert" should "write byte output stream with json for a single record" in {
 
