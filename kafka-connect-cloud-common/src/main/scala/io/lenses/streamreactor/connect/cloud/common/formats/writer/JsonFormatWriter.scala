@@ -64,6 +64,7 @@ class JsonFormatWriter(outputStream: CloudOutputStream)(implicit compressionCode
         }
 
         compressedOutputStream.write(dataBytes)
+        compressedOutputStream.write(LineSeparatorBytes)
         compressedOutputStream.flush()
       } else {
         outputStream.write(dataBytes)
