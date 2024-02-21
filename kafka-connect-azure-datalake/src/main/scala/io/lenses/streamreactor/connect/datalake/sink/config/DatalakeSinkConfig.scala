@@ -49,7 +49,7 @@ object DatalakeSinkConfig {
         s3ConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
       )
     } yield DatalakeSinkConfig(
-      AzureConfig(s3ConfigDefBuilder.getParsedValues, authMode),
+      AzureConfig(s3ConfigDefBuilder.props, authMode),
       sinkBucketOptions,
       offsetSeekerOptions,
       s3ConfigDefBuilder.getCompressionCodec(),

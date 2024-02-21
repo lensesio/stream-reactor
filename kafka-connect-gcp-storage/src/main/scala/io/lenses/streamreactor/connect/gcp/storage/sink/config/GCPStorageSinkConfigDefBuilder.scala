@@ -21,8 +21,6 @@ import io.lenses.streamreactor.connect.gcp.storage.config.AuthModeSettings
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings
 import io.lenses.streamreactor.connect.gcp.storage.config.UploadSettings
 
-import scala.jdk.CollectionConverters.MapHasAsScala
-
 case class GCPStorageSinkConfigDefBuilder(props: Map[String, String])
     extends BaseConfig(GCPConfigSettings.CONNECTOR_PREFIX, GCPStorageSinkConfigDef.config, props)
     with CloudSinkConfigDefBuilder
@@ -31,8 +29,4 @@ case class GCPStorageSinkConfigDefBuilder(props: Map[String, String])
     with UserSettings
     with ConnectionSettings
     with AuthModeSettings
-    with UploadSettings {
-
-  def getParsedValues: Map[String, _] = values().asScala.toMap
-
-}
+    with UploadSettings {}

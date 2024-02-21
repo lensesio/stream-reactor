@@ -49,7 +49,7 @@ object GCPStorageSinkConfig {
         gcpConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
       )
     } yield GCPStorageSinkConfig(
-      GCPConfig(gcpConfigDefBuilder.getParsedValues, authMode),
+      GCPConfig(gcpConfigDefBuilder.props, authMode),
       sinkBucketOptions,
       offsetSeekerOptions,
       gcpConfigDefBuilder.getCompressionCodec(),

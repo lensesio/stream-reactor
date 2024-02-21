@@ -20,16 +20,10 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingS
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategySettings
 import org.apache.kafka.common.config.ConfigDef
 
-import scala.jdk.CollectionConverters.MapHasAsScala
-
 case class TestConfigDefBuilder(configDef: ConfigDef, props: Map[String, String])
     extends BaseConfig("connect.testing", configDef, props)
     with PaddingStrategySettings
-    with LocalStagingAreaSettings {
-
-  def getParsedValues: Map[String, _] = values().asScala.toMap
-
-}
+    with LocalStagingAreaSettings {}
 
 object TestConfig {
 

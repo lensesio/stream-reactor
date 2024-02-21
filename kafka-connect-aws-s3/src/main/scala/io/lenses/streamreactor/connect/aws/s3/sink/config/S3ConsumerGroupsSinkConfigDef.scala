@@ -22,8 +22,6 @@ import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
-import scala.jdk.CollectionConverters._
-
 object S3ConsumerGroupsSinkConfigDef {
 
   val config: ConfigDef = new ConfigDef()
@@ -116,7 +114,4 @@ object S3ConsumerGroupsSinkConfigDef {
 }
 
 case class S3ConsumerGroupsSinkConfigDef(props: Map[String, String])
-    extends BaseConfig(S3ConfigSettings.CONNECTOR_PREFIX, S3ConsumerGroupsSinkConfigDef.config, props) {
-  def getParsedValues: Map[String, _] = values().asScala.toMap
-
-}
+    extends BaseConfig(S3ConfigSettings.CONNECTOR_PREFIX, S3ConsumerGroupsSinkConfigDef.config, props) {}

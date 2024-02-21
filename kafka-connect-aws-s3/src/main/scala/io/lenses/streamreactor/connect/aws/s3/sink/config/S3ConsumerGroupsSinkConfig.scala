@@ -35,7 +35,7 @@ object S3ConsumerGroupsSinkConfig extends PropertiesHelper {
     s3ConfigDefBuilder: S3ConsumerGroupsSinkConfigDef,
   ): Either[Throwable, S3ConsumerGroupsSinkConfig] =
     S3ConsumerGroupsSinkConfig.from(
-      s3ConfigDefBuilder.getParsedValues,
+      s3ConfigDefBuilder.props,
     )
 
   def from(props: Map[String, _]): Either[Throwable, S3ConsumerGroupsSinkConfig] =

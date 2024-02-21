@@ -49,7 +49,7 @@ object S3SinkConfig {
         s3ConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
       )
     } yield S3SinkConfig(
-      S3Config(s3ConfigDefBuilder.getParsedValues),
+      S3Config(s3ConfigDefBuilder.props),
       sinkBucketOptions,
       offsetSeekerOptions,
       s3ConfigDefBuilder.getCompressionCodec(),

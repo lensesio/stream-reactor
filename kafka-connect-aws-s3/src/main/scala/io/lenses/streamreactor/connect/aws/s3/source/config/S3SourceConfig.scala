@@ -50,7 +50,7 @@ object S3SourceConfig {
     S3SourceConfig(S3SourceConfigDefBuilder(props))
 
   def apply(s3ConfigDefBuilder: S3SourceConfigDefBuilder): Either[Throwable, S3SourceConfig] = {
-    val parsedValues = s3ConfigDefBuilder.getParsedValues
+    val parsedValues = s3ConfigDefBuilder.props
     for {
       sbo <- SourceBucketOptions(
         s3ConfigDefBuilder,
