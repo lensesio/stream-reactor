@@ -29,6 +29,7 @@ import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
 import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -52,7 +53,7 @@ class DocumentDbSinkTask extends SinkTask with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     val config = if (context.configs().isEmpty) props else context.configs()
 
-    val taskConfig = Try(DocumentDbConfig(config)) match {
+    val taskConfig = Try(DocumentDbConfig(config.asScala.toMap)) match {
       case Failure(f) =>
         throw new ConnectException("Couldn't start Azure Document DB Sink due to configuration error.", f)
       case Success(s) => s

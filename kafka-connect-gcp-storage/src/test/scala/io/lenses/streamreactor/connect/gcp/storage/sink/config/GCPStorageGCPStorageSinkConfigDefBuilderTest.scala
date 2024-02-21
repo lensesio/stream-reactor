@@ -31,7 +31,6 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.IteratorHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 class GCPStorageGCPStorageSinkConfigDefBuilderTest
     extends AnyFlatSpec
@@ -51,7 +50,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
     )
 
-    val kcql = GCPStorageSinkConfigDefBuilder(props.asJava).getKCQL
+    val kcql = GCPStorageSinkConfigDefBuilder(props).getKCQL
     kcql should have size 1
 
     val element = kcql.head
@@ -68,7 +67,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props.asJava)) match {
+    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)) match {
       case Left(value)  => fail(value.toString)
       case Right(value) => value.map(_.dataStorage) should be(List(DataStorageSettings.Default))
     }
@@ -79,7 +78,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `JSON` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props.asJava)) match {
+    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)) match {
       case Left(value)  => fail(value.toString)
       case Right(value) => value.map(_.dataStorage) should be(List(DataStorageSettings.enabled))
     }
@@ -90,7 +89,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `PARQUET` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false)",
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props.asJava)) match {
+    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false)))
@@ -119,7 +118,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
            |""".stripMargin,
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props.asJava)) match {
+    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(
@@ -137,8 +136,8 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
     )
 
     val commitPolicy =
-      GCPStorageSinkConfigDefBuilder(props.asJava).commitPolicy(
-        GCPStorageSinkConfigDefBuilder(props.asJava).getKCQL.head,
+      GCPStorageSinkConfigDefBuilder(props).commitPolicy(
+        GCPStorageSinkConfigDefBuilder(props).getKCQL.head,
       )
 
     commitPolicy.conditions should be(
@@ -157,8 +156,8 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
     )
 
     val commitPolicy =
-      GCPStorageSinkConfigDefBuilder(props.asJava).commitPolicy(
-        GCPStorageSinkConfigDefBuilder(props.asJava).getKCQL.head,
+      GCPStorageSinkConfigDefBuilder(props).commitPolicy(
+        GCPStorageSinkConfigDefBuilder(props).getKCQL.head,
       )
 
     commitPolicy.conditions should be(
@@ -175,8 +174,8 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
     )
 
     val commitPolicy =
-      GCPStorageSinkConfigDefBuilder(props.asJava).commitPolicy(
-        GCPStorageSinkConfigDefBuilder(props.asJava).getKCQL.head,
+      GCPStorageSinkConfigDefBuilder(props).commitPolicy(
+        GCPStorageSinkConfigDefBuilder(props).getKCQL.head,
       )
 
     commitPolicy.conditions should be(
@@ -193,7 +192,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName BATCH = 150 STOREAS `CSV` LIMIT 550",
     )
 
-    val kcql = GCPStorageSinkConfigDefBuilder(props.asJava).getKCQL
+    val kcql = GCPStorageSinkConfigDefBuilder(props).getKCQL
 
     kcql.head.getBatchSize should be(150)
     kcql.head.getLimit should be(550)
@@ -204,7 +203,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false)",
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props.asJava)) match {
+    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(List(DataStorageSettings(envelope = true,
@@ -221,7 +220,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false)",
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props.asJava)) match {
+    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(List(DataStorageSettings(envelope = true,
@@ -238,7 +237,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES_VALUEONLY` WITH_FLUSH_COUNT = 1",
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props.asJava)).left.value.getMessage should startWith(
+    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)).left.value.getMessage should startWith(
       "Unsupported format - BYTES_VALUEONLY.  Please note",
     )
   }
@@ -248,7 +247,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES` WITH_FLUSH_COUNT = 3",
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props.asJava)).left.value.getMessage should startWith(
+    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)).left.value.getMessage should startWith(
       "FLUSH_COUNT > 1 is not allowed for BYTES",
     )
   }

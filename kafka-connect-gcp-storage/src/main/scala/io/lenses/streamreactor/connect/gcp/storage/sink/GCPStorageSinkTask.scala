@@ -28,7 +28,6 @@ import io.lenses.streamreactor.connect.gcp.storage.sink.config.GCPStorageSinkCon
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageFileMetadata
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageStorageInterface
 
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
 
 object GCPStorageSinkTask {}
@@ -45,7 +44,7 @@ class GCPStorageSinkTask
 
   def createWriterMan(props: Map[String, String]): Either[Throwable, WriterManager[GCPStorageFileMetadata]] =
     for {
-      config          <- GCPStorageSinkConfig.fromProps(props.asJava)
+      config          <- GCPStorageSinkConfig.fromProps(props)
       gcpClient       <- GCPStorageClientCreator.make(config.gcpConfig)
       storageInterface = new GCPStorageStorageInterface(connectorTaskId, gcpClient, config.avoidResumableUpload)
       _               <- Try(setErrorRetryInterval(config.gcpConfig)).toEither

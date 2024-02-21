@@ -24,12 +24,10 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOpti
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES
 
-import java.util
-
 object GCPStorageSinkConfig {
 
   def fromProps(
-    props: util.Map[String, String],
+    props: Map[String, String],
   )(
     implicit
     connectorTaskId:        ConnectorTaskId,

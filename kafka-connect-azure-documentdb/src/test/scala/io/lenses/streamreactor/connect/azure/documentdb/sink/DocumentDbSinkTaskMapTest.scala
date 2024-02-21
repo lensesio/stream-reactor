@@ -27,8 +27,6 @@ import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.jdk.CollectionConverters.MapHasAsJava
-
 class DocumentDbSinkTaskMapTest extends AnyWordSpec with Matchers with MockitoSugar with MatchingArgument {
   private val connection = "https://accountName.documents.azure.com:443/"
 
@@ -43,7 +41,7 @@ class DocumentDbSinkTaskMapTest extends AnyWordSpec with Matchers with MockitoSu
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
         DocumentDbConfigConstants.KCQL_CONFIG       -> "INSERT INTO coll1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topic2",
-      ).asJava
+      )
 
       val documentClient = mock[DocumentClient]
       val dbResource: ResourceResponse[Database] = mock[ResourceResponse[Database]]
@@ -153,7 +151,7 @@ class DocumentDbSinkTaskMapTest extends AnyWordSpec with Matchers with MockitoSu
         DocumentDbConfigConstants.MASTER_KEY_CONFIG  -> "secret",
         DocumentDbConfigConstants.CONSISTENCY_CONFIG -> ConsistencyLevel.Eventual.toString,
         DocumentDbConfigConstants.KCQL_CONFIG        -> "INSERT INTO coll1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topic2",
-      ).asJava
+      )
 
       val documentClient = mock[DocumentClient]
       val dbResource: ResourceResponse[Database] = mock[ResourceResponse[Database]]
@@ -265,7 +263,7 @@ class DocumentDbSinkTaskMapTest extends AnyWordSpec with Matchers with MockitoSu
         DocumentDbConfigConstants.MASTER_KEY_CONFIG  -> "secret",
         DocumentDbConfigConstants.CONSISTENCY_CONFIG -> ConsistencyLevel.Eventual.toString,
         DocumentDbConfigConstants.KCQL_CONFIG        -> "UPSERT INTO coll1 SELECT * FROM topic1 PK time",
-      ).asJava
+      )
 
       val documentClient = mock[DocumentClient]
       val dbResource: ResourceResponse[Database] = mock[ResourceResponse[Database]]

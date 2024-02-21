@@ -30,6 +30,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -55,7 +56,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
 
     val config = if (context.configs().isEmpty) props else context.configs()
 
-    val taskConfig = Try(new CassandraConfigSink(config)) match {
+    val taskConfig = Try(new CassandraConfigSink(config.asScala.toMap)) match {
       case Failure(f) => throw new ConnectException("Couldn't start CassandraSink due to configuration error.", f)
       case Success(s) => s
     }

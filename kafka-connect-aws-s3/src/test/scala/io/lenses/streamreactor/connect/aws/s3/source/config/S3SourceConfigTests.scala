@@ -23,7 +23,6 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
 
 class S3SourceConfigTests extends AnyFunSuite with Matchers with TaskIndexKey with SourcePartitionSearcherSettingsKeys {
   test("default recursive levels is 0") {
@@ -33,7 +32,7 @@ class S3SourceConfigTests extends AnyFunSuite with Matchers with TaskIndexKey wi
         SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
         TASK_INDEX                              -> "1:0",
         KCQL_CONFIG                             -> "INSERT INTO topic SELECT * FROM bucket:/a/b/c",
-      ).asJava,
+      ),
     ) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
@@ -48,7 +47,7 @@ class S3SourceConfigTests extends AnyFunSuite with Matchers with TaskIndexKey wi
         SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
         TASK_INDEX                              -> "1:0",
         KCQL_CONFIG                             -> "INSERT INTO topic SELECT * FROM bucket:/a/b/c",
-      ).asJava,
+      ),
     ) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
@@ -63,7 +62,7 @@ class S3SourceConfigTests extends AnyFunSuite with Matchers with TaskIndexKey wi
         SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
         TASK_INDEX                              -> "1:0",
         KCQL_CONFIG                             -> "INSERT INTO topic SELECT * FROM bucket:/a/b/c",
-      ).asJava,
+      ),
     ) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
@@ -77,7 +76,7 @@ class S3SourceConfigTests extends AnyFunSuite with Matchers with TaskIndexKey wi
         SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
         TASK_INDEX                              -> "1:0",
         KCQL_CONFIG                             -> "INSERT INTO topic SELECT * FROM bucket:/a/b/c",
-      ).asJava,
+      ),
     ) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>

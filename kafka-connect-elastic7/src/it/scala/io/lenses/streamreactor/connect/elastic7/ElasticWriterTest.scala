@@ -53,7 +53,7 @@ class ElasticWriterTest extends ITBase with MockitoSugar with BeforeAndAfterEach
     }
 
     // TODO: Ensure these Settings properties are used
-    def writeTestRecords(props: java.util.Map[String, String]) = {
+    def writeTestRecords(props: Map[String, String]) = {
 
       val localNode = createLocalNode()
 

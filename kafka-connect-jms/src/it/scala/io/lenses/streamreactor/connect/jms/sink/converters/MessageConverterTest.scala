@@ -39,7 +39,6 @@ import javax.jms.MapMessage
 import javax.jms.ObjectMessage
 import javax.jms.TextMessage
 import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.reflect.io.Path
 import scala.util.Try
@@ -63,7 +62,7 @@ class MessageConverterTest extends AnyWordSpec with Matchers with ItTestBase wit
       val kcqlT       = getKCQL(topicName, kafkaTopic1, "TOPIC")
       val kcqlQ       = getKCQL(queueName, kafkaTopic1, "QUEUE")
       val props       = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
-      val config      = JMSConfig(props.asJava)
+      val config      = JMSConfig(props)
       val settings    = JMSSettings(config, true)
       val setting     = settings.settings.head
 
@@ -109,7 +108,7 @@ class MessageConverterTest extends AnyWordSpec with Matchers with ItTestBase wit
       val kcqlT       = getKCQL(topicName, kafkaTopic1, "TOPIC")
       val kcqlQ       = getKCQL(queueName, kafkaTopic1, "QUEUE")
       val props       = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
-      val config      = JMSConfig(props.asJava)
+      val config      = JMSConfig(props)
       val settings    = JMSSettings(config, true)
       val setting     = settings.settings.head
 
@@ -159,7 +158,7 @@ class MessageConverterTest extends AnyWordSpec with Matchers with ItTestBase wit
       val queueName   = UUID.randomUUID().toString
       val kcql        = getKCQL(queueName, kafkaTopic1, "QUEUE")
       val props       = getProps(kcql, JMS_URL)
-      val config      = JMSConfig(props.asJava)
+      val config      = JMSConfig(props)
       val settings    = JMSSettings(config, true)
       val setting     = settings.settings.head
 
@@ -195,7 +194,7 @@ class MessageConverterTest extends AnyWordSpec with Matchers with ItTestBase wit
       val kcqlQ = getKCQL(queueName, kafkaTopic1, "QUEUE")
 
       val props    = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
-      val config   = JMSConfig(props.asJava)
+      val config   = JMSConfig(props)
       val settings = JMSSettings(config, true)
       val setting  = settings.settings.head
       using(connectionFactory.createConnection()) { connection =>
@@ -253,7 +252,7 @@ class MessageConverterTest extends AnyWordSpec with Matchers with ItTestBase wit
       val queueName         = UUID.randomUUID().toString
       val kcql              = getKCQL(queueName, kafkaTopic1, "QUEUE")
       val props             = getProps(kcql, JMS_URL)
-      val config            = JMSConfig(props.asJava)
+      val config            = JMSConfig(props)
       val settings          = JMSSettings(config, true)
       val setting           = settings.settings.head
       val connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false")
@@ -287,7 +286,7 @@ class MessageConverterTest extends AnyWordSpec with Matchers with ItTestBase wit
       val props             = getProps(kcql, JMS_URL)
       val schema            = getProtobufSchema
       val struct            = getProtobufStruct(schema, "addrressed-person", 103, "addressed-person@gmail.com")
-      val config            = JMSConfig(props.asJava)
+      val config            = JMSConfig(props)
       val settings          = JMSSettings(config, true)
       val connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false")
       using(connectionFactory.createConnection()) { connection =>

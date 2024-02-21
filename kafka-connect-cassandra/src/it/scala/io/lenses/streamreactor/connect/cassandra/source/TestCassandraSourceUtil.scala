@@ -5,10 +5,7 @@ import com.datastax.driver.core.Session
 
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Map
 import java.util.UUID
-
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 trait TestCassandraSourceUtil {
 
@@ -135,5 +132,5 @@ trait TestCassandraSourceUtil {
       CassandraConfigConstants.TIMESLICE_DELAY    -> "0",
       CassandraConfigConstants.POLL_INTERVAL      -> "500",
       CassandraConfigConstants.FETCH_SIZE         -> "2",
-    ).asJava
+    )
 }

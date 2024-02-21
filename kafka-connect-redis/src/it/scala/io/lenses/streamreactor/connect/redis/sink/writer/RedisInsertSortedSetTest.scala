@@ -33,7 +33,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.Jedis
 
 import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 class RedisInsertSortedSetTest extends AnyWordSpec with Matchers with MockitoSugar with ForAllTestContainer {
 
@@ -53,7 +52,7 @@ class RedisInsertSortedSetTest extends AnyWordSpec with Matchers with MockitoSug
         RedisConfigConstants.REDIS_HOST  -> "localhost",
         RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG -> KCQL,
-      ).asJava
+      )
 
       val config         = RedisConfig(props)
       val connectionInfo = new RedisConnectionInfo("localhost", container.mappedPort(6379), None)

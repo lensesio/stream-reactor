@@ -47,7 +47,6 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import java.util.UUID
 import scala.collection.immutable.ListMap
 import scala.collection.immutable.ListSet
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class MongoWriterTest extends MongoDBContainer with AnyWordSpecLike with Matchers with BeforeAndAfterAll {
@@ -414,7 +413,7 @@ class MongoWriterTest extends MongoDBContainer with AnyWordSpecLike with Matcher
         SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG -> "truststore-password",
         SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG   -> keystoreFilePath,
         SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG   -> "keystore-password",
-      ).asJava
+      )
 
       val config   = MongoConfig(map)
       val settings = MongoSettings(config)
@@ -448,7 +447,7 @@ class MongoWriterTest extends MongoDBContainer with AnyWordSpecLike with Matcher
         MongoConfigConstants.DATABASE_CONFIG   -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017/?ssl=true",
         MongoConfigConstants.KCQL_CONFIG       -> s"INSERT INTO $collectionName SELECT vehicle, vehicle.fullVIN, header.applicationId FROM topicA",
-      ).asJava
+      )
 
       val config      = MongoConfig(map)
       val settings    = MongoSettings(config)
@@ -476,7 +475,7 @@ class MongoWriterTest extends MongoDBContainer with AnyWordSpecLike with Matcher
         MongoConfigConstants.DATABASE_CONFIG   -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017/?ssl=true",
         MongoConfigConstants.KCQL_CONFIG       -> s"UPSERT INTO $collectionName SELECT vehicle.fullVIN, header.applicationId FROM topicA pk vehicle.fullVIN",
-      ).asJava
+      )
 
       val config      = MongoConfig(map)
       val settings    = MongoSettings(config)
@@ -504,7 +503,7 @@ class MongoWriterTest extends MongoDBContainer with AnyWordSpecLike with Matcher
         MongoConfigConstants.DATABASE_CONFIG   -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017/?ssl=true",
         MongoConfigConstants.KCQL_CONFIG       -> s"UPSERT INTO $collectionName SELECT sensorID, location.lon as lon, location.lat as lat FROM topicA pk location.lon",
-      ).asJava
+      )
 
       val config      = MongoConfig(map)
       val settings    = MongoSettings(config)

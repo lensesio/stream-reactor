@@ -22,7 +22,6 @@ import io.lenses.streamreactor.common.config.base.traits.KcqlSettings
 import io.lenses.streamreactor.common.config.base.traits.NumberRetriesSettings
 import io.lenses.streamreactor.common.config.base.traits.ThreadPoolSettings
 
-import java.util
 import com.datastax.driver.core.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
@@ -430,7 +429,7 @@ object CassandraConfigSource {
 
 }
 
-case class CassandraConfigSource(props: util.Map[String, String])
+case class CassandraConfigSource(props: Map[String, String])
     extends BaseConfig(CassandraConfigConstants.CONNECTOR_PREFIX, CassandraConfigSource.sourceConfig, props)
     with ErrorPolicySettings
     with ConsistencyLevelSettings[ConsistencyLevel]
@@ -522,7 +521,7 @@ object CassandraConfigSink {
 
 }
 
-case class CassandraConfigSink(props: util.Map[String, String])
+case class CassandraConfigSink(props: Map[String, String])
     extends BaseConfig(CassandraConfigConstants.CONNECTOR_PREFIX, CassandraConfigSink.sinkConfig, props)
     with KcqlSettings
     with ErrorPolicySettings

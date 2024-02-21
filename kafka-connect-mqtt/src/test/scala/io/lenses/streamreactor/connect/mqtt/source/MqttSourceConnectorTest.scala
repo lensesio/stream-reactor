@@ -24,6 +24,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 class MqttSourceConnectorTest extends AnyWordSpec with Matchers {
   val baseProps: Map[String, String] = Map(
@@ -113,5 +114,5 @@ class MqttSourceConnectorTest extends AnyWordSpec with Matchers {
   }
 
   def extractKcqls(configs: util.List[util.Map[String, String]]): Array[Array[String]] =
-    configs.asScala.map(t => MqttSourceSettings(MqttSourceConfig(t)).kcql).toArray
+    configs.asScala.map(t => MqttSourceSettings(MqttSourceConfig(t.asScala.toMap)).kcql).toArray
 }

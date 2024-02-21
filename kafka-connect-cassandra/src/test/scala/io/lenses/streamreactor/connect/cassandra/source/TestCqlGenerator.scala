@@ -25,7 +25,6 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.annotation.nowarn
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
   */
@@ -107,7 +106,7 @@ class TestCqlGenerator extends AnyWordSpec with Matchers with MockitoSugar with 
         CassandraConfigConstants.POLL_INTERVAL   -> "1000",
         CassandraConfigConstants.FETCH_SIZE      -> "500",
         CassandraConfigConstants.BATCH_SIZE      -> "800",
-      ).asJava
+      )
     }
     val configSource = new CassandraConfigSource(configMap)
     CassandraSettings.configureSource(configSource).head
@@ -124,7 +123,7 @@ class TestCqlGenerator extends AnyWordSpec with Matchers with MockitoSugar with 
         CassandraConfigConstants.POLL_INTERVAL   -> "1000",
         CassandraConfigConstants.FETCH_SIZE      -> "500",
         CassandraConfigConstants.BATCH_SIZE      -> "800",
-      ).asJava
+      )
     }
     val configSource = new CassandraConfigSource(configMap)
     CassandraSettings.configureSource(configSource).head
@@ -141,7 +140,7 @@ class TestCqlGenerator extends AnyWordSpec with Matchers with MockitoSugar with 
         CassandraConfigConstants.POLL_INTERVAL   -> "1000",
         CassandraConfigConstants.FETCH_SIZE      -> "500",
         CassandraConfigConstants.BATCH_SIZE      -> "800",
-      ).asJava
+      )
     }
     val configSource = new CassandraConfigSource(configMap)
     CassandraSettings.configureSource(configSource).head
@@ -160,7 +159,7 @@ class TestCqlGenerator extends AnyWordSpec with Matchers with MockitoSugar with 
         CassandraConfigConstants.BATCH_SIZE                -> "800",
         CassandraConfigConstants.BUCKET_TIME_SERIES_MODE   -> "MINUTE",
         CassandraConfigConstants.BUCKET_TIME_SERIES_FORMAT -> "yyMMddHHmm",
-      ).asJava
+      )
     }
     val configSource = new CassandraConfigSource(configMap)
     CassandraSettings.configureSource(configSource).head

@@ -181,7 +181,7 @@ class TestCassandraJsonWriter
       CassandraConfigConstants.PASSWD         -> password,
       CassandraConfigConstants.KCQL           -> s"INSERT INTO $table SELECT id, int_field1, double_field1,timestamp_field1 FROM TOPICA; INSERT INTO $table1 SELECT id, int_field2, double_field2,timestamp_field2 FROM TOPICA",
       CassandraConfigConstants.ERROR_POLICY   -> ErrorPolicyEnum.NOOP.toString,
-    ).asJava
+    )
 
     val taskConfig = new CassandraConfigSink(props)
 
@@ -267,7 +267,7 @@ class TestCassandraJsonWriter
       CassandraConfigConstants.PASSWD         -> password,
       CassandraConfigConstants.KCQL           -> s"INSERT INTO $table SELECT * FROM TOPICA; INSERT INTO $table SELECT * FROM TOPICB",
       CassandraConfigConstants.ERROR_POLICY   -> ErrorPolicyEnum.THROW.toString,
-    ).asJava
+    )
 
     val taskConfig = new CassandraConfigSink(props)
 
@@ -335,7 +335,7 @@ class TestCassandraJsonWriter
       CassandraConfigConstants.PASSWD         -> password,
       CassandraConfigConstants.KCQL           -> s"INSERT INTO $table SELECT id, inner1.int_field, inner2.* FROM TOPIC",
       CassandraConfigConstants.ERROR_POLICY   -> ErrorPolicyEnum.NOOP.toString,
-    ).asJava
+    )
     val taskConfig = new CassandraConfigSink(props)
 
     val writer = CassandraWriter(taskConfig, context)
@@ -424,7 +424,7 @@ class TestCassandraJsonWriter
       CassandraConfigConstants.PASSWD         -> password,
       CassandraConfigConstants.KCQL           -> s"INSERT INTO $table SELECT id, inner1.int_field, inner2.* FROM TOPIC",
       CassandraConfigConstants.ERROR_POLICY   -> ErrorPolicyEnum.NOOP.toString,
-    ).asJava
+    )
 
     val taskConfig = new CassandraConfigSink(props)
 
@@ -475,7 +475,7 @@ class TestCassandraJsonWriter
       CassandraConfigConstants.USERNAME       -> userName,
       CassandraConfigConstants.PASSWD         -> password,
       CassandraConfigConstants.KCQL           -> kcql,
-    ).asJava
+    )
 
     val taskConfig = new CassandraConfigSink(props)
 
@@ -560,7 +560,7 @@ class TestCassandraJsonWriter
       CassandraConfigConstants.KCQL                 -> kcql,
       CassandraConfigConstants.ERROR_POLICY         -> ErrorPolicyEnum.RETRY.toString,
       CassandraConfigConstants.ERROR_RETRY_INTERVAL -> "500",
-    ).asJava
+    )
 
     val taskConfig = new CassandraConfigSink(props)
     val writer     = CassandraWriter(taskConfig, context)
@@ -619,7 +619,7 @@ class TestCassandraJsonWriter
       CassandraConfigConstants.PASSWD         -> password,
       CassandraConfigConstants.KCQL           -> kcql,
       CassandraConfigConstants.ERROR_POLICY   -> ErrorPolicyEnum.NOOP.toString,
-    ).asJava
+    )
 
     val taskConfig = new CassandraConfigSink(props)
     val writer     = CassandraWriter(taskConfig, context)
@@ -852,7 +852,7 @@ class TestCassandraJsonWriter
       CassandraConfigConstants.PASSWD               -> password,
       CassandraConfigConstants.KCQL                 -> kql,
       CassandraConfigConstants.DELETE_ROW_ENABLED   -> "true",
-    ).asJava
+    )
 
     val taskConfig = new CassandraConfigSink(props)
 
@@ -904,7 +904,7 @@ class TestCassandraJsonWriter
       CassandraConfigConstants.PASSWD               -> password,
       CassandraConfigConstants.KCQL                 -> kql,
       CassandraConfigConstants.DELETE_ROW_ENABLED   -> "true",
-    ).asJava
+    )
 
     val taskConfig = new CassandraConfigSink(props)
 
@@ -967,7 +967,7 @@ class TestCassandraJsonWriter
       CassandraConfigConstants.PASSWD                 -> password,
       CassandraConfigConstants.KCQL                   -> kql,
       CassandraConfigConstants.DELETE_ROW_ENABLED     -> "true",
-    ).asJava
+    )
 
     val taskConfig = new CassandraConfigSink(props)
 
@@ -1032,7 +1032,7 @@ class TestCassandraJsonWriter
       CassandraConfigConstants.PASSWD                 -> password,
       CassandraConfigConstants.KCQL                   -> kql,
       CassandraConfigConstants.DELETE_ROW_ENABLED     -> "true",
-    ).asJava
+    )
 
     val taskConfig = new CassandraConfigSink(props)
 
@@ -1095,7 +1095,7 @@ class TestCassandraJsonWriter
       CassandraConfigConstants.PASSWD                 -> password,
       CassandraConfigConstants.KCQL                   -> kql,
       CassandraConfigConstants.DELETE_ROW_ENABLED     -> "true",
-    ).asJava
+    )
 
     val taskConfig = new CassandraConfigSink(props)
 
@@ -1152,7 +1152,7 @@ class TestCassandraJsonWriter
       CassandraConfigConstants.PASSWD                 -> password,
       CassandraConfigConstants.KCQL                   -> kql,
       CassandraConfigConstants.DELETE_ROW_ENABLED     -> "true",
-    ).asJava
+    )
 
     val taskConfig = new CassandraConfigSink(props)
 
@@ -1198,7 +1198,7 @@ class TestCassandraJsonWriter
       CassandraConfigConstants.USERNAME       -> userName,
       CassandraConfigConstants.PASSWD         -> password,
       CassandraConfigConstants.KCQL           -> s"INSERT INTO $table SELECT key, name FROM TOPIC",
-    ).asJava
+    )
 
     val taskConfig = new CassandraConfigSink(props)
 

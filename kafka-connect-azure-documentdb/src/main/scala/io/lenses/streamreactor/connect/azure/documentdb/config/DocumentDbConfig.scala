@@ -22,7 +22,6 @@ import io.lenses.streamreactor.common.config.base.traits.ErrorPolicySettings
 import io.lenses.streamreactor.common.config.base.traits.KcqlSettings
 import io.lenses.streamreactor.common.config.base.traits.NumberRetriesSettings
 
-import java.util
 import com.microsoft.azure.documentdb.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
@@ -149,7 +148,7 @@ object DocumentDbConfig {
     )
 }
 
-case class DocumentDbConfig(props: util.Map[String, String])
+case class DocumentDbConfig(props: Map[String, String])
     extends BaseConfig(DocumentDbConfigConstants.CONNECTOR_PREFIX, DocumentDbConfig.config, props)
     with KcqlSettings
     with DatabaseSettings

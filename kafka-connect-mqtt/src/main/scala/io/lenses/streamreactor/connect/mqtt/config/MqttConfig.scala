@@ -20,8 +20,6 @@ import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
-import java.util
-
 /**
   * Created by andrew@datamountaineer.com on 27/08/2017.
   * stream-reactor
@@ -244,7 +242,7 @@ object MqttSourceConfig {
     )
 }
 
-case class MqttSourceConfig(props: util.Map[String, String])
+case class MqttSourceConfig(props: Map[String, String])
     extends BaseConfig(MqttConfigConstants.CONNECTOR_PREFIX, MqttSourceConfig.config, props)
     with MqttConfigBase
 
@@ -296,7 +294,7 @@ object MqttSinkConfig {
     )
 }
 
-case class MqttSinkConfig(props: util.Map[String, String])
+case class MqttSinkConfig(props: Map[String, String])
     extends BaseConfig(MqttConfigConstants.CONNECTOR_PREFIX, MqttSinkConfig.config, props)
     with MqttConfigBase
 

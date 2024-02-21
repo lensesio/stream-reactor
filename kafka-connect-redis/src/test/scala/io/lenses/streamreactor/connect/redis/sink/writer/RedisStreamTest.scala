@@ -48,7 +48,6 @@ import redis.clients.jedis.StreamEntryID
 import redis.clients.jedis.params.XAddParams
 
 import java.util
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 class RedisStreamTest
     extends AnyWordSpec
@@ -68,7 +67,7 @@ class RedisStreamTest
         RedisConfigConstants.REDIS_PORT     -> "6379",
         RedisConfigConstants.KCQL_CONFIG    -> KCQL,
         RedisConfigConstants.REDIS_PASSWORD -> "",
-      ).asJava
+      )
 
       val config   = RedisConfig(props)
       val settings = RedisSinkSettings(config)

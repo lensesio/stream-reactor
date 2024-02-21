@@ -18,6 +18,8 @@ package io.lenses.streamreactor.connect.elastic7
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
 
+import scala.jdk.CollectionConverters.MapHasAsJava
+
 class ElasticSinkTaskTest extends TestBase with MockitoSugar {
   "A ElasticSinkTask should start and write to Elastic Search" in {
     //mock the context to return our assignment when called
@@ -32,7 +34,7 @@ class ElasticSinkTaskTest extends TestBase with MockitoSugar {
     //check version
     task.version() shouldBe ""
     //start task
-    task.start(config)
+    task.start(config.asJava)
     //simulate the call from Connect
     //task.put(testRecords.asJava)
     //stop task

@@ -28,7 +28,6 @@ import io.lenses.streamreactor.connect.datalake.sink.config.DatalakeSinkConfig
 import io.lenses.streamreactor.connect.datalake.storage.DatalakeFileMetadata
 import io.lenses.streamreactor.connect.datalake.storage.DatalakeStorageInterface
 
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
 object DatalakeSinkTask {}
 class DatalakeSinkTask
@@ -44,7 +43,7 @@ class DatalakeSinkTask
 
   def createWriterMan(props: Map[String, String]): Either[Throwable, WriterManager[DatalakeFileMetadata]] =
     for {
-      config          <- DatalakeSinkConfig.fromProps(props.asJava)
+      config          <- DatalakeSinkConfig.fromProps(props)
       s3Client        <- DatalakeClientCreator.make(config.s3Config)
       storageInterface = new DatalakeStorageInterface(connectorTaskId, s3Client)
       _               <- Try(setErrorRetryInterval(config.s3Config)).toEither

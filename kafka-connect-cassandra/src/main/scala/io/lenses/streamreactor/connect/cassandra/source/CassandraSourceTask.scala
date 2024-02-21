@@ -33,6 +33,7 @@ import org.apache.kafka.connect.source.SourceTask
 
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Failure
 import scala.util.Success
@@ -68,7 +69,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     val config = if (context.configs().isEmpty) props else context.configs()
 
     //get configuration for this task
-    taskConfig = Try(new CassandraConfigSource(config)) match {
+    taskConfig = Try(new CassandraConfigSource(config.asScala.toMap)) match {
       case Failure(f) => throw new ConnectException("Couldn't start CassandraSource due to configuration error.", f)
       case Success(s) => Some(s)
     }

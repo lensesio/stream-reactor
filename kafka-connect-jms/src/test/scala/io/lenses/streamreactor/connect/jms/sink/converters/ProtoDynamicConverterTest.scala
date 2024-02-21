@@ -25,7 +25,6 @@ import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.jdk.CollectionConverters.MapHasAsJava
 import java.util.UUID
 
 class ProtoDynamicConverterTest
@@ -43,7 +42,7 @@ class ProtoDynamicConverterTest
       val queueName   = UUID.randomUUID().toString
       val kcql        = getKCQL(queueName, kafkaTopic1, "QUEUE")
       val props       = getProps(kcql, JMS_URL)
-      val config      = JMSConfig(props.asJava)
+      val config      = JMSConfig(props)
       val settings    = JMSSettings(config, true)
       val setting     = settings.settings.head
       val schema      = getProtobufSchema

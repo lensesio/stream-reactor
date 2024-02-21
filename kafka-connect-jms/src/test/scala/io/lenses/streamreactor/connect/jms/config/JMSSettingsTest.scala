@@ -30,7 +30,6 @@ import org.scalatest.EitherValues
 
 import java.util.UUID
 import javax.naming.NameNotFoundException
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.reflect.io.Path
 
 class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues {
@@ -44,7 +43,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
     val queueName   = UUID.randomUUID().toString
     val kcql        = getKCQL(kafkaTopic1, queueName, "QUEUE")
     val props       = getProps(kcql, JMS_URL)
-    val config      = JMSConfig(props.asJava)
+    val config      = JMSConfig(props)
     val settings    = JMSSettings(config, false)
     val setting     = settings.settings.head
     setting.source shouldBe queueName
@@ -60,7 +59,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
     val topicName   = UUID.randomUUID().toString
     val kcql        = getKCQL(kafkaTopic1, topicName, "TOPIC")
     val props       = getProps(kcql, JMS_URL)
-    val config      = JMSConfig(props.asJava)
+    val config      = JMSConfig(props)
     val settings    = JMSSettings(config, false)
     val setting     = settings.settings.head
     setting.source shouldBe topicName
@@ -77,7 +76,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
     val kcql        = getKCQL(kafkaTopic1, topicName, "TOPIC")
     val props =
       getProps(kcql, JMS_URL) ++ Map(JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString)
-    val config   = JMSConfig(props.asJava)
+    val config   = JMSConfig(props)
     val settings = JMSSettings(config, false)
     val setting  = settings.settings.head
     setting.source shouldBe topicName
@@ -100,7 +99,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
     val props = getProps(s"$kcqlQ;$kcqlT", JMS_URL) ++
       Map(JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString) ++
       Map(JMSConfigConstants.TOPIC_SUBSCRIPTION_NAME -> "subscriptionName")
-    val config   = JMSConfig(props.asJava)
+    val config   = JMSConfig(props)
     val settings = JMSSettings(config, false)
     val queue    = settings.settings.head
 
@@ -136,7 +135,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
       Map(
         JMSConfigConstants.DEFAULT_SOURCE_CONVERTER_CONFIG -> "io.lenses.streamreactor.connect.converters.source.AvroConverter",
       )
-    val config = JMSConfig(props.asJava)
+    val config = JMSConfig(props)
 
     val settings = JMSSettings(config, false)
     val queue    = settings.settings.head
@@ -168,7 +167,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
     val kcqlT = getKCQL(kafkaTopic1, topicName, "TOPIC")
     val props = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
 
-    val config   = JMSConfig(props.asJava)
+    val config   = JMSConfig(props)
     val settings = JMSSettings(config, false)
     val queue    = settings.settings.head
     queue.source shouldBe queueName
@@ -195,7 +194,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
     val kcqlT = getKCQLAvroSinkConverter(kafkaTopic1, topicName, "TOPIC")
     val props = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
 
-    val config   = JMSConfig(props.asJava)
+    val config   = JMSConfig(props)
     val settings = JMSSettings(config, true)
     val queue    = settings.settings.head
     queue.source shouldBe queueName
@@ -222,7 +221,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
     val kcqlQ    = getKCQLFormat(kafkaTopic1, queueName, "QUEUE", "PROTOBUF")
     val kcqlT    = getKCQLFormat(kafkaTopic1, topicName, "TOPIC", "PROTOBUF")
     val props    = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
-    val config   = JMSConfig(props.asJava)
+    val config   = JMSConfig(props)
     val settings = JMSSettings(config, true)
     val queue    = settings.settings.head
     queue.source shouldBe queueName
@@ -250,7 +249,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
     val kcqlQ    = getKCQLStoreAsAddressedPerson(kafkaTopic1, queueName, "QUEUE")
     val kcqlT    = getKCQLEmptyStoredAsNonAddressedPerson(kafkaTopic1, topicName, "TOPIC")
     val props    = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
-    val config   = JMSConfig(props.asJava)
+    val config   = JMSConfig(props)
     val settings = JMSSettings(config, true)
     val queue    = settings.settings.head
     queue.source shouldBe queueName
@@ -284,7 +283,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
         JMSConfigConstants.DEFAULT_SINK_CONVERTER_CONFIG -> "io.lenses.streamreactor.connect.jms.sink.converters.AvroMessageConverter",
       )
 
-    val config   = JMSConfig(props.asJava)
+    val config   = JMSConfig(props)
     val settings = JMSSettings(config, true)
     val queue    = settings.settings.head
     queue.source shouldBe queueName
@@ -309,7 +308,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
 
     val kcqlT    = kcqlWithMessageSelector(kafkaTopic1, topicName, MESSAGE_SELECTOR)
     val props    = getProps(kcqlT, JMS_URL)
-    val config   = JMSConfig(props.asJava)
+    val config   = JMSConfig(props)
     val settings = JMSSettings(config, false)
 
     val topic = settings.settings.head
@@ -334,7 +333,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
         JMSConfigConstants.CONNECTION_FACTORY      -> CONNECTION_FACTORY,
         JMSConfigConstants.JMS_URL                 -> JMS_URL,
         JMSConfigConstants.DESTINATION_SELECTOR    -> DestinationSelector.JNDI.toString,
-      ).asJava
+      )
     val config = jms.config.JMSConfig(props)
     intercept[ConfigException] {
       JMSSettings(config, false)
@@ -351,7 +350,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll with EitherValues 
         JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
         JMSConfigConstants.CONNECTION_FACTORY      -> "plop",
         JMSConfigConstants.JMS_URL                 -> JMS_URL,
-      ).asJava
+      )
     val config   = jms.config.JMSConfig(props)
     val settings = JMSSettings(config, true)
     intercept[NameNotFoundException] {

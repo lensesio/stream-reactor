@@ -30,6 +30,7 @@ import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
 import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 class ElasticSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[ElasticJsonWriter] = None
@@ -46,7 +47,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     val conf = if (context.configs().isEmpty) props else context.configs()
 
     ElasticConfig.config.parse(conf)
-    val sinkConfig = ElasticConfig(conf)
+    val sinkConfig = ElasticConfig(conf.asScala.toMap)
     enableProgress = sinkConfig.getBoolean(ElasticConfigConstants.PROGRESS_COUNTER_ENABLED)
 
     //if error policy is retry set retry interval

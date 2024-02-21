@@ -20,8 +20,6 @@ import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
-import java.util
-
 object JMSConfig {
 
   val config: ConfigDef = new ConfigDef()
@@ -283,7 +281,7 @@ object JMSConfig {
   *
   * Holds config, extends AbstractConfig.
   */
-case class JMSConfig(props: util.Map[String, String])
+case class JMSConfig(props: Map[String, String])
     extends BaseConfig(JMSConfigConstants.CONNECTOR_PREFIX, JMSConfig.config, props)
     with KcqlSettings
     with ErrorPolicySettings

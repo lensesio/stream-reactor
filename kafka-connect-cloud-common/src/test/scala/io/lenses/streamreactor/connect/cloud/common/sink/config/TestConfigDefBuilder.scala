@@ -18,15 +18,11 @@ package io.lenses.streamreactor.connect.cloud.common.sink.config
 import io.lenses.streamreactor.common.config.base.traits.BaseConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategySettings
-import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
-import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaSettings
 import org.apache.kafka.common.config.ConfigDef
 
-import java.util
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-case class TestConfigDefBuilder(configDef: ConfigDef, props: util.Map[String, String])
+case class TestConfigDefBuilder(configDef: ConfigDef, props: Map[String, String])
     extends BaseConfig("connect.testing", configDef, props)
     with PaddingStrategySettings
     with LocalStagingAreaSettings {
@@ -51,7 +47,7 @@ object TestConfig {
     val newMap = map + {
       "connect.s3.kcql" -> "dummy value"
     }
-    TestConfigDefBuilder(defineProps(new ConfigDef()), newMap.asJava)
+    TestConfigDefBuilder(defineProps(new ConfigDef()), newMap)
   }
 
 }

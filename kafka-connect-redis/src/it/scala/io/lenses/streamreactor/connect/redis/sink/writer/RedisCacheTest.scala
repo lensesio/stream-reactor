@@ -33,7 +33,6 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.Jedis
 
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 class RedisCacheTest
@@ -64,7 +63,7 @@ class RedisCacheTest
     }
     "write Kafka records to Redis using CACHE mode with JSON no schema" in new BasePropsContext {
       val QUERY_ALL = s"SELECT * FROM $TOPIC PK firstName, child.firstName"
-      val props     = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava
+      val props     = baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)
       val config    = RedisConfig(props)
       val settings  = RedisSinkSettings(config)
       val writer    = new RedisCache(settings, JedisClientBuilder.createClient(settings))
@@ -96,7 +95,7 @@ class RedisCacheTest
 
     "write Kafka records to Redis using CACHE mode" in new BasePropsContext {
       val QUERY_ALL = s"SELECT * FROM $TOPIC PK firstName, child.firstName"
-      val props     = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava
+      val props     = baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)
       val config    = RedisConfig(props)
       val settings  = RedisSinkSettings(config)
       val writer    = new RedisCache(settings, JedisClientBuilder.createClient(settings))
@@ -150,7 +149,7 @@ class RedisCacheTest
 
     "write Kafka records to Redis using CACHE mode and PK field is not in the selected fields" in new BasePropsContext {
       val QUERY_ALL = s"SELECT age FROM $TOPIC PK firstName"
-      val props     = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava
+      val props     = baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)
       val config    = RedisConfig(props)
       val settings  = RedisSinkSettings(config)
       val writer    = new RedisCache(settings, JedisClientBuilder.createClient(settings))
@@ -184,7 +183,7 @@ class RedisCacheTest
     "write Kafka records to Redis using CACHE mode with explicit KEY (using INSERT)" in new BasePropsContext {
       val TOPIC = "topic2"
       val KCQL  = s"INSERT INTO KEY_PREFIX_ SELECT * FROM $TOPIC PK firstName"
-      val props = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> KCQL)).asJava
+      val props = baseProps + (RedisConfigConstants.KCQL_CONFIG -> KCQL)
 
       val config   = RedisConfig(props)
       val settings = RedisSinkSettings(config)
@@ -255,7 +254,7 @@ class RedisCacheTest
 
     "write Kafka records to Redis using CACHE mode and PK has default delimiter" in new BasePropsContext {
 
-      val props    = base_Props.asJava
+      val props    = base_Props
       val config   = RedisConfig(props)
       val settings = RedisSinkSettings(config)
       val writer   = new RedisCache(settings, JedisClientBuilder.createClient(settings))
@@ -273,7 +272,7 @@ class RedisCacheTest
     "write Kafka records to Redis using CACHE mode and PK has custom delimiter" in new BasePropsContext {
 
       val delimiter = "-"
-      val props     = (base_Props + (RedisConfigConstants.REDIS_PK_DELIMITER -> delimiter)).asJava
+      val props     = base_Props + (RedisConfigConstants.REDIS_PK_DELIMITER -> delimiter)
       val config    = RedisConfig(props)
       val settings  = RedisSinkSettings(config)
       val writer    = new RedisCache(settings, JedisClientBuilder.createClient(settings))
@@ -289,7 +288,7 @@ class RedisCacheTest
     "write Kafka records to Redis using CACHE mode and PK has custom delimiter but not set" in new BasePropsContext {
 
       val delimiter = "$"
-      val props     = base_Props.asJava
+      val props     = base_Props
       val config    = RedisConfig(props)
       val settings  = RedisSinkSettings(config)
       val writer    = new RedisCache(settings, JedisClientBuilder.createClient(settings))

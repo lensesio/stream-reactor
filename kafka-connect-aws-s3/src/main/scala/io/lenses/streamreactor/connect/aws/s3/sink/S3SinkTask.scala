@@ -28,7 +28,6 @@ import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.sink.WriterManagerCreator
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
 
 object S3SinkTask {}
@@ -46,7 +45,7 @@ class S3SinkTask
 
   def createWriterMan(props: Map[String, String]): Either[Throwable, WriterManager[S3FileMetadata]] =
     for {
-      config          <- S3SinkConfig.fromProps(props.asJava)
+      config          <- S3SinkConfig.fromProps(props)
       s3Client        <- AwsS3ClientCreator.make(config.s3Config)
       storageInterface = new AwsS3StorageInterface(connectorTaskId, s3Client, config.batchDelete)
       _               <- Try(setErrorRetryInterval(config.s3Config)).toEither

@@ -31,7 +31,6 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.util.UUID
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 class ProtoStoredAsConverterTest
     extends AnyWordSpec
@@ -164,7 +163,7 @@ class ProtoStoredAsConverterTest
     schema:      Schema,
     struct:      Struct,
   ) = {
-    val config   = JMSConfig(props.asJava)
+    val config   = JMSConfig(props)
     val settings = JMSSettings(config, true)
     val setting  = settings.settings.head
 

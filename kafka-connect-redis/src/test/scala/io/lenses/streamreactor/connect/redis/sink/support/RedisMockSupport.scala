@@ -19,8 +19,6 @@ import io.lenses.streamreactor.connect.redis.sink.config.RedisConfig
 import io.lenses.streamreactor.connect.redis.sink.config.RedisConfigConstants
 import org.mockito.MockitoSugar
 
-import scala.jdk.CollectionConverters.MapHasAsJava
-
 trait RedisMockSupport extends MockitoSugar {
 
   def getRedisSinkConfig(password: Boolean, KCQL: Option[String], pkDelimiter: Option[String] = None): RedisConfig = {
@@ -42,7 +40,7 @@ trait RedisMockSupport extends MockitoSugar {
       baseProps += RedisConfigConstants.REDIS_PK_DELIMITER -> delimiter
     }
 
-    RedisConfig(baseProps.asJava)
+    RedisConfig(baseProps.toMap)
   }
 
 }

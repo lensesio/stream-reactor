@@ -90,7 +90,7 @@ class DocumentDbSinkConnector private[sink] (builder: DocumentDbSinkSettings => 
     * @param props A map of properties for the connector and worker
     */
   override def start(props: util.Map[String, String]): Unit = {
-    val config = Try(DocumentDbConfig(props)) match {
+    val config = Try(DocumentDbConfig(props.asScala.toMap)) match {
       case Failure(f) =>
         throw new ConnectException(s"Couldn't start Azure DocumentDb sink due to configuration error: ${f.getMessage}",
                                    f,

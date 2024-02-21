@@ -20,8 +20,6 @@ import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.cloud.common.config.PropertiesHelper
 import io.lenses.streamreactor.connect.cloud.common.consumers.CloudObjectKey
 
-import java.util
-
 case class S3ConsumerGroupsSinkConfig(
   location: CloudObjectKey,
   config:   S3Config,
@@ -29,7 +27,7 @@ case class S3ConsumerGroupsSinkConfig(
 
 object S3ConsumerGroupsSinkConfig extends PropertiesHelper {
   def fromProps(
-    props: util.Map[String, String],
+    props: Map[String, String],
   ): Either[Throwable, S3ConsumerGroupsSinkConfig] =
     S3ConsumerGroupsSinkConfig(S3ConsumerGroupsSinkConfigDef(props))
 

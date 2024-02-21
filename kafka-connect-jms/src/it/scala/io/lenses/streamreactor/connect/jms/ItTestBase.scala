@@ -35,7 +35,6 @@ import java.io.BufferedWriter
 import java.io.ByteArrayOutputStream
 import java.io.FileWriter
 import java.nio.file.Paths
-import java.util
 import java.util.UUID
 import javax.jms.BytesMessage
 import javax.jms.Session
@@ -121,8 +120,8 @@ trait ItTestBase extends AnyWordSpec with Matchers with MockitoSugar {
     topics:           String,
     url:              String,
     customProperties: Map[String, String] = Map(),
-  ): util.Map[String, String] =
-    (Map("topics" -> topics) ++ getProps(kcql, url) ++ customProperties).asJava
+  ): Map[String, String] =
+    Map("topics" -> topics) ++ getProps(kcql, url) ++ customProperties
 
   def getProps(kcql: String, url: String): Map[String, String] =
     Map(

@@ -31,7 +31,6 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter._
 import java.util
 import scala.collection.mutable
-import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SetHasAsScala
 
 trait ITBase extends AnyWordSpec with Matchers with BeforeAndAfter {
@@ -189,57 +188,57 @@ trait ITBase extends AnyWordSpec with Matchers with BeforeAndAfter {
 
   def getElasticSinkConfigProps(
     clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-  ): util.Map[String, String] =
+  ): Map[String, String] =
     getBaseElasticSinkConfigProps(QUERY, clusterName)
 
   def getElasticSinkConfigPropsSelection(
     clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-  ): util.Map[String, String] =
+  ): Map[String, String] =
     getBaseElasticSinkConfigProps(QUERY_SELECTION, clusterName)
 
   def getElasticSinkConfigPropsPk(
     clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-  ): util.Map[String, String] =
+  ): Map[String, String] =
     getBaseElasticSinkConfigProps(QUERY_PK, clusterName)
 
   def getElasticSinkUpdateConfigProps(
     clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-  ): util.Map[String, String] =
+  ): Map[String, String] =
     getBaseElasticSinkConfigProps(UPDATE_QUERY, clusterName)
 
   def getElasticSinkUpdateConfigPropsSelection(
     clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-  ): util.Map[String, String] =
+  ): Map[String, String] =
     getBaseElasticSinkConfigProps(UPDATE_QUERY_SELECTION, clusterName)
 
   def getBaseElasticSinkConfigProps(
     query:       String,
     clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-  ): util.Map[String, String] =
+  ): Map[String, String] =
     Map(
       "topics"                               -> TOPIC,
       ElasticConfigConstants.HOSTS           -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
       ElasticConfigConstants.PROTOCOL        -> ElasticConfigConstants.PROTOCOL_DEFAULT,
       ElasticConfigConstants.KCQL            -> query,
-    ).asJava
+    )
 
   def getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(
     autoCreate:  Boolean,
     clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-  ): util.Map[String, String] =
+  ): Map[String, String] =
     Map(
       ElasticConfigConstants.HOSTS           -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
       ElasticConfigConstants.PROTOCOL        -> ElasticConfigConstants.PROTOCOL_DEFAULT,
       ElasticConfigConstants.KCQL -> (QUERY + (if (autoCreate) " AUTOCREATE "
                                                else "") + " WITHINDEXSUFFIX=_{YYYY-MM-dd}"),
-    ).asJava
+    )
 
   def getElasticSinkConfigPropsHTTPClient(
     auth:        Boolean = false,
     clusterName: String  = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-  ): util.Map[String, String] =
+  ): Map[String, String] =
     Map(
       ElasticConfigConstants.HOSTS           -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
@@ -251,5 +250,5 @@ trait ITBase extends AnyWordSpec with Matchers with BeforeAndAfter {
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD -> (if (auth) BASIC_AUTH_PASSWORD
                                                                  else
                                                                    ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT),
-    ).asJava
+    )
 }

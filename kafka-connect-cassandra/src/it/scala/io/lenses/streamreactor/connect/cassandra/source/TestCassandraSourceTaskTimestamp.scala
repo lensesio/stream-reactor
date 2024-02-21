@@ -32,6 +32,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 @DoNotDiscover
 @nowarn
@@ -65,7 +66,7 @@ class TestCassandraSourceTaskTimestamp
     task.initialize(taskContext)
 
     //start task
-    task.start(config)
+    task.start(config.asJava)
 
     insertIntoTimestampTable(session, keyspace, tableName, "id1", "magic_string", getFormattedDateNow(), 1.toByte)
 
@@ -100,7 +101,7 @@ class TestCassandraSourceTaskTimestamp
     task.initialize(taskContext)
 
     //start task
-    task.start(config)
+    task.start(config.asJava)
 
     insertIntoTimestampTable(session, keyspace, tableName, "id1", "magic_string", getFormattedDateNow(), 1.toByte)
 
@@ -126,7 +127,7 @@ class TestCassandraSourceTaskTimestamp
     task.initialize(taskContext)
 
     //start task
-    task.start(config)
+    task.start(config.asJava)
 
     for (i <- 1 to 10) {
       insertIntoTimestampTable(session,
@@ -160,7 +161,7 @@ class TestCassandraSourceTaskTimestamp
     val mapper = new ObjectMapper()
 
     //start task
-    task.start(config)
+    task.start(config.asJava)
 
     insertIntoTimestampTable(session, keyspace, tableName, "id1", "magic_string", getFormattedDateNow(), 1.toByte)
 
@@ -188,7 +189,7 @@ class TestCassandraSourceTaskTimestamp
     insertIntoTimestampTable(session, keyspace, tableName, "id1", "magic_string", getFormattedDateNow(), 1.toByte)
 
     try {
-      task.start(config)
+      task.start(config.asJava)
       fail()
     } catch {
       case _: ConfigException => // Expected, so continue

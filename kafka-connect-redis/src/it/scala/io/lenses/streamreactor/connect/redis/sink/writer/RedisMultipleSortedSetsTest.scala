@@ -56,7 +56,7 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with Mockito
         RedisConfigConstants.REDIS_HOST  -> "localhost",
         RedisConfigConstants.REDIS_PORT  -> container.mappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG -> KCQL,
-      ).asJava
+      )
 
       val config = RedisConfig(props)
 

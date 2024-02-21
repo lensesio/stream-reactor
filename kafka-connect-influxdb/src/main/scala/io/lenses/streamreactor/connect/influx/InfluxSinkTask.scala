@@ -32,6 +32,7 @@ import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
 import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
   * <h1>InfluxSinkTask</h1>
@@ -54,7 +55,7 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
     val conf = if (context.configs().isEmpty) props else context.configs()
 
     InfluxConfig.config.parse(conf)
-    val sinkConfig = InfluxConfig(conf)
+    val sinkConfig = InfluxConfig(conf.asScala.toMap)
     enableProgress = sinkConfig.getBoolean(InfluxConfigConstants.PROGRESS_COUNTER_ENABLED)
     val influxSettings = InfluxSettings(sinkConfig)
 

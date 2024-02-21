@@ -25,12 +25,10 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketO
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
 
-import java.util
-
 object S3SinkConfig {
 
   def fromProps(
-    props: util.Map[String, String],
+    props: Map[String, String],
   )(
     implicit
     connectorTaskId:        ConnectorTaskId,

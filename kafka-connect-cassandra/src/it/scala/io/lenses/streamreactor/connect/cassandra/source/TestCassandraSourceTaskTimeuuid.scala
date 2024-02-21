@@ -31,6 +31,7 @@ import org.scalatest.Suite
 
 import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 @DoNotDiscover
 @nowarn
@@ -64,7 +65,7 @@ class TestCassandraSourceTaskTimeuuid
     task.initialize(taskContext)
 
     //start task
-    task.start(config)
+    task.start(config.asJava)
 
     insertIntoTimeuuidTable(session, keyspace, tableName, "id1", "magic_string")
 
@@ -97,7 +98,7 @@ class TestCassandraSourceTaskTimeuuid
     task.initialize(taskContext)
 
     //start task
-    task.start(config)
+    task.start(config.asJava)
 
     insertIntoTimeuuidTable(session, keyspace, tableName, "id1", "magic_string")
 
@@ -122,7 +123,7 @@ class TestCassandraSourceTaskTimeuuid
     task.initialize(taskContext)
 
     //start task
-    task.start(config)
+    task.start(config.asJava)
 
     for (i <- 1 to 10) {
       insertIntoTimeuuidTable(session, keyspace, tableName, s"id$i", s"magic_string_$i")
@@ -145,7 +146,7 @@ class TestCassandraSourceTaskTimeuuid
     insertIntoTimeuuidTable(session, keyspace, tableName, "id1", "magic_string")
 
     try {
-      task.start(config)
+      task.start(config.asJava)
       fail()
     } catch {
       case _: ConfigException => // Expected, so continue

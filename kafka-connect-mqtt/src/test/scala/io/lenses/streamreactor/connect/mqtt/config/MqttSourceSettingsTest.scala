@@ -21,8 +21,6 @@ import org.apache.kafka.common.config.ConfigException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.jdk.CollectionConverters.MapHasAsJava
-
 class MqttSourceSettingsTest extends AnyWordSpec with Matchers {
   "MqttSourceSetting" should {
 
@@ -41,7 +39,7 @@ class MqttSourceSettingsTest extends AnyWordSpec with Matchers {
             MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG     -> "1000",
             MqttConfigConstants.PASSWORD_CONFIG                -> "somepassw",
             MqttConfigConstants.USER_CONFIG                    -> "user",
-          ).asJava,
+          ),
         )
       }
       settings.mqttQualityOfService shouldBe 1
@@ -72,7 +70,7 @@ class MqttSourceSettingsTest extends AnyWordSpec with Matchers {
             MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG     -> "1000",
             MqttConfigConstants.PASSWORD_CONFIG                -> "somepassw",
             MqttConfigConstants.USER_CONFIG                    -> "user",
-          ).asJava,
+          ),
         )
       }
 
@@ -93,7 +91,7 @@ class MqttSourceSettingsTest extends AnyWordSpec with Matchers {
             MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG     -> "1000",
             MqttConfigConstants.PASSWORD_CONFIG                -> "somepassw",
             MqttConfigConstants.USER_CONFIG                    -> "user",
-          ).asJava,
+          ),
         )
       }
     }
@@ -114,7 +112,7 @@ class MqttSourceSettingsTest extends AnyWordSpec with Matchers {
               MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG     -> "1000",
               MqttConfigConstants.PASSWORD_CONFIG                -> "somepassw",
               MqttConfigConstants.USER_CONFIG                    -> "user",
-            ).asJava,
+            ),
           ),
         )
       }
@@ -136,7 +134,7 @@ class MqttSourceSettingsTest extends AnyWordSpec with Matchers {
               MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG     -> "1000",
               MqttConfigConstants.PASSWORD_CONFIG                -> "somepassw",
               MqttConfigConstants.USER_CONFIG                    -> "user",
-            ).asJava,
+            ),
           ),
         )
       }
@@ -157,7 +155,7 @@ class MqttSourceSettingsTest extends AnyWordSpec with Matchers {
               MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG     -> "1000",
               MqttConfigConstants.PASSWORD_CONFIG                -> "somepassw",
               MqttConfigConstants.USER_CONFIG                    -> "user",
-            ).asJava,
+            ),
           ),
         )
       }
@@ -177,7 +175,7 @@ class MqttSourceSettingsTest extends AnyWordSpec with Matchers {
             MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG     -> "1000",
             MqttConfigConstants.PASSWORD_CONFIG                -> "somepassw",
             MqttConfigConstants.USER_CONFIG                    -> "user",
-          ).asJava,
+          ),
         )
       }
     }
@@ -196,7 +194,7 @@ class MqttSourceSettingsTest extends AnyWordSpec with Matchers {
             MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG     -> "1000",
             MqttConfigConstants.PASSWORD_CONFIG                -> "somepassw",
             MqttConfigConstants.USER_CONFIG                    -> "user",
-          ).asJava,
+          ),
         )
       }
     }
@@ -215,7 +213,7 @@ class MqttSourceSettingsTest extends AnyWordSpec with Matchers {
             MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG     -> "1000",
             MqttConfigConstants.PASSWORD_CONFIG                -> "somepassw",
             MqttConfigConstants.USER_CONFIG                    -> "user",
-          ).asJava,
+          ),
         )
       }
     }

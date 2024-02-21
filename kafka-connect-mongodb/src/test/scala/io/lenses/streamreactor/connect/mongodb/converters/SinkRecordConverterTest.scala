@@ -102,7 +102,7 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
   "fromJson()" should {
 
     "not modify any values for date fields when jsonDateTimeFields is NOT specified" in {
-      implicit val settings = MongoSettings(MongoConfig(baseConfig.asJava))
+      implicit val settings = MongoSettings(MongoConfig(baseConfig))
       val doc: Document                           = SinkRecordConverter.fromJson(parse(jsonStr))
       val map: Set[JavaMap.Entry[String, AnyRef]] = doc.entrySet().asScala.toSet
 
@@ -133,7 +133,7 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
           Map(
             MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG ->
               expectedDates.keySet.mkString(","),
-          )).asJava),
+          ))),
       )
       val doc: Document                           = SinkRecordConverter.fromJson(parse(jsonStr))
       val map: Set[JavaMap.Entry[String, AnyRef]] = doc.entrySet().asScala.toSet
@@ -159,11 +159,11 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
       println(s"jsonInt = $jsonInt")
 
       implicit val settings = MongoSettings(
-        MongoConfig((baseConfig ++
+        MongoConfig(baseConfig ++
           Map(
             MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG ->
               expectedDates.keySet.mkString(","),
-          )).asJava),
+          )),
       )
       val doc: Document                           = SinkRecordConverter.fromJson(parse(jsonInt))
       val map: Set[JavaMap.Entry[String, AnyRef]] = doc.entrySet().asScala.toSet
@@ -200,7 +200,7 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
         Map(
           MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG ->
             "a, b, c, d, e, f",
-        )).asJava))
+        ))))
 
       val doc: Document = filterNonParsableDates(SinkRecordConverter.fromJson(parse(jsonStr)))
 
@@ -243,7 +243,7 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
         Map(
           MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG ->
             "c.ts, e.n.x.ts",
-        )).asJava))
+        ))))
       val doc: Document                           = SinkRecordConverter.fromJson(parse(json))
       val map: Set[JavaMap.Entry[String, AnyRef]] = doc.entrySet().asScala.toSet
 
@@ -307,7 +307,7 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
         Map(
           MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG ->
             "A, B.N",
-        )).asJava))
+        ))))
 
       val doc = SinkRecordConverter.fromMap(map)
 
@@ -329,7 +329,7 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
           Map(
             MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG ->
               "subDoc.N, timestamp, subList.Y",
-          )).asJava),
+          ))),
       )
 
       //map is {A=0, subList=[Document{{X=100, Y=101}}, Document{{Y=102}}],

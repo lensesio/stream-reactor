@@ -20,20 +20,18 @@ import io.lenses.streamreactor.connect.cloud.common.source.config.distribution.P
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.jdk.CollectionConverters._
 class ConnectorTaskIdTest extends AnyWordSpec with Matchers with TaskIndexKey {
   private val connectorName = "connectorName"
   "ConnectorTaskId" should {
     "create the instance" in {
       val from = Map("a" -> "1", "b" -> "2", TASK_INDEX -> "0:2", "name" -> connectorName)
-      new ConnectorTaskIdCreator(connectorPrefix).fromProps(from.asJava) shouldBe ConnectorTaskId(connectorName,
-                                                                                                  2,
-                                                                                                  0,
-      ).asRight[String]
+      new ConnectorTaskIdCreator(connectorPrefix).fromProps(from) shouldBe ConnectorTaskId(connectorName, 2, 0).asRight[
+        String,
+      ]
     }
     "fail if max tasks is not valid integer" in {
       val from   = Map("a" -> "1", "b" -> "2", TASK_INDEX -> "0:2a", "name" -> connectorName)
-      val actual = new ConnectorTaskIdCreator(connectorPrefix).fromProps(from.asJava)
+      val actual = new ConnectorTaskIdCreator(connectorPrefix).fromProps(from)
       actual match {
         case Left(e)  => e.getMessage shouldBe s"Invalid $TASK_INDEX. Expecting an integer but found:2a"
         case Right(_) => fail("Should have failed")
@@ -41,14 +39,14 @@ class ConnectorTaskIdTest extends AnyWordSpec with Matchers with TaskIndexKey {
     }
     "fail if task number is not a valid integer" in {
       val from = Map("a" -> "1", "b" -> "2", TASK_INDEX -> "0a:2", "name" -> connectorName)
-      new ConnectorTaskIdCreator(connectorPrefix).fromProps(from.asJava) match {
+      new ConnectorTaskIdCreator(connectorPrefix).fromProps(from) match {
         case Left(value) => value.getMessage shouldBe s"Invalid $TASK_INDEX. Expecting an integer but found:0a"
         case Right(_)    => fail("Should have failed")
       }
     }
     "fail if task number < 0" in {
       val from = Map("a" -> "1", "b" -> "2", TASK_INDEX -> "-1:2", "name" -> connectorName)
-      new ConnectorTaskIdCreator(connectorPrefix).fromProps(from.asJava) match {
+      new ConnectorTaskIdCreator(connectorPrefix).fromProps(from) match {
         case Left(value)  => value.getMessage shouldBe s"Invalid $TASK_INDEX. Expecting a positive integer but found:-1"
         case Right(value) => fail(s"Should have failed but got $value")
       }
@@ -56,14 +54,14 @@ class ConnectorTaskIdTest extends AnyWordSpec with Matchers with TaskIndexKey {
     }
     "fail if max tasks is zero" in {
       val from = Map("a" -> "1", "b" -> "2", TASK_INDEX -> "0:0", "name" -> connectorName)
-      new ConnectorTaskIdCreator(connectorPrefix).fromProps(from.asJava) match {
+      new ConnectorTaskIdCreator(connectorPrefix).fromProps(from) match {
         case Left(value)  => value.getMessage shouldBe s"Invalid $TASK_INDEX. Expecting a positive integer but found:0"
         case Right(value) => fail(s"Should have failed but got $value")
       }
     }
     "fail if max tasks is negative" in {
       val from = Map("a" -> "1", "b" -> "2", TASK_INDEX -> "0:-1", "name" -> connectorName)
-      new ConnectorTaskIdCreator(connectorPrefix).fromProps(from.asJava) match {
+      new ConnectorTaskIdCreator(connectorPrefix).fromProps(from) match {
         case Left(value)  => value.getMessage shouldBe s"Invalid $TASK_INDEX. Expecting a positive integer but found:-1"
         case Right(value) => fail(s"Should have failed but got $value")
       }
@@ -72,7 +70,7 @@ class ConnectorTaskIdTest extends AnyWordSpec with Matchers with TaskIndexKey {
     "own the partitions when max task is 1" in {
       val from = Map("a" -> "1", "b" -> "2", TASK_INDEX -> "0:1", "name" -> connectorName)
       val actual =
-        new ConnectorTaskIdCreator(connectorPrefix).fromProps(from.asJava).getOrElse(fail("Should be valid"))
+        new ConnectorTaskIdCreator(connectorPrefix).fromProps(from).getOrElse(fail("Should be valid"))
 
       Seq("/myTopic/", "/anotherTopic/", "/thirdTopic/")
         .flatMap { value =>
@@ -89,12 +87,12 @@ class ConnectorTaskIdTest extends AnyWordSpec with Matchers with TaskIndexKey {
                                                                           "b"        -> "2",
                                                                           TASK_INDEX -> "0:2",
                                                                           "name"     -> connectorName,
-      ).asJava).getOrElse(fail("Should be valid"))
+      )).getOrElse(fail("Should be valid"))
       val two = new ConnectorTaskIdCreator(connectorPrefix).fromProps(Map("a" -> "1",
                                                                           "b"        -> "2",
                                                                           TASK_INDEX -> "1:2",
                                                                           "name"     -> connectorName,
-      ).asJava).getOrElse(fail("Should be valid"))
+      )).getOrElse(fail("Should be valid"))
 
       PartitionHasher.hash(2, "1") shouldBe 1
       one.ownsDir("1") shouldBe false
@@ -111,17 +109,17 @@ class ConnectorTaskIdTest extends AnyWordSpec with Matchers with TaskIndexKey {
                                                                           "b"        -> "2",
                                                                           TASK_INDEX -> "0:3",
                                                                           "name"     -> connectorName,
-      ).asJava).getOrElse(fail("Should be valid"))
+      )).getOrElse(fail("Should be valid"))
       val two = new ConnectorTaskIdCreator(connectorPrefix).fromProps(Map("a" -> "1",
                                                                           "b"        -> "2",
                                                                           TASK_INDEX -> "1:3",
                                                                           "name"     -> connectorName,
-      ).asJava).getOrElse(fail("Should be valid"))
+      )).getOrElse(fail("Should be valid"))
       val three = new ConnectorTaskIdCreator(connectorPrefix).fromProps(Map("a" -> "1",
                                                                             "b"        -> "2",
                                                                             TASK_INDEX -> "2:3",
                                                                             "name"     -> connectorName,
-      ).asJava).getOrElse(fail("Should be valid"))
+      )).getOrElse(fail("Should be valid"))
 
       PartitionHasher.hash(3, "1") shouldBe 1
       one.ownsDir("1") shouldBe false

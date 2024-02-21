@@ -45,7 +45,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     printAsciiHeader(manifest, "/mqtt-source-ascii.txt")
 
-    val conf = if (context.configs().isEmpty) props else context.configs()
+    val conf = (if (context.configs().isEmpty) props else context.configs()).asScala.toMap
 
     val settings = MqttSourceSettings(MqttSourceConfig(conf))
 
@@ -77,7 +77,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
               s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!",
             )
         }
-        converter.initialize(conf.asScala.toMap)
+        converter.initialize(conf)
         topic -> converter
     }
 

@@ -20,10 +20,9 @@ import io.lenses.streamreactor.connect.aws.s3.config.DeleteModeSettings
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfigDefBuilder
 
-import java.util
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-case class S3SinkConfigDefBuilder(props: util.Map[String, String])
+case class S3SinkConfigDefBuilder(props: Map[String, String])
     extends BaseConfig(S3ConfigSettings.CONNECTOR_PREFIX, S3SinkConfigDef.config, props)
     with CloudSinkConfigDefBuilder
     with ErrorPolicySettings

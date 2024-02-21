@@ -23,8 +23,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.DoNotDiscover
 import org.scalatest.Suite
 
-import scala.jdk.CollectionConverters.MapHasAsJava
-
 /**
   * Created by andrew@datamountaineer.com on 14/04/16.
   * stream-reactor
@@ -41,7 +39,7 @@ class TestCassandraConnectionSecure extends AnyWordSpec with Matchers with ItTes
       CassandraConfigConstants.USERNAME       -> "cassandra",
       CassandraConfigConstants.PASSWD         -> "cassandra",
       CassandraConfigConstants.KCQL           -> "INSERT INTO TABLE SELECT * FROM TOPIC",
-    ).asJava
+    )
 
     val taskConfig = CassandraConfigSink(props)
     val conn       = CassandraConnection(taskConfig)

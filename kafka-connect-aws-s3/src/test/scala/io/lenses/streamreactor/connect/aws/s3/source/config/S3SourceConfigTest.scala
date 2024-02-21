@@ -21,8 +21,6 @@ import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.jdk.CollectionConverters.MapHasAsJava
-
 class S3SourceConfigTest extends AnyFunSuite with Matchers with TaskIndexKey with SourcePartitionSearcherSettingsKeys {
   private val Identity:   String = "identity"
   private val Credential: String = "credential"
@@ -55,7 +53,7 @@ class S3SourceConfigTest extends AnyFunSuite with Matchers with TaskIndexKey wit
       "connect.s3.partition.search.recurse.levels" -> "0",
     )
 
-    S3SourceConfig(S3SourceConfigDefBuilder(props.asJava)) match {
+    S3SourceConfig(S3SourceConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(config) =>
         config.bucketOptions.size shouldBe 3

@@ -22,8 +22,6 @@ import io.lenses.streamreactor.connect.redis.sink.support.RedisMockSupport
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.jdk.CollectionConverters.MapHasAsJava
-
 class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport {
 
   "work with Cache" -> {
@@ -33,7 +31,7 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
       RedisConfigConstants.REDIS_HOST  -> "localhost",
       RedisConfigConstants.REDIS_PORT  -> "0000",
       RedisConfigConstants.KCQL_CONFIG -> KCQL,
-    ).asJava
+    )
 
     val config   = RedisConfig(props)
     val settings = RedisSinkSettings(config)
@@ -52,7 +50,7 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
       RedisConfigConstants.REDIS_HOST  -> "localhost",
       RedisConfigConstants.REDIS_PORT  -> "0000",
       RedisConfigConstants.KCQL_CONFIG -> KCQL,
-    ).asJava
+    )
 
     val config   = RedisConfig(props)
     val settings = RedisSinkSettings(config)
@@ -71,7 +69,7 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
       RedisConfigConstants.REDIS_HOST  -> "localhost",
       RedisConfigConstants.REDIS_PORT  -> "0000",
       RedisConfigConstants.KCQL_CONFIG -> KCQL,
-    ).asJava
+    )
 
     val config   = RedisConfig(props)
     val settings = RedisSinkSettings(config)
@@ -97,7 +95,7 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
       RedisConfigConstants.REDIS_HOST  -> "localhost",
       RedisConfigConstants.REDIS_PORT  -> "0000",
       RedisConfigConstants.KCQL_CONFIG -> KCQL,
-    ).asJava
+    )
 
     val config   = RedisConfig(props)
     val settings = RedisSinkSettings(config)
@@ -131,7 +129,7 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
       RedisConfigConstants.REDIS_HOST  -> "localhost",
       RedisConfigConstants.REDIS_PORT  -> "0000",
       RedisConfigConstants.KCQL_CONFIG -> KCQL,
-    ).asJava
+    )
 
     val config   = RedisConfig(props)
     val settings = RedisSinkSettings(config)

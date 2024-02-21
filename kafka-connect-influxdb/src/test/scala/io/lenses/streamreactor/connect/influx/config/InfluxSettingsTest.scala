@@ -24,7 +24,6 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
 
@@ -43,7 +42,7 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
         InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG     -> "myuser",
         InfluxConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG -> "apass",
         InfluxConfigConstants.KCQL_CONFIG                       -> QUERY_ALL,
-      ).asJava
+      )
 
       val config = InfluxConfig(props)
       InfluxSettings(config)
@@ -58,7 +57,7 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
         InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG     -> "myuser",
         InfluxConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG -> "apass",
         InfluxConfigConstants.KCQL_CONFIG                       -> QUERY_ALL,
-      ).asJava
+      )
 
       val config = InfluxConfig(props)
       InfluxSettings(config)
@@ -77,7 +76,7 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
         InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG -> user,
         InfluxConfigConstants.KCQL_CONFIG                   -> QUERY_ALL,
         InfluxConfigConstants.CONSISTENCY_CONFIG            -> "SOMELEVEL",
-      ).asJava
+      )
 
       val config = InfluxConfig(props)
       InfluxSettings(config)
@@ -95,7 +94,7 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
         InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG     -> "",
         InfluxConfigConstants.KCQL_CONFIG                       -> QUERY_ALL,
         InfluxConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG -> "apass",
-      ).asJava
+      )
 
       val config = InfluxConfig(props)
       InfluxSettings(config)
@@ -113,7 +112,7 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
       InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG -> user,
       InfluxConfigConstants.KCQL_CONFIG                   -> QUERY_ALL,
       InfluxConfigConstants.CONSISTENCY_CONFIG            -> WriteConsistency.QUORUM.toString,
-    ).asJava
+    )
 
     val config = InfluxConfig(props)
 
@@ -140,7 +139,7 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
       InfluxConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG -> pass,
       InfluxConfigConstants.KCQL_CONFIG                       -> QUERY_SELECT,
       InfluxConfigConstants.CONSISTENCY_CONFIG                -> WriteConsistency.ANY.toString,
-    ).asJava
+    )
 
     val config = InfluxConfig(props)
 
@@ -168,7 +167,7 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
       InfluxConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG -> pass,
       InfluxConfigConstants.KCQL_CONFIG                       -> QUERY_SELECT_AND_TIMESTAMP,
       InfluxConfigConstants.CONSISTENCY_CONFIG                -> WriteConsistency.ONE.toString,
-    ).asJava
+    )
 
     val config = InfluxConfig(props)
 
@@ -197,7 +196,7 @@ class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
       InfluxConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG -> pass,
       InfluxConfigConstants.KCQL_CONFIG                       -> QUERY_SELECT_AND_TIMESTAMP_SYSTEM,
       InfluxConfigConstants.CONSISTENCY_CONFIG                -> WriteConsistency.ONE.toString,
-    ).asJava
+    )
 
     val config = InfluxConfig(props)
 

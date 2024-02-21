@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.elastic6
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfigConstants
 
 import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class ElasticSinkConnectorTest extends TestBase {
   "Should start a Elastic Search Connector" in {
@@ -26,7 +27,7 @@ class ElasticSinkConnectorTest extends TestBase {
     //get connector
     val connector = new ElasticSinkConnector()
     //start with config
-    connector.start(config)
+    connector.start(config.asJava)
     //check config
     val taskConfigs = connector.taskConfigs(10)
     taskConfigs.asScala.head.get(ElasticConfigConstants.HOSTS) shouldBe ELASTIC_SEARCH_HOSTNAMES

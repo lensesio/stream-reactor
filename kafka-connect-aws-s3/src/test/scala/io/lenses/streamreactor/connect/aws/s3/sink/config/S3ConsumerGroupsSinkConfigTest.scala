@@ -26,7 +26,6 @@ import io.lenses.streamreactor.connect.cloud.common.consumers.CloudObjectKey
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.jdk.CollectionConverters._
 class S3ConsumerGroupsSinkConfigTest extends AnyFunSuite with Matchers {
   test("creates an instance of S3ConsumerGroupsSinkConfig") {
     S3ConsumerGroupsSinkConfig.fromProps(
@@ -37,7 +36,7 @@ class S3ConsumerGroupsSinkConfigTest extends AnyFunSuite with Matchers {
         AWS_SECRET_KEY   -> "secret",
         AUTH_MODE        -> "credentials",
         CUSTOM_ENDPOINT  -> "endpoint",
-      ).asJava,
+      ),
     ) match {
       case Left(value) => fail("Expecting to build a config but got an error instead.", value)
       case Right(value) =>
@@ -71,7 +70,7 @@ class S3ConsumerGroupsSinkConfigTest extends AnyFunSuite with Matchers {
         AWS_SECRET_KEY   -> "secret",
         AUTH_MODE        -> "credentials",
         CUSTOM_ENDPOINT  -> "endpoint",
-      ).asJava,
+      ),
     ) match {
       case Left(value) => fail("Expecting to build a config but got an error instead.", value)
       case Right(value) =>

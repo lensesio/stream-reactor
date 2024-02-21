@@ -29,6 +29,7 @@ import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
 import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -57,7 +58,7 @@ class MongoSinkTask extends SinkTask with StrictLogging {
 
     printAsciiHeader(manifest, "/mongo-ascii.txt")
 
-    val taskConfig = Try(MongoConfig(conf)) match {
+    val taskConfig = Try(MongoConfig(conf.asScala.toMap)) match {
       case Failure(f) => throw new ConnectException("Couldn't start Mongo Sink due to configuration error.", f)
       case Success(s) => s
     }
