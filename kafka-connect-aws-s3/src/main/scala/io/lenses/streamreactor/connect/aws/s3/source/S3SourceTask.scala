@@ -14,92 +14,58 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.aws.s3.source
-
-import cats.effect.FiberIO
-import cats.effect.IO
-import cats.effect.Ref
-import cats.effect.unsafe.implicits.global
-import cats.implicits.catsSyntaxOptionId
-import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
-import io.lenses.streamreactor.connect.aws.s3.source.state.S3SourceState
-import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
+import io.lenses.streamreactor.connect.aws.s3.source.distribution.S3PartitionSearcher
+import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
-import io.lenses.streamreactor.connect.cloud.common.source.SourceContextReader
-import io.lenses.streamreactor.connect.cloud.common.source.state.CloudSourceTaskState
-import io.lenses.streamreactor.connect.cloud.common.utils.MapUtils
-import org.apache.kafka.connect.source.SourceRecord
-import org.apache.kafka.connect.source.SourceTask
+import io.lenses.streamreactor.connect.cloud.common.source.CloudSourceTask
+import io.lenses.streamreactor.connect.cloud.common.source.state.PartitionSearcher
+import software.amazon.awssdk.services.s3.S3Client
 
-import java.util
-import java.util.Collections
-import scala.jdk.CollectionConverters._
-class S3SourceTask extends SourceTask with LazyLogging {
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 
-  implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
-  private val contextOffsetFn: CloudLocation => Option[CloudLocation] =
-    SourceContextReader.getCurrentOffset(() => context)
+class S3SourceTask
+    extends CloudSourceTask[
+      S3FileMetadata,
+      S3SourceConfig,
+      S3Client,
+    ]
+    with LazyLogging {
 
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  implicit val validator: CloudLocationValidator = S3LocationValidator
 
-  @volatile
-  private var s3SourceTaskState: Option[CloudSourceTaskState] = None
+  override def createStorageInterface(
+    connectorTaskId: ConnectorTaskId,
+    config:          S3SourceConfig,
+    s3Client:        S3Client,
+  ): AwsS3StorageInterface =
+    new AwsS3StorageInterface(connectorTaskId, s3Client, config.batchDelete)
 
-  @volatile
-  private var cancelledRef: Option[Ref[IO, Boolean]] = None
+  override def createClient(config: S3SourceConfig): Either[Throwable, S3Client] =
+    AwsS3ClientCreator.make(config.connectionConfig)
 
-  private var partitionDiscoveryLoop: Option[FiberIO[Unit]] = None
+  override def convertPropsToConfig(
+    connectorTaskId: ConnectorTaskId,
+    props:           Map[String, String],
+  ): Either[Throwable, S3SourceConfig] = S3SourceConfig.fromProps(connectorTaskId, props)
 
-  override def version(): String = manifest.version()
+  override def createPartitionSearcher(
+    connectorTaskId: ConnectorTaskId,
+    config:          S3SourceConfig,
+    client:          S3Client,
+  ): PartitionSearcher =
+    new S3PartitionSearcher(
+      config.bucketOptions.map(_.sourceBucketAndPrefix),
+      config.partitionSearcher,
+      connectorTaskId,
+      client.listObjectsV2Paginator(_).iterator().asScala,
+    )
 
-  /**
-    * Start sets up readers for every configured connection in the properties
-    */
-  override def start(props: util.Map[String, String]): Unit = {
-
-    printAsciiHeader(manifest, "/aws-s3-source-ascii.txt")
-
-    logger.debug(s"Received call to S3SourceTask.start with ${props.size()} properties")
-
-    val contextProperties: Map[String, String] =
-      Option(context).flatMap(c => Option(c.configs()).map(_.asScala.toMap)).getOrElse(Map.empty)
-    val mergedProperties: Map[String, String] = MapUtils.mergeProps(contextProperties, props.asScala.toMap)
-    (for {
-      result <- S3SourceState.make(mergedProperties, contextOffsetFn)
-      fiber  <- result.partitionDiscoveryLoop.start
-    } yield {
-      s3SourceTaskState      = result.state.some
-      cancelledRef           = result.cancelledRef.some
-      partitionDiscoveryLoop = fiber.some
-    }).unsafeRunSync()
-  }
-
-  override def stop(): Unit = {
-    logger.info(s"Stopping S3 source task")
-    (s3SourceTaskState, cancelledRef, partitionDiscoveryLoop) match {
-      case (Some(state), Some(signal), Some(fiber)) => stopInternal(state, signal, fiber)
-      case _                                        => logger.info("There is no state to stop.")
-    }
-    logger.info(s"Stopped S3 source task")
-  }
-
-  override def poll(): util.List[SourceRecord] =
-    s3SourceTaskState.fold(Collections.emptyList[SourceRecord]()) { state =>
-      state.poll().unsafeRunSync().asJava
-    }
-
-  private def stopInternal(state: CloudSourceTaskState, signal: Ref[IO, Boolean], fiber: FiberIO[Unit]): Unit = {
-    (for {
-      _ <- signal.set(true)
-      _ <- state.close()
-      // Don't join the fiber if it's already been cancelled. It will take potentially the interval time to complete
-      // and this can create issues on Connect. The task will be terminated and the resource cleaned up by the GC.
-      //_ <- fiber.join.timeout(1.minute).attempt.void
-    } yield ()).unsafeRunSync()
-    cancelledRef           = None
-    partitionDiscoveryLoop = None
-    s3SourceTaskState      = None
-  }
+  override def connectorPrefix: String = CONNECTOR_PREFIX
 }

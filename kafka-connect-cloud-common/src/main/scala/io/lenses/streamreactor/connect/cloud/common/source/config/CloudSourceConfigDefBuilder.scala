@@ -24,7 +24,6 @@ import io.lenses.streamreactor.common.config.base.traits.UserSettings
 import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings
 import org.apache.kafka.common.config.ConfigDef
 
-
 abstract class CloudSourceConfigDefBuilder(
   connectorPrefix: String,
   configDef:       ConfigDef,

@@ -26,6 +26,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getInt
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getLong
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getPassword
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getString
+import io.lenses.streamreactor.connect.cloud.common.config.RetryConfig
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudConnectionConfig
 
 import scala.collection.immutable
@@ -76,8 +77,6 @@ object S3ConnectionConfig {
       ErrorPolicyEnum.withName(getString(props, ERROR_POLICY).map(_.toUpperCase()).getOrElse(ERROR_POLICY_DEFAULT)),
     )
 }
-
-case class RetryConfig(numberOfRetries: Int, errorRetryInterval: Long)
 
 case class HttpTimeoutConfig(socketTimeout: Option[Int], connectionTimeout: Option[Long])
 

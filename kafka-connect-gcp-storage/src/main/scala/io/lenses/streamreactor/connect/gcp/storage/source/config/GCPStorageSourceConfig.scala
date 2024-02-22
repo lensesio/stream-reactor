@@ -15,6 +15,9 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.source.config
 
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSourceConfig
+import io.lenses.streamreactor.connect.cloud.common.config.traits.PropsToConfigConverter
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
@@ -25,12 +28,16 @@ import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageFileMetadat
 
 import scala.util.Try
 
-object GCPStorageSourceConfig {
+object GCPStorageSourceConfig extends PropsToConfigConverter[GCPStorageSourceConfig] {
 
   implicit val CloudLocationValidator: CloudLocationValidator = GCPStorageLocationValidator
 
-  def fromProps(
-    props: Map[String, String],
+  override def fromProps(
+    connectorTaskId: ConnectorTaskId,
+    props:           Map[String, String],
+  )(
+    implicit
+    cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, GCPStorageSourceConfig] =
     Try(GCPStorageSourceConfig(GCPStorageSourceConfigDefBuilder(props))).toEither.flatten
 
@@ -50,11 +57,12 @@ object GCPStorageSourceConfig {
     )
 
   }
+
 }
 
 case class GCPStorageSourceConfig(
-                                   s3Config:          GCPConnectionConfig,
-                                   bucketOptions:     Seq[CloudSourceBucketOptions[GCPStorageFileMetadata]] = Seq.empty,
-                                   compressionCodec:  CompressionCodec,
-                                   partitionSearcher: PartitionSearcherOptions,
-)
+  connectionConfig:  GCPConnectionConfig,
+  bucketOptions:     Seq[CloudSourceBucketOptions[GCPStorageFileMetadata]] = Seq.empty,
+  compressionCodec:  CompressionCodec,
+  partitionSearcher: PartitionSearcherOptions,
+) extends CloudSourceConfig[GCPStorageFileMetadata]

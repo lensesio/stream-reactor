@@ -77,8 +77,8 @@ object DatalakeClientCreator extends ClientCreator[AzureConnectionConfig, DataLa
     }.toEither
 
   private def createDataLakeClientWithSharedKey(
-                                                 config:   AzureConnectionConfig,
-                                                 authMode: Credentials,
+    config:   AzureConnectionConfig,
+    authMode: Credentials,
   ): Either[Throwable, DataLakeServiceClient] =
     Try {
       val storageCredentials = new StorageSharedKeyCredential(authMode.accountName, authMode.accountKey.value())
@@ -93,7 +93,9 @@ object DatalakeClientCreator extends ClientCreator[AzureConnectionConfig, DataLa
 
     }.toEither
 
-  private def createDataLakeClientWithDefaultCredential(config: AzureConnectionConfig): Either[Throwable, DataLakeServiceClient] =
+  private def createDataLakeClientWithDefaultCredential(
+    config: AzureConnectionConfig,
+  ): Either[Throwable, DataLakeServiceClient] =
     Try {
       val builder = new DataLakeServiceClientBuilder()
         .credential(new DefaultAzureCredentialBuilder().build())

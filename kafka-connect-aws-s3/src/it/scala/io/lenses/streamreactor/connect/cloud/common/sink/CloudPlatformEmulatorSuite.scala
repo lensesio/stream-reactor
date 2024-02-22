@@ -3,6 +3,7 @@ package io.lenses.streamreactor.connect.cloud.common.sink
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toBifunctorOps
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.utils.RemoteFileHelper
@@ -13,8 +14,13 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Try
 
-trait CloudPlatformEmulatorSuite[SM <: FileMetadata, SI <: StorageInterface[SM], T <: CloudSinkTask[SM], C]
-    extends AnyFlatSpec
+trait CloudPlatformEmulatorSuite[
+  SM <: FileMetadata,
+  SI <: StorageInterface[SM],
+  CSC <: CloudSinkConfig,
+  C,
+  T <: CloudSinkTask[SM, CSC, C],
+] extends AnyFlatSpec
     with BeforeAndAfter
     with BeforeAndAfterAll
     with RemoteFileHelper[SI] {

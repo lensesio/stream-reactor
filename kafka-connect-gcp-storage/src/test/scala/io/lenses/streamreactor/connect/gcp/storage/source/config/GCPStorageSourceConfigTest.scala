@@ -15,17 +15,20 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.source.config
 
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.gcp.storage.model.location.GCPStorageLocationValidator
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
 
-
 class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues {
 
+  val taskId             = ConnectorTaskId("name", 1, 1)
+  implicit val validator = GCPStorageLocationValidator
   test("fromProps should reject configuration when no kcql string is provided") {
     val props  = Map[String, String]()
-    val result = GCPStorageSourceConfig.fromProps(props)
+    val result = GCPStorageSourceConfig.fromProps(taskId, props)
 
     assertEitherException(
       result,
@@ -38,7 +41,7 @@ class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues {
     val props = Map[String, String](
       "connect.gcpstorage.kcql" -> "flibble dibble dop",
     )
-    val result = GCPStorageSourceConfig.fromProps(props)
+    val result = GCPStorageSourceConfig.fromProps(taskId, props)
     assertEitherException(
       result,
       classOf[IllegalArgumentException].getName,
@@ -50,7 +53,7 @@ class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues {
     val props = Map[String, String](
       "connect.gcpstorage.kcql" -> "select * from myBucket insert into myTopic",
     )
-    val result = GCPStorageSourceConfig.fromProps(props)
+    val result = GCPStorageSourceConfig.fromProps(taskId, props)
     assertEitherException(result,
                           classOf[IllegalArgumentException].getName,
                           "Invalid bucket name (Rule: Bucket name should match regex",
@@ -62,7 +65,7 @@ class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues {
       "connect.gcpstorage.kcql"          -> "select * from myBucket.azure insert into myTopic",
       "connect.gcpstorage.gcp.auth.mode" -> "plain-and-unencrypted",
     )
-    val result = GCPStorageSourceConfig.fromProps(props)
+    val result = GCPStorageSourceConfig.fromProps(taskId, props)
     assertEitherException(result, classOf[ConfigException].getName, "Unsupported auth mode `plain-and-unencrypted`")
   }
 
@@ -71,7 +74,7 @@ class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues {
       "connect.gcpstorage.kcql"          -> "select * from myBucket.azure insert into myTopic",
       "connect.gcpstorage.gcp.auth.mode" -> "credentials",
     )
-    val result = GCPStorageSourceConfig(GCPStorageSourceConfigDefBuilder(props))
+    val result = GCPStorageSourceConfig.fromProps(taskId, props)
     result.isRight shouldBe true
   }
 

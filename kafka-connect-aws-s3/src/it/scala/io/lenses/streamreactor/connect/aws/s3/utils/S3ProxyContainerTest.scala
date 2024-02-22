@@ -5,6 +5,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConnectionConfig
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.sink.S3SinkTask
+import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
@@ -24,7 +25,7 @@ import java.nio.file.Files
 import scala.util.Try
 
 trait S3ProxyContainerTest
-    extends CloudPlatformEmulatorSuite[S3FileMetadata, AwsS3StorageInterface, S3SinkTask, S3Client]
+    extends CloudPlatformEmulatorSuite[S3FileMetadata, AwsS3StorageInterface, S3SinkConfig, S3Client, S3SinkTask]
     with TaskIndexKey
     with LazyLogging {
 

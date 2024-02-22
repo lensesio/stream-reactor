@@ -16,24 +16,21 @@
 package io.lenses.streamreactor.connect.cloud.common.source.state
 
 import cats.effect.IO
-import cats.effect.kernel.Ref
-import cats.implicits.toTraverseOps
-import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
-import org.apache.kafka.connect.source.SourceRecord
+import io.lenses.streamreactor.connect.cloud.common.source.distribution.PartitionSearcherResponse
 
-case class CloudSourceTaskState(
-  latestReaderManagers:   IO[Seq[ReaderManager]],
-  cancelledRef:           Ref[IO, Boolean],
-  partitionDiscoveryLoop: IO[Unit],
-) {
+/**
+  * Trait defining a partition searcher.
+  * Implementations of this trait are responsible for finding partitions based on previous search results.
+  */
+trait PartitionSearcher {
 
-  def close(): IO[Unit] =
-    latestReaderManagers.flatMap(_.traverse(_.close())).attempt.void
-
-  def poll(): IO[Seq[SourceRecord]] =
-    for {
-      readers      <- latestReaderManagers
-      pollResults  <- readers.map(_.poll()).traverse(identity)
-      sourceRecords = pollResults.flatten
-    } yield sourceRecords
+  /**
+    * Finds partitions based on the provided last found partition responses.
+    *
+    * @param lastFound The previously found partition responses.
+    * @return          An IO monad containing a sequence of new partition responses.
+    */
+  def find(
+    lastFound: Seq[PartitionSearcherResponse],
+  ): IO[Seq[PartitionSearcherResponse]]
 }

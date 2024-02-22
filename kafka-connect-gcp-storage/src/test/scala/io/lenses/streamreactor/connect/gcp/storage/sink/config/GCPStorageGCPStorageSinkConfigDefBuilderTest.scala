@@ -67,7 +67,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)) match {
+    CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
       case Left(value)  => fail(value.toString)
       case Right(value) => value.map(_.dataStorage) should be(List(DataStorageSettings.Default))
     }
@@ -78,7 +78,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `JSON` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)) match {
+    CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
       case Left(value)  => fail(value.toString)
       case Right(value) => value.map(_.dataStorage) should be(List(DataStorageSettings.enabled))
     }
@@ -89,7 +89,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `PARQUET` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false)",
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)) match {
+    CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false)))
@@ -118,7 +118,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
            |""".stripMargin,
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)) match {
+    CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(
@@ -203,7 +203,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false)",
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)) match {
+    CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(List(DataStorageSettings(envelope = true,
@@ -220,7 +220,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false)",
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)) match {
+    CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(List(DataStorageSettings(envelope = true,
@@ -237,7 +237,9 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES_VALUEONLY` WITH_FLUSH_COUNT = 1",
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)).left.value.getMessage should startWith(
+    CloudSinkBucketOptions(connectorTaskId,
+                           GCPStorageSinkConfigDefBuilder(props),
+    ).left.value.getMessage should startWith(
       "Unsupported format - BYTES_VALUEONLY.  Please note",
     )
   }
@@ -247,7 +249,9 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
       "connect.gcpstorage.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES` WITH_FLUSH_COUNT = 3",
     )
 
-    CloudSinkBucketOptions(GCPStorageSinkConfigDefBuilder(props)).left.value.getMessage should startWith(
+    CloudSinkBucketOptions(connectorTaskId,
+                           GCPStorageSinkConfigDefBuilder(props),
+    ).left.value.getMessage should startWith(
       "FLUSH_COUNT > 1 is not allowed for BYTES",
     )
   }

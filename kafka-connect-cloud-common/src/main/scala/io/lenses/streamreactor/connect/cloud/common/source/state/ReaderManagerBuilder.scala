@@ -15,13 +15,17 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.source.state
 
-import cats.effect.{IO, Ref}
+import cats.effect.IO
+import cats.effect.Ref
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.cloud.common.model.location.{CloudLocation, CloudLocationValidator}
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.source.files.CloudSourceFileQueue
-import io.lenses.streamreactor.connect.cloud.common.source.reader.{ReaderManager, ResultReader}
-import io.lenses.streamreactor.connect.cloud.common.storage.{FileMetadata, StorageInterface}
+import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
+import io.lenses.streamreactor.connect.cloud.common.source.reader.ResultReader
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
+import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.apache.kafka.connect.errors.ConnectException
 
 /**

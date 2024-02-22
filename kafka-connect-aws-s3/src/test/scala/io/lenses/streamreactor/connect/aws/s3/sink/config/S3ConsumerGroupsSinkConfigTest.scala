@@ -19,9 +19,9 @@ import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.HttpTimeoutConfig
-import io.lenses.streamreactor.connect.aws.s3.config.RetryConfig
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConnectionConfig
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import io.lenses.streamreactor.connect.cloud.common.config.RetryConfig
 import io.lenses.streamreactor.connect.cloud.common.consumers.CloudObjectKey
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers

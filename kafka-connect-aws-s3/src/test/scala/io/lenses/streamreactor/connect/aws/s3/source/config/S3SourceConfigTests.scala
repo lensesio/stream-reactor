@@ -16,6 +16,8 @@
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
@@ -26,8 +28,13 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent.duration._
 
 class S3SourceConfigTests extends AnyFunSuite with Matchers with TaskIndexKey with CloudSourceSettingsKeys {
+
+  implicit val taskId    = ConnectorTaskId("test", 1, 1)
+  implicit val validator = S3LocationValidator
+
   test("default recursive levels is 0") {
     S3SourceConfig.fromProps(
+      taskId,
       Map(
         SOURCE_PARTITION_SEARCH_MODE            -> "false",
         SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
@@ -42,6 +49,7 @@ class S3SourceConfigTests extends AnyFunSuite with Matchers with TaskIndexKey wi
   }
   test("partition search options disables the continuous search") {
     S3SourceConfig.fromProps(
+      taskId,
       Map(
         SOURCE_PARTITION_SEARCH_RECURSE_LEVELS  -> "1",
         SOURCE_PARTITION_SEARCH_MODE            -> "false",
@@ -57,6 +65,7 @@ class S3SourceConfigTests extends AnyFunSuite with Matchers with TaskIndexKey wi
   }
   test("enable continuous partitions polling") {
     S3SourceConfig.fromProps(
+      taskId,
       Map(
         SOURCE_PARTITION_SEARCH_RECURSE_LEVELS  -> "1",
         SOURCE_PARTITION_SEARCH_MODE            -> "true",
@@ -72,6 +81,7 @@ class S3SourceConfigTests extends AnyFunSuite with Matchers with TaskIndexKey wi
   }
   test("not specifying the SOURCE_PARTITION_SEARCH_MODE defaults to true") {
     S3SourceConfig.fromProps(
+      taskId,
       Map(
         SOURCE_PARTITION_SEARCH_RECURSE_LEVELS  -> "1",
         SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",

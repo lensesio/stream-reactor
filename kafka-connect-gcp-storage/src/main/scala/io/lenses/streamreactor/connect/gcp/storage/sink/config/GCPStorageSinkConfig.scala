@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.gcp.storage.sink.config
 
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
+import io.lenses.streamreactor.connect.cloud.common.config.traits.PropsToConfigConverter
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
@@ -24,27 +25,27 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOpti
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES
 
-object GCPStorageSinkConfig {
+object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig] {
 
   def fromProps(
-    props: Map[String, String],
+    connectorTaskId: ConnectorTaskId,
+    props:           Map[String, String],
   )(
     implicit
-    connectorTaskId:        ConnectorTaskId,
     cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, GCPStorageSinkConfig] =
-    GCPStorageSinkConfig(GCPStorageSinkConfigDefBuilder(props))
+    GCPStorageSinkConfig(connectorTaskId, GCPStorageSinkConfigDefBuilder(props))
 
   def apply(
+    connectorTaskId:     ConnectorTaskId,
     gcpConfigDefBuilder: GCPStorageSinkConfigDefBuilder,
   )(
     implicit
-    connectorTaskId:        ConnectorTaskId,
     cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, GCPStorageSinkConfig] =
     for {
       authMode          <- gcpConfigDefBuilder.getAuthMode
-      sinkBucketOptions <- CloudSinkBucketOptions(gcpConfigDefBuilder)
+      sinkBucketOptions <- CloudSinkBucketOptions(connectorTaskId, gcpConfigDefBuilder)
       offsetSeekerOptions = OffsetSeekerOptions(
         gcpConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
       )
@@ -59,9 +60,9 @@ object GCPStorageSinkConfig {
 }
 
 case class GCPStorageSinkConfig(
-                                 gcpConfig:            GCPConnectionConfig,
-                                 bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
-                                 offsetSeekerOptions:  OffsetSeekerOptions,
-                                 compressionCodec:     CompressionCodec,
-                                 avoidResumableUpload: Boolean,
+  connectionConfig:     GCPConnectionConfig,
+  bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
+  offsetSeekerOptions:  OffsetSeekerOptions,
+  compressionCodec:     CompressionCodec,
+  avoidResumableUpload: Boolean,
 ) extends CloudSinkConfig

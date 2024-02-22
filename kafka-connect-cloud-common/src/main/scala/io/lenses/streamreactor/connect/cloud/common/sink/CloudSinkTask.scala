@@ -18,20 +18,23 @@ package io.lenses.streamreactor.connect.cloud.common.sink
 import cats.implicits.toBifunctorOps
 import cats.implicits.toShow
 import io.lenses.streamreactor.common.errors.ErrorHandler
+import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
-import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.HeaderToStringConverter
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ValueToSinkDataConverter
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
+import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.utils.MapUtils
 import io.lenses.streamreactor.connect.cloud.common.utils.TimestampUtils
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -45,18 +48,19 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 
-abstract class CloudSinkTask[SM <: FileMetadata](
+abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig, CT](
   connectorPrefix:      String,
   sinkAsciiArtResource: String,
   manifest:             JarManifest,
-)(
-  implicit
-  val cloudLocationValidator: CloudLocationValidator,
 ) extends SinkTask
     with ErrorHandler {
-  private var writerManager:    WriterManager[SM] = _
+
+  private val writerManagerCreator = new WriterManagerCreator[MD, C]()
+
+  private var writerManager:    WriterManager[MD] = _
   implicit var connectorTaskId: ConnectorTaskId   = _
-  override def version():       String            = manifest.version()
+
+  override def version(): String = manifest.version()
 
   override def start(fallbackProps: util.Map[String, String]): Unit = {
 
@@ -75,8 +79,6 @@ abstract class CloudSinkTask[SM <: FileMetadata](
 
     errOrWriterMan.leftMap(throw _).foreach(writerManager = _)
   }
-
-  def createWriterMan(props: Map[String, String]): Either[Throwable, WriterManager[SM]]
 
   private def rollback(topicPartitions: Set[TopicPartition]): Unit =
     topicPartitions.foreach(writerManager.cleanUp)
@@ -244,4 +246,38 @@ abstract class CloudSinkTask[SM <: FileMetadata](
     Option(writerManager).foreach(_.close())
     writerManager = null
   }
+
+  implicit def validator: CloudLocationValidator
+
+  def createClient(config: C): Either[Throwable, CT]
+
+  def createStorageInterface(connectorTaskId: ConnectorTaskId, config: C, cloudClient: CT): StorageInterface[MD]
+
+  def convertPropsToConfig(connectorTaskId: ConnectorTaskId, props: Map[String, String]): Either[Throwable, C]
+
+  def createWriterMan(props: Map[String, String]): Either[Throwable, WriterManager[MD]] =
+    for {
+      config          <- convertPropsToConfig(connectorTaskId, props)
+      s3Client        <- createClient(config)
+      storageInterface = createStorageInterface(connectorTaskId, config, s3Client)
+      _               <- setRetryInterval(config)
+      writerManager   <- Try(writerManagerCreator.from(config)(connectorTaskId, storageInterface)).toEither
+      _               <- initializeFromConfig(config)
+    } yield writerManager
+
+  private def initializeFromConfig(config: C): Either[Throwable, Unit] =
+    Try(initialize(
+      config.connectionConfig.connectorRetryConfig.numberOfRetries,
+      config.connectionConfig.errorPolicy,
+    )).toEither
+
+  private def setRetryInterval(config: C): Either[Throwable, Unit] =
+    Try {
+      //if error policy is retry set retry interval
+      config.connectionConfig.errorPolicy match {
+        case RetryErrorPolicy() => context.timeout(config.connectionConfig.connectorRetryConfig.errorRetryInterval)
+        case _                  =>
+      }
+    }.toEither
+
 }

@@ -18,10 +18,10 @@ package io.lenses.streamreactor.connect.gcp.storage.auth
 import cats.implicits.catsSyntaxOptionId
 import com.google.cloud.TransportOptions
 import com.google.cloud.http.HttpTransportOptions
+import io.lenses.streamreactor.connect.cloud.common.config.RetryConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.AuthMode
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.HttpTimeoutConfig
-import io.lenses.streamreactor.connect.gcp.storage.config.RetryConfig
 import org.apache.commons.io.IOUtils
 import org.apache.kafka.common.config.types.Password
 import org.scalatest.EitherValues

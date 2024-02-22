@@ -35,6 +35,7 @@ import GCPConfigSettings.HTTP_NBR_OF_RETRIES
 import GCPConfigSettings.HTTP_SOCKET_TIMEOUT
 import GCPConfigSettings.NBR_OF_RETIRES_DEFAULT
 import GCPConfigSettings.NBR_OF_RETRIES
+import io.lenses.streamreactor.connect.cloud.common.config.RetryConfig
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudConnectionConfig
 
 object GCPConnectionConfig {
@@ -64,8 +65,6 @@ object GCPConnectionConfig {
       ErrorPolicyEnum.withName(getString(props, ERROR_POLICY).map(_.toUpperCase()).getOrElse(ERROR_POLICY_DEFAULT)),
     )
 }
-
-case class RetryConfig(numberOfRetries: Int, errorRetryInterval: Long)
 
 case class HttpTimeoutConfig(socketTimeout: Option[Long], connectionTimeout: Option[Long])
 

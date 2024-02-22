@@ -14,6 +14,7 @@ import io.lenses.streamreactor.connect.gcp.storage.config.AuthModeSettingsConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.UploadConfigKeys
 import io.lenses.streamreactor.connect.gcp.storage.sink.GCPStorageSinkTask
+import io.lenses.streamreactor.connect.gcp.storage.sink.config.GCPStorageSinkConfig
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageFileMetadata
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageStorageInterface
 import io.lenses.streamreactor.connect.testcontainers.GCPStorageContainer
@@ -25,7 +26,13 @@ import java.nio.file.Files
 import scala.util.Try
 
 trait GCPProxyContainerTest
-    extends CloudPlatformEmulatorSuite[GCPStorageFileMetadata, GCPStorageStorageInterface, GCPStorageSinkTask, Storage]
+    extends CloudPlatformEmulatorSuite[
+      GCPStorageFileMetadata,
+      GCPStorageStorageInterface,
+      GCPStorageSinkConfig,
+      Storage,
+      GCPStorageSinkTask,
+    ]
     with TaskIndexKey
     with AuthModeSettingsConfigKeys
     with UploadConfigKeys

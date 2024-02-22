@@ -21,6 +21,7 @@ import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getInt
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getLong
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getString
+import io.lenses.streamreactor.connect.cloud.common.config.RetryConfig
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudConnectionConfig
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings._
 
@@ -52,8 +53,6 @@ object AzureConnectionConfig {
       ErrorPolicyEnum.withName(getString(props, ERROR_POLICY).map(_.toUpperCase()).getOrElse(ERROR_POLICY_DEFAULT)),
     )
 }
-
-case class RetryConfig(numberOfRetries: Int, errorRetryInterval: Long)
 
 case class HttpTimeoutConfig(socketTimeout: Option[Long], connectionTimeout: Option[Long])
 

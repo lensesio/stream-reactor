@@ -18,19 +18,26 @@ package io.lenses.streamreactor.connect.aws.s3.source.config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConnectionConfig
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSourceConfig
+import io.lenses.streamreactor.connect.cloud.common.config.traits.PropsToConfigConverter
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
 
-object S3SourceConfig {
+object S3SourceConfig extends PropsToConfigConverter[S3SourceConfig] {
 
   implicit val CloudLocationValidator: CloudLocationValidator = S3LocationValidator
 
-  def fromProps(
-    props: Map[String, String],
+  override def fromProps(
+    connectorTaskId: ConnectorTaskId,
+    props:           Map[String, String],
+  )(
+    implicit
+    cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, S3SourceConfig] =
-    S3SourceConfig(S3SourceConfigDefBuilder(props))
+    apply(S3SourceConfigDefBuilder(props))
 
   def apply(s3ConfigDefBuilder: S3SourceConfigDefBuilder): Either[Throwable, S3SourceConfig] = {
     val parsedValues = s3ConfigDefBuilder.getParsedValues
@@ -48,12 +55,13 @@ object S3SourceConfig {
     )
 
   }
+
 }
 
 case class S3SourceConfig(
-                           s3Config:          S3ConnectionConfig,
-                           bucketOptions:     Seq[CloudSourceBucketOptions[S3FileMetadata]] = Seq.empty,
-                           compressionCodec:  CompressionCodec,
-                           partitionSearcher: PartitionSearcherOptions,
-                           batchDelete:       Boolean,
-)
+  connectionConfig:  S3ConnectionConfig,
+  bucketOptions:     Seq[CloudSourceBucketOptions[S3FileMetadata]] = Seq.empty,
+  compressionCodec:  CompressionCodec,
+  partitionSearcher: PartitionSearcherOptions,
+  batchDelete:       Boolean,
+) extends CloudSourceConfig[S3FileMetadata]

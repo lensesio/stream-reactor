@@ -34,6 +34,7 @@ import io.lenses.streamreactor.common.errors.NoopErrorPolicy
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.cloud.common.config.RetryConfig
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -76,10 +77,10 @@ class GCPConfigTest extends AnyFlatSpec with Matchers with LazyLogging with Mock
       (name: String, ret: Any, interval: Any, result: RetryConfig) =>
         logger.debug("Executing {}", name)
         GCPConnectionConfig(Map(
-                    "connect.gcpstorage.max.retries"    -> ret,
-                    "connect.gcpstorage.retry.interval" -> interval,
-                  ),
-                  authMode,
+                              "connect.gcpstorage.max.retries"    -> ret,
+                              "connect.gcpstorage.retry.interval" -> interval,
+                            ),
+                            authMode,
         ).connectorRetryConfig should be(result)
     }
   }
@@ -89,10 +90,10 @@ class GCPConfigTest extends AnyFlatSpec with Matchers with LazyLogging with Mock
       (name: String, ret: Any, interval: Any, result: RetryConfig) =>
         logger.debug("Executing {}", name)
         GCPConnectionConfig(Map(
-                    "connect.gcpstorage.http.max.retries"    -> ret,
-                    "connect.gcpstorage.http.retry.interval" -> interval,
-                  ),
-                  authMode,
+                              "connect.gcpstorage.http.max.retries"    -> ret,
+                              "connect.gcpstorage.http.retry.interval" -> interval,
+                            ),
+                            authMode,
         ).httpRetryConfig should be(result)
     }
   }

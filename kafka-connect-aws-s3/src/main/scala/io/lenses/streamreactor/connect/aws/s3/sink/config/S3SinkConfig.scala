@@ -18,32 +18,38 @@ package io.lenses.streamreactor.connect.aws.s3.sink.config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MAX_INDEX_FILES
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConnectionConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.cloud.common.config.traits.{CloudPropertiesReader, CloudSinkConfig}
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
+import io.lenses.streamreactor.connect.cloud.common.config.traits.PropsToConfigConverter
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
-import io.lenses.streamreactor.connect.cloud.common.sink.config
-import io.lenses.streamreactor.connect.cloud.common.sink.config.{CloudSinkBucketOptions, OffsetSeekerOptions}
+import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
+import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
 
 import scala.util.Try
 
-object S3SinkConfigReader extends CloudPropertiesReader[S3SinkConfig] {
+object S3SinkConfig extends PropsToConfigConverter[S3SinkConfig] {
 
-  override def fromProps(props: Map[String, String])(implicit connectorTaskId: ConnectorTaskId, cloudLocationValidator: CloudLocationValidator): Either[Throwable, S3SinkConfig] = {
-    for {
-      conf <- Try(S3SinkConfigDefBuilder(props)).toEither
-      s3SinkConfig <- S3SinkConfigReader.apply(conf)
-    } yield s3SinkConfig
-  }
-
-  def apply(
-    s3ConfigDefBuilder: S3SinkConfigDefBuilder,
+  override def fromProps(
+    connectorTaskId: ConnectorTaskId,
+    props:           Map[String, String],
   )(
     implicit
-    connectorTaskId:        ConnectorTaskId,
     cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, S3SinkConfig] =
     for {
-      sinkBucketOptions <- config.CloudSinkBucketOptions(s3ConfigDefBuilder)
+      conf         <- Try(S3SinkConfigDefBuilder(props)).toEither
+      s3SinkConfig <- S3SinkConfig.apply(connectorTaskId, conf)
+    } yield s3SinkConfig
+
+  private def apply(
+    connectorTaskId:    ConnectorTaskId,
+    s3ConfigDefBuilder: S3SinkConfigDefBuilder,
+  )(
+    implicit
+    cloudLocationValidator: CloudLocationValidator,
+  ): Either[Throwable, S3SinkConfig] =
+    for {
+      sinkBucketOptions <- CloudSinkBucketOptions(connectorTaskId, s3ConfigDefBuilder)
       offsetSeekerOptions = OffsetSeekerOptions(
         s3ConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
       )
@@ -58,9 +64,9 @@ object S3SinkConfigReader extends CloudPropertiesReader[S3SinkConfig] {
 }
 
 case class S3SinkConfig(
-                         s3Config:            S3ConnectionConfig,
-                         bucketOptions:       Seq[CloudSinkBucketOptions] = Seq.empty,
-                         offsetSeekerOptions: OffsetSeekerOptions,
-                         compressionCodec:    CompressionCodec,
-                         batchDelete:         Boolean,
+  connectionConfig:    S3ConnectionConfig,
+  bucketOptions:       Seq[CloudSinkBucketOptions] = Seq.empty,
+  offsetSeekerOptions: OffsetSeekerOptions,
+  compressionCodec:    CompressionCodec,
+  batchDelete:         Boolean,
 ) extends CloudSinkConfig
