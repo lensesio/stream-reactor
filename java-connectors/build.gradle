@@ -1,0 +1,148 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'java'
+}
+
+allprojects {
+
+    group = "io.lenses.java.streamreactor"
+    version = "1.0-SNAPSHOT"
+
+    apply plugin: 'java'
+    apply plugin: 'com.github.johnrengelman.shadow'
+
+    java {
+        setSourceCompatibility(JavaVersion.VERSION_11)
+        setTargetCompatibility(JavaVersion.VERSION_11)
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    ext {
+        //DEPENDENCY VERSIONS
+        lombokVersion = '1.18.30'
+        kafkaVersion = '3.3.0'
+        logbackVersion = '1.4.7'
+        mockitoJupiterVersion = '5.10.0'
+        apacheToConfluentVersionAxis = ["2.8.1": "6.2.2", "3.3.0": "7.3.1"]
+
+        //for jar building
+        rootRelease = "${project.rootDir}/release/"
+        versionDir = "${rootRelease}/${project.description}-${project.version}-${kafkaVersion}"
+        confDir = "${versionDir}/conf"
+        libsDir = "${versionDir}/libs"
+
+        //Other Manifest Info
+        mainClassName = ''
+        gitCommitHash = ("git rev-parse HEAD").execute().text.trim()
+        gitTag = ("git describe --abbrev=0 --tags").execute().text.trim()
+        gitRepo = ("git remote get-url origin").execute().text.trim()
+    }
+
+    repositories {
+        mavenCentral()
+        maven {
+            url "https://packages.confluent.io/maven/"
+        }
+    }
+
+    //settings and dependencies for all projects
+    apply plugin: 'java'
+
+    dependencies {
+        //tests
+        testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoJupiterVersion
+        testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: mockitoJupiterVersion
+        testImplementation(platform("org.junit:junit-bom:5.9.1"))
+
+        //logback
+        implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
+
+        //lombok
+        compileOnly group: 'org.projectlombok', name: 'lombok', version: lombokVersion
+        annotationProcessor group: 'org.projectlombok', name: 'lombok', version: lombokVersion
+
+        //apache kafka
+        implementation group: 'org.apache.kafka', name: 'connect-json', version: kafkaVersion
+        implementation group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
+
+        //confluent
+        implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version: apacheToConfluentVersionAxis.get(kafkaVersion)
+        implementation group: 'io.confluent', name: 'kafka-connect-avro-converter', version: apacheToConfluentVersionAxis.get(kafkaVersion)
+        implementation group: 'io.confluent', name: 'kafka-connect-avro-data', version: apacheToConfluentVersionAxis.get(kafkaVersion)
+        implementation group: 'io.confluent', name: 'kafka-connect-protobuf-converter', version: apacheToConfluentVersionAxis.get(kafkaVersion)
+    }
+
+    test {
+        useJUnitPlatform()
+
+        maxHeapSize = '1G'
+
+        testLogging {
+            events "passed"
+        }
+    }
+
+    jar {
+        manifest {
+            attributes("StreamReactor-Version": project.version,
+                    "Kafka-Version": kafkaVersion,
+                    "Created-By": "Lenses",
+                    "Created-At": new Date().format("YYYYMMDDHHmm"),
+                    "Git-Repo": gitRepo,
+                    "Git-Commit-Hash": gitCommitHash,
+                    "Git-Tag": gitTag,
+                    "StreamReactor-Docs": "https://docs.lenses.io/connectors/"
+            )
+        }
+    }
+
+    shadowJar {
+        manifest {
+            attributes("StreamReactor-Version": project.version,
+                    "Kafka-Version": kafkaVersion,
+                    "Created-By": "Lenses",
+                    "Created-At": new Date().format("YYYYMMDDHHmm"),
+                    "Git-Repo": gitRepo,
+                    "Git-Commit-Hash": gitCommitHash,
+                    "Git-Tag": gitTag,
+                    "StreamReactor-Docs": "https://docs.lenses.io/connectors/"
+            )
+        }
+        configurations = [project.configurations.compileClasspath]
+        //archiveBaseName = "${project.name}-${project.version}-${kafkaVersion}-all"
+        zip64 true
+
+        mergeServiceFiles {
+            exclude "META-INF/*.SF"
+            exclude "META-INF/*.DSA"
+            exclude "META-INF/*.RSA"
+        }
+
+        dependencies {
+//            exclude(dependency {
+//                it.moduleGroup != 'io.lenses.java.streamreactor'
+//            })
+//        exclude(dependency('org.apache.logging.log4j:log4j-core:2.11.1'))
+//        exclude(dependency("org.apache.avro:.*"))
+//        exclude(dependency("org.apache.kafka:.*"))
+//        exclude(dependency("io.confluent:.*"))
+//        exclude(dependency("org.apache.kafka:.*"))
+//        exclude(dependency("org.apache.zookeeper:.*"))
+//        exclude(dependency("com.google.guava:guava:28.1-android"))
+        }
+
+    }
+
+    task fatJar(dependsOn: [test, shadowJar])
+
+    task collectFatJar(type: Copy, dependsOn: [fatJar]) {
+        from "${buildDir}/libs"
+        into libsDir
+    }
+}
+
+task prepareRelease(dependsOn: [collectFatJar]) {
+    dependsOn subprojects.collectFatJar
+}
