@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.datalake.sink.config
 
-import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.CloudConfigDef
 import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
@@ -60,4 +59,4 @@ object DatalakeSinkConfigDef
 
 }
 
-class DatalakeSinkConfigDef() extends CloudConfigDef(CONNECTOR_PREFIX) with LazyLogging {}
+class DatalakeSinkConfigDef() extends CloudConfigDef(CONNECTOR_PREFIX) {}

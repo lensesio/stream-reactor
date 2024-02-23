@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.sink.config
 
-import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.CloudConfigDef
 import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
@@ -65,4 +64,4 @@ object GCPStorageSinkConfigDef
 
 }
 
-class GCPStorageSinkConfigDef() extends CloudConfigDef(CONNECTOR_PREFIX) with LazyLogging {}
+class GCPStorageSinkConfigDef() extends CloudConfigDef(CONNECTOR_PREFIX) {}

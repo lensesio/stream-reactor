@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.source.config
 
-import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.CloudConfigDef
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
 import io.lenses.streamreactor.connect.gcp.storage.config.CommonConfigDef
@@ -35,4 +34,4 @@ object GCPStorageSourceConfigDef extends CommonConfigDef with CloudSourceSetting
   }
 }
 
-class GCPStorageSourceConfigDef() extends CloudConfigDef(CONNECTOR_PREFIX) with LazyLogging {}
+class GCPStorageSourceConfigDef() extends CloudConfigDef(CONNECTOR_PREFIX) {}

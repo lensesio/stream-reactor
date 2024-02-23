@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
-import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor
@@ -61,6 +60,4 @@ object S3SinkConfigDef
 
 }
 
-class S3SinkConfigDef()
-    extends CloudConfigDef(CONNECTOR_PREFIX, new DeprecationConfigDefProcessor())
-    with LazyLogging {}
+class S3SinkConfigDef() extends CloudConfigDef(CONNECTOR_PREFIX, new DeprecationConfigDefProcessor()) {}

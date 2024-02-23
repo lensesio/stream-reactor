@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
-import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor
@@ -36,6 +35,4 @@ object S3SourceConfigDef extends CommonConfigDef with CloudSourceSettingsKeys {
   }
 }
 
-class S3SourceConfigDef()
-    extends CloudConfigDef(CONNECTOR_PREFIX, new DeprecationConfigDefProcessor())
-    with LazyLogging {}
+class S3SourceConfigDef() extends CloudConfigDef(CONNECTOR_PREFIX, new DeprecationConfigDefProcessor()) {}
