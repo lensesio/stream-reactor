@@ -21,12 +21,11 @@ import io.lenses.streamreactor.common.errors.ErrorHandler
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.utils.JarManifest
-import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
@@ -246,8 +245,6 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig, CT](
     Option(writerManager).foreach(_.close())
     writerManager = null
   }
-
-  implicit def validator: CloudLocationValidator
 
   def createClient(config: C): Either[Throwable, CT]
 

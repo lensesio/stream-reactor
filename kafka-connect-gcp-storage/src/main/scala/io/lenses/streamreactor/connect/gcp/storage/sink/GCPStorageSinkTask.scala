@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.gcp.storage.sink
 import com.google.cloud.storage.Storage
 import io.lenses.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.gcp.storage.auth.GCPStorageClientCreator
@@ -35,7 +34,6 @@ class GCPStorageSinkTask
       "/gcpstorage-sink-ascii.txt",
       JarManifest(GCPStorageSinkTask.getClass.getProtectionDomain.getCodeSource.getLocation),
     ) {
-  override implicit def validator: CloudLocationValidator = GCPStorageLocationValidator
 
   override def createClient(config: GCPStorageSinkConfig): Either[Throwable, Storage] =
     GCPStorageClientCreator.make(config.connectionConfig)
@@ -50,5 +48,6 @@ class GCPStorageSinkTask
   override def convertPropsToConfig(
     connectorTaskId: ConnectorTaskId,
     props:           Map[String, String],
-  ): Either[Throwable, GCPStorageSinkConfig] = GCPStorageSinkConfig.fromProps(connectorTaskId, props)
+  ): Either[Throwable, GCPStorageSinkConfig] =
+    GCPStorageSinkConfig.fromProps(connectorTaskId, props)(GCPStorageLocationValidator)
 }

@@ -38,7 +38,7 @@ class S3SourceTask
     ]
     with LazyLogging {
 
-  implicit val validator: CloudLocationValidator = S3LocationValidator
+  val validator: CloudLocationValidator = S3LocationValidator
 
   override def createStorageInterface(
     connectorTaskId: ConnectorTaskId,
@@ -53,7 +53,7 @@ class S3SourceTask
   override def convertPropsToConfig(
     connectorTaskId: ConnectorTaskId,
     props:           Map[String, String],
-  ): Either[Throwable, S3SourceConfig] = S3SourceConfig.fromProps(connectorTaskId, props)
+  ): Either[Throwable, S3SourceConfig] = S3SourceConfig.fromProps(connectorTaskId, props)(validator)
 
   override def createPartitionSearcher(
     connectorTaskId: ConnectorTaskId,

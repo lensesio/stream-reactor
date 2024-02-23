@@ -23,7 +23,6 @@ import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.sink.WriterManagerCreator
 import software.amazon.awssdk.services.s3.S3Client
@@ -36,8 +35,6 @@ class S3SinkTask
       "/aws-s3-sink-ascii.txt",
       JarManifest(S3SinkTask.getClass.getProtectionDomain.getCodeSource.getLocation),
     ) {
-
-  implicit val validator: CloudLocationValidator = S3LocationValidator
 
   val writerManagerCreator = new WriterManagerCreator[S3FileMetadata, S3SinkConfig]()
 
@@ -54,6 +51,6 @@ class S3SinkTask
   override def convertPropsToConfig(
     connectorTaskId: ConnectorTaskId,
     props:           Map[String, String],
-  ): Either[Throwable, S3SinkConfig] = S3SinkConfig.fromProps(connectorTaskId, props)
+  ): Either[Throwable, S3SinkConfig] = S3SinkConfig.fromProps(connectorTaskId, props)(S3LocationValidator)
 
 }

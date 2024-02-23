@@ -50,7 +50,7 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
     with LazyLogging
     with WithConnectorPrefix {
 
-  implicit def validator: CloudLocationValidator
+  def validator: CloudLocationValidator
 
   private val contextOffsetFn: CloudLocation => Option[CloudLocation] =
     SourceContextReader.getCurrentOffset(() => context)
@@ -82,7 +82,7 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
       Option(context).flatMap(c => Option(c.configs()).map(_.asScala.toMap)).getOrElse(Map.empty)
     val mergedProperties: Map[String, String] = MapUtils.mergeProps(contextProperties, props.asScala.toMap)
     (for {
-      result <- make(connectorPrefix, mergedProperties, contextOffsetFn)
+      result <- make(validator, connectorPrefix, mergedProperties, contextOffsetFn)
       fiber  <- result.partitionDiscoveryLoop.start
     } yield {
       s3SourceTaskState      = result.some
@@ -121,6 +121,7 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
   def createClient(config: C): Either[Throwable, CT]
 
   def make(
+    validator:       CloudLocationValidator,
     connectorPrefix: String,
     props:           Map[String, String],
     contextOffsetFn: CloudLocation => Option[CloudLocation],
@@ -142,7 +143,7 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
           connectorTaskId,
           contextOffsetFn,
           location => config.bucketOptions.find(sb => sb.sourceBucketAndPrefix == location),
-        )
+        )(validator)
       }
       val partitionDiscoveryLoop = PartitionDiscovery.run(connectorTaskId,
                                                           config.partitionSearcher,

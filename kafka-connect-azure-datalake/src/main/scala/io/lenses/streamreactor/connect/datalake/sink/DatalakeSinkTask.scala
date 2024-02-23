@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.datalake.sink
 import com.azure.storage.file.datalake.DataLakeServiceClient
 import io.lenses.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.datalake.auth.DatalakeClientCreator
@@ -34,7 +33,6 @@ class DatalakeSinkTask
       "/datalake-sink-ascii.txt",
       JarManifest(DatalakeSinkTask.getClass.getProtectionDomain.getCodeSource.getLocation),
     ) {
-  override implicit def validator: CloudLocationValidator = DatalakeLocationValidator
 
   override def createClient(config: DatalakeSinkConfig): Either[Throwable, DataLakeServiceClient] =
     DatalakeClientCreator.make(config.connectionConfig)
@@ -48,6 +46,7 @@ class DatalakeSinkTask
   override def convertPropsToConfig(
     connectorTaskId: ConnectorTaskId,
     props:           Map[String, String],
-  ): Either[Throwable, DatalakeSinkConfig] = DatalakeSinkConfig.fromProps(connectorTaskId, props)
+  ): Either[Throwable, DatalakeSinkConfig] =
+    DatalakeSinkConfig.fromProps(connectorTaskId, props)(DatalakeLocationValidator)
 
 }
