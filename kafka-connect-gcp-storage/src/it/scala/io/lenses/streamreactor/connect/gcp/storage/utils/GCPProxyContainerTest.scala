@@ -11,9 +11,10 @@ import io.lenses.streamreactor.connect.gcp.storage.auth.GCPStorageClientCreator
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings._
 import io.lenses.streamreactor.connect.gcp.storage.config.AuthMode
 import io.lenses.streamreactor.connect.gcp.storage.config.AuthModeSettingsConfigKeys
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfig
+import io.lenses.streamreactor.connect.gcp.storage.config.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.UploadConfigKeys
 import io.lenses.streamreactor.connect.gcp.storage.sink.GCPStorageSinkTask
+import io.lenses.streamreactor.connect.gcp.storage.sink.config.GCPStorageSinkConfig
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageFileMetadata
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageStorageInterface
 import io.lenses.streamreactor.connect.testcontainers.GCPStorageContainer
@@ -25,7 +26,13 @@ import java.nio.file.Files
 import scala.util.Try
 
 trait GCPProxyContainerTest
-    extends CloudPlatformEmulatorSuite[GCPStorageFileMetadata, GCPStorageStorageInterface, GCPStorageSinkTask, Storage]
+    extends CloudPlatformEmulatorSuite[
+      GCPStorageFileMetadata,
+      GCPStorageStorageInterface,
+      GCPStorageSinkConfig,
+      Storage,
+      GCPStorageSinkTask,
+    ]
     with TaskIndexKey
     with AuthModeSettingsConfigKeys
     with UploadConfigKeys
@@ -42,7 +49,7 @@ trait GCPProxyContainerTest
 
   override def createClient(): Either[Throwable, Storage] = {
 
-    val gcpConfig: GCPConfig = GCPConfig(
+    val gcpConfig: GCPConnectionConfig = GCPConnectionConfig(
       projectId      = Some("test"),
       quotaProjectId = Option.empty,
       authMode       = AuthMode.None,

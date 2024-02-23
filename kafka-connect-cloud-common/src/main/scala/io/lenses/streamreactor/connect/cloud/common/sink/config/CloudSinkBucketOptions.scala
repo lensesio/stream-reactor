@@ -39,10 +39,10 @@ import io.lenses.streamreactor.connect.cloud.common.sink.naming.TopicPartitionOf
 object CloudSinkBucketOptions extends LazyLogging {
 
   def apply(
-    config: CloudSinkConfigDefBuilder,
+    connectorTaskId: ConnectorTaskId,
+    config:          CloudSinkConfigDefBuilder,
   )(
     implicit
-    connectorTaskId:        ConnectorTaskId,
     cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, Seq[CloudSinkBucketOptions]] =
     config.getKCQL.map { kcql: Kcql =>
@@ -66,7 +66,7 @@ object CloudSinkBucketOptions extends LazyLogging {
           )
         }
         keyNamer         = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
-        stagingArea     <- config.getLocalStagingArea()
+        stagingArea     <- config.getLocalStagingArea()(connectorTaskId)
         target          <- CloudLocation.splitAndValidate(kcql.getTarget)
         storageSettings <- DataStorageSettings.from(sinkProps)
         _               <- validateEnvelopeAndFormat(formatSelection, storageSettings)

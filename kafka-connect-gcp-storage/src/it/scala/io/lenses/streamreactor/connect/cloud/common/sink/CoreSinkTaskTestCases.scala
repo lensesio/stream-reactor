@@ -5,6 +5,7 @@ import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.MAX_RET
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.RETRY_INTERVAL_PROP_SUFFIX
 import com.opencsv.CSVReader
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.ParquetFormatReader
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.BytesFormatWriter
@@ -43,9 +44,14 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-abstract class CoreSinkTaskTestCases[SM <: FileMetadata, SI <: StorageInterface[SM], ST <: CloudSinkTask[SM], C](
-  unitUnderTest: String,
-) extends CloudPlatformEmulatorSuite[SM, SI, ST, C]
+abstract class CoreSinkTaskTestCases[
+  SM <: FileMetadata,
+  SI <: StorageInterface[SM],
+  CSC <: CloudSinkConfig,
+  C,
+  T <: CloudSinkTask[SM, CSC, C],
+](unitUnderTest: String,
+) extends CloudPlatformEmulatorSuite[SM, SI, CSC, C, T]
     with Matchers
     with MockitoSugar
     with LazyLogging {
@@ -2059,7 +2065,7 @@ abstract class CoreSinkTaskTestCases[SM <: FileMetadata, SI <: StorageInterface[
     struct
   }
 
-  private def createHeaders[T](keyValuePair: (String, T)*): lang.Iterable[Header] = {
+  private def createHeaders[HX](keyValuePair: (String, HX)*): lang.Iterable[Header] = {
     val headers = new ConnectHeaders()
     keyValuePair.foreach {
       case (key: String, value) => headers.add(key, value, null)

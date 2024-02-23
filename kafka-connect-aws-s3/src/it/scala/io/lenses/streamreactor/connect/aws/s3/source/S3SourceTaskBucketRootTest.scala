@@ -3,8 +3,8 @@ package io.lenses.streamreactor.connect.aws.s3.source
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.source.S3SourceTaskTest.formats
-import io.lenses.streamreactor.connect.aws.s3.source.config.SourcePartitionSearcherSettingsKeys
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
 import org.scalatest.EitherValues
 import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -20,7 +20,7 @@ class S3SourceTaskBucketRootTest
     with AnyFlatSpecLike
     with Matchers
     with EitherValues
-    with SourcePartitionSearcherSettingsKeys {
+    with CloudSourceSettingsKeys {
 
   def DefaultProps: Map[String, String] = defaultProps + (
     SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",

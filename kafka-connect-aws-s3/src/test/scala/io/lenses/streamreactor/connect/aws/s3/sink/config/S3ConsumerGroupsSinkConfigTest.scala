@@ -19,9 +19,9 @@ import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.HttpTimeoutConfig
-import io.lenses.streamreactor.connect.aws.s3.config.RetryConfig
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConnectionConfig
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import io.lenses.streamreactor.connect.cloud.common.config.RetryConfig
 import io.lenses.streamreactor.connect.cloud.common.consumers.CloudObjectKey
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -43,7 +43,7 @@ class S3ConsumerGroupsSinkConfigTest extends AnyFunSuite with Matchers {
         value should be(
           S3ConsumerGroupsSinkConfig(
             CloudObjectKey("bucket", "a/b/c".some),
-            S3Config(
+            S3ConnectionConfig(
               Some("eu-west-1"),
               Some("access"),
               Some("secret"),
@@ -77,7 +77,7 @@ class S3ConsumerGroupsSinkConfigTest extends AnyFunSuite with Matchers {
         value should be(
           S3ConsumerGroupsSinkConfig(
             CloudObjectKey("bucket", "a/b/c".some),
-            S3Config(
+            S3ConnectionConfig(
               Some("eu-west-1"),
               Some("access"),
               Some("secret"),

@@ -15,22 +15,16 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
-import cats.implicits.catsSyntaxEitherId
-import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor
-import io.lenses.streamreactor.connect.cloud.common.config.processors.ConfigDefProcessor
-import io.lenses.streamreactor.connect.cloud.common.config.processors.LowerCaseKeyConfigDefProcessor
+import io.lenses.streamreactor.connect.cloud.common.config.CloudConfigDef
 import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
-
-import java.util
-import scala.jdk.CollectionConverters._
 
 object S3SinkConfigDef
     extends CommonConfigDef
@@ -66,37 +60,4 @@ object S3SinkConfigDef
 
 }
 
-class S3SinkConfigDef() extends ConfigDef with LazyLogging {
-
-  private val processorChain: List[ConfigDefProcessor] =
-    List(new LowerCaseKeyConfigDefProcessor(CONNECTOR_PREFIX), new DeprecationConfigDefProcessor)
-
-  override def parse(jProps: util.Map[_, _]): util.Map[String, AnyRef] = {
-    val scalaProps: Map[Any, Any] = jProps.asScala.toMap
-    processProperties(scalaProps) match {
-      case Left(exception) => throw exception
-      case Right(value)    => super.parse(value.asJava)
-    }
-  }
-
-  private def processProperties(scalaProps: Map[Any, Any]): Either[Throwable, Map[Any, Any]] = {
-    val stringProps    = scalaProps.collect { case (k: String, v: AnyRef) => (k.toLowerCase, v) }
-    val nonStringProps = scalaProps -- stringProps.keySet
-    processStringKeyedProperties(stringProps) match {
-      case Left(exception)         => exception.asLeft[Map[Any, Any]]
-      case Right(stringKeyedProps) => (nonStringProps ++ stringKeyedProps).asRight
-    }
-  }
-
-  def processStringKeyedProperties(stringProps: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
-    var remappedProps: Map[String, Any] = stringProps
-    for (proc <- processorChain) {
-      proc.process(remappedProps) match {
-        case Left(exception)   => return exception.asLeft[Map[String, AnyRef]]
-        case Right(properties) => remappedProps = properties
-      }
-    }
-    remappedProps.asRight
-  }
-
-}
+class S3SinkConfigDef() extends CloudConfigDef(CONNECTOR_PREFIX, new DeprecationConfigDefProcessor()) {}

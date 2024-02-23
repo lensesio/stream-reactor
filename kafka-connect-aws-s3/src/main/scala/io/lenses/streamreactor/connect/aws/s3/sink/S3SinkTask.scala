@@ -15,52 +15,42 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.sink.WriterManagerCreator
-import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
-
-import scala.util.Try
+import software.amazon.awssdk.services.s3.S3Client
 
 object S3SinkTask {}
 
 class S3SinkTask
-    extends CloudSinkTask[S3FileMetadata](
+    extends CloudSinkTask[S3FileMetadata, S3SinkConfig, S3Client](
       S3ConfigSettings.CONNECTOR_PREFIX,
       "/aws-s3-sink-ascii.txt",
       JarManifest(S3SinkTask.getClass.getProtectionDomain.getCodeSource.getLocation),
-    )(
-      S3LocationValidator,
     ) {
 
-  private val writerManagerCreator = new WriterManagerCreator[S3FileMetadata, S3SinkConfig]()
+  val writerManagerCreator = new WriterManagerCreator[S3FileMetadata, S3SinkConfig]()
 
-  def createWriterMan(props: Map[String, String]): Either[Throwable, WriterManager[S3FileMetadata]] =
-    for {
-      config          <- S3SinkConfig.fromProps(props)
-      s3Client        <- AwsS3ClientCreator.make(config.s3Config)
-      storageInterface = new AwsS3StorageInterface(connectorTaskId, s3Client, config.batchDelete)
-      _               <- Try(setErrorRetryInterval(config.s3Config)).toEither
-      writerManager   <- Try(writerManagerCreator.from(config)(connectorTaskId, storageInterface)).toEither
-      _ <- Try(initialize(
-        config.s3Config.connectorRetryConfig.numberOfRetries,
-        config.s3Config.errorPolicy,
-      )).toEither
-    } yield writerManager
+  override def createStorageInterface(
+    connectorTaskId: ConnectorTaskId,
+    config:          S3SinkConfig,
+    cloudClient:     S3Client,
+  ): AwsS3StorageInterface =
+    new AwsS3StorageInterface(connectorTaskId, cloudClient, config.batchDelete)
 
-  private def setErrorRetryInterval(s3Config: S3Config): Unit =
-    //if error policy is retry set retry interval
-    s3Config.errorPolicy match {
-      case RetryErrorPolicy() => context.timeout(s3Config.connectorRetryConfig.errorRetryInterval)
-      case _                  =>
-    }
+  override def createClient(config: S3SinkConfig): Either[Throwable, S3Client] =
+    AwsS3ClientCreator.make(config.connectionConfig)
+
+  override def convertPropsToConfig(
+    connectorTaskId: ConnectorTaskId,
+    props:           Map[String, String],
+  ): Either[Throwable, S3SinkConfig] = S3SinkConfig.fromProps(connectorTaskId, props)(S3LocationValidator)
 
 }

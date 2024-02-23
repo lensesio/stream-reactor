@@ -6,7 +6,6 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.source.S3SourceTaskTest.formats
-import io.lenses.streamreactor.connect.aws.s3.source.config.SourcePartitionSearcherSettingsKeys
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
@@ -16,6 +15,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.Format.Bytes
 import io.lenses.streamreactor.connect.cloud.common.config.FormatOptions
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
 import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindCompletionConfig
 import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindResults
 import org.apache.kafka.connect.source.SourceTaskContext
@@ -51,7 +51,7 @@ class S3SourceTaskTest
     with LazyLogging
     with BeforeAndAfter
     with Eventually
-    with SourcePartitionSearcherSettingsKeys {
+    with CloudSourceSettingsKeys {
 
   override implicit def patienceConfig: PatienceConfig =
     PatienceConfig(timeout = Span(10, Seconds), interval = Span(500, Milliseconds))

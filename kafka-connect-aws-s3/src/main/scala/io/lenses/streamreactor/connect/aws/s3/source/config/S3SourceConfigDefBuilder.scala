@@ -15,22 +15,14 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
-import io.lenses.streamreactor.common.config.base.traits._
 import io.lenses.streamreactor.connect.aws.s3.config.DeleteModeSettings
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
-import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings
+import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceConfigDefBuilder
 
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 case class S3SourceConfigDefBuilder(props: Map[String, String])
-    extends BaseConfig(S3ConfigSettings.CONNECTOR_PREFIX, S3SourceConfigDef.config, props)
-    with KcqlSettings
-    with ErrorPolicySettings
-    with NumberRetriesSettings
-    with UserSettings
-    with ConnectionSettings
-    with CompressionCodecSettings
-    with SourcePartitionSearcherSettings
+    extends CloudSourceConfigDefBuilder(S3ConfigSettings.CONNECTOR_PREFIX, S3SourceConfigDef.config, props)
     with DeleteModeSettings {
 
   def getParsedValues: Map[String, _] = values().asScala.toMap

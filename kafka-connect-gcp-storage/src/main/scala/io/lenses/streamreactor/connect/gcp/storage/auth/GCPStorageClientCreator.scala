@@ -23,20 +23,20 @@ import com.google.cloud.storage.StorageOptions
 import com.google.cloud.NoCredentials
 import com.google.cloud.TransportOptions
 import io.lenses.streamreactor.connect.cloud.common.auth.ClientCreator
+import io.lenses.streamreactor.connect.cloud.common.config.RetryConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.AuthMode.None
 import io.lenses.streamreactor.connect.gcp.storage.config.AuthMode
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfig
+import io.lenses.streamreactor.connect.gcp.storage.config.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.HttpTimeoutConfig
-import io.lenses.streamreactor.connect.gcp.storage.config.RetryConfig
 import org.threeten.bp.Duration
 
 import java.io.ByteArrayInputStream
 import java.io.FileInputStream
 import scala.util.Try
 
-object GCPStorageClientCreator extends ClientCreator[GCPConfig, Storage] {
+object GCPStorageClientCreator extends ClientCreator[GCPConnectionConfig, Storage] {
 
-  def make(config: GCPConfig): Either[Throwable, Storage] =
+  def make(config: GCPConnectionConfig): Either[Throwable, Storage] =
     Try {
       val builder = StorageOptions
         .newBuilder()

@@ -69,7 +69,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
     val config = S3SinkConfig(
-      S3Config(
+      S3ConnectionConfig(
         None,
         Some(s3Container.identity.identity),
         Some(s3Container.identity.credential),
@@ -123,7 +123,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
     val config = S3SinkConfig(
-      S3Config(
+      S3ConnectionConfig(
         None,
         Some(s3Container.identity.identity),
         Some(s3Container.identity.credential),
@@ -181,7 +181,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
     val config = S3SinkConfig(
-      S3Config(
+      S3ConnectionConfig(
         None,
         Some(s3Container.identity.identity),
         Some(s3Container.identity.credential),

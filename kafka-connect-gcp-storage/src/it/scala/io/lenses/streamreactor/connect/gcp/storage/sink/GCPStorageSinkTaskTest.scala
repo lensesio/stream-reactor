@@ -18,12 +18,19 @@ package io.lenses.streamreactor.connect.gcp.storage.sink
 
 import com.google.cloud.storage.Storage
 import io.lenses.streamreactor.connect.cloud.common.sink.CoreSinkTaskTestCases
+import io.lenses.streamreactor.connect.gcp.storage.sink.config.GCPStorageSinkConfig
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageFileMetadata
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageStorageInterface
 import io.lenses.streamreactor.connect.gcp.storage.utils.GCPProxyContainerTest
 
 class GCPStorageSinkTaskTest
-    extends CoreSinkTaskTestCases[GCPStorageFileMetadata, GCPStorageStorageInterface, GCPStorageSinkTask, Storage](
+    extends CoreSinkTaskTestCases[
+      GCPStorageFileMetadata,
+      GCPStorageStorageInterface,
+      GCPStorageSinkConfig,
+      Storage,
+      GCPStorageSinkTask,
+    ](
       "GCPStorageSinkTask",
     )
     with GCPProxyContainerTest {}

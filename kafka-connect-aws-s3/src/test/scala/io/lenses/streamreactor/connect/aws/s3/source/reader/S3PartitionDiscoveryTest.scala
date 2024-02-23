@@ -20,7 +20,7 @@ import cats.effect.kernel.Ref
 import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
-import io.lenses.streamreactor.connect.aws.s3.source.distribution.PartitionSearcher
+import io.lenses.streamreactor.connect.aws.s3.source.distribution.S3PartitionSearcher
 import io.lenses.streamreactor.connect.aws.s3.storage.MockS3Client
 import io.lenses.streamreactor.connect.aws.s3.storage.S3Page
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
@@ -64,12 +64,12 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
       fiber <- PartitionDiscovery.run(
         connectorTaskId,
         options,
-        new PartitionSearcher(List(
-                                CloudLocation("bucket", None),
-                              ),
-                              options,
-                              connectorTaskId,
-                              s3Client.listObjectsV2Paginator(_).iterator().asScala,
+        new S3PartitionSearcher(List(
+                                  CloudLocation("bucket", None),
+                                ),
+                                options,
+                                connectorTaskId,
+                                s3Client.listObjectsV2Paginator(_).iterator().asScala,
         ).find,
         (_, _) =>
           IO(new ReaderManager(limit,
@@ -129,12 +129,12 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
       fiber <- PartitionDiscovery.run(
         connectorTaskId,
         options,
-        new PartitionSearcher(List(
-                                CloudLocation("bucket", None),
-                              ),
-                              options,
-                              connectorTaskId,
-                              s3Client.listObjectsV2Paginator(_).iterator().asScala,
+        new S3PartitionSearcher(List(
+                                  CloudLocation("bucket", None),
+                                ),
+                                options,
+                                connectorTaskId,
+                                s3Client.listObjectsV2Paginator(_).iterator().asScala,
         ).find,
         (_, _) =>
           IO(new ReaderManager(limit,
@@ -186,12 +186,12 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
       fiber <- PartitionDiscovery.run(
         connectorTaskId,
         options,
-        new PartitionSearcher(List(
-                                CloudLocation("bucket", "prefix1/".some),
-                              ),
-                              options,
-                              connectorTaskId,
-                              s3Client.listObjectsV2Paginator(_).iterator().asScala,
+        new S3PartitionSearcher(List(
+                                  CloudLocation("bucket", "prefix1/".some),
+                                ),
+                                options,
+                                connectorTaskId,
+                                s3Client.listObjectsV2Paginator(_).iterator().asScala,
         ).find,
         (_, _) =>
           IO(new ReaderManager(limit,
@@ -244,12 +244,12 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
           fiber <- PartitionDiscovery.run(
             taskId,
             options,
-            new PartitionSearcher(List(
-                                    CloudLocation("bucket", "prefix1/".some),
-                                  ),
-                                  options,
-                                  taskId,
-                                  s3Client.listObjectsV2Paginator(_).iterator().asScala,
+            new S3PartitionSearcher(List(
+                                      CloudLocation("bucket", "prefix1/".some),
+                                    ),
+                                    options,
+                                    taskId,
+                                    s3Client.listObjectsV2Paginator(_).iterator().asScala,
             ).find,
             (
               _,

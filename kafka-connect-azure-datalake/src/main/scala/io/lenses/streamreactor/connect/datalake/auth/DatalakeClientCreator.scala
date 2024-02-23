@@ -27,15 +27,15 @@ import io.lenses.streamreactor.connect.cloud.common.auth.ClientCreator
 import io.lenses.streamreactor.connect.datalake.config.AuthMode
 import io.lenses.streamreactor.connect.datalake.config.AuthMode.ConnectionString
 import io.lenses.streamreactor.connect.datalake.config.AuthMode.Credentials
-import io.lenses.streamreactor.connect.datalake.config.AzureConfig
+import io.lenses.streamreactor.connect.datalake.config.AzureConnectionConfig
 import io.lenses.streamreactor.connect.datalake.config.ConnectionPoolConfig
 
 import java.time.Duration
 import scala.util.Try
 
-object DatalakeClientCreator extends ClientCreator[AzureConfig, DataLakeServiceClient] {
+object DatalakeClientCreator extends ClientCreator[AzureConnectionConfig, DataLakeServiceClient] {
 
-  def make(config: AzureConfig): Either[Throwable, DataLakeServiceClient] = {
+  def make(config: AzureConnectionConfig): Either[Throwable, DataLakeServiceClient] = {
     require(config != null, "AzureDataLakeConfig cannot be null")
 
     config.authMode match {
@@ -50,7 +50,7 @@ object DatalakeClientCreator extends ClientCreator[AzureConfig, DataLakeServiceC
     }
   }
 
-  private def createHttpClient(config: AzureConfig): HttpClient = {
+  private def createHttpClient(config: AzureConnectionConfig): HttpClient = {
 
     val httpClientOptions = new HttpClientOptions()
     config.timeouts.socketTimeout.foreach(millis => httpClientOptions.setReadTimeout(Duration.ofMillis(millis)))
@@ -77,7 +77,7 @@ object DatalakeClientCreator extends ClientCreator[AzureConfig, DataLakeServiceC
     }.toEither
 
   private def createDataLakeClientWithSharedKey(
-    config:   AzureConfig,
+    config:   AzureConnectionConfig,
     authMode: Credentials,
   ): Either[Throwable, DataLakeServiceClient] =
     Try {
@@ -93,7 +93,9 @@ object DatalakeClientCreator extends ClientCreator[AzureConfig, DataLakeServiceC
 
     }.toEither
 
-  private def createDataLakeClientWithDefaultCredential(config: AzureConfig): Either[Throwable, DataLakeServiceClient] =
+  private def createDataLakeClientWithDefaultCredential(
+    config: AzureConnectionConfig,
+  ): Either[Throwable, DataLakeServiceClient] =
     Try {
       val builder = new DataLakeServiceClientBuilder()
         .credential(new DefaultAzureCredentialBuilder().build())

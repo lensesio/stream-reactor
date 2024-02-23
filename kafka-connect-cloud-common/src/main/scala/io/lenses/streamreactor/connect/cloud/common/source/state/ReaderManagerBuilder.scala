@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.source.state
+package io.lenses.streamreactor.connect.cloud.common.source.state
 
 import cats.effect.IO
 import cats.effect.Ref
-import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.source.files.CloudSourceFileQueue
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ResultReader
+import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.apache.kafka.connect.errors.ConnectException
 
@@ -32,13 +32,13 @@ import org.apache.kafka.connect.errors.ConnectException
   * Responsible for creating an instance of {{{ReaderManager}}} for a given path.
   */
 object ReaderManagerBuilder {
-  def apply(
+  def apply[M <: FileMetadata](
     root:             CloudLocation,
     path:             String,
-    storageInterface: StorageInterface[S3FileMetadata],
+    storageInterface: StorageInterface[M],
     connectorTaskId:  ConnectorTaskId,
     contextOffsetFn:  CloudLocation => Option[CloudLocation],
-    findSboF:         CloudLocation => Option[SourceBucketOptions],
+    findSboF:         CloudLocation => Option[CloudSourceBucketOptions[M]],
   )(
     implicit
     cloudLocationValidator: CloudLocationValidator,
@@ -51,12 +51,12 @@ object ReaderManagerBuilder {
       )
       ref        <- Ref[IO].of(Option.empty[ResultReader])
       adaptedRoot = root.copy(prefix = Some(path))
-      adaptedSbo  = sbo.copy(sourceBucketAndPrefix = adaptedRoot)
+      adaptedSbo  = sbo.copy[M](sourceBucketAndPrefix = adaptedRoot)
       listingFn   = adaptedSbo.createBatchListerFn(storageInterface)
       source = contextOffsetFn(adaptedRoot).fold {
-        new CloudSourceFileQueue[S3FileMetadata](connectorTaskId, listingFn)
+        new CloudSourceFileQueue[M](connectorTaskId, listingFn)
       } { location =>
-        CloudSourceFileQueue.from[S3FileMetadata](
+        CloudSourceFileQueue.from[M](
           listingFn,
           storageInterface,
           location,

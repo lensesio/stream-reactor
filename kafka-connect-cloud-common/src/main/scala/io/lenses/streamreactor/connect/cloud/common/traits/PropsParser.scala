@@ -13,5 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.cloud.common.config
-trait CloudConfig
+package io.lenses.streamreactor.connect.cloud.common.traits
+
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudConnectionConfig
+
+trait PropsParser {
+
+  def parse[CConfig <: CloudConnectionConfig](props: Map[String, String]): Either[Throwable, CConfig]
+
+}
