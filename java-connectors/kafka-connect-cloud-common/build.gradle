@@ -1,0 +1,11 @@
+project(':kafka-connect-cloud-common') {
+
+
+    test {
+        maxParallelForks = 1
+    }
+
+    dependencies {
+        implementation project(':kafka-connect-common')
+    }
+}

@@ -1,0 +1,18 @@
+project(':kafka-connect-azure-eventhubs') {
+
+
+    test {
+        maxParallelForks = 1
+    }
+
+    dependencies {
+        implementation project(':kafka-connect-common')
+
+        //azure-specific dependencies
+        implementation group: 'com.azure', name: 'azure-identity', version: '1.11.2'
+        implementation group: 'com.azure', name: 'azure-messaging-eventhubs', version: '5.18.0'
+        implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.25.1'
+        implementation group: 'com.azure', name: 'azure-messaging-eventhubs-checkpointstore-blob', version: '1.19.0'
+
+    }
+}
