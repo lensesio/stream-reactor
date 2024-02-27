@@ -25,7 +25,6 @@ import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearc
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions.ExcludeIndexes
 import io.lenses.streamreactor.connect.cloud.common.source.distribution.PartitionSearcherResponse
 import io.lenses.streamreactor.connect.cloud.common.source.files.SourceFileQueue
-import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindResults
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -62,7 +61,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
           List(
             PartitionSearcherResponse(CloudLocation("bucket", None),
                                       Set("prefix1/", "prefix2/"),
-                                      DirectoryFindResults(Set("prefix1/", "prefix2/")),
+                                      Set("prefix1/", "prefix2/"),
                                       None,
             ),
           )
@@ -100,7 +99,7 @@ class PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoS
         PartitionSearcherResponse(
           CloudLocation("bucket", None),
           Set("prefix1/", "prefix2/"),
-          DirectoryFindResults(Set("prefix1/", "prefix2/")),
+          Set("prefix1/", "prefix2/"),
           None,
         ),
       ),

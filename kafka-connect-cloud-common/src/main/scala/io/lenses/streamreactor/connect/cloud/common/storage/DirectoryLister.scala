@@ -15,20 +15,18 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.storage
 
-import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
+import cats.effect.IO
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 
-object DirectoryFindCompletionConfig {
-  def fromSearchOptions(
-    searchOptions: PartitionSearcherOptions,
-  ): DirectoryFindCompletionConfig = DirectoryFindCompletionConfig(
-    searchOptions.recurseLevels,
-  )
+trait DirectoryLister {
+
+  /**
+    * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
+    */
+  def findDirectories(
+    bucketAndPrefix:  CloudLocation,
+    recurseLevels:    Int,
+    exclude:          Set[String],
+    wildcardExcludes: Set[String],
+  ): IO[Set[String]]
 }
-
-case class DirectoryFindCompletionConfig(
-  levelsToRecurse: Int,
-)
-
-case class DirectoryFindResults(
-  partitions: Set[String],
-)

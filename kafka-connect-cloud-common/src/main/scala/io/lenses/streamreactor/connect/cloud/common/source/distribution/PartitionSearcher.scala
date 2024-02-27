@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.cloud.common.source.state
+package io.lenses.streamreactor.connect.cloud.common.source.distribution
 
 import cats.effect.IO
-import io.lenses.streamreactor.connect.cloud.common.source.distribution.PartitionSearcherResponse
 
 /**
   * Trait defining a partition searcher.

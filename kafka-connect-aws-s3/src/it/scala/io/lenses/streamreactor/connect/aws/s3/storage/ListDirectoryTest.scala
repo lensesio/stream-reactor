@@ -10,12 +10,8 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
-import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindCompletionConfig
-import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindResults
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
-import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest with LazyLogging {
 
@@ -43,17 +39,15 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
 
     val topicRoot = CloudLocation(BucketName, "topic-1/".some)
 
-    val dirs = AwsS3DirectoryLister.findDirectories(
+    val dirs = new AwsS3DirectoryLister(connectorTaskId, client).findDirectories(
       topicRoot,
-      DirectoryFindCompletionConfig(0),
+      0,
       Set.empty,
       Set.empty,
-      client.listObjectsV2Paginator(_).iterator().asScala,
-      connectorTaskId,
     ).unsafeRunSync()
 
     val allValues        = (1 to 10).map(x => s"topic-1/$x/")
-    val partitionResults = DirectoryFindResults(allValues.toSet)
+    val partitionResults = allValues.toSet
     dirs should be(partitionResults)
 
   }
@@ -64,16 +58,10 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
 
     val bucketRoot = CloudLocation(BucketName)
 
-    val dirs = AwsS3DirectoryLister.findDirectories(
-      bucketRoot,
-      DirectoryFindCompletionConfig(2),
-      Set.empty,
-      Set.empty,
-      client.listObjectsV2Paginator(_).iterator().asScala,
-      taskId,
-    ).unsafeRunSync()
+    val dirs =
+      new AwsS3DirectoryLister(taskId, client).findDirectories(bucketRoot, 2, Set.empty, Set.empty).unsafeRunSync()
 
-    val partitionResults = DirectoryFindResults(Set.empty)
+    val partitionResults = Set.empty
     dirs should be(partitionResults)
 
   }
@@ -84,16 +72,10 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
 
     val bucketRoot = CloudLocation(BucketName)
 
-    val dirs = AwsS3DirectoryLister.findDirectories(
-      bucketRoot,
-      DirectoryFindCompletionConfig(3),
-      Set.empty,
-      Set.empty,
-      client.listObjectsV2Paginator(_).iterator().asScala,
-      taskId,
-    ).unsafeRunSync()
+    val dirs =
+      new AwsS3DirectoryLister(taskId, client).findDirectories(bucketRoot, 3, Set.empty, Set.empty).unsafeRunSync()
 
-    val partitionResults = DirectoryFindResults(Set.empty)
+    val partitionResults = Set.empty
     dirs should be(partitionResults)
 
   }
@@ -103,18 +85,12 @@ class ListDirectoryTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
 
     val bucketRoot = CloudLocation(BucketName)
 
-    val dirs = AwsS3DirectoryLister.findDirectories(
-      bucketRoot,
-      DirectoryFindCompletionConfig(1),
-      Set.empty,
-      Set.empty,
-      client.listObjectsV2Paginator(_).iterator().asScala,
-      taskId,
-    ).unsafeRunSync()
+    val dirs =
+      new AwsS3DirectoryLister(taskId, client).findDirectories(bucketRoot, 1, Set.empty, Set.empty).unsafeRunSync()
 
     val allValues = (1 to 10).flatMap(x => List(s"topic-1/$x/", s"topic-2/$x/"))
 
-    val partitionResults = DirectoryFindResults(allValues.toSet)
+    val partitionResults = allValues.toSet
     dirs should be(partitionResults)
 
   }

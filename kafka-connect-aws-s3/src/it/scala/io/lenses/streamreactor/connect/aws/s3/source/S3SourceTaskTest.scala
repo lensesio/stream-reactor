@@ -16,8 +16,6 @@ import io.lenses.streamreactor.connect.cloud.common.config.FormatOptions
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
-import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindCompletionConfig
-import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindResults
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
 import org.scalatest.BeforeAndAfter
@@ -30,7 +28,6 @@ import org.scalatest.time.Seconds
 import org.scalatest.time.Span
 
 import java.util
-import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 object S3SourceTaskTest {
@@ -83,15 +80,8 @@ class S3SourceTaskTest
   "task" should "retrieve subdirectories correctly" in {
     val root = CloudLocation(BucketName, s"${bucketSetup.PrefixName}/avro/myTopic/".some)
     val dirs =
-      AwsS3DirectoryLister.findDirectories(
-        root,
-        DirectoryFindCompletionConfig(0),
-        Set.empty,
-        Set.empty,
-        client.listObjectsV2Paginator(_).iterator().asScala,
-        ConnectorTaskId("name", 1, 1),
-      )
-    dirs.unsafeRunSync() should be(DirectoryFindResults(Set("streamReactorBackups/avro/myTopic/0/")))
+      new AwsS3DirectoryLister(ConnectorTaskId("name", 1, 1), client).findDirectories(root, 0, Set.empty, Set.empty)
+    dirs.unsafeRunSync() should be(Set("streamReactorBackups/avro/myTopic/0/"))
   }
 
   "task" should "read stored files continuously" in {

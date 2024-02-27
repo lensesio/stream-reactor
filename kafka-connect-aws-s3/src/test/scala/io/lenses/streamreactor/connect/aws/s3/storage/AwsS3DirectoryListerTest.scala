@@ -21,13 +21,9 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
-import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindCompletionConfig
-import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindResults
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import software.amazon.awssdk.services.s3.S3Client
-
-import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
   private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
@@ -54,7 +50,7 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
 
   "lister" should "list multiple pages" in {
 
-    val s3Client: S3Client = new MockS3Client(
+    val client: S3Client = new MockS3Client(
       S3Page(
         "prefix1/1.txt",
         "prefix1/2.txt",
@@ -69,16 +65,14 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
       ),
     )
 
-    AwsS3DirectoryLister.findDirectories(
+    new AwsS3DirectoryLister(connectorTaskId, client).findDirectories(
       CloudLocation("bucket", none),
-      DirectoryFindCompletionConfig(1),
+      1,
       Set.empty,
       Set.empty,
-      s3Client.listObjectsV2Paginator(_).iterator().asScala,
-      connectorTaskId,
-    ).unsafeRunSync() should be(DirectoryFindResults(
+    ).unsafeRunSync() should be(
       Set("prefix1/", "prefix2/", "prefix3/", "prefix4/"),
-    ))
+    )
   }
 
   "lister" should "exclude directories" in {
@@ -193,19 +187,17 @@ class AwsS3DirectoryListerTest extends AnyFlatSpecLike with Matchers {
     exclude:          Set[String],
     wildcardExcludes: Set[String],
     expected:         Set[String],
-    s3Client:         S3Client,
+    client:           S3Client,
     recursiveLevel:   Int             = 1,
     connectorTaskId:  ConnectorTaskId = connectorTaskId,
   ): Unit = {
-    val actual = AwsS3DirectoryLister.findDirectories(
+    val actual = new AwsS3DirectoryLister(connectorTaskId, client).findDirectories(
       location,
-      DirectoryFindCompletionConfig(recursiveLevel),
+      recursiveLevel,
       exclude,
       wildcardExcludes,
-      s3Client.listObjectsV2Paginator(_).iterator().asScala,
-      connectorTaskId,
     ).unsafeRunSync()
-    actual should be(DirectoryFindResults(expected))
+    actual should be(expected)
     ()
   }
 
