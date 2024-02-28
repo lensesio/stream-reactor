@@ -1,6 +1,7 @@
 package io.lenses.java.streamreactor.connect.azure.eventhubs.config;
 
 import io.lenses.java.streamreactor.common.config.base.BaseConfig;
+import io.lenses.java.streamreactor.common.config.base.intf.ConnectorPrefixed;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 import lombok.Getter;
@@ -14,7 +15,7 @@ import org.apache.kafka.common.config.ConfigDef.Type;
  * configs from org.apache.kafka.clients.consumer.ConsumerConfig but adds standard Connector
  * prefixes to them.
  */
-public class AzureEventHubsConfig extends BaseConfig {
+public class AzureEventHubsConfig extends BaseConfig implements ConnectorPrefixed {
 
   private static final String DOT = ".";
 
@@ -38,87 +39,88 @@ public class AzureEventHubsConfig extends BaseConfig {
             1,
             ConfigDef.Width.LONG,
             AzureEventHubsConfigConstants.EVENTHUB_NAME
-        //).define(AzureEventHubsConfigConstants.CONNECTION_STRING,
-        //    Type.STRING,
-        //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
-        //    Importance.HIGH,
-        //    AzureEventHubsConfigConstants.CONNECTION_STRING_DOC,
-        //    CONNECTION_GROUP,
-        //    2,
-        //    ConfigDef.Width.MEDIUM,
-        //    AzureEventHubsConfigConstants.CONNECTION_STRING
-        //).define(AzureEventHubsConfigConstants.USERNAME,
-        //    Type.STRING,
-        //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
-        //    Importance.MEDIUM,
-        //    AzureEventHubsConfigConstants.USERNAME_DOC,
-        //    CONNECTION_GROUP,
-        //    3,
-        //    ConfigDef.Width.LONG,
-        //    AzureEventHubsConfigConstants.USERNAME
-        //).define(AzureEventHubsConfigConstants.SCHEMA_REGISTRY_TYPE,
-        //    Type.STRING,
-        //    AzureEventHubsConfigConstants.SCHEMA_REGISTRY_TYPE_DEFAULT,
-        //    Importance.MEDIUM,
-        //    AzureEventHubsConfigConstants.SCHEMA_REGISTRY_TYPE_DOC,
-        //    CONNECTION_GROUP,
-        //    4,
-        //    ConfigDef.Width.MEDIUM,
-        //    AzureEventHubsConfigConstants.SCHEMA_REGISTRY_TYPE
-        //).define(AzureEventHubsConfigConstants.SCHEMA_REGISTRY_URL,
-        //    Type.STRING,
-        //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
-        //    Importance.MEDIUM,
-        //    AzureEventHubsConfigConstants.SCHEMA_REGISTRY_URL_DOC,
-        //    CONNECTION_GROUP,
-        //    5,
-        //    ConfigDef.Width.MEDIUM,
-        //    AzureEventHubsConfigConstants.SCHEMA_REGISTRY_URL
-        //).define(AzureEventHubsConfigConstants.SCHEMA_GROUP,
-        //    Type.STRING,
-        //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
-        //    Importance.MEDIUM,
-        //    AzureEventHubsConfigConstants.SCHEMA_GROUP_DOC,
-        //    CONNECTION_GROUP,
-        //    6,
-        //    ConfigDef.Width.MEDIUM,
-        //    AzureEventHubsConfigConstants.SCHEMA_GROUP
-        //).define(AzureEventHubsConfigConstants.CLIENT_ID,
-        //    Type.STRING,
-        //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
-        //    Importance.HIGH,
-        //    AzureEventHubsConfigConstants.CLIENT_ID_DOC,
-        //    CONNECTION_GROUP,
-        //    7,
-        //    ConfigDef.Width.MEDIUM,
-        //    AzureEventHubsConfigConstants.CLIENT_ID
-        //).define(AzureEventHubsConfigConstants.CLIENT_SECRET,
-        //    Type.STRING,
-        //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
-        //    Importance.HIGH,
-        //    AzureEventHubsConfigConstants.CLIENT_SECRET_DOC,
-        //    CONNECTION_GROUP,
-        //    8,
-        //    ConfigDef.Width.MEDIUM,
-        //    AzureEventHubsConfigConstants.CLIENT_SECRET
-        //).define(AzureEventHubsConfigConstants.TENANT_ID,
-        //    Type.STRING,
-        //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
-        //    Importance.LOW,
-        //    AzureEventHubsConfigConstants.TENANT_ID_DOC,
-        //    CONNECTION_GROUP,
-        //    9,
-        //    ConfigDef.Width.MEDIUM,
-        //    AzureEventHubsConfigConstants.TENANT_ID
-        //).define(AzureEventHubsConfigConstants.USER_INFO,
-        //    Type.STRING,
-        //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
-        //    Importance.LOW,
-        //    AzureEventHubsConfigConstants.USER_INFO_DOC,
-        //    CONNECTION_GROUP,
-        //    10,
-        //    ConfigDef.Width.MEDIUM,
-        //    AzureEventHubsConfigConstants.USER_INFO
+            //CONFIGS BELOW IDENTIFIED AS NOT NEEDED (for now)
+            //).define(AzureEventHubsConfigConstants.CONNECTION_STRING,
+            //    Type.STRING,
+            //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
+            //    Importance.HIGH,
+            //    AzureEventHubsConfigConstants.CONNECTION_STRING_DOC,
+            //    CONNECTION_GROUP,
+            //    2,
+            //    ConfigDef.Width.MEDIUM,
+            //    AzureEventHubsConfigConstants.CONNECTION_STRING
+            //).define(AzureEventHubsConfigConstants.USERNAME,
+            //    Type.STRING,
+            //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
+            //    Importance.MEDIUM,
+            //    AzureEventHubsConfigConstants.USERNAME_DOC,
+            //    CONNECTION_GROUP,
+            //    3,
+            //    ConfigDef.Width.LONG,
+            //    AzureEventHubsConfigConstants.USERNAME
+            //).define(AzureEventHubsConfigConstants.SCHEMA_REGISTRY_TYPE,
+            //    Type.STRING,
+            //    AzureEventHubsConfigConstants.SCHEMA_REGISTRY_TYPE_DEFAULT,
+            //    Importance.MEDIUM,
+            //    AzureEventHubsConfigConstants.SCHEMA_REGISTRY_TYPE_DOC,
+            //    CONNECTION_GROUP,
+            //    4,
+            //    ConfigDef.Width.MEDIUM,
+            //    AzureEventHubsConfigConstants.SCHEMA_REGISTRY_TYPE
+            //).define(AzureEventHubsConfigConstants.SCHEMA_REGISTRY_URL,
+            //    Type.STRING,
+            //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
+            //    Importance.MEDIUM,
+            //    AzureEventHubsConfigConstants.SCHEMA_REGISTRY_URL_DOC,
+            //    CONNECTION_GROUP,
+            //    5,
+            //    ConfigDef.Width.MEDIUM,
+            //    AzureEventHubsConfigConstants.SCHEMA_REGISTRY_URL
+            //).define(AzureEventHubsConfigConstants.SCHEMA_GROUP,
+            //    Type.STRING,
+            //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
+            //    Importance.MEDIUM,
+            //    AzureEventHubsConfigConstants.SCHEMA_GROUP_DOC,
+            //    CONNECTION_GROUP,
+            //    6,
+            //    ConfigDef.Width.MEDIUM,
+            //    AzureEventHubsConfigConstants.SCHEMA_GROUP
+            //).define(AzureEventHubsConfigConstants.CLIENT_ID,
+            //    Type.STRING,
+            //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
+            //    Importance.HIGH,
+            //    AzureEventHubsConfigConstants.CLIENT_ID_DOC,
+            //    CONNECTION_GROUP,
+            //    7,
+            //    ConfigDef.Width.MEDIUM,
+            //    AzureEventHubsConfigConstants.CLIENT_ID
+            //).define(AzureEventHubsConfigConstants.CLIENT_SECRET,
+            //    Type.STRING,
+            //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
+            //    Importance.HIGH,
+            //    AzureEventHubsConfigConstants.CLIENT_SECRET_DOC,
+            //    CONNECTION_GROUP,
+            //    8,
+            //    ConfigDef.Width.MEDIUM,
+            //    AzureEventHubsConfigConstants.CLIENT_SECRET
+            //).define(AzureEventHubsConfigConstants.TENANT_ID,
+            //    Type.STRING,
+            //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
+            //    Importance.LOW,
+            //    AzureEventHubsConfigConstants.TENANT_ID_DOC,
+            //    CONNECTION_GROUP,
+            //    9,
+            //    ConfigDef.Width.MEDIUM,
+            //    AzureEventHubsConfigConstants.TENANT_ID
+            //).define(AzureEventHubsConfigConstants.USER_INFO,
+            //    Type.STRING,
+            //    AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
+            //    Importance.LOW,
+            //    AzureEventHubsConfigConstants.USER_INFO_DOC,
+            //    CONNECTION_GROUP,
+            //    10,
+            //    ConfigDef.Width.MEDIUM,
+            //    AzureEventHubsConfigConstants.USER_INFO
         ).define(AzureEventHubsConfigConstants.KCQL_CONFIG,
             Type.STRING,
             AzureEventHubsConfigConstants.KCQL_DEFAULT,
@@ -162,6 +164,11 @@ public class AzureEventHubsConfig extends BaseConfig {
    */
   public static String getPrefixedKafkaConsumerConfigKey(String kafkaConsumerConfigKey) {
     return CONFIG_NAME_PREFIX_APPENDER.apply(kafkaConsumerConfigKey);
+  }
+
+  @Override
+  public String connectorPrefix() {
+    return AzureEventHubsConfigConstants.CONNECTOR_PREFIX;
   }
 
   private static ConfigDef getKafkaConsumerConfigToExpose() {
