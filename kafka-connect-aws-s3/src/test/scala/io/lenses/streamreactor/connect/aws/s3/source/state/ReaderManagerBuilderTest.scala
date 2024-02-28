@@ -17,13 +17,14 @@ package io.lenses.streamreactor.connect.aws.s3.source.state
 
 import cats.effect.testing.scalatest.AsyncIOSpec
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
-import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.OrderingType
+import io.lenses.streamreactor.connect.cloud.common.source.state.ReaderManagerBuilder
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.mockito.MockitoSugar.mock
 import org.scalatest.flatspec.AsyncFlatSpec
@@ -46,7 +47,15 @@ class ReaderManagerBuilderTest extends AsyncFlatSpec with AsyncIOSpec with Match
       rootValue = Some(in)
       rootValue
     }
-    val sbo    = SourceBucketOptions(root, "topic", AvroFormatSelection, 100, 100, None, OrderingType.LastModified, false)
+    val sbo = CloudSourceBucketOptions[S3FileMetadata](root,
+                                                       "topic",
+                                                       AvroFormatSelection,
+                                                       100,
+                                                       100,
+                                                       None,
+                                                       OrderingType.LastModified,
+                                                       false,
+    )
     val taskId = ConnectorTaskId("test", 3, 1)
     ReaderManagerBuilder(root, path, si, taskId, contextF, _ => Some(sbo))
       .asserting(_ => rootValue shouldBe Some(root.copy(prefix = Some(path))))

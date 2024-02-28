@@ -16,12 +16,15 @@
 package io.lenses.streamreactor.connect.cloud.common.source.state
 
 import cats.effect.IO
-import cats.implicits._
+import cats.effect.kernel.Ref
+import cats.implicits.toTraverseOps
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
 import org.apache.kafka.connect.source.SourceRecord
 
-class CloudSourceTaskState(
-  latestReaderManagers: IO[Seq[ReaderManager]],
+case class CloudSourceTaskState(
+  latestReaderManagers:   IO[Seq[ReaderManager]],
+  cancelledRef:           Ref[IO, Boolean],
+  partitionDiscoveryLoop: IO[Unit],
 ) {
 
   def close(): IO[Unit] =

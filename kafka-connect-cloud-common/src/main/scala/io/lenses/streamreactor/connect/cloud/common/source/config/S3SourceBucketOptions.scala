@@ -13,13 +13,3 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.cloud.common.sink.config
-
-import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
-
-trait CloudSinkConfig {
-
-  def bucketOptions:       Seq[CloudSinkBucketOptions]
-  def offsetSeekerOptions: OffsetSeekerOptions
-  def compressionCodec:    CompressionCodec
-}

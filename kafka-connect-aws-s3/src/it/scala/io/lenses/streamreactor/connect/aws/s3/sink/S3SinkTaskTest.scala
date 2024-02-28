@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import cats.effect.unsafe.implicits.global
+import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
@@ -27,7 +28,9 @@ import software.amazon.awssdk.services.s3.S3Client
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 class S3SinkTaskTest
-    extends CoreSinkTaskTestCases[S3FileMetadata, AwsS3StorageInterface, S3SinkTask, S3Client]("S3SinkTask")
+    extends CoreSinkTaskTestCases[S3FileMetadata, AwsS3StorageInterface, S3SinkConfig, S3Client, S3SinkTask](
+      "S3SinkTask",
+    )
     with S3ProxyContainerTest {
 
   "S3SinkTask" should "fail with message when deprecated properties are used" in {

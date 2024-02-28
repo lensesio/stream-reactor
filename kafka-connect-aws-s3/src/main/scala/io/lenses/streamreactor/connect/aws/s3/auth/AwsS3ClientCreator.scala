@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.auth
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.toBifunctorOps
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConnectionConfig
 import io.lenses.streamreactor.connect.cloud.common.auth.ClientCreator
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.AwsCredentials
@@ -36,14 +36,14 @@ import java.net.URI
 import java.time.Duration
 import scala.util.Try
 
-object AwsS3ClientCreator extends ClientCreator[S3Config, S3Client] {
+object AwsS3ClientCreator extends ClientCreator[S3ConnectionConfig, S3Client] {
 
   private val missingCredentialsError =
     "Configured to use credentials however one or both of `AWS_ACCESS_KEY` or `AWS_SECRET_KEY` are missing."
 
   private val defaultCredentialsProvider: AwsCredentialsProvider = DefaultCredentialsProvider.create()
 
-  def make(config: S3Config): Either[Throwable, S3Client] =
+  def make(config: S3ConnectionConfig): Either[Throwable, S3Client] =
     for {
       retryPolicy <- Try {
         RetryPolicy
@@ -92,7 +92,7 @@ object AwsS3ClientCreator extends ClientCreator[S3Config, S3Client] {
       }
     } yield s3Client
 
-  private def credentialsFromConfig(awsConfig: S3Config): Either[String, AwsCredentialsProvider] =
+  private def credentialsFromConfig(awsConfig: S3ConnectionConfig): Either[String, AwsCredentialsProvider] =
     awsConfig.accessKey.zip(awsConfig.secretKey) match {
       case Some((access, secret)) =>
         new AwsCredentialsProvider {
@@ -101,7 +101,7 @@ object AwsS3ClientCreator extends ClientCreator[S3Config, S3Client] {
       case None => missingCredentialsError.asLeft
     }
 
-  private def credentialsProvider(config: S3Config): Either[String, AwsCredentialsProvider] =
+  private def credentialsProvider(config: S3ConnectionConfig): Either[String, AwsCredentialsProvider] =
     config.authMode match {
       case AuthMode.Credentials => credentialsFromConfig(config)
       case AuthMode.Default     => defaultCredentialsProvider.asRight[String]

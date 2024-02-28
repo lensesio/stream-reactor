@@ -15,99 +15,24 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
-import cats.implicits.catsSyntaxEitherId
-import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor
-import io.lenses.streamreactor.connect.cloud.common.config.processors.ConfigDefProcessor
-import io.lenses.streamreactor.connect.cloud.common.config.processors.LowerCaseKeyConfigDefProcessor
+import io.lenses.streamreactor.connect.cloud.common.config.CloudConfigDef
+import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
 import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.common.config.ConfigDef.Importance
-import org.apache.kafka.common.config.ConfigDef.Type
 
-import java.util
-import scala.collection.immutable.ListMap
-import scala.jdk.CollectionConverters._
-
-object S3SourceConfigDef extends CommonConfigDef with SourcePartitionSearcherSettingsKeys {
+object S3SourceConfigDef extends CommonConfigDef with CloudSourceSettingsKeys {
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
   override val config: ConfigDef = {
+
     val settings = super.config
-      .define(
-        SOURCE_PARTITION_EXTRACTOR_TYPE,
-        Type.STRING,
-        null,
-        Importance.LOW,
-        SOURCE_PARTITION_EXTRACTOR_TYPE_DOC,
-        "Source",
-        1,
-        ConfigDef.Width.MEDIUM,
-        SOURCE_PARTITION_EXTRACTOR_TYPE,
-      )
-      .define(
-        SOURCE_PARTITION_EXTRACTOR_REGEX,
-        Type.STRING,
-        null,
-        Importance.LOW,
-        SOURCE_PARTITION_EXTRACTOR_REGEX_DOC,
-        "Source",
-        2,
-        ConfigDef.Width.MEDIUM,
-        SOURCE_PARTITION_EXTRACTOR_REGEX,
-      )
-      .define(
-        SOURCE_ORDERING_TYPE,
-        Type.STRING,
-        SOURCE_ORDERING_TYPE_DEFAULT,
-        Importance.LOW,
-        SOURCE_ORDERING_TYPE_DOC,
-        "Source",
-        6,
-        ConfigDef.Width.MEDIUM,
-        SOURCE_ORDERING_TYPE,
-      )
-
+    addSourceOrderingSettings(settings)
     addSourcePartitionSearcherSettings(settings)
+    addSourcePartitionExtractorSettings(settings)
   }
 }
 
-class S3SourceConfigDef() extends ConfigDef with LazyLogging {
-
-  private val processorChain: List[ConfigDefProcessor] =
-    List(new LowerCaseKeyConfigDefProcessor(CONNECTOR_PREFIX), new DeprecationConfigDefProcessor)
-
-  override def parse(jProps: util.Map[_, _]): util.Map[String, AnyRef] = {
-    val scalaProps: Map[Any, Any] = jProps.asScala.toMap
-    processProperties(scalaProps) match {
-      case Left(exception) => throw exception
-      case Right(value)    => super.parse(value.asJava)
-    }
-  }
-
-  private def processProperties(scalaProps: Map[Any, Any]): Either[Throwable, Map[Any, Any]] = {
-    val stringProps    = scalaProps.collect { case (k: String, v: AnyRef) => (k.toLowerCase, v) }
-    val nonStringProps = scalaProps -- stringProps.keySet
-    processStringKeyedProperties(stringProps) match {
-      case Left(exception)         => exception.asLeft[Map[Any, Any]]
-      case Right(stringKeyedProps) => (nonStringProps ++ stringKeyedProps).asRight
-    }
-  }
-
-  def writeInOrder(remappedProps: Map[String, Any]): ListMap[String, Any] =
-    ListMap(remappedProps.toSeq.sortBy(_._1): _*)
-
-  def processStringKeyedProperties(stringProps: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
-    var remappedProps: Map[String, Any] = stringProps
-    for (proc <- processorChain) {
-      proc.process(remappedProps) match {
-        case Left(exception)   => return exception.asLeft[Map[String, AnyRef]]
-        case Right(properties) => remappedProps = properties
-      }
-    }
-    remappedProps.asRight
-  }
-
-}
+class S3SourceConfigDef() extends CloudConfigDef(CONNECTOR_PREFIX, new DeprecationConfigDefProcessor()) {}

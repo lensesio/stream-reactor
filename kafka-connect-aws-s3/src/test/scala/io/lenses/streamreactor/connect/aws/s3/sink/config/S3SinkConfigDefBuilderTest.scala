@@ -64,7 +64,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
     )
 
-    CloudSinkBucketOptions(S3SinkConfigDefBuilder(props)) match {
+    CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
       case Left(value)  => fail(value.toString)
       case Right(value) => value.map(_.dataStorage) should be(List(DataStorageSettings.Default))
     }
@@ -75,7 +75,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `JSON` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
-    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props)) match {
+    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
       case Left(value)  => fail(value.toString)
       case Right(value) => value.map(_.dataStorage) should be(List(DataStorageSettings.enabled))
     }
@@ -86,7 +86,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `PARQUET` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false)",
     )
 
-    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props)) match {
+    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false)))
@@ -115,7 +115,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
            |""".stripMargin,
     )
 
-    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props)) match {
+    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false),
@@ -191,7 +191,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false)",
     )
 
-    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props)) match {
+    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(List(DataStorageSettings(envelope = true,
@@ -208,7 +208,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false)",
     )
 
-    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props)) match {
+    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
       case Left(value) => fail(value.toString)
       case Right(value) =>
         value.map(_.dataStorage) should be(List(DataStorageSettings(envelope = true,
@@ -225,7 +225,9 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES_VALUEONLY` WITH_FLUSH_COUNT = 1",
     )
 
-    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props)).left.value.getMessage should startWith(
+    config.CloudSinkBucketOptions(connectorTaskId,
+                                  S3SinkConfigDefBuilder(props),
+    ).left.value.getMessage should startWith(
       "Unsupported format - BYTES_VALUEONLY.  Please note",
     )
   }
@@ -235,7 +237,9 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES` WITH_FLUSH_COUNT = 3",
     )
 
-    config.CloudSinkBucketOptions(S3SinkConfigDefBuilder(props)).left.value.getMessage should startWith(
+    config.CloudSinkBucketOptions(connectorTaskId,
+                                  S3SinkConfigDefBuilder(props),
+    ).left.value.getMessage should startWith(
       "FLUSH_COUNT > 1 is not allowed for BYTES",
     )
   }

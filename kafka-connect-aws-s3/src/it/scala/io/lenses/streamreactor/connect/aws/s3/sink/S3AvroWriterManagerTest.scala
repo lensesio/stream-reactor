@@ -73,7 +73,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   private implicit val cloudLocationValidator = S3LocationValidator
   private val bucketAndPrefix                 = CloudLocation(BucketName, PathPrefix.some)
   private def avroConfig = S3SinkConfig(
-    S3Config(
+    S3ConnectionConfig(
       None,
       Some(s3Container.identity.identity),
       Some(s3Container.identity.credential),

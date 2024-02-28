@@ -15,50 +15,38 @@
  */
 package io.lenses.streamreactor.connect.datalake.sink
 
-import io.lenses.streamreactor.common.errors.RetryErrorPolicy
+import com.azure.storage.file.datalake.DataLakeServiceClient
 import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
-import io.lenses.streamreactor.connect.cloud.common.sink.WriterManagerCreator
-import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
+import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.datalake.auth.DatalakeClientCreator
-import io.lenses.streamreactor.connect.datalake.config.AzureConfig
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings
 import io.lenses.streamreactor.connect.datalake.model.location.DatalakeLocationValidator
 import io.lenses.streamreactor.connect.datalake.sink.config.DatalakeSinkConfig
 import io.lenses.streamreactor.connect.datalake.storage.DatalakeFileMetadata
 import io.lenses.streamreactor.connect.datalake.storage.DatalakeStorageInterface
-
-import scala.util.Try
 object DatalakeSinkTask {}
 class DatalakeSinkTask
-    extends CloudSinkTask[DatalakeFileMetadata](
+    extends CloudSinkTask[DatalakeFileMetadata, DatalakeSinkConfig, DataLakeServiceClient](
       AzureConfigSettings.CONNECTOR_PREFIX,
       "/datalake-sink-ascii.txt",
       JarManifest(DatalakeSinkTask.getClass.getProtectionDomain.getCodeSource.getLocation),
-    )(
-      DatalakeLocationValidator,
     ) {
 
-  private val writerManagerCreator = new WriterManagerCreator[DatalakeFileMetadata, DatalakeSinkConfig]()
+  override def createClient(config: DatalakeSinkConfig): Either[Throwable, DataLakeServiceClient] =
+    DatalakeClientCreator.make(config.connectionConfig)
 
-  def createWriterMan(props: Map[String, String]): Either[Throwable, WriterManager[DatalakeFileMetadata]] =
-    for {
-      config          <- DatalakeSinkConfig.fromProps(props)
-      s3Client        <- DatalakeClientCreator.make(config.s3Config)
-      storageInterface = new DatalakeStorageInterface(connectorTaskId, s3Client)
-      _               <- Try(setErrorRetryInterval(config.s3Config)).toEither
-      writerManager   <- Try(writerManagerCreator.from(config)(connectorTaskId, storageInterface)).toEither
-      _ <- Try(initialize(
-        config.s3Config.connectorRetryConfig.numberOfRetries,
-        config.s3Config.errorPolicy,
-      )).toEither
-    } yield writerManager
+  override def createStorageInterface(
+    connectorTaskId: ConnectorTaskId,
+    config:          DatalakeSinkConfig,
+    cloudClient:     DataLakeServiceClient,
+  ): StorageInterface[DatalakeFileMetadata] = new DatalakeStorageInterface(connectorTaskId, cloudClient)
 
-  private def setErrorRetryInterval(s3Config: AzureConfig): Unit =
-    //if error policy is retry set retry interval
-    s3Config.errorPolicy match {
-      case RetryErrorPolicy() => context.timeout(s3Config.connectorRetryConfig.errorRetryInterval)
-      case _                  =>
-    }
+  override def convertPropsToConfig(
+    connectorTaskId: ConnectorTaskId,
+    props:           Map[String, String],
+  ): Either[Throwable, DatalakeSinkConfig] =
+    DatalakeSinkConfig.fromProps(connectorTaskId, props)(DatalakeLocationValidator)
 
 }

@@ -16,40 +16,41 @@
 package io.lenses.streamreactor.connect.datalake.sink.config
 
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
+import io.lenses.streamreactor.connect.cloud.common.config.traits.PropsToConfigConverter
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
-import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
-import io.lenses.streamreactor.connect.datalake.config.AzureConfig
+import io.lenses.streamreactor.connect.datalake.config.AzureConnectionConfig
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings.SEEK_MAX_INDEX_FILES
 
-object DatalakeSinkConfig {
+object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
 
   def fromProps(
-    props: Map[String, String],
+    connectorTaskId: ConnectorTaskId,
+    props:           Map[String, String],
   )(
     implicit
-    connectorTaskId:        ConnectorTaskId,
     cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, DatalakeSinkConfig] =
-    DatalakeSinkConfig(DatalakeSinkConfigDefBuilder(props))
+    DatalakeSinkConfig(connectorTaskId, DatalakeSinkConfigDefBuilder(props))
 
   def apply(
+    connectorTaskId:    ConnectorTaskId,
     s3ConfigDefBuilder: DatalakeSinkConfigDefBuilder,
   )(
     implicit
-    connectorTaskId:        ConnectorTaskId,
     cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, DatalakeSinkConfig] =
     for {
       authMode          <- s3ConfigDefBuilder.getAuthMode
-      sinkBucketOptions <- CloudSinkBucketOptions(s3ConfigDefBuilder)
+      sinkBucketOptions <- CloudSinkBucketOptions(connectorTaskId, s3ConfigDefBuilder)
       offsetSeekerOptions = OffsetSeekerOptions(
         s3ConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
       )
     } yield DatalakeSinkConfig(
-      AzureConfig(s3ConfigDefBuilder.getParsedValues, authMode),
+      AzureConnectionConfig(s3ConfigDefBuilder.getParsedValues, authMode),
       sinkBucketOptions,
       offsetSeekerOptions,
       s3ConfigDefBuilder.getCompressionCodec(),
@@ -58,7 +59,7 @@ object DatalakeSinkConfig {
 }
 
 case class DatalakeSinkConfig(
-  s3Config:            AzureConfig,
+  connectionConfig:    AzureConnectionConfig,
   bucketOptions:       Seq[CloudSinkBucketOptions] = Seq.empty,
   offsetSeekerOptions: OffsetSeekerOptions,
   compressionCodec:    CompressionCodec,

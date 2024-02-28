@@ -23,17 +23,34 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.cloud.common.source.distribution.PartitionSearcherResponse
+import io.lenses.streamreactor.connect.cloud.common.source.state.PartitionSearcher
 import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindCompletionConfig
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response
 
-class PartitionSearcher(
+/**
+  * Class implementing a partition searcher for S3 cloud storage.
+  * This class searches for new partitions within specified roots in S3.
+  *
+  * @param roots           The list of root locations in which to search for partitions.
+  * @param settings        The configuration options for partition searching.
+  * @param connectorTaskId The identifier for the connector task.
+  * @param listS3ObjF      A function to list objects in S3 buckets.
+  */
+class S3PartitionSearcher(
   roots:           Seq[CloudLocation],
   settings:        PartitionSearcherOptions,
   connectorTaskId: ConnectorTaskId,
   listS3ObjF:      ListObjectsV2Request => Iterator[ListObjectsV2Response],
-) extends LazyLogging {
+) extends PartitionSearcher
+    with LazyLogging {
 
+  /**
+    * Finds new partitions based on the provided last found partition responses.
+    *
+    * @param lastFound The previously found partition responses.
+    * @return          A sequence of new partition responses.
+    */
   def find(
     lastFound: Seq[PartitionSearcherResponse],
   ): IO[Seq[PartitionSearcherResponse]] =
