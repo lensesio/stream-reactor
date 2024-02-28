@@ -34,10 +34,10 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import java.nio.ByteBuffer
 import java.util.UUID
-import javax.jms.BytesMessage
-import javax.jms.MapMessage
-import javax.jms.ObjectMessage
-import javax.jms.TextMessage
+import jakarta.jms.BytesMessage
+import jakarta.jms.MapMessage
+import jakarta.jms.ObjectMessage
+import jakarta.jms.TextMessage
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.reflect.io.Path

@@ -34,9 +34,9 @@ import java.io.FileWriter
 import java.nio.file.Paths
 import java.util
 import java.util.UUID
-import javax.jms.BytesMessage
-import javax.jms.Session
-import javax.jms.TextMessage
+import jakarta.jms.BytesMessage
+import jakarta.jms.Session
+import jakarta.jms.TextMessage
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 

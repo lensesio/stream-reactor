@@ -5,7 +5,7 @@ import org.apache.activemq.broker.BrokerService
 
 import java.io.File
 import java.net.ServerSocket
-import javax.jms.Connection
+import jakarta.jms.Connection
 
 object broker {
 

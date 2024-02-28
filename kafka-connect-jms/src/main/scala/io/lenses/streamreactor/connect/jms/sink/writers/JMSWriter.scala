@@ -26,7 +26,7 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkRecord
 
-import javax.jms._
+import jakarta.jms._
 import scala.annotation.nowarn
 import scala.util.Failure
 import scala.util.Success

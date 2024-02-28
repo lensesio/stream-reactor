@@ -27,7 +27,7 @@ import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.errors.ConnectException
 
 import java.util.Properties
-import javax.jms._
+import jakarta.jms._
 import javax.naming.InitialContext
 import scala.util.control.NonFatal
 import scala.util.Failure

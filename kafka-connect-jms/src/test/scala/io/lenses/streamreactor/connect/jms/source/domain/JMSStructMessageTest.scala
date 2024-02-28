@@ -20,7 +20,7 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 
-import javax.jms.Topic
+import jakarta.jms.Topic
 
 class JMSStructMessageTest extends AnyFunSuiteLike with Matchers {
 

@@ -33,8 +33,8 @@ import org.scalatest.time.Seconds
 import org.scalatest.time.Span
 
 import java.util.UUID
-import javax.jms.Message
-import javax.jms.Session
+import jakarta.jms.Message
+import jakarta.jms.Session
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.reflect.io.Path
 

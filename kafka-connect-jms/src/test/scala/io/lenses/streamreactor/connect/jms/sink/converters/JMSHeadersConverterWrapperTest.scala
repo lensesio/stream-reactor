@@ -31,7 +31,7 @@ import org.mockito.MockitoSugar.mock
 import org.mockito.MockitoSugar.when
 import org.scalatest.funsuite.AnyFunSuiteLike
 import java.lang.{ Iterable => JavaIterable }
-import javax.jms.Session
+import jakarta.jms.Session
 import scala.jdk.CollectionConverters.IterableHasAsJava
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
