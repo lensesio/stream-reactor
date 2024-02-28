@@ -1,5 +1,7 @@
 package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
+import static java.util.Optional.ofNullable;
+
 import io.lenses.java.streamreactor.common.util.JarManifest;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig;
 import java.util.ArrayList;
@@ -12,18 +14,22 @@ import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.source.ExactlyOnceSupport;
 import org.apache.kafka.connect.source.SourceConnector;
 
+/**
+ * Implementation of {@link SourceConnector} for Microsoft Azure EventHubs.
+ */
 @Slf4j
 public class AzureEventHubsSourceConnector extends SourceConnector {
 
   private final JarManifest jarManifest =
-    new JarManifest(getClass().getProtectionDomain().getCodeSource().getLocation());
+      new JarManifest(getClass().getProtectionDomain().getCodeSource().getLocation());
   private Map<String, String> configProperties;
-  private AzureEventHubsConfig azureEventHubsConfig;
 
   @Override
   public void start(Map<String, String> props) {
     configProperties = props;
-    azureEventHubsConfig = new AzureEventHubsConfig(props);
+    new AzureEventHubsConfig(props);
+    ofNullable(context()).flatMap(context -> ofNullable(context.offsetStorageReader()))
+        .ifPresent(TopicPartitionOffsetProvider::initialize);
   }
 
   @Override
@@ -41,7 +47,7 @@ public class AzureEventHubsSourceConnector extends SourceConnector {
 
   @Override
   public ExactlyOnceSupport exactlyOnceSupport(Map<String, String> connectorConfig) {
-    return ExactlyOnceSupport.UNSUPPORTED;
+    return ExactlyOnceSupport.SUPPORTED;
   }
 
   @Override

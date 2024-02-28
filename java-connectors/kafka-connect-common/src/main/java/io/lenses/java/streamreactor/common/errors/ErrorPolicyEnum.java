@@ -14,7 +14,8 @@ public enum ErrorPolicyEnum {
   RETRY(new RetryErrorPolicy());
 
   private static final Map<String, ErrorPolicy> errorPolicyByName =
-    Arrays.stream(ErrorPolicyEnum.values()).collect(toMap(Enum::name, ErrorPolicyEnum::getErrorPolicy));
+      Arrays.stream(ErrorPolicyEnum.values())
+          .collect(toMap(Enum::name, ErrorPolicyEnum::getErrorPolicy));
 
   @Getter
   private final ErrorPolicy errorPolicy;
@@ -23,8 +24,9 @@ public enum ErrorPolicyEnum {
     this.errorPolicy = errorPolicy;
   }
 
-  public static ErrorPolicy byName(String name){
+  public static ErrorPolicy byName(String name) {
     Optional<ErrorPolicy> policyByName = ofNullable(errorPolicyByName.get(name));
-    return policyByName.orElseThrow(() -> new RuntimeException("Couldn't find ErrorPolicy by name: " + name));
+    return policyByName.orElseThrow(
+        () -> new RuntimeException("Couldn't find ErrorPolicy by name: " + name));
   }
 }

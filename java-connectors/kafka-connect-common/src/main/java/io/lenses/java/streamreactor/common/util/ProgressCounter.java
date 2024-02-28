@@ -8,6 +8,9 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.sink.SinkRecord;
 
+/**
+ * Class represents Progress Counter for Connectors.
+ */
 @Slf4j
 public class ProgressCounter {
   private final String startTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
@@ -23,7 +26,7 @@ public class ProgressCounter {
     this.periodMillis = 60000;
   }
 
-  public void update(Collection<SinkRecord> connectRecords){
+  public void update(Collection<SinkRecord> connectRecords) {
     final long newTimestamp = System.currentTimeMillis();
 
     connectRecords.forEach(r -> counter.put(r.topic(), counter.getOrDefault(r.topic(), 0L) + 1L));

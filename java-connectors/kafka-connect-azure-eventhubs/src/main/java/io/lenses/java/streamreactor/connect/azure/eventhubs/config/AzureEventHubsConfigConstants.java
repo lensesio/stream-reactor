@@ -1,11 +1,16 @@
 package io.lenses.java.streamreactor.connect.azure.eventhubs.config;
 
+/**
+ * Class represents Config Constants for AzureEventHubsSourceConnector Config Definition.
+ */
 public class AzureEventHubsConfigConstants {
 
   private static final String DOT = ".";
   public static final String OPTIONAL_EMPTY_DEFAULT = "";
 
   public static final String CONNECTOR_PREFIX = "connect.eventhubs";
+  public static final String CONNECTOR_WITH_CONSUMER_PREFIX =
+      CONNECTOR_PREFIX + DOT + "connection.settings";
 
   public static final String NAMESPACE = CONNECTOR_PREFIX + DOT + "bootstrap.servers";
   public static final String NAMESPACE_DOC = "Namespace name of the event hub";
@@ -48,7 +53,7 @@ public class AzureEventHubsConfigConstants {
   public static final String INCLUDE_HEADERS_DOC =
       "Copy headers from incoming message to message we send to Kafka.";
 
-  public static final String INCLUDE_HEADERS_DEFAULT = "false";
+  public static final String INCLUDE_HEADERS_DEFAULT = "true";
 
 
 }

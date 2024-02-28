@@ -4,6 +4,9 @@ import java.util.Map;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 
+/**
+ * Class represents base implementation of {@link AbstractConfig}.
+ */
 public abstract class BaseConfig extends AbstractConfig {
 
   private final String connectorPrefix;

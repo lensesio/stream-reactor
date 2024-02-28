@@ -3,6 +3,6 @@ package io.lenses.java.streamreactor;
 public class Main {
 
   public static void main(String[] args) {
-    System.out.println("Hello world!");
+    //no implementation needed for now
   }
 }

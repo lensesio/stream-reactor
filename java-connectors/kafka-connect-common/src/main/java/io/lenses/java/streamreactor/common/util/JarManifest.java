@@ -30,7 +30,7 @@ public class JarManifest {
   public JarManifest(URL location) {
     Manifest manifest;
 
-    try (JarFile jarFile = new JarFile(new File(location.toURI()))){
+    try (JarFile jarFile = new JarFile(new File(location.toURI()))) {
       manifest = jarFile.getManifest();
     } catch (URISyntaxException | IOException e) {
       throw new RuntimeException(e);
@@ -51,17 +51,17 @@ public class JarManifest {
 
   private void extractMainAttributes(Attributes mainAttributes) {
     jarAttributes.put(REACTOR_VER.getAttributeName(),
-      ofNullable(mainAttributes.getValue(REACTOR_VER.getAttributeName())).orElse(UNKNOWN));
+        ofNullable(mainAttributes.getValue(REACTOR_VER.getAttributeName())).orElse(UNKNOWN));
     jarAttributes.put(KAFKA_VER.getAttributeName(),
-      ofNullable(mainAttributes.getValue(KAFKA_VER.getAttributeName())).orElse(UNKNOWN));
+        ofNullable(mainAttributes.getValue(KAFKA_VER.getAttributeName())).orElse(UNKNOWN));
     jarAttributes.put(GIT_REPO.getAttributeName(),
-      ofNullable(mainAttributes.getValue(GIT_REPO.getAttributeName())).orElse(UNKNOWN));
+        ofNullable(mainAttributes.getValue(GIT_REPO.getAttributeName())).orElse(UNKNOWN));
     jarAttributes.put(GIT_HASH.getAttributeName(),
-      ofNullable(mainAttributes.getValue(GIT_HASH.getAttributeName())).orElse(UNKNOWN));
+        ofNullable(mainAttributes.getValue(GIT_HASH.getAttributeName())).orElse(UNKNOWN));
     jarAttributes.put(GIT_TAG.getAttributeName(),
-      ofNullable(mainAttributes.getValue(GIT_TAG.getAttributeName())).orElse(UNKNOWN));
+        ofNullable(mainAttributes.getValue(GIT_TAG.getAttributeName())).orElse(UNKNOWN));
     jarAttributes.put(REACTOR_DOCS.getAttributeName(),
-      ofNullable(mainAttributes.getValue(REACTOR_DOCS.getAttributeName())).orElse(UNKNOWN));
+        ofNullable(mainAttributes.getValue(REACTOR_DOCS.getAttributeName())).orElse(UNKNOWN));
   }
 
   public String getVersion() {
@@ -71,17 +71,17 @@ public class JarManifest {
   public String buildManifestString() {
     StringBuilder manifestBuilder = new StringBuilder();
     manifestBuilder.append(REACTOR_VER.attributeName).append(SEMICOLON)
-      .append(jarAttributes.get(REACTOR_VER.getAttributeName())).append(NEW_LINE);
+        .append(jarAttributes.get(REACTOR_VER.getAttributeName())).append(NEW_LINE);
     manifestBuilder.append(KAFKA_VER.attributeName).append(SEMICOLON)
-      .append(jarAttributes.get(KAFKA_VER.getAttributeName())).append(NEW_LINE);
+        .append(jarAttributes.get(KAFKA_VER.getAttributeName())).append(NEW_LINE);
     manifestBuilder.append(GIT_REPO.attributeName).append(SEMICOLON)
-      .append(jarAttributes.get(GIT_REPO.getAttributeName())).append(NEW_LINE);
+        .append(jarAttributes.get(GIT_REPO.getAttributeName())).append(NEW_LINE);
     manifestBuilder.append(GIT_HASH.attributeName).append(SEMICOLON)
-      .append(jarAttributes.get(GIT_HASH.getAttributeName())).append(NEW_LINE);
+        .append(jarAttributes.get(GIT_HASH.getAttributeName())).append(NEW_LINE);
     manifestBuilder.append(GIT_TAG.attributeName).append(SEMICOLON)
-      .append(jarAttributes.get(GIT_TAG.getAttributeName())).append(NEW_LINE);
+        .append(jarAttributes.get(GIT_TAG.getAttributeName())).append(NEW_LINE);
     manifestBuilder.append(REACTOR_DOCS.attributeName).append(SEMICOLON)
-      .append(jarAttributes.get(REACTOR_DOCS.getAttributeName())).append(NEW_LINE);
+        .append(jarAttributes.get(REACTOR_DOCS.getAttributeName())).append(NEW_LINE);
     return manifestBuilder.toString();
   }
 

@@ -10,6 +10,7 @@ public interface KcqlSettings extends BaseSettings {
   default String getKcqlConstant() {
     return connectorPrefix() + "." + KCQL_PROP_SUFFIX;
   }
+
   default String[] getKcqlRaw() {
     String rawKcql = getString(getKcqlConstant());
     if (rawKcql.isEmpty()) {
