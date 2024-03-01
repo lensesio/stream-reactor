@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
@@ -74,12 +75,15 @@ class EventHubsKafkaConsumerControllerTest {
   private void mockPropertiesReturn(AzureEventHubsConfig hubsConfig) {
     List<String> bootstrapServers = Collections.singletonList("some.server:9393");
     String groupId = "group.id";
+    String eventHubName = "eventHubTopic";
     Password jaas = new Password("jaas.pass");
     String saasMechanism = "saasMechanism";
     String secProtocol = "secProtocol";
     Class stringDeserializer = StringDeserializer.class;
     when(this.hubsConfig.getList(
         getPrefixedKafkaConsumerConfigKey(BOOTSTRAP_SERVERS_CONFIG))).thenReturn(bootstrapServers);
+    when(this.hubsConfig.getString(
+        AzureEventHubsConfigConstants.EVENTHUB_NAME)).thenReturn(eventHubName);
     when(this.hubsConfig.getString(
         getPrefixedKafkaConsumerConfigKey(GROUP_ID_CONFIG))).thenReturn(groupId);
     when(this.hubsConfig.getPassword(
@@ -99,8 +103,8 @@ class EventHubsKafkaConsumerControllerTest {
     //given
     Duration duration = Duration.of(2, ChronoUnit.SECONDS);
     mockPropertiesReturn(hubsConfig);
-    BlockingQueuedKafkaConsumer mockedBlockingConsumer = mock(
-        BlockingQueuedKafkaConsumer.class);
+    BlockingQueuedKafkaProducer mockedBlockingConsumer = mock(
+        BlockingQueuedKafkaProducer.class);
     when(consumerProvider.createConsumer(any(Properties.class), any(BlockingQueue.class))).thenReturn(
         mockedBlockingConsumer);
     testObj = new EventHubsKafkaConsumerController(hubsConfig, consumerProvider, recordsQueue);
@@ -116,7 +120,7 @@ class EventHubsKafkaConsumerControllerTest {
     List<SourceRecord> sourceRecords = testObj.poll(duration);
 
     //then
-    verify(mockedBlockingConsumer).startPolling(duration);
+    verify(mockedBlockingConsumer).start(duration);
     assertNotNull(mockedRecords);
     assertEquals(1, sourceRecords.size());
   }

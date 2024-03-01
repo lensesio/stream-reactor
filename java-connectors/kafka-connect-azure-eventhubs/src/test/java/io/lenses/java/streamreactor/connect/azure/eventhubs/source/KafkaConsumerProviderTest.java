@@ -37,7 +37,7 @@ class KafkaConsumerProviderTest {
     KafkaConsumerProvider testObj = new KafkaConsumerProvider();
 
     //when
-    BlockingQueuedKafkaConsumer consumer;
+    BlockingQueuedKafkaProducer consumer;
     try(MockedConstruction<KafkaConsumer> mockKafkaConsumer = Mockito.mockConstruction(KafkaConsumer.class)){
       consumer = testObj.createConsumer(new Properties(), new ArrayBlockingQueue<>(1));
     }

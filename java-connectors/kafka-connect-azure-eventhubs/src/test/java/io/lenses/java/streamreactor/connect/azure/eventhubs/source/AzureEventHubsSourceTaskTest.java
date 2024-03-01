@@ -49,7 +49,7 @@ class AzureEventHubsSourceTaskTest {
   void stopShouldCallStopOnController() {
     //given
     EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
-    testObj.initialize(mockedController, null);
+    testObj.initialize(mockedController);
 
     //when
     testObj.stop();
@@ -59,11 +59,11 @@ class AzureEventHubsSourceTaskTest {
   }
 
   @Test
-  void initializeShouldLogAndSubscribeToTopic() {
+  void initializeShouldLog() {
     //given
     String topic = "topic";
     EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
-    testObj.initialize(mockedController, topic);
+    testObj.initialize(mockedController);
 
     //when
     testObj.stop();
@@ -71,14 +71,13 @@ class AzureEventHubsSourceTaskTest {
     //then
     assertEquals(1, logWatcher.list.size());
     assertEquals("AzureEventHubsSourceTask initialising.", logWatcher.list.get(0).getFormattedMessage());
-    verify(mockedController, times(1)).subscribeToTopic(topic);
   }
 
   @Test
   void pollShouldCallPollOnControllerAndReturnNullIfListIsEmpty() throws InterruptedException {
     //given
     EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
-    testObj.initialize(mockedController, null);
+    testObj.initialize(mockedController);
     when(mockedController.poll(any(Duration.class))).thenReturn(Collections.emptyList());
 
     //when
@@ -92,7 +91,7 @@ class AzureEventHubsSourceTaskTest {
   void pollShouldCallPollOnControllerAndReturnListThatHasElements() throws InterruptedException {
     //given
     EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
-    testObj.initialize(mockedController, null);
+    testObj.initialize(mockedController);
     SourceRecord mockedRecord = mock(SourceRecord.class);
     List<SourceRecord> sourceRecords = Collections.singletonList(mockedRecord);
     when(mockedController.poll(any(Duration.class))).thenReturn(sourceRecords);
@@ -109,7 +108,7 @@ class AzureEventHubsSourceTaskTest {
   void getVersionShouldDelegateToJarManifestGetVersion() {
     //given
     EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
-    testObj.initialize(mockedController, null);
+    testObj.initialize(mockedController);
     final String SOME_VERSION = "SOME_VERSION";
     when(mockedJarManifest.getVersion()).thenReturn(SOME_VERSION);
 

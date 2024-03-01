@@ -37,7 +37,7 @@ public class EventHubsKafkaConsumerController {
   private final AzureEventHubsConfig azureEventHubsConfig;
   private final KafkaConsumerProvider kafkaConsumerProvider;
   private final BlockingQueue<ConsumerRecords<String, String>> recordsQueue;
-  private final BlockingQueuedKafkaConsumer queuedKafkaConsumer;
+  private final BlockingQueuedKafkaProducer queuedKafkaConsumer;
 
   /**
    * Constructs EventHubsKafkaConsumerController.
@@ -56,7 +56,7 @@ public class EventHubsKafkaConsumerController {
     queuedKafkaConsumer = createQueuedConsumer();
   }
 
-  private BlockingQueuedKafkaConsumer createQueuedConsumer() {
+  private BlockingQueuedKafkaProducer createQueuedConsumer() {
     Properties consumerProperties = extractConsumerProperties();
     return kafkaConsumerProvider.createConsumer(consumerProperties, recordsQueue);
   }
@@ -85,6 +85,8 @@ public class EventHubsKafkaConsumerController {
     consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
         azureEventHubsConfig.getClass(
             getPrefixedKafkaConsumerConfigKey(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG)));
+    consumerProperties.put(AzureEventHubsConfigConstants.EVENTHUB_NAME,
+        azureEventHubsConfig.getString(AzureEventHubsConfigConstants.EVENTHUB_NAME));
     consumerProperties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
 
     return consumerProperties;
@@ -103,7 +105,7 @@ public class EventHubsKafkaConsumerController {
         AzureEventHubsConfigConstants.INCLUDE_HEADERS);
     List<SourceRecord> sourceRecords = null;
 
-    queuedKafkaConsumer.startPolling(duration);
+    queuedKafkaConsumer.start(duration);
 
     ConsumerRecords<String, String> consumerRecords = null;
     try {
@@ -132,10 +134,6 @@ public class EventHubsKafkaConsumerController {
       }
     }
     return sourceRecords != null ? sourceRecords : Collections.emptyList();
-  }
-
-  void subscribeToTopic(String topic) {
-    queuedKafkaConsumer.subscribe(Collections.singletonList(topic));
   }
 
   public void close(Duration timeoutDuration) {

@@ -1,9 +1,10 @@
 package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
 import java.time.Duration;
-import java.util.List;
+import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -13,44 +14,46 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
  * it to output its records into a {@link BlockingQueue} shared with {@link EventHubsKafkaConsumerController}.
  */
 @Slf4j
-public class BlockingQueuedKafkaConsumer {
+public class BlockingQueuedKafkaProducer {
 
   private final BlockingQueue<ConsumerRecords<String, String>> recordsQueue;
   private final Consumer<String, String> consumer;
   private final String clientId;
-  private boolean isPolling = false;
+  private final String topic;
+  private final AtomicBoolean initialized = new AtomicBoolean(false);
+  private final AtomicBoolean running = new AtomicBoolean(false);
 
   /**
-   * Class is a proxy that allows access to some methods of Kafka Consumer. It's main purpose is
-   * to create a thread around the consumer and put consumer record into BlockingQueue. That is
-   * where EventHubsKafkaConsumerController takes over the handling
+   * Class is a proxy that allows access to some methods of Kafka Consumer. It's main purpose is to
+   * create a thread around the consumer and put consumer record into BlockingQueue. That is where
+   * EventHubsKafkaConsumerController takes over the handling
    *
    * @param recordsQueue BlockingQueue to put records into
-   * @param consumer Kafka Consumer
-   * @param clientId consumer client id
+   * @param consumer     Kafka Consumer
+   * @param clientId     consumer client id
+   * @param topic        kafka topic to consume from
    */
-  public BlockingQueuedKafkaConsumer(BlockingQueue<ConsumerRecords<String, String>> recordsQueue,
-      Consumer<String, String> consumer, String clientId) {
+  public BlockingQueuedKafkaProducer(BlockingQueue<ConsumerRecords<String, String>> recordsQueue,
+      Consumer<String, String> consumer, String clientId, String topic) {
     this.recordsQueue = recordsQueue;
     this.consumer = consumer;
     this.clientId = clientId;
+    this.topic = topic;
   }
 
-  void startPolling(Duration pollDuration) {
-    if (!isPolling) {
+  void start(Duration pollDuration) {
+    if (!initialized.get()) {
+      consumer.subscribe(Collections.singletonList(topic), new AzureConsumerRebalancerListener(consumer));
       Thread pollingThread = new Thread(new EventhubsPollingRunnable(pollDuration));
 
       pollingThread.start();
-      isPolling = true;
+      initialized.set(true);
     }
-  }
-
-  public void subscribe(List<String> strings) {
-    consumer.subscribe(strings, new AzureConsumerRebalancerListener(consumer));
   }
 
   public void close(Duration timeoutDuration) {
     consumer.close(timeoutDuration);
+    running.set(false);
   }
 
   private class EventhubsPollingRunnable implements Runnable {
@@ -62,8 +65,9 @@ public class BlockingQueuedKafkaConsumer {
 
     @Override
     public void run() {
-      while (true) {
-        ConsumerRecords<String, String> consumerRecords = consumer.poll(pollDuration);
+      running.set(true);
+      while (running.get()) {
+        ConsumerRecords<String, String> consumerRecords = consumer.poll(pollDuration); //TODO exception handling?
         if (consumerRecords != null && !consumerRecords.isEmpty()) {
           try {
             boolean offer = false;

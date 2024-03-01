@@ -1,5 +1,6 @@
 package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +23,7 @@ public class KafkaConsumerProvider {
    * @param recordBlockingQueue BlockingQueue for ConsumerRecords
    * @return BlockingQueuedKafkaConsumer instance.
    */
-  public BlockingQueuedKafkaConsumer createConsumer(Properties consumerProperties,
+  public BlockingQueuedKafkaProducer createConsumer(Properties consumerProperties,
       BlockingQueue<ConsumerRecords<String, String>> recordBlockingQueue) {
     String clientId;
     synchronized (EventHubsKafkaConsumerController.class) {
@@ -32,7 +33,8 @@ public class KafkaConsumerProvider {
     }
 
     KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(consumerProperties);
-    return new BlockingQueuedKafkaConsumer(recordBlockingQueue, kafkaConsumer, clientId);
+    String topic = consumerProperties.getProperty(AzureEventHubsConfigConstants.EVENTHUB_NAME);
+    return new BlockingQueuedKafkaProducer(recordBlockingQueue, kafkaConsumer, clientId, topic);
   }
 
 }
