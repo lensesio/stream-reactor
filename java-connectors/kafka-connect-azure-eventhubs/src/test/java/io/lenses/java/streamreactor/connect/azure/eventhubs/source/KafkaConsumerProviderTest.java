@@ -2,6 +2,7 @@ package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -45,6 +46,6 @@ class KafkaConsumerProviderTest {
     //then
     assertNotNull(consumer);
     assertEquals(1, logWatcher.list.size());
-    assertEquals("Attempting to create Client with Id:KafkaEventHubConsumer#0", logWatcher.list.get(0).getFormattedMessage());
+    assertTrue(logWatcher.list.get(0).getFormattedMessage().startsWith("Attempting to create Client with Id"));
   }
 }

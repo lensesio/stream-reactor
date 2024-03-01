@@ -16,6 +16,7 @@ import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHub
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -27,6 +28,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.config.types.Password;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.BeforeEach;
@@ -113,6 +116,10 @@ class EventHubsKafkaConsumerControllerTest {
     ConsumerRecords mockedRecords = mock(ConsumerRecords.class);
     when(mockedRecords.count()).thenReturn(consumerRecordList.size());
     when(mockedRecords.iterator()).thenReturn(consumerRecordList.iterator());
+    Headers headersMock = mock(Headers.class);
+    List<Header> emptyHeaderList = new ArrayList<>();
+    when(headersMock.iterator()).thenReturn(emptyHeaderList.iterator());
+    when(consumerRecord.headers()).thenReturn(headersMock);
     recordsQueue.put(mockedRecords);
 
     //when

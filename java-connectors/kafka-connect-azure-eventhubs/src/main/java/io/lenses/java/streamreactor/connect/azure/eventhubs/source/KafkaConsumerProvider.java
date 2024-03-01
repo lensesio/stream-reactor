@@ -2,6 +2,7 @@ package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -13,8 +14,6 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
  */
 @Slf4j
 public class KafkaConsumerProvider {
-  //Consumer need a unique client ID per thread
-  private static int id = 0;
 
   /**
    * Instantiates BlockingQueuedKafkaConsumer from given properties.
@@ -25,13 +24,10 @@ public class KafkaConsumerProvider {
    */
   public BlockingQueuedKafkaProducer createConsumer(Properties consumerProperties,
       BlockingQueue<ConsumerRecords<String, String>> recordBlockingQueue) {
-    String clientId;
-    synchronized (EventHubsKafkaConsumerController.class) {
-      clientId = "KafkaEventHubConsumer#" + id++;
-      log.info("Attempting to create Client with Id:{}", clientId);
-      consumerProperties.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
-    }
+    final String clientId = UUID.randomUUID().toString();
+    log.info("Attempting to create Client with Id:{}", clientId);
 
+    consumerProperties.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
     KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(consumerProperties);
     String topic = consumerProperties.getProperty(AzureEventHubsConfigConstants.EVENTHUB_NAME);
     return new BlockingQueuedKafkaProducer(recordBlockingQueue, kafkaConsumer, clientId, topic);

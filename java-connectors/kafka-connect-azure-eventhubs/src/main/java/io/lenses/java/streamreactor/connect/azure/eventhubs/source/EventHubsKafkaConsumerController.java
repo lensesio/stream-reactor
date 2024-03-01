@@ -2,7 +2,6 @@ package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
 import static io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig.getPrefixedKafkaConsumerConfigKey;
 import static io.lenses.java.streamreactor.connect.azure.eventhubs.mapping.SourceRecordMapper.mapSourceRecordIncludingHeaders;
-import static io.lenses.java.streamreactor.connect.azure.eventhubs.mapping.SourceRecordMapper.mapSourceRecordWithoutHeaders;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 
@@ -101,8 +100,6 @@ public class EventHubsKafkaConsumerController {
    * @throws InterruptedException if interrupted while polling
    */
   public List<SourceRecord> poll(Duration duration) throws InterruptedException {
-    boolean includeHeaders = azureEventHubsConfig.getBoolean(
-        AzureEventHubsConfigConstants.INCLUDE_HEADERS);
     List<SourceRecord> sourceRecords = null;
 
     queuedKafkaConsumer.start(duration);
@@ -124,11 +121,8 @@ public class EventHubsKafkaConsumerController {
             consumerRecord.topic(), consumerRecord.partition());
         AzureOffsetMarker offsetMarker = new AzureOffsetMarker(consumerRecord.offset());
 
-        SourceRecord sourceRecord = includeHeaders
-            ? mapSourceRecordIncludingHeaders(consumerRecord, azureTopicPartitionKey,
-            offsetMarker, Schema.OPTIONAL_STRING_SCHEMA, Schema.STRING_SCHEMA) :
-            mapSourceRecordWithoutHeaders(consumerRecord, azureTopicPartitionKey,
-                offsetMarker, Schema.OPTIONAL_STRING_SCHEMA, Schema.STRING_SCHEMA);
+        SourceRecord sourceRecord = mapSourceRecordIncludingHeaders(consumerRecord, azureTopicPartitionKey,
+            offsetMarker, Schema.OPTIONAL_STRING_SCHEMA, Schema.STRING_SCHEMA);
 
         sourceRecords.add(sourceRecord);
       }
