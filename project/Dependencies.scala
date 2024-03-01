@@ -9,6 +9,8 @@ object Dependencies {
 
   val confluentVersion: String = kafkaVersionAxis.confluentPlatformVersion
 
+  val antlr4Version: String = "4.13.1"
+
   val globalExcludeDeps: Seq[InclExclRule] = Seq(
     "org.jboss.logging"        % "commons-logging-jboss-logging",
     "org.jboss.logging"        % "jboss-logging",
