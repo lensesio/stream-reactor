@@ -1,7 +1,6 @@
 package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
 import static io.lenses.java.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader;
-import static java.util.Optional.ofNullable;
 
 import io.lenses.java.streamreactor.common.util.JarManifest;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig;
@@ -30,8 +29,6 @@ public class AzureEventHubsSourceConnector extends SourceConnector {
     configProperties = props;
     new AzureEventHubsConfig(props);
     printAsciiHeader(jarManifest, "/azure-eventhubs-ascii.txt");
-    ofNullable(context()).flatMap(context -> ofNullable(context.offsetStorageReader()))
-        .ifPresent(TopicPartitionOffsetProvider::initialize);
   }
 
   @Override

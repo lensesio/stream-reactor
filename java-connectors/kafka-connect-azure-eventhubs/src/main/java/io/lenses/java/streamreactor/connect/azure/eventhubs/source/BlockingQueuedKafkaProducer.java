@@ -1,6 +1,7 @@
 package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -14,8 +15,9 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
  * it to output its records into a {@link BlockingQueue} shared with {@link EventHubsKafkaConsumerController}.
  */
 @Slf4j
-public class BlockingQueuedKafkaProducer {
+public class BlockingQueuedKafkaProducer implements BlockingQueueProducer{
 
+  private static final Duration DEFAULT_POLL_DURATION =  Duration.of(1, ChronoUnit.SECONDS);
   private final BlockingQueue<ConsumerRecords<String, String>> recordsQueue;
   private final Consumer<String, String> consumer;
   private final String clientId;
@@ -25,8 +27,8 @@ public class BlockingQueuedKafkaProducer {
 
   /**
    * Class is a proxy that allows access to some methods of Kafka Consumer. It's main purpose is to
-   * create a thread around the consumer and put consumer record into BlockingQueue. That is where
-   * EventHubsKafkaConsumerController takes over the handling
+   * create a thread around the consumer and put consumer record into BlockingQueue. After that it starts
+   * consumption.
    *
    * @param recordsQueue BlockingQueue to put records into
    * @param consumer     Kafka Consumer
@@ -39,35 +41,32 @@ public class BlockingQueuedKafkaProducer {
     this.consumer = consumer;
     this.clientId = clientId;
     this.topic = topic;
+
+    start();
   }
 
-  void start(Duration pollDuration) {
-    if (!initialized.get()) {
+  public void start() {
+    if (!initialized.getAndSet(true)) {
       consumer.subscribe(Collections.singletonList(topic), new AzureConsumerRebalancerListener(consumer));
-      Thread pollingThread = new Thread(new EventhubsPollingRunnable(pollDuration));
+      Thread pollingThread = new Thread(new EventhubsPollingRunnable());
 
       pollingThread.start();
       initialized.set(true);
     }
   }
 
-  public void close(Duration timeoutDuration) {
+  public void stop(Duration timeoutDuration) {
     consumer.close(timeoutDuration);
     running.set(false);
   }
 
   private class EventhubsPollingRunnable implements Runnable {
-    private final Duration pollDuration;
-
-    public EventhubsPollingRunnable(Duration pollDuration) {
-      this.pollDuration = pollDuration;
-    }
 
     @Override
     public void run() {
       running.set(true);
       while (running.get()) {
-        ConsumerRecords<String, String> consumerRecords = consumer.poll(pollDuration); //TODO exception handling?
+        ConsumerRecords<String, String> consumerRecords = consumer.poll(DEFAULT_POLL_DURATION);
         if (consumerRecords != null && !consumerRecords.isEmpty()) {
           try {
             boolean offer = false;

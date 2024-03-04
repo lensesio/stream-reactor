@@ -6,7 +6,6 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -19,7 +18,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -36,9 +34,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class EventHubsKafkaConsumerControllerTest {
+
+  private static final String CONNECTOR_NAME = "name";
+  private static final String SOME_NAME = "somename";
   private ArrayBlockingQueue<ConsumerRecords<String, String>> recordsQueue;
   private AzureEventHubsConfig hubsConfig;
-  KafkaConsumerProvider consumerProvider;
+  BlockingQueueProducerProvider consumerProvider;
 
   private EventHubsKafkaConsumerController testObj;
 
@@ -46,7 +47,7 @@ class EventHubsKafkaConsumerControllerTest {
   @BeforeEach
   void setUp() {
     hubsConfig = mock(AzureEventHubsConfig.class);
-    consumerProvider = mock(KafkaConsumerProvider.class);
+    consumerProvider = mock(BlockingQueueProducerProvider.class);
     recordsQueue = new ArrayBlockingQueue<>(10);
   }
 
@@ -59,20 +60,14 @@ class EventHubsKafkaConsumerControllerTest {
     Password jaas = new Password("jaas.pass");
     String saasMechanism = "saasMechanism";
     String secProtocol = "secProtocol";
+    String eventHubName = "eventHubTopic";
     Class stringDeserializer = StringDeserializer.class;
 
     //when
     testObj = new EventHubsKafkaConsumerController(hubsConfig, consumerProvider, recordsQueue);
 
     //then
-    verify(consumerProvider).createConsumer(argThat(properties ->
-        properties.get(BOOTSTRAP_SERVERS_CONFIG).equals(bootstrapServers) &&
-            properties.getProperty(GROUP_ID_CONFIG).equals(groupId) &&
-            properties.get(SaslConfigs.SASL_JAAS_CONFIG).equals(jaas) &&
-            properties.getProperty(SaslConfigs.SASL_MECHANISM).equals(saasMechanism) &&
-            properties.getProperty(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG).equals(secProtocol) &&
-            properties.get(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG).equals(stringDeserializer) &&
-            properties.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG).equals(stringDeserializer)), eq(recordsQueue));
+    verify(consumerProvider).createProducer(any(AzureEventHubsConfig.class), eq(recordsQueue));
   }
 
   private void mockPropertiesReturn(AzureEventHubsConfig hubsConfig) {
@@ -108,7 +103,7 @@ class EventHubsKafkaConsumerControllerTest {
     mockPropertiesReturn(hubsConfig);
     BlockingQueuedKafkaProducer mockedBlockingConsumer = mock(
         BlockingQueuedKafkaProducer.class);
-    when(consumerProvider.createConsumer(any(Properties.class), any(BlockingQueue.class))).thenReturn(
+    when(consumerProvider.createProducer(any(AzureEventHubsConfig.class), any(BlockingQueue.class))).thenReturn(
         mockedBlockingConsumer);
     testObj = new EventHubsKafkaConsumerController(hubsConfig, consumerProvider, recordsQueue);
     ConsumerRecord consumerRecord = mock(ConsumerRecord.class);
@@ -127,7 +122,7 @@ class EventHubsKafkaConsumerControllerTest {
     List<SourceRecord> sourceRecords = testObj.poll(duration);
 
     //then
-    verify(mockedBlockingConsumer).start(duration);
+    verify(mockedBlockingConsumer).start();
     assertNotNull(mockedRecords);
     assertEquals(1, sourceRecords.size());
   }

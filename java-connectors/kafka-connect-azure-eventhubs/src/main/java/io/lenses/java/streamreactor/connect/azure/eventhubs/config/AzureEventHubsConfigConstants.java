@@ -1,21 +1,24 @@
 package io.lenses.java.streamreactor.connect.azure.eventhubs.config;
 
+import io.lenses.java.streamreactor.connect.azure.eventhubs.source.AzureEventHubsSourceConnector;
+
 /**
  * Class represents Config Constants for AzureEventHubsSourceConnector Config Definition.
  */
 public class AzureEventHubsConfigConstants {
 
+
   private static final String DOT = ".";
   public static final String OPTIONAL_EMPTY_DEFAULT = "";
-
   public static final String CONNECTOR_PREFIX = "connect.eventhubs";
+
+  public static final String CONNECTOR_NAME = "name";
+  public static final String CONNECTOR_NAME_DOC = "Connector's name";
+  public static final String CONNECTOR_NAME_DEFAULT = AzureEventHubsSourceConnector.class.getSimpleName();
   public static final String CONNECTOR_WITH_CONSUMER_PREFIX =
-      CONNECTOR_PREFIX + DOT + "connection.settings";
+      CONNECTOR_PREFIX + DOT + "connection.settings" + DOT;
   public static final String EVENTHUB_NAME = CONNECTOR_PREFIX + DOT + "hub.name";
   public static final String EVENTHUB_NAME_DOC = "The event hub name";
-  public static final String POLL_QUEUE_SIZE = CONNECTOR_PREFIX + DOT + "poll.queue.size";
-  public static final String POLL_QUEUE_SIZE_DOC = "Poll Queue Size";
-  public static final String POLL_QUEUE_SIZE_DEFAULT = "100";
 
   public static final String KCQL_CONFIG = CONNECTOR_PREFIX + DOT + "kcql";
   public static final String KCQL_DOC =

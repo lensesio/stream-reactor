@@ -21,7 +21,6 @@ class AzureConsumerRebalancerListenerTest {
   void onPartitionsAssignedShouldSeekToBeginningIfEmptyTopicPartitionOffsetProvider() {
     //given
     Consumer<String, String> stringKafkaConsumer = mock(Consumer.class);
-    //TopicPartitionOffsetProvider offsetProvider = mock(TopicPartitionOffsetProvider.class);
     AzureConsumerRebalancerListener testObj =
         new AzureConsumerRebalancerListener(Optional.empty(), stringKafkaConsumer);
     String topic = "topic1";

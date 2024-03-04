@@ -22,7 +22,7 @@ public class AzureEventHubsConfig extends BaseConfig implements ConnectorPrefixe
   public static final String CONNECTION_GROUP = "Connection";
 
   private static final UnaryOperator<String> CONFIG_NAME_PREFIX_APPENDER = name ->
-      AzureEventHubsConfigConstants.CONNECTOR_WITH_CONSUMER_PREFIX + DOT + name;
+      AzureEventHubsConfigConstants.CONNECTOR_WITH_CONSUMER_PREFIX + name;
 
 
   @Getter
@@ -31,23 +31,24 @@ public class AzureEventHubsConfig extends BaseConfig implements ConnectorPrefixe
   static {
     ConfigDef kafkaConsumerConfigToExpose = getKafkaConsumerConfigToExpose();
     configDefinition = new ConfigDef(kafkaConsumerConfigToExpose)
+        .define(AzureEventHubsConfigConstants.CONNECTOR_NAME,
+            Type.STRING,
+            AzureEventHubsConfigConstants.CONNECTOR_NAME_DEFAULT,
+            Importance.HIGH,
+            AzureEventHubsConfigConstants.CONNECTOR_NAME_DOC,
+            CONNECTION_GROUP,
+            1,
+            ConfigDef.Width.LONG,
+            AzureEventHubsConfigConstants.CONNECTOR_NAME
+        )
         .define(AzureEventHubsConfigConstants.EVENTHUB_NAME,
             Type.STRING,
             Importance.HIGH,
             AzureEventHubsConfigConstants.EVENTHUB_NAME_DOC,
             CONNECTION_GROUP,
-            1,
+            2,
             ConfigDef.Width.LONG,
             AzureEventHubsConfigConstants.EVENTHUB_NAME
-        ).define(AzureEventHubsConfigConstants.POLL_QUEUE_SIZE,
-            Type.INT,
-            AzureEventHubsConfigConstants.POLL_QUEUE_SIZE_DEFAULT,
-            Importance.MEDIUM,
-            AzureEventHubsConfigConstants.POLL_QUEUE_SIZE_DOC,
-            CONNECTION_GROUP,
-            1,
-            ConfigDef.Width.LONG,
-            AzureEventHubsConfigConstants.POLL_QUEUE_SIZE
         ).define(AzureEventHubsConfigConstants.KCQL_CONFIG,
             Type.STRING,
             AzureEventHubsConfigConstants.KCQL_DEFAULT,

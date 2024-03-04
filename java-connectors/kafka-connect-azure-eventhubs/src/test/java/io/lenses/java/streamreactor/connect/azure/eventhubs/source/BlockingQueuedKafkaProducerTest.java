@@ -24,7 +24,7 @@ class BlockingQueuedKafkaProducerTest {
     Duration tenSeconds = Duration.of(10, ChronoUnit.SECONDS);
 
     //when
-    testObj.close(tenSeconds);
+    testObj.stop(tenSeconds);
 
     //then
     verify(consumer).close(eq(tenSeconds));

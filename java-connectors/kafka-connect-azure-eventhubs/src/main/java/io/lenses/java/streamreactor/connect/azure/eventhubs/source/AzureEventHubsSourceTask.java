@@ -4,7 +4,6 @@ import static java.util.Optional.ofNullable;
 
 import io.lenses.java.streamreactor.common.util.JarManifest;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig;
-import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -21,6 +20,7 @@ import org.apache.kafka.connect.source.SourceTask;
 public class AzureEventHubsSourceTask extends SourceTask {
 
   private static final Duration DEFAULT_CLOSE_TIMEOUT = Duration.of(30, ChronoUnit.SECONDS);
+  private static final int RECORDS_QUEUE_DEFAULT_SIZE = 10;
   private final JarManifest jarManifest;
   private EventHubsKafkaConsumerController eventHubsKafkaConsumerController;
 
@@ -41,11 +41,9 @@ public class AzureEventHubsSourceTask extends SourceTask {
 
   @Override
   public void start(Map<String, String> props) {
-    int pollQueueSize = Integer.parseInt(props.get(AzureEventHubsConfigConstants.POLL_QUEUE_SIZE));
     eventHubsKafkaConsumerController = new EventHubsKafkaConsumerController(
-        new AzureEventHubsConfig(props), new KafkaConsumerProvider(),
-        new ArrayBlockingQueue<>(pollQueueSize));
-    String topic = props.get(AzureEventHubsConfigConstants.EVENTHUB_NAME);
+        new AzureEventHubsConfig(props), new BlockingQueueProducerProvider(),
+        new ArrayBlockingQueue<>(RECORDS_QUEUE_DEFAULT_SIZE));
     ofNullable(this.context).flatMap(context -> ofNullable(context.offsetStorageReader()))
         .ifPresent(TopicPartitionOffsetProvider::initialize);
     initialize(eventHubsKafkaConsumerController);
