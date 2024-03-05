@@ -336,7 +336,7 @@ object Dependencies {
 
   lazy val influx = "com.influxdb" % "influxdb-client-java" % influxVersion
 
-  lazy val jmsApi         = "jakarta.jms"           % "jakarta.jms-api"   % jmsApiVersion
+  lazy val jmsApi         = "jakarta.jms"         % "jakarta.jms-api" % jmsApiVersion
   lazy val activeMq       = "org.apache.activemq" % "activemq-client" % activeMqVersion
   lazy val activeMqBroker = "org.apache.activemq" % "activemq-broker" % activeMqVersion
 
