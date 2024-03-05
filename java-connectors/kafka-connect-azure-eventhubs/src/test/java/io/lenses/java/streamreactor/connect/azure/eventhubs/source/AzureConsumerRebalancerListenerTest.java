@@ -55,7 +55,7 @@ class AzureConsumerRebalancerListenerTest {
     testObj.onPartitionsAssigned(Collections.singletonList(topicPartition1));
 
     //then
-    verify(topicPartition1, times(2)).topic();
+    verify(topicPartition1, times(1)).topic();
     verify(topicPartition1, times(1)).partition();
     verify(stringKafkaConsumer).seekToBeginning(anyList());
   }
@@ -81,7 +81,7 @@ class AzureConsumerRebalancerListenerTest {
     testObj.onPartitionsAssigned(Collections.singletonList(topicPartition1));
 
     //then
-    verify(topicPartition1, times(2)).topic();
+    verify(topicPartition1, times(1)).topic();
     verify(topicPartition1, times(1)).partition();
     verify(stringKafkaConsumer).seek(topicPartition1, specificOffset);
   }

@@ -2,8 +2,8 @@ package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
 import static io.lenses.java.streamreactor.connect.azure.eventhubs.mapping.SourceRecordMapper.mapSourceRecordIncludingHeaders;
 
-import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProviderSingleton.AzureOffsetMarker;
-import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProviderSingleton.AzureTopicPartitionKey;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProvider.AzureOffsetMarker;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProvider.AzureTopicPartitionKey;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;

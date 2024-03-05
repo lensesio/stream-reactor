@@ -70,6 +70,7 @@ public class BlockingQueuedKafkaProducer implements BlockingQueueProducer {
     @Override
     public void run() {
       running.set(true);
+      log.info("Subscribing to topic: {}", topic);
       consumer.subscribe(Collections.singletonList(topic),
           new AzureConsumerRebalancerListener(topicPartitionOffsetProvider, consumer));
       while (running.get()) {

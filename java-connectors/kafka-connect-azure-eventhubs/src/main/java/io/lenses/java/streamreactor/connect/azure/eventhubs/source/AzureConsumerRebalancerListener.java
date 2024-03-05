@@ -41,7 +41,6 @@ public class AzureConsumerRebalancerListener implements ConsumerRebalanceListene
       partitionOffset.ifPresentOrElse(
           offset -> kafkaConsumer.seek(partition, offset.getOffsetValue()),
           () -> kafkaConsumer.seekToBeginning(Collections.singletonList(partition)));
-      log.info("Subscribed to topic: {}", partition.topic());
     });
   }
 
