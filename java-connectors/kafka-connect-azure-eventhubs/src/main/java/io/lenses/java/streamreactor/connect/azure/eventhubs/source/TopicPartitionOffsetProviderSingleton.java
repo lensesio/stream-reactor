@@ -12,15 +12,42 @@ import org.apache.kafka.connect.storage.OffsetStorageReader;
  * offset were already committed inside Kafka Connect.
  */
 @Slf4j
-public final class TopicPartitionOffsetProvider {
+public final class TopicPartitionOffsetProviderSingleton {
 
   private static final String OFFSET_KEY = "OFFSET";
 
-  private final OffsetStorageReader offsetStorageReader;
+  private static OffsetStorageReader offsetStorageReader;
 
+  private static TopicPartitionOffsetProviderSingleton instance;
 
-  public TopicPartitionOffsetProvider(OffsetStorageReader offsetStorageReader) {
-    this.offsetStorageReader = offsetStorageReader;
+  /**
+   * This method is to be called once to initialize the singleton instance of
+   * TopicPartitionOffsetProvider.
+   *
+   * @param offsetStorageReader instance of OffsetStorageReader from context.
+   */
+  public static synchronized void initialize(OffsetStorageReader offsetStorageReader) {
+    if (instance == null) {
+      if (offsetStorageReader != null) {
+        TopicPartitionOffsetProviderSingleton.offsetStorageReader = offsetStorageReader;
+      }
+      TopicPartitionOffsetProviderSingleton.instance = new TopicPartitionOffsetProviderSingleton();
+    } else {
+      log.warn("Tried to initialize {} with null {}!",
+          TopicPartitionOffsetProviderSingleton.class.getSimpleName(),
+          OffsetStorageReader.class.getSimpleName());
+    }
+  }
+
+  private TopicPartitionOffsetProviderSingleton() {
+  }
+
+  /**
+   * This method is to return instance of class. Returns Optional with instance or empty if not
+   * initialized.
+   */
+  public static synchronized Optional<TopicPartitionOffsetProviderSingleton> getInstance() {
+    return Optional.ofNullable(instance);
   }
 
   /**

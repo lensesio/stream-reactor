@@ -8,8 +8,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProvider.AzureOffsetMarker;
-import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProvider.AzureTopicPartitionKey;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProviderSingleton.AzureOffsetMarker;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProviderSingleton.AzureTopicPartitionKey;
 import java.util.Iterator;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;

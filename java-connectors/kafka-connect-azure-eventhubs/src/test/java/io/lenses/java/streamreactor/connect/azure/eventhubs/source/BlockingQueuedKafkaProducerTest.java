@@ -15,7 +15,8 @@ class BlockingQueuedKafkaProducerTest {
   private static final String CLIENT_ID = "clientId";
   private static Consumer consumer = mock(Consumer.class);
 
-  BlockingQueuedKafkaProducer testObj = new BlockingQueuedKafkaProducer(mock(BlockingQueue.class),
+  BlockingQueuedKafkaProducer testObj = new BlockingQueuedKafkaProducer(
+      mock(TopicPartitionOffsetProvider.class), mock(BlockingQueue.class),
       consumer, CLIENT_ID, "topic");
 
   @Test

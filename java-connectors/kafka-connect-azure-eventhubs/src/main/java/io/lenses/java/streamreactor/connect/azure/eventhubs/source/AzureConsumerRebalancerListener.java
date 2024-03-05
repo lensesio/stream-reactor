@@ -17,18 +17,13 @@ import org.apache.kafka.common.TopicPartition;
 @Slf4j
 public class AzureConsumerRebalancerListener implements ConsumerRebalanceListener {
 
-  Optional<TopicPartitionOffsetProvider> topicPartitionOffsetProvider;
+  TopicPartitionOffsetProvider topicPartitionOffsetProvider;
   Consumer<?, ?> kafkaConsumer;
 
   public AzureConsumerRebalancerListener(
-      Optional<TopicPartitionOffsetProvider> topicPartitionOffsetProvider,
+      TopicPartitionOffsetProvider topicPartitionOffsetProvider,
       Consumer<?, ?> kafkaConsumer) {
     this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;
-    this.kafkaConsumer = kafkaConsumer;
-  }
-
-  public AzureConsumerRebalancerListener(Consumer<?, ?> kafkaConsumer) {
-    this.topicPartitionOffsetProvider = TopicPartitionOffsetProvider.getInstance();
     this.kafkaConsumer = kafkaConsumer;
   }
 
@@ -40,18 +35,12 @@ public class AzureConsumerRebalancerListener implements ConsumerRebalanceListene
   @Override
   public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
     partitions.forEach(partition -> {
-
-      if (topicPartitionOffsetProvider.isPresent()) {
-        TopicPartitionOffsetProvider offsetProvider = topicPartitionOffsetProvider.get();
-        AzureTopicPartitionKey partitionKey = new AzureTopicPartitionKey(
-            partition.topic(), partition.partition());
-        Optional<AzureOffsetMarker> partitionOffset = offsetProvider.getOffset(partitionKey);
-        partitionOffset.ifPresentOrElse(
-            offset -> kafkaConsumer.seek(partition, offset.getOffsetValue()),
-            () -> kafkaConsumer.seekToBeginning(Collections.singletonList(partition)));
-      } else {
-        kafkaConsumer.seekToBeginning(Collections.singletonList(partition));
-      }
+      AzureTopicPartitionKey partitionKey = new AzureTopicPartitionKey(
+          partition.topic(), partition.partition());
+      Optional<AzureOffsetMarker> partitionOffset = topicPartitionOffsetProvider.getOffset(partitionKey);
+      partitionOffset.ifPresentOrElse(
+          offset -> kafkaConsumer.seek(partition, offset.getOffsetValue()),
+          () -> kafkaConsumer.seekToBeginning(Collections.singletonList(partition)));
       log.info("Subscribed to topic: {}", partition.topic());
     });
   }

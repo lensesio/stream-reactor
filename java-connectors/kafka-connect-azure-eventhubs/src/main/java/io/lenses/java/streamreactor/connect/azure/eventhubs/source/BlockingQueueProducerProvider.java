@@ -19,7 +19,12 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 @Slf4j
 public class BlockingQueueProducerProvider implements ProducerProvider {
 
+  private final TopicPartitionOffsetProvider topicPartitionOffsetProvider;
   private static final boolean STRIP_PREFIX = true;
+
+  public BlockingQueueProducerProvider(TopicPartitionOffsetProvider topicPartitionOffsetProvider) {
+    this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;
+  }
 
   /**
    * Instantiates BlockingQueuedKafkaConsumer from given properties.
@@ -51,7 +56,7 @@ public class BlockingQueueProducerProvider implements ProducerProvider {
 
     KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(consumerProperties);
 
-    return new BlockingQueuedKafkaProducer(recordBlockingQueue, kafkaConsumer, clientId, topic);
+    return new BlockingQueuedKafkaProducer(topicPartitionOffsetProvider, recordBlockingQueue, kafkaConsumer, clientId, topic);
   }
 
 }

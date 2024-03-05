@@ -15,9 +15,9 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
  * it to output its records into a {@link BlockingQueue} shared with {@link EventHubsKafkaConsumerController}.
  */
 @Slf4j
-public class BlockingQueuedKafkaProducer implements BlockingQueueProducer{
-
+public class BlockingQueuedKafkaProducer implements BlockingQueueProducer {
   private static final Duration DEFAULT_POLL_DURATION =  Duration.of(1, ChronoUnit.SECONDS);
+  private final TopicPartitionOffsetProvider topicPartitionOffsetProvider;
   private final BlockingQueue<ConsumerRecords<String, String>> recordsQueue;
   private final Consumer<String, String> consumer;
   private final String clientId;
@@ -27,16 +27,19 @@ public class BlockingQueuedKafkaProducer implements BlockingQueueProducer{
 
   /**
    * Class is a proxy that allows access to some methods of Kafka Consumer. It's main purpose is to
-   * create a thread around the consumer and put consumer record into BlockingQueue. After that it starts
-   * consumption.
+   * create a thread around the consumer and put consumer record into BlockingQueue. After that it
+   * starts consumption.
    *
-   * @param recordsQueue BlockingQueue to put records into
-   * @param consumer     Kafka Consumer
-   * @param clientId     consumer client id
-   * @param topic        kafka topic to consume from
+   * @param topicPartitionOffsetProvider TopicPartitionOffsetProvider for subscription handler
+   * @param recordsQueue                 BlockingQueue to put records into
+   * @param consumer                     Kafka Consumer
+   * @param clientId                     consumer client id
+   * @param topic                        kafka topic to consume from
    */
-  public BlockingQueuedKafkaProducer(BlockingQueue<ConsumerRecords<String, String>> recordsQueue,
+  public BlockingQueuedKafkaProducer(TopicPartitionOffsetProvider topicPartitionOffsetProvider,
+      BlockingQueue<ConsumerRecords<String, String>> recordsQueue,
       Consumer<String, String> consumer, String clientId, String topic) {
+    this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;
     this.recordsQueue = recordsQueue;
     this.consumer = consumer;
     this.clientId = clientId;
@@ -45,9 +48,11 @@ public class BlockingQueuedKafkaProducer implements BlockingQueueProducer{
     start();
   }
 
+  /**
+   * Starts the production to the records queue.
+   */
   public void start() {
     if (!initialized.getAndSet(true)) {
-      consumer.subscribe(Collections.singletonList(topic), new AzureConsumerRebalancerListener(consumer));
       Thread pollingThread = new Thread(new EventhubsPollingRunnable());
 
       pollingThread.start();
@@ -65,6 +70,8 @@ public class BlockingQueuedKafkaProducer implements BlockingQueueProducer{
     @Override
     public void run() {
       running.set(true);
+      consumer.subscribe(Collections.singletonList(topic),
+          new AzureConsumerRebalancerListener(topicPartitionOffsetProvider, consumer));
       while (running.get()) {
         ConsumerRecords<String, String> consumerRecords = consumer.poll(DEFAULT_POLL_DURATION);
         if (consumerRecords != null && !consumerRecords.isEmpty()) {

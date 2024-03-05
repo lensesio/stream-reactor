@@ -2,9 +2,8 @@ package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
 import static io.lenses.java.streamreactor.connect.azure.eventhubs.mapping.SourceRecordMapper.mapSourceRecordIncludingHeaders;
 
-import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig;
-import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProvider.AzureOffsetMarker;
-import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProvider.AzureTopicPartitionKey;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProviderSingleton.AzureOffsetMarker;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProviderSingleton.AzureTopicPartitionKey;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -26,21 +25,18 @@ import org.apache.kafka.connect.source.SourceRecord;
 public class EventHubsKafkaConsumerController {
 
   private final BlockingQueue<ConsumerRecords<String, String>> recordsQueue;
-  private final BlockingQueuedKafkaProducer queuedKafkaConsumer;
+  private BlockingQueuedKafkaProducer queuedKafkaProducer;
 
   /**
    * Constructs EventHubsKafkaConsumerController.
    *
-   * @param azureEventHubsConfig config for SourceTask
-   * @param blockingQueueProducerProvider provider of KafkaConsumers
+   * @param queuedKafkaProducer producer to the recordsQueue.
    * @param recordsQueue queue that contains EventHub records.
    */
-  public EventHubsKafkaConsumerController(AzureEventHubsConfig azureEventHubsConfig,
-      BlockingQueueProducerProvider blockingQueueProducerProvider,
+  public EventHubsKafkaConsumerController(BlockingQueuedKafkaProducer queuedKafkaProducer,
       BlockingQueue<ConsumerRecords<String, String>> recordsQueue) {
     this.recordsQueue = recordsQueue;
-
-    queuedKafkaConsumer = blockingQueueProducerProvider.createProducer(azureEventHubsConfig, recordsQueue);
+    this.queuedKafkaProducer = queuedKafkaProducer;
   }
 
   /**
@@ -54,7 +50,7 @@ public class EventHubsKafkaConsumerController {
   public List<SourceRecord> poll(Duration duration) throws InterruptedException {
     List<SourceRecord> sourceRecords = null;
 
-    queuedKafkaConsumer.start();
+    queuedKafkaProducer.start();
 
     ConsumerRecords<String, String> consumerRecords = null;
     try {
@@ -83,6 +79,6 @@ public class EventHubsKafkaConsumerController {
   }
 
   public void close(Duration timeoutDuration) {
-    queuedKafkaConsumer.stop(timeoutDuration);
+    queuedKafkaProducer.stop(timeoutDuration);
   }
 }

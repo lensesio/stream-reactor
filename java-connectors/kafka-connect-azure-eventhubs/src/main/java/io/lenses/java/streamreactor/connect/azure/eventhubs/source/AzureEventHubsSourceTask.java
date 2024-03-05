@@ -10,8 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
+import org.apache.kafka.connect.storage.OffsetStorageReader;
 
 /**
  * Implementation of {@link SourceTask} for Microsoft Azure EventHubs.
@@ -23,6 +25,7 @@ public class AzureEventHubsSourceTask extends SourceTask {
   private static final int RECORDS_QUEUE_DEFAULT_SIZE = 10;
   private final JarManifest jarManifest;
   private EventHubsKafkaConsumerController eventHubsKafkaConsumerController;
+  private BlockingQueueProducerProvider blockingQueueProducerProvider;
 
   public AzureEventHubsSourceTask() {
     jarManifest = new JarManifest(getClass().getProtectionDomain().getCodeSource().getLocation());
@@ -32,21 +35,25 @@ public class AzureEventHubsSourceTask extends SourceTask {
     this.jarManifest = jarManifest;
   }
 
-
   @Override
   public String version() {
     return jarManifest.getVersion();
   }
 
-
   @Override
   public void start(Map<String, String> props) {
-    eventHubsKafkaConsumerController = new EventHubsKafkaConsumerController(
-        new AzureEventHubsConfig(props), new BlockingQueueProducerProvider(),
-        new ArrayBlockingQueue<>(RECORDS_QUEUE_DEFAULT_SIZE));
-    ofNullable(this.context).flatMap(context -> ofNullable(context.offsetStorageReader()))
-        .ifPresent(TopicPartitionOffsetProvider::initialize);
-    initialize(eventHubsKafkaConsumerController);
+    OffsetStorageReader offsetStorageReader = ofNullable(this.context).flatMap(
+        context -> ofNullable(context.offsetStorageReader())).orElseThrow();
+    TopicPartitionOffsetProvider topicPartitionOffsetProvider = new TopicPartitionOffsetProvider(offsetStorageReader);
+
+    ArrayBlockingQueue<ConsumerRecords<String, String>> recordsQueue = new ArrayBlockingQueue<>(
+        RECORDS_QUEUE_DEFAULT_SIZE);
+    blockingQueueProducerProvider = new BlockingQueueProducerProvider(topicPartitionOffsetProvider);
+    BlockingQueuedKafkaProducer producer = blockingQueueProducerProvider.createProducer(
+        new AzureEventHubsConfig(props), recordsQueue);
+    EventHubsKafkaConsumerController kafkaConsumerController = new EventHubsKafkaConsumerController(
+        producer, recordsQueue);
+    initialize(kafkaConsumerController);
   }
 
   /**

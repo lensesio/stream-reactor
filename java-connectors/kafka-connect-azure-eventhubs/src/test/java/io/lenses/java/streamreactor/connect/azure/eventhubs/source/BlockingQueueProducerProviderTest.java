@@ -43,7 +43,9 @@ class BlockingQueueProducerProviderTest {
   void whenConstructorInvokedWithParameters_ThenMockKafkaConsumerShouldBeCreatedAndLogged(){
     //given
     AzureEventHubsConfig azureConfigMock = mock(AzureEventHubsConfig.class);
-    BlockingQueueProducerProvider testObj = new BlockingQueueProducerProvider();
+    TopicPartitionOffsetProvider mockedOffsetProvider = mock(TopicPartitionOffsetProvider.class);
+    BlockingQueueProducerProvider testObj = new BlockingQueueProducerProvider(
+        mockedOffsetProvider);
 
     //when
     BlockingQueuedKafkaProducer consumer;

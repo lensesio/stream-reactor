@@ -8,8 +8,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProvider.AzureOffsetMarker;
-import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProvider.AzureTopicPartitionKey;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProviderSingleton.AzureOffsetMarker;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProviderSingleton.AzureTopicPartitionKey;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,11 +18,11 @@ import org.apache.kafka.connect.storage.OffsetStorageReader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class TopicPartitionOffsetProviderTest {
+class TopicPartitionOffsetProviderSingletonTest {
 
   @BeforeEach
   public void resetSingletonInstance() throws SecurityException, NoSuchFieldException, IllegalArgumentException, IllegalAccessException {
-    Field instance = TopicPartitionOffsetProvider.class.getDeclaredField("instance");
+    Field instance = TopicPartitionOffsetProviderSingleton.class.getDeclaredField("instance");
     instance.setAccessible(true);
     instance.set(null, null);
   }
@@ -32,7 +32,7 @@ class TopicPartitionOffsetProviderTest {
     //given
 
     //when
-    Optional<TopicPartitionOffsetProvider> instance = TopicPartitionOffsetProvider.getInstance();
+    Optional<TopicPartitionOffsetProviderSingleton> instance = TopicPartitionOffsetProviderSingleton.getInstance();
 
     //then
     assertTrue(instance.isEmpty());
@@ -44,8 +44,8 @@ class TopicPartitionOffsetProviderTest {
     OffsetStorageReader offsetStorageReader = mock(OffsetStorageReader.class);
 
     //when
-    TopicPartitionOffsetProvider.initialize(offsetStorageReader);
-    Optional<TopicPartitionOffsetProvider> instance = TopicPartitionOffsetProvider.getInstance();
+    TopicPartitionOffsetProviderSingleton.initialize(offsetStorageReader);
+    Optional<TopicPartitionOffsetProviderSingleton> instance = TopicPartitionOffsetProviderSingleton.getInstance();
 
     //then
     assertFalse(instance.isEmpty());
@@ -55,12 +55,12 @@ class TopicPartitionOffsetProviderTest {
   void getOffsetShouldCallOffsetStorageReader() {
     //given
     OffsetStorageReader offsetStorageReader = mock(OffsetStorageReader.class);
-    TopicPartitionOffsetProvider.initialize(offsetStorageReader);
+    TopicPartitionOffsetProviderSingleton.initialize(offsetStorageReader);
     String topic = "some_topic";
     Integer partition = 1;
 
     //when
-    Optional<TopicPartitionOffsetProvider> instance = TopicPartitionOffsetProvider.getInstance();
+    Optional<TopicPartitionOffsetProviderSingleton> instance = TopicPartitionOffsetProviderSingleton.getInstance();
     assertFalse(instance.isEmpty());
     AzureTopicPartitionKey azureTopicPartitionKey = new AzureTopicPartitionKey(topic, partition);
     instance.get().getOffset(azureTopicPartitionKey);
@@ -74,12 +74,12 @@ class TopicPartitionOffsetProviderTest {
     //given
     OffsetStorageReader offsetStorageReader = mock(OffsetStorageReader.class);
     when(offsetStorageReader.offset(any(Map.class))).thenReturn(new HashMap());
-    TopicPartitionOffsetProvider.initialize(offsetStorageReader);
+    TopicPartitionOffsetProviderSingleton.initialize(offsetStorageReader);
     String topic = "some_topic";
     Integer partition = 1;
 
     //when
-    Optional<TopicPartitionOffsetProvider> instance = TopicPartitionOffsetProvider.getInstance();
+    Optional<TopicPartitionOffsetProviderSingleton> instance = TopicPartitionOffsetProviderSingleton.getInstance();
     assertFalse(instance.isEmpty());
     AzureTopicPartitionKey azureTopicPartitionKey = new AzureTopicPartitionKey(topic, partition);
     Optional<AzureOffsetMarker> offset = instance.get().getOffset(azureTopicPartitionKey);
@@ -98,12 +98,12 @@ class TopicPartitionOffsetProviderTest {
     HashMap<String, Long> offsets = new HashMap<>();
     offsets.put(OFFSET_KEY, offsetOne);
     when(offsetStorageReader.offset(any(Map.class))).thenReturn(offsets);
-    TopicPartitionOffsetProvider.initialize(offsetStorageReader);
+    TopicPartitionOffsetProviderSingleton.initialize(offsetStorageReader);
     String topic = "some_topic";
     Integer partition = 1;
 
     //when
-    Optional<TopicPartitionOffsetProvider> instance = TopicPartitionOffsetProvider.getInstance();
+    Optional<TopicPartitionOffsetProviderSingleton> instance = TopicPartitionOffsetProviderSingleton.getInstance();
     assertFalse(instance.isEmpty());
     AzureTopicPartitionKey azureTopicPartitionKey = new AzureTopicPartitionKey(topic, partition);
     Optional<AzureOffsetMarker> offset = instance.get().getOffset(azureTopicPartitionKey);
