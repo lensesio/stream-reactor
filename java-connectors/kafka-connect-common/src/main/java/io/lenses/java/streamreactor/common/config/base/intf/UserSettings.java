@@ -5,6 +5,9 @@ import static io.lenses.java.streamreactor.common.config.base.constants.TraitCon
 
 import org.apache.kafka.common.config.types.Password;
 
+/**
+ * Represents User Settings
+ */
 public interface UserSettings extends BaseSettings {
   default Password getSecret() {
     return getPassword(connectorPrefix() + "." + PASSWORD_SUFFIX);

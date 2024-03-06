@@ -199,6 +199,7 @@ object Settings extends Dependencies {
             ShadeRule.rename("io.confluent.**" -> "lshaded.confluent.@1").inAll,
             ShadeRule.rename("com.fasterxml.**" -> "lshaded.fasterxml.@1").inAll,
             ShadeRule.rename("org.apache.hadoop" -> "lshaded.apache.hadoop").inAll,
+            ShadeRule.rename("org.antlr.**" -> "lshaded.antlr.@1").inAll,
           ),
           dependencyOverrides ++= Seq(
             googleProtobuf,
@@ -300,6 +301,7 @@ object Settings extends Dependencies {
         .settings(
           settings ++ Seq(
             Antlr4 / antlr4PackageName := Some("io.lenses.kcql.antlr4"),
+            Antlr4 / antlr4Version := Dependencies.Versions.antlr4Version,
           ),
         )
   }
