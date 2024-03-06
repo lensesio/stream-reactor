@@ -42,7 +42,7 @@ lazy val root = (project in file("."))
   )
   .disablePlugins(AssemblyPlugin, HeaderPlugin)
 
-lazy val `query-language` = (project in file("kafka-connect-query-language"))
+lazy val `query-language` = (project in file("java-connectors/kafka-connect-query-language"))
   .settings(
     settings ++
       Seq(
