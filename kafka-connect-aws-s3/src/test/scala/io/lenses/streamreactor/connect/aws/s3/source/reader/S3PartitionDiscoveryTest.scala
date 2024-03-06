@@ -238,15 +238,17 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
         "prefix1/subprefix_untitled/3.txt",
       ),
     )
-    val directoryLister = new AwsS3DirectoryLister(connectorTaskId, s3Client)
-    val options         = PartitionSearcherOptions(1, true, 100.millis, ExcludeIndexes)
+    val options =
+      PartitionSearcherOptions(1, continuous = true, interval = 100.millis, wildcardExcludes = ExcludeIndexes)
     List(0 -> "prefix1/subprefix_abc/", 1 -> "prefix1/subprefix_untitled/", 2 -> "prefix1/subprefix_xyz01/").foreach {
       case (i, partition) =>
         val taskId = ConnectorTaskId("sinkName", 3, i)
         val io = for {
-          cancelledRef <- Ref[IO].of(false)
-          readerRef    <- Ref[IO].of(Option.empty[ResultReader])
-          state        <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
+          cancelledRef   <- Ref[IO].of(false)
+          readerRef      <- Ref[IO].of(Option.empty[ResultReader])
+          state          <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
+          directoryLister = new AwsS3DirectoryLister(taskId, s3Client)
+
           fiber <- PartitionDiscovery.run(
             taskId,
             options,
