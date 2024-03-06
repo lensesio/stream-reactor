@@ -212,7 +212,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: ${{fromJSON(needs.initiate.outputs.dep-check-matrix)}}
+        module: ${{fromJSON(needs.initiate.outputs.dep_check_matrix)}}
     steps:
       - name: Restore assembly
         uses: actions/cache/restore@v3
