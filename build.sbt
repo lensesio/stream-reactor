@@ -440,7 +440,7 @@ val generateDepCheckModulesList = taskKey[Seq[File]]("generateDepCheckModulesLis
 Compile / generateModulesList :=
   new FileWriter(subProjects).generate((Compile / resourceManaged).value / "modules.txt")
 Compile / generateDepCheckModulesList :=
-  new FileWriter(subProjects.tail).generate((Compile / resourceManaged).value / "dep-check-modules.txt")
+  new FileWriter(subProjects.tail).generate((Compile / resourceManaged).value / "depcheck-modules.txt")
 Compile / generateItModulesList :=
   new FileWriter(
     subProjects.filter(p => p.containsDir("src/it")),

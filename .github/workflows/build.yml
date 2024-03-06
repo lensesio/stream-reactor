@@ -39,7 +39,7 @@ jobs:
           echo "::set-output name=matrix::$(cat ./target/scala-2.13/resource_managed/main/modules.txt)"
           echo "::set-output name=it-matrix::$(cat ./target/scala-2.13/resource_managed/main/it-modules.txt)"
           echo "::set-output name=fun-matrix::$(cat ./target/scala-2.13/resource_managed/main/fun-modules.txt)"
-          echo "::set-output name=dep-check-matrix::$(cat ./target/scala-2.13/resource_managed/main/dep-check-modules.txt)"
+          echo "::set-output name=dep-check-matrix::$(cat ./target/scala-2.13/resource_managed/main/depcheck-modules.txt)"
       - name: Cleanup before cache
         shell: bash
         run: |
