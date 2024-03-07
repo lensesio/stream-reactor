@@ -70,7 +70,6 @@ public class Kcql {
     private long withFlushSize;
     private long withFlushCount;
 
-    private boolean withAck = false;
     private boolean withEncodeBase64 = false;
 
     private final Map<String, String> properties = new HashMap<>();
@@ -89,14 +88,6 @@ public class Kcql {
 
     public void setWithEncodeBase64(boolean encode) {
         this.withEncodeBase64 = encode;
-    }
-
-    public boolean getWithAck() {
-        return this.withAck;
-    }
-
-    public void setWithAck(boolean ack) {
-        this.withAck = ack;
     }
 
     public String getWithPartitioner() {
@@ -784,12 +775,6 @@ public class Kcql {
                     throw new IllegalArgumentException("Invalid value specified for WITH_FLUSH_COUNT. Expecting a LONG number greater than 0.");
                 }
             }
-
-            @Override
-            public void exitWith_ack_clause(ConnectorParser.With_ack_clauseContext ctx) {
-                kcql.setWithAck(true);
-            }
-
 
             @Override
             public void exitWith_encode_base64(ConnectorParser.With_encode_base64Context ctx) {

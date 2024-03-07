@@ -730,11 +730,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
 
   }
 
-  test("handleAck") {
-    val syntax = "insert into mytopic select a, b, c from topic WITH_ACK"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithAck should be(true)
-  }
   test("handleEncode") {
     val syntax = "insert into mytopic select a, b, c from topic WITH_ENCODE_BASE64"
     val kcql   = Kcql.parse(syntax)

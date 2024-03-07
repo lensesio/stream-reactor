@@ -165,10 +165,6 @@ TTL
    : 'TTL'|'ttl'
    ;
 
- WITH_ACK
-    : 'with_ack' | 'WITH_ACK'
-    ;
-
  WITH_ENCODE_BASE64
     : 'with_encode_base64' | 'WITH_ENCODE_BASE64'
     ;
