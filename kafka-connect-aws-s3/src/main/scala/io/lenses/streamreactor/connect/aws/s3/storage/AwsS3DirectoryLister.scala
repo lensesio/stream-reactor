@@ -38,6 +38,7 @@ class AwsS3DirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client)
     */
   override def findDirectories(
     bucketAndPrefix:  CloudLocation,
+    filesLimit:       Int,
     recurseLevels:    Int,
     exclude:          Set[String],
     wildcardExcludes: Set[String],
@@ -45,7 +46,7 @@ class AwsS3DirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client)
     for {
       iterator   <- listObjects(bucketAndPrefix)
       prefixInfo <- extractPrefixesFromResponse(iterator, exclude, wildcardExcludes, recurseLevels)
-      flattened  <- flattenPrefixes(bucketAndPrefix, prefixInfo, recurseLevels, exclude, wildcardExcludes)
+      flattened  <- flattenPrefixes(bucketAndPrefix, filesLimit, prefixInfo, recurseLevels, exclude, wildcardExcludes)
     } yield flattened
 
   private def listObjects(bucketAndPrefix: CloudLocation): IO[Iterator[ListObjectsV2Response]] = {
@@ -71,6 +72,7 @@ class AwsS3DirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client)
     */
   private def flattenPrefixes(
     bucketAndPrefix:  CloudLocation,
+    filesLimit:       Int,
     prefixes:         Set[String],
     recurseLevels:    Int,
     exclude:          Set[String],
@@ -80,7 +82,7 @@ class AwsS3DirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client)
     else {
       prefixes.map(bucketAndPrefix.fromRoot).toList
         .traverse((bucketAndPrefix: CloudLocation) =>
-          findDirectories(bucketAndPrefix, recurseLevels - 1, exclude, wildcardExcludes),
+          findDirectories(bucketAndPrefix, filesLimit, recurseLevels - 1, exclude, wildcardExcludes),
         )
         .map { result =>
           result.foldLeft(Set.empty[String])(_ ++ _)

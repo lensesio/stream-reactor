@@ -34,6 +34,7 @@ class GCPStorageDirectoryLister(connectorTaskId: ConnectorTaskId, storage: Stora
     */
   override def findDirectories(
     bucketAndPrefix:  CloudLocation,
+    filesLimit:       Int,
     recurseLevels:    Int,
     exclude:          Set[String],
     wildcardExcludes: Set[String],
@@ -43,7 +44,7 @@ class GCPStorageDirectoryLister(connectorTaskId: ConnectorTaskId, storage: Stora
 
       val blobListOptions = BlobListOption.dedupe(
         BlobListOption.delimiter("/"),
-        BlobListOption.pageSize(1000),
+        BlobListOption.pageSize(filesLimit.toLong),
         BlobListOption.prefix(prefix),
         BlobListOption.currentDirectory(),
       )

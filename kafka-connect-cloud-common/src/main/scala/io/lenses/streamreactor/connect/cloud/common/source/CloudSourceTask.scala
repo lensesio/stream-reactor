@@ -165,12 +165,20 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
 
   def createDirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: CT): DirectoryLister
 
+  def getFilesLimit(config: C): CloudLocation => Either[Throwable, Int] = {
+    cloudLocation =>
+      config.bucketOptions.find(e => e.sourceBucketAndPrefix == cloudLocation).map(_.filesLimit).toRight(
+        new IllegalStateException("Cannot find bucket in config to retrieve files limit"),
+      )
+  }
+
   def createPartitionSearcher(
     directoryLister: DirectoryLister,
     connectorTaskId: ConnectorTaskId,
     config:          C,
   ): PartitionSearcher =
     new CloudPartitionSearcher(
+      getFilesLimit(config),
       directoryLister,
       config.bucketOptions.map(_.sourceBucketAndPrefix),
       config.partitionSearcher,

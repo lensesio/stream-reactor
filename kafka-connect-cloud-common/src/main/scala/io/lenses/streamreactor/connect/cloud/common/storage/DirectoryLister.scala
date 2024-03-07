@@ -25,6 +25,7 @@ trait DirectoryLister {
     */
   def findDirectories(
     bucketAndPrefix:  CloudLocation,
+    filesLimit:       Int,
     recurseLevels:    Int,
     exclude:          Set[String],
     wildcardExcludes: Set[String],

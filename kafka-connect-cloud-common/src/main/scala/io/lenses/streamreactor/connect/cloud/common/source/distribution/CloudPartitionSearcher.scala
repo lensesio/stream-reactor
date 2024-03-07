@@ -32,6 +32,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryLister
   * @param connectorTaskId The identifier for the connector task.
   */
 class CloudPartitionSearcher(
+  fFilesLimit:     CloudLocation => Either[Throwable, Int],
   directoryLister: DirectoryLister,
   roots:           Seq[CloudLocation],
   settings:        PartitionSearcherOptions,
@@ -67,7 +68,9 @@ class CloudPartitionSearcher(
     originalPartitions: Set[String],
   ): IO[PartitionSearcherResponse] =
     for {
+      filesLimit <- IO.fromEither(fFilesLimit(root))
       foundPartitions <- directoryLister.findDirectories(root,
+                                                         filesLimit,
                                                          settings.recurseLevels,
                                                          originalPartitions,
                                                          settings.wildcardExcludes,

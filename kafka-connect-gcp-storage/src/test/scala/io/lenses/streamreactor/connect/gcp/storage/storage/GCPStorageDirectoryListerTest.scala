@@ -47,6 +47,7 @@ class GCPStorageDirectoryListerTest
 
   private val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
 
+  private val filesLimit = 4
   private val bucketName = "bucket"
 
   "lister" should "list all directories" in {
@@ -238,6 +239,7 @@ class GCPStorageDirectoryListerTest
   ) =
     new GCPStorageDirectoryLister(connectorTaskId, client).findDirectories(
       location,
+      filesLimit,
       recursiveLevel,
       exclude,
       wildcardExcludes,
