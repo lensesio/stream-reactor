@@ -31,6 +31,7 @@ class AwsS3DirectoryListerTest extends AsyncFlatSpecLike with AsyncIOSpec with M
   private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
 
   private val connectorTaskId: ConnectorTaskId = ConnectorTaskId("sinkName", 1, 1)
+  private val filesLimit = 1000
 
   private def check(
     location:         CloudLocation,
@@ -43,6 +44,7 @@ class AwsS3DirectoryListerTest extends AsyncFlatSpecLike with AsyncIOSpec with M
   ): IO[Assertion] =
     new AwsS3DirectoryLister(connectorTaskId, client).findDirectories(
       location,
+      filesLimit,
       recursiveLevel,
       exclude,
       wildcardExcludes,
@@ -88,6 +90,7 @@ class AwsS3DirectoryListerTest extends AsyncFlatSpecLike with AsyncIOSpec with M
 
     new AwsS3DirectoryLister(connectorTaskId, client).findDirectories(
       CloudLocation("bucket", none),
+      filesLimit,
       1,
       Set.empty,
       Set.empty,

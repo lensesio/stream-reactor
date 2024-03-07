@@ -20,6 +20,8 @@ class ListDirectoryTest
     with AsyncIOAssertions
     with LazyLogging {
 
+  private val filesLimit = 1000
+
   implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
 
   override def cleanUp(): Unit = ()
@@ -46,6 +48,7 @@ class ListDirectoryTest
 
     new AwsS3DirectoryLister(connectorTaskId, client).findDirectories(
       topicRoot,
+      filesLimit,
       0,
       Set.empty,
       Set.empty,
@@ -65,7 +68,12 @@ class ListDirectoryTest
 
     val bucketRoot = CloudLocation(BucketName)
 
-    new AwsS3DirectoryLister(taskId, client).findDirectories(bucketRoot, 2, Set.empty, Set.empty).asserting {
+    new AwsS3DirectoryLister(taskId, client).findDirectories(bucketRoot,
+                                                             filesLimit,
+                                                             2,
+                                                             Set.empty,
+                                                             Set.empty,
+    ).asserting {
       dirs =>
         val partitionResults = Set.empty
         dirs should be(partitionResults)
@@ -80,7 +88,12 @@ class ListDirectoryTest
 
     val bucketRoot = CloudLocation(BucketName)
 
-    new AwsS3DirectoryLister(taskId, client).findDirectories(bucketRoot, 3, Set.empty, Set.empty).asserting {
+    new AwsS3DirectoryLister(taskId, client).findDirectories(bucketRoot,
+                                                             filesLimit,
+                                                             3,
+                                                             Set.empty,
+                                                             Set.empty,
+    ).asserting {
       dirs =>
         val partitionResults = Set.empty
         dirs should be(partitionResults)
@@ -95,7 +108,12 @@ class ListDirectoryTest
 
     val bucketRoot = CloudLocation(BucketName)
 
-    new AwsS3DirectoryLister(taskId, client).findDirectories(bucketRoot, 1, Set.empty, Set.empty).asserting {
+    new AwsS3DirectoryLister(taskId, client).findDirectories(bucketRoot,
+                                                             filesLimit,
+                                                             1,
+                                                             Set.empty,
+                                                             Set.empty,
+    ).asserting {
       dirs =>
         val allValues = (1 to 10).flatMap(x => List(s"topic-1/$x/", s"topic-2/$x/"))
 

@@ -44,12 +44,12 @@ class AwsS3DirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client)
     wildcardExcludes: Set[String],
   ): IO[Set[String]] =
     for {
-      iterator   <- listObjects(bucketAndPrefix)
+      iterator   <- listObjects(filesLimit, bucketAndPrefix)
       prefixInfo <- extractPrefixesFromResponse(iterator, exclude, wildcardExcludes, recurseLevels)
       flattened  <- flattenPrefixes(bucketAndPrefix, filesLimit, prefixInfo, recurseLevels, exclude, wildcardExcludes)
     } yield flattened
 
-  private def listObjects(bucketAndPrefix: CloudLocation): IO[Iterator[ListObjectsV2Response]] = {
+  private def listObjects(filesLimit: Int, bucketAndPrefix: CloudLocation): IO[Iterator[ListObjectsV2Response]] = {
 
     def createListObjectsRequest(
       bucketAndPrefix: CloudLocation,
@@ -57,7 +57,7 @@ class AwsS3DirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client)
 
       val builder = ListObjectsV2Request
         .builder()
-        .maxKeys(1000)
+        .maxKeys(filesLimit)
         .bucket(bucketAndPrefix.bucket)
         .delimiter("/")
       bucketAndPrefix.prefix.foreach(builder.prefix)

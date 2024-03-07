@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.source.reader
 import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.effect.unsafe.implicits.global
+import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
@@ -44,6 +45,9 @@ import scala.concurrent.duration.DurationInt
 class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoSugar {
   private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   private val connectorTaskId:                 ConnectorTaskId        = ConnectorTaskId("sinkName", 1, 1)
+
+  private val fFilesLimit: CloudLocation => Either[Throwable, Int] = _ => 1000.asRight
+
   "PartitionDiscovery" should "discover all partitions" in {
     val fileQueueProcessor: SourceFileQueue = mock[SourceFileQueue]
     val limit = 10
@@ -65,6 +69,7 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
         connectorTaskId,
         options,
         new CloudPartitionSearcher(
+          fFilesLimit,
           directoryLister,
           List(
             CloudLocation("bucket", None),
@@ -132,6 +137,7 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
         connectorTaskId,
         options,
         new CloudPartitionSearcher(
+          fFilesLimit,
           directoryLister,
           List(
             CloudLocation("bucket", None),
@@ -191,6 +197,7 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
         connectorTaskId,
         options,
         new CloudPartitionSearcher(
+          fFilesLimit,
           directoryLister,
           List(
             CloudLocation("bucket", "prefix1/".some),
@@ -253,6 +260,7 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
             taskId,
             options,
             new CloudPartitionSearcher(
+              fFilesLimit,
               directoryLister,
               List(
                 CloudLocation("bucket", "prefix1/".some),

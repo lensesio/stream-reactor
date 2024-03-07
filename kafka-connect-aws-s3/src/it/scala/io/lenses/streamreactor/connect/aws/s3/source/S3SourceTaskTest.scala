@@ -56,6 +56,7 @@ class S3SourceTaskTest
   private var bucketSetupOpt:          Option[BucketSetup]    = None
   def bucketSetup:                     BucketSetup            = bucketSetupOpt.getOrElse(throw new IllegalStateException("Not initialised"))
   override def cleanUp():              Unit                   = ()
+  private val filesLimit = 1000
 
   def DefaultProps: Map[String, String] = defaultProps ++
     Seq(
@@ -80,7 +81,12 @@ class S3SourceTaskTest
   "task" should "retrieve subdirectories correctly" in {
     val root = CloudLocation(BucketName, s"${bucketSetup.PrefixName}/avro/myTopic/".some)
     val dirs =
-      new AwsS3DirectoryLister(ConnectorTaskId("name", 1, 1), client).findDirectories(root, 0, Set.empty, Set.empty)
+      new AwsS3DirectoryLister(ConnectorTaskId("name", 1, 1), client).findDirectories(root,
+                                                                                      filesLimit,
+                                                                                      0,
+                                                                                      Set.empty,
+                                                                                      Set.empty,
+      )
     dirs.unsafeRunSync() should be(Set("streamReactorBackups/avro/myTopic/0/"))
   }
 
