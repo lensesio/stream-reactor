@@ -85,10 +85,6 @@ PK
    : 'pk' | 'PK'
    ;
 
-EVERY
-    : 'every'|'EVERY'
-    ;
-
 WITHFORMAT
     : 'WITHFORMAT'|'withformat'
     ;
@@ -196,7 +192,6 @@ LEFT_PARAN
 RIGHT_PARAN
     : ')'
     ;
-
 
 FIELD
    : ( 'a' .. 'z' | 'A' .. 'Z' | '@' |'_' | '0' .. '9' )+
