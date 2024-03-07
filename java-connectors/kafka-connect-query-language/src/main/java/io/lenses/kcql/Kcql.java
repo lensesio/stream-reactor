@@ -29,11 +29,11 @@ import java.util.concurrent.TimeUnit;
  */
 public class Kcql {
 
-    public final static String TIMESTAMP = "sys_time()";
+    public static final String TIMESTAMP = "sys_time()";
+    private static final String MSG_ILLEGAL_FIELD_ALIAS = "Illegal fieldAlias.";
     private String query;
     private boolean autoCreate;
     private boolean autoEvolve;
-    private boolean enableCapitalize;
     private WriteModeEnum writeMode;
     private String source;
     private String target;
@@ -48,18 +48,11 @@ public class Kcql {
     private final List<String> partitionBy = new ArrayList<>();
     private int limit = 0;
     private int batchSize;
-    private Bucketing bucketing;
     private String timestamp;
     private String storedAs;
     private final Map<String, String> storedAsParameters = new HashMap<>();
-    private String consumerGroup;
-    private List<PartitionOffset> partitions = null;
-    private Integer sampleCount;
-    private Integer sampleRate;
     private FormatType formatType = null;
-    private boolean initialize;
     private boolean unwrapping = false;
-    private Integer projectTo;
     private List<Tag> tags;
     private boolean retainStructure = false;
     private String withConverter;
@@ -71,22 +64,12 @@ public class Kcql {
     private String keyDelimiter = ".";
     private TimeUnit timestampUnit = TimeUnit.MILLISECONDS;
     private String pipeline;
-    private CompressionType compression;
     private String subscription;
     private String partitioner;
     private String withRegex;
     private long withFlushInterval;
     private long withFlushSize;
     private long withFlushCount;
-    private SchemaEvolution withSchemaEvolution = SchemaEvolution.MATCH;
-    private String withTableLocation;
-    private boolean withOverwrite;
-    private PartitioningStrategy withPartitioningStrategy;
-    private int delay;
-    private String withSession;
-    private boolean withAck = false;
-    private boolean withEncodeBase64 = false;
-    private long withLockTime = -1;
 
     private final Map<String, String> properties = new HashMap<>();
 
@@ -96,26 +79,6 @@ public class Kcql {
 
     public void setQuery(String query) {
         this.query = query;
-    }
-
-    public boolean getWithEncodeBase64() {
-        return this.withEncodeBase64;
-    }
-
-    public void setWithEncodeBase64(boolean encode) {
-        this.withEncodeBase64 = encode;
-    }
-
-    public boolean getWithAck() {
-        return this.withAck;
-    }
-
-    public void setWithAck(boolean ack) {
-        this.withAck = ack;
-    }
-
-    public String getWithSession() {
-        return this.withSession;
     }
 
     public String getWithPartitioner() {
@@ -134,22 +97,6 @@ public class Kcql {
         this.subscription = name;
     }
 
-    public int getWithDelay() {
-        return this.delay;
-    }
-
-    public void setWithDelay(Integer delay) {
-        this.delay = delay;
-    }
-
-    public void setWithCompression(CompressionType compression) {
-        this.compression = compression;
-    }
-
-    public CompressionType getWithCompression() {
-        return this.compression;
-    }
-
     public void setTTL(long ttl) {
         this.ttl = ttl;
     }
@@ -158,17 +105,9 @@ public class Kcql {
         return this.ttl;
     }
 
-    public long getWithLockTime() {
-        return this.withLockTime;
-    }
-
-    public void setWithLockTime(long lock) {
-        this.withLockTime = lock;
-    }
-
     private void addField(final Field field) {
         if (field == null) {
-            throw new IllegalArgumentException("Illegal fieldAlias.");
+            throw new IllegalArgumentException(MSG_ILLEGAL_FIELD_ALIAS);
         }
         if (fieldExists(field)) {
             throw new IllegalArgumentException(String.format("Field %s has already been defined", field.getName()));
@@ -179,7 +118,7 @@ public class Kcql {
 
     private void addKeyField(final Field field) {
         if (field == null) {
-            throw new IllegalArgumentException("Illegal fieldAlias.");
+            throw new IllegalArgumentException(MSG_ILLEGAL_FIELD_ALIAS);
         }
         if (fieldExists(field)) {
             throw new IllegalArgumentException(String.format("Key field %s has already been defined", field.getName()));
@@ -189,7 +128,7 @@ public class Kcql {
 
     private void addHeaderField(final Field field) {
         if (field == null) {
-            throw new IllegalArgumentException("Illegal fieldAlias.");
+            throw new IllegalArgumentException(MSG_ILLEGAL_FIELD_ALIAS);
         }
         if (fieldExists(field)) {
             throw new IllegalArgumentException(String.format("Header field %s has already been defined", field.getName()));
@@ -257,11 +196,7 @@ public class Kcql {
     }
 
     public List<Field> getPrimaryKeys() {
-        return primaryKeys;//.iterator();
-    }
-
-    public Bucketing getBucketing() {
-        return bucketing;
+        return primaryKeys;
     }
 
     public String getTimestamp() {
@@ -280,28 +215,8 @@ public class Kcql {
         return properties;
     }
 
-    public String getConsumerGroup() {
-        return consumerGroup;
-    }
-
-    public List<PartitionOffset> getPartitionOffset() {
-        return partitions;
-    }
-
-    public Integer getSampleCount() {
-        return sampleCount;
-    }
-
-    public Integer getSampleRate() {
-        return sampleRate;
-    }
-
     public FormatType getFormatType() {
         return formatType;
-    }
-
-    public Integer getProjectTo() {
-        return projectTo;
     }
 
     public boolean isAutoCreate() {
@@ -318,14 +233,6 @@ public class Kcql {
 
     public int getBatchSize() {
         return batchSize;
-    }
-
-    public boolean isEnableCapitalize() {
-        return enableCapitalize;
-    }
-
-    public boolean isInitialize() {
-        return initialize;
     }
 
     public Iterator<String> getPartitionBy() {
@@ -428,45 +335,11 @@ public class Kcql {
         this.withFlushSize = withFlushSize;
     }
 
-    public SchemaEvolution getWithSchemaEvolution() {
-        return withSchemaEvolution;
-    }
-
-    private void setWithSchemaEvolution(SchemaEvolution withSchemaEvolution) {
-        this.withSchemaEvolution = withSchemaEvolution;
-    }
-
-    public String getWithTableLocation() {
-        return withTableLocation;
-    }
-
-    private void setWithTableLocation(String withTableLocation) {
-        this.withTableLocation = withTableLocation;
-    }
-
-    public boolean getWithOverwrite() {
-        return withOverwrite;
-    }
-
-    private void setWithOverwrite(boolean withOverwrite) {
-        this.withOverwrite = withOverwrite;
-    }
-
-    public PartitioningStrategy getWithPartitioningStrategy() {
-        return withPartitioningStrategy;
-    }
-
-    private void setWithPartitioningStrategy(PartitioningStrategy withPartitioningStrategy) {
-        this.withPartitioningStrategy = withPartitioningStrategy;
-    }
-
     public static Kcql parse(final String syntax) {
         final ConnectorLexer lexer = new ConnectorLexer(CharStreams.fromString(syntax));
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
         final ConnectorParser parser = new ConnectorParser(tokens);
-        final ArrayList<String> bucketNames = new ArrayList<>();
         final ArrayList<String> nestedFieldsBuffer = new ArrayList<>();
-        final Integer[] bucketsNumber = {null};
         final Kcql kcql = new Kcql();
         parser.addErrorListener(new BaseErrorListener() {
             @Override
@@ -488,11 +361,6 @@ public class Kcql {
         final String[] tagKey = {null};
 
         parser.addParseListener(new ConnectorParserBaseListener() {
-
-            @Override
-            public void exitWith_session_value(ConnectorParser.With_session_valueContext ctx) {
-                kcql.withSession = ctx.getText();
-            }
 
             @Override
             public void exitWith_subscription_value(ConnectorParser.With_subscription_valueContext ctx) {
@@ -559,7 +427,7 @@ public class Kcql {
                 String name = nestedFieldsBuffer.get(nestedFieldsBuffer.size() - 1);
                 nestedFieldsBuffer.remove(nestedFieldsBuffer.size() - 1);
 
-                if (nestedFieldsBuffer.size() > 0) {
+                if (!nestedFieldsBuffer.isEmpty()) {
                     parentFields = nestedFieldsBuffer;
                 }
 
@@ -594,21 +462,9 @@ public class Kcql {
             }
 
             private void trimParentField(List<String> parents) {
-                if (parents.size() > 0) {
+                if (!parents.isEmpty()) {
                     parents.remove(0);
                 }
-            }
-
-            @Override
-            public void exitWith_compression_type(ConnectorParser.With_compression_typeContext ctx) {
-                String type = unescape(ctx.getText()).toUpperCase();
-                CompressionType compressionType = CompressionType.valueOf(type);
-                kcql.setWithCompression(compressionType);
-            }
-
-            @Override
-            public void exitWith_delay_value(ConnectorParser.With_delay_valueContext ctx) {
-                kcql.delay = Integer.parseInt(ctx.getText());
             }
 
             @Override
@@ -639,11 +495,6 @@ public class Kcql {
             @Override
             public void exitPartition_name(ConnectorParser.Partition_nameContext ctx) {
                 kcql.addPartitionByField(ctx.getText());
-            }
-
-            @Override
-            public void exitDistribute_name(ConnectorParser.Distribute_nameContext ctx) {
-                bucketNames.add(ctx.getText());
             }
 
             @Override
@@ -697,13 +548,12 @@ public class Kcql {
                 String name = nestedFieldsBuffer.get(nestedFieldsBuffer.size() - 1);
                 nestedFieldsBuffer.remove(nestedFieldsBuffer.size() - 1);
 
-                if (nestedFieldsBuffer.size() > 0) {
+                if (!nestedFieldsBuffer.isEmpty()) {
                     parentFields = nestedFieldsBuffer;
                 }
 
                 Field field = Field.from(name, parentFields);
                 kcql.primaryKeys.add(field);
-                //kcql.addPrimaryKey(ctx.getText());
             }
 
             @Override
@@ -745,41 +595,6 @@ public class Kcql {
             }
 
             @Override
-            public void exitCapitalize(ConnectorParser.CapitalizeContext ctx) {
-                kcql.enableCapitalize = true;
-            }
-
-            @Override
-            public void exitInitialize(ConnectorParser.InitializeContext ctx) {
-                kcql.initialize = true;
-            }
-
-            @Override
-            public void exitVersion_number(ConnectorParser.Version_numberContext ctx) {
-
-                final String value = ctx.getText();
-                try {
-                    int version = Integer.parseInt(value);
-                    if (version <= 0) {
-                        throw new IllegalArgumentException(value + " is not a valid number for a version.");
-                    }
-                    kcql.projectTo = version;
-                } catch (NumberFormatException ex) {
-                    throw new IllegalArgumentException(value + " is not a valid number for a version.");
-                }
-            }
-
-            @Override
-            public void exitBuckets_number(ConnectorParser.Buckets_numberContext ctx) {
-                bucketsNumber[0] = Integer.parseInt(ctx.getText());
-            }
-
-            @Override
-            public void exitClusterby_name(ConnectorParser.Clusterby_nameContext ctx) {
-                bucketNames.add(ctx.getText());
-            }
-
-            @Override
             public void exitBatch_size(ConnectorParser.Batch_sizeContext ctx) {
                 final String value = ctx.getText();
                 try {
@@ -808,45 +623,8 @@ public class Kcql {
             }
 
             @Override
-            public void exitLock_time_type(ConnectorParser.Lock_time_typeContext ctx) {
-                final String value = ctx.getText();
-                try {
-                    long lockTime = Long.parseLong(value);
-                    if (lockTime <= 0) {
-                        throw new IllegalArgumentException(value + " is not a valid number for a WITH_LOCK_TIME.");
-                    }
-                    kcql.setWithLockTime(lockTime);
-                } catch (NumberFormatException ex) {
-                    throw new IllegalArgumentException(value + " is not a valid number for a WITH_LOCK_TIME.");
-                }
-            }
-
-            @Override
             public void exitTimestamp_value(ConnectorParser.Timestamp_valueContext ctx) {
                 kcql.timestamp = ctx.getText();
-            }
-
-            @Override
-            public void exitWith_consumer_group_value(ConnectorParser.With_consumer_group_valueContext ctx) {
-                kcql.consumerGroup = unescape(ctx.getText());
-            }
-
-            @Override
-            public void exitOffset_partition_inner(ConnectorParser.Offset_partition_innerContext ctx) {
-                String value = ctx.getText();
-                String[] split = value.split(",");
-
-                if (kcql.partitions == null) {
-                    kcql.partitions = new ArrayList<>();
-                }
-
-                int partition = Integer.parseInt(split[0]);
-                if (split.length == 1) {
-                    kcql.partitions.add(new PartitionOffset(partition));
-                } else {
-                    long offset = Long.parseLong(split[1]);
-                    kcql.partitions.add(new PartitionOffset(partition, offset));
-                }
             }
 
             @Override
@@ -864,17 +642,6 @@ public class Kcql {
                     }
                     throw new IllegalArgumentException(("Invalid 'TIMESTAMPUNIT'. Available values are : " + sb));
                 }
-            }
-
-            @Override
-            public void exitSample_value(ConnectorParser.Sample_valueContext ctx) {
-                Integer value = Integer.parseInt(ctx.getText());
-                kcql.sampleCount = value;
-            }
-
-            @Override
-            public void exitSample_period(ConnectorParser.Sample_periodContext ctx) {
-                kcql.sampleRate = Integer.parseInt(ctx.getText());
             }
 
             @Override
@@ -999,50 +766,6 @@ public class Kcql {
                 }
             }
 
-            @Override
-            public void exitWith_schema_evolution_value(ConnectorParser.With_schema_evolution_valueContext ctx) {
-                String value = ctx.getText().toUpperCase();
-                try {
-                    SchemaEvolution schemaEvolution = Enum.valueOf(SchemaEvolution.class, value);
-                    kcql.setWithSchemaEvolution(schemaEvolution);
-                } catch (Throwable t) {
-                    throw new IllegalArgumentException("Invalid value specified for WITH_SCHEMA_EVOLUTION. Expecting one of the values:" + EnumsHelper.mkString(SchemaEvolution.values()));
-                }
-            }
-
-            @Override
-            public void exitWith_table_location_value(ConnectorParser.With_table_location_valueContext ctx) {
-                kcql.setWithTableLocation(unescape(ctx.getText()));
-            }
-
-            @Override
-            public void exitWith_overwrite_clause(ConnectorParser.With_overwrite_clauseContext ctx) {
-                kcql.setWithOverwrite(true);
-            }
-
-            @Override
-            public void exitWith_partitioning_value(ConnectorParser.With_partitioning_valueContext ctx) {
-                //_dynamic_ and _static_
-                String value = ctx.getText().toUpperCase();
-                try {
-                    PartitioningStrategy strategy = Enum.valueOf(PartitioningStrategy.class, value);
-                    kcql.setWithPartitioningStrategy(strategy);
-                } catch (Throwable t) {
-                    throw new IllegalArgumentException("Invalid value specified for WITH_SCHEMA_EVOLUTION. Expecting one of the values:" + EnumsHelper.mkString(PartitioningStrategy.values()));
-                }
-            }
-
-            @Override
-            public void exitWith_ack_clause(ConnectorParser.With_ack_clauseContext ctx) {
-                kcql.setWithAck(true);
-            }
-
-
-            @Override
-            public void exitWith_encode_base64(ConnectorParser.With_encode_base64Context ctx) {
-                kcql.setWithEncodeBase64(true);
-            }
-
         });
 
 
@@ -1058,19 +781,6 @@ public class Kcql {
         }
 
 
-        if (bucketNames.size() > 0 && (bucketsNumber[0] == null || bucketsNumber[0] == 0)) {
-            throw new IllegalArgumentException("Invalid bucketing information. Missing the buckets number");
-        }
-        if (bucketsNumber[0] != null && bucketsNumber[0] > 0 && bucketNames.size() == 0) {
-            throw new IllegalArgumentException("Missing bucket columns.");
-        }
-        if (bucketsNumber[0] != null) {
-            final Bucketing bucketing = new Bucketing(bucketNames);
-            bucketing.setBucketsNumber(bucketsNumber[0]);
-
-            kcql.bucketing = bucketing;
-        }
-
         String ts = kcql.timestamp;
         if (ts != null) {
             if (TIMESTAMP.compareToIgnoreCase(ts) == 0) {
@@ -1080,13 +790,6 @@ public class Kcql {
             }
         }
 
-        if (kcql.sampleCount != null && kcql.sampleCount == 0) {
-            throw new IllegalArgumentException("Sample count needs to be a positive number greater than zero");
-        }
-
-        if (kcql.sampleRate != null && kcql.sampleRate == 0) {
-            throw new IllegalArgumentException("Sample rate should be a positive number greater than zero");
-        }
         return kcql;
     }
 
