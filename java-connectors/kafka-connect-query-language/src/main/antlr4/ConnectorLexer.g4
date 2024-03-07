@@ -57,10 +57,6 @@ BATCH
    : 'batch' | 'BATCH'
    ;
 
-CAPITALIZE
-   : 'capitalize' | 'CAPITALIZE'
-   ;
-
 PARTITIONBY
    : 'partitionby' | 'PARTITIONBY'
    ;

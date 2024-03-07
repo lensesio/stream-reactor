@@ -316,10 +316,6 @@ public class Kcql {
         return batchSize;
     }
 
-    public boolean isEnableCapitalize() {
-        return enableCapitalize;
-    }
-
     public Iterator<String> getPartitionBy() {
         return partitionBy.iterator();
     }

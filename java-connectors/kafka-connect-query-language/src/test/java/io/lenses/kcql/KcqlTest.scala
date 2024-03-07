@@ -241,7 +241,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
 
     kcql.getWriteMode should be(WriteModeEnum.UPSERT)
     kcql.getIgnoredFields.asScala.map(_.getName) should contain inOrder ("col1", "1col2")
-    kcql.isEnableCapitalize should be(false)
   }
 
   test("parseWithProject") {
@@ -322,22 +321,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
 
     kcql.getWriteMode should be(WriteModeEnum.INSERT)
     kcql.isAutoEvolve should be(true)
-  }
-
-  test("parseAnUpsertWithSelectAllFieldsWithIgnoredColumnsWithCapitalization") {
-    val topic  = "TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"UPSERT INTO $table SELECT * FROM $topic IGNORE col1, 1col2 CAPITALIZE  "
-    val kcql   = Kcql.parse(syntax)
-    kcql.getSource should be(topic)
-    kcql.getTarget should be(table)
-    kcql.getFields should not be empty
-    kcql.getFields.get(0).getName should be("*")
-    kcql.getWriteMode should be(WriteModeEnum.UPSERT)
-    val ignored = kcql.getIgnoredFields
-    ignored.get(0).getName should be("col1")
-    ignored.get(1).getName should be("1col2")
-    kcql.isEnableCapitalize should be(true)
   }
 
   test("handlerPartitionByWhenAllFieldsAreIncluded") {
