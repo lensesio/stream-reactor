@@ -244,20 +244,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     kcql.isEnableCapitalize should be(false)
   }
 
-  test("parseWithInitialize") {
-    val topic  = "TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"INSERT INTO $table SELECT * FROM $topic batch = 100 initialize"
-    Kcql.parse(syntax).isInitialize should be(true)
-  }
-
-  test("parseWithWithOutInitialize") {
-    val topic  = "TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"UPSERT INTO $table SELECT * FROM $topic IGNORE col1, 1col2 "
-    Kcql.parse(syntax).isInitialize should be(false)
-  }
-
   test("parseWithProject") {
     val topic  = "TOPIC_A"
     val table  = "TABLE_A"

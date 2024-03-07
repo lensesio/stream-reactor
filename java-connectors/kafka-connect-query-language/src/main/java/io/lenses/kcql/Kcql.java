@@ -57,7 +57,6 @@ public class Kcql {
     private Integer sampleCount;
     private Integer sampleRate;
     private FormatType formatType = null;
-    private boolean initialize;
     private boolean unwrapping = false;
     private Integer projectTo;
     private List<Tag> tags;
@@ -319,10 +318,6 @@ public class Kcql {
 
     public boolean isEnableCapitalize() {
         return enableCapitalize;
-    }
-
-    public boolean isInitialize() {
-        return initialize;
     }
 
     public Iterator<String> getPartitionBy() {
@@ -712,11 +707,6 @@ public class Kcql {
             @Override
             public void exitCapitalize(ConnectorParser.CapitalizeContext ctx) {
                 kcql.enableCapitalize = true;
-            }
-
-            @Override
-            public void exitInitialize(ConnectorParser.InitializeContext ctx) {
-                kcql.initialize = true;
             }
 
             @Override
