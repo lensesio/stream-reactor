@@ -44,7 +44,7 @@ insert_from_clause
     (partitionby)? (timestamp_clause)? (timestamp_unit_clause)?
     ( with_format_clause )? (with_unwrap_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_type)? (with_doc_type)? (with_index_suffix)?
     (ttl_clause)? (with_converter)? (with_jms_selector)? (with_key)? (key_delimiter)? (with_pipeline_clause)? (with_partitioner_clause)?
-    (with_subscription_clause)? (with_compression_clause)? (with_delay_clause)? (with_regex_clause)? (with_flush_size_clause)?
+    (with_subscription_clause)? (with_delay_clause)? (with_regex_clause)? (with_flush_size_clause)?
     (with_flush_interval_clause)? (with_flush_records_clause)?
     (limit_clause)? (with_session_clause)? (with_ack_clause)? (with_encode_base64)?
     (properties_clause)?
@@ -358,14 +358,6 @@ with_subscription_clause
 with_subscription_value
    : FIELD
    ;
-
- with_compression_clause
-     : WITHCOMPRESSION EQUAL with_compression_type
-     ;
-
- with_compression_type
-     : FIELD
-     ;
 
  with_delay_clause
     : WITHDELAY EQUAL with_delay_value

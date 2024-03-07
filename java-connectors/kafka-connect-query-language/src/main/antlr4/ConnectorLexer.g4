@@ -129,10 +129,6 @@ WITHTARGET
     : 'WITHTARGET' | 'withtarget'
     ;
 
-WITHCOMPRESSION
-    : 'WITHCOMPRESSION'|'withcompression'
-    ;
-
 WITHPARTITIONER
     : 'WITHPARTITIONER' | 'withpartitioner'
     ;

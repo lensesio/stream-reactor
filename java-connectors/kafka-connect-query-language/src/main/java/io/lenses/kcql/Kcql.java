@@ -63,7 +63,6 @@ public class Kcql {
     private String keyDelimiter = ".";
     private TimeUnit timestampUnit = TimeUnit.MILLISECONDS;
     private String pipeline;
-    private CompressionType compression;
     private String subscription;
     private String partitioner;
     private String withRegex;
@@ -128,14 +127,6 @@ public class Kcql {
 
     public void setWithDelay(Integer delay) {
         this.delay = delay;
-    }
-
-    public void setWithCompression(CompressionType compression) {
-        this.compression = compression;
-    }
-
-    public CompressionType getWithCompression() {
-        return this.compression;
     }
 
     public void setTTL(long ttl) {
@@ -513,12 +504,6 @@ public class Kcql {
                 }
             }
 
-            @Override
-            public void exitWith_compression_type(ConnectorParser.With_compression_typeContext ctx) {
-                String type = unescape(ctx.getText()).toUpperCase();
-                CompressionType compressionType = CompressionType.valueOf(type);
-                kcql.setWithCompression(compressionType);
-            }
 
             @Override
             public void exitWith_delay_value(ConnectorParser.With_delay_valueContext ctx) {

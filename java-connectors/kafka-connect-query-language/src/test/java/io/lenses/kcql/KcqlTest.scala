@@ -636,15 +636,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     kcql.getPipeline should be("field1.field2.field3")
   }
 
-  test("handleWithCompression") {
-    val syntax =
-      "INSERT INTO A SELECT * FROM B WITHPARTITIONER = SinglePartition WITHSUBSCRIPTION = shared WITHCOMPRESSION = SNAPPY WITHDELAY = 1000"
-    val kcql = Kcql.parse(syntax)
-    kcql.getWithCompression should be(CompressionType.SNAPPY)
-    kcql.getWithPartitioner should be("SinglePartition")
-    kcql.getWithDelay should be(1000)
-    kcql.getWithSubscription should be("shared")
-  }
 
   test("handleWithDelay") {
     val syntax = "INSERT INTO A SELECT * FROM B WITHDELAY = 1000"
