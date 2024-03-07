@@ -75,7 +75,6 @@ public class Kcql {
     private String withSession;
     private boolean withAck = false;
     private boolean withEncodeBase64 = false;
-    private long withLockTime = -1;
 
     private final Map<String, String> properties = new HashMap<>();
 
@@ -145,14 +144,6 @@ public class Kcql {
 
     public long getTTL() {
         return this.ttl;
-    }
-
-    public long getWithLockTime() {
-        return this.withLockTime;
-    }
-
-    public void setWithLockTime(long lock) {
-        this.withLockTime = lock;
     }
 
     private void addField(final Field field) {
@@ -687,20 +678,6 @@ public class Kcql {
                     kcql.setTTL(newTTL);
                 } catch (NumberFormatException ex) {
                     throw new IllegalArgumentException(value + " is not a valid number for a TTL.");
-                }
-            }
-
-            @Override
-            public void exitLock_time_type(ConnectorParser.Lock_time_typeContext ctx) {
-                final String value = ctx.getText();
-                try {
-                    long lockTime = Long.parseLong(value);
-                    if (lockTime <= 0) {
-                        throw new IllegalArgumentException(value + " is not a valid number for a WITH_LOCK_TIME.");
-                    }
-                    kcql.setWithLockTime(lockTime);
-                } catch (NumberFormatException ex) {
-                    throw new IllegalArgumentException(value + " is not a valid number for a WITH_LOCK_TIME.");
                 }
             }
 

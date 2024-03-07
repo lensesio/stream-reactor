@@ -185,10 +185,6 @@ TTL
     : 'with_encode_base64' | 'WITH_ENCODE_BASE64'
     ;
 
-WITH_LOCK_TIME
-    : 'with_lock_time' | 'WITH_LOCK_TIME'
-    ;
-
  PROPERTIES
     : 'properties' | 'PROPERTIES'
     ;

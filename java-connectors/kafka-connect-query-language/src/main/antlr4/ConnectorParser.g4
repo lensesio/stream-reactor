@@ -46,7 +46,7 @@ insert_from_clause
     (ttl_clause)? (with_converter)? (with_jms_selector)? (with_key)? (key_delimiter)? (with_pipeline_clause)? (with_partitioner_clause)?
     (with_subscription_clause)? (with_compression_clause)? (with_delay_clause)? (with_regex_clause)? (with_flush_size_clause)?
     (with_flush_interval_clause)? (with_flush_records_clause)?
-    (limit_clause)? (with_session_clause)? (with_ack_clause)? (with_encode_base64)? (with_lock_time_clause)?
+    (limit_clause)? (with_session_clause)? (with_ack_clause)? (with_encode_base64)?
     (properties_clause)?
    ;
 
@@ -423,11 +423,3 @@ with_ack_clause
  with_encode_base64
     : WITH_ENCODE_BASE64
     ;
-
- with_lock_time_clause
-    : WITH_LOCK_TIME EQUAL lock_time_type
-    ;
-
- lock_time_type
-     : INT
-     ;

@@ -761,11 +761,7 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     val kcql   = Kcql.parse(syntax)
     kcql.getWithEncodeBase64 should be(true)
   }
-  test("handleLockTime") {
-    val syntax = "insert into mytopic select a, b, c from topic WITH_LOCK_TIME = 10"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithLockTime should be(10)
-  }
+
   test("handleUpdate") {
     val syntax = "update into mytopic select a, b, c from topic"
     val kcql   = Kcql.parse(syntax)
