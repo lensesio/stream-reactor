@@ -47,7 +47,6 @@ public class Kcql {
     private final List<String> partitionBy = new ArrayList<>();
     private int limit = 0;
     private int batchSize;
-    private Bucketing bucketing;
     private String timestamp;
     private String storedAs;
     private final Map<String, String> storedAsParameters = new HashMap<>();
@@ -250,10 +249,6 @@ public class Kcql {
         return primaryKeys;//.iterator();
     }
 
-    public Bucketing getBucketing() {
-        return bucketing;
-    }
-
     public String getTimestamp() {
         return this.timestamp;
     }
@@ -394,9 +389,7 @@ public class Kcql {
         final ConnectorLexer lexer = new ConnectorLexer(CharStreams.fromString(syntax));
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
         final ConnectorParser parser = new ConnectorParser(tokens);
-        final ArrayList<String> bucketNames = new ArrayList<>();
         final ArrayList<String> nestedFieldsBuffer = new ArrayList<>();
-        final Integer[] bucketsNumber = {null};
         final Kcql kcql = new Kcql();
         parser.addErrorListener(new BaseErrorListener() {
             @Override
@@ -572,11 +565,6 @@ public class Kcql {
             }
 
             @Override
-            public void exitDistribute_name(ConnectorParser.Distribute_nameContext ctx) {
-                bucketNames.add(ctx.getText());
-            }
-
-            @Override
             public void exitTable_name(ConnectorParser.Table_nameContext ctx) {
                 kcql.target = unescape(ctx.getText());
             }
@@ -672,16 +660,6 @@ public class Kcql {
             @Override
             public void exitStoreas_value(ConnectorParser.Storeas_valueContext ctx) {
                 kcql.getStoredAsParameters().put(storedAsParameter[0], ctx.getText());
-            }
-
-            @Override
-            public void exitBuckets_number(ConnectorParser.Buckets_numberContext ctx) {
-                bucketsNumber[0] = Integer.parseInt(ctx.getText());
-            }
-
-            @Override
-            public void exitClusterby_name(ConnectorParser.Clusterby_nameContext ctx) {
-                bucketNames.add(ctx.getText());
             }
 
             @Override
@@ -895,19 +873,6 @@ public class Kcql {
             cols.add(alias.getAlias());
         }
 
-
-        if (bucketNames.size() > 0 && (bucketsNumber[0] == null || bucketsNumber[0] == 0)) {
-            throw new IllegalArgumentException("Invalid bucketing information. Missing the buckets number");
-        }
-        if (bucketsNumber[0] != null && bucketsNumber[0] > 0 && bucketNames.size() == 0) {
-            throw new IllegalArgumentException("Missing bucket columns.");
-        }
-        if (bucketsNumber[0] != null) {
-            final Bucketing bucketing = new Bucketing(bucketNames);
-            bucketing.setBucketsNumber(bucketsNumber[0]);
-
-            kcql.bucketing = bucketing;
-        }
 
         String ts = kcql.timestamp;
         if (ts != null) {

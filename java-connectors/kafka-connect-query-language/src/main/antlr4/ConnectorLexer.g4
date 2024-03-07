@@ -45,24 +45,12 @@ AUTOEVOLVE
    : 'autoevolve' | 'AUTOEVOLVE'
    ;
 
-CLUSTERBY
-    : 'clusterby' | 'CLUSTERBY'
-    ;
-
-BUCKETS
-    : 'buckets'|'BUCKETS'
-    ;
-
 BATCH
    : 'batch' | 'BATCH'
    ;
 
 PARTITIONBY
    : 'partitionby' | 'PARTITIONBY'
-   ;
-
-DISTRIBUTEBY
-   : 'distributeby' | 'DISTRIBUTEBY'
    ;
 
 TIMESTAMP

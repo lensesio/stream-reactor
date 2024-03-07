@@ -41,7 +41,7 @@ schema_name
 
 insert_from_clause
    : write_mode table_name select_clause_basic ( autocreate )? (with_structure)? ( PK primary_key_list)? (with_target)? ( autoevolve )? ( batching )?
-    (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? (timestamp_unit_clause)?
+    (partitionby)? (timestamp_clause)? (timestamp_unit_clause)?
     ( with_format_clause )? (with_unwrap_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_type)? (with_doc_type)? (with_index_suffix)?
     (ttl_clause)? (with_converter)? (with_jms_selector)? (with_key)? (key_delimiter)? (with_pipeline_clause)? (with_partitioner_clause)?
     (with_subscription_clause)? (with_compression_clause)? (with_delay_clause)? (with_regex_clause)? (with_flush_size_clause)?
@@ -142,19 +142,6 @@ partitionby
    : PARTITIONBY partition_list
    ;
 
-
-distribute_name
-   : FIELD
-   ;
-
-distribute_list
-   : distribute_name ( COMMA distribute_name)*
-   ;
-
-distributeby
-   : DISTRIBUTEBY distribute_list INTO buckets_number BUCKETS
-   ;
-
 timestamp_clause
    : TIMESTAMP timestamp_value
    ;
@@ -170,22 +157,6 @@ timestamp_unit_clause
 timestamp_unit_value
    : FIELD
    ;
-
-buckets_number
-    : INT
-    ;
-
-clusterby_name
-    : FIELD
-    ;
-
-clusterby_list
-    :  clusterby_name ( COMMA clusterby_name)*
-    ;
-
-clusterby
-    : CLUSTERBY clusterby_list INTO buckets_number BUCKETS
-    ;
 
 limit_clause
     : LIMIT limit_value
