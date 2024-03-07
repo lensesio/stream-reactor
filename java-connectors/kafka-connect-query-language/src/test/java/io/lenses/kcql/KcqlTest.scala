@@ -729,12 +729,7 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     kcql.getLimit should be(200)
 
   }
-  test("handleSession") {
-    val syntax  = "insert into mytopic select a, b, c from topic WITH_SESSION = andrew"
-    val kcql    = Kcql.parse(syntax)
-    val session = "andrew"
-    kcql.getWithSession should be(session)
-  }
+
   test("handleAck") {
     val syntax = "insert into mytopic select a, b, c from topic WITH_ACK"
     val kcql   = Kcql.parse(syntax)

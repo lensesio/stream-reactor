@@ -46,12 +46,12 @@ insert_from_clause
     (ttl_clause)? (with_converter)? (with_jms_selector)? (with_key)? (key_delimiter)? (with_pipeline_clause)? (with_partitioner_clause)?
     (with_subscription_clause)? (with_regex_clause)? (with_flush_size_clause)?
     (with_flush_interval_clause)? (with_flush_records_clause)?
-    (limit_clause)? (with_session_clause)? (with_ack_clause)? (with_encode_base64)?
+    (limit_clause)? (with_ack_clause)? (with_encode_base64)?
     (properties_clause)?
    ;
 
 select_clause
-   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_unwrap_clause)? (limit_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_doc_type)? (with_index_suffix)? (with_converter)? (key_delimiter)? (ttl_clause)? (with_session_clause)?
+   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_unwrap_clause)? (limit_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_doc_type)? (with_index_suffix)? (with_converter)? (key_delimiter)? (ttl_clause)?
    ;
 
 select_clause_basic
@@ -390,14 +390,6 @@ with_flush_records_clause
 
 with_flush_records_value
     : INT
-    ;
-
-with_session_clause
-    : WITH_SESSION EQUAL with_session_value
-    ;
-
-with_session_value
-    : FIELD
     ;
 
 with_ack_clause

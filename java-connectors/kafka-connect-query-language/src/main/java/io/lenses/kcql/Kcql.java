@@ -70,7 +70,6 @@ public class Kcql {
     private long withFlushSize;
     private long withFlushCount;
 
-    private String withSession;
     private boolean withAck = false;
     private boolean withEncodeBase64 = false;
 
@@ -98,10 +97,6 @@ public class Kcql {
 
     public void setWithAck(boolean ack) {
         this.withAck = ack;
-    }
-
-    public String getWithSession() {
-        return this.withSession;
     }
 
     public String getWithPartitioner() {
@@ -384,11 +379,6 @@ public class Kcql {
         final String[] tagKey = {null};
 
         parser.addParseListener(new ConnectorParserBaseListener() {
-
-            @Override
-            public void exitWith_session_value(ConnectorParser.With_session_valueContext ctx) {
-                kcql.withSession = ctx.getText();
-            }
 
             @Override
             public void exitWith_subscription_value(ConnectorParser.With_subscription_valueContext ctx) {

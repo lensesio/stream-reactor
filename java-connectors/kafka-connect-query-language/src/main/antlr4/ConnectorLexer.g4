@@ -161,10 +161,6 @@ WITH_FLUSH_COUNT
     : 'WITH_FLUSH_COUNT' | 'with_flush_count'
     ;
 
-WITH_SESSION
-    : 'WITH_SESSION' | 'with_session'
-    ;
-
 TTL
    : 'TTL'|'ttl'
    ;
