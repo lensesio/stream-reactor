@@ -121,12 +121,6 @@ WITHUNWRAP
     : 'WITHUNWRAP'| 'withunwrap'
     ;
 
-
-
-PROJECTTO
-    : 'projectTo'|'PROJECTTO'|'projectto'
-    ;
-
 STOREAS
     : 'STOREAS'|'storeas'
     ;

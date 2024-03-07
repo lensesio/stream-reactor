@@ -58,7 +58,6 @@ public class Kcql {
     private Integer sampleRate;
     private FormatType formatType = null;
     private boolean unwrapping = false;
-    private Integer projectTo;
     private List<Tag> tags;
     private boolean retainStructure = false;
     private String withConverter;
@@ -294,10 +293,6 @@ public class Kcql {
 
     public FormatType getFormatType() {
         return formatType;
-    }
-
-    public Integer getProjectTo() {
-        return projectTo;
     }
 
     public boolean isAutoCreate() {
@@ -703,21 +698,6 @@ public class Kcql {
             @Override
             public void exitCapitalize(ConnectorParser.CapitalizeContext ctx) {
                 kcql.enableCapitalize = true;
-            }
-
-            @Override
-            public void exitVersion_number(ConnectorParser.Version_numberContext ctx) {
-
-                final String value = ctx.getText();
-                try {
-                    int version = Integer.parseInt(value);
-                    if (version <= 0) {
-                        throw new IllegalArgumentException(value + " is not a valid number for a version.");
-                    }
-                    kcql.projectTo = version;
-                } catch (NumberFormatException ex) {
-                    throw new IllegalArgumentException(value + " is not a valid number for a version.");
-                }
             }
 
             @Override

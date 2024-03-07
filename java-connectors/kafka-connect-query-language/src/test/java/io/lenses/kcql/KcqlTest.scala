@@ -243,14 +243,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     kcql.getIgnoredFields.asScala.map(_.getName) should contain inOrder ("col1", "1col2")
   }
 
-  test("parseWithProject") {
-    val topic  = "TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"INSERT INTO $table SELECT * FROM $topic batch = 100 initialize projectTo 1"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getProjectTo should be(1)
-  }
-
   test("parseAnInsertWithFieldAliasAndAutocreateNoPKs") {
     val topic  = "TOPIC_A"
     val table  = "TABLE_A"
