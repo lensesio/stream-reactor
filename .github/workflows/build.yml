@@ -20,6 +20,7 @@ jobs:
       matrix: ${{ steps.read-mods.outputs.matrix }}
       it_matrix: ${{ steps.read-mods.outputs.it-matrix }}
       fun_matrix: ${{ steps.read-mods.outputs.fun-matrix }}
+      dep_check_matrix: ${{ steps.read-mods.outputs.dep-check-matrix }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up JDK 17
@@ -29,7 +30,7 @@ jobs:
           distribution: 'temurin'
           cache: 'sbt'
       - name: Generate modules lists
-        run: sbt generateModulesList generateItModulesList generateFunModulesList
+        run: sbt generateModulesList generateItModulesList generateFunModulesList generateDepCheckModulesList
         env:
           JVM_OPTS: -Xmx3200m
       - name: Read modules lists
@@ -38,6 +39,7 @@ jobs:
           echo "::set-output name=matrix::$(cat ./target/scala-2.13/resource_managed/main/modules.txt)"
           echo "::set-output name=it-matrix::$(cat ./target/scala-2.13/resource_managed/main/it-modules.txt)"
           echo "::set-output name=fun-matrix::$(cat ./target/scala-2.13/resource_managed/main/fun-modules.txt)"
+          echo "::set-output name=dep-check-matrix::$(cat ./target/scala-2.13/resource_managed/main/depcheck-modules.txt)"
       - name: Cleanup before cache
         shell: bash
         run: |
@@ -210,7 +212,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
+        module: ${{fromJSON(needs.initiate.outputs.dep_check_matrix)}}
     steps:
       - name: Restore assembly
         uses: actions/cache/restore@v3

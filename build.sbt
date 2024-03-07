@@ -42,7 +42,7 @@ lazy val root = (project in file("."))
   )
   .disablePlugins(AssemblyPlugin, HeaderPlugin)
 
-lazy val `query-language` = (project in file("kafka-connect-query-language"))
+lazy val `query-language` = (project in file("java-connectors/kafka-connect-query-language"))
   .settings(
     settings ++
       Seq(
@@ -432,12 +432,15 @@ dependencyCheckRetireJSAnalyzerEnabled := Some(false)
 
 excludeDependencies ++= globalExcludeDeps
 
-val generateModulesList    = taskKey[Seq[File]]("generateModulesList")
-val generateItModulesList  = taskKey[Seq[File]]("generateItModulesList")
-val generateFunModulesList = taskKey[Seq[File]]("generateFunModulesList")
+val generateModulesList         = taskKey[Seq[File]]("generateModulesList")
+val generateItModulesList       = taskKey[Seq[File]]("generateItModulesList")
+val generateFunModulesList      = taskKey[Seq[File]]("generateFunModulesList")
+val generateDepCheckModulesList = taskKey[Seq[File]]("generateDepCheckModulesList")
 
 Compile / generateModulesList :=
   new FileWriter(subProjects).generate((Compile / resourceManaged).value / "modules.txt")
+Compile / generateDepCheckModulesList :=
+  new FileWriter(subProjects.tail).generate((Compile / resourceManaged).value / "depcheck-modules.txt")
 Compile / generateItModulesList :=
   new FileWriter(
     subProjects.filter(p => p.containsDir("src/it")),
