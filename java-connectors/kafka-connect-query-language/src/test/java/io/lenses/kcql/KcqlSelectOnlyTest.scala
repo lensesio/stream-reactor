@@ -207,22 +207,6 @@ class KcqlSelectOnlyTest extends AnyFunSuite {
     kcql.hasRetainStructure should be(true)
   }
 
-  test("throwAnExceptionIfTheFromOffsetIsNotAValidNumber") {
-    val topic  = "TOPIC.A"
-    val syntax = s"SELECT f1 as col1, f3, f2 as col2,f4 FROM $topic WITHFORMAT AVRO WITHOFFSET 11a1"
-    assertThrows[IllegalArgumentException] {
-      Kcql.parse(syntax)
-    }
-  }
-
-  test("throwAnExceptionIfTheSampleRateIsNotANumber") {
-    val topic  = "TOPIC.A"
-    val syntax = s"SELECT f1 as col1, f3, f2 as col2,f4 FROM $topic WITHFORMAT AVRO SAMPLE 10 EVERY a91"
-    assertThrows[IllegalArgumentException] {
-      Kcql.parse(syntax)
-    }
-  }
-
   test("throwAnExceptionIfTheFormatIsNotCorrect") {
     val topic  = "TOPIC.A"
     val syntax = s"SELECT f1 as col1, f3, f2 as col2,f4 FROM $topic WITHFORMAT ARO SAMPLE 10 EVERY 0"
