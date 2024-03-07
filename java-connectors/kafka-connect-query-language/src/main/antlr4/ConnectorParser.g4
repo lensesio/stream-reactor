@@ -46,7 +46,7 @@ insert_from_clause
     (ttl_clause)? (with_converter)? (with_jms_selector)? (with_key)? (key_delimiter)? (with_pipeline_clause)? (with_partitioner_clause)?
     (with_subscription_clause)? (with_regex_clause)? (with_flush_size_clause)?
     (with_flush_interval_clause)? (with_flush_records_clause)?
-    (limit_clause)? (with_encode_base64)?
+    (limit_clause)?
     (properties_clause)?
    ;
 

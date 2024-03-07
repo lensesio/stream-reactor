@@ -70,8 +70,6 @@ public class Kcql {
     private long withFlushSize;
     private long withFlushCount;
 
-    private boolean withEncodeBase64 = false;
-
     private final Map<String, String> properties = new HashMap<>();
 
     public String getQuery() {
@@ -80,14 +78,6 @@ public class Kcql {
 
     public void setQuery(String query) {
         this.query = query;
-    }
-
-    public boolean getWithEncodeBase64() {
-        return this.withEncodeBase64;
-    }
-
-    public void setWithEncodeBase64(boolean encode) {
-        this.withEncodeBase64 = encode;
     }
 
     public String getWithPartitioner() {
@@ -774,11 +764,6 @@ public class Kcql {
                 } catch (NumberFormatException ex) {
                     throw new IllegalArgumentException("Invalid value specified for WITH_FLUSH_COUNT. Expecting a LONG number greater than 0.");
                 }
-            }
-
-            @Override
-            public void exitWith_encode_base64(ConnectorParser.With_encode_base64Context ctx) {
-                kcql.setWithEncodeBase64(true);
             }
 
         });

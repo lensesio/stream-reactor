@@ -730,12 +730,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
 
   }
 
-  test("handleEncode") {
-    val syntax = "insert into mytopic select a, b, c from topic WITH_ENCODE_BASE64"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithEncodeBase64 should be(true)
-  }
-
   test("handleUpdate") {
     val syntax = "update into mytopic select a, b, c from topic"
     val kcql   = Kcql.parse(syntax)
