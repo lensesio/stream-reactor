@@ -219,10 +219,6 @@ WITH_OVERWRITE
     : 'WITH_OVERWRITE' | 'with_overwrite'
     ;
 
-WITH_PARTITIONING
-    : 'WITH_PARTITIONING' | 'with_partitioning'
-    ;
-
 WITH_SESSION
     : 'WITH_SESSION' | 'with_session'
     ;

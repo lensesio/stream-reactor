@@ -899,22 +899,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     Kcql.parse(syntax2).getWithOverwrite should be(false)
   }
 
-  test("handleWithPartitioning") {
-    val topic  = "/TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_PARTITIONING = DYNAMIC"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithPartitioningStrategy should be(PartitioningStrategy.DYNAMIC)
-  }
-
-  test("throwExceptionOnInvalidWithPartitioning") {
-    assertThrows[IllegalArgumentException] {
-      val topic  = "/TOPIC_A"
-      val table  = "TABLE_A"
-      val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_PARTITIONING = BOGUS"
-      Kcql.parse(syntax)
-    }
-  }
   test("handleTTL") {
     val topic  = "TOPIC_A"
     val table  = "TABLE_A"

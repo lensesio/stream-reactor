@@ -452,14 +452,6 @@ public class Kcql {
         this.withOverwrite = withOverwrite;
     }
 
-    public PartitioningStrategy getWithPartitioningStrategy() {
-        return withPartitioningStrategy;
-    }
-
-    private void setWithPartitioningStrategy(PartitioningStrategy withPartitioningStrategy) {
-        this.withPartitioningStrategy = withPartitioningStrategy;
-    }
-
     public static Kcql parse(final String syntax) {
         final ConnectorLexer lexer = new ConnectorLexer(CharStreams.fromString(syntax));
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -1018,18 +1010,6 @@ public class Kcql {
             @Override
             public void exitWith_overwrite_clause(ConnectorParser.With_overwrite_clauseContext ctx) {
                 kcql.setWithOverwrite(true);
-            }
-
-            @Override
-            public void exitWith_partitioning_value(ConnectorParser.With_partitioning_valueContext ctx) {
-                //_dynamic_ and _static_
-                String value = ctx.getText().toUpperCase();
-                try {
-                    PartitioningStrategy strategy = Enum.valueOf(PartitioningStrategy.class, value);
-                    kcql.setWithPartitioningStrategy(strategy);
-                } catch (Throwable t) {
-                    throw new IllegalArgumentException("Invalid value specified for WITH_SCHEMA_EVOLUTION. Expecting one of the values:" + EnumsHelper.mkString(PartitioningStrategy.values()));
-                }
             }
 
             @Override
