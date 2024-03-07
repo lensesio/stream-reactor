@@ -77,10 +77,6 @@ WITHGROUP
     : 'withgroup' | 'WITHGROUP'
     ;
 
-WITHOFFSET
-    :  'withoffset' | 'WITHOFFSET'
-    ;
-
 WITHTAG
     :   'withtag' | 'WITHTAG'
     ;

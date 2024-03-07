@@ -52,7 +52,6 @@ public class Kcql {
     private String storedAs;
     private final Map<String, String> storedAsParameters = new HashMap<>();
     private String consumerGroup;
-    private List<PartitionOffset> partitions = null;
     private FormatType formatType = null;
     private boolean unwrapping = false;
     private List<Tag> tags;
@@ -274,10 +273,6 @@ public class Kcql {
 
     public String getConsumerGroup() {
         return consumerGroup;
-    }
-
-    public List<PartitionOffset> getPartitionOffset() {
-        return partitions;
     }
 
     public FormatType getFormatType() {
@@ -744,24 +739,6 @@ public class Kcql {
             @Override
             public void exitWith_consumer_group_value(ConnectorParser.With_consumer_group_valueContext ctx) {
                 kcql.consumerGroup = unescape(ctx.getText());
-            }
-
-            @Override
-            public void exitOffset_partition_inner(ConnectorParser.Offset_partition_innerContext ctx) {
-                String value = ctx.getText();
-                String[] split = value.split(",");
-
-                if (kcql.partitions == null) {
-                    kcql.partitions = new ArrayList<>();
-                }
-
-                int partition = Integer.parseInt(split[0]);
-                if (split.length == 1) {
-                    kcql.partitions.add(new PartitionOffset(partition));
-                } else {
-                    long offset = Long.parseLong(split[1]);
-                    kcql.partitions.add(new PartitionOffset(partition, offset));
-                }
             }
 
             @Override

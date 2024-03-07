@@ -165,60 +165,6 @@ class KcqlSelectOnlyTest extends AnyFunSuite {
     kcql.getFormatType should be(FormatType.AVRO)
   }
 
-  test("parseASelectAllFromTopicWithMultiplePartitionsAndOffset") {
-    val topic           = "TOPIC_A"
-    val expectedOffset1 = 1L
-    val partition1      = 2
-
-    val expectedOffset2 = 1252L
-    val partition2      = 0
-
-    val syntax =
-      s"SELECT * FROM $topic WITHFORMAT AVRO WITHOFFSET ($partition1,$expectedOffset1), ($partition2,$expectedOffset2)"
-    val kcql = Kcql.parse(syntax)
-    kcql.getSource should be(topic)
-    kcql.getTarget should be(null)
-    kcql.getFields should not be empty
-    kcql.getFields.get(0).getName should be("*")
-    val pks = kcql.getPrimaryKeys.asScala.map(_.toString).toSet
-
-    pks.size should be(0)
-
-    val partitionOffsets = kcql.getPartitionOffset
-    partitionOffsets should not be null
-    partitionOffsets.size should be(2)
-
-    val po1 = partitionOffsets.get(0)
-
-    po1.getPartition should be(partition1)
-    po1.getOffset should be(expectedOffset1)
-
-    val po2 = partitionOffsets.get(1)
-    po2.getPartition should be(partition2)
-    po2.getOffset should be(expectedOffset2)
-
-    kcql.getFormatType should be(FormatType.AVRO)
-  }
-
-  test("parseASelectAllFromTopicWithJustPartitionNoOffset") {
-    val topic = "TOPIC_A"
-
-    val syntax = s"SELECT * FROM $topic withformat text WITHOFFSET (0)"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getSource should be(topic)
-    kcql.getTarget should be(null)
-    kcql.getFields.get(0).getName should be("*")
-    val pks = kcql.getPrimaryKeys.asScala.map(_.toString).toSet
-
-    pks.size should be(0)
-    kcql.getPartitionOffset should not be null
-    kcql.getPartitionOffset.size should be(1)
-    val po = kcql.getPartitionOffset.get(0)
-    po.getPartition should be(0)
-    po.getOffset should be(null)
-
-  }
-
   test("parseASelectWithAliasingFields") {
     val topic  = "TOPIC-A"
     val syntax = s"SELECT f1 as col1, f2 as col2 FROM $topic withformat binary"

@@ -51,7 +51,7 @@ insert_from_clause
    ;
 
 select_clause
-   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_unwrap_clause)? (with_consumer_group)? (with_offset_list)? (limit_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_doc_type)? (with_index_suffix)? (with_converter)? (key_delimiter)? (ttl_clause)? (with_session_clause)?
+   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_unwrap_clause)? (with_consumer_group)? (limit_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_doc_type)? (with_index_suffix)? (with_converter)? (key_delimiter)? (ttl_clause)? (with_session_clause)?
    ;
 
 select_clause_basic
@@ -193,23 +193,6 @@ with_consumer_group
 
 with_consumer_group_value
     :  INT|FIELD| TOPICNAME | STRING
-    ;
-
-
-offset_partition_inner
-    : INT (COMMA INT)?
-    ;
-
-offset_partition
-    : (LEFT_PARAN offset_partition_inner RIGHT_PARAN)
-    ;
-
-partition_offset_list
-    : offset_partition ( COMMA offset_partition )*
-    ;
-
-with_offset_list
-    : WITHOFFSET partition_offset_list
     ;
 
 limit_clause
