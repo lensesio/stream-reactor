@@ -15,8 +15,6 @@
  */
 package io.lenses.kcql;
 
-import java.util.Enumeration;
-
 public enum WriteModeEnum {
   INSERT,
   UPSERT,
