@@ -865,23 +865,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     }
   }
 
-  test("handleWithSchemaEvolution") {
-    val topic  = "/TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_SCHEMA_EVOLUTION = ADD"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithSchemaEvolution should be(SchemaEvolution.ADD)
-  }
-
-  test("throwExceptionOnInvalidWithSchemaEvolution") {
-    assertThrows[IllegalArgumentException] {
-      val topic  = "/TOPIC_A"
-      val table  = "TABLE_A"
-      val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_SCHEMA_EVOLUTION = BOGUS"
-      Kcql.parse(syntax)
-    }
-  }
-
   test("handleTTL") {
     val topic  = "TOPIC_A"
     val table  = "TABLE_A"

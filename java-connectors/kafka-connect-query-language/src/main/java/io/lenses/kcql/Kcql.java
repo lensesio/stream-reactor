@@ -78,7 +78,6 @@ public class Kcql {
     private long withFlushInterval;
     private long withFlushSize;
     private long withFlushCount;
-    private SchemaEvolution withSchemaEvolution = SchemaEvolution.MATCH;
 
     private int delay;
     private String withSession;
@@ -424,14 +423,6 @@ public class Kcql {
 
     private void setWithFlushSize(long withFlushSize) {
         this.withFlushSize = withFlushSize;
-    }
-
-    public SchemaEvolution getWithSchemaEvolution() {
-        return withSchemaEvolution;
-    }
-
-    private void setWithSchemaEvolution(SchemaEvolution withSchemaEvolution) {
-        this.withSchemaEvolution = withSchemaEvolution;
     }
 
     public static Kcql parse(final String syntax) {
@@ -970,17 +961,6 @@ public class Kcql {
                     kcql.setWithFlushCount(interval);
                 } catch (NumberFormatException ex) {
                     throw new IllegalArgumentException("Invalid value specified for WITH_FLUSH_COUNT. Expecting a LONG number greater than 0.");
-                }
-            }
-
-            @Override
-            public void exitWith_schema_evolution_value(ConnectorParser.With_schema_evolution_valueContext ctx) {
-                String value = ctx.getText().toUpperCase();
-                try {
-                    SchemaEvolution schemaEvolution = Enum.valueOf(SchemaEvolution.class, value);
-                    kcql.setWithSchemaEvolution(schemaEvolution);
-                } catch (Throwable t) {
-                    throw new IllegalArgumentException("Invalid value specified for WITH_SCHEMA_EVOLUTION. Expecting one of the values:" + EnumsHelper.mkString(SchemaEvolution.values()));
                 }
             }
 

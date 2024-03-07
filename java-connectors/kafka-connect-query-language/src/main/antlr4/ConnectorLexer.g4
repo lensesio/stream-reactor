@@ -207,10 +207,6 @@ WITH_FLUSH_COUNT
     : 'WITH_FLUSH_COUNT' | 'with_flush_count'
     ;
 
-WITH_SCHEMA_EVOLUTION
-    : 'WITH_SCHEMA_EVOLUTION'|'with_schema_evolution'
-    ;
-
 WITH_SESSION
     : 'WITH_SESSION' | 'with_session'
     ;
