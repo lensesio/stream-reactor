@@ -35,10 +35,6 @@ write_mode
    : insert_into | upsert_into | upsert_pk_into | update_into
    ;
 
-schema_name
-   : FIELD
-   ;
-
 insert_from_clause
    : write_mode table_name select_clause_basic ( autocreate )? (with_structure)? ( PK primary_key_list)? (with_target)? ( autoevolve )? ( batching )?
     (partitionby)? (timestamp_clause)? (timestamp_unit_clause)?
@@ -92,10 +88,6 @@ column_list
 
 from_clause
    : FROM table_name
-   ;
-
-ignored_name
-   : FIELD | TOPICNAME | STRING
    ;
 
 with_ignore
@@ -181,15 +173,6 @@ with_structure
 with_format
     : FIELD
     ;
-
-project_to
-    : PROJECTTO version_number
-    ;
-
-version_number
-    : INT
-    ;
-
 
 properties_clause
     : PROPERTIES LEFT_PARAN ()properties_list RIGHT_PARAN
@@ -390,8 +373,4 @@ with_flush_records_clause
 
 with_flush_records_value
     : INT
-    ;
-
- with_encode_base64
-    : WITH_ENCODE_BASE64
     ;
