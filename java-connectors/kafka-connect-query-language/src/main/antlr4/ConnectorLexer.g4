@@ -73,10 +73,6 @@ SYS_TIME
     : 'sys_time()' | 'SYS_TIME()'
     ;
 
-WITHGROUP
-    : 'withgroup' | 'WITHGROUP'
-    ;
-
 WITHTAG
     :   'withtag' | 'WITHTAG'
     ;

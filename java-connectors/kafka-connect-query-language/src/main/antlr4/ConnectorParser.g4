@@ -51,7 +51,7 @@ insert_from_clause
    ;
 
 select_clause
-   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_unwrap_clause)? (with_consumer_group)? (limit_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_doc_type)? (with_index_suffix)? (with_converter)? (key_delimiter)? (ttl_clause)? (with_session_clause)?
+   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_unwrap_clause)? (limit_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_doc_type)? (with_index_suffix)? (with_converter)? (key_delimiter)? (ttl_clause)? (with_session_clause)?
    ;
 
 select_clause_basic
@@ -185,14 +185,6 @@ clusterby_list
 
 clusterby
     : CLUSTERBY clusterby_list INTO buckets_number BUCKETS
-    ;
-
-with_consumer_group
-    :  WITHGROUP with_consumer_group_value
-    ;
-
-with_consumer_group_value
-    :  INT|FIELD| TOPICNAME | STRING
     ;
 
 limit_clause

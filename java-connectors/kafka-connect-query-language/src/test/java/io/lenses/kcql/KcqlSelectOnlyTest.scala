@@ -41,7 +41,6 @@ class KcqlSelectOnlyTest extends AnyFunSuite {
     val pks = kcql.getPrimaryKeys.asScala.map(_.toString).toSet
 
     pks.size should be(0)
-    kcql.getConsumerGroup should be(null)
     kcql.getFormatType should be(FormatType.TEXT)
   }
 
@@ -131,38 +130,6 @@ class KcqlSelectOnlyTest extends AnyFunSuite {
     kcql.getPrimaryKeys.get(0).getName should be("sensorID")
     kcql.getPrimaryKeys.get(0).getAlias should be("sensorID")
     kcql.getPrimaryKeys.get(0).getParentFields should be(null)
-  }
-
-  test("parseASelectAllFromTopicWithAConsumerGroup") {
-    val topic                 = "TOPIC_A"
-    val expectedConsumerGroup = "myconsumer-group"
-    val syntax                = s"SELECT * FROM $topic withformat binary WITHGROUP $expectedConsumerGroup"
-    val kcql                  = Kcql.parse(syntax)
-    kcql.getSource should be(topic)
-    kcql.getTarget should be(null)
-    kcql.getFields should not be empty
-    kcql.getFields.get(0).getName should be("*")
-    val pks = kcql.getPrimaryKeys.asScala.map(_.toString).toSet
-
-    pks.size should be(0)
-    kcql.getConsumerGroup should be(expectedConsumerGroup)
-    kcql.getFormatType should be(FormatType.BINARY)
-  }
-
-  test("parseASelectAllFromTopicWithAConsumerGroup123") {
-    val topic                 = "TOPIC_A"
-    val expectedConsumerGroup = "123"
-    val syntax                = s"SELECT * FROM $topic withformat avro WITHGROUP $expectedConsumerGroup"
-    val kcql                  = Kcql.parse(syntax)
-    kcql.getSource should be(topic)
-    kcql.getTarget should be(null)
-    kcql.getFields should not be empty
-    kcql.getFields.get(0).getName should be("*")
-    val pks = kcql.getPrimaryKeys.asScala.map(_.toString).toSet
-
-    pks.size should be(0)
-    kcql.getConsumerGroup should be(expectedConsumerGroup)
-    kcql.getFormatType should be(FormatType.AVRO)
   }
 
   test("parseASelectWithAliasingFields") {

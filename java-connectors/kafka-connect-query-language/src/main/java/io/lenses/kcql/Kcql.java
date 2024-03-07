@@ -51,7 +51,6 @@ public class Kcql {
     private String timestamp;
     private String storedAs;
     private final Map<String, String> storedAsParameters = new HashMap<>();
-    private String consumerGroup;
     private FormatType formatType = null;
     private boolean unwrapping = false;
     private List<Tag> tags;
@@ -269,10 +268,6 @@ public class Kcql {
 
     public Map<String, String> getProperties() {
         return properties;
-    }
-
-    public String getConsumerGroup() {
-        return consumerGroup;
     }
 
     public FormatType getFormatType() {
@@ -734,11 +729,6 @@ public class Kcql {
             @Override
             public void exitTimestamp_value(ConnectorParser.Timestamp_valueContext ctx) {
                 kcql.timestamp = ctx.getText();
-            }
-
-            @Override
-            public void exitWith_consumer_group_value(ConnectorParser.With_consumer_group_valueContext ctx) {
-                kcql.consumerGroup = unescape(ctx.getText());
             }
 
             @Override
