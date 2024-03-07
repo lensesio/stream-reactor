@@ -45,7 +45,7 @@ insert_from_clause
     ( with_format_clause )? (with_unwrap_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_type)? (with_doc_type)? (with_index_suffix)?
     (ttl_clause)? (with_converter)? (with_jms_selector)? (with_key)? (key_delimiter)? (with_pipeline_clause)? (with_partitioner_clause)?
     (with_subscription_clause)? (with_compression_clause)? (with_delay_clause)? (with_regex_clause)? (with_flush_size_clause)?
-    (with_flush_interval_clause)? (with_flush_records_clause)? (with_schema_evolution_clause)? (with_table_location_clause)? (with_overwrite_clause)?
+    (with_flush_interval_clause)? (with_flush_records_clause)? (with_schema_evolution_clause)? (with_table_location_clause)?
     (limit_clause)? (with_session_clause)? (with_ack_clause)? (with_encode_base64)? (with_lock_time_clause)?
     (properties_clause)?
    ;
@@ -496,18 +496,6 @@ with_table_location_clause
 
 with_table_location_value
     : ID | TOPICNAME
-    ;
-
-with_overwrite_clause
-    : WITH_OVERWRITE
-    ;
-
-with_partitioning_clause
-    : WITH_PARTITIONING EQUAL with_partitioning_value
-    ;
-
-with_partitioning_value
-    : FIELD
     ;
 
 with_session_clause

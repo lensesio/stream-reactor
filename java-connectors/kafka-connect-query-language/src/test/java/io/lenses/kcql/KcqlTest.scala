@@ -890,15 +890,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     }
   }
 
-  test("handleWithOverwrite") {
-    val topic   = "/TOPIC_A"
-    val table   = "TABLE_A"
-    val syntax1 = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_OVERWRITE"
-    Kcql.parse(syntax1).getWithOverwrite should be(true)
-    val syntax2 = s"INSERT INTO $table SELECT col1,col2 FROM $topic"
-    Kcql.parse(syntax2).getWithOverwrite should be(false)
-  }
-
   test("handleTTL") {
     val topic  = "TOPIC_A"
     val table  = "TABLE_A"

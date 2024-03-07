@@ -444,14 +444,6 @@ public class Kcql {
         this.withTableLocation = withTableLocation;
     }
 
-    public boolean getWithOverwrite() {
-        return withOverwrite;
-    }
-
-    private void setWithOverwrite(boolean withOverwrite) {
-        this.withOverwrite = withOverwrite;
-    }
-
     public static Kcql parse(final String syntax) {
         final ConnectorLexer lexer = new ConnectorLexer(CharStreams.fromString(syntax));
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -1005,11 +997,6 @@ public class Kcql {
             @Override
             public void exitWith_table_location_value(ConnectorParser.With_table_location_valueContext ctx) {
                 kcql.setWithTableLocation(unescape(ctx.getText()));
-            }
-
-            @Override
-            public void exitWith_overwrite_clause(ConnectorParser.With_overwrite_clauseContext ctx) {
-                kcql.setWithOverwrite(true);
             }
 
             @Override

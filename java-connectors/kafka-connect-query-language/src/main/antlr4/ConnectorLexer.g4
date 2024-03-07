@@ -215,10 +215,6 @@ WITH_TABLE_LOCATION
     : 'WITH_TABLE_LOCATION' | 'with_table_location'
     ;
 
-WITH_OVERWRITE
-    : 'WITH_OVERWRITE' | 'with_overwrite'
-    ;
-
 WITH_SESSION
     : 'WITH_SESSION' | 'with_session'
     ;
