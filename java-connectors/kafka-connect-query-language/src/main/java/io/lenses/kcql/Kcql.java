@@ -70,7 +70,6 @@ public class Kcql {
     private long withFlushSize;
     private long withFlushCount;
 
-    private int delay;
     private String withSession;
     private boolean withAck = false;
     private boolean withEncodeBase64 = false;
@@ -119,14 +118,6 @@ public class Kcql {
 
     public void SetWithSubscription(String name) {
         this.subscription = name;
-    }
-
-    public int getWithDelay() {
-        return this.delay;
-    }
-
-    public void setWithDelay(Integer delay) {
-        this.delay = delay;
     }
 
     public void setTTL(long ttl) {
@@ -502,12 +493,6 @@ public class Kcql {
                 if (parents.size() > 0) {
                     parents.remove(0);
                 }
-            }
-
-
-            @Override
-            public void exitWith_delay_value(ConnectorParser.With_delay_valueContext ctx) {
-                kcql.delay = Integer.parseInt(ctx.getText());
             }
 
             @Override

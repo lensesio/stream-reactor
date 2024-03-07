@@ -636,13 +636,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     kcql.getPipeline should be("field1.field2.field3")
   }
 
-
-  test("handleWithDelay") {
-    val syntax = "INSERT INTO A SELECT * FROM B WITHDELAY = 1000"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithDelay should be(1000)
-  }
-
   test("handleWithSubscription") {
     val syntax = "INSERT INTO A SELECT * FROM B WITHSUBSCRIPTION = shared"
     val kcql   = Kcql.parse(syntax)

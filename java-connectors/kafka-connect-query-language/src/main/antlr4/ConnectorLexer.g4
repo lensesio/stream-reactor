@@ -145,10 +145,6 @@ WITHPIPELINE
     : 'WITHPIPELINE' | 'withpipeline'
     ;
 
-WITHDELAY
-    : 'WITHDELAY'|'withdelay'
-    ;
-
 WITHREGEX
     : 'WITHREGEX'|'withregex'
     ;
