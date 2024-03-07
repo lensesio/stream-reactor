@@ -79,9 +79,7 @@ public class Kcql {
     private long withFlushSize;
     private long withFlushCount;
     private SchemaEvolution withSchemaEvolution = SchemaEvolution.MATCH;
-    private String withTableLocation;
-    private boolean withOverwrite;
-    private PartitioningStrategy withPartitioningStrategy;
+
     private int delay;
     private String withSession;
     private boolean withAck = false;
@@ -434,14 +432,6 @@ public class Kcql {
 
     private void setWithSchemaEvolution(SchemaEvolution withSchemaEvolution) {
         this.withSchemaEvolution = withSchemaEvolution;
-    }
-
-    public String getWithTableLocation() {
-        return withTableLocation;
-    }
-
-    private void setWithTableLocation(String withTableLocation) {
-        this.withTableLocation = withTableLocation;
     }
 
     public static Kcql parse(final String syntax) {
@@ -992,11 +982,6 @@ public class Kcql {
                 } catch (Throwable t) {
                     throw new IllegalArgumentException("Invalid value specified for WITH_SCHEMA_EVOLUTION. Expecting one of the values:" + EnumsHelper.mkString(SchemaEvolution.values()));
                 }
-            }
-
-            @Override
-            public void exitWith_table_location_value(ConnectorParser.With_table_location_valueContext ctx) {
-                kcql.setWithTableLocation(unescape(ctx.getText()));
             }
 
             @Override

@@ -865,14 +865,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     }
   }
 
-  test("handleWithTableLocation") {
-    val topic  = "/TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_TABLE_LOCATION = `/magic/location/on/my/ssd`"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithTableLocation should be("/magic/location/on/my/ssd")
-  }
-
   test("handleWithSchemaEvolution") {
     val topic  = "/TOPIC_A"
     val table  = "TABLE_A"

@@ -211,10 +211,6 @@ WITH_SCHEMA_EVOLUTION
     : 'WITH_SCHEMA_EVOLUTION'|'with_schema_evolution'
     ;
 
-WITH_TABLE_LOCATION
-    : 'WITH_TABLE_LOCATION' | 'with_table_location'
-    ;
-
 WITH_SESSION
     : 'WITH_SESSION' | 'with_session'
     ;
