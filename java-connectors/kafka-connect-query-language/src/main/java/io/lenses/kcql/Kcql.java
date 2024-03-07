@@ -29,7 +29,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class Kcql {
 
-    public final static String TIMESTAMP = "sys_time()";
+    public static final String TIMESTAMP = "sys_time()";
+    private static final String MSG_ILLEGAL_FIELD_ALIAS = "Illegal fieldAlias.";
     private String query;
     private boolean autoCreate;
     private boolean autoEvolve;
@@ -106,7 +107,7 @@ public class Kcql {
 
     private void addField(final Field field) {
         if (field == null) {
-            throw new IllegalArgumentException("Illegal fieldAlias.");
+            throw new IllegalArgumentException(MSG_ILLEGAL_FIELD_ALIAS);
         }
         if (fieldExists(field)) {
             throw new IllegalArgumentException(String.format("Field %s has already been defined", field.getName()));
@@ -117,7 +118,7 @@ public class Kcql {
 
     private void addKeyField(final Field field) {
         if (field == null) {
-            throw new IllegalArgumentException("Illegal fieldAlias.");
+            throw new IllegalArgumentException(MSG_ILLEGAL_FIELD_ALIAS);
         }
         if (fieldExists(field)) {
             throw new IllegalArgumentException(String.format("Key field %s has already been defined", field.getName()));
@@ -127,7 +128,7 @@ public class Kcql {
 
     private void addHeaderField(final Field field) {
         if (field == null) {
-            throw new IllegalArgumentException("Illegal fieldAlias.");
+            throw new IllegalArgumentException(MSG_ILLEGAL_FIELD_ALIAS);
         }
         if (fieldExists(field)) {
             throw new IllegalArgumentException(String.format("Header field %s has already been defined", field.getName()));
@@ -195,7 +196,7 @@ public class Kcql {
     }
 
     public List<Field> getPrimaryKeys() {
-        return primaryKeys;//.iterator();
+        return primaryKeys;
     }
 
     public String getTimestamp() {
@@ -426,7 +427,7 @@ public class Kcql {
                 String name = nestedFieldsBuffer.get(nestedFieldsBuffer.size() - 1);
                 nestedFieldsBuffer.remove(nestedFieldsBuffer.size() - 1);
 
-                if (nestedFieldsBuffer.size() > 0) {
+                if (!nestedFieldsBuffer.isEmpty()) {
                     parentFields = nestedFieldsBuffer;
                 }
 
@@ -461,7 +462,7 @@ public class Kcql {
             }
 
             private void trimParentField(List<String> parents) {
-                if (parents.size() > 0) {
+                if (!parents.isEmpty()) {
                     parents.remove(0);
                 }
             }
@@ -547,13 +548,12 @@ public class Kcql {
                 String name = nestedFieldsBuffer.get(nestedFieldsBuffer.size() - 1);
                 nestedFieldsBuffer.remove(nestedFieldsBuffer.size() - 1);
 
-                if (nestedFieldsBuffer.size() > 0) {
+                if (!nestedFieldsBuffer.isEmpty()) {
                     parentFields = nestedFieldsBuffer;
                 }
 
                 Field field = Field.from(name, parentFields);
                 kcql.primaryKeys.add(field);
-                //kcql.addPrimaryKey(ctx.getText());
             }
 
             @Override
