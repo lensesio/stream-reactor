@@ -20,94 +20,81 @@ import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
-import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindCompletionConfig
-import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindResults
+import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryLister
+import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model._
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
-object AwsS3DirectoryLister extends LazyLogging {
+class AwsS3DirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client)
+    extends LazyLogging
+    with DirectoryLister {
+
+  private val listObjectsF: ListObjectsV2Request => IO[Iterator[ListObjectsV2Response]] = e =>
+    IO(s3Client.listObjectsV2Paginator(e).iterator().asScala)
 
   /**
     * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
     */
-  def findDirectories(
+  override def findDirectories(
     bucketAndPrefix:  CloudLocation,
-    completionConfig: DirectoryFindCompletionConfig,
+    filesLimit:       Int,
+    recurseLevels:    Int,
     exclude:          Set[String],
     wildcardExcludes: Set[String],
-    listObjectsF:     ListObjectsV2Request => Iterator[ListObjectsV2Response],
-    connectorTaskId:  ConnectorTaskId,
-  ): IO[DirectoryFindResults] =
+  ): IO[Set[String]] =
     for {
-      iterator <- IO(listObjectsF(createListObjectsRequest(bucketAndPrefix)))
-      prefixInfo <- extractPrefixesFromResponse(iterator,
-                                                exclude,
-                                                wildcardExcludes,
-                                                connectorTaskId,
-                                                completionConfig.levelsToRecurse,
-      )
-      flattened <- flattenPrefixes(
-        bucketAndPrefix,
-        prefixInfo.partitions,
-        completionConfig,
-        exclude,
-        wildcardExcludes,
-        listObjectsF,
-        connectorTaskId,
-      )
-    } yield DirectoryFindResults(flattened)
+      iterator   <- listObjects(filesLimit, bucketAndPrefix)
+      prefixInfo <- extractPrefixesFromResponse(iterator, exclude, wildcardExcludes, recurseLevels)
+      flattened  <- flattenPrefixes(bucketAndPrefix, filesLimit, prefixInfo, recurseLevels, exclude, wildcardExcludes)
+    } yield flattened
+
+  private def listObjects(filesLimit: Int, bucketAndPrefix: CloudLocation): IO[Iterator[ListObjectsV2Response]] = {
+
+    def createListObjectsRequest(
+      bucketAndPrefix: CloudLocation,
+    ): ListObjectsV2Request = {
+
+      val builder = ListObjectsV2Request
+        .builder()
+        .maxKeys(filesLimit)
+        .bucket(bucketAndPrefix.bucket)
+        .delimiter("/")
+      bucketAndPrefix.prefix.foreach(builder.prefix)
+      builder.build()
+    }
+
+    listObjectsF(createListObjectsRequest(bucketAndPrefix))
+  }
 
   /**
     * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
     */
   private def flattenPrefixes(
     bucketAndPrefix:  CloudLocation,
+    filesLimit:       Int,
     prefixes:         Set[String],
-    completionConfig: DirectoryFindCompletionConfig,
+    recurseLevels:    Int,
     exclude:          Set[String],
     wildcardExcludes: Set[String],
-    listObjectsF:     ListObjectsV2Request => Iterator[ListObjectsV2Response],
-    connectorTaskId:  ConnectorTaskId,
   ): IO[Set[String]] =
-    if (completionConfig.levelsToRecurse <= 0) IO.delay(prefixes)
+    if (recurseLevels <= 0) IO.delay(prefixes)
     else {
       prefixes.map(bucketAndPrefix.fromRoot).toList
-        .traverse(
-          findDirectories(
-            _,
-            completionConfig.copy(levelsToRecurse = completionConfig.levelsToRecurse - 1),
-            exclude,
-            wildcardExcludes,
-            listObjectsF,
-            connectorTaskId,
-          ).map(_.partitions),
+        .traverse((bucketAndPrefix: CloudLocation) =>
+          findDirectories(bucketAndPrefix, filesLimit, recurseLevels - 1, exclude, wildcardExcludes),
         )
         .map { result =>
           result.foldLeft(Set.empty[String])(_ ++ _)
         }
     }
 
-  private def createListObjectsRequest(
-    bucketAndPrefix: CloudLocation,
-  ): ListObjectsV2Request = {
-
-    val builder = ListObjectsV2Request
-      .builder()
-      .maxKeys(1000)
-      .bucket(bucketAndPrefix.bucket)
-      .delimiter("/")
-    bucketAndPrefix.prefix.foreach(builder.prefix)
-    builder.build()
-  }
-
   private def extractPrefixesFromResponse(
     iterator:         Iterator[ListObjectsV2Response],
     exclude:          Set[String],
     wildcardExcludes: Set[String],
-    connectorTaskId:  ConnectorTaskId,
     levelsToRecurse:  Int,
-  ): IO[DirectoryFindResults] =
+  ): IO[Set[String]] =
     IO {
       val paths = iterator.foldLeft(Set.empty[String]) {
         case (acc, listResp) =>
@@ -128,6 +115,6 @@ object AwsS3DirectoryLister extends LazyLogging {
               }
           acc ++ commonPrefixesFiltered
       }
-      DirectoryFindResults(paths)
+      paths
     }
 }

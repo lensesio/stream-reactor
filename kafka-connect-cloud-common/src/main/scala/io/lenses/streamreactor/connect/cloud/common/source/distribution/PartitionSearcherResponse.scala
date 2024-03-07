@@ -16,11 +16,10 @@
 package io.lenses.streamreactor.connect.cloud.common.source.distribution
 
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
-import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindResults
 
 case class PartitionSearcherResponse(
   root:          CloudLocation,
   allPartitions: Set[String],
-  results:       DirectoryFindResults,
+  results:       Set[String],
   error:         Option[Exception],
 )

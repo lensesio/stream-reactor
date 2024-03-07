@@ -13,20 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.aws.s3.source.distribution
+package io.lenses.streamreactor.connect.cloud.common.source.distribution
 
 import cats.effect.IO
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
-import io.lenses.streamreactor.connect.cloud.common.source.distribution.PartitionSearcherResponse
-import io.lenses.streamreactor.connect.cloud.common.source.state.PartitionSearcher
-import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindCompletionConfig
-import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
-import software.amazon.awssdk.services.s3.model.ListObjectsV2Response
+import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryLister
 
 /**
   * Class implementing a partition searcher for S3 cloud storage.
@@ -35,13 +30,13 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Response
   * @param roots           The list of root locations in which to search for partitions.
   * @param settings        The configuration options for partition searching.
   * @param connectorTaskId The identifier for the connector task.
-  * @param listS3ObjF      A function to list objects in S3 buckets.
   */
-class S3PartitionSearcher(
+class CloudPartitionSearcher(
+  fFilesLimit:     CloudLocation => Either[Throwable, Int],
+  directoryLister: DirectoryLister,
   roots:           Seq[CloudLocation],
   settings:        PartitionSearcherOptions,
   connectorTaskId: ConnectorTaskId,
-  listS3ObjF:      ListObjectsV2Request => Iterator[ListObjectsV2Response],
 ) extends PartitionSearcher
     with LazyLogging {
 
@@ -71,22 +66,20 @@ class S3PartitionSearcher(
     root:               CloudLocation,
     settings:           PartitionSearcherOptions,
     originalPartitions: Set[String],
-  ): IO[PartitionSearcherResponse] = {
-    val config = DirectoryFindCompletionConfig.fromSearchOptions(settings)
+  ): IO[PartitionSearcherResponse] =
     for {
-      foundPartitions <- AwsS3DirectoryLister.findDirectories(
-        root,
-        config,
-        originalPartitions,
-        settings.wildcardExcludes,
-        listS3ObjF,
-        connectorTaskId,
+      filesLimit <- IO.fromEither(fFilesLimit(root))
+      foundPartitions <- directoryLister.findDirectories(root,
+                                                         filesLimit,
+                                                         settings.recurseLevels,
+                                                         originalPartitions,
+                                                         settings.wildcardExcludes,
       )
       _ <- IO {
-        if (foundPartitions.partitions.nonEmpty)
+        if (foundPartitions.nonEmpty)
           logger.info("[{}] Found new partitions {} for: {}",
                       connectorTaskId.show,
-                      foundPartitions.partitions.mkString(","),
+                      foundPartitions.mkString(","),
                       root.show,
           )
         else
@@ -95,10 +88,9 @@ class S3PartitionSearcher(
 
     } yield PartitionSearcherResponse(
       root,
-      originalPartitions ++ foundPartitions.partitions,
+      originalPartitions ++ foundPartitions,
       foundPartitions,
       Option.empty,
     )
-  }
 
 }

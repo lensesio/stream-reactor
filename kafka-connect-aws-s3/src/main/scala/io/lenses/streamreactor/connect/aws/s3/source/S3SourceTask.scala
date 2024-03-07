@@ -19,16 +19,14 @@ import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
-import io.lenses.streamreactor.connect.aws.s3.source.distribution.S3PartitionSearcher
+import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.CloudSourceTask
-import io.lenses.streamreactor.connect.cloud.common.source.state.PartitionSearcher
+import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryLister
 import software.amazon.awssdk.services.s3.S3Client
-
-import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 class S3SourceTask
     extends CloudSourceTask[
@@ -55,17 +53,8 @@ class S3SourceTask
     props:           Map[String, String],
   ): Either[Throwable, S3SourceConfig] = S3SourceConfig.fromProps(connectorTaskId, props)(validator)
 
-  override def createPartitionSearcher(
-    connectorTaskId: ConnectorTaskId,
-    config:          S3SourceConfig,
-    client:          S3Client,
-  ): PartitionSearcher =
-    new S3PartitionSearcher(
-      config.bucketOptions.map(_.sourceBucketAndPrefix),
-      config.partitionSearcher,
-      connectorTaskId,
-      client.listObjectsV2Paginator(_).iterator().asScala,
-    )
-
   override def connectorPrefix: String = CONNECTOR_PREFIX
+
+  override def createDirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client): DirectoryLister =
+    new AwsS3DirectoryLister(connectorTaskId, s3Client)
 }
