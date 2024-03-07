@@ -105,10 +105,6 @@ PK
    : 'pk' | 'PK'
    ;
 
-SAMPLE
-    : 'sample' | 'SAMPLE'
-    ;
-
 EVERY
     : 'every'|'EVERY'
     ;

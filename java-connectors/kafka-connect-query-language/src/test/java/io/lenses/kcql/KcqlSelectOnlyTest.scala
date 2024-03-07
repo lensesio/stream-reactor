@@ -42,8 +42,6 @@ class KcqlSelectOnlyTest extends AnyFunSuite {
 
     pks.size should be(0)
     kcql.getConsumerGroup should be(null)
-    kcql.getSampleCount should be(null)
-    kcql.getSampleRate should be(null)
     kcql.getFormatType should be(FormatType.TEXT)
   }
 
@@ -148,8 +146,6 @@ class KcqlSelectOnlyTest extends AnyFunSuite {
 
     pks.size should be(0)
     kcql.getConsumerGroup should be(expectedConsumerGroup)
-    kcql.getSampleCount should be(null)
-    kcql.getSampleRate should be(null)
     kcql.getFormatType should be(FormatType.BINARY)
   }
 
@@ -201,8 +197,6 @@ class KcqlSelectOnlyTest extends AnyFunSuite {
     po2.getPartition should be(partition2)
     po2.getOffset should be(expectedOffset2)
 
-    kcql.getSampleCount should be(null)
-    kcql.getSampleRate should be(null)
     kcql.getFormatType should be(FormatType.AVRO)
   }
 
@@ -223,8 +217,6 @@ class KcqlSelectOnlyTest extends AnyFunSuite {
     po.getPartition should be(0)
     po.getOffset should be(null)
 
-    kcql.getSampleCount should be(null)
-    kcql.getSampleRate should be(null)
   }
 
   test("parseASelectWithAliasingFields") {
@@ -259,8 +251,6 @@ class KcqlSelectOnlyTest extends AnyFunSuite {
     map("f3").getAlias should be("f3")
     map should contain key "f4"
     map("f4").getAlias should be("f4")
-    kcql.getSampleCount should be(null)
-    kcql.getSampleRate should be(null)
     kcql.hasRetainStructure should be(false)
   }
 
@@ -281,8 +271,6 @@ class KcqlSelectOnlyTest extends AnyFunSuite {
     map("f3").getAlias should be("f3")
     map should contain key "f4"
     map("f4").getAlias should be("f4")
-    kcql.getSampleCount should be(null)
-    kcql.getSampleRate should be(null)
     kcql.hasRetainStructure should be(false)
   }
 
@@ -303,34 +291,7 @@ class KcqlSelectOnlyTest extends AnyFunSuite {
     map("f3").getAlias should be("f3")
     map should contain key "f4"
     map("f4").getAlias should be("f4")
-    kcql.getSampleCount should be(null)
-    kcql.getSampleRate should be(null)
     kcql.hasRetainStructure should be(true)
-  }
-
-  test("parseASelectWithSampleRateAndSampleCount") {
-    val topic               = "TOPIC.A"
-    val expectedSampleCount = 100
-    val expectedSampleRate  = 1500
-    val syntax =
-      s"SELECT f1 as col1, f3, f2 as col2,f4 FROM `$topic` withformat binary SAMPLE $expectedSampleCount EVERY $expectedSampleRate"
-    val kcql = Kcql.parse(syntax)
-    kcql.getSource should be(topic)
-    kcql.getTarget should be(null)
-    val fa  = kcql.getFields.asScala.toList
-    val map = fa.map(f => f.getName -> f).toMap
-    fa.size should be(4)
-    map should contain key "f1"
-    map("f1").getAlias should be("col1")
-    map should contain key "f2"
-    map("f2").getAlias should be("col2")
-    map should contain key "f3"
-    map("f3").getAlias should be("f3")
-    map should contain key "f4"
-    map("f4").getAlias should be("f4")
-
-    kcql.getSampleCount should be(expectedSampleCount)
-    kcql.getSampleRate should be(expectedSampleRate)
   }
 
   test("throwAnExceptionIfTheFromOffsetIsNotAValidNumber") {
@@ -341,33 +302,9 @@ class KcqlSelectOnlyTest extends AnyFunSuite {
     }
   }
 
-  test("throwAnExceptionIfTheSampleCountIsNotANumber") {
-    val topic  = "TOPIC.A"
-    val syntax = s"SELECT f1 as col1, f3, f2 as col2,f4 FROM $topic  WITHFORMAT AVRO SAMPLE a EVERY 10000"
-    assertThrows[IllegalArgumentException] {
-      Kcql.parse(syntax)
-    }
-  }
-
-  test("throwAnExceptionIfTheSampleCountIsZero") {
-    val topic  = "TOPIC.A"
-    val syntax = s"SELECT f1 as col1, f3, f2 as col2,f4 FROM $topic WITHFORMAT AVRO SAMPLE 0 EVERY 10000"
-    assertThrows[IllegalArgumentException] {
-      Kcql.parse(syntax)
-    }
-  }
-
   test("throwAnExceptionIfTheSampleRateIsNotANumber") {
     val topic  = "TOPIC.A"
     val syntax = s"SELECT f1 as col1, f3, f2 as col2,f4 FROM $topic WITHFORMAT AVRO SAMPLE 10 EVERY a91"
-    assertThrows[IllegalArgumentException] {
-      Kcql.parse(syntax)
-    }
-  }
-
-  test("throwAnExceptionIfTheSampleRateIsZero") {
-    val topic  = "TOPIC.A"
-    val syntax = s"SELECT f1 as col1, f3, f2 as col2,f4 FROM $topic WITHFORMAT AVRO SAMPLE 10 EVERY 0"
     assertThrows[IllegalArgumentException] {
       Kcql.parse(syntax)
     }

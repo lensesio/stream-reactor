@@ -33,7 +33,6 @@ public class Kcql {
     private String query;
     private boolean autoCreate;
     private boolean autoEvolve;
-    private boolean enableCapitalize;
     private WriteModeEnum writeMode;
     private String source;
     private String target;
@@ -54,8 +53,6 @@ public class Kcql {
     private final Map<String, String> storedAsParameters = new HashMap<>();
     private String consumerGroup;
     private List<PartitionOffset> partitions = null;
-    private Integer sampleCount;
-    private Integer sampleRate;
     private FormatType formatType = null;
     private boolean unwrapping = false;
     private List<Tag> tags;
@@ -281,14 +278,6 @@ public class Kcql {
 
     public List<PartitionOffset> getPartitionOffset() {
         return partitions;
-    }
-
-    public Integer getSampleCount() {
-        return sampleCount;
-    }
-
-    public Integer getSampleRate() {
-        return sampleRate;
     }
 
     public FormatType getFormatType() {
@@ -696,11 +685,6 @@ public class Kcql {
             }
 
             @Override
-            public void exitCapitalize(ConnectorParser.CapitalizeContext ctx) {
-                kcql.enableCapitalize = true;
-            }
-
-            @Override
             public void exitBuckets_number(ConnectorParser.Buckets_numberContext ctx) {
                 bucketsNumber[0] = Integer.parseInt(ctx.getText());
             }
@@ -795,17 +779,6 @@ public class Kcql {
                     }
                     throw new IllegalArgumentException(("Invalid 'TIMESTAMPUNIT'. Available values are : " + sb));
                 }
-            }
-
-            @Override
-            public void exitSample_value(ConnectorParser.Sample_valueContext ctx) {
-                Integer value = Integer.parseInt(ctx.getText());
-                kcql.sampleCount = value;
-            }
-
-            @Override
-            public void exitSample_period(ConnectorParser.Sample_periodContext ctx) {
-                kcql.sampleRate = Integer.parseInt(ctx.getText());
             }
 
             @Override
@@ -978,13 +951,6 @@ public class Kcql {
             }
         }
 
-        if (kcql.sampleCount != null && kcql.sampleCount == 0) {
-            throw new IllegalArgumentException("Sample count needs to be a positive number greater than zero");
-        }
-
-        if (kcql.sampleRate != null && kcql.sampleRate == 0) {
-            throw new IllegalArgumentException("Sample rate should be a positive number greater than zero");
-        }
         return kcql;
     }
 
