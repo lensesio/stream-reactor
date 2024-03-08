@@ -12,6 +12,7 @@ ThisBuild / scalaVersion := Dependencies.scalaVersion
 lazy val subProjects: Seq[Project] = Seq(
   `query-language`,
   common,
+  `sql-common`,
   `cloud-common`,
   `aws-s3`,
   `azure-documentdb`,
@@ -48,13 +49,28 @@ lazy val `query-language` = (project in file("java-connectors/kafka-connect-quer
       Seq(
         name := "kafka-connect-query-language",
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= baseDeps,
+        libraryDependencies ++= Seq(),
         publish / skip := true,
       ),
   )
   .configureAssembly(true)
   .configureTests(baseTestDeps)
   .configureAntlr()
+
+lazy val `sql-common` = (project in file("kafka-connect-sql-common"))
+  .dependsOn(`query-language`)
+  .dependsOn(`common`)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-sql-common",
+        description := "Common SQL Components required by some connectors",
+        libraryDependencies ++= sqlCommonDeps,
+        publish / skip := true,
+      ),
+  )
+  .configureAssembly(true)
+  .configureTests(baseTestDeps)
 
 lazy val common = (project in file("kafka-connect-common"))
   .dependsOn(`query-language`)
@@ -161,6 +177,7 @@ lazy val `gcp-storage` = (project in file("kafka-connect-gcp-storage"))
 
 lazy val `azure-documentdb` = (project in file("kafka-connect-azure-documentdb"))
   .dependsOn(common)
+  .dependsOn(`sql-common`)
   .settings(
     settings ++
       Seq(
@@ -180,6 +197,7 @@ lazy val `azure-documentdb` = (project in file("kafka-connect-azure-documentdb")
 
 lazy val cassandra = (project in file("kafka-connect-cassandra"))
   .dependsOn(common)
+  .dependsOn(`sql-common`)
   .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
@@ -203,6 +221,7 @@ lazy val cassandra = (project in file("kafka-connect-cassandra"))
 
 lazy val elastic6 = (project in file("kafka-connect-elastic6"))
   .dependsOn(common)
+  .dependsOn(`sql-common`)
   .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
@@ -226,6 +245,7 @@ lazy val elastic6 = (project in file("kafka-connect-elastic6"))
 
 lazy val elastic7 = (project in file("kafka-connect-elastic7"))
   .dependsOn(common)
+  .dependsOn(`sql-common`)
   .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
@@ -270,6 +290,7 @@ lazy val http = (project in file("kafka-connect-http"))
 
 lazy val influxdb = (project in file("kafka-connect-influxdb"))
   .dependsOn(common)
+  .dependsOn(`sql-common`)
   .settings(
     settings ++
       Seq(
@@ -289,6 +310,7 @@ lazy val influxdb = (project in file("kafka-connect-influxdb"))
 
 lazy val jms = (project in file("kafka-connect-jms"))
   .dependsOn(common)
+  .dependsOn(`sql-common`)
   //.dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
@@ -316,6 +338,7 @@ lazy val jms = (project in file("kafka-connect-jms"))
 
 lazy val mqtt = (project in file("kafka-connect-mqtt"))
   .dependsOn(common)
+  .dependsOn(`sql-common`)
   .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
@@ -359,6 +382,7 @@ lazy val ftp = (project in file("kafka-connect-ftp"))
 
 lazy val mongodb = (project in file("kafka-connect-mongodb"))
   .dependsOn(common)
+  .dependsOn(`sql-common`)
   .dependsOn(`test-common` % "test->compile;it->compile;fun->compile")
   .settings(
     settings ++
@@ -382,6 +406,7 @@ lazy val mongodb = (project in file("kafka-connect-mongodb"))
 
 lazy val redis = (project in file("kafka-connect-redis"))
   .dependsOn(common)
+  .dependsOn(`sql-common`)
   .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++

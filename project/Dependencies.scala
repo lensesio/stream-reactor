@@ -124,6 +124,7 @@ object Dependencies {
     val commonsNetVersion       = "3.9.0"
     val commonsCodecVersion     = "1.15"
     val commonsIOVersion        = "2.11.0"
+    val commonsLang3Version     = "3.14.0"
     val jschVersion             = "0.1.55"
 
     val minaVersion           = "2.2.1"
@@ -350,6 +351,7 @@ object Dependencies {
   lazy val commonsNet       = "commons-net"               % "commons-net"             % commonsNetVersion
   lazy val commonsCodec     = "commons-codec"             % "commons-codec"           % commonsCodecVersion
   lazy val commonsIO        = "commons-io"                % "commons-io"              % commonsIOVersion
+  lazy val commonsLang3     = "org.apache.commons"        % "commons-lang3"           % commonsLang3Version
   lazy val jsch             = "com.jcraft"                % "jsch"                    % jschVersion
   lazy val mina             = "org.apache.mina"           % "mina-core"               % minaVersion
   lazy val betterFiles      = "com.github.pathikrit"     %% "better-files"            % betterFilesVersion
@@ -429,6 +431,22 @@ trait Dependencies {
   ) ++ enumeratum ++ circe ++ http4s
 
   //Specific modules dependencies
+  val sqlCommonDeps: Seq[ModuleID] = loggingDeps ++ Seq(
+    catsEffectKernel,
+    catsEffectStd,
+    catsEffect,
+    calciteCore,
+    calciteLinq4J,
+    kafkaConnectJson,
+    json4sNative,
+    json4sJackson,
+    jacksonCore,
+    jacksonDatabind,
+    jacksonModuleScala,
+    jacksonDataformatCbor,
+  ) ++ enumeratum ++ circe ++ http4s
+
+  //Specific modules dependencies
   val baseDeps: Seq[ModuleID] = loggingDeps ++ Seq(
     catsEffectKernel,
     catsEffectStd,
@@ -438,15 +456,7 @@ trait Dependencies {
     snakeYaml,
     commonsBeanUtils,
     httpClient,
-    json4sNative,
-    json4sJackson,
-    jacksonCore,
-    jacksonDatabind,
-    jacksonModuleScala,
-    jacksonDataformatCbor,
     avro4s,
-    calciteCore,
-    calciteLinq4J,
     kafkaConnectJson,
     confluentAvroConverter,
     confluentAvroData,
@@ -463,6 +473,10 @@ trait Dependencies {
     hadoopMapReduceClient,
     hadoopMapReduceClientCore,
     openCsv,
+    jacksonCore,
+    jacksonDatabind,
+    jacksonModuleScala,
+    jacksonDataformatCbor,
   )
 
   val kafkaConnectS3Deps: Seq[ModuleID] = Seq(
@@ -544,7 +558,7 @@ trait Dependencies {
 
   val kafkaConnectElastic7TestDeps: Seq[ModuleID] = baseTestDeps ++ elasticTestCommonDeps(Elastic7Versions)
 
-  val kafkaConnectFtpDeps: Seq[ModuleID] = Seq(commonsNet, commonsCodec, commonsIO, jsch)
+  val kafkaConnectFtpDeps: Seq[ModuleID] = Seq(commonsNet, commonsCodec, commonsIO, commonsLang3, jsch)
 
   val kafkaConnectFtpTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(mina, betterFiles, ftpServer, fakeSftpServer)
 
