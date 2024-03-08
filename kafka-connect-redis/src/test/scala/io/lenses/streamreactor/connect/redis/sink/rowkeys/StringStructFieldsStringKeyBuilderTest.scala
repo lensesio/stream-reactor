@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.common.sink
+package io.lenses.streamreactor.connect.redis.sink.rowkeys
 
-import io.lenses.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
+import io.lenses.streamreactor.connect.redis.sink.rowkeys.StringStructFieldsStringKeyBuilder
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct

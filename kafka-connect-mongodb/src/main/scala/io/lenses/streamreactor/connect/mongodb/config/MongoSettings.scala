@@ -112,7 +112,7 @@ object MongoSettings extends StrictLogging {
     *      Seq("top-level-parent", "child1", "child2", "fieldname"),
     *    )
     */
-  def getJsonDateTimeFields(config: MongoConfig): Set[Seq[String]] = {
+  private def getJsonDateTimeFields(config: MongoConfig): Set[Seq[String]] = {
     val set: Set[Seq[String]] =
       config.getList(MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG).asScala.map { fullName =>
         fullName.trim.split('.').toSeq

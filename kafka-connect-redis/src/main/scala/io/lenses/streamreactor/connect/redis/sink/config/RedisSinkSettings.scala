@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.redis.sink.config
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
-import io.lenses.streamreactor.common.rowkeys.StringKeyBuilder
+import io.lenses.streamreactor.connect.redis.sink.rowkeys.StringKeyBuilder
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.SslConfigs
 

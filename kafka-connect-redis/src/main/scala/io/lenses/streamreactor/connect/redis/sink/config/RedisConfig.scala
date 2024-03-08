@@ -15,10 +15,16 @@
  */
 package io.lenses.streamreactor.connect.redis.sink.config
 
+import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.config.base.traits._
+import io.lenses.streamreactor.connect.redis.sink.rowkeys.StringGenericRowKeyBuilder
+import io.lenses.streamreactor.connect.redis.sink.rowkeys.StringKeyBuilder
+import io.lenses.streamreactor.connect.redis.sink.rowkeys.StringStructFieldsStringKeyBuilder
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
+
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 object RedisConfig {
 
@@ -140,3 +146,19 @@ case class RedisConfig(props: Map[String, String])
     with ErrorPolicySettings
     with NumberRetriesSettings
     with UserSettings
+    with RedisFieldSettings
+
+trait RedisFieldSettings {
+  def getKCQL: Set[Kcql]
+
+  def getFieldsAliases(kcql: Set[Kcql] = getKCQL): List[Map[String, String]] =
+    kcql.toList.map(rm => rm.getFields.asScala.map(fa => (fa.getName, fa.getAlias)).toMap)
+
+  def getRowKeyBuilders(kcql: Set[Kcql] = getKCQL): List[StringKeyBuilder] =
+    kcql.toList.map { k =>
+      val keys = k.getPrimaryKeys.asScala.map(k => k.getName).toSeq
+      // No PK => 'topic|par|offset' builder else generic-builder
+      if (keys.nonEmpty) StringStructFieldsStringKeyBuilder(keys)
+      else new StringGenericRowKeyBuilder()
+    }
+}

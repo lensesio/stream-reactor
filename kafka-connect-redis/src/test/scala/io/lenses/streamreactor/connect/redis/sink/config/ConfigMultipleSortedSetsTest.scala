@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.redis.sink.config
 
-import io.lenses.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
+import io.lenses.streamreactor.connect.redis.sink.rowkeys.StringStructFieldsStringKeyBuilder
 import io.lenses.streamreactor.connect.redis.sink.support.RedisMockSupport
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
