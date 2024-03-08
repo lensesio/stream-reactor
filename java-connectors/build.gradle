@@ -126,8 +126,8 @@ allprojects {
     task fatJar(dependsOn: [test, jar, shadowJar])
 
     task collectFatJar(type: Copy, dependsOn: [fatJar]) {
-        from "${buildDir}/libs"
-        into libsDir
+        from("${buildDir}/libs").include("*-all.jar")
+        into(libsDir)
     }
 }
 
