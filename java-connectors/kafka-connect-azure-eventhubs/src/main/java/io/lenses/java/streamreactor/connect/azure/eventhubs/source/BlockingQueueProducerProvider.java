@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.config.ConfigException;
 
 /**
  * Provider for BlockingQueuedKafkaConsumers.
@@ -19,8 +20,13 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 @Slf4j
 public class BlockingQueueProducerProvider implements ProducerProvider {
 
-  private final TopicPartitionOffsetProvider topicPartitionOffsetProvider;
   private static final boolean STRIP_PREFIX = true;
+  private static final String EARLIEST_OFFSET = "earliest";
+  private static final String LATEST_OFFSET = "latest";
+  private static final String CONSUMER_OFFSET_EXCEPTION_MESSAGE =
+      "Allowed values for " + AzureEventHubsConfigConstants.CONSUMER_OFFSET + ": earliest/latest";
+  private final TopicPartitionOffsetProvider topicPartitionOffsetProvider;
+
 
   public BlockingQueueProducerProvider(TopicPartitionOffsetProvider topicPartitionOffsetProvider) {
     this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;
@@ -35,7 +41,6 @@ public class BlockingQueueProducerProvider implements ProducerProvider {
    */
   public BlockingQueuedKafkaProducer createProducer(AzureEventHubsConfig azureEventHubsConfig,
       BlockingQueue<ConsumerRecords<String, String>> recordBlockingQueue) {
-    String topic = azureEventHubsConfig.getString(AzureEventHubsConfigConstants.EVENTHUB_NAME);
     String connectorName = azureEventHubsConfig.getString(AzureEventHubsConfigConstants.CONNECTOR_NAME);
     final String clientId = connectorName + "#" + UUID.randomUUID();
     log.info("Attempting to create Client with Id:{}", clientId);
@@ -56,7 +61,21 @@ public class BlockingQueueProducerProvider implements ProducerProvider {
 
     KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(consumerProperties);
 
-    return new BlockingQueuedKafkaProducer(topicPartitionOffsetProvider, recordBlockingQueue, kafkaConsumer, clientId, topic);
+    boolean shouldSeekToLatest = shouldConsumerSeekToLatest(azureEventHubsConfig);
+    String topic = azureEventHubsConfig.getString(AzureEventHubsConfigConstants.EVENTHUB_NAME);
+
+    return new BlockingQueuedKafkaProducer(topicPartitionOffsetProvider, recordBlockingQueue,
+        kafkaConsumer, clientId, topic, shouldSeekToLatest);
   }
 
+  private boolean shouldConsumerSeekToLatest(AzureEventHubsConfig azureEventHubsConfig) {
+    String seekValue = azureEventHubsConfig.getString(AzureEventHubsConfigConstants.CONSUMER_OFFSET);
+    if (EARLIEST_OFFSET.equals(seekValue)) {
+      return false;
+    } else if (LATEST_OFFSET.equals(seekValue)) {
+      return true;
+    }
+    throw new ConfigException(AzureEventHubsConfigConstants.CONSUMER_OFFSET, seekValue,
+        CONSUMER_OFFSET_EXCEPTION_MESSAGE);
+  }
 }

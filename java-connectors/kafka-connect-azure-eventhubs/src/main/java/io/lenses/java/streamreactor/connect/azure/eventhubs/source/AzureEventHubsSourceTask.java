@@ -4,6 +4,7 @@ import static java.util.Optional.ofNullable;
 
 import io.lenses.java.streamreactor.common.util.JarManifest;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -21,7 +22,7 @@ import org.apache.kafka.connect.storage.OffsetStorageReader;
 @Slf4j
 public class AzureEventHubsSourceTask extends SourceTask {
 
-  private static final Duration DEFAULT_CLOSE_TIMEOUT = Duration.of(30, ChronoUnit.SECONDS);
+  private Duration closeTimeout;
   private static final int RECORDS_QUEUE_DEFAULT_SIZE = 10;
   private final JarManifest jarManifest;
   private EventHubsKafkaConsumerController eventHubsKafkaConsumerController;
@@ -44,13 +45,17 @@ public class AzureEventHubsSourceTask extends SourceTask {
   public void start(Map<String, String> props) {
     OffsetStorageReader offsetStorageReader = ofNullable(this.context).flatMap(
         context -> ofNullable(context.offsetStorageReader())).orElseThrow();
+    AzureEventHubsConfig azureEventHubsConfig = new AzureEventHubsConfig(props);
+    closeTimeout =
+        Duration.of(azureEventHubsConfig.getInt(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT),
+            ChronoUnit.SECONDS);
     TopicPartitionOffsetProvider topicPartitionOffsetProvider = new TopicPartitionOffsetProvider(offsetStorageReader);
 
     ArrayBlockingQueue<ConsumerRecords<String, String>> recordsQueue = new ArrayBlockingQueue<>(
         RECORDS_QUEUE_DEFAULT_SIZE);
     blockingQueueProducerProvider = new BlockingQueueProducerProvider(topicPartitionOffsetProvider);
     BlockingQueuedKafkaProducer producer = blockingQueueProducerProvider.createProducer(
-        new AzureEventHubsConfig(props), recordsQueue);
+        azureEventHubsConfig, recordsQueue);
     EventHubsKafkaConsumerController kafkaConsumerController = new EventHubsKafkaConsumerController(
         producer, recordsQueue);
     initialize(kafkaConsumerController);
@@ -78,6 +83,6 @@ public class AzureEventHubsSourceTask extends SourceTask {
   @Override
   public void stop() {
     ofNullable(eventHubsKafkaConsumerController)
-        .ifPresent(consumerController -> consumerController.close(DEFAULT_CLOSE_TIMEOUT));
+        .ifPresent(consumerController -> consumerController.close(closeTimeout));
   }
 }

@@ -24,11 +24,14 @@ public class AzureEventHubsConfigConstants {
   public static final String KCQL_DOC =
       "KCQL expression describing field selection and data routing to the target.";
   public static final String KCQL_DEFAULT = "insert into topic select * from topic";
-  public static final String INCLUDE_HEADERS = CONNECTOR_PREFIX + DOT + "include.headers";
-  public static final String INCLUDE_HEADERS_DOC =
-      "Copy headers from incoming message to message we send to Kafka.";
-
-  public static final String INCLUDE_HEADERS_DEFAULT = "true";
+  public static final String CONSUMER_OFFSET = CONNECTOR_PREFIX + DOT + "default.offset";
+  public static final String CONSUMER_OFFSET_DOC =
+      "Specifies whether by default we should consumer from earliest (default) or latest offset.";
+  public static final String CONSUMER_OFFSET_DEFAULT = "earliest";
+  public static final String CONSUMER_CLOSE_TIMEOUT = CONNECTOR_PREFIX + DOT + "close.timeout";
+  public static final String CONSUMER_CLOSE_TIMEOUT_DOC =
+      "Specifies timeout for consumer closing.";
+  public static final String CONSUMER_CLOSE_TIMEOUT_DEFAULT = "30";
 
 
 }

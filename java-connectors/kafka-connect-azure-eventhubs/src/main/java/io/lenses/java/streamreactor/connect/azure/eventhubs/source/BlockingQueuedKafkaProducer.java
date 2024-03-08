@@ -22,6 +22,7 @@ public class BlockingQueuedKafkaProducer implements BlockingQueueProducer {
   private final Consumer<String, String> consumer;
   private final String clientId;
   private final String topic;
+  private final boolean shouldSeekToLatest;
   private final AtomicBoolean initialized = new AtomicBoolean(false);
   private final AtomicBoolean running = new AtomicBoolean(false);
 
@@ -35,15 +36,18 @@ public class BlockingQueuedKafkaProducer implements BlockingQueueProducer {
    * @param consumer                     Kafka Consumer
    * @param clientId                     consumer client id
    * @param topic                        kafka topic to consume from
+   * @param shouldSeekToLatest           informs where should consumer seek when
+   *                                     there are no offsets committed
    */
   public BlockingQueuedKafkaProducer(TopicPartitionOffsetProvider topicPartitionOffsetProvider,
       BlockingQueue<ConsumerRecords<String, String>> recordsQueue,
-      Consumer<String, String> consumer, String clientId, String topic) {
+      Consumer<String, String> consumer, String clientId, String topic, boolean shouldSeekToLatest) {
     this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;
     this.recordsQueue = recordsQueue;
     this.consumer = consumer;
     this.clientId = clientId;
     this.topic = topic;
+    this.shouldSeekToLatest = shouldSeekToLatest;
 
     start();
   }
@@ -72,7 +76,7 @@ public class BlockingQueuedKafkaProducer implements BlockingQueueProducer {
       running.set(true);
       log.info("Subscribing to topic: {}", topic);
       consumer.subscribe(Collections.singletonList(topic),
-          new AzureConsumerRebalancerListener(topicPartitionOffsetProvider, consumer));
+          new AzureConsumerRebalancerListener(topicPartitionOffsetProvider, consumer, shouldSeekToLatest));
       while (running.get()) {
         ConsumerRecords<String, String> consumerRecords = consumer.poll(DEFAULT_POLL_DURATION);
         if (consumerRecords != null && !consumerRecords.isEmpty()) {

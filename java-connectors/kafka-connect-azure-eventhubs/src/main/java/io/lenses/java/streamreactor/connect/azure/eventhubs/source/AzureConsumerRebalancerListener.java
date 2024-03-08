@@ -17,14 +17,23 @@ import org.apache.kafka.common.TopicPartition;
 @Slf4j
 public class AzureConsumerRebalancerListener implements ConsumerRebalanceListener {
 
-  TopicPartitionOffsetProvider topicPartitionOffsetProvider;
-  Consumer<?, ?> kafkaConsumer;
+  private final boolean shouldSeekToLatest;
+  private final TopicPartitionOffsetProvider topicPartitionOffsetProvider;
+  private final Consumer<?, ?> kafkaConsumer;
 
+  /**
+   * Constructs {@link AzureConsumerRebalancerListener} for particular Kafka Consumer.
+   *
+   * @param topicPartitionOffsetProvider provider of committed offsets
+   * @param kafkaConsumer Kafka Consumer
+   * @param shouldSeekToLatest informs whether we should seek to latest or earliest if no offsets found
+   */
   public AzureConsumerRebalancerListener(
       TopicPartitionOffsetProvider topicPartitionOffsetProvider,
-      Consumer<?, ?> kafkaConsumer) {
+      Consumer<?, ?> kafkaConsumer, boolean shouldSeekToLatest) {
     this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;
     this.kafkaConsumer = kafkaConsumer;
+    this.shouldSeekToLatest = shouldSeekToLatest;
   }
 
   @Override
@@ -40,7 +49,13 @@ public class AzureConsumerRebalancerListener implements ConsumerRebalanceListene
       Optional<AzureOffsetMarker> partitionOffset = topicPartitionOffsetProvider.getOffset(partitionKey);
       partitionOffset.ifPresentOrElse(
           offset -> kafkaConsumer.seek(partition, offset.getOffsetValue()),
-          () -> kafkaConsumer.seekToBeginning(Collections.singletonList(partition)));
+          () -> {
+            if (shouldSeekToLatest) {
+              kafkaConsumer.seekToEnd(Collections.singletonList(partition));
+            } else {
+              kafkaConsumer.seekToBeginning(Collections.singletonList(partition));
+            }
+          });
     });
   }
 
