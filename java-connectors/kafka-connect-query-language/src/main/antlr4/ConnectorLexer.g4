@@ -45,32 +45,12 @@ AUTOEVOLVE
    : 'autoevolve' | 'AUTOEVOLVE'
    ;
 
-CLUSTERBY
-    : 'clusterby' | 'CLUSTERBY'
-    ;
-
-BUCKETS
-    : 'buckets'|'BUCKETS'
-    ;
-
 BATCH
    : 'batch' | 'BATCH'
    ;
 
-CAPITALIZE
-   : 'capitalize' | 'CAPITALIZE'
-   ;
-
-INITIALIZE
-   : 'initialize' | 'INITIALIZE'
-   ;
-
 PARTITIONBY
    : 'partitionby' | 'PARTITIONBY'
-   ;
-
-DISTRIBUTEBY
-   : 'distributeby' | 'DISTRIBUTEBY'
    ;
 
 TIMESTAMP
@@ -79,14 +59,6 @@ TIMESTAMP
 
 SYS_TIME
     : 'sys_time()' | 'SYS_TIME()'
-    ;
-
-WITHGROUP
-    : 'withgroup' | 'WITHGROUP'
-    ;
-
-WITHOFFSET
-    :  'withoffset' | 'WITHOFFSET'
     ;
 
 WITHTAG
@@ -113,26 +85,12 @@ PK
    : 'pk' | 'PK'
    ;
 
-SAMPLE
-    : 'sample' | 'SAMPLE'
-    ;
-
-EVERY
-    : 'every'|'EVERY'
-    ;
-
 WITHFORMAT
     : 'WITHFORMAT'|'withformat'
     ;
 
 WITHUNWRAP
     : 'WITHUNWRAP'| 'withunwrap'
-    ;
-
-
-
-PROJECTTO
-    : 'projectTo'|'PROJECTTO'|'projectto'
     ;
 
 STOREAS
@@ -167,10 +125,6 @@ WITHTARGET
     : 'WITHTARGET' | 'withtarget'
     ;
 
-WITHCOMPRESSION
-    : 'WITHCOMPRESSION'|'withcompression'
-    ;
-
 WITHPARTITIONER
     : 'WITHPARTITIONER' | 'withpartitioner'
     ;
@@ -185,10 +139,6 @@ TIMESTAMPUNIT
 
 WITHPIPELINE
     : 'WITHPIPELINE' | 'withpipeline'
-    ;
-
-WITHDELAY
-    : 'WITHDELAY'|'withdelay'
     ;
 
 WITHREGEX
@@ -207,41 +157,9 @@ WITH_FLUSH_COUNT
     : 'WITH_FLUSH_COUNT' | 'with_flush_count'
     ;
 
-WITH_SCHEMA_EVOLUTION
-    : 'WITH_SCHEMA_EVOLUTION'|'with_schema_evolution'
-    ;
-
-WITH_TABLE_LOCATION
-    : 'WITH_TABLE_LOCATION' | 'with_table_location'
-    ;
-
-WITH_OVERWRITE
-    : 'WITH_OVERWRITE' | 'with_overwrite'
-    ;
-
-WITH_PARTITIONING
-    : 'WITH_PARTITIONING' | 'with_partitioning'
-    ;
-
-WITH_SESSION
-    : 'WITH_SESSION' | 'with_session'
-    ;
-
 TTL
    : 'TTL'|'ttl'
    ;
-
- WITH_ACK
-    : 'with_ack' | 'WITH_ACK'
-    ;
-
- WITH_ENCODE_BASE64
-    : 'with_encode_base64' | 'WITH_ENCODE_BASE64'
-    ;
-
-WITH_LOCK_TIME
-    : 'with_lock_time' | 'WITH_LOCK_TIME'
-    ;
 
  PROPERTIES
     : 'properties' | 'PROPERTIES'
@@ -274,7 +192,6 @@ LEFT_PARAN
 RIGHT_PARAN
     : ')'
     ;
-
 
 FIELD
    : ( 'a' .. 'z' | 'A' .. 'Z' | '@' |'_' | '0' .. '9' )+

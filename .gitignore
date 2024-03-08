@@ -86,3 +86,4 @@ classes/*
 /kafka-connect-hive/it/.project
 /kafka-connect-hive/it/.settings/
 /kafka-connect-hive/it/bin/
+java-connectors/kafka-connect-query-language/gen/*

@@ -29,12 +29,14 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.source.distribution.CloudPartitionSearcher
+import io.lenses.streamreactor.connect.cloud.common.source.distribution.PartitionSearcher
 import io.lenses.streamreactor.connect.cloud.common.source.reader.PartitionDiscovery
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManagerState
 import io.lenses.streamreactor.connect.cloud.common.source.state.CloudSourceTaskState
-import io.lenses.streamreactor.connect.cloud.common.source.state.PartitionSearcher
 import io.lenses.streamreactor.connect.cloud.common.source.state.ReaderManagerBuilder
+import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryLister
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.utils.MapUtils
@@ -131,7 +133,9 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
       config          <- IO.fromEither(convertPropsToConfig(connectorTaskId, props))
       s3Client        <- IO.fromEither(createClient(config))
       storageInterface: StorageInterface[MD] <- IO.delay(createStorageInterface(connectorTaskId, config, s3Client))
-      partitionSearcher  <- IO.delay(createPartitionSearcher(connectorTaskId, config, s3Client))
+
+      directoryLister    <- IO.delay(createDirectoryLister(connectorTaskId, s3Client))
+      partitionSearcher  <- IO.delay(createPartitionSearcher(directoryLister, connectorTaskId, config))
       readerManagerState <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
       cancelledRef       <- Ref[IO].of(false)
     } yield {
@@ -159,5 +163,25 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
 
   def convertPropsToConfig(connectorTaskId: ConnectorTaskId, props: Map[String, String]): Either[Throwable, C]
 
-  def createPartitionSearcher(connectorTaskId: ConnectorTaskId, config: C, client: CT): PartitionSearcher
+  def createDirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: CT): DirectoryLister
+
+  def getFilesLimit(config: C): CloudLocation => Either[Throwable, Int] = {
+    cloudLocation =>
+      config.bucketOptions.find(e => e.sourceBucketAndPrefix == cloudLocation).map(_.filesLimit).toRight(
+        new IllegalStateException("Cannot find bucket in config to retrieve files limit"),
+      )
+  }
+
+  def createPartitionSearcher(
+    directoryLister: DirectoryLister,
+    connectorTaskId: ConnectorTaskId,
+    config:          C,
+  ): PartitionSearcher =
+    new CloudPartitionSearcher(
+      getFilesLimit(config),
+      directoryLister,
+      config.bucketOptions.map(_.sourceBucketAndPrefix),
+      config.partitionSearcher,
+      connectorTaskId,
+    )
 }

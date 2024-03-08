@@ -241,29 +241,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
 
     kcql.getWriteMode should be(WriteModeEnum.UPSERT)
     kcql.getIgnoredFields.asScala.map(_.getName) should contain inOrder ("col1", "1col2")
-    kcql.isEnableCapitalize should be(false)
-  }
-
-  test("parseWithInitialize") {
-    val topic  = "TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"INSERT INTO $table SELECT * FROM $topic batch = 100 initialize"
-    Kcql.parse(syntax).isInitialize should be(true)
-  }
-
-  test("parseWithWithOutInitialize") {
-    val topic  = "TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"UPSERT INTO $table SELECT * FROM $topic IGNORE col1, 1col2 "
-    Kcql.parse(syntax).isInitialize should be(false)
-  }
-
-  test("parseWithProject") {
-    val topic  = "TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"INSERT INTO $table SELECT * FROM $topic batch = 100 initialize projectTo 1"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getProjectTo should be(1)
   }
 
   test("parseAnInsertWithFieldAliasAndAutocreateNoPKs") {
@@ -338,22 +315,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     kcql.isAutoEvolve should be(true)
   }
 
-  test("parseAnUpsertWithSelectAllFieldsWithIgnoredColumnsWithCapitalization") {
-    val topic  = "TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"UPSERT INTO $table SELECT * FROM $topic IGNORE col1, 1col2 CAPITALIZE  "
-    val kcql   = Kcql.parse(syntax)
-    kcql.getSource should be(topic)
-    kcql.getTarget should be(table)
-    kcql.getFields should not be empty
-    kcql.getFields.get(0).getName should be("*")
-    kcql.getWriteMode should be(WriteModeEnum.UPSERT)
-    val ignored = kcql.getIgnoredFields
-    ignored.get(0).getName should be("col1")
-    ignored.get(1).getName should be("1col2")
-    kcql.isEnableCapitalize should be(true)
-  }
-
   test("handlerPartitionByWhenAllFieldsAreIncluded") {
     val topic = "TOPIC_A"
     val table = "TABLE_A"
@@ -407,108 +368,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     partitionBy should contain allOf ("col1", "colABC")
   }
 
-  test("handlerDistributeWhenAllFieldsAreIncluded") {
-    val topic     = "TOPIC_A"
-    val table     = "TABLE_A"
-    val syntax    = s"UPSERT INTO $table SELECT * FROM $topic IGNORE col1, 1col2 DISTRIBUTEBY col1,col2 INTO 10 BUCKETS"
-    val kcql      = Kcql.parse(syntax)
-    val bucketing = kcql.getBucketing
-    bucketing should not be null
-    val bucketNames = bucketing.getBucketNames.asScala.toSet
-    bucketNames should have size 2
-    bucketNames should contain("col2")
-    bucketing.getBucketsNumber should be(10)
-  }
-
-  test("handlerDistributeWhenSpecificFieldsAreIncluded") {
-    val topic = "TOPIC_A"
-    val table = "TABLE_A"
-    val syntax =
-      s"UPSERT INTO $table SELECT col1, col2, col3 FROM $topic IGNORE col1, 1col2 DISTRIBUTEBY col1,col2 INTO 10 BUCKETS"
-
-    val kcql      = Kcql.parse(syntax)
-    val bucketing = kcql.getBucketing
-    bucketing should not be null
-    val bucketNames = bucketing.getBucketNames.asScala.toSet
-    bucketNames should have size 2
-    bucketNames should contain("col2")
-    bucketing.getBucketsNumber should be(10)
-  }
-  test("handlerDistributeByWhenSpecificFieldsAreIncludedAndAliasingIsPresent") {
-    val topic = "TOPIC_A"
-    val table = "TABLE_A"
-    val syntax =
-      s"UPSERT INTO $table SELECT col1, col2 as colABC, col3 FROM $topic IGNORE col1, 1col2 DISTRIBUTEBY col1,colABC INTO 10 BUCKETS "
-    val kcql      = Kcql.parse(syntax)
-    val bucketing = kcql.getBucketing
-    bucketing should not be null
-    val bucketNames = bucketing.getBucketNames.asScala.toSet
-    bucketNames should have size 2
-    bucketNames should contain("colABC")
-    bucketing.getBucketsNumber should be(10)
-  }
-  test("handlerBucketingWithAllColumnsSelected") {
-    val topic     = "TOPIC_A"
-    val table     = "TABLE_A"
-    val syntax    = s"UPSERT INTO $table SELECT * FROM $topic PARTITIONBY col1,colABC CLUSTERBY col2 INTO 256 BUCKETS"
-    val kcql      = Kcql.parse(syntax)
-    val bucketing = kcql.getBucketing
-    bucketing should not be null
-    val bucketNames = bucketing.getBucketNames.asScala.toSet
-    bucketNames should have size 1
-    bucketNames should contain("col2")
-    bucketing.getBucketsNumber should be(256)
-  }
-  test("handlerBucketingWithSpecificColumnsSpecified") {
-    val topic     = "TOPIC_A"
-    val table     = "TABLE_A"
-    val syntax    = s"UPSERT INTO $table SELECT col1,col2 FROM $topic CLUSTERBY col2 INTO 256 BUCKETS"
-    val kcql      = Kcql.parse(syntax)
-    val bucketing = kcql.getBucketing
-    bucketing should not be null
-    val bucketNames = bucketing.getBucketNames.asScala.toSet
-    bucketNames should have size 1
-    bucketNames should contain("col2")
-    bucketing.getBucketsNumber should be(256)
-  }
-  test("handleDashForTopicAndTable") {
-    val topic     = "TOPIC-A-A"
-    val table     = "TABLE-A"
-    val syntax    = s"UPSERT INTO $table SELECT col1,col2 FROM $topic CLUSTERBY col2 INTO 256 BUCKETS"
-    val kcql      = Kcql.parse(syntax)
-    val bucketing = kcql.getBucketing
-    bucketing should not be null
-    val bucketNames = bucketing.getBucketNames.asScala.toSet
-    bucketNames should have size 1
-    bucketNames should contain("col2")
-    bucketing.getBucketsNumber should be(256)
-  }
-  test("throwExceptionIfTheBucketsIsZero") {
-    assertThrows[IllegalArgumentException] {
-      val topic  = "TOPIC_A"
-      val table  = "TABLE_A"
-      val syntax = s"UPSERT INTO $table SELECT col1,col2 FROM $topic CLUSTERBY col2 INTO 0 BUCKETS"
-      Kcql.parse(syntax)
-    }
-  }
-
-  test("throwExceptionIfTheBucketsNumberIsNotProvided") {
-    assertThrows[IllegalArgumentException] {
-      val topic  = "TOPIC_A"
-      val table  = "TABLE_A"
-      val syntax = s"UPSERT INTO $table SELECT col1,col2 FROM $topic CLUSTERBY col2"
-      Kcql.parse(syntax)
-    }
-  }
-
-  test("throwExceptionIfTheBucketNamesAreMissing") {
-    assertThrows[IllegalArgumentException] {
-      val topic  = "TOPIC_A"
-      val table  = "TABLE_A"
-      val syntax = s"UPSERT INTO $table SELECT col1,col2 FROM $topic CLUSTERBY  INTO 12 BUCKETS"
-      Kcql.parse(syntax)
-    }
-  }
   test("handleTimestampAsOneOfTheFields") {
     val topic  = "TOPIC_A"
     val table  = "TABLE_A"
@@ -777,22 +636,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     kcql.getPipeline should be("field1.field2.field3")
   }
 
-  test("handleWithCompression") {
-    val syntax =
-      "INSERT INTO A SELECT * FROM B WITHPARTITIONER = SinglePartition WITHSUBSCRIPTION = shared WITHCOMPRESSION = SNAPPY WITHDELAY = 1000"
-    val kcql = Kcql.parse(syntax)
-    kcql.getWithCompression should be(CompressionType.SNAPPY)
-    kcql.getWithPartitioner should be("SinglePartition")
-    kcql.getWithDelay should be(1000)
-    kcql.getWithSubscription should be("shared")
-  }
-
-  test("handleWithDelay") {
-    val syntax = "INSERT INTO A SELECT * FROM B WITHDELAY = 1000"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithDelay should be(1000)
-  }
-
   test("handleWithSubscription") {
     val syntax = "INSERT INTO A SELECT * FROM B WITHSUBSCRIPTION = shared"
     val kcql   = Kcql.parse(syntax)
@@ -865,56 +708,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     }
   }
 
-  test("handleWithTableLocation") {
-    val topic  = "/TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_TABLE_LOCATION = `/magic/location/on/my/ssd`"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithTableLocation should be("/magic/location/on/my/ssd")
-  }
-
-  test("handleWithSchemaEvolution") {
-    val topic  = "/TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_SCHEMA_EVOLUTION = ADD"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithSchemaEvolution should be(SchemaEvolution.ADD)
-  }
-
-  test("throwExceptionOnInvalidWithSchemaEvolution") {
-    assertThrows[IllegalArgumentException] {
-      val topic  = "/TOPIC_A"
-      val table  = "TABLE_A"
-      val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_SCHEMA_EVOLUTION = BOGUS"
-      Kcql.parse(syntax)
-    }
-  }
-
-  test("handleWithOverwrite") {
-    val topic   = "/TOPIC_A"
-    val table   = "TABLE_A"
-    val syntax1 = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_OVERWRITE"
-    Kcql.parse(syntax1).getWithOverwrite should be(true)
-    val syntax2 = s"INSERT INTO $table SELECT col1,col2 FROM $topic"
-    Kcql.parse(syntax2).getWithOverwrite should be(false)
-  }
-
-  test("handleWithPartitioning") {
-    val topic  = "/TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_PARTITIONING = DYNAMIC"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithPartitioningStrategy should be(PartitioningStrategy.DYNAMIC)
-  }
-
-  test("throwExceptionOnInvalidWithPartitioning") {
-    assertThrows[IllegalArgumentException] {
-      val topic  = "/TOPIC_A"
-      val table  = "TABLE_A"
-      val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_PARTITIONING = BOGUS"
-      Kcql.parse(syntax)
-    }
-  }
   test("handleTTL") {
     val topic  = "TOPIC_A"
     val table  = "TABLE_A"
@@ -936,27 +729,7 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     kcql.getLimit should be(200)
 
   }
-  test("handleSession") {
-    val syntax  = "insert into mytopic select a, b, c from topic WITH_SESSION = andrew"
-    val kcql    = Kcql.parse(syntax)
-    val session = "andrew"
-    kcql.getWithSession should be(session)
-  }
-  test("handleAck") {
-    val syntax = "insert into mytopic select a, b, c from topic WITH_ACK"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithAck should be(true)
-  }
-  test("handleEncode") {
-    val syntax = "insert into mytopic select a, b, c from topic WITH_ENCODE_BASE64"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithEncodeBase64 should be(true)
-  }
-  test("handleLockTime") {
-    val syntax = "insert into mytopic select a, b, c from topic WITH_LOCK_TIME = 10"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithLockTime should be(10)
-  }
+
   test("handleUpdate") {
     val syntax = "update into mytopic select a, b, c from topic"
     val kcql   = Kcql.parse(syntax)

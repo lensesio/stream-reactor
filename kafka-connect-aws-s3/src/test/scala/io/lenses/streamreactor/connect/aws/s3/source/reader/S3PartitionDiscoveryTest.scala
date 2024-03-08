@@ -18,9 +18,10 @@ package io.lenses.streamreactor.connect.aws.s3.source.reader
 import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.effect.unsafe.implicits.global
+import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
-import io.lenses.streamreactor.connect.aws.s3.source.distribution.S3PartitionSearcher
+import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
 import io.lenses.streamreactor.connect.aws.s3.storage.MockS3Client
 import io.lenses.streamreactor.connect.aws.s3.storage.S3Page
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
@@ -28,23 +29,25 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions.ExcludeIndexes
+import io.lenses.streamreactor.connect.cloud.common.source.distribution.CloudPartitionSearcher
 import io.lenses.streamreactor.connect.cloud.common.source.distribution.PartitionSearcherResponse
 import io.lenses.streamreactor.connect.cloud.common.source.files.SourceFileQueue
 import io.lenses.streamreactor.connect.cloud.common.source.reader.PartitionDiscovery
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManager
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ReaderManagerState
 import io.lenses.streamreactor.connect.cloud.common.source.reader.ResultReader
-import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryFindResults
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with MockitoSugar {
   private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   private val connectorTaskId:                 ConnectorTaskId        = ConnectorTaskId("sinkName", 1, 1)
+
+  private val fFilesLimit: CloudLocation => Either[Throwable, Int] = _ => 1000.asRight
+
   "PartitionDiscovery" should "discover all partitions" in {
     val fileQueueProcessor: SourceFileQueue = mock[SourceFileQueue]
     val limit = 10
@@ -56,7 +59,8 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
         "prefix2/4.txt",
       ),
     )
-    val options = PartitionSearcherOptions(1, true, 100.millis, ExcludeIndexes)
+    val directoryLister = new AwsS3DirectoryLister(connectorTaskId, s3Client)
+    val options         = PartitionSearcherOptions(1, true, 100.millis, ExcludeIndexes)
     val io = for {
       cancelledRef <- Ref[IO].of(false)
       readerRef    <- Ref[IO].of(Option.empty[ResultReader])
@@ -64,12 +68,14 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
       fiber <- PartitionDiscovery.run(
         connectorTaskId,
         options,
-        new S3PartitionSearcher(List(
-                                  CloudLocation("bucket", None),
-                                ),
-                                options,
-                                connectorTaskId,
-                                s3Client.listObjectsV2Paginator(_).iterator().asScala,
+        new CloudPartitionSearcher(
+          fFilesLimit,
+          directoryLister,
+          List(
+            CloudLocation("bucket", None),
+          ),
+          options,
+          connectorTaskId,
         ).find,
         (_, _) =>
           IO(new ReaderManager(limit,
@@ -93,7 +99,7 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
         PartitionSearcherResponse(
           CloudLocation("bucket", None),
           Set("prefix1/", "prefix2/"),
-          DirectoryFindResults(Set.empty),
+          Set.empty,
           None,
         ),
       ),
@@ -111,7 +117,8 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
         "prefix2/4.txt",
       ),
     )
-    val options = PartitionSearcherOptions(1, true, 100.millis, ExcludeIndexes)
+    val directoryLister = new AwsS3DirectoryLister(connectorTaskId, s3Client)
+    val options         = PartitionSearcherOptions(1, true, 100.millis, ExcludeIndexes)
     val io = for {
       cancelledRef <- Ref[IO].of(false)
       readerRef    <- Ref[IO].of(Option.empty[ResultReader])
@@ -120,7 +127,7 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
           List(PartitionSearcherResponse(
             CloudLocation("bucket", None),
             Set("prefix1/"),
-            DirectoryFindResults(Set("prefix1/")),
+            Set("prefix1/"),
             None,
           )),
           Seq.empty,
@@ -129,12 +136,14 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
       fiber <- PartitionDiscovery.run(
         connectorTaskId,
         options,
-        new S3PartitionSearcher(List(
-                                  CloudLocation("bucket", None),
-                                ),
-                                options,
-                                connectorTaskId,
-                                s3Client.listObjectsV2Paginator(_).iterator().asScala,
+        new CloudPartitionSearcher(
+          fFilesLimit,
+          directoryLister,
+          List(
+            CloudLocation("bucket", None),
+          ),
+          options,
+          connectorTaskId,
         ).find,
         (_, _) =>
           IO(new ReaderManager(limit,
@@ -158,7 +167,7 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
         PartitionSearcherResponse(
           CloudLocation("bucket", None),
           Set("prefix1/", "prefix2/"),
-          DirectoryFindResults(Set.empty),
+          Set.empty,
           None,
         ),
       ),
@@ -178,7 +187,8 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
         "prefix1/three/2.txt",
       ),
     )
-    val options = PartitionSearcherOptions(1, true, 100.millis, ExcludeIndexes)
+    val directoryLister = new AwsS3DirectoryLister(connectorTaskId, s3Client)
+    val options         = PartitionSearcherOptions(1, true, 100.millis, ExcludeIndexes)
     val io = for {
       cancelledRef <- Ref[IO].of(false)
       readerRef    <- Ref[IO].of(Option.empty[ResultReader])
@@ -186,12 +196,14 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
       fiber <- PartitionDiscovery.run(
         connectorTaskId,
         options,
-        new S3PartitionSearcher(List(
-                                  CloudLocation("bucket", "prefix1/".some),
-                                ),
-                                options,
-                                connectorTaskId,
-                                s3Client.listObjectsV2Paginator(_).iterator().asScala,
+        new CloudPartitionSearcher(
+          fFilesLimit,
+          directoryLister,
+          List(
+            CloudLocation("bucket", "prefix1/".some),
+          ),
+          options,
+          connectorTaskId,
         ).find,
         (_, _) =>
           IO(new ReaderManager(limit,
@@ -215,7 +227,7 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
         PartitionSearcherResponse(
           CloudLocation("bucket", "prefix1/".some),
           Set("prefix1/one/", "prefix1/two/", "prefix1/three/"),
-          DirectoryFindResults(Set.empty),
+          Set.empty,
           None,
         ),
       ),
@@ -233,23 +245,28 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
         "prefix1/subprefix_untitled/3.txt",
       ),
     )
-    val options = PartitionSearcherOptions(1, true, 100.millis, ExcludeIndexes)
+    val options =
+      PartitionSearcherOptions(1, continuous = true, interval = 100.millis, wildcardExcludes = ExcludeIndexes)
     List(0 -> "prefix1/subprefix_abc/", 1 -> "prefix1/subprefix_untitled/", 2 -> "prefix1/subprefix_xyz01/").foreach {
       case (i, partition) =>
         val taskId = ConnectorTaskId("sinkName", 3, i)
         val io = for {
-          cancelledRef <- Ref[IO].of(false)
-          readerRef    <- Ref[IO].of(Option.empty[ResultReader])
-          state        <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
+          cancelledRef   <- Ref[IO].of(false)
+          readerRef      <- Ref[IO].of(Option.empty[ResultReader])
+          state          <- Ref[IO].of(ReaderManagerState(Seq.empty, Seq.empty))
+          directoryLister = new AwsS3DirectoryLister(taskId, s3Client)
+
           fiber <- PartitionDiscovery.run(
             taskId,
             options,
-            new S3PartitionSearcher(List(
-                                      CloudLocation("bucket", "prefix1/".some),
-                                    ),
-                                    options,
-                                    taskId,
-                                    s3Client.listObjectsV2Paginator(_).iterator().asScala,
+            new CloudPartitionSearcher(
+              fFilesLimit,
+              directoryLister,
+              List(
+                CloudLocation("bucket", "prefix1/".some),
+              ),
+              options,
+              taskId,
             ).find,
             (
               _,
@@ -270,7 +287,7 @@ class S3PartitionDiscoveryTest extends AnyFlatSpecLike with Matchers with Mockit
             PartitionSearcherResponse(
               CloudLocation("bucket", "prefix1/".some),
               Set(partition),
-              DirectoryFindResults(Set.empty),
+              Set.empty,
               None,
             ),
           ),

@@ -35,23 +35,19 @@ write_mode
    : insert_into | upsert_into | upsert_pk_into | update_into
    ;
 
-schema_name
-   : FIELD
-   ;
-
 insert_from_clause
    : write_mode table_name select_clause_basic ( autocreate )? (with_structure)? ( PK primary_key_list)? (with_target)? ( autoevolve )? ( batching )?
-    ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? (timestamp_unit_clause)?
+    (partitionby)? (timestamp_clause)? (timestamp_unit_clause)?
     ( with_format_clause )? (with_unwrap_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_type)? (with_doc_type)? (with_index_suffix)?
     (ttl_clause)? (with_converter)? (with_jms_selector)? (with_key)? (key_delimiter)? (with_pipeline_clause)? (with_partitioner_clause)?
-    (with_subscription_clause)? (with_compression_clause)? (with_delay_clause)? (with_regex_clause)? (with_flush_size_clause)?
-    (with_flush_interval_clause)? (with_flush_records_clause)? (with_schema_evolution_clause)? (with_table_location_clause)? (with_overwrite_clause)?
-    (with_partitioning_clause)? (limit_clause)? (with_session_clause)? (with_ack_clause)? (with_encode_base64)? (with_lock_time_clause)?
+    (with_subscription_clause)? (with_regex_clause)? (with_flush_size_clause)?
+    (with_flush_interval_clause)? (with_flush_records_clause)?
+    (limit_clause)?
     (properties_clause)?
    ;
 
 select_clause
-   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_unwrap_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (limit_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_doc_type)? (with_index_suffix)? (with_converter)? (key_delimiter)? (ttl_clause)? (with_session_clause)?
+   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_unwrap_clause)? (limit_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_doc_type)? (with_index_suffix)? (with_converter)? (key_delimiter)? (ttl_clause)?
    ;
 
 select_clause_basic
@@ -94,10 +90,6 @@ from_clause
    : FROM table_name
    ;
 
-ignored_name
-   : FIELD | TOPICNAME | STRING
-   ;
-
 with_ignore
    : IGNORE ignore_clause
    ;
@@ -130,14 +122,6 @@ batching
    : BATCH EQUAL batch_size
    ;
 
-capitalize
-   : CAPITALIZE
-   ;
-
-initialize
-   : INITIALIZE
-   ;
-
 partition_name
    : partition_column
    ;
@@ -148,19 +132,6 @@ partition_list
 
 partitionby
    : PARTITIONBY partition_list
-   ;
-
-
-distribute_name
-   : FIELD
-   ;
-
-distribute_list
-   : distribute_name ( COMMA distribute_name)*
-   ;
-
-distributeby
-   : DISTRIBUTEBY distribute_list INTO buckets_number BUCKETS
    ;
 
 timestamp_clause
@@ -179,64 +150,11 @@ timestamp_unit_value
    : FIELD
    ;
 
-buckets_number
-    : INT
-    ;
-
-clusterby_name
-    : FIELD
-    ;
-
-clusterby_list
-    :  clusterby_name ( COMMA clusterby_name)*
-    ;
-
-clusterby
-    : CLUSTERBY clusterby_list INTO buckets_number BUCKETS
-    ;
-
-with_consumer_group
-    :  WITHGROUP with_consumer_group_value
-    ;
-
-with_consumer_group_value
-    :  INT|FIELD| TOPICNAME | STRING
-    ;
-
-
-offset_partition_inner
-    : INT (COMMA INT)?
-    ;
-
-offset_partition
-    : (LEFT_PARAN offset_partition_inner RIGHT_PARAN)
-    ;
-
-partition_offset_list
-    : offset_partition ( COMMA offset_partition )*
-    ;
-
-with_offset_list
-    : WITHOFFSET partition_offset_list
-    ;
-
 limit_clause
     : LIMIT limit_value
     ;
 
 limit_value
-    : INT
-    ;
-
-sample_clause
-    : SAMPLE sample_value EVERY sample_period
-    ;
-
-sample_value
-    : INT
-    ;
-
-sample_period
     : INT
     ;
 
@@ -255,15 +173,6 @@ with_structure
 with_format
     : FIELD
     ;
-
-project_to
-    : PROJECTTO version_number
-    ;
-
-version_number
-    : INT
-    ;
-
 
 properties_clause
     : PROPERTIES LEFT_PARAN ()properties_list RIGHT_PARAN
@@ -433,22 +342,6 @@ with_subscription_value
    : FIELD
    ;
 
- with_compression_clause
-     : WITHCOMPRESSION EQUAL with_compression_type
-     ;
-
- with_compression_type
-     : FIELD
-     ;
-
- with_delay_clause
-    : WITHDELAY EQUAL with_delay_value
-    ;
-
- with_delay_value
-    : INT
-    ;
-
 with_regex_clause
     : WITHREGEX EQUAL with_regex_value
     ;
@@ -481,55 +374,3 @@ with_flush_records_clause
 with_flush_records_value
     : INT
     ;
-
-with_schema_evolution_clause
-    : WITH_SCHEMA_EVOLUTION EQUAL with_schema_evolution_value
-    ;
-
-with_schema_evolution_value
-    : FIELD
-    ;
-
-with_table_location_clause
-    : WITH_TABLE_LOCATION EQUAL with_table_location_value
-    ;
-
-with_table_location_value
-    : ID | TOPICNAME
-    ;
-
-with_overwrite_clause
-    : WITH_OVERWRITE
-    ;
-
-with_partitioning_clause
-    : WITH_PARTITIONING EQUAL with_partitioning_value
-    ;
-
-with_partitioning_value
-    : FIELD
-    ;
-
-with_session_clause
-    : WITH_SESSION EQUAL with_session_value
-    ;
-
-with_session_value
-    : FIELD
-    ;
-
-with_ack_clause
-    : WITH_ACK
-    ;
-
- with_encode_base64
-    : WITH_ENCODE_BASE64
-    ;
-
- with_lock_time_clause
-    : WITH_LOCK_TIME EQUAL lock_time_type
-    ;
-
- lock_time_type
-     : INT
-     ;
