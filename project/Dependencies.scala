@@ -448,20 +448,14 @@ trait Dependencies {
 
   //Specific modules dependencies
   val baseDeps: Seq[ModuleID] = loggingDeps ++ Seq(
-    catsEffectKernel,
-    catsEffectStd,
-    catsEffect,
-    urlValidator,
-    guava,
-    snakeYaml,
-    commonsBeanUtils,
-    httpClient,
     avro4s,
+    catsEffectKernel,
+    catsEffect,
     kafkaConnectJson,
     confluentAvroConverter,
     confluentAvroData,
     confluentJsonSchemaSerializer,
-  ) ++ enumeratum ++ circe ++ http4s
+  ) ++ enumeratum ++ circe
 
   //Specific modules dependencies
 
@@ -502,10 +496,10 @@ trait Dependencies {
 
   val kafkaConnectS3FuncTestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ s3Sdk
 
-  val kafkaConnectHttpDeps: Seq[ModuleID] = Seq()
+  val kafkaConnectHttpDeps: Seq[ModuleID] = Seq(http4sJdkClient)
 
-  val kafkaConnectHttpTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(
-  )
+  val kafkaConnectHttpTestDeps: Seq[ModuleID] = baseTestDeps
+
   val kafkaConnectCassandraDeps: Seq[ModuleID] = Seq(
     cassandraDriver,
     jsonPath,
