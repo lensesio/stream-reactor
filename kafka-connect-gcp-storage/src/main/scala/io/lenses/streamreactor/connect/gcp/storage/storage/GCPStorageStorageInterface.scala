@@ -224,7 +224,7 @@ class GCPStorageStorageInterface(connectorTaskId: ConnectorTaskId, storage: Stor
           accumulatedKeys,
           accumulatedKeys.last,
         ),
-      p => GCPStorageFileMetadata(p.getName, p.getUpdateTimeOffsetDateTime.toInstant),
+      p => GCPStorageFileMetadata(p.getName, p.getCreateTimeOffsetDateTime.toInstant),
     )
 
   override def list(
@@ -235,22 +235,28 @@ class GCPStorageStorageInterface(connectorTaskId: ConnectorTaskId, storage: Stor
   ): Either[FileListError, Option[ListOfKeysResponse[GCPStorageFileMetadata]]] = {
 
     val blobListOptions =
-      Seq(BlobListOption.pageSize(numResults.toLong)) ++ lastFile.map(md => BlobListOption.startOffset(md.file)).toSeq
+      Seq(BlobListOption.pageSize(numResults.toLong)) ++
+        lastFile.map(md => BlobListOption.startOffset(md.file)).toSeq ++
+        prefix.map(pf => BlobListOption.prefix(pf)).toSeq
 
-    val page       = storage.list(bucket, blobListOptions: _*)
-    val pageValues = page.getValues.asScala
-    val keys       = pageValues.map(_.getName).toSeq
+    Try(storage.list(bucket, blobListOptions: _*)).toEither match {
+      case Left(ex) => FileListError(ex, bucket, prefix).asLeft
+      case Right(page) =>
+        val pageValues = page.getValues.asScala
+        val keys       = pageValues.map(_.getName).toSeq
 
-    pageValues
-      .lastOption
-      .map(value =>
-        ListOfKeysResponse[GCPStorageFileMetadata](
-          bucket,
-          prefix,
-          keys,
-          GCPStorageFileMetadata(value.getName, value.getUpdateTimeOffsetDateTime.toInstant),
-        ),
-      ).asRight
+        pageValues
+          .lastOption
+          .map(value =>
+            ListOfKeysResponse[GCPStorageFileMetadata](
+              bucket,
+              prefix,
+              keys,
+              GCPStorageFileMetadata(value.getName, value.getCreateTimeOffsetDateTime.toInstant),
+            ),
+          ).asRight
+    }
+
   }
 
   override def seekToFile(
