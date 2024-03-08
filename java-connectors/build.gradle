@@ -86,6 +86,7 @@ allprojects {
     }
 
     shadowJar {
+
         manifest {
             attributes("StreamReactor-Version": project.version,
                     "Kafka-Version": kafkaVersion,
@@ -106,6 +107,9 @@ allprojects {
             exclude "META-INF/*.DSA"
             exclude "META-INF/*.RSA"
         }
+
+        //shadowing antlr packages in order to avoid conflict when using kafka connect
+        relocate('org.antlr', 'lshaded.antlr')
 
         dependencies {
 //            // UNCOMMENT BELOW IF NEED CLEAN JAR
