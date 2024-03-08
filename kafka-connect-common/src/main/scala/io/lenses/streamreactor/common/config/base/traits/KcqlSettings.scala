@@ -15,14 +15,9 @@
  */
 package io.lenses.streamreactor.common.config.base.traits
 
-import io.lenses.kcql.Field
-import io.lenses.kcql.FormatType
 import io.lenses.kcql.Kcql
 import io.lenses.kcql.WriteModeEnum
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.KCQL_PROP_SUFFIX
-import io.lenses.streamreactor.common.rowkeys.StringGenericRowKeyBuilder
-import io.lenses.streamreactor.common.rowkeys.StringKeyBuilder
-import io.lenses.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
 import org.apache.kafka.common.config.ConfigException
 
 import scala.collection.immutable.ListSet
@@ -49,15 +44,6 @@ trait KcqlSettings extends BaseSettings {
       .map(rm => (rm.getSource, rm.getFields.asScala.map(fa => (fa.toString, fa.getAlias)).toMap))
       .toMap
 
-  def getFields(kcql: Set[Kcql] = getKCQL): Map[String, Seq[Field]] =
-    kcql.toList.map(rm => (rm.getSource, rm.getFields.asScala.toSeq)).toMap
-
-  def getIgnoreFields(kcql: Set[Kcql] = getKCQL): Map[String, Seq[Field]] =
-    kcql.toList.map(rm => (rm.getSource, rm.getIgnoredFields.asScala.toSeq)).toMap
-
-  def getFieldsAliases(kcql: Set[Kcql] = getKCQL): List[Map[String, String]] =
-    kcql.toList.map(rm => rm.getFields.asScala.map(fa => (fa.getName, fa.getAlias)).toMap)
-
   def getIgnoreFieldsMap(
     kcql: Set[Kcql] = getKCQL,
   ): Map[String, Set[String]] =
@@ -72,29 +58,10 @@ trait KcqlSettings extends BaseSettings {
       (r.getSource, set)
     }.toMap
 
-  def getFormat(formatType: FormatType => FormatType, kcql: Set[Kcql] = getKCQL): Map[String, FormatType] =
-    kcql.toList.map(r => (r.getSource, formatType(r.getFormatType))).toMap
-
-  def getTTL(kcql: Set[Kcql] = getKCQL): Map[String, Long] =
-    kcql.toList.map(r => (r.getSource, r.getTTL)).toMap
-
-//  def getIncrementalMode(kcql: Set[Kcql] = getKCQL): Map[String, String] = {
-//    kcql.toList.map(r => (r.getSource, r.getIncrementalMode)).toMap
-//  }
-
   def getBatchSize(kcql: Set[Kcql] = getKCQL, defaultBatchSize: Int): Map[String, Int] =
     kcql.toList
       .map(r => (r.getSource, Option(r.getBatchSize).getOrElse(defaultBatchSize)))
       .toMap
-
-  def getWriteMode(kcql: Set[Kcql] = getKCQL): Map[String, WriteModeEnum] =
-    kcql.toList.map(r => (r.getSource, r.getWriteMode)).toMap
-
-  def getAutoCreate(kcql: Set[Kcql] = getKCQL): Map[String, Boolean] =
-    kcql.toList.map(r => (r.getSource, r.isAutoCreate)).toMap
-
-  def getAutoEvolve(kcql: Set[Kcql] = getKCQL): Map[String, Boolean] =
-    kcql.toList.map(r => (r.getSource, r.isAutoEvolve)).toMap
 
   /** Get all the upsert keys
     *
@@ -129,21 +96,5 @@ trait KcqlSettings extends BaseSettings {
         (r.getSource, keys)
       }
       .toMap
-
-  def getRowKeyBuilders(kcql: Set[Kcql] = getKCQL): List[StringKeyBuilder] =
-    kcql.toList.map { k =>
-      val keys = k.getPrimaryKeys.asScala.map(k => k.getName).toSeq
-      // No PK => 'topic|par|offset' builder else generic-builder
-      if (keys.nonEmpty) StringStructFieldsStringKeyBuilder(keys)
-      else new StringGenericRowKeyBuilder()
-    }
-
-  def getPrimaryKeyCols(kcql: Set[Kcql] = getKCQL): Map[String, Set[String]] =
-    kcql.toList
-      .map(k => (k.getSource, ListSet(k.getPrimaryKeys.asScala.map(p => p.getName).reverse.toSeq: _*).toSet))
-      .toMap
-
-  def getIncrementalMode(routes: Set[Kcql]): Map[String, String] =
-    routes.toList.map(r => (r.getSource, r.getIncrementalMode)).toMap
 
 }

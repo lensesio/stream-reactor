@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.common.sink
+package io.lenses.streamreactor.connect.redis.sink.rowkeys
 
-import io.lenses.streamreactor.common.rowkeys.StringSinkRecordKeyBuilder
+import io.lenses.streamreactor.connect.redis.sink.rowkeys.StringSinkRecordKeyBuilder
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.matchers.should.Matchers

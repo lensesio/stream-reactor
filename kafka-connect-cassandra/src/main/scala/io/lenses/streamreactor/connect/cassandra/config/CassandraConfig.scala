@@ -21,11 +21,15 @@ import io.lenses.streamreactor.common.config.base.traits.ErrorPolicySettings
 import io.lenses.streamreactor.common.config.base.traits.KcqlSettings
 import io.lenses.streamreactor.common.config.base.traits.NumberRetriesSettings
 import io.lenses.streamreactor.common.config.base.traits.ThreadPoolSettings
-
 import com.datastax.driver.core.ConsistencyLevel
+import io.lenses.kcql.Field
+import io.lenses.kcql.Kcql
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
+
+import scala.collection.immutable.ListSet
+import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
   * Holds the base configuration.
@@ -434,6 +438,7 @@ case class CassandraConfigSource(props: Map[String, String])
     with ErrorPolicySettings
     with ConsistencyLevelSettings[ConsistencyLevel]
     with KcqlSettings
+    with CassandraFieldsSettings
 
 /**
   * Holds the extra configurations for the sink on top of
@@ -521,10 +526,31 @@ object CassandraConfigSink {
 
 }
 
+trait CassandraFieldsSettings {
+
+  def getKCQL: Set[Kcql]
+
+  def getPrimaryKeyCols(kcql: Set[Kcql] = getKCQL): Map[String, Set[String]] =
+    kcql.toList
+      .map(k => (k.getSource, ListSet(k.getPrimaryKeys.asScala.map(p => p.getName).reverse.toSeq: _*).toSet))
+      .toMap
+
+  def getFields(kcql: Set[Kcql] = getKCQL): Map[String, Seq[Field]] =
+    kcql.toList.map(rm => (rm.getSource, rm.getFields.asScala.toSeq)).toMap
+
+  def getIgnoreFields(kcql: Set[Kcql] = getKCQL): Map[String, Seq[Field]] =
+    kcql.toList.map(rm => (rm.getSource, rm.getIgnoredFields.asScala.toSeq)).toMap
+
+  def getIncrementalMode(routes: Set[Kcql]): Map[String, String] =
+    routes.toList.map(r => (r.getSource, r.getIncrementalMode)).toMap
+
+}
+
 case class CassandraConfigSink(props: Map[String, String])
     extends BaseConfig(CassandraConfigConstants.CONNECTOR_PREFIX, CassandraConfigSink.sinkConfig, props)
     with KcqlSettings
     with ErrorPolicySettings
     with NumberRetriesSettings
     with ThreadPoolSettings
-    with ConsistencyLevelSettings[ConsistencyLevel] {}
+    with ConsistencyLevelSettings[ConsistencyLevel]
+    with CassandraFieldsSettings {}
