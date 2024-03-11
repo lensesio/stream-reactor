@@ -44,6 +44,7 @@ import java.nio.channels.Channels
 import java.nio.file.Files
 import java.time.Instant
 import scala.annotation.tailrec
+import scala.collection.immutable.Seq
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.util.Try
 
@@ -163,30 +164,25 @@ class GCPStorageStorageInterface(connectorTaskId: ConnectorTaskId, storage: Stor
       ().asRight
     }
 
-  override def listKeysRecursive(
-    bucket: String,
-    prefix: Option[String],
-  ): Either[FileListError, Option[ListOfKeysResponse[GCPStorageFileMetadata]]] = {
+  private def listFilesRecursive[RW, E](
+    bucket:                String,
+    prefix:                Option[String],
+    fnResultWrapperCreate: (Seq[E], Option[Instant]) => RW,
+    fnListElementCreate:   Blob => E,
+  ): Either[FileListError, Option[RW]] = {
 
     @tailrec
     def listKeysRecursiveHelper(
       maybePage:       Option[Page[Blob]],
-      accumulatedKeys: Seq[String],
+      accumulatedKeys: Seq[E],
       latestCreated:   Option[Instant],
-    ): Option[ListOfKeysResponse[GCPStorageFileMetadata]] =
+    ): Option[RW] =
       maybePage match {
         case None =>
-          Option.when(accumulatedKeys.nonEmpty)(
-            ListOfKeysResponse[GCPStorageFileMetadata](
-              bucket,
-              prefix,
-              accumulatedKeys,
-              GCPStorageFileMetadata(accumulatedKeys.last, latestCreated.get),
-            ),
-          )
+          Option.when(accumulatedKeys.nonEmpty)(fnResultWrapperCreate(accumulatedKeys, latestCreated))
         case Some(page: Page[Blob]) =>
-          val pages            = page.getValues.asScala
-          val newKeys          = accumulatedKeys ++ pages.map(_.getName)
+          val pages = page.getValues.asScala
+          val newKeys: Seq[E] = accumulatedKeys ++ pages.map(p => fnListElementCreate(p))
           val newLatestCreated = pages.lastOption.map(_.getCreateTimeOffsetDateTime.toInstant).orElse(latestCreated)
           listKeysRecursiveHelper(Option(page.getNextPage), newKeys, newLatestCreated)
       }
@@ -195,29 +191,80 @@ class GCPStorageStorageInterface(connectorTaskId: ConnectorTaskId, storage: Stor
       val initialPage: Page[Blob] = storage.list(bucket, prefix.map(BlobListOption.prefix).toSeq: _*)
       listKeysRecursiveHelper(Option(initialPage), Nil, Option.empty)
     }.toEither.leftMap(FileListError(_, bucket, prefix))
-
   }
+
+  override def listKeysRecursive(
+    bucket: String,
+    prefix: Option[String],
+  ): Either[FileListError, Option[ListOfKeysResponse[GCPStorageFileMetadata]]] =
+    listFilesRecursive(
+      bucket,
+      prefix,
+      (accumulatedKeys: Seq[String], latestCreated: Option[Instant]) =>
+        ListOfKeysResponse[GCPStorageFileMetadata](
+          bucket,
+          prefix,
+          accumulatedKeys,
+          GCPStorageFileMetadata(accumulatedKeys.last, latestCreated.get),
+        ),
+      _.getName,
+    )
+
+  override def listFileMetaRecursive(
+    bucket: String,
+    prefix: Option[String],
+  ): Either[FileListError, Option[ListOfMetadataResponse[GCPStorageFileMetadata]]] =
+    listFilesRecursive(
+      bucket,
+      prefix,
+      (accumulatedKeys: Seq[GCPStorageFileMetadata], _: Option[Instant]) =>
+        ListOfMetadataResponse[GCPStorageFileMetadata](
+          bucket,
+          prefix,
+          accumulatedKeys,
+          accumulatedKeys.last,
+        ),
+      p => GCPStorageFileMetadata(p.getName, p.getCreateTimeOffsetDateTime.toInstant),
+    )
 
   override def list(
     bucket:     String,
     prefix:     Option[String],
     lastFile:   Option[GCPStorageFileMetadata],
     numResults: Int,
-  ): Either[FileListError, Option[ListOfKeysResponse[GCPStorageFileMetadata]]] =
-    // val blobListOptions = lastFile.map(md => BlobListOption.startOffset(md.file)).toSeq
-    //    storage.list(bucket, blobListOptions: _*)
-    throw new NotImplementedError("Required for source")
+  ): Either[FileListError, Option[ListOfKeysResponse[GCPStorageFileMetadata]]] = {
 
-  override def listFileMetaRecursive(
-    bucket: String,
-    prefix: Option[String],
-  ): Either[FileListError, Option[ListOfMetadataResponse[GCPStorageFileMetadata]]] =
-    throw new NotImplementedError("Required for source")
+    val blobListOptions =
+      Seq(BlobListOption.pageSize(numResults.toLong)) ++
+        lastFile.map(md => BlobListOption.startOffset(md.file)).toSeq ++
+        prefix.map(pf => BlobListOption.prefix(pf)).toSeq
+
+    Try(storage.list(bucket, blobListOptions: _*)).toEither match {
+      case Left(ex) => FileListError(ex, bucket, prefix).asLeft
+      case Right(page) =>
+        val pageValues = page.getValues.asScala
+        val keys       = pageValues.map(_.getName).toSeq
+
+        pageValues
+          .lastOption
+          .map(value =>
+            ListOfKeysResponse[GCPStorageFileMetadata](
+              bucket,
+              prefix,
+              keys,
+              GCPStorageFileMetadata(value.getName, value.getCreateTimeOffsetDateTime.toInstant),
+            ),
+          ).asRight
+    }
+
+  }
 
   override def seekToFile(
     bucket:       String,
     fileName:     String,
     lastModified: Option[Instant],
-  ): Option[GCPStorageFileMetadata] = throw new NotImplementedError("Required for source")
+  ): Option[GCPStorageFileMetadata] = throw new NotImplementedError(
+    "Required only to support old versions of the connector where the metadata is not stored.  This does not apply to the GCP Storage connector.",
+  )
 
 }
