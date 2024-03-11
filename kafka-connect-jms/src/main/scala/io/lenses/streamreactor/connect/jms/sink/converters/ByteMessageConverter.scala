@@ -19,8 +19,8 @@ import io.lenses.streamreactor.common.converters.ByteArrayConverter
 import io.lenses.streamreactor.connect.jms.config.JMSSetting
 import org.apache.kafka.connect.sink.SinkRecord
 
-import javax.jms.Message
-import javax.jms.Session
+import jakarta.jms.Message
+import jakarta.jms.Session
 
 class ByteMessageConverter extends JMSSinkMessageConverter {
 

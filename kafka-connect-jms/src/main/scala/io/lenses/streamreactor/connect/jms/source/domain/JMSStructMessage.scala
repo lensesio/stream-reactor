@@ -22,7 +22,7 @@ import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceRecord
 
 import java.util
-import javax.jms._
+import jakarta.jms._
 import scala.jdk.CollectionConverters.EnumerationHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 

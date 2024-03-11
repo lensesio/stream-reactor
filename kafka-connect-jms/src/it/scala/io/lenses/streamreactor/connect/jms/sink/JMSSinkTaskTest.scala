@@ -33,10 +33,10 @@ import org.scalatest.BeforeAndAfterAll
 import java.io.File
 import java.util
 import java.util.UUID
-import javax.jms.Message
-import javax.jms.MessageListener
-import javax.jms.Session
-import javax.jms.TextMessage
+import jakarta.jms.Message
+import jakarta.jms.MessageListener
+import jakarta.jms.Session
+import jakarta.jms.TextMessage
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.language.reflectiveCalls
 import scala.reflect.io.Path

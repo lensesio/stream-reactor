@@ -21,8 +21,8 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 
-import javax.jms.ObjectMessage
-import javax.jms.Session
+import jakarta.jms.ObjectMessage
+import jakarta.jms.Session
 import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava

@@ -30,7 +30,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 
 import java.util.UUID
-import javax.jms.Session
+import jakarta.jms.Session
 import javax.naming.NameNotFoundException
 import scala.util.Try
 

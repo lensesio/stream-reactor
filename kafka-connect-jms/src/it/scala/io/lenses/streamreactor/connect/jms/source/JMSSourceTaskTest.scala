@@ -30,7 +30,7 @@ import org.scalatest.concurrent.Eventually
 
 import java.io.File
 import java.util.UUID
-import javax.jms.Session
+import jakarta.jms.Session
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.reflect.io.Path

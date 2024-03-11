@@ -111,8 +111,8 @@ object Dependencies {
 
     val influxVersion = "6.8.0"
 
-    val jmsApiVersion                 = "2.0.1"
-    val activeMqVersion               = "5.17.4"
+    val jmsApiVersion                 = "3.1.0"
+    val activeMqVersion               = "6.0.1"
     val protocVersion                 = "3.11.4"
     val googleProtobufVersion         = "3.21.12"
     val protobufCompilerPluginVersion = "0.11.12"
@@ -336,7 +336,7 @@ object Dependencies {
 
   lazy val influx = "com.influxdb" % "influxdb-client-java" % influxVersion
 
-  lazy val jmsApi         = "javax.jms"           % "javax.jms-api"   % jmsApiVersion
+  lazy val jmsApi         = "jakarta.jms"         % "jakarta.jms-api" % jmsApiVersion
   lazy val activeMq       = "org.apache.activemq" % "activemq-client" % activeMqVersion
   lazy val activeMqBroker = "org.apache.activemq" % "activemq-broker" % activeMqVersion
 
