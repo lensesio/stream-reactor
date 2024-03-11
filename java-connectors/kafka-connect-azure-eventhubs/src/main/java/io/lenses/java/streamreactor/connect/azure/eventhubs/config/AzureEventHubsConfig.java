@@ -17,8 +17,6 @@ import org.apache.kafka.common.config.ConfigDef.Type;
  */
 public class AzureEventHubsConfig extends BaseConfig implements ConnectorPrefixed {
 
-  private static final String DOT = ".";
-
   public static final String CONNECTION_GROUP = "Connection";
 
   private static final UnaryOperator<String> CONFIG_NAME_PREFIX_APPENDER = name ->
@@ -49,6 +47,26 @@ public class AzureEventHubsConfig extends BaseConfig implements ConnectorPrefixe
             2,
             ConfigDef.Width.LONG,
             AzureEventHubsConfigConstants.EVENTHUB_NAME
+        )
+        .define(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT,
+            Type.INT,
+            AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT_DEFAULT,
+            Importance.MEDIUM,
+            AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT_DOC,
+            CONNECTION_GROUP,
+            3,
+            ConfigDef.Width.LONG,
+            AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT
+        )
+        .define(AzureEventHubsConfigConstants.CONSUMER_OFFSET,
+            Type.STRING,
+            AzureEventHubsConfigConstants.CONSUMER_OFFSET_DEFAULT,
+            Importance.MEDIUM,
+            AzureEventHubsConfigConstants.CONSUMER_OFFSET_DOC,
+            CONNECTION_GROUP,
+            4,
+            ConfigDef.Width.LONG,
+            AzureEventHubsConfigConstants.CONSUMER_OFFSET
         ).define(AzureEventHubsConfigConstants.KCQL_CONFIG,
             Type.STRING,
             AzureEventHubsConfigConstants.KCQL_DEFAULT,
@@ -58,15 +76,6 @@ public class AzureEventHubsConfig extends BaseConfig implements ConnectorPrefixe
             1,
             ConfigDef.Width.LONG,
             AzureEventHubsConfigConstants.KCQL_CONFIG
-        ).define(AzureEventHubsConfigConstants.INCLUDE_HEADERS,
-            Type.BOOLEAN,
-            AzureEventHubsConfigConstants.INCLUDE_HEADERS_DEFAULT,
-            Importance.MEDIUM,
-            AzureEventHubsConfigConstants.INCLUDE_HEADERS_DOC,
-            "Mappings",
-            2,
-            ConfigDef.Width.LONG,
-            AzureEventHubsConfigConstants.INCLUDE_HEADERS
         );
   }
 

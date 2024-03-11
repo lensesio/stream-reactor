@@ -1,0 +1,56 @@
+project(":kafka-connect-query-language") {
+    apply plugin: 'antlr'
+
+    test {
+        maxParallelForks = 1
+    }
+
+    ext {
+        antlrVersion = "4.13.1"
+    }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+
+    dependencies {
+        antlr group: 'org.antlr', name: 'antlr4', version: antlrVersion
+        implementation group: 'org.antlr', name: 'antlr4-runtime', version: antlrVersion
+    }
+
+    generateGrammarSource {
+        arguments += ["-package", "io.lenses.kcql.antlr4"]
+        outputDirectory = new File("${project.projectDir}/build/generated/antlr/main/java/io/lenses/kcql/antlr4")
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'build/generated/antlr/main/java'
+        main.antlr.srcDirs = ['src/main/antlr4']
+    }
+
+    task sourcesJar(type: Jar) {
+        archiveClassifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    task javadocJar(type: Jar) {
+        archiveClassifier = 'javadoc'
+        from javadoc
+    }
+
+    tasks.withType(Tar) {
+        compression Compression.GZIP
+        extension = 'tgz'
+    }
+
+
+    artifacts {
+        archives javadocJar, sourcesJar
+    }
+
+    compileJava.dependsOn generateGrammarSource
+
+    task compile(dependsOn: 'compileJava')
+    task fatJarNoTest(dependsOn: 'shadowJar')
+}

@@ -2,8 +2,9 @@ package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
 import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProvider.AzureOffsetMarker;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProvider.AzureTopicPartitionKey;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -17,14 +18,23 @@ import org.apache.kafka.common.TopicPartition;
 @Slf4j
 public class AzureConsumerRebalancerListener implements ConsumerRebalanceListener {
 
-  TopicPartitionOffsetProvider topicPartitionOffsetProvider;
-  Consumer<?, ?> kafkaConsumer;
+  private final boolean shouldSeekToLatest;
+  private final TopicPartitionOffsetProvider topicPartitionOffsetProvider;
+  private final Consumer<?, ?> kafkaConsumer;
 
+  /**
+   * Constructs {@link AzureConsumerRebalancerListener} for particular Kafka Consumer.
+   *
+   * @param topicPartitionOffsetProvider provider of committed offsets
+   * @param kafkaConsumer Kafka Consumer
+   * @param shouldSeekToLatest informs whether we should seek to latest or earliest if no offsets found
+   */
   public AzureConsumerRebalancerListener(
       TopicPartitionOffsetProvider topicPartitionOffsetProvider,
-      Consumer<?, ?> kafkaConsumer) {
+      Consumer<?, ?> kafkaConsumer, boolean shouldSeekToLatest) {
     this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;
     this.kafkaConsumer = kafkaConsumer;
+    this.shouldSeekToLatest = shouldSeekToLatest;
   }
 
   @Override
@@ -34,14 +44,22 @@ public class AzureConsumerRebalancerListener implements ConsumerRebalanceListene
 
   @Override
   public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+    List<TopicPartition> partitionsWithoutOffsets = new ArrayList<>();
     partitions.forEach(partition -> {
       AzureTopicPartitionKey partitionKey = new AzureTopicPartitionKey(
           partition.topic(), partition.partition());
       Optional<AzureOffsetMarker> partitionOffset = topicPartitionOffsetProvider.getOffset(partitionKey);
       partitionOffset.ifPresentOrElse(
           offset -> kafkaConsumer.seek(partition, offset.getOffsetValue()),
-          () -> kafkaConsumer.seekToBeginning(Collections.singletonList(partition)));
+          () -> partitionsWithoutOffsets.add(partition));
     });
+    if (!partitionsWithoutOffsets.isEmpty()) {
+      if (shouldSeekToLatest) {
+        kafkaConsumer.seekToEnd(partitionsWithoutOffsets);
+      } else {
+        kafkaConsumer.seekToBeginning(partitionsWithoutOffsets);
+      }
+    }
   }
 
 }

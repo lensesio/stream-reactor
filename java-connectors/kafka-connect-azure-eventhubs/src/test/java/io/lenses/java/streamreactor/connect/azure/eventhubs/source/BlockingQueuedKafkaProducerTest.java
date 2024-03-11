@@ -17,7 +17,7 @@ class BlockingQueuedKafkaProducerTest {
 
   BlockingQueuedKafkaProducer testObj = new BlockingQueuedKafkaProducer(
       mock(TopicPartitionOffsetProvider.class), mock(BlockingQueue.class),
-      consumer, CLIENT_ID, "topic");
+      consumer, CLIENT_ID, "topic", false);
 
   @Test
   void closeShouldBeDelegatedToKafkaConsumer() {

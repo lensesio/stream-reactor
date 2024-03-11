@@ -14,8 +14,9 @@ import static org.mockito.Mockito.when;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.lenses.java.streamreactor.common.util.JarManifest;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -26,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 class AzureEventHubsSourceTaskTest {
 
-  private static final Duration DEFAULT_CLOSE_TIMEOUT = Duration.of(30, ChronoUnit.SECONDS);
   private AzureEventHubsSourceTask testObj;
   private ListAppender<ILoggingEvent> logWatcher;
   private JarManifest mockedJarManifest = mock(JarManifest.class);
@@ -48,36 +48,41 @@ class AzureEventHubsSourceTaskTest {
   @Test
   void stopShouldCallStopOnController() {
     //given
+    Duration thirtySeconds = Duration.ofSeconds(30);
     EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
-    testObj.initialize(mockedController);
+    AzureEventHubsConfig azureEventHubsConfig = mock(AzureEventHubsConfig.class);
+    when(azureEventHubsConfig.getInt(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT))
+        .thenReturn(thirtySeconds.toSecondsPart());
+    testObj.initialize(mockedController, azureEventHubsConfig);
 
     //when
     testObj.stop();
 
     //then
-    verify(mockedController, times(1)).close(DEFAULT_CLOSE_TIMEOUT);
+    verify(mockedController, times(1)).close(thirtySeconds);
   }
 
   @Test
   void initializeShouldLog() {
     //given
-    String topic = "topic";
     EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
-    testObj.initialize(mockedController);
+    AzureEventHubsConfig azureEventHubsConfig = mock(AzureEventHubsConfig.class);
+    testObj.initialize(mockedController, azureEventHubsConfig);
 
     //when
     testObj.stop();
 
     //then
     assertEquals(1, logWatcher.list.size());
-    assertEquals("AzureEventHubsSourceTask initialising.", logWatcher.list.get(0).getFormattedMessage());
+    assertEquals("AzureEventHubsSourceTask initialised.", logWatcher.list.get(0).getFormattedMessage());
   }
 
   @Test
   void pollShouldCallPollOnControllerAndReturnNullIfListIsEmpty() throws InterruptedException {
     //given
+    AzureEventHubsConfig azureEventHubsConfig = mock(AzureEventHubsConfig.class);
     EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
-    testObj.initialize(mockedController);
+    testObj.initialize(mockedController, azureEventHubsConfig);
     when(mockedController.poll(any(Duration.class))).thenReturn(Collections.emptyList());
 
     //when
@@ -90,8 +95,9 @@ class AzureEventHubsSourceTaskTest {
   @Test
   void pollShouldCallPollOnControllerAndReturnListThatHasElements() throws InterruptedException {
     //given
+    AzureEventHubsConfig azureEventHubsConfig = mock(AzureEventHubsConfig.class);
     EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
-    testObj.initialize(mockedController);
+    testObj.initialize(mockedController, azureEventHubsConfig);
     SourceRecord mockedRecord = mock(SourceRecord.class);
     List<SourceRecord> sourceRecords = Collections.singletonList(mockedRecord);
     when(mockedController.poll(any(Duration.class))).thenReturn(sourceRecords);
@@ -107,8 +113,9 @@ class AzureEventHubsSourceTaskTest {
   @Test
   void getVersionShouldDelegateToJarManifestGetVersion() {
     //given
+    AzureEventHubsConfig azureEventHubsConfig = mock(AzureEventHubsConfig.class);
     EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
-    testObj.initialize(mockedController);
+    testObj.initialize(mockedController, azureEventHubsConfig);
     final String SOME_VERSION = "SOME_VERSION";
     when(mockedJarManifest.getVersion()).thenReturn(SOME_VERSION);
 
