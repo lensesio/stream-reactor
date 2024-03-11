@@ -2,8 +2,9 @@ package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
 import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProvider.AzureOffsetMarker;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.source.TopicPartitionOffsetProvider.AzureTopicPartitionKey;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -43,20 +44,22 @@ public class AzureConsumerRebalancerListener implements ConsumerRebalanceListene
 
   @Override
   public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+    List<TopicPartition> partitionsWithoutOffsets = new ArrayList<>();
     partitions.forEach(partition -> {
       AzureTopicPartitionKey partitionKey = new AzureTopicPartitionKey(
           partition.topic(), partition.partition());
       Optional<AzureOffsetMarker> partitionOffset = topicPartitionOffsetProvider.getOffset(partitionKey);
       partitionOffset.ifPresentOrElse(
           offset -> kafkaConsumer.seek(partition, offset.getOffsetValue()),
-          () -> {
-            if (shouldSeekToLatest) {
-              kafkaConsumer.seekToEnd(Collections.singletonList(partition));
-            } else {
-              kafkaConsumer.seekToBeginning(Collections.singletonList(partition));
-            }
-          });
+          () -> partitionsWithoutOffsets.add(partition));
     });
+    if (!partitionsWithoutOffsets.isEmpty()) {
+      if (shouldSeekToLatest) {
+        kafkaConsumer.seekToEnd(partitionsWithoutOffsets);
+      } else {
+        kafkaConsumer.seekToBeginning(partitionsWithoutOffsets);
+      }
+    }
   }
 
 }

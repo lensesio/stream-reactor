@@ -4,11 +4,13 @@ import static io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureE
 import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -16,6 +18,7 @@ import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHub
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import java.util.concurrent.ArrayBlockingQueue;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,12 +43,37 @@ class BlockingQueueProducerProviderTest {
   }
 
   @Test
-  void whenConstructorInvokedWithParameters_ThenMockKafkaConsumerShouldBeCreatedAndLogged(){
+  void whenConstructorInvokedWithoutOffsetParameter_ThenConfigExceptionIsThrown(){
     //given
     AzureEventHubsConfig azureConfigMock = mock(AzureEventHubsConfig.class);
     TopicPartitionOffsetProvider mockedOffsetProvider = mock(TopicPartitionOffsetProvider.class);
     BlockingQueueProducerProvider testObj = new BlockingQueueProducerProvider(
         mockedOffsetProvider);
+
+    //when
+    ConfigException configException;
+    try(MockedConstruction<KafkaConsumer> mockKafkaConsumer = Mockito.mockConstruction(KafkaConsumer.class)){
+      configException = assertThrows(ConfigException.class, () -> {
+        testObj.createProducer(azureConfigMock, new ArrayBlockingQueue<>(1));
+      });
+    }
+
+
+    //then
+    assertEquals("Invalid value null for configuration connect.eventhubs.default.offset: "
+            + "allowed values are: earliest/latest", configException.getMessage());
+  }
+
+  @Test
+  void whenConstructorInvokedWithParameters_ThenMockKafkaConsumerShouldBeCreatedAndLogged(){
+    //given
+    String earliestOffset = "earliest";
+    AzureEventHubsConfig azureConfigMock = mock(AzureEventHubsConfig.class);
+    TopicPartitionOffsetProvider mockedOffsetProvider = mock(TopicPartitionOffsetProvider.class);
+    BlockingQueueProducerProvider testObj = new BlockingQueueProducerProvider(
+        mockedOffsetProvider);
+    when(azureConfigMock.getString(AzureEventHubsConfigConstants.CONSUMER_OFFSET)).thenReturn(
+        earliestOffset);
 
     //when
     BlockingQueuedKafkaProducer consumer;

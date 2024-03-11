@@ -46,9 +46,6 @@ public class AzureEventHubsSourceTask extends SourceTask {
     OffsetStorageReader offsetStorageReader = ofNullable(this.context).flatMap(
         context -> ofNullable(context.offsetStorageReader())).orElseThrow();
     AzureEventHubsConfig azureEventHubsConfig = new AzureEventHubsConfig(props);
-    closeTimeout =
-        Duration.of(azureEventHubsConfig.getInt(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT),
-            ChronoUnit.SECONDS);
     TopicPartitionOffsetProvider topicPartitionOffsetProvider = new TopicPartitionOffsetProvider(offsetStorageReader);
 
     ArrayBlockingQueue<ConsumerRecords<String, String>> recordsQueue = new ArrayBlockingQueue<>(
@@ -58,7 +55,7 @@ public class AzureEventHubsSourceTask extends SourceTask {
         azureEventHubsConfig, recordsQueue);
     EventHubsKafkaConsumerController kafkaConsumerController = new EventHubsKafkaConsumerController(
         producer, recordsQueue);
-    initialize(kafkaConsumerController);
+    initialize(kafkaConsumerController, azureEventHubsConfig);
   }
 
   /**
@@ -66,10 +63,15 @@ public class AzureEventHubsSourceTask extends SourceTask {
    * {@link EventHubsKafkaConsumerController} instance.
    *
    * @param eventHubsKafkaConsumerController {@link EventHubsKafkaConsumerController} for this task
+   * @param azureEventHubsConfig
    */
-  public void initialize(EventHubsKafkaConsumerController eventHubsKafkaConsumerController) {
+  public void initialize(EventHubsKafkaConsumerController eventHubsKafkaConsumerController,
+      AzureEventHubsConfig azureEventHubsConfig) {
     this.eventHubsKafkaConsumerController = eventHubsKafkaConsumerController;
-    log.info("{} initialising.", getClass().getSimpleName());
+    closeTimeout =
+        Duration.of(azureEventHubsConfig.getInt(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT),
+            ChronoUnit.SECONDS);
+    log.info("{} initialised.", getClass().getSimpleName());
   }
 
 

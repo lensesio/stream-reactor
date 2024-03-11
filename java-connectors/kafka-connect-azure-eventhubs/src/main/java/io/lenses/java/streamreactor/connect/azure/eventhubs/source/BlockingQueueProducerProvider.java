@@ -24,7 +24,7 @@ public class BlockingQueueProducerProvider implements ProducerProvider {
   private static final String EARLIEST_OFFSET = "earliest";
   private static final String LATEST_OFFSET = "latest";
   private static final String CONSUMER_OFFSET_EXCEPTION_MESSAGE =
-      "Allowed values for " + AzureEventHubsConfigConstants.CONSUMER_OFFSET + ": earliest/latest";
+      "allowed values are: earliest/latest";
   private final TopicPartitionOffsetProvider topicPartitionOffsetProvider;
 
 
@@ -70,9 +70,9 @@ public class BlockingQueueProducerProvider implements ProducerProvider {
 
   private boolean shouldConsumerSeekToLatest(AzureEventHubsConfig azureEventHubsConfig) {
     String seekValue = azureEventHubsConfig.getString(AzureEventHubsConfigConstants.CONSUMER_OFFSET);
-    if (EARLIEST_OFFSET.equals(seekValue)) {
+    if (EARLIEST_OFFSET.equalsIgnoreCase(seekValue)) {
       return false;
-    } else if (LATEST_OFFSET.equals(seekValue)) {
+    } else if (LATEST_OFFSET.equalsIgnoreCase(seekValue)) {
       return true;
     }
     throw new ConfigException(AzureEventHubsConfigConstants.CONSUMER_OFFSET, seekValue,
