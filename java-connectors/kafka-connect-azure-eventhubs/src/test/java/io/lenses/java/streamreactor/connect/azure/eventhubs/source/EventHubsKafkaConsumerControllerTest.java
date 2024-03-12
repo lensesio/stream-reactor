@@ -3,9 +3,12 @@ package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.SourceDataType;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -16,71 +19,22 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class EventHubsKafkaConsumerControllerTest { //TODO clean up this class
+class EventHubsKafkaConsumerControllerTest {
 
-  //private static final String CONNECTOR_NAME = "name";
-  //private static final String SOME_NAME = "somename";
-  //private AzureEventHubsConfig hubsConfig;
-
-  private ArrayBlockingQueue<ConsumerRecords<String, String>> recordsQueue;
+  private ArrayBlockingQueue<ConsumerRecords<Object, Object>> recordsQueue;
 
   private EventHubsKafkaConsumerController testObj;
 
 
   @BeforeEach
   void setUp() {
-    //hubsConfig = mock(AzureEventHubsConfig.class);
     recordsQueue = new ArrayBlockingQueue<>(10);
   }
-
-  //@Test
-  //void createShouldFetchRelevantPropertiesAndCallForConsumerCreation() { //TODO remove
-  //  //given
-  //  mockPropertiesReturn();
-  //  List<String> bootstrapServers = Collections.singletonList("some.server:9393");
-  //  String groupId = "group.id";
-  //  Password jaas = new Password("jaas.pass");
-  //  String saasMechanism = "saasMechanism";
-  //  String secProtocol = "secProtocol";
-  //  String eventHubName = "eventHubTopic";
-  //  Class stringDeserializer = StringDeserializer.class;
-  //
-  //  //when
-  //  testObj = new EventHubsKafkaConsumerController(hubsConfig, consumerProvider, recordsQueue);
-  //
-  //  //then
-  //  verify(consumerProvider).createProducer(any(AzureEventHubsConfig.class), eq(recordsQueue));
-  //}
-
-  //private void mockPropertiesReturn() {
-  //  List<String> bootstrapServers = Collections.singletonList("some.server:9393");
-  //  String groupId = "group.id";
-  //  String eventHubName = "eventHubTopic";
-  //  Password jaas = new Password("jaas.pass");
-  //  String saasMechanism = "saasMechanism";
-  //  String secProtocol = "secProtocol";
-  //  Class stringDeserializer = StringDeserializer.class;
-  //  when(this.hubsConfig.getList(
-  //      getPrefixedKafkaConsumerConfigKey(BOOTSTRAP_SERVERS_CONFIG))).thenReturn(bootstrapServers);
-  //  when(this.hubsConfig.getString(
-  //      AzureEventHubsConfigConstants.EVENTHUB_NAME)).thenReturn(eventHubName);
-  //  when(this.hubsConfig.getString(
-  //      getPrefixedKafkaConsumerConfigKey(GROUP_ID_CONFIG))).thenReturn(groupId);
-  //  when(this.hubsConfig.getPassword(
-  //      getPrefixedKafkaConsumerConfigKey(SaslConfigs.SASL_JAAS_CONFIG))).thenReturn(jaas);
-  //  when(this.hubsConfig.getString(
-  //      getPrefixedKafkaConsumerConfigKey(SaslConfigs.SASL_MECHANISM))).thenReturn(saasMechanism);
-  //  when(this.hubsConfig.getString(
-  //      getPrefixedKafkaConsumerConfigKey(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG))).thenReturn(secProtocol);
-  //  when(this.hubsConfig.getClass(
-  //      getPrefixedKafkaConsumerConfigKey(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG))).thenReturn(stringDeserializer);
-  //  when(this.hubsConfig.getClass(
-  //      getPrefixedKafkaConsumerConfigKey(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG))).thenReturn(stringDeserializer);
-  //}
 
   @Test
   void pollShouldPollQueueAndReturnSourceRecords() throws InterruptedException {
@@ -88,6 +42,12 @@ class EventHubsKafkaConsumerControllerTest { //TODO clean up this class
     Duration duration = Duration.of(2, ChronoUnit.SECONDS);
     BlockingQueuedKafkaProducer mockedBlockingProducer = mock(
         BlockingQueuedKafkaProducer.class);
+    KeyValueTypes mockedKeyValueTypes = mock(KeyValueTypes.class);
+    SourceDataType mockedDataType = mock(SourceDataType.class);
+    when(mockedKeyValueTypes.getKeyType()).thenReturn(mockedDataType);
+    when(mockedKeyValueTypes.getValueType()).thenReturn(mockedDataType);
+    when(mockedDataType.getSchema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA);
+    when(mockedBlockingProducer.getKeyValueTypes()).thenReturn(mockedKeyValueTypes);
     testObj = new EventHubsKafkaConsumerController(mockedBlockingProducer, recordsQueue);
     ConsumerRecord consumerRecord = mock(ConsumerRecord.class);
     List<ConsumerRecord<String, String>> consumerRecordList = Collections.singletonList(consumerRecord);
@@ -106,6 +66,8 @@ class EventHubsKafkaConsumerControllerTest { //TODO clean up this class
 
     //then
     verify(mockedBlockingProducer).start();
+    verify(mockedDataType, times(2)).getSchema();
+    verify(mockedBlockingProducer, times(2)).getKeyValueTypes();
     assertNotNull(mockedRecords);
     assertEquals(1, sourceRecords.size());
   }

@@ -5,6 +5,9 @@ import static java.util.Optional.ofNullable;
 import io.lenses.java.streamreactor.common.util.JarManifest;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.SourceDataType;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
+import io.lenses.kcql.Kcql;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -47,15 +50,28 @@ public class AzureEventHubsSourceTask extends SourceTask {
         context -> ofNullable(context.offsetStorageReader())).orElseThrow();
     AzureEventHubsConfig azureEventHubsConfig = new AzureEventHubsConfig(props);
     TopicPartitionOffsetProvider topicPartitionOffsetProvider = new TopicPartitionOffsetProvider(offsetStorageReader);
+    Kcql parsedKcql = Kcql.parse(
+        azureEventHubsConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
+    KeyValueTypes keyValueTypes = getSourceDataTypes(parsedKcql);
 
-    ArrayBlockingQueue<ConsumerRecords<String, String>> recordsQueue = new ArrayBlockingQueue<>(
+    ArrayBlockingQueue<ConsumerRecords<Object, Object>> recordsQueue = new ArrayBlockingQueue<>(
         RECORDS_QUEUE_DEFAULT_SIZE);
     blockingQueueProducerProvider = new BlockingQueueProducerProvider(topicPartitionOffsetProvider);
     BlockingQueuedKafkaProducer producer = blockingQueueProducerProvider.createProducer(
-        azureEventHubsConfig, recordsQueue);
+        azureEventHubsConfig, recordsQueue, keyValueTypes);
     EventHubsKafkaConsumerController kafkaConsumerController = new EventHubsKafkaConsumerController(
         producer, recordsQueue);
     initialize(kafkaConsumerController, azureEventHubsConfig);
+  }
+
+  private static KeyValueTypes getSourceDataTypes(Kcql parsedKcql) {
+    Map<String, String> kcqlProperties = parsedKcql.getProperties();
+    String keyFormat = kcqlProperties.getOrDefault("key.format", SourceDataType.BYTE.name());
+    String valueFormat = kcqlProperties.getOrDefault("value.format", SourceDataType.BYTE.name());
+    return new KeyValueTypes(
+        SourceDataType.fromName(keyFormat),
+        SourceDataType.fromName(valueFormat)
+    );
   }
 
   /**

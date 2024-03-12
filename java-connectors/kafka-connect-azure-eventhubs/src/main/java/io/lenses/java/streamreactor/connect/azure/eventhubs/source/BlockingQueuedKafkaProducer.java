@@ -1,11 +1,13 @@
 package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -18,11 +20,13 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 public class BlockingQueuedKafkaProducer implements BlockingQueueProducer {
   private static final Duration DEFAULT_POLL_DURATION =  Duration.of(1, ChronoUnit.SECONDS);
   private final TopicPartitionOffsetProvider topicPartitionOffsetProvider;
-  private final BlockingQueue<ConsumerRecords<String, String>> recordsQueue;
-  private final Consumer<String, String> consumer;
+  private final BlockingQueue<ConsumerRecords<Object, Object>> recordsQueue;
+  private final Consumer<Object, Object> consumer;
   private final String clientId;
   private final String topic;
   private final boolean shouldSeekToLatest;
+  @Getter
+  private final KeyValueTypes keyValueTypes;
   private final AtomicBoolean initialized = new AtomicBoolean(false);
   private final AtomicBoolean running = new AtomicBoolean(false);
 
@@ -34,20 +38,23 @@ public class BlockingQueuedKafkaProducer implements BlockingQueueProducer {
    * @param topicPartitionOffsetProvider TopicPartitionOffsetProvider for subscription handler
    * @param recordsQueue                 BlockingQueue to put records into
    * @param consumer                     Kafka Consumer
+   * @param keyValueTypes                {@link KeyValueTypes} instance indicating key and
+   *                                     value types
    * @param clientId                     consumer client id
    * @param topic                        kafka topic to consume from
-   * @param shouldSeekToLatest           informs where should consumer seek when
-   *                                     there are no offsets committed
+   * @param shouldSeekToLatest           informs where should consumer seek when there are no
+   *                                     offsets committed
    */
   public BlockingQueuedKafkaProducer(TopicPartitionOffsetProvider topicPartitionOffsetProvider,
-      BlockingQueue<ConsumerRecords<String, String>> recordsQueue,
-      Consumer<String, String> consumer, String clientId, String topic, boolean shouldSeekToLatest) {
+      BlockingQueue<ConsumerRecords<Object, Object>> recordsQueue,
+      Consumer<Object, Object> consumer, KeyValueTypes keyValueTypes, String clientId, String topic, boolean shouldSeekToLatest) {
     this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;
     this.recordsQueue = recordsQueue;
     this.consumer = consumer;
     this.clientId = clientId;
     this.topic = topic;
     this.shouldSeekToLatest = shouldSeekToLatest;
+    this.keyValueTypes = keyValueTypes;
 
     start();
   }
@@ -78,7 +85,7 @@ public class BlockingQueuedKafkaProducer implements BlockingQueueProducer {
       consumer.subscribe(Collections.singletonList(topic),
           new AzureConsumerRebalancerListener(topicPartitionOffsetProvider, consumer, shouldSeekToLatest));
       while (running.get()) {
-        ConsumerRecords<String, String> consumerRecords = consumer.poll(DEFAULT_POLL_DURATION);
+        ConsumerRecords<Object, Object> consumerRecords = consumer.poll(DEFAULT_POLL_DURATION);
         if (consumerRecords != null && !consumerRecords.isEmpty()) {
           try {
             boolean offer = false;

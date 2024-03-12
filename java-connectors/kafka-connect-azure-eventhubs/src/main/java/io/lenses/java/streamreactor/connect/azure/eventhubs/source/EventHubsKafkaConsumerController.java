@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 
 /**
@@ -24,7 +23,7 @@ import org.apache.kafka.connect.source.SourceRecord;
 @Slf4j
 public class EventHubsKafkaConsumerController {
 
-  private final BlockingQueue<ConsumerRecords<String, String>> recordsQueue;
+  private final BlockingQueue<ConsumerRecords<Object, Object>> recordsQueue;
   private BlockingQueuedKafkaProducer queuedKafkaProducer;
 
   /**
@@ -34,7 +33,7 @@ public class EventHubsKafkaConsumerController {
    * @param recordsQueue queue that contains EventHub records.
    */
   public EventHubsKafkaConsumerController(BlockingQueuedKafkaProducer queuedKafkaProducer,
-      BlockingQueue<ConsumerRecords<String, String>> recordsQueue) {
+      BlockingQueue<ConsumerRecords<Object, Object>> recordsQueue) {
     this.recordsQueue = recordsQueue;
     this.queuedKafkaProducer = queuedKafkaProducer;
   }
@@ -52,7 +51,7 @@ public class EventHubsKafkaConsumerController {
 
     queuedKafkaProducer.start();
 
-    ConsumerRecords<String, String> consumerRecords = null;
+    ConsumerRecords<Object, Object> consumerRecords = null;
     try {
       consumerRecords = recordsQueue.poll(
           duration.get(ChronoUnit.SECONDS), TimeUnit.SECONDS);
@@ -63,14 +62,15 @@ public class EventHubsKafkaConsumerController {
 
     if (consumerRecords != null && !consumerRecords.isEmpty()) {
       sourceRecords = new ArrayList<>(consumerRecords.count());
-      for (ConsumerRecord<String, String> consumerRecord : consumerRecords) {
+      for (ConsumerRecord<Object, Object> consumerRecord : consumerRecords) {
 
         AzureTopicPartitionKey azureTopicPartitionKey = new AzureTopicPartitionKey(
             consumerRecord.topic(), consumerRecord.partition());
         AzureOffsetMarker offsetMarker = new AzureOffsetMarker(consumerRecord.offset());
 
         SourceRecord sourceRecord = mapSourceRecordIncludingHeaders(consumerRecord, azureTopicPartitionKey,
-            offsetMarker, Schema.OPTIONAL_STRING_SCHEMA, Schema.STRING_SCHEMA);
+            offsetMarker, queuedKafkaProducer.getKeyValueTypes().getKeyType().getSchema(),
+            queuedKafkaProducer.getKeyValueTypes().getValueType().getSchema());
 
         sourceRecords.add(sourceRecord);
       }

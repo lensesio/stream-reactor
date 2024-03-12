@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.BlockingQueue;
@@ -17,7 +18,8 @@ class BlockingQueuedKafkaProducerTest {
 
   BlockingQueuedKafkaProducer testObj = new BlockingQueuedKafkaProducer(
       mock(TopicPartitionOffsetProvider.class), mock(BlockingQueue.class),
-      consumer, CLIENT_ID, "topic", false);
+      consumer, KeyValueTypes.getDefaultTypes(),
+      CLIENT_ID, "topic", false);
 
   @Test
   void closeShouldBeDelegatedToKafkaConsumer() {
