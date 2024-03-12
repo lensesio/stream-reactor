@@ -61,7 +61,7 @@ case class CloudLocation(
     val pathStr      = path.map(p => s"$p/").getOrElse("")
     val lineStr      = line.map(l => s"#$l").getOrElse("")
     val timestampStr = timestamp.map(t => s"@${t.toString}").getOrElse("")
-    s"$bucket:$prefixStr$pathStr$lineStr$timestampStr"
+    s"$bucket:(prefix: $prefixStr)$pathStr:$lineStr:$timestampStr"
   }
 
 }

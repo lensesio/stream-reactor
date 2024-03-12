@@ -41,7 +41,6 @@ class GCPStorageDirectoryLister(connectorTaskId: ConnectorTaskId, storage: Stora
   ): IO[Set[String]] = {
 
     def listSubdirs(prefix: String, recurseLevels: Int): Iterable[String] = {
-
       val blobListOptions = BlobListOption.dedupe(
         BlobListOption.delimiter("/"),
         BlobListOption.pageSize(filesLimit.toLong),
@@ -63,6 +62,8 @@ class GCPStorageDirectoryLister(connectorTaskId: ConnectorTaskId, storage: Stora
           )
         }
 
+      logger.trace(s"[$connectorTaskId] Searching directory $prefix for $recurseLevels, found ${foundResults.size}")
+
       foundResults.flatMap {
         case d: String if recurseLevels > 1 =>
           listSubdirs(d, recurseLevels - 1)
@@ -72,10 +73,17 @@ class GCPStorageDirectoryLister(connectorTaskId: ConnectorTaskId, storage: Stora
 
     }
 
-    for {
-      iterator <- IO(listSubdirs(bucketAndPrefix.prefix.getOrElse(""), recurseLevels))
-    } yield iterator.toSet ++ bucketAndPrefix.prefix
+    val preWithTrailingSlash: String = ensureTrailingSlash(bucketAndPrefix.prefixOrDefault())
 
+    if (recurseLevels == 0) {
+      IO(Set(preWithTrailingSlash))
+    } else {
+      for {
+        iterator <- IO(listSubdirs(preWithTrailingSlash, recurseLevels))
+      } yield iterator.toSet
+    }
   }
 
+  private def ensureTrailingSlash(pre: String) =
+    if (pre.isEmpty) pre else if (pre.endsWith("/")) pre else s"$pre/"
 }
