@@ -19,12 +19,12 @@ import cats.implicits._
 import io.lenses.streamreactor.common.schemas.ConverterUtil
 import io.lenses.streamreactor.connect.jms.config.JMSSetting
 import com.typesafe.scalalogging.StrictLogging
+import jakarta.jms.BytesMessage
+import jakarta.jms.JMSException
+import jakarta.jms.Session
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
-import javax.jms.BytesMessage
-import javax.jms.JMSException
-import javax.jms.Session
 import scala.annotation.nowarn
 
 @nowarn("cat=deprecation")

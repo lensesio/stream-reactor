@@ -64,6 +64,7 @@ import java.nio.channels.Channels
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.time.Instant
 import java.time.OffsetDateTime
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
@@ -372,6 +373,114 @@ class GCPStorageStorageInterfaceTest
 
     val result = storageInterface.getMetadata(bucket, path)
     result.left.value should be(a[FileLoadError])
+  }
+
+  "listFileMetaRecursive" should "return a list of metadata when successful" in {
+    val bucket = "test-bucket"
+    val prefix = "test-prefix"
+
+    doReturn(pages.head).when(client).list(bucket, BlobListOption.prefix(prefix))
+    val result = storageInterface.listFileMetaRecursive(bucket, prefix.some)
+
+    val metadata: ListOfMetadataResponse[GCPStorageFileMetadata] = result.value.value
+    metadata.files.size should be(100)
+    metadata.latestFileMetadata should be(metadata.files.last)
+  }
+
+  "listFileMetaRecursive" should "return None when no keys are found" in {
+    val bucket = "test-bucket"
+    val prefix = "non-existing-prefix"
+
+    doReturn(emptyPage).when(client).list(bucket, BlobListOption.prefix(prefix))
+
+    val result = storageInterface.listFileMetaRecursive(bucket, prefix.some)
+
+    result.value should be(None)
+  }
+
+  "listFileMetaRecursive" should "return a Left(FileListError) if there is an exception" in {
+    val bucket = "test-bucket"
+    val prefix = Some("test-prefix")
+
+    doThrow(
+      new IllegalStateException("The spice must flow."),
+    ).when(client).list(bucket, BlobListOption.prefix(prefix.orNull))
+
+    val result = storageInterface.listFileMetaRecursive(bucket, prefix)
+
+    result.left.value should be(a[FileListError])
+  }
+
+  "list" should "return a list of keys following last file" in {
+    val bucket       = "test-bucket"
+    val prefix       = "test-prefix"
+    val numResults   = 10
+    val lastFileMeta = GCPStorageFileMetadata("myFilename", Instant.now())
+
+    doReturn(pages.head).when(client).list(
+      bucket,
+      BlobListOption.pageSize(numResults.toLong),
+      BlobListOption.startOffset("myFilename"),
+      BlobListOption.prefix(prefix),
+    )
+    val result = storageInterface.list(bucket, prefix.some, lastFileMeta.some, numResults)
+
+    verify(client).list(bucket,
+                        BlobListOption.pageSize(10.toLong),
+                        BlobListOption.startOffset("myFilename"),
+                        BlobListOption.prefix(prefix),
+    )
+
+    val metadata: ListOfKeysResponse[GCPStorageFileMetadata] = result.value.value
+    metadata.files.size should be(10)
+    metadata.latestFileMetadata.file should be(metadata.files.last)
+  }
+
+  "list" should "return None when no more keys are found" in {
+    val bucket       = "test-bucket"
+    val prefix       = "non-existing-prefix"
+    val numResults   = 10
+    val lastFileMeta = GCPStorageFileMetadata("myFilename", Instant.now())
+
+    doReturn(emptyPage).when(client).list(
+      bucket,
+      BlobListOption.pageSize(numResults.toLong),
+      BlobListOption.startOffset("myFilename"),
+      BlobListOption.prefix(prefix),
+    )
+    val result = storageInterface.list(bucket, prefix.some, lastFileMeta.some, numResults)
+
+    verify(client).list(bucket,
+                        BlobListOption.pageSize(10.toLong),
+                        BlobListOption.startOffset("myFilename"),
+                        BlobListOption.prefix(prefix),
+    )
+    result.value should be(None)
+  }
+
+  "list" should "return a Left(FileListError) if there is an exception" in {
+    val bucket       = "test-bucket"
+    val prefix       = "test-prefix"
+    val numResults   = 10
+    val lastFileMeta = GCPStorageFileMetadata("myFilename", Instant.now())
+
+    doThrow(
+      new IllegalStateException("The spice must flow."),
+    ).when(client).list(
+      bucket,
+      BlobListOption.pageSize(numResults.toLong),
+      BlobListOption.startOffset("myFilename"),
+      BlobListOption.prefix(prefix),
+    )
+
+    val result = storageInterface.list(bucket, prefix.some, lastFileMeta.some, numResults)
+
+    verify(client).list(bucket,
+                        BlobListOption.pageSize(10.toLong),
+                        BlobListOption.startOffset("myFilename"),
+                        BlobListOption.prefix(prefix),
+    )
+    result.left.value should be(a[FileListError])
   }
 
   "close" should "close" in {

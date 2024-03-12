@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.jms.source.converters
 import io.lenses.streamreactor.connect.jms.converters.JMSMessageConverter
 import org.apache.kafka.connect.source.SourceRecord
 
-import javax.jms.Message
+import jakarta.jms.Message
 
 trait JMSSourceMessageConverter extends JMSMessageConverter {
 

@@ -211,6 +211,7 @@ object CassandraSettings extends StrictLogging {
       defaultValueStrategy,
     )
   }
+
 }
 
 object DefaultValueServeStrategy extends Enumeration {

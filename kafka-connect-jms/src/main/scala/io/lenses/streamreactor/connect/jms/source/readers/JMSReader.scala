@@ -23,8 +23,8 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.SourceRecord
 
-import javax.jms.Message
-import javax.jms.MessageConsumer
+import jakarta.jms.Message
+import jakarta.jms.MessageConsumer
 import scala.util.Try
 
 /**

@@ -19,8 +19,8 @@ import io.lenses.streamreactor.connect.jms.config.JMSSetting
 import io.lenses.streamreactor.connect.jms.converters.JMSMessageConverter
 import org.apache.kafka.connect.sink.SinkRecord
 
-import javax.jms.Message
-import javax.jms.Session
+import jakarta.jms.Message
+import jakarta.jms.Session
 
 trait JMSSinkMessageConverter extends JMSMessageConverter {
 

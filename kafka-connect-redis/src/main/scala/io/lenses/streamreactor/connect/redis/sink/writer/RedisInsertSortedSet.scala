@@ -19,12 +19,12 @@ import com.typesafe.scalalogging.StrictLogging
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.config.base.settings.Projections
 import io.lenses.streamreactor.common.errors.ErrorHandler
-import io.lenses.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
 import io.lenses.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
 import io.lenses.streamreactor.common.sink.DbWriter
 import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 import io.lenses.streamreactor.connect.redis.sink.config.RedisKCQLSetting
 import io.lenses.streamreactor.connect.redis.sink.config.RedisSinkSettings
+import io.lenses.streamreactor.connect.redis.sink.rowkeys.StringStructFieldsStringKeyBuilder
 import org.apache.kafka.connect.sink.SinkRecord
 import redis.clients.jedis.Jedis
 

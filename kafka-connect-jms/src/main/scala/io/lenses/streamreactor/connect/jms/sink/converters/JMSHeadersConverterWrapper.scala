@@ -18,8 +18,8 @@ package io.lenses.streamreactor.connect.jms.sink.converters
 import io.lenses.streamreactor.connect.jms.config.JMSSetting
 import org.apache.kafka.connect.sink.SinkRecord
 
-import javax.jms.Message
-import javax.jms.Session
+import jakarta.jms.Message
+import jakarta.jms.Session
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.util.Try
 
