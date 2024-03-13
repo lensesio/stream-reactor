@@ -51,7 +51,7 @@ public class AzureEventHubsSourceTask extends SourceTask {
     AzureEventHubsConfig azureEventHubsConfig = new AzureEventHubsConfig(props);
     TopicPartitionOffsetProvider topicPartitionOffsetProvider = new TopicPartitionOffsetProvider(offsetStorageReader);
     Kcql parsedKcql = Kcql.parse(
-        azureEventHubsConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
+        azureEventHubsConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG).split(";")[0]);
     KeyValueTypes keyValueTypes = getSourceDataTypes(parsedKcql);
 
     ArrayBlockingQueue<ConsumerRecords<Object, Object>> recordsQueue = new ArrayBlockingQueue<>(
