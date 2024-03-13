@@ -47,12 +47,13 @@ class BlockingQueueProducerProviderTest {
     TopicPartitionOffsetProvider mockedOffsetProvider = mock(TopicPartitionOffsetProvider.class);
     when(azureConfigMock.getString(AzureEventHubsConfigConstants.KCQL_CONFIG)).thenReturn(
         AzureEventHubsConfigConstants.KCQL_DEFAULT);
-    BlockingQueueProducerProvider testObj = new BlockingQueueProducerProvider(
-        mockedOffsetProvider);
+
 
     //when
+    BlockingQueueProducerProvider testObj = new BlockingQueueProducerProvider(
+        mockedOffsetProvider);
     ConfigException configException;
-    try(MockedConstruction<KafkaConsumer> mockKafkaConsumer = Mockito.mockConstruction(KafkaConsumer.class)){
+    try(MockedConstruction<KafkaConsumer> ignored = Mockito.mockConstruction(KafkaConsumer.class)){
       configException = assertThrows(ConfigException.class, () -> {
         testObj.createProducer(azureConfigMock, new ArrayBlockingQueue<>(1)
         );
@@ -69,18 +70,19 @@ class BlockingQueueProducerProviderTest {
   void whenConstructorInvokedWithParameters_ThenMockKafkaConsumerShouldBeCreatedAndLogged(){
     //given
     String earliestOffset = "earliest";
-    AzureEventHubsConfig azureConfigMock = mock(AzureEventHubsConfig.class);
     TopicPartitionOffsetProvider mockedOffsetProvider = mock(TopicPartitionOffsetProvider.class);
-    BlockingQueueProducerProvider testObj = new BlockingQueueProducerProvider(
-        mockedOffsetProvider);
+
+    AzureEventHubsConfig azureConfigMock = mock(AzureEventHubsConfig.class);
     when(azureConfigMock.getString(AzureEventHubsConfigConstants.CONSUMER_OFFSET)).thenReturn(
         earliestOffset);
     when(azureConfigMock.getString(AzureEventHubsConfigConstants.KCQL_CONFIG)).thenReturn(
         AzureEventHubsConfigConstants.KCQL_DEFAULT);
 
     //when
+    BlockingQueueProducerProvider testObj = new BlockingQueueProducerProvider(
+        mockedOffsetProvider);
     BlockingQueuedKafkaProducer consumer;
-    try(MockedConstruction<KafkaConsumer> mockKafkaConsumer = Mockito.mockConstruction(KafkaConsumer.class)){
+    try(MockedConstruction<KafkaConsumer> ignored = Mockito.mockConstruction(KafkaConsumer.class)){
       consumer = testObj.createProducer(azureConfigMock, new ArrayBlockingQueue<>(1));
     }
 

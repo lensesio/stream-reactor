@@ -11,7 +11,6 @@ import io.lenses.java.streamreactor.connect.azure.eventhubs.config.SourceDataTyp
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -40,28 +39,33 @@ class EventHubsKafkaConsumerControllerTest {
   void pollShouldPollQueueAndReturnSourceRecords() throws InterruptedException {
     //given
     Duration duration = Duration.of(2, ChronoUnit.SECONDS);
-    BlockingQueuedKafkaProducer mockedBlockingProducer = mock(
-        BlockingQueuedKafkaProducer.class);
-    KeyValueTypes mockedKeyValueTypes = mock(KeyValueTypes.class);
+
     SourceDataType mockedDataType = mock(SourceDataType.class);
+    when(mockedDataType.getSchema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA);
+
+    KeyValueTypes mockedKeyValueTypes = mock(KeyValueTypes.class);
     when(mockedKeyValueTypes.getKeyType()).thenReturn(mockedDataType);
     when(mockedKeyValueTypes.getValueType()).thenReturn(mockedDataType);
-    when(mockedDataType.getSchema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA);
+
+    BlockingQueuedKafkaProducer mockedBlockingProducer = mock(
+        BlockingQueuedKafkaProducer.class);
     when(mockedBlockingProducer.getKeyValueTypes()).thenReturn(mockedKeyValueTypes);
-    testObj = new EventHubsKafkaConsumerController(mockedBlockingProducer, recordsQueue);
+
+    Headers headersMock = mock(Headers.class);
+    List<Header> emptyHeaderList = Collections.emptyList();
+    when(headersMock.iterator()).thenReturn(emptyHeaderList.iterator());
+
     ConsumerRecord consumerRecord = mock(ConsumerRecord.class);
+    when(consumerRecord.headers()).thenReturn(headersMock);
     List<ConsumerRecord<String, String>> consumerRecordList = Collections.singletonList(consumerRecord);
+
     ConsumerRecords mockedRecords = mock(ConsumerRecords.class);
     when(mockedRecords.count()).thenReturn(consumerRecordList.size());
     when(mockedRecords.iterator()).thenReturn(consumerRecordList.iterator());
-    Headers headersMock = mock(Headers.class);
-    List<Header> emptyHeaderList = new ArrayList<>();
-    when(headersMock.iterator()).thenReturn(emptyHeaderList.iterator());
-    when(consumerRecord.headers()).thenReturn(headersMock);
     recordsQueue.put(mockedRecords);
 
     //when
-
+    testObj = new EventHubsKafkaConsumerController(mockedBlockingProducer, recordsQueue);
     List<SourceRecord> sourceRecords = testObj.poll(duration);
 
     //then
