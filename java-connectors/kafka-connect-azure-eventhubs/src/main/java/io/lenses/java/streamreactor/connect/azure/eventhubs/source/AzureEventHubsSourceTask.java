@@ -79,7 +79,7 @@ public class AzureEventHubsSourceTask extends SourceTask {
    * {@link EventHubsKafkaConsumerController} instance.
    *
    * @param eventHubsKafkaConsumerController {@link EventHubsKafkaConsumerController} for this task
-   * @param azureEventHubsConfig
+   * @param azureEventHubsConfig config for task
    */
   public void initialize(EventHubsKafkaConsumerController eventHubsKafkaConsumerController,
       AzureEventHubsConfig azureEventHubsConfig) {

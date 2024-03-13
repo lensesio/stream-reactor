@@ -46,8 +46,8 @@ public class BlockingQueuedKafkaProducer implements BlockingQueueProducer {
    *                                     offsets committed
    */
   public BlockingQueuedKafkaProducer(TopicPartitionOffsetProvider topicPartitionOffsetProvider,
-      BlockingQueue<ConsumerRecords<Object, Object>> recordsQueue,
-      Consumer<Object, Object> consumer, KeyValueTypes keyValueTypes, String clientId, String topic, boolean shouldSeekToLatest) {
+      BlockingQueue<ConsumerRecords<Object, Object>> recordsQueue, Consumer<Object, Object> consumer,
+      KeyValueTypes keyValueTypes, String clientId, String topic, boolean shouldSeekToLatest) {
     this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;
     this.recordsQueue = recordsQueue;
     this.consumer = consumer;

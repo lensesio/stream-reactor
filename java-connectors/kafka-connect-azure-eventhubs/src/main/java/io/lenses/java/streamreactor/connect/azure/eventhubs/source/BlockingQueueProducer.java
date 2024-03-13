@@ -3,7 +3,7 @@ package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 import java.time.Duration;
 
 /**
- * Interface of stoppable BockingQueue Producer
+ * Interface of stoppable BockingQueue Producer.
  */
 public interface BlockingQueueProducer {
 

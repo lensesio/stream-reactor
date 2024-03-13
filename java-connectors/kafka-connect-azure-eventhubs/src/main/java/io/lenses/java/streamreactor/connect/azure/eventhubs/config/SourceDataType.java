@@ -2,6 +2,7 @@ package io.lenses.java.streamreactor.connect.azure.eventhubs.config;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -35,18 +36,35 @@ public enum SourceDataType {
     return NAME_TO_DATA_SERIALIZER_TYPE.get(name.toUpperCase());
   }
 
+  /**
+   * Class indicates what data types are being transferred by Task.
+   */
   @Getter
   public static class KeyValueTypes {
     private final SourceDataType keyType;
     private final SourceDataType valueType;
+    public static final KeyValueTypes DEFAULT_TYPES = new KeyValueTypes(BYTE, BYTE);
 
     public KeyValueTypes(SourceDataType keyType, SourceDataType valueType) {
       this.keyType = keyType;
       this.valueType = valueType;
     }
 
-    public static KeyValueTypes getDefaultTypes() {
-      return new KeyValueTypes(BYTE, BYTE);
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      KeyValueTypes that = (KeyValueTypes) o;
+      return keyType == that.keyType && valueType == that.valueType;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(keyType, valueType);
     }
   }
 }
