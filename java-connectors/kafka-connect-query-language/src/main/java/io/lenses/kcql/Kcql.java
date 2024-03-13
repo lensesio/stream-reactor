@@ -23,6 +23,8 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 
 /**
  * Parsing support for Kafka Connect Query Language.
