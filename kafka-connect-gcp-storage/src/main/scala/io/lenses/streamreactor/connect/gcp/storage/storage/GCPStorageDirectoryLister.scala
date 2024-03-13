@@ -30,7 +30,17 @@ class GCPStorageDirectoryLister(connectorTaskId: ConnectorTaskId, storage: Stora
     with DirectoryLister {
 
   /**
-    * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
+    * Finds directories within the specified cloud location with optional recursion.
+    *
+    * This method searches for directories within the given cloud location (bucket and prefix) up to a certain recursion level.
+    * Directories matching the specified criteria (limits, exclusions) are returned as a set of strings.
+    *
+    * @param bucketAndPrefix The cloud location consisting of a bucket and prefix.
+    * @param filesLimit The maximum number of files to list in each directory.
+    * @param recurseLevels The maximum recursion levels to search within directories.
+    * @param exclude The set of directory prefixes to exclude from the search.  We ignore paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
+    * @param wildcardExcludes The set of wildcard patterns to exclude from the search.
+    * @return An IO containing a set of directory paths found within the specified cloud location.
     */
   override def findDirectories(
     bucketAndPrefix:  CloudLocation,
@@ -40,6 +50,16 @@ class GCPStorageDirectoryLister(connectorTaskId: ConnectorTaskId, storage: Stora
     wildcardExcludes: Set[String],
   ): IO[Set[String]] = {
 
+    /**
+      * Recursively lists subdirectories within the specified cloud location prefix up to a certain recursion level.
+      *
+      * This method iterates through the subdirectories of the given prefix within a cloud location, up to the specified recursion level.
+      * It filters the results based on ownership, exclusions, and wildcard patterns.
+      *
+      * @param prefix        The prefix within the cloud location to search for subdirectories.
+      * @param recurseLevels The maximum recursion levels to search within subdirectories.
+      * @return An iterable collection of subdirectory paths found within the specified prefix with the indicated recursion level.
+      */
     def listSubdirs(prefix: String, recurseLevels: Int): Iterable[String] = {
       val blobListOptions = BlobListOption.dedupe(
         BlobListOption.delimiter("/"),
@@ -84,6 +104,18 @@ class GCPStorageDirectoryLister(connectorTaskId: ConnectorTaskId, storage: Stora
     }
   }
 
-  private def ensureTrailingSlash(pre: String) =
-    if (pre.isEmpty) pre else if (pre.endsWith("/")) pre else s"$pre/"
+  /**
+    * Ensures that the given string ends with a trailing slash ("/").
+    *
+    * If the input string is empty or already ends with a slash, the same string is returned.
+    * Otherwise, a slash is appended to the end of the string.
+    *
+    * Note: An empty string is a valid path at the root of the GCP storage bucket.  A trailing slash would not
+    * be appropriate.
+    *
+    * @param pre The input string to ensure a trailing slash for.
+    * @return The input string with a trailing slash appended if necessary.
+    */
+  private def ensureTrailingSlash(pre: String): String =
+    if (pre.isEmpty || pre.endsWith("/")) pre else s"$pre/"
 }

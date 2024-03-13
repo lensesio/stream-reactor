@@ -74,13 +74,10 @@ class ReaderManager(
           reader <- readerRef.get
           data <- reader match {
             case Some(value) =>
-              // The index of -1 means no record. It's an unfortunate state introduced by the readers keeping track of the current records
-              // which is kept for backwards compatibility. If -1 then there are 0 records, and it adds 1 to the index to get the number of records read.
               val before: Long = transposeRecordIdxForLog(value.currentRecordIndex)
               value.retrieveResults(allLimit) match {
                 case Some(results) =>
                   val accumulated = acc(pollResults ++ results, allLimit - results.size)
-                  //same as above, -1 means no record, so add 1 to get the number of records read
                   val after: Long = transposeRecordIdxForLog(value.currentRecordIndex)
                   logger.info("[{}] Read {} record(-s) from file {}",
                               connectorTaskId.show,
@@ -100,11 +97,15 @@ class ReaderManager(
     acc(Vector.empty, recordsLimit)
   }
 
-  private def transposeRecordIdxForLog(currentRecordIndex: Long): Long = {
-    //same as above, -1 means no record, so add 1 to get the number of records read
-    val after = if (currentRecordIndex == -1) 0 else currentRecordIndex + 1
-    after
-  }
+  /**
+    * The index of -1 means no record. It's an unfortunate state introduced by the readers keeping track of the current
+    * records which is kept for backwards compatibility. If -1 then there are 0 records, and it adds 1 to the index to
+    * get the number of records read.
+    * @param currentRecordIndex the unadjusted index
+    * @return the adjusted index (for logging)
+    */
+  private def transposeRecordIdxForLog(currentRecordIndex: Long): Long =
+    if (currentRecordIndex == -1) 0 else currentRecordIndex + 1
 
   private def closeAndLog(maybePrev: Option[ResultReader]): IO[Unit] = IO.delay {
     maybePrev.foreach { prev =>

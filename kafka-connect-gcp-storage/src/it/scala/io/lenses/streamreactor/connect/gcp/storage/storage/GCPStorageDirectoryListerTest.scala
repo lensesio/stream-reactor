@@ -31,6 +31,22 @@ class GCPStorageDirectoryListerTest extends GCPProxyContainerTest with Matchers 
 
   private val filesLimit = 4
 
+  "lister" should "list from root" in {
+    val bucketName = "listRootLevel"
+    val mockClient: Storage =
+      setUpMockClient(bucketName, "1.txt", "2.txt", "3.txt", "4.txt")
+
+    check(
+      client           = mockClient,
+      connectorTaskId  = connectorTaskId,
+      location         = CloudLocation(bucketName, none),
+      recursiveLevel   = 0,
+      exclude          = Set.empty,
+      wildcardExcludes = Set.empty,
+      expected         = Set(""),
+    )
+  }
+
   "lister" should "list all directories" in {
     val bucketName = "listAllDirectories"
     val mockClient: Storage =
