@@ -42,7 +42,7 @@ object Dependencies {
 
   object Versions {
     // libraries versions
-    val scalatestVersion               = "3.2.17" // Higher versions result in org.scala-lang.modules:scala-xml conflicts
+    val scalatestVersion               = "3.2.17"
     val scalaCheckPlusVersion          = "3.1.0.0"
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.17.0"
