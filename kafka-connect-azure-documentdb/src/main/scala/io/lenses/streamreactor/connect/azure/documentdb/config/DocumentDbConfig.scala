@@ -15,14 +15,9 @@
  */
 package io.lenses.streamreactor.connect.azure.documentdb.config
 
-import io.lenses.streamreactor.common.config.base.traits.BaseConfig
-import io.lenses.streamreactor.common.config.base.traits.ConsistencyLevelSettings
-import io.lenses.streamreactor.common.config.base.traits.DatabaseSettings
-import io.lenses.streamreactor.common.config.base.traits.ErrorPolicySettings
-import io.lenses.streamreactor.common.config.base.traits.KcqlSettings
-import io.lenses.streamreactor.common.config.base.traits.NumberRetriesSettings
-
 import com.microsoft.azure.documentdb.ConsistencyLevel
+import io.lenses.streamreactor.common.config.KcqlWithFieldsSettings
+import io.lenses.streamreactor.common.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
@@ -150,7 +145,7 @@ object DocumentDbConfig {
 
 case class DocumentDbConfig(props: Map[String, String])
     extends BaseConfig(DocumentDbConfigConstants.CONNECTOR_PREFIX, DocumentDbConfig.config, props)
-    with KcqlSettings
+    with KcqlWithFieldsSettings
     with DatabaseSettings
     with NumberRetriesSettings
     with ErrorPolicySettings

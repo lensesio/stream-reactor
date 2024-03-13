@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.common.config
 
-import io.lenses.streamreactor.common.config.base.traits.KcqlSettings
 import org.apache.kafka.common.config.types.Password
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -23,9 +22,9 @@ import org.scalatest.wordspec.AnyWordSpec
 import java.util
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-class KcqlSettingsTest extends AnyWordSpec with Matchers {
+class KcqlWithFieldsSettingsTest extends AnyWordSpec with Matchers {
 
-  case class KS(kcql: String) extends KcqlSettings {
+  case class KS(kcql: String) extends KcqlWithFieldsSettings {
 
     override def connectorPrefix: String = "66686723939"
     override def getString(key: String): String = key match {

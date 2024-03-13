@@ -15,13 +15,8 @@
  */
 package io.lenses.streamreactor.connect.mongodb.config
 
-import io.lenses.streamreactor.common.config.base.traits.BaseConfig
-import io.lenses.streamreactor.common.config.base.traits.DatabaseSettings
-import io.lenses.streamreactor.common.config.base.traits.ErrorPolicySettings
-import io.lenses.streamreactor.common.config.base.traits.KcqlSettings
-import io.lenses.streamreactor.common.config.base.traits.NumberRetriesSettings
-import io.lenses.streamreactor.common.config.base.traits.UserSettings
-
+import io.lenses.streamreactor.common.config.KcqlWithFieldsSettings
+import io.lenses.streamreactor.common.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
@@ -152,7 +147,7 @@ object MongoConfig {
 
 case class MongoConfig(props: Map[String, String])
     extends BaseConfig(MongoConfigConstants.CONNECTOR_PREFIX, MongoConfig.config, props)
-    with KcqlSettings
+    with KcqlWithFieldsSettings
     with DatabaseSettings
     with ErrorPolicySettings
     with NumberRetriesSettings
