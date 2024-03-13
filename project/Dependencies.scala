@@ -42,22 +42,22 @@ object Dependencies {
 
   object Versions {
     // libraries versions
-    val scalatestVersion               = "3.2.15" // Higher versions result in org.scala-lang.modules:scala-xml conflicts
+    val scalatestVersion               = "3.2.17" // Higher versions result in org.scala-lang.modules:scala-xml conflicts
     val scalaCheckPlusVersion          = "3.1.0.0"
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.17.0"
     val randomDataGeneratorVersion     = "2.8"
 
-    val enumeratumVersion = "1.7.2"
+    val enumeratumVersion = "1.7.3"
 
     val http4sVersion    = "1.0.0-M32"
     val http4sJdkVersion = "1.0.0-M1"
-    val avroVersion      = "1.11.0"
-    val avro4sVersion    = "4.1.0"
+    val avroVersion      = "1.11.3"
+    val avro4sVersion    = "4.1.1"
 
     val catsVersion           = "2.9.0"
     val catsEffectVersion     = "3.4.8"
-    val `cats-effect-testing` = "1.4.0"
+    val `cats-effect-testing` = "1.5.0"
 
     val antlr4Version: String = "4.13.1"
 
@@ -89,9 +89,9 @@ object Dependencies {
     val guavaVersion         = "31.0.1-jre"
     val javaxBindVersion     = "2.3.1"
 
-    val jacksonVersion      = "2.15.3"
+    val jacksonVersion      = "2.16.2"
     val json4sVersion       = "4.0.6"
-    val mockitoScalaVersion = "1.17.12"
+    val mockitoScalaVersion = "1.17.30"
     val snakeYamlVersion    = "2.0"
     val openCsvVersion      = "5.7.1"
 
@@ -181,9 +181,9 @@ object Dependencies {
   val logback          = "ch.qos.logback"              % "logback-classic"  % logbackVersion
   lazy val logbackCore = "ch.qos.logback"              % "logback-core"     % logbackVersion
   val scalaLogging     = "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion
-  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.6"
-  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.6"
-  val slf4jApi         = "org.slf4j"                   % "slf4j-api"        % "2.0.6"
+  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.9"
+  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.9"
+  val slf4jApi         = "org.slf4j"                   % "slf4j-api"        % "2.0.9"
 
   // testing
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
