@@ -140,7 +140,7 @@ object Dependencies {
     val gsonVersion  = "2.10.1"
 
     val nimbusJoseJwtVersion = "9.30.2"
-    val hadoopVersion        = "3.3.2"
+    val hadoopVersion        = "3.3.6"
 
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
