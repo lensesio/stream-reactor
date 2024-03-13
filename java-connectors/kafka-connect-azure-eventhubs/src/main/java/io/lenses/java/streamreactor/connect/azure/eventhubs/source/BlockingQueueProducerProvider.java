@@ -5,7 +5,9 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.SourceDataType;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
+import io.lenses.kcql.Kcql;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
@@ -36,17 +38,19 @@ public class BlockingQueueProducerProvider implements ProducerProvider {
   /**
    * Instantiates BlockingQueuedKafkaConsumer from given properties.
    *
-   * @param azureEventHubsConfig    Config of Task
-   * @param recordBlockingQueue     BlockingQueue for ConsumerRecords
-   * @param keyValueTypes types for key and value
+   * @param azureEventHubsConfig Config of Task
+   * @param recordBlockingQueue  BlockingQueue for ConsumerRecords
    * @return BlockingQueuedKafkaConsumer instance.
    */
   public BlockingQueuedKafkaProducer createProducer(AzureEventHubsConfig azureEventHubsConfig,
-      BlockingQueue<ConsumerRecords<Object, Object>> recordBlockingQueue,
-      KeyValueTypes keyValueTypes) {
+      BlockingQueue<ConsumerRecords<Object, Object>> recordBlockingQueue) {
     String connectorName = azureEventHubsConfig.getString(AzureEventHubsConfigConstants.CONNECTOR_NAME);
     final String clientId = connectorName + "#" + UUID.randomUUID();
     log.info("Attempting to create Client with Id:{}", clientId);
+
+    Kcql parsedKcql = Kcql.parse(
+        azureEventHubsConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG).split(";")[0]);
+    KeyValueTypes keyValueTypes = getSourceDataTypes(parsedKcql);
 
     Map<String, Object> consumerProperties = azureEventHubsConfig.originalsWithPrefix(
         AzureEventHubsConfigConstants.CONNECTOR_WITH_CONSUMER_PREFIX, STRIP_PREFIX);
@@ -78,5 +82,15 @@ public class BlockingQueueProducerProvider implements ProducerProvider {
     }
     throw new ConfigException(AzureEventHubsConfigConstants.CONSUMER_OFFSET, seekValue,
         CONSUMER_OFFSET_EXCEPTION_MESSAGE);
+  }
+
+  private static KeyValueTypes getSourceDataTypes(Kcql parsedKcql) {
+    Map<String, String> kcqlProperties = parsedKcql.getProperties();
+    String keyFormat = kcqlProperties.getOrDefault("key.format", SourceDataType.BYTE.name());
+    String valueFormat = kcqlProperties.getOrDefault("value.format", SourceDataType.BYTE.name());
+    return new KeyValueTypes(
+        SourceDataType.fromName(keyFormat),
+        SourceDataType.fromName(valueFormat)
+    );
   }
 }

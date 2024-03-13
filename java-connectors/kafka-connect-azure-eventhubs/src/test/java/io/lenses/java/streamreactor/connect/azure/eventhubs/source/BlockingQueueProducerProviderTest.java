@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,12 +14,9 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
-import io.lenses.java.streamreactor.connect.azure.eventhubs.config.SourceDataType;
-import io.lenses.java.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
 import java.util.concurrent.ArrayBlockingQueue;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +45,8 @@ class BlockingQueueProducerProviderTest {
     //given
     AzureEventHubsConfig azureConfigMock = mock(AzureEventHubsConfig.class);
     TopicPartitionOffsetProvider mockedOffsetProvider = mock(TopicPartitionOffsetProvider.class);
+    when(azureConfigMock.getString(AzureEventHubsConfigConstants.KCQL_CONFIG)).thenReturn(
+        AzureEventHubsConfigConstants.KCQL_DEFAULT);
     BlockingQueueProducerProvider testObj = new BlockingQueueProducerProvider(
         mockedOffsetProvider);
 
@@ -56,8 +54,8 @@ class BlockingQueueProducerProviderTest {
     ConfigException configException;
     try(MockedConstruction<KafkaConsumer> mockKafkaConsumer = Mockito.mockConstruction(KafkaConsumer.class)){
       configException = assertThrows(ConfigException.class, () -> {
-        testObj.createProducer(azureConfigMock, new ArrayBlockingQueue<>(1),
-            new KeyValueTypes(SourceDataType.BYTE, SourceDataType.BYTE));
+        testObj.createProducer(azureConfigMock, new ArrayBlockingQueue<>(1)
+        );
       });
     }
 
@@ -77,25 +75,19 @@ class BlockingQueueProducerProviderTest {
         mockedOffsetProvider);
     when(azureConfigMock.getString(AzureEventHubsConfigConstants.CONSUMER_OFFSET)).thenReturn(
         earliestOffset);
-    KeyValueTypes mockedKeyValueTypes = mock(KeyValueTypes.class);
-    SourceDataType mockedType = mock(SourceDataType.class);
-    when(mockedKeyValueTypes.getKeyType()).thenReturn(mockedType);
-    Class stringDeserializerClass = StringDeserializer.class;
-    when(mockedType.getDeserializerClass()).thenReturn(stringDeserializerClass);
-    when(mockedKeyValueTypes.getValueType()).thenReturn(mockedType);
-    when(mockedKeyValueTypes.getKeyType()).thenReturn(mockedType);
+    when(azureConfigMock.getString(AzureEventHubsConfigConstants.KCQL_CONFIG)).thenReturn(
+        AzureEventHubsConfigConstants.KCQL_DEFAULT);
 
     //when
     BlockingQueuedKafkaProducer consumer;
     try(MockedConstruction<KafkaConsumer> mockKafkaConsumer = Mockito.mockConstruction(KafkaConsumer.class)){
-      consumer = testObj.createProducer(azureConfigMock, new ArrayBlockingQueue<>(1),
-          mockedKeyValueTypes);
+      consumer = testObj.createProducer(azureConfigMock, new ArrayBlockingQueue<>(1));
     }
 
     //then
     verify(azureConfigMock).getString(AzureEventHubsConfigConstants.CONNECTOR_NAME);
     verify(azureConfigMock).getString(getPrefixedKafkaConsumerConfigKey(GROUP_ID_CONFIG));
-    verify(mockedType, times(2)).getDeserializerClass();
+    verify(azureConfigMock).getString(AzureEventHubsConfigConstants.KCQL_CONFIG);
     assertNotNull(consumer);
     assertEquals(1, logWatcher.list.size());
     assertTrue(logWatcher.list.get(0).getFormattedMessage().startsWith("Attempting to create Client with Id"));
