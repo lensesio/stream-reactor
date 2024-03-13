@@ -335,6 +335,15 @@ public class Kcql {
         this.withFlushSize = withFlushSize;
     }
 
+    /**
+     * Parses (check parse method) multiple KCQL statements delimited by semicolon.
+     * @param kcqlStatements
+     * @return
+     */
+    public static List<Kcql> parseMultiple(final String kcqlStatements) {
+        return Arrays.stream(kcqlStatements.split(";")).map(Kcql::parse).collect(Collectors.toList());
+    }
+
     public static Kcql parse(final String syntax) {
         final ConnectorLexer lexer = new ConnectorLexer(CharStreams.fromString(syntax));
         final CommonTokenStream tokens = new CommonTokenStream(lexer);

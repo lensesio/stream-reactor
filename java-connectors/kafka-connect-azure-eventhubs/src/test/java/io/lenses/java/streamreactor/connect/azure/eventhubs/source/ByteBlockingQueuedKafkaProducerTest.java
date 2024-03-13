@@ -11,12 +11,12 @@ import java.util.concurrent.BlockingQueue;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.junit.jupiter.api.Test;
 
-class BlockingQueuedKafkaProducerTest {
+class ByteBlockingQueuedKafkaProducerTest {
 
   private static final String CLIENT_ID = "clientId";
   private static Consumer consumer = mock(Consumer.class);
 
-  BlockingQueuedKafkaProducer testObj = new BlockingQueuedKafkaProducer(
+  ByteBlockingQueuedKafkaProducer testObj = new ByteBlockingQueuedKafkaProducer(
       mock(TopicPartitionOffsetProvider.class), mock(BlockingQueue.class),
       consumer, KeyValueTypes.DEFAULT_TYPES,
       CLIENT_ID, "topic", false);

@@ -17,11 +17,11 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
  * it to output its records into a {@link BlockingQueue} shared with {@link EventHubsKafkaConsumerController}.
  */
 @Slf4j
-public class BlockingQueuedKafkaProducer implements BlockingQueueProducer {
+public class ByteBlockingQueuedKafkaProducer implements BlockingQueueProducer {
   private static final Duration DEFAULT_POLL_DURATION =  Duration.of(1, ChronoUnit.SECONDS);
   private final TopicPartitionOffsetProvider topicPartitionOffsetProvider;
-  private final BlockingQueue<ConsumerRecords<Object, Object>> recordsQueue;
-  private final Consumer<Object, Object> consumer;
+  private final BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue;
+  private final Consumer<byte[], byte[]> consumer;
   private final String clientId;
   private final String topic;
   private final boolean shouldSeekToLatest;
@@ -45,8 +45,8 @@ public class BlockingQueuedKafkaProducer implements BlockingQueueProducer {
    * @param shouldSeekToLatest           informs where should consumer seek when there are no
    *                                     offsets committed
    */
-  public BlockingQueuedKafkaProducer(TopicPartitionOffsetProvider topicPartitionOffsetProvider,
-      BlockingQueue<ConsumerRecords<Object, Object>> recordsQueue, Consumer<Object, Object> consumer,
+  public ByteBlockingQueuedKafkaProducer(TopicPartitionOffsetProvider topicPartitionOffsetProvider,
+      BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue, Consumer<byte[], byte[]> consumer,
       KeyValueTypes keyValueTypes, String clientId, String topic, boolean shouldSeekToLatest) {
     this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;
     this.recordsQueue = recordsQueue;
@@ -85,7 +85,7 @@ public class BlockingQueuedKafkaProducer implements BlockingQueueProducer {
       consumer.subscribe(Collections.singletonList(topic),
           new AzureConsumerRebalancerListener(topicPartitionOffsetProvider, consumer, shouldSeekToLatest));
       while (running.get()) {
-        ConsumerRecords<Object, Object> consumerRecords = consumer.poll(DEFAULT_POLL_DURATION);
+        ConsumerRecords<byte[], byte[]> consumerRecords = consumer.poll(DEFAULT_POLL_DURATION);
         if (consumerRecords != null && !consumerRecords.isEmpty()) {
           try {
             boolean offer = false;

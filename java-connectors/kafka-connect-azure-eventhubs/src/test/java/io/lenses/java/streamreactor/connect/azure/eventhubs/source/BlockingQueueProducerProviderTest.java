@@ -81,7 +81,7 @@ class BlockingQueueProducerProviderTest {
     //when
     BlockingQueueProducerProvider testObj = new BlockingQueueProducerProvider(
         mockedOffsetProvider);
-    BlockingQueuedKafkaProducer consumer;
+    ByteBlockingQueuedKafkaProducer consumer;
     try(MockedConstruction<KafkaConsumer> ignored = Mockito.mockConstruction(KafkaConsumer.class)){
       consumer = testObj.createProducer(azureConfigMock, new ArrayBlockingQueue<>(1));
     }

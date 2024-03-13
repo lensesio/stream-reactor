@@ -67,15 +67,6 @@ public class AzureEventHubsConfig extends BaseConfig implements ConnectorPrefixe
             4,
             ConfigDef.Width.LONG,
             AzureEventHubsConfigConstants.CONSUMER_OFFSET
-        ).define(AzureEventHubsConfigConstants.KCQL_CONFIG,
-            Type.STRING,
-            AzureEventHubsConfigConstants.KCQL_DEFAULT,
-            Importance.HIGH,
-            AzureEventHubsConfigConstants.KCQL_DOC,
-            "Mappings",
-            1,
-            ConfigDef.Width.LONG,
-            AzureEventHubsConfigConstants.KCQL_CONFIG
         );
   }
 

@@ -15,10 +15,10 @@ class SourceDataTypeTest {
     //given
 
     //when
-    SourceDataType s = SourceDataType.fromName(SourceDataType.BYTE.name());
+    SourceDataType s = SourceDataType.fromName(SourceDataType.BYTES.name());
 
     //then
-    assertEquals(SourceDataType.BYTE, s);
+    assertEquals(SourceDataType.BYTES, s);
   }
 
   @Test
@@ -26,7 +26,7 @@ class SourceDataTypeTest {
     //given
 
     //when
-    Class<? extends Deserializer> deserializerClass = SourceDataType.BYTE.getDeserializerClass();
+    Class<? extends Deserializer> deserializerClass = SourceDataType.BYTES.getDeserializerClass();
 
     //then
     assertEquals(ByteArrayDeserializer.class, deserializerClass);
@@ -37,7 +37,7 @@ class SourceDataTypeTest {
     //given
 
     //when
-    Schema schema = SourceDataType.BYTE.getSchema();
+    Schema schema = SourceDataType.BYTES.getSchema();
 
     //then
     assertEquals(OPTIONAL_BYTES_SCHEMA, schema);

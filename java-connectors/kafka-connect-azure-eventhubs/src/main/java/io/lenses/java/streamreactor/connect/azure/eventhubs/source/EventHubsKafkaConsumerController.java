@@ -23,8 +23,8 @@ import org.apache.kafka.connect.source.SourceRecord;
 @Slf4j
 public class EventHubsKafkaConsumerController {
 
-  private final BlockingQueue<ConsumerRecords<Object, Object>> recordsQueue;
-  private BlockingQueuedKafkaProducer queuedKafkaProducer;
+  private final BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue;
+  private ByteBlockingQueuedKafkaProducer queuedKafkaProducer;
 
   /**
    * Constructs EventHubsKafkaConsumerController.
@@ -32,8 +32,8 @@ public class EventHubsKafkaConsumerController {
    * @param queuedKafkaProducer producer to the recordsQueue.
    * @param recordsQueue queue that contains EventHub records.
    */
-  public EventHubsKafkaConsumerController(BlockingQueuedKafkaProducer queuedKafkaProducer,
-      BlockingQueue<ConsumerRecords<Object, Object>> recordsQueue) {
+  public EventHubsKafkaConsumerController(ByteBlockingQueuedKafkaProducer queuedKafkaProducer,
+      BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue) {
     this.recordsQueue = recordsQueue;
     this.queuedKafkaProducer = queuedKafkaProducer;
   }
@@ -51,7 +51,7 @@ public class EventHubsKafkaConsumerController {
 
     queuedKafkaProducer.start();
 
-    ConsumerRecords<Object, Object> consumerRecords = null;
+    ConsumerRecords<byte[], byte[]> consumerRecords = null;
     try {
       consumerRecords = recordsQueue.poll(
           duration.get(ChronoUnit.SECONDS), TimeUnit.SECONDS);
@@ -62,7 +62,7 @@ public class EventHubsKafkaConsumerController {
 
     if (consumerRecords != null && !consumerRecords.isEmpty()) {
       sourceRecords = new ArrayList<>(consumerRecords.count());
-      for (ConsumerRecord<Object, Object> consumerRecord : consumerRecords) {
+      for (ConsumerRecord<byte[], byte[]> consumerRecord : consumerRecords) {
 
         AzureTopicPartitionKey azureTopicPartitionKey = new AzureTopicPartitionKey(
             consumerRecord.topic(), consumerRecord.partition());
