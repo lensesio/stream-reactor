@@ -23,14 +23,14 @@ trait KcqlSettings extends BaseSettings {
   val kcqlConstant: String = s"$connectorPrefix.$KCQL_PROP_SUFFIX"
 
   def getKCQL: Set[Kcql] =
-    getKCQLRaw.map(r => Kcql.parse(r)).toSet
+    Kcql.parseMultiple(getKCQLString).asScala.toSet
 
-  def getKCQLRaw: Array[String] = {
+  private def getKCQLString: String = {
     val raw = getString(kcqlConstant)
     if (raw.isEmpty) {
       throw new ConfigException(s"Missing [$kcqlConstant]")
     }
-    raw.split(";")
+    raw
   }
 
 }
