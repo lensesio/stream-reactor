@@ -19,6 +19,8 @@ import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.KCQL_PROP_SUFFIX
 import org.apache.kafka.common.config.ConfigException
 
+import scala.jdk.CollectionConverters.CollectionHasAsScala
+
 trait KcqlSettings extends BaseSettings {
   val kcqlConstant: String = s"$connectorPrefix.$KCQL_PROP_SUFFIX"
 
