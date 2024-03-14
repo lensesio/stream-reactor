@@ -72,7 +72,7 @@ object Dependencies {
     val kindProjectorVersion    = "0.13.2"
     val betterMonadicForVersion = "0.3.1"
 
-    val logbackVersion      = "1.4.7"
+    val logbackVersion      = "1.4.14"
     val scalaLoggingVersion = "3.9.5"
 
     val wiremockVersion = "3.3.1"
@@ -81,11 +81,11 @@ object Dependencies {
     val jerseyCommonVersion = "3.1.1"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.20.69"
+    val awsSdkVersion  = "2.25.6"
 
-    val azureDataLakeVersion = "12.17.0"
-    val azureIdentityVersion = "1.8.1"
-    val gcpStorageVersion    = "2.26.1"
+    val azureDataLakeVersion = "12.18.1"
+    val azureIdentityVersion = "1.11.1"
+    val gcpStorageVersion    = "2.32.1"
     val guavaVersion         = "31.0.1-jre"
     val javaxBindVersion     = "2.3.1"
 
