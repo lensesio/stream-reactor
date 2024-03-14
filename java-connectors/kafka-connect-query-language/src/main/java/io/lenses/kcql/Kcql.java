@@ -352,6 +352,7 @@ public class Kcql {
         final ConnectorParser parser = new ConnectorParser(tokens);
         final ArrayList<String> nestedFieldsBuffer = new ArrayList<>();
         final Kcql kcql = new Kcql();
+        kcql.setQuery(syntax);
         parser.addErrorListener(new BaseErrorListener() {
             @Override
             public void syntaxError(Recognizer<?, ?> recognizer,
