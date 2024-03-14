@@ -24,7 +24,7 @@ import org.apache.kafka.connect.source.SourceRecord;
 public class EventHubsKafkaConsumerController {
 
   private final BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue;
-  private ByteBlockingQueuedKafkaProducer queuedKafkaProducer;
+  private KafkaByteBlockingQueuedProducer queuedKafkaProducer;
 
   /**
    * Constructs EventHubsKafkaConsumerController.
@@ -32,7 +32,7 @@ public class EventHubsKafkaConsumerController {
    * @param queuedKafkaProducer producer to the recordsQueue.
    * @param recordsQueue queue that contains EventHub records.
    */
-  public EventHubsKafkaConsumerController(ByteBlockingQueuedKafkaProducer queuedKafkaProducer,
+  public EventHubsKafkaConsumerController(KafkaByteBlockingQueuedProducer queuedKafkaProducer,
       BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue) {
     this.recordsQueue = recordsQueue;
     this.queuedKafkaProducer = queuedKafkaProducer;

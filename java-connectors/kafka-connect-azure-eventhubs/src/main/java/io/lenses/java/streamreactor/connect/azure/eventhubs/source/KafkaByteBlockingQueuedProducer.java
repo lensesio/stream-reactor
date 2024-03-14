@@ -17,7 +17,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
  * it to output its records into a {@link BlockingQueue} shared with {@link EventHubsKafkaConsumerController}.
  */
 @Slf4j
-public class ByteBlockingQueuedKafkaProducer implements BlockingQueueProducer {
+public class KafkaByteBlockingQueuedProducer implements BlockingQueueProducer {
   private static final Duration DEFAULT_POLL_DURATION =  Duration.of(1, ChronoUnit.SECONDS);
   private final TopicPartitionOffsetProvider topicPartitionOffsetProvider;
   private final BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue;
@@ -45,7 +45,7 @@ public class ByteBlockingQueuedKafkaProducer implements BlockingQueueProducer {
    * @param shouldSeekToLatest           informs where should consumer seek when there are no
    *                                     offsets committed
    */
-  public ByteBlockingQueuedKafkaProducer(TopicPartitionOffsetProvider topicPartitionOffsetProvider,
+  public KafkaByteBlockingQueuedProducer(TopicPartitionOffsetProvider topicPartitionOffsetProvider,
       BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue, Consumer<byte[], byte[]> consumer,
       KeyValueTypes keyValueTypes, String clientId, String topic, boolean shouldSeekToLatest) {
     this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;

@@ -40,7 +40,7 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
    * @param recordBlockingQueue  BlockingQueue for ConsumerRecords
    * @return BlockingQueuedKafkaConsumer instance.
    */
-  public ByteBlockingQueuedKafkaProducer createProducer(AzureEventHubsConfig azureEventHubsConfig,
+  public KafkaByteBlockingQueuedProducer createProducer(AzureEventHubsConfig azureEventHubsConfig,
       BlockingQueue<ConsumerRecords<byte[], byte[]>> recordBlockingQueue) {
     String connectorName = azureEventHubsConfig.getString(AzureEventHubsConfigConstants.CONNECTOR_NAME);
     final String clientId = connectorName + "#" + UUID.randomUUID();
@@ -64,7 +64,7 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
     boolean shouldSeekToLatest = shouldConsumerSeekToLatest(azureEventHubsConfig);
     String topic = azureEventHubsConfig.getString(AzureEventHubsConfigConstants.EVENTHUB_NAME);
 
-    return new ByteBlockingQueuedKafkaProducer(topicPartitionOffsetProvider, recordBlockingQueue,
+    return new KafkaByteBlockingQueuedProducer(topicPartitionOffsetProvider, recordBlockingQueue,
         kafkaConsumer, keyValueTypes, clientId, topic, shouldSeekToLatest);
   }
 

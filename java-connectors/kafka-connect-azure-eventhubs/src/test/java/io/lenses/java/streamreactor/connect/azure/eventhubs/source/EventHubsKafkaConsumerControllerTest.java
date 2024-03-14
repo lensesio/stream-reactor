@@ -47,8 +47,8 @@ class EventHubsKafkaConsumerControllerTest {
     when(mockedKeyValueTypes.getKeyType()).thenReturn(mockedDataType);
     when(mockedKeyValueTypes.getValueType()).thenReturn(mockedDataType);
 
-    ByteBlockingQueuedKafkaProducer mockedBlockingProducer = mock(
-        ByteBlockingQueuedKafkaProducer.class);
+    KafkaByteBlockingQueuedProducer mockedBlockingProducer = mock(
+        KafkaByteBlockingQueuedProducer.class);
     when(mockedBlockingProducer.getKeyValueTypes()).thenReturn(mockedKeyValueTypes);
 
     Headers headersMock = mock(Headers.class);
@@ -80,8 +80,8 @@ class EventHubsKafkaConsumerControllerTest {
   void closeShouldCloseTheProducer() {
     //given
     Duration duration = Duration.of(2, ChronoUnit.SECONDS);
-    ByteBlockingQueuedKafkaProducer mockedBlockingProducer = mock(
-        ByteBlockingQueuedKafkaProducer.class);
+    KafkaByteBlockingQueuedProducer mockedBlockingProducer = mock(
+        KafkaByteBlockingQueuedProducer.class);
     testObj = new EventHubsKafkaConsumerController(mockedBlockingProducer, recordsQueue);
 
     //when

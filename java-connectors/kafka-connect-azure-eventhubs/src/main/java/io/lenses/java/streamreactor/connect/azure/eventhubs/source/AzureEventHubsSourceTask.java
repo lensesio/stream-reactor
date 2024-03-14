@@ -51,7 +51,7 @@ public class AzureEventHubsSourceTask extends SourceTask {
     ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue = new ArrayBlockingQueue<>(
         RECORDS_QUEUE_DEFAULT_SIZE);
     blockingQueueProducerProvider = new BlockingQueueProducerProvider(topicPartitionOffsetProvider);
-    ByteBlockingQueuedKafkaProducer producer = blockingQueueProducerProvider.createProducer(
+    KafkaByteBlockingQueuedProducer producer = blockingQueueProducerProvider.createProducer(
         azureEventHubsConfig, recordsQueue);
     EventHubsKafkaConsumerController kafkaConsumerController = new EventHubsKafkaConsumerController(
         producer, recordsQueue);
