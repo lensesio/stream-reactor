@@ -15,10 +15,10 @@
  */
 package io.lenses.streamreactor.common.offsets
 
-import java.util
-import java.util.Collections
 import org.apache.kafka.connect.source.SourceTaskContext
 
+import java.util
+import java.util.Collections
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 

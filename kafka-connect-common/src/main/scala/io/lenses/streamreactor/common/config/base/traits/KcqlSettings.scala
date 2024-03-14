@@ -16,85 +16,23 @@
 package io.lenses.streamreactor.common.config.base.traits
 
 import io.lenses.kcql.Kcql
-import io.lenses.kcql.WriteModeEnum
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.KCQL_PROP_SUFFIX
 import org.apache.kafka.common.config.ConfigException
 
-import scala.collection.immutable.ListSet
-import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 trait KcqlSettings extends BaseSettings {
   val kcqlConstant: String = s"$connectorPrefix.$KCQL_PROP_SUFFIX"
 
   def getKCQL: Set[Kcql] =
-    getKCQLRaw.map(r => Kcql.parse(r)).toSet
+    Kcql.parseMultiple(getKCQLString).asScala.toSet
 
-  def getKCQLRaw: Array[String] = {
+  private def getKCQLString: String = {
     val raw = getString(kcqlConstant)
     if (raw.isEmpty) {
       throw new ConfigException(s"Missing [$kcqlConstant]")
     }
-    raw.split(";")
+    raw
   }
-
-  def getFieldsMap(
-    kcql: Set[Kcql] = getKCQL,
-  ): Map[String, Map[String, String]] =
-    kcql.toList
-      .map(rm => (rm.getSource, rm.getFields.asScala.map(fa => (fa.toString, fa.getAlias)).toMap))
-      .toMap
-
-  def getIgnoreFieldsMap(
-    kcql: Set[Kcql] = getKCQL,
-  ): Map[String, Set[String]] =
-    kcql.toList
-      .map(r => (r.getSource, r.getIgnoredFields.asScala.map(f => f.getName).toSet))
-      .toMap
-
-  def getPrimaryKeys(kcql: Set[Kcql] = getKCQL): Map[String, Set[String]] =
-    kcql.toList.map { r =>
-      val names: Seq[String] = r.getPrimaryKeys.asScala.map(f => f.getName).toSeq
-      val set:   Set[String] = ListSet(names.reverse: _*)
-      (r.getSource, set)
-    }.toMap
-
-  def getBatchSize(kcql: Set[Kcql] = getKCQL, defaultBatchSize: Int): Map[String, Int] =
-    kcql.toList
-      .map(r => (r.getSource, Option(r.getBatchSize).getOrElse(defaultBatchSize)))
-      .toMap
-
-  /** Get all the upsert keys
-    *
-    * @param kcql
-    * @param preserveFullKeys (default false) If true, keys that
-    *                         have parents will return the full
-    *                         key (ie. "A.B.C" rather than just
-    *                         "C")
-    * @return map of topic to set of keys
-    */
-  def getUpsertKeys(
-    kcql:             Set[Kcql] = getKCQL,
-    preserveFullKeys: Boolean   = false,
-  ): Map[String, Set[String]] =
-    kcql
-      .filter(c => c.getWriteMode == WriteModeEnum.UPSERT)
-      .map { r =>
-        val keys: Set[String] = ListSet(
-          r.getPrimaryKeys.asScala.toSeq
-            .map(key =>
-              preserveFullKeys match {
-                case false => key.getName
-                case true  => key.toString
-              },
-            )
-            .reverse: _*,
-        )
-        if (keys.isEmpty)
-          throw new ConfigException(
-            s"[${r.getTarget}] is set up with upsert, you need to set primary keys",
-          )
-        (r.getSource, keys)
-      }
-      .toMap
 
 }

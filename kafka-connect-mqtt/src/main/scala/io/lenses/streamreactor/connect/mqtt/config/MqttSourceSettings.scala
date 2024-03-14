@@ -73,7 +73,7 @@ object MqttSourceSettings {
     def getFile(configKey: String) = Option(config.getString(configKey))
 
     val kcql       = config.getKCQL
-    val kcqlStr    = config.getKCQLRaw
+    val kcqlStr    = config.getKCQL.map(_.getQuery).toArray
     val user       = Some(config.getUsername)
     val password   = Option(config.getSecret).map(_.value())
     val connection = config.getHosts
