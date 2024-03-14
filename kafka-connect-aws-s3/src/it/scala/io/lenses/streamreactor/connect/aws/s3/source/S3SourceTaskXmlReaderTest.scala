@@ -47,8 +47,8 @@ class S3SourceTaskXmlReaderTest
     val task = new S3SourceTask()
 
     val props = (defaultProps ++ Map(
-      "connect.s3.kcql"                            -> s"insert into $TopicName select * from $BucketName:$PrefixName/xml STOREAS `TEXT` LIMIT 1000 PROPERTIES ( 'read.text.mode'='StartEndTag' , 'read.text.start.tag'='<Employee>' , 'read.text.end.tag'='</Employee>' )",
-      "connect.s3.partition.search.recurse.levels" -> "0",
+      "connect.s3.kcql"                                   -> s"insert into $TopicName select * from $BucketName:$PrefixName/xml STOREAS `TEXT` LIMIT 1000 PROPERTIES ( 'read.text.mode'='StartEndTag' , 'read.text.start.tag'='<Employee>' , 'read.text.end.tag'='</Employee>' )",
+      "connect.s3.source.partition.search.recurse.levels" -> "0",
     )).asJava
 
     task.start(props)

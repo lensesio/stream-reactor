@@ -51,7 +51,7 @@ class S3SourceConfigTest extends AnyFunSuite with Matchers with TaskIndexKey wit
            |insert into $topicName1 select * from $BucketName:$prefixName1 STOREAS `AVRO` LIMIT 1000 PROPERTIES ( 'store.envelope' = 'true' );
            |insert into $topicName2 select * from $BucketName:$prefixName2 STOREAS `PARQUET` LIMIT 1000 PROPERTIES ( 'store.envelope' = 'false' );
            |insert into $topicName3 select * from $BucketName:$prefixName3 STOREAS `PARQUET` LIMIT 1000""".stripMargin,
-      "connect.s3.partition.search.recurse.levels" -> "0",
+      "connect.s3.source.partition.search.recurse.levels" -> "0",
     )
 
     S3SourceConfig(S3SourceConfigDefBuilder(props)) match {
