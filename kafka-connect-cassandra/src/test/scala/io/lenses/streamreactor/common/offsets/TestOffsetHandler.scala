@@ -59,6 +59,7 @@ class TestOffsetHandler extends AnyWordSpec with Matchers with MockitoSugar {
     /**
       * offset holds a map of map[string, something],map[identifier, value]
       *
+      * first map is used for identification, second means current offset (depending on connector's implementation)
       * map(map(assign.import.table->table1) -> map("my_timeuuid"->"2013-01-01 00:05+0000")
       */
 
