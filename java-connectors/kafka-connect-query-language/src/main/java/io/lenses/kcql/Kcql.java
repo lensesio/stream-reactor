@@ -23,6 +23,8 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 
 /**
  * Parsing support for Kafka Connect Query Language.
@@ -333,6 +335,15 @@ public class Kcql {
 
     private void setWithFlushSize(long withFlushSize) {
         this.withFlushSize = withFlushSize;
+    }
+
+    /**
+     * Parses (check parse method) multiple KCQL statements delimited by semicolon.
+     * @param kcqlStatements
+     * @return
+     */
+    public static List<Kcql> parseMultiple(final String kcqlStatements) {
+        return Arrays.stream(kcqlStatements.split(";")).map(Kcql::parse).collect(Collectors.toList());
     }
 
     public static Kcql parse(final String syntax) {
