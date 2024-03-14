@@ -20,17 +20,17 @@ import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
 trait CloudSourceSettingsKeys extends WithConnectorPrefix {
-  val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS: String = s"$connectorPrefix.partition.search.recurse.levels"
+  val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS: String = s"$connectorPrefix.source.partition.search.recurse.levels"
   private val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DOC: String =
     "When searching for new partitions on the S3 filesystem, how many levels deep to recurse."
   private val SOURCE_PARTITION_SEARCH_RECURSE_LEVELS_DEFAULT: Int = 0
 
-  val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS: String = s"$connectorPrefix.partition.search.interval"
+  val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS: String = s"$connectorPrefix.source.partition.search.interval"
   private val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DOC: String =
     "The interval in milliseconds between searching for new partitions.  Defaults to 5 minutes."
   val SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DEFAULT: Long = 300000L
 
-  val SOURCE_PARTITION_SEARCH_MODE: String = s"$connectorPrefix.partition.search.continuous"
+  val SOURCE_PARTITION_SEARCH_MODE: String = s"$connectorPrefix.source.partition.search.continuous"
   private val SOURCE_PARTITION_SEARCH_MODE_DOC: String =
     "If set to true, it will be continuously search for new partitions. Otherwise it is a one-off operation. Defaults to true."
 
