@@ -7,8 +7,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 /**
  * Interface of a class to produce BlockingQueueProducers.
  */
-public interface ProducerProvider {
+public interface ProducerProvider<K, V> {
 
   BlockingQueueProducer createProducer(AzureEventHubsConfig azureEventHubsConfig,
-      BlockingQueue<ConsumerRecords<String, String>> recordBlockingQueue);
+      BlockingQueue<ConsumerRecords<K, V>> recordBlockingQueue);
 }

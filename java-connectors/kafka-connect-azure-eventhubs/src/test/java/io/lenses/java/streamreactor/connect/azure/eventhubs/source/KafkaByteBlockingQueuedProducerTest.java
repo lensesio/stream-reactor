@@ -4,20 +4,22 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.BlockingQueue;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.junit.jupiter.api.Test;
 
-class BlockingQueuedKafkaProducerTest {
+class KafkaByteBlockingQueuedProducerTest {
 
   private static final String CLIENT_ID = "clientId";
   private static Consumer consumer = mock(Consumer.class);
 
-  BlockingQueuedKafkaProducer testObj = new BlockingQueuedKafkaProducer(
+  KafkaByteBlockingQueuedProducer testObj = new KafkaByteBlockingQueuedProducer(
       mock(TopicPartitionOffsetProvider.class), mock(BlockingQueue.class),
-      consumer, CLIENT_ID, "topic", false);
+      consumer, KeyValueTypes.DEFAULT_TYPES,
+      CLIENT_ID, "topic", false);
 
   @Test
   void closeShouldBeDelegatedToKafkaConsumer() {
