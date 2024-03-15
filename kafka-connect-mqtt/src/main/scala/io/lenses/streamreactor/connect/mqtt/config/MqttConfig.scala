@@ -303,5 +303,5 @@ trait MqttConfigBase
     with NumberRetriesSettings
     with ErrorPolicySettings
     with SSLSettings
-    with ConnectionSettings
+    with HostSettings
     with UserSettings
