@@ -243,8 +243,10 @@ class GCPStorageStorageInterface(connectorTaskId: ConnectorTaskId, storage: Stor
       case Left(ex) => FileListError(ex, bucket, prefix).asLeft
       case Right(page) =>
         val pageValues = page.getValues.asScala
-        val keys       = pageValues.map(_.getName).toSeq
-
+        val keys       = pageValues.map(_.getName).filterNot(f => lastFile.map(_.file).contains(f)).toSeq
+        logger.trace(
+          s"[${connectorTaskId.show}] Last file: $lastFile, Prefix: $prefix Page: ${pageValues.map(_.getName)}, Keys: $keys",
+        )
         pageValues
           .lastOption
           .map(value =>
@@ -263,8 +265,9 @@ class GCPStorageStorageInterface(connectorTaskId: ConnectorTaskId, storage: Stor
     bucket:       String,
     fileName:     String,
     lastModified: Option[Instant],
-  ): Option[GCPStorageFileMetadata] = throw new NotImplementedError(
-    "Required only to support old versions of the connector where the metadata is not stored.  This does not apply to the GCP Storage connector.",
-  )
+  ): Option[GCPStorageFileMetadata] =
+    lastModified
+      .map(lmValue => GCPStorageFileMetadata(fileName, lmValue))
+      .orElse(getMetadata(bucket, fileName).map(oMeta => GCPStorageFileMetadata(fileName, oMeta.lastModified)).toOption)
 
 }

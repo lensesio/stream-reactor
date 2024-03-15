@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.jms.config
 
+import io.lenses.streamreactor.common.config.KcqlWithFieldsSettings
 import io.lenses.streamreactor.common.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
@@ -283,7 +284,7 @@ object JMSConfig {
   */
 case class JMSConfig(props: Map[String, String])
     extends BaseConfig(JMSConfigConstants.CONNECTOR_PREFIX, JMSConfig.config, props)
-    with KcqlSettings
+    with KcqlWithFieldsSettings
     with ErrorPolicySettings
     with NumberRetriesSettings
     with UserSettings

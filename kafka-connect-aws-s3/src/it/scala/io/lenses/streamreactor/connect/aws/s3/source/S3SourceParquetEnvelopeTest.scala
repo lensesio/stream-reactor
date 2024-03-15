@@ -135,9 +135,9 @@ class S3SourceParquetEnvelopeTest
 
     val props = (defaultProps ++
       Map(
-        "connect.s3.kcql"                            -> s"insert into $TopicName select * from $BucketName:$MyPrefix/parquet STOREAS `Parquet` LIMIT 1000 PROPERTIES ('store.envelope'=true)",
-        "connect.s3.partition.search.recurse.levels" -> "0",
-        "connect.s3.partition.search.continuous"     -> "false",
+        "connect.s3.kcql"                                   -> s"insert into $TopicName select * from $BucketName:$MyPrefix/parquet STOREAS `Parquet` LIMIT 1000 PROPERTIES ('store.envelope'=true)",
+        "connect.s3.source.partition.search.recurse.levels" -> "0",
+        "connect.s3.source.partition.search.continuous"     -> "false",
       ))
       .asJava
 

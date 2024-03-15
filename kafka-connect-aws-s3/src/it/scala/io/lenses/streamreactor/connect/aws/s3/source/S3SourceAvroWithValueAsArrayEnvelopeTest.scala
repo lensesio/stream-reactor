@@ -105,9 +105,9 @@ class S3SourceAvroWithValueAsArrayEnvelopeTest
     val task = new S3SourceTask()
 
     val props = (defaultProps ++ Map(
-      "connect.s3.kcql"                            -> s"insert into $TopicName select * from $BucketName:$MyPrefix/avro STOREAS `AVRO` LIMIT 1000 PROPERTIES ('store.envelope'=true)",
-      "connect.s3.partition.search.recurse.levels" -> "0",
-      "connect.partition.search.continuous"        -> "false",
+      "connect.s3.kcql"                                   -> s"insert into $TopicName select * from $BucketName:$MyPrefix/avro STOREAS `AVRO` LIMIT 1000 PROPERTIES ('store.envelope'=true)",
+      "connect.s3.source.partition.search.recurse.levels" -> "0",
+      "connect.s3.source.partition.search.continuous"     -> "false",
     )).asJava
 
     task.start(props)

@@ -23,9 +23,10 @@ import org.scalatest.matchers.should.Matchers
 class DeprecationConfigDefProcessorTest extends AnyFunSuite with Matchers with EitherValues {
 
   private val okProperties = Map(
-    "connect.s3.aws.access.key" -> "myKey",
-    "aws.s3.someProperty"       -> "value1",
-    "aws.s3.anotherProp"        -> "value2",
+    "connect.s3.aws.access.key"                         -> "myKey",
+    "aws.s3.someProperty"                               -> "value1",
+    "aws.s3.anotherProp"                                -> "value2",
+    "connect.s3.source.partition.search.recurse.levels" -> "1",
   )
 
   test("process should return Right when no deprecated properties are found") {
@@ -38,8 +39,11 @@ class DeprecationConfigDefProcessorTest extends AnyFunSuite with Matchers with E
   test("process should return Left with error message when deprecated properties are found") {
     val processor = new DeprecationConfigDefProcessor()
     val inputConfig = okProperties ++ Map(
-      "aws.access.key"   -> "value1",
-      "aws.vhost.bucket" -> "value2",
+      "aws.access.key"                             -> "value1",
+      "aws.vhost.bucket"                           -> "value2",
+      "connect.s3.partition.search.recurse.levels" -> "value3",
+      "connect.s3.partition.search.interval"       -> "value4",
+      "connect.s3.partition.search.continuous"     -> "value5",
     )
 
     val result       = processor.process(inputConfig)
@@ -47,6 +51,15 @@ class DeprecationConfigDefProcessorTest extends AnyFunSuite with Matchers with E
     errorMessage should include("The following properties have been deprecated:")
     errorMessage should include("Change `aws.access.key` to `connect.s3.aws.access.key`")
     errorMessage should include("Change `aws.vhost.bucket` to `connect.s3.vhost.bucket`")
+    errorMessage should include(
+      "Change `connect.s3.partition.search.recurse.levels` to `connect.s3.source.partition.search.recurse.levels`",
+    )
+    errorMessage should include(
+      "Change `connect.s3.partition.search.interval` to `connect.s3.source.partition.search.interval`",
+    )
+    errorMessage should include(
+      "Change `connect.s3.partition.search.continuous` to `connect.s3.source.partition.search.continuous`",
+    )
   }
 
   test("process should return Right when empty input configuration is provided") {
