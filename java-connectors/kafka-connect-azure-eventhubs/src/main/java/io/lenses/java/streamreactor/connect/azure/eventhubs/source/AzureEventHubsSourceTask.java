@@ -1,15 +1,20 @@
 package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
+import static io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants.EVENTHUB_NAME;
 import static java.util.Optional.ofNullable;
 
 import io.lenses.java.streamreactor.common.util.JarManifest;
+import io.lenses.java.streamreactor.common.util.StringUtils;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -53,8 +58,9 @@ public class AzureEventHubsSourceTask extends SourceTask {
     blockingQueueProducerProvider = new BlockingQueueProducerProvider(topicPartitionOffsetProvider);
     KafkaByteBlockingQueuedProducer producer = blockingQueueProducerProvider.createProducer(
         azureEventHubsConfig, recordsQueue);
+    List<String> outputTopics = getOutputTopicsFromConfig(azureEventHubsConfig);
     EventHubsKafkaConsumerController kafkaConsumerController = new EventHubsKafkaConsumerController(
-        producer, recordsQueue);
+        producer, recordsQueue, outputTopics);
     initialize(kafkaConsumerController, azureEventHubsConfig);
   }
 
@@ -86,5 +92,20 @@ public class AzureEventHubsSourceTask extends SourceTask {
   public void stop() {
     ofNullable(eventHubsKafkaConsumerController)
         .ifPresent(consumerController -> consumerController.close(closeTimeout));
+  }
+
+  /**
+   * Returns output topics (if specified in config) or just eventHub name (in case no one specified it)
+   * which will mean mirroring source to kafka.
+   *
+   * @param azureEventHubsConfig task configuration
+   * @return output topics list
+   */
+  private List<String> getOutputTopicsFromConfig(AzureEventHubsConfig azureEventHubsConfig) {
+    List<String> outputTopics =
+        Arrays.stream(azureEventHubsConfig.getString(AzureEventHubsConfigConstants.OUTPUT_TOPICS)
+            .split(",")).filter(str -> !StringUtils.isBlank(str)).collect(Collectors.toList());
+    return outputTopics.isEmpty()
+        ? Collections.singletonList(azureEventHubsConfig.getString(EVENTHUB_NAME)) : outputTopics;
   }
 }

@@ -1,6 +1,7 @@
 package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
 import static io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig.getPrefixedKafkaConsumerConfigKey;
+import static io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants.EVENTHUB_NAME;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig;
@@ -58,11 +59,10 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
     consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
         keyValueTypes.getValueType().getDeserializerClass());
     consumerProperties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
-
     KafkaConsumer<byte[], byte[]> kafkaConsumer = new KafkaConsumer<>(consumerProperties);
 
     boolean shouldSeekToLatest = shouldConsumerSeekToLatest(azureEventHubsConfig);
-    String topic = azureEventHubsConfig.getString(AzureEventHubsConfigConstants.EVENTHUB_NAME);
+    String topic = azureEventHubsConfig.getString(EVENTHUB_NAME);
 
     return new KafkaByteBlockingQueuedProducer(topicPartitionOffsetProvider, recordBlockingQueue,
         kafkaConsumer, keyValueTypes, clientId, topic, shouldSeekToLatest);

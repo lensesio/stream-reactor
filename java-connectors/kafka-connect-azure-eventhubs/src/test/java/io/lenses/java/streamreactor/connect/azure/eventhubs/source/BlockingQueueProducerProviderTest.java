@@ -45,8 +45,6 @@ class BlockingQueueProducerProviderTest {
     //given
     AzureEventHubsConfig azureConfigMock = mock(AzureEventHubsConfig.class);
     TopicPartitionOffsetProvider mockedOffsetProvider = mock(TopicPartitionOffsetProvider.class);
-    when(azureConfigMock.getString(AzureEventHubsConfigConstants.KCQL_CONFIG)).thenReturn(
-        AzureEventHubsConfigConstants.KCQL_DEFAULT);
 
 
     //when
@@ -75,8 +73,6 @@ class BlockingQueueProducerProviderTest {
     AzureEventHubsConfig azureConfigMock = mock(AzureEventHubsConfig.class);
     when(azureConfigMock.getString(AzureEventHubsConfigConstants.CONSUMER_OFFSET)).thenReturn(
         earliestOffset);
-    when(azureConfigMock.getString(AzureEventHubsConfigConstants.KCQL_CONFIG)).thenReturn(
-        AzureEventHubsConfigConstants.KCQL_DEFAULT);
 
     //when
     BlockingQueueProducerProvider testObj = new BlockingQueueProducerProvider(
@@ -89,7 +85,6 @@ class BlockingQueueProducerProviderTest {
     //then
     verify(azureConfigMock).getString(AzureEventHubsConfigConstants.CONNECTOR_NAME);
     verify(azureConfigMock).getString(getPrefixedKafkaConsumerConfigKey(GROUP_ID_CONFIG));
-    verify(azureConfigMock).getString(AzureEventHubsConfigConstants.KCQL_CONFIG);
     assertNotNull(consumer);
     assertEquals(1, logWatcher.list.size());
     assertTrue(logWatcher.list.get(0).getFormattedMessage().startsWith("Attempting to create Client with Id"));
