@@ -1,3 +1,6 @@
+#Including java-specific ignores
+#!include:java-connectors/.gitignore
+
 .bsp
 stageman
 cass-test

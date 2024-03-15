@@ -48,10 +48,10 @@ public class AzureEventHubsSourceTask extends SourceTask {
     AzureEventHubsConfig azureEventHubsConfig = new AzureEventHubsConfig(props);
     TopicPartitionOffsetProvider topicPartitionOffsetProvider = new TopicPartitionOffsetProvider(offsetStorageReader);
 
-    ArrayBlockingQueue<ConsumerRecords<String, String>> recordsQueue = new ArrayBlockingQueue<>(
+    ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue = new ArrayBlockingQueue<>(
         RECORDS_QUEUE_DEFAULT_SIZE);
     blockingQueueProducerProvider = new BlockingQueueProducerProvider(topicPartitionOffsetProvider);
-    BlockingQueuedKafkaProducer producer = blockingQueueProducerProvider.createProducer(
+    KafkaByteBlockingQueuedProducer producer = blockingQueueProducerProvider.createProducer(
         azureEventHubsConfig, recordsQueue);
     EventHubsKafkaConsumerController kafkaConsumerController = new EventHubsKafkaConsumerController(
         producer, recordsQueue);
@@ -63,7 +63,7 @@ public class AzureEventHubsSourceTask extends SourceTask {
    * {@link EventHubsKafkaConsumerController} instance.
    *
    * @param eventHubsKafkaConsumerController {@link EventHubsKafkaConsumerController} for this task
-   * @param azureEventHubsConfig
+   * @param azureEventHubsConfig config for task
    */
   public void initialize(EventHubsKafkaConsumerController eventHubsKafkaConsumerController,
       AzureEventHubsConfig azureEventHubsConfig) {
