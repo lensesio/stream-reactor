@@ -69,7 +69,6 @@ public class AzureEventHubsConfig extends BaseConfig implements ConnectorPrefixe
             AzureEventHubsConfigConstants.CONSUMER_OFFSET
         ).define(AzureEventHubsConfigConstants.OUTPUT_TOPICS,
             Type.STRING,
-            AzureEventHubsConfigConstants.OPTIONAL_EMPTY_DEFAULT,
             Importance.HIGH,
             AzureEventHubsConfigConstants.OUTPUT_TOPICS_DOC,
             CONNECTION_GROUP,
