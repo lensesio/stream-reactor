@@ -16,11 +16,9 @@
 package io.lenses.streamreactor.connect.cloud.common.source.config
 
 import io.lenses.streamreactor.common.config.base.traits.BaseConfig
-import io.lenses.streamreactor.common.config.base.traits.ConnectionSettings
 import io.lenses.streamreactor.common.config.base.traits.ErrorPolicySettings
 import io.lenses.streamreactor.common.config.base.traits.KcqlSettings
 import io.lenses.streamreactor.common.config.base.traits.NumberRetriesSettings
-import io.lenses.streamreactor.common.config.base.traits.UserSettings
 import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecSettings
 import org.apache.kafka.common.config.ConfigDef
 
@@ -33,6 +31,4 @@ abstract class CloudSourceConfigDefBuilder(
     with KcqlSettings
     with ErrorPolicySettings
     with NumberRetriesSettings
-    with UserSettings
-    with ConnectionSettings
     with CompressionCodecSettings {}
