@@ -27,8 +27,6 @@ case class S3SinkConfigDefBuilder(props: Map[String, String])
     with CloudSinkConfigDefBuilder
     with ErrorPolicySettings
     with NumberRetriesSettings
-    with UserSettings
-    with ConnectionSettings
     with DeleteModeSettings {
 
   def getParsedValues: Map[String, _] = values().asScala.toMap

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.common.config.base.traits
+package io.lenses.streamreactor.connect.jms.config
 
 /**
   * Created by andrew@datamountaineer.com on 31/07/2017.
@@ -21,15 +21,11 @@ package io.lenses.streamreactor.common.config.base.traits
   */
 
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst._
+import io.lenses.streamreactor.common.config.base.traits.BaseSettings
 import org.apache.kafka.common.config.ConfigException
 
-trait ConnectionSettings extends BaseSettings {
-  val urlConst   = s"$connectorPrefix.$URL_SUFFIX"
-  val hostConst  = s"$connectorPrefix.$CONNECTION_HOST_SUFFIX"
-  val hostsConst = s"$connectorPrefix.$CONNECTION_HOSTS_SUFFIX"
-  val portConst  = s"$connectorPrefix.$CONNECTION_PORT_SUFFIX"
-
-  def getPort = getInt(portConst)
+trait UrlSettings extends BaseSettings {
+  private val urlConst = s"$connectorPrefix.$URL_SUFFIX"
 
   def getUrl: String = {
     val url = getString(urlConst)
@@ -39,21 +35,4 @@ trait ConnectionSettings extends BaseSettings {
     url
   }
 
-  def getHosts: String = {
-    val connection = getString(hostsConst)
-
-    if (connection == null || connection.trim.isEmpty) {
-      throw new ConfigException(s"$hostsConst is not provided!")
-    }
-    connection
-  }
-
-  def getHost: String = {
-    val connection = getString(hostConst)
-
-    if (connection == null || connection.trim.isEmpty) {
-      throw new ConfigException(s"$hostsConst is not provided!")
-    }
-    connection
-  }
 }

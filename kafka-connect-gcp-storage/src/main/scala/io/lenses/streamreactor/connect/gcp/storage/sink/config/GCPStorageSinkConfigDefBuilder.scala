@@ -28,8 +28,6 @@ case class GCPStorageSinkConfigDefBuilder(props: Map[String, String])
     with CloudSinkConfigDefBuilder
     with ErrorPolicySettings
     with NumberRetriesSettings
-    with UserSettings
-    with ConnectionSettings
     with AuthModeSettings
     with UploadSettings {
 
