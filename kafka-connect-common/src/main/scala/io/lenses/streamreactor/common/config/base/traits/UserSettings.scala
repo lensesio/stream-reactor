@@ -23,8 +23,8 @@ import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.USERNAM
   * stream-reactor
   */
 trait UserSettings extends BaseSettings {
-  val passwordConst = s"$connectorPrefix.$PASSWORD_SUFFIX"
-  val usernameConst = s"$connectorPrefix.$USERNAME_SUFFIX"
+  private val passwordConst = s"$connectorPrefix.$PASSWORD_SUFFIX"
+  private val usernameConst = s"$connectorPrefix.$USERNAME_SUFFIX"
 
   def getSecret   = getPassword(passwordConst)
   def getUsername = getString(usernameConst)

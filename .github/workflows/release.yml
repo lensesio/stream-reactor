@@ -81,10 +81,12 @@ jobs:
 
       - name: Package Connector
         shell: bash
+        # It's BASH so we have to use find instead of globbed (**) cp for subdirs with depth >1
         run: |
           FOLDER=kafka-connect-${{ matrix.module }}-${{ env.TAG }}
           mkdir -p $FOLDER
-          cp **/target/libs/*.jar LICENSE $FOLDER/
+          find . -type f -path "*/target/libs/*.jar" -exec cp "{}" $FOLDER/ \;
+          cp LICENSE $FOLDER/
           zip -r "$FOLDER.zip" $FOLDER/
 
       - name: Upload binaries to release

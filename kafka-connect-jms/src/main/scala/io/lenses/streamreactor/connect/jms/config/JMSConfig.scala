@@ -288,4 +288,4 @@ case class JMSConfig(props: Map[String, String])
     with ErrorPolicySettings
     with NumberRetriesSettings
     with UserSettings
-    with ConnectionSettings
+    with UrlSettings

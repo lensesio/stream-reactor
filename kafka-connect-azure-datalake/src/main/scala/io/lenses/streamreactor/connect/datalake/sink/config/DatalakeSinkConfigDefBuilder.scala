@@ -27,8 +27,6 @@ case class DatalakeSinkConfigDefBuilder(props: Map[String, String])
     with CloudSinkConfigDefBuilder
     with ErrorPolicySettings
     with NumberRetriesSettings
-    with UserSettings
-    with ConnectionSettings
     with AuthModeSettings {
 
   def getParsedValues: Map[String, _] = values().asScala.toMap
