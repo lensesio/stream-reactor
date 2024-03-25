@@ -15,7 +15,7 @@ import org.apache.kafka.common.config.ConfigDef.Type;
  * configs from org.apache.kafka.clients.consumer.ConsumerConfig but adds standard Connector
  * prefixes to them.
  */
-public class AzureEventHubsConfig extends BaseConfig implements ConnectorPrefixed {
+public class AzureEventHubsSourceConfig extends BaseConfig implements ConnectorPrefixed {
 
   public static final String CONNECTION_GROUP = "Connection";
 
@@ -38,17 +38,7 @@ public class AzureEventHubsConfig extends BaseConfig implements ConnectorPrefixe
             1,
             ConfigDef.Width.LONG,
             AzureEventHubsConfigConstants.CONNECTOR_NAME
-        )
-        .define(AzureEventHubsConfigConstants.EVENTHUB_NAME,
-            Type.STRING,
-            Importance.HIGH,
-            AzureEventHubsConfigConstants.EVENTHUB_NAME_DOC,
-            CONNECTION_GROUP,
-            2,
-            ConfigDef.Width.LONG,
-            AzureEventHubsConfigConstants.EVENTHUB_NAME
-        )
-        .define(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT,
+        ).define(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT,
             Type.INT,
             AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT_DEFAULT,
             Importance.MEDIUM,
@@ -67,10 +57,18 @@ public class AzureEventHubsConfig extends BaseConfig implements ConnectorPrefixe
             4,
             ConfigDef.Width.LONG,
             AzureEventHubsConfigConstants.CONSUMER_OFFSET
+        ).define(AzureEventHubsConfigConstants.KCQL_CONFIG,
+            Type.STRING,
+            Importance.HIGH,
+            AzureEventHubsConfigConstants.KCQL_DOC,
+            "Mappings",
+            1,
+            ConfigDef.Width.LONG,
+            AzureEventHubsConfigConstants.KCQL_CONFIG
         );
   }
 
-  public AzureEventHubsConfig(Map<?, ?> properties) {
+  public AzureEventHubsSourceConfig(Map<?, ?> properties) {
     super(AzureEventHubsConfigConstants.CONNECTOR_PREFIX, getConfigDefinition(), properties);
   }
 
@@ -91,7 +89,7 @@ public class AzureEventHubsConfig extends BaseConfig implements ConnectorPrefixe
 
   private static ConfigDef getKafkaConsumerConfigToExpose() {
     ConfigDef kafkaConsumerConfigToExpose = new ConfigDef();
-    ConsumerConfig.configDef().configKeys().values()
+    ConsumerConfig.configDef().configKeys().values().stream()
         .forEach(configKey -> kafkaConsumerConfigToExpose.define(
             CONFIG_NAME_PREFIX_APPENDER.apply(configKey.name),
             configKey.type, configKey.defaultValue,

@@ -25,17 +25,20 @@ public class EventHubsKafkaConsumerController {
 
   private final BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue;
   private KafkaByteBlockingQueuedProducer queuedKafkaProducer;
+  private final List<String> outputTopics;
 
   /**
    * Constructs EventHubsKafkaConsumerController.
    *
-   * @param queuedKafkaProducer producer to the recordsQueue.
-   * @param recordsQueue queue that contains EventHub records.
+   * @param queuedKafkaProducer producer to the recordsQueue
+   * @param recordsQueue        queue that contains EventHub records
+   * @param outputTopics        topics to output to
    */
   public EventHubsKafkaConsumerController(KafkaByteBlockingQueuedProducer queuedKafkaProducer,
-      BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue) {
+      BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue, List<String> outputTopics) {
     this.recordsQueue = recordsQueue;
     this.queuedKafkaProducer = queuedKafkaProducer;
+    this.outputTopics = outputTopics;
   }
 
   /**
@@ -68,11 +71,13 @@ public class EventHubsKafkaConsumerController {
             consumerRecord.topic(), consumerRecord.partition());
         AzureOffsetMarker offsetMarker = new AzureOffsetMarker(consumerRecord.offset());
 
-        SourceRecord sourceRecord = mapSourceRecordIncludingHeaders(consumerRecord, azureTopicPartitionKey,
-            offsetMarker, queuedKafkaProducer.getKeyValueTypes().getKeyType().getSchema(),
-            queuedKafkaProducer.getKeyValueTypes().getValueType().getSchema());
+        for (String outputTopic : outputTopics) {
+          SourceRecord sourceRecord = mapSourceRecordIncludingHeaders(consumerRecord, azureTopicPartitionKey,
+              offsetMarker, outputTopic, queuedKafkaProducer.getKeyValueTypes().getKeyType().getSchema(),
+              queuedKafkaProducer.getKeyValueTypes().getValueType().getSchema());
 
-        sourceRecords.add(sourceRecord);
+          sourceRecords.add(sourceRecord);
+        }
       }
     }
     return sourceRecords != null ? sourceRecords : Collections.emptyList();

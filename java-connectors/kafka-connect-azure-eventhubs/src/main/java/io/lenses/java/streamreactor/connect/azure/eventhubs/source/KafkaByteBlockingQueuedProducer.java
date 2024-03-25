@@ -38,8 +38,8 @@ public class KafkaByteBlockingQueuedProducer implements BlockingQueueProducer {
    * @param topicPartitionOffsetProvider TopicPartitionOffsetProvider for subscription handler
    * @param recordsQueue                 BlockingQueue to put records into
    * @param consumer                     Kafka Consumer
-   * @param keyValueTypes                {@link KeyValueTypes} instance indicating key and
-   *                                     value types
+   * @param keyValueTypes                {@link KeyValueTypes} instance indicating key and value
+   *                                     types
    * @param clientId                     consumer client id
    * @param topic                        kafka topic to consume from
    * @param shouldSeekToLatest           informs where should consumer seek when there are no
