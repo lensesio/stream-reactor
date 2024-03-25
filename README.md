@@ -36,8 +36,11 @@ A collection of components to build a real time ingestion pipeline.
 
 ## DEPRECATION NOTICE
 
+In the next major release, Elasticsearch 6 support will be removed, to be replaced with OpenSearch and Elasticsearch 8 support.
+
 The following connectors have been deprecated and are no longer included in future releases:
 
+* Elasticsearch 6
 * Kudu
 * Hazelcast
 * HBase
