@@ -11,7 +11,6 @@ import _root_.io.lenses.streamreactor.connect.testcontainers.scalatest.StreamRea
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.implicits._
-import com.datastax.driver.core.utils.UUIDs
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -23,6 +22,7 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.prop.TableFor3
 import software.amazon.awssdk.services.s3.model._
 
+import java.util.UUID
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Random
 
@@ -98,7 +98,7 @@ class S3CompressionTest
           case (s3Client, producer) =>
             IO {
               // Write records to
-              val order  = Order(1, "OP-DAX-P-20150201-95.7", 94.2, 100, UUIDs.timeBased.toString)
+              val order  = Order(1, "OP-DAX-P-20150201-95.7", 94.2, 100, UUID.randomUUID().toString)
               val record = order.toRecord(order)
 
               producer.send(new ProducerRecord[String, GenericRecord](topic, record)).get
