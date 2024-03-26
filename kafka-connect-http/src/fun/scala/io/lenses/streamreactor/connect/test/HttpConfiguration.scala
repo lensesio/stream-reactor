@@ -26,11 +26,11 @@ trait HttpConfiguration extends LazyLogging {
         "topics"          -> ConfigValue(topicName),
         "connect.http.config" -> ConfigValue(
           HttpSinkConfig(
-            Option.empty,
             HttpMethod.withNameInsensitive(httpMethod),
-            endpoint         = endpointUrl,
-            content          = contentTemplate,
-            headers          = headerTemplates,
+            endpoint = endpointUrl,
+            content  = contentTemplate,
+            Option.empty,
+            headers          = headerTemplates.some,
             sslConfig        = Option.empty,
             batch            = Option(BatchConfiguration(1L.some, none, none)),
             errorThreshold   = Option.empty,

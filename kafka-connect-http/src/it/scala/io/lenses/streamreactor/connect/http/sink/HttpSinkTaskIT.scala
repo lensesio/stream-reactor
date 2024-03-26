@@ -51,11 +51,11 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
     (for {
       server <- wireMockServer
       configuration = HttpSinkConfig(
-        authentication   = Option.empty,
         method           = HttpMethod.Post,
         endpoint         = s"http://$Host:${server.port()}/awesome/endpoint",
         content          = "test",
-        headers          = Seq(),
+        authentication   = Option.empty,
+        headers          = none,
         sslConfig        = Option.empty,
         batch            = BatchConfiguration(2L.some, none, none).some,
         errorThreshold   = none,
@@ -78,11 +78,11 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
     (for {
       server <- wireMockServer
       config = HttpSinkConfig(
-        authentication   = Option.empty,
         method           = HttpMethod.Post,
         endpoint         = s"http://$Host:${server.port()}/awesome/endpoint/{{value.name}}",
         content          = "{salary: {{value.salary}}}",
-        headers          = Seq(),
+        authentication   = Option.empty,
+        headers          = none,
         sslConfig        = Option.empty,
         batch            = BatchConfiguration(1L.some, none, none).some,
         errorThreshold   = none,
@@ -120,11 +120,11 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
     (for {
       server <- wireMockServer
       configuration = HttpSinkConfig(
-        authentication   = Option.empty,
         method           = HttpMethod.Post,
         endpoint         = s"http://$Host:${server.port()}/awesome/endpoint/{{value.name}}",
         content          = "{salary: {{value.salary}}}",
-        headers          = Seq(),
+        authentication   = Option.empty,
+        headers          = none,
         sslConfig        = Option.empty,
         batch            = BatchConfiguration(7L.some, none, none).some,
         errorThreshold   = none,
@@ -168,9 +168,8 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
     (for {
       server <- wireMockServer
       configuration = HttpSinkConfig(
-        authentication = Option.empty,
-        method         = HttpMethod.Post,
-        endpoint       = s"http://$Host:${server.port()}/awesome/endpoint/{{value.name}}",
+        method   = HttpMethod.Post,
+        endpoint = s"http://$Host:${server.port()}/awesome/endpoint/{{value.name}}",
         content =
           s"""
              | <salaries>
@@ -178,7 +177,8 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
              |    <salary>{{value.salary}}</salary>
              |   {{/message}}
              | </salaries>""".stripMargin,
-        headers          = Seq(),
+        authentication   = Option.empty,
+        headers          = none,
         sslConfig        = Option.empty,
         batch            = BatchConfiguration(7L.some, none, none).some,
         errorThreshold   = none,
@@ -210,12 +210,12 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
     (for {
       server <- wireMockServer
       configuration = HttpSinkConfig(
-        Option.empty,
         HttpMethod.Post,
         s"http://$Host:${server.port()}/awesome/endpoint",
         s"""
            | Ultimately not important for this test""".stripMargin,
-        Seq(),
+        Option.empty,
+        none,
         Option.empty,
         BatchConfiguration(
           1L.some,

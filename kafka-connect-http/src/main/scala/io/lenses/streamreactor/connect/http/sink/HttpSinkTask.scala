@@ -62,7 +62,7 @@ class HttpSinkTask extends SinkTask with LazyLogging {
     IO
       .fromEither(parseConfig(propsAsScala.get(configProp)))
       .flatMap { config =>
-        val template      = RawTemplate(config.endpoint, config.content, config.headers)
+        val template      = RawTemplate(config.endpoint, config.content, config.headers.getOrElse(Seq.empty))
         val writerManager = HttpWriterManager(sinkName, config, template, deferred)
         val refUpdateCallback: Throwable => Unit =
           (err: Throwable) => {

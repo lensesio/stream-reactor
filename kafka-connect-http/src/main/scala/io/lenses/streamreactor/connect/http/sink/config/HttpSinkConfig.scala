@@ -67,11 +67,11 @@ object BatchConfiguration {
 }
 
 case class HttpSinkConfig(
-  authentication:   Option[Authentication], // basic, oauth2, proxy
   method:           HttpMethod,
-  endpoint:         String, // tokenised
-  content:          String, // tokenised
-  headers:          Seq[(String, String)], // tokenised
+  endpoint:         String,
+  content:          String,
+  authentication:   Option[Authentication],
+  headers:          Option[Seq[(String, String)]],
   sslConfig:        Option[SSLConfig],
   batch:            Option[BatchConfiguration],
   errorThreshold:   Option[Int],
