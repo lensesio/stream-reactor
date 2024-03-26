@@ -286,7 +286,6 @@ lazy val http = (project in file("kafka-connect-http"))
   .configureTests(baseTestDeps ++ kafkaConnectHttpTestDeps)
   .configureIntegrationTests(baseTestDeps ++ kafkaConnectHttpTestDeps)
   .configureFunctionalTests()
-  //.configureFunctionalTests(kafkaConnectS3FuncTestDeps)
   .enablePlugins(PackPlugin, ProtocPlugin)
 
 lazy val influxdb = (project in file("kafka-connect-influxdb"))
