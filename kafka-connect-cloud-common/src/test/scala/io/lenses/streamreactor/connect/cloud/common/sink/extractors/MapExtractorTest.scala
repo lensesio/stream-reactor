@@ -43,4 +43,8 @@ class MapExtractorTest extends AnyFlatSpec with Matchers {
                                     mapOfMapsOfStringsSchema,
     ) should be(Right("2"))
   }
+
+  "lookupFieldValueFromStruct" should "handle map of maps without schema" in {
+    MapExtractor.extractPathFromMap(mapOfMapsOfStrings, PartitionNamePath("c", "d"), null) should be(Right("2"))
+  }
 }

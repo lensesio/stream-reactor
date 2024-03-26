@@ -99,7 +99,7 @@ class S3CompressionTest
             IO {
               // Write records to
               val order  = Order(1, "OP-DAX-P-20150201-95.7", 94.2, 100, UUID.randomUUID().toString)
-              val record = order.toRecord(order)
+              val record = order.toRecord
 
               producer.send(new ProducerRecord[String, GenericRecord](topic, record)).get
               producer.flush()

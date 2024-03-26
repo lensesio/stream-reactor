@@ -39,21 +39,36 @@ object MapExtractor extends LazyLogging {
     fieldName: PartitionNamePath,
     schema:    Schema,
   ): Either[ExtractorError, String] = {
-    val mapKey = fieldName.head
-    Option(map.get(mapKey))
-      .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
-        ComplexTypeExtractor.extractComplexType(_, fieldName.tail, schema.valueSchema())
-      }
+
+    val maybeSchema = Option(schema)
+
+    val mapKey        = fieldName.head
+    val maybeMapValue = Option(map.get(mapKey))
+
+    (maybeMapValue, maybeSchema) match {
+      case (None, _) =>
+        ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]
+      case (Some(mapValue), Some(sch)) =>
+        ComplexTypeExtractor.extractComplexType(mapValue, fieldName.tail, sch.valueSchema())
+      case (Some(mapValue), None) =>
+        WrappedComplexTypeExtractor.extractFromComplexType(mapValue, fieldName.tail)
+    }
   }
 
   private def extractPrimitive(
     map:       util.Map[_, _],
     fieldName: String,
     mapSchema: Schema,
-  ): Either[ExtractorError, String] =
-    Option(mapSchema.valueSchema())
-      .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
-        PrimitiveExtractor.extractPrimitiveValue(map.get(fieldName), _)
-      }
+  ): Either[ExtractorError, String] = {
+    val maybeValueSchema = for {
+      mapSch <- Option(mapSchema)
+      valSch <- Option(mapSch.valueSchema())
+    } yield valSch
+
+    maybeValueSchema match {
+      case Some(sch) => PrimitiveExtractor.extractPrimitiveValue(map.get(fieldName), sch)
+      case None      => WrappedPrimitiveExtractor.extractFromPrimitive(map.get(fieldName))
+    }
+  }
 
 }
