@@ -26,9 +26,9 @@ import java.time.Duration
 
 object HttpCommitPolicy extends LazyLogging {
 
-  private val defaultFlushSize     = 100L
-  private val defaultFlushInterval = Duration.ofSeconds(100)
-  private val defaultFlushCount    = 100L
+  private val defaultFlushSize     = 500_000_000L
+  private val defaultFlushInterval = Duration.ofSeconds(3600)
+  private val defaultFlushCount    = 50_000L
 
   val Default: CommitPolicy =
     CommitPolicy(FileSize(defaultFlushSize),
