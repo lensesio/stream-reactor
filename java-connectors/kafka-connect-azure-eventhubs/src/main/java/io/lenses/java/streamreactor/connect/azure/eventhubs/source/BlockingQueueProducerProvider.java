@@ -1,7 +1,6 @@
 package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 
 import static io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig.getPrefixedKafkaConsumerConfigKey;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
@@ -59,7 +58,7 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
 
     consumerProperties.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
     consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, azureEventHubsSourceConfig.getString(
-            getPrefixedKafkaConsumerConfigKey(GROUP_ID_CONFIG)));
+            getPrefixedKafkaConsumerConfigKey(ConsumerConfig.GROUP_ID_CONFIG)));
     consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
             keyValueTypes.getKeyType().getDeserializerClass());
     consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
