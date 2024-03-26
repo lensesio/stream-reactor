@@ -5,7 +5,7 @@ import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.http.sink.client.HttpMethod
-import io.lenses.streamreactor.connect.http.sink.config.BatchConfiguration
+import io.lenses.streamreactor.connect.http.sink.config.BatchConfig
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
 
 trait HttpConfiguration extends LazyLogging {
@@ -31,8 +31,8 @@ trait HttpConfiguration extends LazyLogging {
             content  = contentTemplate,
             Option.empty,
             headers          = headerTemplates.some,
-            sslConfig        = Option.empty,
-            batch            = Option(BatchConfiguration(1L.some, none, none)),
+            ssl              = Option.empty,
+            batch            = Option(BatchConfig(1L.some, none, none)),
             errorThreshold   = Option.empty,
             uploadSyncPeriod = Option.empty,
           ).toJson,

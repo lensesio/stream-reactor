@@ -16,7 +16,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.equalToXml
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import io.lenses.streamreactor.connect.http.sink.client.HttpMethod
-import io.lenses.streamreactor.connect.http.sink.config.BatchConfiguration
+import io.lenses.streamreactor.connect.http.sink.config.BatchConfig
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
@@ -56,8 +56,8 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
         content          = "test",
         authentication   = Option.empty,
         headers          = none,
-        sslConfig        = Option.empty,
-        batch            = BatchConfiguration(2L.some, none, none).some,
+        ssl              = Option.empty,
+        batch            = BatchConfig(2L.some, none, none).some,
         errorThreshold   = none,
         uploadSyncPeriod = none,
       ).toJson
@@ -83,8 +83,8 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
         content          = "{salary: {{value.salary}}}",
         authentication   = Option.empty,
         headers          = none,
-        sslConfig        = Option.empty,
-        batch            = BatchConfiguration(1L.some, none, none).some,
+        ssl              = Option.empty,
+        batch            = BatchConfig(1L.some, none, none).some,
         errorThreshold   = none,
         uploadSyncPeriod = none,
       ).toJson
@@ -125,8 +125,8 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
         content          = "{salary: {{value.salary}}}",
         authentication   = Option.empty,
         headers          = none,
-        sslConfig        = Option.empty,
-        batch            = BatchConfiguration(7L.some, none, none).some,
+        ssl              = Option.empty,
+        batch            = BatchConfig(7L.some, none, none).some,
         errorThreshold   = none,
         uploadSyncPeriod = none,
       ).toJson
@@ -179,8 +179,8 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
              | </salaries>""".stripMargin,
         authentication   = Option.empty,
         headers          = none,
-        sslConfig        = Option.empty,
-        batch            = BatchConfiguration(7L.some, none, none).some,
+        ssl              = Option.empty,
+        batch            = BatchConfig(7L.some, none, none).some,
         errorThreshold   = none,
         uploadSyncPeriod = none,
       ).toJson
@@ -217,7 +217,7 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
         Option.empty,
         none,
         Option.empty,
-        BatchConfiguration(
+        BatchConfig(
           1L.some,
           none,
           none,

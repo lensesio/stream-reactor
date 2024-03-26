@@ -38,7 +38,7 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
       none,
       none,
     ).toJson should be(
-      """{"method":"Put","endpoint":"http://myaddress.example.com","content":"<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>","authentication":{"username":"user","password":"pass","type":"BasicAuthentication"},"headers":[["something","somethingelse"]],"sslConfig":null,"batch":null,"errorThreshold":null,"uploadSyncPeriod":null}""",
+      """{"method":"Put","endpoint":"http://myaddress.example.com","content":"<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>","authentication":{"username":"user","password":"pass","type":"BasicAuthentication"},"headers":[["something","somethingelse"]],"ssl":null,"batch":null,"errorThreshold":null,"uploadSyncPeriod":null}""",
     )
   }
 
