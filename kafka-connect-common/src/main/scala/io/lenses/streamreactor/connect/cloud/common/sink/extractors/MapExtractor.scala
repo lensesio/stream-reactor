@@ -59,16 +59,10 @@ object MapExtractor extends LazyLogging {
     map:       util.Map[_, _],
     fieldName: String,
     mapSchema: Schema,
-  ): Either[ExtractorError, String] = {
-    val maybeValueSchema = for {
-      mapSch <- Option(mapSchema)
-      valSch <- Option(mapSch.valueSchema())
-    } yield valSch
-
-    maybeValueSchema match {
+  ): Either[ExtractorError, String] =
+    Option(mapSchema).flatMap(_.valueSchema().some) match {
       case Some(sch) => PrimitiveExtractor.extractPrimitiveValue(map.get(fieldName), sch)
       case None      => WrappedPrimitiveExtractor.extractFromPrimitive(map.get(fieldName))
     }
-  }
 
 }
