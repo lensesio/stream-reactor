@@ -9,7 +9,6 @@ import io.lenses.java.streamreactor.connect.azure.eventhubs.util.KcqlConfigPort;
 import io.lenses.kcql.Kcql;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -56,9 +55,9 @@ public class AzureEventHubsSourceTask extends SourceTask {
     blockingQueueProducerProvider = new BlockingQueueProducerProvider(topicPartitionOffsetProvider);
     KafkaByteBlockingQueuedProducer producer = blockingQueueProducerProvider.createProducer(
         azureEventHubsSourceConfig, recordsQueue);
-    String outputTopic = getOutputTopicsFromConfig(azureEventHubsSourceConfig);
+    String outputTopic = getOutputTopicFromConfig(azureEventHubsSourceConfig);
     EventHubsKafkaConsumerController kafkaConsumerController = new EventHubsKafkaConsumerController(
-        producer, recordsQueue, Collections.singletonList(outputTopic));
+        producer, recordsQueue, outputTopic);
     initialize(kafkaConsumerController, azureEventHubsSourceConfig);
   }
 
@@ -98,7 +97,7 @@ public class AzureEventHubsSourceTask extends SourceTask {
    * @param azureEventHubsSourceConfig task configuration
    * @return output topic
    */
-  private String getOutputTopicsFromConfig(
+  private String getOutputTopicFromConfig(
       AzureEventHubsSourceConfig azureEventHubsSourceConfig) {
     Kcql kcql = KcqlConfigPort.parseMultipleKcqlStatementsPickingOnlyFirst(
         azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
