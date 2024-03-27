@@ -14,7 +14,7 @@ import static org.mockito.Mockito.when;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.lenses.java.streamreactor.common.util.JarManifest;
-import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import java.time.Duration;
 import java.util.Collections;
@@ -50,10 +50,10 @@ class AzureEventHubsSourceTaskTest {
     //given
     Duration thirtySeconds = Duration.ofSeconds(30);
     EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
-    AzureEventHubsConfig azureEventHubsConfig = mock(AzureEventHubsConfig.class);
-    when(azureEventHubsConfig.getInt(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT))
+    AzureEventHubsSourceConfig azureEventHubsSourceConfig = mock(AzureEventHubsSourceConfig.class);
+    when(azureEventHubsSourceConfig.getInt(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT))
         .thenReturn(thirtySeconds.toSecondsPart());
-    testObj.initialize(mockedController, azureEventHubsConfig);
+    testObj.initialize(mockedController, azureEventHubsSourceConfig);
 
     //when
     testObj.stop();
@@ -66,8 +66,8 @@ class AzureEventHubsSourceTaskTest {
   void initializeShouldLog() {
     //given
     EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
-    AzureEventHubsConfig azureEventHubsConfig = mock(AzureEventHubsConfig.class);
-    testObj.initialize(mockedController, azureEventHubsConfig);
+    AzureEventHubsSourceConfig azureEventHubsSourceConfig = mock(AzureEventHubsSourceConfig.class);
+    testObj.initialize(mockedController, azureEventHubsSourceConfig);
 
     //when
     testObj.stop();
@@ -80,9 +80,9 @@ class AzureEventHubsSourceTaskTest {
   @Test
   void pollShouldCallPollOnControllerAndReturnNullIfListIsEmpty() throws InterruptedException {
     //given
-    AzureEventHubsConfig azureEventHubsConfig = mock(AzureEventHubsConfig.class);
+    AzureEventHubsSourceConfig azureEventHubsSourceConfig = mock(AzureEventHubsSourceConfig.class);
     EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
-    testObj.initialize(mockedController, azureEventHubsConfig);
+    testObj.initialize(mockedController, azureEventHubsSourceConfig);
     when(mockedController.poll(any(Duration.class))).thenReturn(Collections.emptyList());
 
     //when
@@ -95,9 +95,9 @@ class AzureEventHubsSourceTaskTest {
   @Test
   void pollShouldCallPollOnControllerAndReturnListThatHasElements() throws InterruptedException {
     //given
-    AzureEventHubsConfig azureEventHubsConfig = mock(AzureEventHubsConfig.class);
+    AzureEventHubsSourceConfig azureEventHubsSourceConfig = mock(AzureEventHubsSourceConfig.class);
     EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
-    testObj.initialize(mockedController, azureEventHubsConfig);
+    testObj.initialize(mockedController, azureEventHubsSourceConfig);
     SourceRecord mockedRecord = mock(SourceRecord.class);
     List<SourceRecord> sourceRecords = Collections.singletonList(mockedRecord);
     when(mockedController.poll(any(Duration.class))).thenReturn(sourceRecords);
@@ -113,9 +113,9 @@ class AzureEventHubsSourceTaskTest {
   @Test
   void getVersionShouldDelegateToJarManifestGetVersion() {
     //given
-    AzureEventHubsConfig azureEventHubsConfig = mock(AzureEventHubsConfig.class);
+    AzureEventHubsSourceConfig azureEventHubsSourceConfig = mock(AzureEventHubsSourceConfig.class);
     EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
-    testObj.initialize(mockedController, azureEventHubsConfig);
+    testObj.initialize(mockedController, azureEventHubsSourceConfig);
     final String SOME_VERSION = "SOME_VERSION";
     when(mockedJarManifest.getVersion()).thenReturn(SOME_VERSION);
 

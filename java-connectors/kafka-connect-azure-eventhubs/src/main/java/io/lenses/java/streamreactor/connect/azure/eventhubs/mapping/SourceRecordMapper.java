@@ -14,20 +14,21 @@ import org.apache.kafka.connect.source.SourceRecord;
 public class SourceRecordMapper {
 
   /**
-   * Method to make SourceRecord out of ConsumerRecord including optional byte headers
-   * from original message.
+   * Method to make SourceRecord out of ConsumerRecord including optional byte headers from original
+   * message.
    *
    * @param consumerRecord original consumer record
-   * @param partitionKey AzureTopicPartitionKey to indicate topic and partition
-   * @param offsetMap AzureOffsetMarker to indicate offset
-   * @param keySchema Schema of the key
-   * @param valueSchema Schema of the value
+   * @param partitionKey   AzureTopicPartitionKey to indicate topic and partition
+   * @param offsetMap      AzureOffsetMarker to indicate offset
+   * @param outputTopic    Output topic for record
+   * @param keySchema      Schema of the key
+   * @param valueSchema    Schema of the value
    * @return SourceRecord with headers
    */
   public static SourceRecord mapSourceRecordIncludingHeaders(
       ConsumerRecord<?, ?> consumerRecord,
       Map<String, String> partitionKey, Map<String, Object> offsetMap,
-      Schema keySchema, Schema valueSchema) {
+      String outputTopic, Schema keySchema, Schema valueSchema) {
     Iterable<Header> headers = consumerRecord.headers();
     ConnectHeaders connectHeaders = new ConnectHeaders();
     for (Header header : headers) {
@@ -35,7 +36,7 @@ public class SourceRecordMapper {
           new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, header.value()));
     }
     return new SourceRecord(partitionKey, offsetMap,
-        consumerRecord.topic(), null, keySchema, consumerRecord.key(),
+        outputTopic, null, keySchema, consumerRecord.key(),
         valueSchema, consumerRecord.value(), consumerRecord.timestamp(),
         connectHeaders);
   }
@@ -47,6 +48,7 @@ public class SourceRecordMapper {
    * @param consumerRecord original consumer record
    * @param partitionKey partitionKey to indicate topic and partition
    * @param offsetMap AzureOffsetMarker to indicate offset
+   * @param outputTopic Output topic for record
    * @param keySchema Schema of the key
    * @param valueSchema Schema of the value
    * @return SourceRecord without headers
@@ -54,9 +56,9 @@ public class SourceRecordMapper {
   public static SourceRecord mapSourceRecordWithoutHeaders(
       ConsumerRecord<?, ?> consumerRecord,
       Map<String, String> partitionKey, Map<String, Object> offsetMap,
-      Schema keySchema, Schema valueSchema) {
+      String outputTopic, Schema keySchema, Schema valueSchema) {
     return new SourceRecord(partitionKey, offsetMap,
-        consumerRecord.topic(), null, keySchema, consumerRecord.key(),
+        outputTopic, null, keySchema, consumerRecord.key(),
         valueSchema, consumerRecord.value(), consumerRecord.timestamp(), null);
   }
 

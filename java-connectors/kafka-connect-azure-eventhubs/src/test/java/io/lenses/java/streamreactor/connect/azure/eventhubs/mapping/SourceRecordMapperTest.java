@@ -28,6 +28,7 @@ class SourceRecordMapperTest {
   void mapSourceRecordIncludingHeaders() {
     //given
     String headerKey = "headerKey";
+    String outputTopic = "OUTPUT";
     byte[] headerValue = new byte[] {1, 10};
     int headerLength = headerValue.length;
     AzureTopicPartitionKey topicPartitionKey = new AzureTopicPartitionKey(topic, partition);
@@ -52,16 +53,15 @@ class SourceRecordMapperTest {
     Schema optionalStringSchema = Schema.OPTIONAL_STRING_SCHEMA;
     SourceRecord sourceRecord = SourceRecordMapper.mapSourceRecordIncludingHeaders(consumerRecord,
         topicPartitionKey, azureOffsetMarker,
-        optionalStringSchema, stringSchema);
+        outputTopic, optionalStringSchema, stringSchema);
 
     //then
     verify(consumerRecord).timestamp();
-    verify(consumerRecord).topic();
     verify(consumerRecord).key();
     verify(consumerRecord).value();
     verify(consumerRecord).headers();
     assertNotNull(sourceRecord);
-    assertEquals(topic, sourceRecord.topic());
+    assertEquals(outputTopic, sourceRecord.topic());
     assertEquals(timestamp, sourceRecord.timestamp());
     assertNull(sourceRecord.kafkaPartition());
     assertEquals(topicPartitionKey, sourceRecord.sourcePartition());
@@ -78,6 +78,7 @@ class SourceRecordMapperTest {
     //given
     AzureTopicPartitionKey topicPartitionKey = new AzureTopicPartitionKey(topic, partition);
     AzureOffsetMarker azureOffsetMarker = new AzureOffsetMarker(offset);
+    String outputTopic = "OUTPUT";
 
 
     ConsumerRecord<String, String> consumerRecord = mock(ConsumerRecord.class);
@@ -89,16 +90,15 @@ class SourceRecordMapperTest {
     Schema stringSchema = Schema.STRING_SCHEMA;
     Schema optionalStringSchema = Schema.OPTIONAL_STRING_SCHEMA;
     SourceRecord sourceRecord = SourceRecordMapper.mapSourceRecordWithoutHeaders(consumerRecord,
-        topicPartitionKey, azureOffsetMarker,
+        topicPartitionKey, azureOffsetMarker, outputTopic,
         optionalStringSchema, stringSchema);
 
     //then
     verify(consumerRecord).timestamp();
-    verify(consumerRecord).topic();
     verify(consumerRecord).key();
     verify(consumerRecord).value();
     assertNotNull(sourceRecord);
-    assertEquals(topic, sourceRecord.topic());
+    assertEquals(outputTopic, sourceRecord.topic());
     assertEquals(timestamp, sourceRecord.timestamp());
     assertNull(sourceRecord.kafkaPartition());
     assertEquals(0, sourceRecord.headers().size());
