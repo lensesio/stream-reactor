@@ -230,7 +230,7 @@ jobs:
           format: 'HTML'
           args: >-
               --failOnCVSS 5
-              --suppression /suppression.xml
+              --suppression ../../../suppression.xml
       - name: Upload Test results
         uses: actions/upload-artifact@master
         with:
