@@ -32,10 +32,10 @@ case class Order(
   @BeanProperty created: String,
 ) {
 
-  def toRecord(order: Order): GenericRecord = {
+  def toRecord: GenericRecord = {
     val orderSchema      = SchemaFor.apply[Order]
     implicit val encoder = AvroEncoder[Order].withSchema(orderSchema)
-    ToRecord.apply[Order].to(order)
+    ToRecord.apply[Order].to(this)
   }
 
 }

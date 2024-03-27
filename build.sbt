@@ -268,7 +268,7 @@ lazy val elastic7 = (project in file("kafka-connect-elastic7"))
 
 lazy val http = (project in file("kafka-connect-http"))
   .dependsOn(common)
-  //.dependsOn(`test-common` % "fun->compile")
+  .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++
       Seq(
@@ -285,7 +285,7 @@ lazy val http = (project in file("kafka-connect-http"))
   .configureAssembly(false)
   .configureTests(baseTestDeps ++ kafkaConnectHttpTestDeps)
   .configureIntegrationTests(baseTestDeps ++ kafkaConnectHttpTestDeps)
-  //.configureFunctionalTests(kafkaConnectS3FuncTestDeps)
+  .configureFunctionalTests()
   .enablePlugins(PackPlugin, ProtocPlugin)
 
 lazy val influxdb = (project in file("kafka-connect-influxdb"))
