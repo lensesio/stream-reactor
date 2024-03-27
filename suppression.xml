@@ -14,4 +14,13 @@
         <cpe>cpe:/a:apache:hadoop</cpe>
     </suppress>
 
+    <!-- This must be a false positive as this library is not in the dependency tree and I can not
+    find any evidence of the compiled C library by inspecting the jar -->
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-ftp-assembly-6.3-SNAPSHOT.jar
+   ]]></notes>
+        <sha1>b5249353de73e5bba3f4eaaf8c9d609f481925c7</sha1>
+        <cve>CVE-2023-22551</cve>
+    </suppress>
 </suppressions>

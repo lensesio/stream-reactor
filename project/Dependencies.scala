@@ -104,13 +104,13 @@ object Dependencies {
 
     val mqttVersion = "1.2.5"
 
-    val commonsNetVersion      = "3.9.0"
+    val commonsNetVersion      = "3.10.0"
     val commonsCodecVersion    = "1.15"
     val commonsCompressVersion = "1.26.0"
     val commonsConfigVersion   = "2.10.1"
     val commonsIOVersion       = "2.11.0"
     val commonsLang3Version    = "3.14.0"
-    val jschVersion            = "0.1.55"
+    val jschVersion            = "0.2.17"
 
     val minaVersion           = "2.2.1"
     val betterFilesVersion    = "3.9.2"
@@ -328,7 +328,7 @@ object Dependencies {
   lazy val commonsLang3    = "org.apache.commons"       % "commons-lang3"           % commonsLang3Version
   lazy val commonsCompress = "org.apache.commons"       % "commons-compress"        % commonsCompressVersion
   lazy val commonsConfig   = "org.apache.commons"       % "commons-configuration2"  % commonsConfigVersion
-  lazy val jsch            = "com.jcraft"               % "jsch"                    % jschVersion
+  lazy val jsch            = "com.github.mwiede"        % "jsch"                    % jschVersion
   lazy val mina            = "org.apache.mina"          % "mina-core"               % minaVersion
   lazy val betterFiles     = "com.github.pathikrit"    %% "better-files"            % betterFilesVersion
   lazy val ftpServer       = "org.apache.ftpserver"     % "ftpserver-core"          % ftpServerVersion
