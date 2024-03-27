@@ -5,20 +5,18 @@ import sbt.librarymanagement.InclExclRule
 object Dependencies {
 
   val globalExcludeDeps: Seq[InclExclRule] = Seq(
-    "org.jboss.logging"        % "commons-logging-jboss-logging",
-    "org.jboss.logging"        % "jboss-logging",
-    "org.jboss.logging"        % "jboss-logging-annotations",
-    "org.jboss.logmanager"     % "jboss-logmanager-embedded",
-    "org.jboss.sif4j"          % "sIf4j-jboss-logmanager",
-    "commons-logging"          % "commons-logging",
-    "log4j"                    % "log4j",
-    "org.slf4j"                % "slf4j-log4j12",
-    "org.apache.logging.log4j" % "log4j",
-    //"org.apache.logging.log4j" % "log4j-api",
-    "org.apache.logging.log4j" % "log4j-core",
-    "org.apache.logging.log4j" % "log4j-slf4j-impl",
-    "com.sun.jersey"           % "*",
-    "org.jline"                % "*",
+    "org.jboss.logging"            % "*",
+    "org.jboss.logmanager"         % "*",
+    "org.jboss.sif4j"              % "*",
+    "commons-logging"              % "commons-logging",
+    "log4j"                        % "log4j",
+    "org.slf4j"                    % "slf4j-log4j12",
+    "org.apache.logging.log4j"     % "log4j",
+    "org.apache.logging.log4j"     % "log4j-core",
+    "org.apache.logging.log4j"     % "log4j-slf4j-impl",
+    "com.sun.jersey"               % "*",
+    "org.jline"                    % "*",
+    "org.apache.hadoop.thirdparty" % "*",
   )
 
   // scala versions
@@ -87,7 +85,7 @@ object Dependencies {
     val lz4Version = "1.8.0"
 
     val bouncyCastleVersion = "1.70"
-    val nettyVersion        = "4.1.71.Final"
+    val nettyVersion        = "4.1.108.Final"
 
     val cassandraDriverVersion = "3.11.3"
     val jsonPathVersion        = "2.7.0"
@@ -108,6 +106,7 @@ object Dependencies {
     val commonsNetVersion      = "3.9.0"
     val commonsCodecVersion    = "1.15"
     val commonsCompressVersion = "1.26.0"
+    val commonsConfigVersion   = "2.10.1"
     val commonsIOVersion       = "2.11.0"
     val commonsLang3Version    = "3.14.0"
     val jschVersion            = "0.1.55"
@@ -123,7 +122,7 @@ object Dependencies {
     val gsonVersion  = "2.10.1"
 
     val nimbusJoseJwtVersion = "9.30.2"
-    val hadoopVersion        = "3.3.6"
+    val hadoopVersion        = "3.4.0"
 
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
@@ -271,7 +270,7 @@ object Dependencies {
   val jacksonModuleScala: ModuleID =
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion
   val woodstoxCore: ModuleID =
-    "com.fasterxml.woodstox" % "woodstox-core" % "6.5.0"
+    "com.fasterxml.woodstox" % "woodstox-core" % "6.6.1"
 
   lazy val openCsv = "com.opencsv" % "opencsv" % openCsvVersion
 
@@ -322,6 +321,7 @@ object Dependencies {
   lazy val commonsIO       = "commons-io"               % "commons-io"              % commonsIOVersion
   lazy val commonsLang3    = "org.apache.commons"       % "commons-lang3"           % commonsLang3Version
   lazy val commonsCompress = "org.apache.commons"       % "commons-compress"        % commonsCompressVersion
+  lazy val commonsConfig   = "org.apache.commons"       % "commons-configuration2"  % commonsConfigVersion
   lazy val jsch            = "com.jcraft"               % "jsch"                    % jschVersion
   lazy val mina            = "org.apache.mina"          % "mina-core"               % minaVersion
   lazy val betterFiles     = "com.github.pathikrit"    %% "better-files"            % betterFilesVersion
@@ -436,6 +436,7 @@ trait Dependencies {
     hadoopMapReduce,
     hadoopMapReduceClient,
     hadoopMapReduceClientCore,
+    commonsConfig,
     openCsv,
     jacksonCore,
     jacksonDatabind,
@@ -444,6 +445,7 @@ trait Dependencies {
   )
 
   val kafkaConnectS3Deps: Seq[ModuleID] = Seq(
+    commonsIO,
     s3Sdk,
     stsSdk,
   )
