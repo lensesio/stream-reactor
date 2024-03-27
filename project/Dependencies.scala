@@ -5,17 +5,17 @@ import sbt.librarymanagement.InclExclRule
 object Dependencies {
 
   val globalExcludeDeps: Seq[InclExclRule] = Seq(
-    "org.jboss.logging"            % "*",
-    "org.jboss.logmanager"         % "*",
-    "org.jboss.sif4j"              % "*",
-    "commons-logging"              % "commons-logging",
-    "log4j"                        % "log4j",
-    "org.slf4j"                    % "slf4j-log4j12",
-    "org.apache.logging.log4j"     % "log4j",
-    "org.apache.logging.log4j"     % "log4j-core",
-    "org.apache.logging.log4j"     % "log4j-slf4j-impl",
-    "com.sun.jersey"               % "*",
-    "org.jline"                    % "*",
+    "org.jboss.logging"        % "*",
+    "org.jboss.logmanager"     % "*",
+    "org.jboss.sif4j"          % "*",
+    "commons-logging"          % "commons-logging",
+    "log4j"                    % "log4j",
+    "org.slf4j"                % "slf4j-log4j12",
+    "org.apache.logging.log4j" % "log4j",
+    "org.apache.logging.log4j" % "log4j-core",
+    "org.apache.logging.log4j" % "log4j-slf4j-impl",
+    "com.sun.jersey"           % "*",
+    "org.jline"                % "*",
   )
 
   // scala versions
@@ -120,9 +120,9 @@ object Dependencies {
     val jedisVersion = "4.4.0"
     val gsonVersion  = "2.10.1"
 
-    val nimbusJoseJwtVersion = "9.30.2"
-    val hadoopVersion        = "3.4.0"
-    val hadoopShadedProtobufVersion        = "1.2.0"
+    val nimbusJoseJwtVersion        = "9.30.2"
+    val hadoopVersion               = "3.4.0"
+    val hadoopShadedProtobufVersion = "1.2.0"
 
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
