@@ -228,7 +228,9 @@ jobs:
           project: kafka-connect-${{matrix.module}}-deps
           path: kafka-connect-${{matrix.module}}/target/libs/
           format: 'HTML'
-          args: "--failOnCVSS 5 --suppression /suppression.xml"
+          args: >-
+              --failOnCVSS 5
+              --suppression /suppression.xml
       - name: Upload Test results
         uses: actions/upload-artifact@master
         with:
