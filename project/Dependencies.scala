@@ -18,6 +18,7 @@ object Dependencies {
     "org.apache.logging.log4j" % "log4j-core",
     "org.apache.logging.log4j" % "log4j-slf4j-impl",
     "com.sun.jersey"           % "*",
+    "org.jline"                % "*",
   )
 
   // scala versions
@@ -77,7 +78,7 @@ object Dependencies {
     val azureIdentityVersion = "1.11.1"
     val gcpStorageVersion    = "2.32.1"
 
-    val jacksonVersion      = "2.16.2"
+    val jacksonVersion      = "2.17.0"
     val json4sVersion       = "4.0.6"
     val mockitoScalaVersion = "1.17.30"
     val openCsvVersion      = "5.9"
@@ -104,11 +105,12 @@ object Dependencies {
 
     val mqttVersion = "1.2.5"
 
-    val commonsNetVersion   = "3.9.0"
-    val commonsCodecVersion = "1.15"
-    val commonsIOVersion    = "2.11.0"
-    val commonsLang3Version = "3.14.0"
-    val jschVersion         = "0.1.55"
+    val commonsNetVersion      = "3.9.0"
+    val commonsCodecVersion    = "1.15"
+    val commonsCompressVersion = "1.26.0"
+    val commonsIOVersion       = "2.11.0"
+    val commonsLang3Version    = "3.14.0"
+    val jschVersion            = "0.1.55"
 
     val minaVersion           = "2.2.1"
     val betterFilesVersion    = "3.9.2"
@@ -315,15 +317,16 @@ object Dependencies {
 
   lazy val mqttClient = "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % mqttVersion
 
-  lazy val commonsNet     = "commons-net"              % "commons-net"             % commonsNetVersion
-  lazy val commonsCodec   = "commons-codec"            % "commons-codec"           % commonsCodecVersion
-  lazy val commonsIO      = "commons-io"               % "commons-io"              % commonsIOVersion
-  lazy val commonsLang3   = "org.apache.commons"       % "commons-lang3"           % commonsLang3Version
-  lazy val jsch           = "com.jcraft"               % "jsch"                    % jschVersion
-  lazy val mina           = "org.apache.mina"          % "mina-core"               % minaVersion
-  lazy val betterFiles    = "com.github.pathikrit"    %% "better-files"            % betterFilesVersion
-  lazy val ftpServer      = "org.apache.ftpserver"     % "ftpserver-core"          % ftpServerVersion
-  lazy val fakeSftpServer = "com.github.stefanbirkner" % "fake-sftp-server-lambda" % fakeSftpServerVersion
+  lazy val commonsNet      = "commons-net"              % "commons-net"             % commonsNetVersion
+  lazy val commonsCodec    = "commons-codec"            % "commons-codec"           % commonsCodecVersion
+  lazy val commonsIO       = "commons-io"               % "commons-io"              % commonsIOVersion
+  lazy val commonsLang3    = "org.apache.commons"       % "commons-lang3"           % commonsLang3Version
+  lazy val commonsCompress = "org.apache.commons"       % "commons-compress"        % commonsCompressVersion
+  lazy val jsch            = "com.jcraft"               % "jsch"                    % jschVersion
+  lazy val mina            = "org.apache.mina"          % "mina-core"               % minaVersion
+  lazy val betterFiles     = "com.github.pathikrit"    %% "better-files"            % betterFilesVersion
+  lazy val ftpServer       = "org.apache.ftpserver"     % "ftpserver-core"          % ftpServerVersion
+  lazy val fakeSftpServer  = "com.github.stefanbirkner" % "fake-sftp-server-lambda" % fakeSftpServerVersion
 
   lazy val mongoDb = "org.mongodb" % "mongo-java-driver" % mongoDbVersion
 
@@ -413,6 +416,8 @@ trait Dependencies {
 
   //Specific modules dependencies
   val baseDeps: Seq[ModuleID] = loggingDeps ++ Seq(
+    jacksonDatabind,
+    commonsCompress,
     avro4s,
     catsEffectKernel,
     catsEffect,

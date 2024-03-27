@@ -449,12 +449,6 @@ addCommandAlias(
 addCommandAlias("fullTest", ";test;it:test;fun:test")
 addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")
 
-dependencyCheckFormats := Seq("XML", "HTML")
-dependencyCheckNodeAnalyzerEnabled := Some(false)
-dependencyCheckNodeAuditAnalyzerEnabled := Some(false)
-dependencyCheckNPMCPEAnalyzerEnabled := Some(false)
-dependencyCheckRetireJSAnalyzerEnabled := Some(false)
-
 excludeDependencies ++= globalExcludeDeps
 
 val generateModulesList         = taskKey[Seq[File]]("generateModulesList")
