@@ -5,15 +5,11 @@ import static io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureE
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
-import io.lenses.java.streamreactor.connect.azure.eventhubs.util.ExceptionProviders;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.util.KcqlConfigPort;
 import io.lenses.kcql.Kcql;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -85,19 +81,15 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
   }
 
   /**
-   * Returns input topics (if specified in config) or throws {@link ConfigException}.
+   * Returns input topic (specified in KCQL config).
    *
    * @param azureEventHubsSourceConfig task configuration
-   * @return input topics list
+   * @return input topic
    */
   private String getInputTopicFromConfig(
       AzureEventHubsSourceConfig azureEventHubsSourceConfig) {
     Kcql kcql = KcqlConfigPort.parseMultipleKcqlStatementsPickingOnlyFirst(
         azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
-    List<String> inputTopics = Arrays.stream(kcql.getSource().split(",")).collect(Collectors.toList());
-    if (inputTopics.size() != 1) {
-      throw ExceptionProviders.INPUT_TOPIC_CONFIG_EXCEPTION_SUPPLIER.get();
-    }
-    return inputTopics.get(0);
+    return kcql.getSource();
   }
 }

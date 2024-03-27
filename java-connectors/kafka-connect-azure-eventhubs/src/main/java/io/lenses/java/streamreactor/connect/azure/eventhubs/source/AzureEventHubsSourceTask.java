@@ -5,19 +5,16 @@ import static java.util.Optional.ofNullable;
 import io.lenses.java.streamreactor.common.util.JarManifest;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
-import io.lenses.java.streamreactor.connect.azure.eventhubs.util.ExceptionProviders;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.util.KcqlConfigPort;
 import io.lenses.kcql.Kcql;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 import org.apache.kafka.connect.storage.OffsetStorageReader;
@@ -59,9 +56,9 @@ public class AzureEventHubsSourceTask extends SourceTask {
     blockingQueueProducerProvider = new BlockingQueueProducerProvider(topicPartitionOffsetProvider);
     KafkaByteBlockingQueuedProducer producer = blockingQueueProducerProvider.createProducer(
         azureEventHubsSourceConfig, recordsQueue);
-    List<String> outputTopics = getOutputTopicsFromConfig(azureEventHubsSourceConfig);
+    String outputTopic = getOutputTopicsFromConfig(azureEventHubsSourceConfig);
     EventHubsKafkaConsumerController kafkaConsumerController = new EventHubsKafkaConsumerController(
-        producer, recordsQueue, outputTopics);
+        producer, recordsQueue, Collections.singletonList(outputTopic));
     initialize(kafkaConsumerController, azureEventHubsSourceConfig);
   }
 
@@ -96,19 +93,15 @@ public class AzureEventHubsSourceTask extends SourceTask {
   }
 
   /**
-   * Returns output topics (if specified in config) or throws {@link ConfigException}.
+   * Returns output topic (specified in config using KCQL).
    *
    * @param azureEventHubsSourceConfig task configuration
-   * @return output topics list
+   * @return output topic
    */
-  private List<String> getOutputTopicsFromConfig(
+  private String getOutputTopicsFromConfig(
       AzureEventHubsSourceConfig azureEventHubsSourceConfig) {
     Kcql kcql = KcqlConfigPort.parseMultipleKcqlStatementsPickingOnlyFirst(
         azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
-    List<String> outputTopics = Arrays.stream(kcql.getTarget().split(",")).collect(Collectors.toList());
-    if (outputTopics.isEmpty()) {
-      throw ExceptionProviders.OUTPUT_TOPIC_CONFIG_EXCEPTION_SUPPLIER.get();
-    }
-    return outputTopics;
+    return kcql.getTarget();
   }
 }
