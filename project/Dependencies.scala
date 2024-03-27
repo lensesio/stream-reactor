@@ -1,13 +1,8 @@
 import Dependencies._
-import KafkaVersionAxis.kafkaVersionAxis
 import sbt._
 import sbt.librarymanagement.InclExclRule
 
 object Dependencies {
-
-  val kafkaVersion: String = kafkaVersionAxis.kafkaVersion
-
-  val confluentVersion: String = kafkaVersionAxis.confluentPlatformVersion
 
   val globalExcludeDeps: Seq[InclExclRule] = Seq(
     "org.jboss.logging"        % "commons-logging-jboss-logging",
@@ -47,6 +42,9 @@ object Dependencies {
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.17.0"
     val randomDataGeneratorVersion     = "2.8"
+
+    val kafkaVersion:     String = "3.6.1"
+    val confluentVersion: String = "7.6.0"
 
     val enumeratumVersion = "1.7.3"
 
@@ -403,7 +401,7 @@ trait Dependencies {
   import Versions._
 
   val loggingDeps: Seq[ModuleID] = Seq(
-    "org.apache.logging.log4j" % "log4j-api"      % "2.20.0",
+    "org.apache.logging.log4j" % "log4j-api"      % "2.22.1",
     "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.20.0",
     log4jToSlf4j,
     jclToSlf4j,

@@ -1,3 +1,4 @@
+import Dependencies.Versions.kafkaVersion
 import Dependencies.betterMonadicFor
 import Dependencies.globalExcludeDeps
 import Dependencies.googleProtobuf
@@ -128,7 +129,7 @@ object Settings extends Dependencies {
         ("Git-Commit-Hash", "git rev-parse HEAD".!!.trim),
         ("Git-Repo", "git config --get remote.origin.url".!!.trim),
         ("Git-Tag", sys.env.getOrElse("SNAPSHOT_TAG", "n/a")),
-        ("Kafka-Version", KafkaVersionAxis.kafkaVersion),
+        ("Kafka-Version", kafkaVersion),
         ("StreamReactor-Version", artifactVersion),
         ("StreamReactor-Docs", "https://docs.lenses.io/5.0/integrations/connectors/stream-reactor/"),
       ),
