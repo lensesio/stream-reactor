@@ -16,7 +16,6 @@ object Dependencies {
     "org.apache.logging.log4j"     % "log4j-slf4j-impl",
     "com.sun.jersey"               % "*",
     "org.jline"                    % "*",
-    "org.apache.hadoop.thirdparty" % "*",
   )
 
   // scala versions
@@ -123,6 +122,7 @@ object Dependencies {
 
     val nimbusJoseJwtVersion = "9.30.2"
     val hadoopVersion        = "3.4.0"
+    val hadoopShadedProtobufVersion        = "1.2.0"
 
     trait ElasticVersions {
       val elastic4sVersion, elasticSearchVersion, jnaVersion: String
@@ -240,6 +240,8 @@ object Dependencies {
     hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client" % hadoopVersion)
   lazy val hadoopMapReduceClientCore: ModuleID =
     hiveExcludes("org.apache.hadoop" % "hadoop-mapreduce-client-core" % hadoopVersion)
+  lazy val hadoopShadedProtobuf: ModuleID =
+    hiveExcludes("org.apache.hadoop.thirdparty" % "hadoop-shaded-protobuf_3_21" % hadoopShadedProtobufVersion)
 
   lazy val calciteCore = hiveExcludes("org.apache.calcite" % "calcite-core" % calciteVersion)
     .excludeAll(ExclusionRule(organization = "io.swagger"))
@@ -436,6 +438,7 @@ trait Dependencies {
     hadoopMapReduce,
     hadoopMapReduceClient,
     hadoopMapReduceClientCore,
+    hadoopShadedProtobuf,
     commonsConfig,
     openCsv,
     jacksonCore,
