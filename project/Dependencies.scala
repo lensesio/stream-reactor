@@ -16,6 +16,7 @@ object Dependencies {
     "org.apache.logging.log4j" % "log4j-slf4j-impl",
     "com.sun.jersey"           % "*",
     "org.jline"                % "*",
+    "org.codehaus.janino"      % "*",
   )
 
   // scala versions
@@ -79,6 +80,7 @@ object Dependencies {
     val json4sVersion       = "4.0.6"
     val mockitoScalaVersion = "1.17.30"
     val openCsvVersion      = "5.9"
+    val jsonSmartVersion    = "2.5.1"
 
     val xzVersion  = "1.9"
     val lz4Version = "1.8.0"
@@ -273,6 +275,8 @@ object Dependencies {
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % jacksonVersion
   val woodstoxCore: ModuleID =
     "com.fasterxml.woodstox" % "woodstox-core" % "6.6.1"
+  val jsonSmart: ModuleID =
+    "net.minidev" % "json-smart" % jsonSmartVersion
 
   lazy val openCsv = "com.opencsv" % "opencsv" % openCsvVersion
 

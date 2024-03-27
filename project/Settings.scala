@@ -5,6 +5,7 @@ import Dependencies.googleProtobuf
 import Dependencies.googleProtobufJava
 import Dependencies.hadoopCommon
 import Dependencies.hadoopMapReduceClientCore
+import Dependencies.jsonSmart
 import Dependencies.nettyCodecSocks
 import Dependencies.nettyHandlerProxy
 import Dependencies.woodstoxCore
@@ -208,6 +209,7 @@ object Settings extends Dependencies {
             hadoopCommon,
             hadoopMapReduceClientCore,
             woodstoxCore,
+            jsonSmart,
           ) ++ nettyDepOverrides ++ avroOverrides,
         ),
       )
