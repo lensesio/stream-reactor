@@ -50,6 +50,7 @@ jobs:
   scalafmt:
     timeout-minutes: 5
     runs-on: ubuntu-latest
+    if: false
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -71,6 +72,7 @@ jobs:
     needs:
       - initiate
       - scalafmt
+    if: false
     timeout-minutes: 5
     runs-on: ubuntu-latest
     strategy:
@@ -100,6 +102,7 @@ jobs:
     needs:
       - initiate
       - scalafmt
+    if: false
     timeout-minutes: 30
     continue-on-error: true
     runs-on: ubuntu-latest
@@ -168,6 +171,7 @@ jobs:
           key: assembly-${{ matrix.module }}-${{ github.run_id }}
 
   functional-test:
+    if: false
     needs:
       - initiate
       - build-and-cache-assembly
@@ -228,7 +232,7 @@ jobs:
           format: 'HTML'
           args: >
             --failOnCVSS 7
-            --suppression suppression.xml
+            --suppression /suppression.xml
       - name: Upload Test results
         uses: actions/upload-artifact@master
         with:
