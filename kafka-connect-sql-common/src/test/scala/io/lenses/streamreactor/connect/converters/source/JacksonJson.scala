@@ -22,7 +22,7 @@ import org.json4s.jackson.Serialization.write
 object JacksonJson {
 
   //implicit val formats: DefaultFormats.type = DefaultFormats
-  implicit val formats = Serialization.formats(NoTypeHints)
+  implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
   /*def toJson(value: Map[Symbol, Any]): String = {
     toJson(value map { case (k,v) => k.name -> v})

@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.gcp.storage.source.config
 
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.gcp.storage.model.location.GCPStorageLocationValidator
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.EitherValues
@@ -24,8 +25,8 @@ import org.scalatest.matchers.should.Matchers._
 
 class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues {
 
-  val taskId             = ConnectorTaskId("name", 1, 1)
-  implicit val validator = GCPStorageLocationValidator
+  val taskId = ConnectorTaskId("name", 1, 1)
+  implicit val validator: CloudLocationValidator = GCPStorageLocationValidator
   test("fromProps should reject configuration when no kcql string is provided") {
     val props  = Map[String, String]()
     val result = GCPStorageSourceConfig.fromProps(taskId, props)
