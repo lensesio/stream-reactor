@@ -43,7 +43,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
   val BucketName = "mybucket"
 
   private implicit val cloudLocationValidator: CloudLocationValidator = GCPStorageLocationValidator
-  private implicit val connectorTaskId = ConnectorTaskId("connector", 1, 0)
+  private implicit val connectorTaskId:        ConnectorTaskId        = ConnectorTaskId("connector", 1, 0)
 
   "GCPSinkConfigDefBuilder" should "respect defined properties" in {
     val props = Map(

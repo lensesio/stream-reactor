@@ -203,13 +203,13 @@ class SFTPClient extends FTPClient with StrictLogging {
         .map(lsEntry => createFtpFile(lsEntry))
     }
 
-  private def transformToLsEntry(file: Any): ChannelSftp#LsEntry =
+  private def transformToLsEntry(file: Any): ChannelSftp.LsEntry =
     file match {
-      case lsEntry: ChannelSftp#LsEntry => lsEntry
+      case lsEntry: ChannelSftp.LsEntry => lsEntry
       case unknown: Any                 => throw new ClassCastException(s"SFTPClient Error obtaining LsEntry. Unknown type $unknown")
     }
 
-  private def createFtpFile(lsEntry: ChannelSftp#LsEntry) = {
+  private def createFtpFile(lsEntry: ChannelSftp.LsEntry) = {
     val ftpFile: FTPFile = new FTPFile()
     ftpFile.setType(0)
     ftpFile.setName(lsEntry.getFilename)

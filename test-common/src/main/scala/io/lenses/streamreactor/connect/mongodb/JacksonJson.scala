@@ -19,7 +19,7 @@ import org.json4s._
 import org.json4s.native.JsonMethods._
 
 object Json {
-  implicit val formats = DefaultFormats
+  implicit val formats: Formats = DefaultFormats
 
   def parseJson(json: String): JValue =
     parse(json)

@@ -1,3 +1,4 @@
+import Dependencies.Versions
 import Dependencies.globalExcludeDeps
 import Dependencies.gson
 import Settings.*
@@ -146,7 +147,7 @@ lazy val `azure-datalake` = (project in file("kafka-connect-azure-datalake"))
         ),
       ),
   )
-  .configureAssembly(false)
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   //.configureIntegrationTests(kafkaConnectAzureDatalakeTestDeps)
   //.configureFunctionalTests(kafkaConnectAzureDatalakeFuncTestDeps)
@@ -325,14 +326,13 @@ lazy val jms = (project in file("kafka-connect-jms"))
         ),
         Compile / PB.protoSources := Seq(sourceDirectory.value / "test" / "resources" / "example"),
         Compile / PB.targets := Seq(
-          PB.gens.java -> (Test / sourceManaged).value,
+          PB.gens.java(Versions.googleProtobufVersion) -> (Test / sourceManaged).value,
         ),
       ),
   )
   .configureAssembly(true)
   .configureTests(kafkaConnectJmsTestDeps)
   .configureIntegrationTests(kafkaConnectJmsTestDeps)
-  //.configureFunctionalTests(kafkaConnectS3FuncTestDeps)
   .disableParallel()
   .enablePlugins(PackPlugin, ProtocPlugin)
 
@@ -448,12 +448,6 @@ addCommandAlias(
 )
 addCommandAlias("fullTest", ";test;it:test;fun:test")
 addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")
-
-dependencyCheckFormats := Seq("XML", "HTML")
-dependencyCheckNodeAnalyzerEnabled := Some(false)
-dependencyCheckNodeAuditAnalyzerEnabled := Some(false)
-dependencyCheckNPMCPEAnalyzerEnabled := Some(false)
-dependencyCheckRetireJSAnalyzerEnabled := Some(false)
 
 excludeDependencies ++= globalExcludeDeps
 
