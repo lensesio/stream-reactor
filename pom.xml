@@ -40,7 +40,7 @@
         <google.auth.version>0.16.1</google.auth.version>
         <google.cloud.version>1.79.0</google.cloud.version>
         <google.protobuf.version>3.19.6</google.protobuf.version>
-        <jackson.version>2.10.2</jackson.version>
+        <jackson.version>2.16.2</jackson.version>
         <kafka.version>2.5.0</kafka.version>
         <kafka.scala.version>2.12</kafka.scala.version>
         <slf4j.version>1.7.26</slf4j.version>
@@ -190,6 +190,11 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
                 <version>${jackson.version}</version>
             </dependency>
             <dependency>
