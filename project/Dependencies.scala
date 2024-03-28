@@ -109,6 +109,7 @@ object Dependencies {
     val commonsCompressVersion = "1.26.0"
     val commonsConfigVersion   = "2.10.1"
     val commonsIOVersion       = "2.11.0"
+    val commonsHttpVersion     = "4.5.14"
     val commonsLang3Version    = "3.14.0"
     val jschVersion            = "0.2.17"
 
@@ -322,17 +323,18 @@ object Dependencies {
 
   lazy val mqttClient = "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % mqttVersion
 
-  lazy val commonsNet      = "commons-net"              % "commons-net"             % commonsNetVersion
-  lazy val commonsCodec    = "commons-codec"            % "commons-codec"           % commonsCodecVersion
-  lazy val commonsIO       = "commons-io"               % "commons-io"              % commonsIOVersion
-  lazy val commonsLang3    = "org.apache.commons"       % "commons-lang3"           % commonsLang3Version
-  lazy val commonsCompress = "org.apache.commons"       % "commons-compress"        % commonsCompressVersion
-  lazy val commonsConfig   = "org.apache.commons"       % "commons-configuration2"  % commonsConfigVersion
-  lazy val jsch            = "com.github.mwiede"        % "jsch"                    % jschVersion
-  lazy val mina            = "org.apache.mina"          % "mina-core"               % minaVersion
-  lazy val betterFiles     = "com.github.pathikrit"    %% "better-files"            % betterFilesVersion
-  lazy val ftpServer       = "org.apache.ftpserver"     % "ftpserver-core"          % ftpServerVersion
-  lazy val fakeSftpServer  = "com.github.stefanbirkner" % "fake-sftp-server-lambda" % fakeSftpServerVersion
+  lazy val commonsNet      = "commons-net"               % "commons-net"             % commonsNetVersion
+  lazy val commonsCodec    = "commons-codec"             % "commons-codec"           % commonsCodecVersion
+  lazy val commonsIO       = "commons-io"                % "commons-io"              % commonsIOVersion
+  lazy val commonsLang3    = "org.apache.commons"        % "commons-lang3"           % commonsLang3Version
+  lazy val commonsCompress = "org.apache.commons"        % "commons-compress"        % commonsCompressVersion
+  lazy val commonsConfig   = "org.apache.commons"        % "commons-configuration2"  % commonsConfigVersion
+  lazy val commonsHttp     = "org.apache.httpcomponents" % "httpclient"              % commonsHttpVersion
+  lazy val jsch            = "com.github.mwiede"         % "jsch"                    % jschVersion
+  lazy val mina            = "org.apache.mina"           % "mina-core"               % minaVersion
+  lazy val betterFiles     = "com.github.pathikrit"     %% "better-files"            % betterFilesVersion
+  lazy val ftpServer       = "org.apache.ftpserver"      % "ftpserver-core"          % ftpServerVersion
+  lazy val fakeSftpServer  = "com.github.stefanbirkner"  % "fake-sftp-server-lambda" % fakeSftpServerVersion
 
   lazy val mongoDb = "org.mongodb" % "mongo-java-driver" % mongoDbVersion
 
@@ -512,6 +514,7 @@ trait Dependencies {
     elastic4sCore(v.elastic4sVersion),
     jna(v.jnaVersion),
     elasticSearch(v.elasticSearchVersion),
+    commonsHttp,
     //elasticSearchAnalysis(v.elasticSearchVersion)
   )
 
