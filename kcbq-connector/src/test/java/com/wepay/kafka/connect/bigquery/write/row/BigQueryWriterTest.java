@@ -40,9 +40,9 @@ import com.wepay.kafka.connect.bigquery.SchemaManager;
 import com.wepay.kafka.connect.bigquery.SinkPropertiesFactory;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
-import com.wepay.kafka.connect.bigquery.retrieve.MemorySchemaRetriever;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -77,6 +77,9 @@ public class BigQueryWriterTest {
     final Map<String, String> properties = makeProperties("3", "2000", topic, dataset);
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Table mockTable = mock(Table.class);
+    when(bigQuery.getTable(any())).thenReturn(mockTable);
+
     Map<Long, List<BigQueryError>> emptyMap = mock(Map.class);
     when(emptyMap.isEmpty()).thenReturn(true);
 
@@ -110,7 +113,6 @@ public class BigQueryWriterTest {
     final String dataset = "scratch";
     final Map<String, String> properties = makeProperties("3", "2000", topic, dataset);
     properties.put(BigQuerySinkConfig.TABLE_CREATE_CONFIG, "true");
-    properties.put(BigQuerySinkConfig.SCHEMA_RETRIEVER_CONFIG, MemorySchemaRetriever.class.getName());
 
     BigQuery bigQuery = mock(BigQuery.class);
     Map<Long, List<BigQueryError>> emptyMap = mock(Map.class);
@@ -120,9 +122,11 @@ public class BigQueryWriterTest {
     when(insertAllResponse.hasErrors()).thenReturn(false);
     when(insertAllResponse.getInsertErrors()).thenReturn(emptyMap);
 
-    BigQueryException missTableException = new BigQueryException(404, "Table is missing");
+    String errorMessage = "Not found: Table project.scratch.test_topic";
+    BigQueryError error = new BigQueryError("notFound", "global", errorMessage);
+    BigQueryException nonExistentTableException = new BigQueryException(404, errorMessage, error); 
 
-    when(bigQuery.insertAll(anyObject())).thenThrow(missTableException).thenReturn(insertAllResponse);
+    when(bigQuery.insertAll(anyObject())).thenThrow(nonExistentTableException).thenReturn(insertAllResponse);
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
 
@@ -198,6 +202,8 @@ public class BigQueryWriterTest {
     when(insertAllResponseNoError.getInsertErrors()).thenReturn(emptyMap);
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Table mockTable = mock(Table.class);
+    when(bigQuery.getTable(any())).thenReturn(mockTable);
 
     //first attempt (partial failure); second attempt (success)
     when(bigQuery.insertAll(anyObject()))
@@ -251,6 +257,8 @@ public class BigQueryWriterTest {
     when(insertAllResponseNoError.getInsertErrors()).thenReturn(emptyMap);
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Table mockTable = mock(Table.class);
+    when(bigQuery.getTable(any())).thenReturn(mockTable);
 
     //first attempt (complete failure); second attempt (not expected)
     when(bigQuery.insertAll(anyObject()))
@@ -289,7 +297,8 @@ public class BigQueryWriterTest {
     properties.put(BigQuerySinkConfig.BIGQUERY_RETRY_CONFIG, bigqueryRetry);
     properties.put(BigQuerySinkConfig.BIGQUERY_RETRY_WAIT_CONFIG, bigqueryRetryWait);
     properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
-    properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
+    properties.put(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG, dataset);
+    properties.put(BigQuerySinkTaskConfig.TASK_ID_CONFIG, "6");
     return properties;
   }
 

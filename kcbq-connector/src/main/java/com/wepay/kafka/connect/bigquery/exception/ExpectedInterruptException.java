@@ -17,26 +17,13 @@
  * under the License.
  */
 
-package com.wepay.kafka.connect.bigquery.write.batch;
+package com.wepay.kafka.connect.bigquery.exception;
 
-import com.google.cloud.bigquery.TableId;
-import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.kafka.connect.errors.ConnectException;
 
-/**
- * Interface for building a {@link TableWriter} or TableWriterGCS.
- */
-public interface TableWriterBuilder {
+public class ExpectedInterruptException extends ConnectException {
 
-  /**
-   * Add a record to the builder.
-   * @param sinkRecord the row to add.
-   * @param table the table the row will be written to.
-   */
-  void addRow(SinkRecord sinkRecord, TableId table);
-
-  /**
-   * Create a {@link TableWriter} from this builder.
-   * @return a TableWriter containing the given writer, table, topic, and all added rows.
-   */
-  Runnable build();
+  public ExpectedInterruptException(String message) {
+    super(message);
+  }
 }

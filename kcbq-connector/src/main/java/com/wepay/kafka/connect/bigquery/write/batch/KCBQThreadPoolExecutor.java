@@ -21,7 +21,7 @@ package com.wepay.kafka.connect.bigquery.write.batch;
 
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
-import org.apache.kafka.connect.errors.ConnectException;
+import com.wepay.kafka.connect.bigquery.exception.ExpectedInterruptException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +61,7 @@ public class KCBQThreadPoolExecutor extends ThreadPoolExecutor {
   protected void afterExecute(Runnable runnable, Throwable throwable) {
     super.afterExecute(runnable, throwable);
 
-    if (throwable != null) {
+    if (throwable != null && !(throwable instanceof ExpectedInterruptException)) {
       // Log at debug level since this will be shown to the user at error level by the Connect framework if it causes
       // the task to fail, and will otherwise just pollute logs and potentially mislead users
       logger.debug("A write thread has failed with an unrecoverable error", throwable);
