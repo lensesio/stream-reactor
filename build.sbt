@@ -1,4 +1,6 @@
-import Dependencies.{Versions, globalExcludeDeps, gson}
+import Dependencies.Versions
+import Dependencies.globalExcludeDeps
+import Dependencies.gson
 import Settings.*
 import sbt.Keys.libraryDependencies
 import sbt.*

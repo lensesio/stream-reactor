@@ -1,5 +1,15 @@
 import Dependencies.Versions.kafkaVersion
-import Dependencies.{betterMonadicFor, globalExcludeDeps, googleProtobuf, googleProtobufJava, hadoopCommon, hadoopMapReduceClientCore, jsonSmart, nettyCodecSocks, nettyHandlerProxy, nimbusJoseJwt, woodstoxCore}
+import Dependencies.betterMonadicFor
+import Dependencies.globalExcludeDeps
+import Dependencies.googleProtobuf
+import Dependencies.googleProtobufJava
+import Dependencies.hadoopCommon
+import Dependencies.hadoopMapReduceClientCore
+import Dependencies.jsonSmart
+import Dependencies.nettyCodecSocks
+import Dependencies.nettyHandlerProxy
+import Dependencies.nimbusJoseJwt
+import Dependencies.woodstoxCore
 import com.eed3si9n.jarjarabrams.ShadeRule
 import com.simplytyped.Antlr4Plugin
 import com.simplytyped.Antlr4Plugin.autoImport.Antlr4

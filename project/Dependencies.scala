@@ -74,7 +74,7 @@ object Dependencies {
 
     val azureDataLakeVersion = "12.18.3"
     val azureIdentityVersion = "1.11.4"
-    val azureCoreVersion = "1.47.0"
+    val azureCoreVersion     = "1.47.0"
     val gcpStorageVersion    = "2.32.1"
 
     val jacksonVersion      = "2.17.0"
@@ -263,7 +263,7 @@ object Dependencies {
 
   lazy val azureDataLakeSdk: ModuleID = "com.azure" % "azure-storage-file-datalake" % azureDataLakeVersion
   lazy val azureIdentity:    ModuleID = "com.azure" % "azure-identity"              % azureIdentityVersion
-  lazy val azureCore:    ModuleID = "com.azure" % "azure-core"              % azureCoreVersion
+  lazy val azureCore:        ModuleID = "com.azure" % "azure-core"                  % azureCoreVersion
 
   lazy val gcpStorageSdk = "com.google.cloud" % "google-cloud-storage" % gcpStorageVersion
 
