@@ -21,43 +21,38 @@ package com.wepay.kafka.connect.bigquery.integration;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
+import com.wepay.kafka.connect.bigquery.integration.utils.SchemaRegistryTestUtils;
 import com.wepay.kafka.connect.bigquery.integration.utils.TableClearer;
 import com.wepay.kafka.connect.bigquery.retrieve.IdentitySchemaRetriever;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
+import io.confluent.connect.avro.AvroConverter;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.json.JsonConverter;
-import org.apache.kafka.connect.json.JsonConverterConfig;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.SinkConnectorConfig;
 import org.apache.kafka.connect.storage.Converter;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
+import static io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG;
 import static org.apache.kafka.connect.runtime.ConnectorConfig.KEY_CONVERTER_CLASS_CONFIG;
 import static org.apache.kafka.connect.runtime.ConnectorConfig.VALUE_CONVERTER_CLASS_CONFIG;
 import static org.junit.Assert.assertEquals;
 
 @Category(IntegrationTest.class)
-public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
+public class UpsertDeleteBigQuerySinkConnectorWithSRIT extends BaseConnectorIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(UpsertDeleteBigQuerySinkConnectorIT.class);
+  private static final Logger logger = LoggerFactory.getLogger(UpsertDeleteBigQuerySinkConnectorWithSRIT.class);
 
   private static final String CONNECTOR_NAME = "kcbq-sink-connector";
   private static final long NUM_RECORDS_PRODUCED = 8;
@@ -66,16 +61,44 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
 
   private BigQuery bigQuery;
 
+  private static SchemaRegistryTestUtils schemaRegistry;
+
+  private static String schemaRegistryUrl;
+
+  private Converter keyConverter;
+
+  private Converter valueConverter;
+  private Schema valueSchema;
+
+  private Schema keySchema;
   @Before
-  public void setup() {
-    bigQuery = newBigQuery();
+  public void setup() throws Exception {
     startConnect();
+    bigQuery = newBigQuery();
+
+    schemaRegistry = new SchemaRegistryTestUtils(connect.kafka().bootstrapServers());
+    schemaRegistry.start();
+    schemaRegistryUrl = schemaRegistry.schemaRegistryUrl();
+
+    valueSchema = SchemaBuilder.struct()
+            .optional()
+            .field("f1", Schema.STRING_SCHEMA)
+            .field("f2", Schema.BOOLEAN_SCHEMA)
+            .field("f3", Schema.FLOAT64_SCHEMA)
+            .build();
+
+    keySchema = SchemaBuilder.struct()
+            .field("k1", Schema.INT64_SCHEMA)
+            .build();
   }
 
   @After
-  public void close() {
+  public void close() throws Exception {
     bigQuery = null;
     stopConnect();
+    if (schemaRegistry != null) {
+      schemaRegistry.stop();
+    }
   }
 
   private Map<String, String> upsertDeleteProps(
@@ -88,9 +111,15 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
 
     Map<String, String> result = new HashMap<>();
 
-    // use the JSON converter with schemas enabled
-    result.put(KEY_CONVERTER_CLASS_CONFIG, JsonConverter.class.getName());
-    result.put(VALUE_CONVERTER_CLASS_CONFIG, JsonConverter.class.getName());
+    // use the Avro converter with schemas enabled
+    result.put(KEY_CONVERTER_CLASS_CONFIG, AvroConverter.class.getName());
+    result.put(
+            ConnectorConfig.KEY_CONVERTER_CLASS_CONFIG + "." + SCHEMA_REGISTRY_URL_CONFIG,
+            schemaRegistryUrl);
+    result.put(VALUE_CONVERTER_CLASS_CONFIG, AvroConverter.class.getName());
+    result.put(
+            ConnectorConfig.VALUE_CONVERTER_CLASS_CONFIG + "." + SCHEMA_REGISTRY_URL_CONFIG,
+            schemaRegistryUrl);
 
     if (upsert) {
       result.put(BigQuerySinkConfig.UPSERT_ENABLED_CONFIG, "true");
@@ -112,7 +141,7 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
   @Test
   public void testUpsert() throws Throwable {
     // create topic in Kafka
-    final String topic = suffixedTableOrTopic("test-upsert" + System.nanoTime());
+    final String topic = suffixedTableOrTopic("test-upsert-sr" + System.nanoTime());
     // Make sure each task gets to read from at least one partition
     connect.kafka().createTopic(topic, TASKS_MAX);
 
@@ -137,18 +166,29 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
     waitForConnectorToStart(CONNECTOR_NAME, TASKS_MAX);
 
     // Instantiate the converters we'll use to send records to the connector
-    Converter keyConverter = converter(true);
-    Converter valueConverter = converter(false);
+    initialiseConverters();
 
-    // Send records to Kafka
+    List<List<SchemaAndValue>> records = new ArrayList<>();
+
+    // Prepare records
     for (int i = 0; i < NUM_RECORDS_PRODUCED; i++) {
       // Each pair of records will share a key. Only the second record of each pair should be
       // present in the table at the end of the test
-      String kafkaKey = key(keyConverter, topic, i / 2);
-      String kafkaValue = value(valueConverter, topic, i, false);
-      logger.debug("Sending message with key '{}' and value '{}' to topic '{}'", kafkaKey, kafkaValue, topic);
-      connect.kafka().produce(topic, kafkaKey, kafkaValue);
+      List<SchemaAndValue> record = new ArrayList<>();
+              SchemaAndValue schemaAndValue = new SchemaAndValue(valueSchema, data(i));
+      SchemaAndValue keyschemaAndValue = new SchemaAndValue(keySchema, new Struct(keySchema)
+              .put("k1", i/2l));
+
+      logger.debug("Sending message with key '{}' and value '{}' to topic '{}'", keyschemaAndValue, schemaAndValue, topic);
+
+      record.add(keyschemaAndValue);
+      record.add(schemaAndValue);
+
+      records.add(record);
     }
+
+    // send prepared records
+    schemaRegistry.produceRecordsWithKey(keyConverter, valueConverter, records, topic);
 
     // wait for tasks to write to BigQuery and commit offsets for their records
     waitForCommittedRecords(CONNECTOR_NAME, topic, NUM_RECORDS_PRODUCED, TASKS_MAX);
@@ -167,7 +207,7 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
   @Test
   public void testDelete() throws Throwable {
     // create topic in Kafka
-    final String topic = suffixedTableOrTopic("test-delete" + System.nanoTime());
+    final String topic = suffixedTableOrTopic("test-delete-sr" + System.nanoTime());
     // Make sure each task gets to read from at least one partition
     connect.kafka().createTopic(topic, TASKS_MAX);
 
@@ -192,19 +232,35 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
     waitForConnectorToStart(CONNECTOR_NAME, TASKS_MAX);
 
     // Instantiate the converters we'll use to send records to the connector
-    Converter keyConverter = converter(true);
-    Converter valueConverter = converter(false);
+    initialiseConverters();
 
-    // Send records to Kafka
+    List<List<SchemaAndValue>> records = new ArrayList<>();
+
+    // Prepare records
     for (int i = 0; i < NUM_RECORDS_PRODUCED; i++) {
       // Each pair of records will share a key. Because upsert is not enabled, no deduplication will take place
       // and, unless a tombstone is written for that key, both will be inserted
-      String kafkaKey = key(keyConverter, topic, i / 2);
+      List<SchemaAndValue> record = new ArrayList<>();
+      SchemaAndValue schemaAndValue;
       // Every fourth record will be a tombstone, so every record pair with an odd-numbered key will be dropped
-      String kafkaValue = value(valueConverter, topic, i, i % 4 == 3);
-      logger.debug("Sending message with key '{}' and value '{}' to topic '{}'", kafkaKey, kafkaValue, topic);
-      connect.kafka().produce(topic, kafkaKey, kafkaValue);
+      if(i % 4 == 3) {
+        schemaAndValue = new SchemaAndValue(valueSchema,null);
+      } else {
+        schemaAndValue = new SchemaAndValue(valueSchema, data(i));
+      }
+      SchemaAndValue keyschemaAndValue = new SchemaAndValue(keySchema, new Struct(keySchema)
+              .put("k1", i/ 2L));
+
+      logger.debug("Sending message with key '{}' and value '{}' to topic '{}'", keyschemaAndValue, schemaAndValue, topic);
+
+      record.add(keyschemaAndValue);
+      record.add(schemaAndValue);
+
+      records.add(record);
     }
+
+    // send prepared records
+    schemaRegistry.produceRecordsWithKey(keyConverter, valueConverter, records, topic);
 
     // wait for tasks to write to BigQuery and commit offsets for their records
     waitForCommittedRecords(CONNECTOR_NAME, topic, NUM_RECORDS_PRODUCED, TASKS_MAX);
@@ -226,7 +282,7 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
   @Test
   public void testUpsertDelete() throws Throwable {
     // create topic in Kafka
-    final String topic = suffixedTableOrTopic("test-upsert-delete" + System.nanoTime());
+    final String topic = suffixedTableOrTopic("test-upsert-delete-sr" + System.nanoTime());
     // Make sure each task gets to read from at least one partition
     connect.kafka().createTopic(topic, TASKS_MAX);
 
@@ -251,19 +307,36 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
     waitForConnectorToStart(CONNECTOR_NAME, TASKS_MAX);
 
     // Instantiate the converters we'll use to send records to the connector
-    Converter keyConverter = converter(true);
-    Converter valueConverter = converter(false);
+    initialiseConverters();
 
-    // Send records to Kafka
+    List<List<SchemaAndValue>> records = new ArrayList<>();
+
+    // Prepare records
     for (int i = 0; i < NUM_RECORDS_PRODUCED; i++) {
       // Each pair of records will share a key. Only the second record of each pair should be
       // present in the table at the end of the test
-      String kafkaKey = key(keyConverter, topic, i / 2);
+      List<SchemaAndValue> record = new ArrayList<>();
+      SchemaAndValue schemaAndValue;
       // Every fourth record will be a tombstone, so every record pair with an odd-numbered key will be dropped
-      String kafkaValue = value(valueConverter, topic, i, i % 4 == 3);
-      logger.debug("Sending message with key '{}' and value '{}' to topic '{}'", kafkaKey, kafkaValue, topic);
-      connect.kafka().produce(topic, kafkaKey, kafkaValue);
+      if(i % 4 == 3) {
+        schemaAndValue = new SchemaAndValue(valueSchema,null);
+      } else {
+        schemaAndValue = new SchemaAndValue(valueSchema, data(i));
+      }
+
+      SchemaAndValue keyschemaAndValue = new SchemaAndValue(keySchema, new Struct(keySchema)
+              .put("k1", i/ 2L));
+
+      logger.debug("Sending message with key '{}' and value '{}' to topic '{}'", keyschemaAndValue, schemaAndValue, topic);
+
+      record.add(keyschemaAndValue);
+      record.add(schemaAndValue);
+
+      records.add(record);
     }
+
+    // send prepared records
+    schemaRegistry.produceRecordsWithKey(keyConverter, valueConverter, records, topic);
 
     // wait for tasks to write to BigQuery and commit offsets for their records
     waitForCommittedRecords(CONNECTOR_NAME, topic, NUM_RECORDS_PRODUCED, TASKS_MAX);
@@ -282,130 +355,23 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
     assertEquals(expectedRows, allRows);
   }
 
-  @Test
-  @Ignore("Skipped during regular testing; comment-out annotation to run")
-  public void testUpsertDeleteHighThroughput() throws Throwable {
-    final long numRecords = 1_000_000L;
-    final int numPartitions = 10;
-    final int tasksMax = 1;
-
-    // create topic in Kafka
-    final String topic = suffixedTableOrTopic("test-upsert-delete-throughput");
-    connect.kafka().createTopic(topic, numPartitions);
-
-    final String table = sanitizedTable(topic);
-    TableClearer.clearTables(bigQuery, dataset(), table);
-
-    // Instantiate the converters we'll use to send records to the connector
-    Converter keyConverter = converter(true);
-    Converter valueConverter = converter(false);
-
-    // Send records to Kafka. Pre-populate Kafka before starting the connector as we want to measure
-    // the connector's throughput cleanly
-    logger.info("Pre-populating Kafka with test data");
-    for (int i = 0; i < numRecords; i++) {
-      if (i % 10000 == 0) {
-        logger.info("{} records produced so far", i);
-      }
-      // Each pair of records will share a key. Only the second record of each pair should be
-      // present in the table at the end of the test
-      String kafkaKey = key(keyConverter, topic, i / 2);
-      // Every fourth record will be a tombstone, so every record pair with an odd-numbered key will
-      // be dropped
-      String kafkaValue = value(valueConverter, topic, i, i % 4 == 3);
-      connect.kafka().produce(topic, kafkaKey, kafkaValue);
-    }
-
-    // setup props for the sink connector
-    // use a single task
-    Map<String, String> props = baseConnectorProps(tasksMax);
-    props.put(SinkConnectorConfig.TOPICS_CONFIG, topic);
-    // Allow for at most 10,000 records per call to poll
-    props.put(ConnectorConfig.CONNECTOR_CLIENT_CONSUMER_OVERRIDES_PREFIX
-        + ConsumerConfig.MAX_POLL_RECORDS_CONFIG,
-        "10000");
-    // Try to get at least 1 MB per partition with each request
-    props.put(ConnectorConfig.CONNECTOR_CLIENT_CONSUMER_OVERRIDES_PREFIX
-        + ConsumerConfig.FETCH_MIN_BYTES_CONFIG,
-        Integer.toString(ConsumerConfig.DEFAULT_MAX_PARTITION_FETCH_BYTES * numPartitions));
-    // Wait up to one second for each batch to reach the requested size
-    props.put(ConnectorConfig.CONNECTOR_CLIENT_CONSUMER_OVERRIDES_PREFIX
-        + ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG,
-        "1000"
+  private void initialiseConverters() {
+    keyConverter = new AvroConverter();
+    valueConverter = new AvroConverter();
+    keyConverter.configure(Collections.singletonMap(
+                    SCHEMA_REGISTRY_URL_CONFIG,schemaRegistryUrl
+            ), true
     );
-
-    props.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
-    props.put(BigQuerySinkConfig.SCHEMA_RETRIEVER_CONFIG, IdentitySchemaRetriever.class.getName());
-    props.put(BigQuerySinkConfig.TABLE_CREATE_CONFIG, "true");
-
-    // Enable upsert and delete, and schedule ten total flushes
-    props.putAll(upsertDeleteProps(true, true, numRecords / 10));
-
-    logger.info("Pre-population complete; creating connector");
-    long start = System.currentTimeMillis();
-    // start a sink connector
-    connect.configureConnector(CONNECTOR_NAME, props);
-
-    // wait for tasks to spin up
-    waitForConnectorToStart(CONNECTOR_NAME, tasksMax);
-
-    // wait for tasks to write to BigQuery and commit offsets for their records
-    waitForCommittedRecords(
-        CONNECTOR_NAME, Collections.singleton(topic), numRecords, tasksMax, TimeUnit.MINUTES.toMillis(10));
-    long time = System.currentTimeMillis() - start;
-    logger.info("All records have been read and committed by the connector; "
-        + "total time from start to finish: {} seconds", time / 1000.0);
-
-    // Since we have multiple rows per key, order by key and the f3 field (which should be
-    // monotonically increasing in insertion order)
-    List<List<Object>> allRows = readAllRows(bigQuery, table, KAFKA_FIELD_NAME + ".k1, f3");
-    List<List<Object>> expectedRows = LongStream.range(0, numRecords)
-        .filter(i -> i % 4 == 1)
-        .mapToObj(i -> Arrays.asList(
-            "another string",
-            i % 3 == 0,
-            i / 0.69,
-            Collections.singletonList(i * 2 / 4)))
-        .collect(Collectors.toList());
-    assertEquals(expectedRows, allRows);
+    valueConverter.configure(Collections.singletonMap(
+                    SCHEMA_REGISTRY_URL_CONFIG,schemaRegistryUrl
+            ), false
+    );
+  }
+  private Struct data(long iteration) {
+    return new Struct(valueSchema)
+            .put("f1", iteration % 2 == 0 ? "a string" : "another string")
+            .put("f2", iteration % 3 == 0)
+            .put("f3", iteration / 0.69);
   }
 
-  private Converter converter(boolean isKey) {
-    Map<String, Object> props = new HashMap<>();
-    props.put(JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, true);
-    Converter result = new JsonConverter();
-    result.configure(props, isKey);
-    return result;
-  }
-
-  private String key(Converter converter, String topic, long iteration) {
-    final Schema schema = SchemaBuilder.struct()
-        .field("k1", Schema.INT64_SCHEMA)
-        .build();
-
-    final Struct struct = new Struct(schema)
-        .put("k1", iteration);
-
-    return new String(converter.fromConnectData(topic, schema, struct));
-  }
-
-  private String value(Converter converter, String topic, long iteration, boolean tombstone) {
-    final Schema schema = SchemaBuilder.struct()
-        .optional()
-        .field("f1", Schema.STRING_SCHEMA)
-        .field("f2", Schema.BOOLEAN_SCHEMA)
-        .field("f3", Schema.FLOAT64_SCHEMA)
-        .build();
-
-    if (tombstone) {
-      return new String(converter.fromConnectData(topic, schema, null));
-    }
-
-    final Struct struct = new Struct(schema)
-        .put("f1", iteration % 2 == 0 ? "a string" : "another string")
-        .put("f2", iteration % 3 == 0)
-        .put("f3", iteration / 0.69);
-
-    return new String(converter.fromConnectData(topic, schema, struct));
-  }
 }

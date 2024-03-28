@@ -209,10 +209,9 @@ public class TimePartitioningIT {
     // wait for tasks to write to BigQuery and commit offsets for their records
     testBase.waitForCommittedRecords(
         connectorName,
-        Collections.singleton(topic),
+        topic,
         NUM_RECORDS_PRODUCED,
-        TASKS_MAX,
-        TimeUnit.MINUTES.toMillis(3)
+        TASKS_MAX
     );
 
     String table = table(testCase);
@@ -233,8 +232,8 @@ public class TimePartitioningIT {
     );
 
     List<List<Object>> allRows = testBase.readAllRows(bigQuery, table, "i");
-    // Just check to make sure we sent the expected number of rows to the table
-    assertEquals(NUM_RECORDS_PRODUCED, allRows.size());
+    // Just check to make sure we sent the expected number of rows to the table. There can be duplication so the check is at least there are NUM_RECORDS_PRODUCED
+    assertTrue(NUM_RECORDS_PRODUCED <= allRows.size());
 
     // Ensure that the table was created with the expected time partitioning type
     StandardTableDefinition tableDefinition = bigQuery.getTable(TableId.of(testBase.dataset(), table)).getDefinition();

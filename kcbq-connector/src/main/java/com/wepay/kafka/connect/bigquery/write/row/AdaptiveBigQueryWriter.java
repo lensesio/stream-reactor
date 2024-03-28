@@ -26,6 +26,7 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
 
+import com.wepay.kafka.connect.bigquery.ErrantRecordHandler;
 import com.wepay.kafka.connect.bigquery.SchemaManager;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
@@ -63,13 +64,15 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
    * @param retry How many retries to make in the event of a 500/503 error.
    * @param retryWait How long to wait in between retries.
    * @param autoCreateTables Whether tables should be automatically created
+   * @param errantRecordHandler Used to handle errant records
    */
   public AdaptiveBigQueryWriter(BigQuery bigQuery,
                                 SchemaManager schemaManager,
                                 int retry,
                                 long retryWait,
-                                boolean autoCreateTables) {
-    super(retry, retryWait);
+                                boolean autoCreateTables,
+                                ErrantRecordHandler errantRecordHandler) {
+    super(retry, retryWait, errantRecordHandler);
     this.bigQuery = bigQuery;
     this.schemaManager = schemaManager;
     this.autoCreateTables = autoCreateTables;

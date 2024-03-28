@@ -32,6 +32,8 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.StorageException;
 
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
 import com.wepay.kafka.connect.bigquery.write.row.GCSToBQWriter;
 
 import org.slf4j.Logger;
@@ -44,8 +46,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -74,7 +74,7 @@ public class GCSToBQLoadRunnable implements Runnable {
 
   private static String SOURCE_URI_FORMAT = "gs://%s/%s";
   public static final Pattern METADATA_TABLE_PATTERN =
-          Pattern.compile("((?<project>[^:]+):)?(?<dataset>[^.]+)\\.(?<table>.+)");
+          Pattern.compile("((?P<project>[^:]+):)?(?P<dataset>[^.]+)\\.(?P<table>.+)");
 
   /**
    * Create a {@link GCSToBQLoadRunnable} with the given bigquery, bucket, and ms wait interval.

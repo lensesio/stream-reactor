@@ -211,16 +211,6 @@ public class BigQuerySinkConfig extends AbstractConfig {
         );
       }
 
-      if (topic2TableMap.containsValue(table)) {
-        throw new ConfigException(
-                name,
-                topic2TableMapString,
-                String.format(
-                        "The table name %s is duplicated. Table names cannot be duplicated.",
-                        table
-                )
-        );
-      }
       topic2TableMap.put(topic, table);
     }
   };
