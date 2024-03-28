@@ -1,5 +1,4 @@
-import Dependencies.globalExcludeDeps
-import Dependencies.gson
+import Dependencies.{Versions, globalExcludeDeps, gson}
 import Settings.*
 import sbt.Keys.libraryDependencies
 import sbt.*
@@ -325,14 +324,13 @@ lazy val jms = (project in file("kafka-connect-jms"))
         ),
         Compile / PB.protoSources := Seq(sourceDirectory.value / "test" / "resources" / "example"),
         Compile / PB.targets := Seq(
-          PB.gens.java -> (Test / sourceManaged).value,
+          PB.gens.java(Versions.googleProtobufVersion) -> (Test / sourceManaged).value,
         ),
       ),
   )
   .configureAssembly(true)
   .configureTests(kafkaConnectJmsTestDeps)
   .configureIntegrationTests(kafkaConnectJmsTestDeps)
-  //.configureFunctionalTests(kafkaConnectS3FuncTestDeps)
   .disableParallel()
   .enablePlugins(PackPlugin, ProtocPlugin)
 

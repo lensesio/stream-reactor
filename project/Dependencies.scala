@@ -100,7 +100,7 @@ object Dependencies {
     val jmsApiVersion         = "3.1.0"
     val activeMqVersion       = "6.0.1"
     val protocVersion         = "3.11.4"
-    val googleProtobufVersion = "3.21.12"
+    val googleProtobufVersion = "3.25.3"
 
     val mqttVersion = "1.2.5"
 
@@ -499,6 +499,8 @@ trait Dependencies {
     confluentProtobufConverter,
     protoc,
     googleProtobuf,
+    googleProtobufJava,
+    gson,
   )
 
   val kafkaConnectJmsTestDeps: Seq[ModuleID] = baseTestDeps ++ Seq(
