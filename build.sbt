@@ -145,7 +145,7 @@ lazy val `azure-datalake` = (project in file("kafka-connect-azure-datalake"))
         ),
       ),
   )
-  .configureAssembly(false)
+  .configureAssembly(true)
   .configureTests(baseTestDeps)
   //.configureIntegrationTests(kafkaConnectAzureDatalakeTestDeps)
   //.configureFunctionalTests(kafkaConnectAzureDatalakeFuncTestDeps)

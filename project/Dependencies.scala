@@ -72,12 +72,13 @@ object Dependencies {
     val calciteVersion = "1.34.0"
     val awsSdkVersion  = "2.25.6"
 
-    val azureDataLakeVersion = "12.18.1"
-    val azureIdentityVersion = "1.11.1"
+    val azureDataLakeVersion = "12.18.3"
+    val azureIdentityVersion = "1.11.4"
+    val azureCoreVersion = "1.47.0"
     val gcpStorageVersion    = "2.32.1"
 
     val jacksonVersion      = "2.17.0"
-    val json4sVersion       = "4.0.6"
+    val json4sVersion       = "4.0.7"
     val mockitoScalaVersion = "1.17.30"
     val openCsvVersion      = "5.9"
     val jsonSmartVersion    = "2.5.1"
@@ -123,7 +124,7 @@ object Dependencies {
     val jedisVersion = "4.4.0"
     val gsonVersion  = "2.10.1"
 
-    val nimbusJoseJwtVersion        = "9.30.2"
+    val nimbusJoseJwtVersion        = "9.37.3"
     val hadoopVersion               = "3.4.0"
     val hadoopShadedProtobufVersion = "1.2.0"
 
@@ -262,6 +263,7 @@ object Dependencies {
 
   lazy val azureDataLakeSdk: ModuleID = "com.azure" % "azure-storage-file-datalake" % azureDataLakeVersion
   lazy val azureIdentity:    ModuleID = "com.azure" % "azure-identity"              % azureIdentityVersion
+  lazy val azureCore:    ModuleID = "com.azure" % "azure-core"              % azureCoreVersion
 
   lazy val gcpStorageSdk = "com.google.cloud" % "google-cloud-storage" % gcpStorageVersion
 
@@ -464,6 +466,7 @@ trait Dependencies {
   val kafkaConnectAzureDatalakeDeps: Seq[ModuleID] = Seq(
     azureDataLakeSdk,
     azureIdentity,
+    azureCore,
   )
 
   val kafkaConnectGcpStorageDeps: Seq[ModuleID] = Seq(
