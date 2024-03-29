@@ -24,6 +24,7 @@ public class KafkaByteBlockingQueuedProducer implements BlockingQueueProducer {
   private final Consumer<byte[], byte[]> consumer;
   private final String clientId;
   private final String topic;
+  private EventhubsPollingRunnable pollingRunnable;
   private final boolean shouldSeekToLatest;
   @Getter
   private final KeyValueTypes keyValueTypes;
@@ -38,8 +39,8 @@ public class KafkaByteBlockingQueuedProducer implements BlockingQueueProducer {
    * @param topicPartitionOffsetProvider TopicPartitionOffsetProvider for subscription handler
    * @param recordsQueue                 BlockingQueue to put records into
    * @param consumer                     Kafka Consumer
-   * @param keyValueTypes                {@link KeyValueTypes} instance indicating key and
-   *                                     value types
+   * @param keyValueTypes                {@link KeyValueTypes} instance indicating key and value
+   *                                     types
    * @param clientId                     consumer client id
    * @param topic                        kafka topic to consume from
    * @param shouldSeekToLatest           informs where should consumer seek when there are no
@@ -64,15 +65,15 @@ public class KafkaByteBlockingQueuedProducer implements BlockingQueueProducer {
    */
   public void start() {
     if (!initialized.getAndSet(true)) {
-      Thread pollingThread = new Thread(new EventhubsPollingRunnable());
+      pollingRunnable = new EventhubsPollingRunnable();
 
-      pollingThread.start();
+      new Thread(pollingRunnable).start();
       initialized.set(true);
     }
   }
 
   public void stop(Duration timeoutDuration) {
-    consumer.close(timeoutDuration);
+    pollingRunnable.close(timeoutDuration);
     running.set(false);
   }
 
@@ -98,6 +99,10 @@ public class KafkaByteBlockingQueuedProducer implements BlockingQueueProducer {
           }
         }
       }
+    }
+
+    void close(Duration timeoutDuration) {
+      consumer.close(timeoutDuration);
     }
   }
 }

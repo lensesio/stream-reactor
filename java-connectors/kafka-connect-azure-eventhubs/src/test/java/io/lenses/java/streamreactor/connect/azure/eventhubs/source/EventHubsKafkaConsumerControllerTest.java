@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 
 class EventHubsKafkaConsumerControllerTest {
 
-  private ArrayBlockingQueue<ConsumerRecords<Object, Object>> recordsQueue;
+  private ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue;
 
   private EventHubsKafkaConsumerController testObj;
 
@@ -39,6 +39,7 @@ class EventHubsKafkaConsumerControllerTest {
   void pollShouldPollQueueAndReturnSourceRecords() throws InterruptedException {
     //given
     Duration duration = Duration.of(2, ChronoUnit.SECONDS);
+    String outputTopic = "OUTPUT";
 
     SourceDataType mockedDataType = mock(SourceDataType.class);
     when(mockedDataType.getSchema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA);
@@ -65,7 +66,8 @@ class EventHubsKafkaConsumerControllerTest {
     recordsQueue.put(mockedRecords);
 
     //when
-    testObj = new EventHubsKafkaConsumerController(mockedBlockingProducer, recordsQueue);
+    testObj = new EventHubsKafkaConsumerController(mockedBlockingProducer, recordsQueue,
+        outputTopic);
     List<SourceRecord> sourceRecords = testObj.poll(duration);
 
     //then
@@ -82,7 +84,9 @@ class EventHubsKafkaConsumerControllerTest {
     Duration duration = Duration.of(2, ChronoUnit.SECONDS);
     KafkaByteBlockingQueuedProducer mockedBlockingProducer = mock(
         KafkaByteBlockingQueuedProducer.class);
-    testObj = new EventHubsKafkaConsumerController(mockedBlockingProducer, recordsQueue);
+    String outputTopic = "OUTPUT";
+    testObj = new EventHubsKafkaConsumerController(mockedBlockingProducer, recordsQueue,
+        outputTopic);
 
     //when
     testObj.close(duration);

@@ -3,8 +3,10 @@ package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 import static java.util.Optional.ofNullable;
 
 import io.lenses.java.streamreactor.common.util.JarManifest;
-import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfig;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.util.KcqlConfigPort;
+import io.lenses.kcql.Kcql;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -45,17 +47,18 @@ public class AzureEventHubsSourceTask extends SourceTask {
   public void start(Map<String, String> props) {
     OffsetStorageReader offsetStorageReader = ofNullable(this.context).flatMap(
         context -> ofNullable(context.offsetStorageReader())).orElseThrow();
-    AzureEventHubsConfig azureEventHubsConfig = new AzureEventHubsConfig(props);
+    AzureEventHubsSourceConfig azureEventHubsSourceConfig = new AzureEventHubsSourceConfig(props);
     TopicPartitionOffsetProvider topicPartitionOffsetProvider = new TopicPartitionOffsetProvider(offsetStorageReader);
 
     ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue = new ArrayBlockingQueue<>(
         RECORDS_QUEUE_DEFAULT_SIZE);
     blockingQueueProducerProvider = new BlockingQueueProducerProvider(topicPartitionOffsetProvider);
     KafkaByteBlockingQueuedProducer producer = blockingQueueProducerProvider.createProducer(
-        azureEventHubsConfig, recordsQueue);
+        azureEventHubsSourceConfig, recordsQueue);
+    String outputTopic = getOutputTopicFromConfig(azureEventHubsSourceConfig);
     EventHubsKafkaConsumerController kafkaConsumerController = new EventHubsKafkaConsumerController(
-        producer, recordsQueue);
-    initialize(kafkaConsumerController, azureEventHubsConfig);
+        producer, recordsQueue, outputTopic);
+    initialize(kafkaConsumerController, azureEventHubsSourceConfig);
   }
 
   /**
@@ -63,13 +66,13 @@ public class AzureEventHubsSourceTask extends SourceTask {
    * {@link EventHubsKafkaConsumerController} instance.
    *
    * @param eventHubsKafkaConsumerController {@link EventHubsKafkaConsumerController} for this task
-   * @param azureEventHubsConfig config for task
+   * @param azureEventHubsSourceConfig config for task
    */
   public void initialize(EventHubsKafkaConsumerController eventHubsKafkaConsumerController,
-      AzureEventHubsConfig azureEventHubsConfig) {
+      AzureEventHubsSourceConfig azureEventHubsSourceConfig) {
     this.eventHubsKafkaConsumerController = eventHubsKafkaConsumerController;
     closeTimeout =
-        Duration.of(azureEventHubsConfig.getInt(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT),
+        Duration.of(azureEventHubsSourceConfig.getInt(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT),
             ChronoUnit.SECONDS);
     log.info("{} initialised.", getClass().getSimpleName());
   }
@@ -86,5 +89,18 @@ public class AzureEventHubsSourceTask extends SourceTask {
   public void stop() {
     ofNullable(eventHubsKafkaConsumerController)
         .ifPresent(consumerController -> consumerController.close(closeTimeout));
+  }
+
+  /**
+   * Returns output topic (specified in config using KCQL).
+   *
+   * @param azureEventHubsSourceConfig task configuration
+   * @return output topic
+   */
+  private String getOutputTopicFromConfig(
+      AzureEventHubsSourceConfig azureEventHubsSourceConfig) {
+    Kcql kcql = KcqlConfigPort.parseMultipleKcqlStatementsPickingOnlyFirst(
+        azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
+    return kcql.getTarget();
   }
 }
