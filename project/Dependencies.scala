@@ -61,7 +61,7 @@ object Dependencies {
     // build plugins version
     val betterMonadicForVersion = "0.3.1"
 
-    val logbackVersion      = "1.4.14"
+    val logbackVersion      = "1.5.3"
     val scalaLoggingVersion = "3.9.5"
 
     val wiremockVersion = "3.3.1"
