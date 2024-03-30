@@ -5,7 +5,7 @@ addSbtPlugin("org.scalameta"     % "sbt-scalafmt"       % "2.5.2")
 addSbtPlugin("org.scoverage"     % "sbt-scoverage"      % "2.0.11")
 addSbtPlugin("de.heikoseeberger" % "sbt-header"         % "5.10.0")
 
-addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.14")
+addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.19")
 
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 
