@@ -89,7 +89,7 @@ object Dependencies {
     val bouncyCastleVersion = "1.70"
     val nettyVersion        = "4.1.108.Final"
 
-    val cassandraDriverVersion = "3.11.3"
+    val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.7.0"
 
     val azureDocumentDbVersion     = "2.6.5"
