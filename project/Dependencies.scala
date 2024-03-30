@@ -114,7 +114,7 @@ object Dependencies {
     val commonsLang3Version    = "3.14.0"
     val jschVersion            = "0.2.17"
 
-    val minaVersion           = "2.2.1"
+    val minaVersion           = "2.2.3"
     val betterFilesVersion    = "3.9.2"
     val ftpServerVersion      = "1.2.0"
     val fakeSftpServerVersion = "2.0.0"
