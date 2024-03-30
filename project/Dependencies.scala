@@ -94,7 +94,7 @@ object Dependencies {
 
     val azureDocumentDbVersion     = "2.6.5"
     val testcontainersScalaVersion = "0.40.14"
-    val testcontainersVersion      = "1.17.6"
+    val testcontainersVersion      = "1.19.7"
 
     val influxVersion = "6.8.0"
 
