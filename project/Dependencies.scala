@@ -48,7 +48,7 @@ object Dependencies {
     val http4sVersion    = "1.0.0-M32"
     val http4sJdkVersion = "1.0.0-M1"
     val avroVersion      = "1.11.3"
-    val avro4sVersion    = "4.1.1"
+    val avro4sVersion    = "4.1.2"
 
     val catsEffectVersion     = "3.4.8"
     val `cats-effect-testing` = "1.5.0"
