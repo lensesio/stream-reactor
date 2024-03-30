@@ -119,7 +119,7 @@ object Dependencies {
     val ftpServerVersion      = "1.2.0"
     val fakeSftpServerVersion = "2.0.0"
 
-    val mongoDbVersion = "3.12.12"
+    val mongoDbVersion = "3.12.14"
 
     val jedisVersion = "4.4.0"
     val gsonVersion  = "2.10.1"
