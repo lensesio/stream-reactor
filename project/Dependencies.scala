@@ -90,7 +90,7 @@ object Dependencies {
     val nettyVersion        = "4.1.108.Final"
 
     val cassandraDriverVersion = "3.11.5"
-    val jsonPathVersion        = "2.7.0"
+    val jsonPathVersion        = "2.9.0"
 
     val azureDocumentDbVersion     = "2.6.5"
     val testcontainersScalaVersion = "0.40.17"
