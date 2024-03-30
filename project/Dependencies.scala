@@ -36,7 +36,7 @@ object Dependencies {
 
   object Versions {
     // libraries versions
-    val scalatestVersion               = "3.2.17"
+    val scalatestVersion               = "3.2.18"
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.17.0"
 
