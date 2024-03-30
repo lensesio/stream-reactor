@@ -86,7 +86,7 @@ object Dependencies {
     val xzVersion  = "1.9"
     val lz4Version = "1.8.0"
 
-    val bouncyCastleVersion = "1.70"
+    val bouncyCastleVersion = "1.77"
     val nettyVersion        = "4.1.108.Final"
 
     val cassandraDriverVersion = "3.11.5"
@@ -208,11 +208,11 @@ object Dependencies {
   val http4sCirce     = "org.http4s" %% "http4s-circe"           % http4sVersion
   val http4s: Seq[ModuleID] = Seq(http4sDsl, http4sJdkClient, http4sCirce)
 
-  val bouncyProv = "org.bouncycastle" % "bcprov-jdk15on" % bouncyCastleVersion
-  val bouncyUtil = "org.bouncycastle" % "bcutil-jdk15on" % bouncyCastleVersion
-  val bouncyPkix = "org.bouncycastle" % "bcpkix-jdk15on" % bouncyCastleVersion
-  val bouncyBcpg = "org.bouncycastle" % "bcpg-jdk15on"   % bouncyCastleVersion
-  val bouncyTls  = "org.bouncycastle" % "bctls-jdk15on"  % bouncyCastleVersion
+  val bouncyProv = "org.bouncycastle" % "bcprov-jdk18on" % bouncyCastleVersion
+  val bouncyUtil = "org.bouncycastle" % "bcutil-jdk18on" % bouncyCastleVersion
+  val bouncyPkix = "org.bouncycastle" % "bcpkix-jdk18on" % bouncyCastleVersion
+  val bouncyBcpg = "org.bouncycastle" % "bcpg-jdk18on"   % bouncyCastleVersion
+  val bouncyTls  = "org.bouncycastle" % "bctls-jdk18on"  % bouncyCastleVersion
   val bouncyCastle: Seq[ModuleID] = Seq(bouncyProv, bouncyUtil, bouncyPkix, bouncyBcpg, bouncyTls)
 
   lazy val avro         = "org.apache.avro"      % "avro"          % avroVersion
