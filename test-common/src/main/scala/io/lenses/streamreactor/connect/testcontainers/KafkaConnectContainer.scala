@@ -22,7 +22,7 @@ import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer.defa
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.containers.wait.strategy.Wait
-import org.testcontainers.utility.DockerImageName
+import org.testcontainers.utility.{DockerImageName, MountableFile}
 
 import java.time.Duration
 
@@ -51,13 +51,13 @@ class KafkaConnectContainer(
   }
   providedJars.foreach {
     jarLocation =>
-      withFileSystemBind(
-        jarLocation,
+      withCopyToContainer(
+        MountableFile.forHostPath(jarLocation),
         s"/usr/share/java/kafka/${jarLocation.substring(jarLocation.lastIndexOf("/"))}",
       )
   }
 
-  connectPluginPath.foreach(f => withFileSystemBind(f, "/usr/share/plugins"))
+  connectPluginPath.foreach(f => withCopyToContainer(MountableFile.forHostPath(f), "/usr/share/plugins"))
 
   if (schemaRegistryContainer.isDefined) {
     withEnv("CONNECT_KEY_CONVERTER", "io.confluent.connect.avro.AvroConverter")
