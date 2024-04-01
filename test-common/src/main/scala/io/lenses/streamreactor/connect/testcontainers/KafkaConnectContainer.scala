@@ -22,7 +22,8 @@ import io.lenses.streamreactor.connect.testcontainers.KafkaConnectContainer.defa
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.containers.wait.strategy.Wait
-import org.testcontainers.utility.{DockerImageName, MountableFile}
+import org.testcontainers.utility.DockerImageName
+import org.testcontainers.utility.MountableFile
 
 import java.time.Duration
 
