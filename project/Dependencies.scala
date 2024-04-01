@@ -24,15 +24,15 @@ object Dependencies {
   val scalaVersion      = "2.13.13"
   val supportedScalaVersions: Seq[String] = List(Dependencies.scalaVersion)
 
-  val commonResolvers: Seq[MavenRepository] = Seq(
-    Resolver sonatypeRepo "public",
-    Resolver typesafeRepo "releases",
-    Resolver.mavenLocal,
-    "confluent" at "https://packages.confluent.io/maven/",
-    "typesafe" at "https://repo.typesafe.com/typesafe/releases/",
-    "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
-    "jitpack" at "https://jitpack.io",
-  )
+  val commonResolvers: Seq[MavenRepository] = Resolver.sonatypeOssRepos("public") ++
+    Seq(
+      Resolver typesafeRepo "releases",
+      Resolver.mavenLocal,
+      "confluent" at "https://packages.confluent.io/maven/",
+      "typesafe" at "https://repo.typesafe.com/typesafe/releases/",
+      "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
+      "jitpack" at "https://jitpack.io",
+    )
 
   object Versions {
     // libraries versions
