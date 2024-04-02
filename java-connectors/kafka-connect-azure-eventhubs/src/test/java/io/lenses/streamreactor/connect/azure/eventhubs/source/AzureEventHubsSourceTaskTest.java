@@ -14,8 +14,8 @@ import static org.mockito.Mockito.when;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.lenses.streamreactor.common.util.JarManifest;
-import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
+import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -23,7 +23,6 @@ import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 
 class AzureEventHubsSourceTaskTest {
@@ -50,7 +49,7 @@ class AzureEventHubsSourceTaskTest {
   void stopShouldCallStopOnController() {
     //given
     Duration thirtySeconds = Duration.ofSeconds(30);
-    EventHubsKafkaConsumerController mockedController = Mockito.mock(EventHubsKafkaConsumerController.class);
+    EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
     AzureEventHubsSourceConfig azureEventHubsSourceConfig = mock(AzureEventHubsSourceConfig.class);
     when(azureEventHubsSourceConfig.getInt(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT))
         .thenReturn(thirtySeconds.toSecondsPart());
@@ -66,7 +65,7 @@ class AzureEventHubsSourceTaskTest {
   @Test
   void initializeShouldLog() {
     //given
-    EventHubsKafkaConsumerController mockedController = Mockito.mock(EventHubsKafkaConsumerController.class);
+    EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
     AzureEventHubsSourceConfig azureEventHubsSourceConfig = mock(AzureEventHubsSourceConfig.class);
     testObj.initialize(mockedController, azureEventHubsSourceConfig);
 
@@ -82,7 +81,7 @@ class AzureEventHubsSourceTaskTest {
   void pollShouldCallPollOnControllerAndReturnNullIfListIsEmpty() throws InterruptedException {
     //given
     AzureEventHubsSourceConfig azureEventHubsSourceConfig = mock(AzureEventHubsSourceConfig.class);
-    EventHubsKafkaConsumerController mockedController = Mockito.mock(EventHubsKafkaConsumerController.class);
+    EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
     testObj.initialize(mockedController, azureEventHubsSourceConfig);
     when(mockedController.poll(any(Duration.class))).thenReturn(Collections.emptyList());
 
@@ -97,7 +96,7 @@ class AzureEventHubsSourceTaskTest {
   void pollShouldCallPollOnControllerAndReturnListThatHasElements() throws InterruptedException {
     //given
     AzureEventHubsSourceConfig azureEventHubsSourceConfig = mock(AzureEventHubsSourceConfig.class);
-    EventHubsKafkaConsumerController mockedController = Mockito.mock(EventHubsKafkaConsumerController.class);
+    EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
     testObj.initialize(mockedController, azureEventHubsSourceConfig);
     SourceRecord mockedRecord = mock(SourceRecord.class);
     List<SourceRecord> sourceRecords = Collections.singletonList(mockedRecord);
@@ -115,7 +114,7 @@ class AzureEventHubsSourceTaskTest {
   void getVersionShouldDelegateToJarManifestGetVersion() {
     //given
     AzureEventHubsSourceConfig azureEventHubsSourceConfig = mock(AzureEventHubsSourceConfig.class);
-    EventHubsKafkaConsumerController mockedController = Mockito.mock(EventHubsKafkaConsumerController.class);
+    EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
     testObj.initialize(mockedController, azureEventHubsSourceConfig);
     final String SOME_VERSION = "SOME_VERSION";
     when(mockedJarManifest.getVersion()).thenReturn(SOME_VERSION);

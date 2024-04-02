@@ -88,7 +88,7 @@ public class AzureEventHubsSourceConfig extends BaseConfig implements ConnectorP
 
   @Override
   public String connectorPrefix() {
-    return AzureEventHubsConfigConstants.CONNECTOR_PREFIX;
+    return connectorPrefix;
   }
 
   private static ConfigDef getKafkaConsumerConfigToExpose() {

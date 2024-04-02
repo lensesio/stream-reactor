@@ -59,6 +59,7 @@ public class AzureEventHubsSourceConnector extends SourceConnector {
 
   @Override
   public void stop() {
+    // connector-specific implementation not needed
   }
 
   @Override
