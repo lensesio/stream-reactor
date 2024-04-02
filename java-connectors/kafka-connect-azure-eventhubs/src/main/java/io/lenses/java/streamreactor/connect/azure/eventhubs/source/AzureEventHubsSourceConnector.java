@@ -3,11 +3,11 @@ package io.lenses.java.streamreactor.connect.azure.eventhubs.source;
 import static io.lenses.java.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader;
 
 import io.lenses.java.streamreactor.common.util.JarManifest;
-import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
-import io.lenses.java.streamreactor.connect.azure.eventhubs.util.KcqlConfigPort;
+import io.lenses.java.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import io.lenses.kcql.Kcql;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -41,14 +41,17 @@ public class AzureEventHubsSourceConnector extends SourceConnector {
 
   @Override
   public List<Map<String, String>> taskConfigs(int maxTasks) {
-    log.info("Setting task configurations for {} workers.", maxTasks);
-    List<Map<String, String>> taskConfigs = new ArrayList<>(maxTasks);
-
-    Kcql firstKcql = KcqlConfigPort.parseMultipleKcqlStatementsPickingOnlyFirst(
+    List<Kcql> kcqls = Kcql.parseMultiple(
         configProperties.get(AzureEventHubsConfigConstants.KCQL_CONFIG));
-    configProperties.put(AzureEventHubsConfigConstants.KCQL_CONFIG, firstKcql.getQuery());
+    int numberOfMappings = kcqls.size();
+    List<Map<String, String>> taskConfigs = new ArrayList<>(numberOfMappings);
 
-    IntStream.range(0, maxTasks).forEach(task -> taskConfigs.add(configProperties));
+    IntStream.range(0, maxTasks).forEach(taskNumber -> {
+      HashMap<String, String> taskProperties = new HashMap<>(configProperties);
+      taskProperties.put(AzureEventHubsConfigConstants.KCQL_CONFIG, kcqls.get(taskNumber).getQuery());
+      taskConfigs.add(taskProperties);
+    });
+
     return taskConfigs;
   }
 
