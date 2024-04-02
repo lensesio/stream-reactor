@@ -40,7 +40,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
   val BucketName = "mybucket"
 
   private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
-  private implicit val connectorTaskId = ConnectorTaskId("connector", 1, 0)
+  private implicit val connectorTaskId:        ConnectorTaskId        = ConnectorTaskId("connector", 1, 0)
 
   "S3SinkConfigDefBuilder" should "respect defined properties" in {
     val props = Map(

@@ -17,6 +17,7 @@ package io.lenses.streamreactor.common.serialization
 
 import com.sksamuel.avro4s.AvroSchema
 import com.sksamuel.avro4s.RecordFormat
+import org.apache.avro.Schema
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -25,8 +26,8 @@ import java.io.ByteArrayOutputStream
 
 class AvroSerializerTest extends AnyWordSpec with Matchers {
 
-  implicit val recordFormat = RecordFormat[Book]
-  implicit val avroSchema   = AvroSchema[Book]
+  implicit val recordFormat: RecordFormat[Book] = RecordFormat[Book]
+  implicit val avroSchema:   Schema             = AvroSchema[Book]
 
   "AvroSerializer" should {
     "read and write from and to Avro" in {

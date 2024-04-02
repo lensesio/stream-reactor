@@ -22,9 +22,9 @@ jobs:
       fun_matrix: ${{ steps.read-mods.outputs.fun-matrix }}
       dep_check_matrix: ${{ steps.read-mods.outputs.dep-check-matrix }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -51,9 +51,9 @@ jobs:
     timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -77,9 +77,9 @@ jobs:
       matrix:
         module: ${{fromJSON(needs.initiate.outputs.matrix)}}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -89,7 +89,7 @@ jobs:
         env:
           JVM_OPTS: -Xmx3200m
       - name: Publish test results
-        uses: EnricoMi/publish-unit-test-result-action@v1
+        uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
           files: "**/target/**/test-reports/*.xml"
@@ -107,9 +107,9 @@ jobs:
       matrix:
         module: ${{fromJSON(needs.initiate.outputs.it_matrix)}}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -119,7 +119,7 @@ jobs:
         env:
           JVM_OPTS: -Xmx3200m
       - name: Publish test results
-        uses: EnricoMi/publish-unit-test-result-action@v1
+        uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
           files: "**/target/**/it-reports/*.xml"
@@ -129,20 +129,18 @@ jobs:
   build-and-cache-assembly:
     needs:
       - initiate
-      - test
-      - integration-test
     timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
       matrix:
         module: ${{fromJSON(needs.initiate.outputs.matrix)}}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         name: Checkout repository
         with:
           fetch-depth: 0
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -162,7 +160,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: sbt "project ${{ matrix.module }};set assembly / test := {}" assembly
       - name: Cache assembly
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: ~/**/target/libs/*.jar
           key: assembly-${{ matrix.module }}-${{ github.run_id }}
@@ -178,15 +176,15 @@ jobs:
         module: ${{fromJSON(needs.initiate.outputs.fun_matrix)}}
         connectImageVersion: [7.3.1, 6.2.2]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: 'sbt'
       - name: Restore assembly
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ~/**/target/libs/*.jar
           key: assembly-${{ matrix.module }}-${{ github.run_id }}
@@ -197,7 +195,7 @@ jobs:
           JVM_OPTS: -Xmx3200m
           CONNECT_IMAGE_VERSION: ${{matrix.connectImageVersion}}
       - name: Publish test results
-        uses: EnricoMi/publish-unit-test-result-action@v1
+        uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
           files: "**/target/**/test-reports/*.xml"
@@ -215,17 +213,24 @@ jobs:
         module: ${{fromJSON(needs.initiate.outputs.dep_check_matrix)}}
     steps:
       - name: Restore assembly
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ~/**/target/libs/*.jar
           key: assembly-${{ matrix.module }}-${{ github.run_id }}
           fail-on-cache-miss: true
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
       - name: Dependency Check
-        uses: dependency-check/Dependency-Check_Action@1.1.0
+        uses: dependency-check/Dependency-Check_Action@main
         with:
           project: kafka-connect-${{matrix.module}}-deps
           path: kafka-connect-${{matrix.module}}/target/libs/
           format: 'HTML'
+          args: >-
+              --failOnCVSS 5
+              --suppression https://raw.githubusercontent.com/lensesio/stream-reactor/${{ steps.extract_branch.outputs.branch }}/suppression.xml
       - name: Upload Test results
         uses: actions/upload-artifact@master
         with:
@@ -243,21 +248,21 @@ jobs:
       matrix:
         module: ${{fromJSON(needs.initiate.outputs.matrix)}}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: 'sbt'
       - name: Restore assembly
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ~/**/target/libs/*.jar
           key: assembly-${{ matrix.module }}-${{ github.run_id }}
           fail-on-cache-miss: true
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: assembly-${{ matrix.module }}-${{ github.run_id }}
           path: ~/**/target/libs/*.jar

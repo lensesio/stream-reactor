@@ -35,6 +35,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.WriterManagerCreator
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
@@ -70,8 +71,8 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   private val PathPrefix       = "streamReactorBackups"
   private val avroFormatReader = new AvroFormatReader
 
-  private implicit val cloudLocationValidator = S3LocationValidator
-  private val bucketAndPrefix                 = CloudLocation(BucketName, PathPrefix.some)
+  private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
+  private val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
   private def avroConfig = S3SinkConfig(
     S3ConnectionConfig(
       None,

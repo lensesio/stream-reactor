@@ -20,7 +20,7 @@ import org.json4s._
 import org.json4s.native.JsonMethods._
 
 object Json {
-  implicit val formats = DefaultFormats
+  implicit val formats: Formats = DefaultFormats
 
   val mapper = new ObjectMapper
 

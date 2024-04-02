@@ -24,7 +24,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 class GCPStorageSinkConfigTest extends AnyFunSuite with Matchers {
-  private implicit val connectorTaskId = ConnectorTaskId("connector", 1, 0)
+  private implicit val connectorTaskId:        ConnectorTaskId        = ConnectorTaskId("connector", 1, 0)
   private implicit val cloudLocationValidator: CloudLocationValidator = GCPStorageLocationValidator
   test("envelope and CSV storage is not allowed") {
     val props = Map(

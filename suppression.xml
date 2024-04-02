@@ -2,14 +2,75 @@
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
 
     <!-- Module: AWS-S3 -->
-    <!-- This is a false positive.  The "common" module is pulling in an acceptable version of this
-         dependency however after packaging it is being read as an older version. -->
+    <!-- This CVE relates to Hadoop 1.2, which is very old.  This library is not part of core hadoop
+     but a thirdparty packaging of protobuf, but it's published under 1.2.0, which leads to it
+      falsely being identified as an old version of Hadoop.
+      -->
     <suppress>
         <notes><![CDATA[
-      file name: kafka-connect-aws-s3-kafka-2-8-assembly-1.1-SNAPSHOT.jar (shaded: net.minidev:json-smart:1.3.2)
-      ]]></notes>
-        <packageUrl regex="true">^pkg:maven/net\.minidev/json\-smart@.*$</packageUrl>
-        <cve>CVE-2021-31684</cve>
+   file name: kafka-connect-aws-s3-assembly-6.3-SNAPSHOT.jar (shaded: org.apache.hadoop.thirdparty:hadoop-shaded-protobuf_3_21:1.2.0)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.hadoop\.thirdparty/hadoop\-shaded\-protobuf_3_21@.*$</packageUrl>
+        <cpe>cpe:/a:apache:hadoop</cpe>
     </suppress>
 
+    <!-- This must be a false positive as this library is not in the dependency tree and I can not
+    find any evidence of the compiled C library by inspecting the jar -->
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-ftp-assembly-6.3-SNAPSHOT.jar
+   ]]></notes>
+        <cve>CVE-2023-22551</cve>
+    </suppress>
+
+    <!-- Azure Datalake module has a lot of false positives identified by the OWASP tool -->
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-azure-datalake-assembly-6.3-SNAPSHOT.jar (shaded: com.azure:azure-json:1.1.0)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure\-json@.*$</packageUrl>
+        <cve>CVE-2023-36052</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-azure-datalake-assembly-6.3-SNAPSHOT.jar (shaded: com.azure:azure-identity:1.11.4)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure\-identity@.*$</packageUrl>
+        <cve>CVE-2023-36415</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-azure-datalake-assembly-6.3-SNAPSHOT.jar (shaded: com.azure:azure-identity:1.11.4)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure\-identity@.*$</packageUrl>
+        <cpe>cpe:/a:microsoft:azure_sdk_for_java</cpe>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-azure-datalake-assembly-6.3-SNAPSHOT.jar (shaded: com.azure:azure-core-http-netty:1.14.1)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure\-core\-http\-netty@.*$</packageUrl>
+        <cve>CVE-2023-36052</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-azure-datalake-assembly-6.3-SNAPSHOT.jar (shaded: com.azure:azure-core:1.47.0)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure\-core@.*$</packageUrl>
+        <cpe>cpe:/a:microsoft:azure_cli</cpe>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-azure-datalake-assembly-6.3-SNAPSHOT.jar (shaded: com.azure:azure-core:1.47.0)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure\-core@.*$</packageUrl>
+        <cpe>cpe:/a:microsoft:azure_sdk_for_java</cpe>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-azure-datalake-assembly-6.3-SNAPSHOT.jar (shaded: com.azure:azure-identity:1.11.4)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure\-identity@.*$</packageUrl>
+        <cpe>cpe:/a:microsoft:azure_cli</cpe>
+    </suppress>
 </suppressions>
