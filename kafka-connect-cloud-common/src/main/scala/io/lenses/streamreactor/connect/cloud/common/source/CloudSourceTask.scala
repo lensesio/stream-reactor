@@ -45,7 +45,6 @@ import org.apache.kafka.connect.source.SourceTask
 
 import java.util
 import java.util.Collections
-import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters._
 abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], CT]
     extends SourceTask

@@ -27,6 +27,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.eclipse.paho.client.mqttv3.MqttClient
 import org.eclipse.paho.client.mqttv3.MqttMessage
 import org.json4s.DefaultFormats
+import org.json4s.Formats
 import org.json4s.native.JsonMethods._
 
 import scala.annotation.nowarn
@@ -48,7 +49,7 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings, convertersMap: 
     with ErrorHandler {
 
   //initialize error tracker
-  implicit val formats = DefaultFormats
+  implicit val formats: Formats = DefaultFormats
   initialize(settings.maxRetries, settings.errorPolicy)
   val mappings: Map[String, Set[Kcql]] = settings.kcql.groupBy(k => k.getSource)
   val kcql = settings.kcql

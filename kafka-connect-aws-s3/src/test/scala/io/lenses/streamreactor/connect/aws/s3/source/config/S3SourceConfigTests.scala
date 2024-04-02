@@ -19,6 +19,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions.ExcludeIndexes
@@ -29,8 +30,8 @@ import scala.concurrent.duration._
 
 class S3SourceConfigTests extends AnyFunSuite with Matchers with TaskIndexKey with CloudSourceSettingsKeys {
 
-  implicit val taskId    = ConnectorTaskId("test", 1, 1)
-  implicit val validator = S3LocationValidator
+  implicit val taskId:    ConnectorTaskId        = ConnectorTaskId("test", 1, 1)
+  implicit val validator: CloudLocationValidator = S3LocationValidator
 
   test("default recursive levels is 0") {
     S3SourceConfig.fromProps(

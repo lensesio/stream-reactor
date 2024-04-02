@@ -11,7 +11,6 @@ import _root_.io.lenses.streamreactor.connect.testcontainers.S3Container
 import _root_.io.lenses.streamreactor.connect.testcontainers.SchemaRegistryContainer
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
-import com.datastax.driver.core.utils.UUIDs
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringSerializer
@@ -20,6 +19,8 @@ import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 import software.amazon.awssdk.services.s3.model._
+
+import java.util.UUID
 
 class S3Test
     extends AsyncFlatSpec
@@ -52,7 +53,7 @@ class S3Test
 
   it should "sink records" in {
 
-    val order = Order(1, "OP-DAX-P-20150201-95.7", 94.2, 100, UUIDs.timeBased.toString)
+    val order = Order(1, "OP-DAX-P-20150201-95.7", 94.2, 100, UUID.randomUUID().toString)
 
     val resources = for {
       s3Client <- createS3ClientResource(container.identity, container.getEndpointUrl)

@@ -43,7 +43,7 @@ object HttpSinkConfig {
 
 }
 
-case class BatchConfiguration(
+case class BatchConfig(
   batchCount:   Option[Long],
   batchSize:    Option[Long],
   timeInterval: Option[Long],
@@ -59,21 +59,21 @@ case class BatchConfiguration(
   }
 }
 
-object BatchConfiguration {
+object BatchConfig {
 
-  implicit val decoder: Decoder[BatchConfiguration] = deriveDecoder
-  implicit val encoder: Encoder[BatchConfiguration] = deriveEncoder
+  implicit val decoder: Decoder[BatchConfig] = deriveDecoder
+  implicit val encoder: Encoder[BatchConfig] = deriveEncoder
 
 }
 
 case class HttpSinkConfig(
-  authentication:   Option[Authentication], // basic, oauth2, proxy
   method:           HttpMethod,
-  endpoint:         String, // tokenised
-  content:          String, // tokenised
-  headers:          Seq[(String, String)], // tokenised
-  sslConfig:        Option[SSLConfig],
-  batch:            Option[BatchConfiguration],
+  endpoint:         String,
+  content:          String,
+  authentication:   Option[Authentication],
+  headers:          Option[Seq[(String, String)]],
+  ssl:              Option[SSLConfig],
+  batch:            Option[BatchConfig],
   errorThreshold:   Option[Int],
   uploadSyncPeriod: Option[Int],
 ) {

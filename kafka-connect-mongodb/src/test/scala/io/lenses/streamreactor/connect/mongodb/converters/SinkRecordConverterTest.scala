@@ -19,6 +19,7 @@ import io.lenses.streamreactor.connect.mongodb.config.MongoConfig
 import io.lenses.streamreactor.connect.mongodb.config.MongoConfigConstants
 import io.lenses.streamreactor.connect.mongodb.config.MongoSettings
 import org.bson.Document
+import org.json4s.Formats
 import org.json4s.jackson.JsonMethods._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -35,7 +36,7 @@ import scala.util.Try
 
 class SinkRecordConverterTest extends AnyWordSpec with Matchers {
 
-  implicit val jsonFormats = org.json4s.DefaultFormats
+  implicit val jsonFormats: Formats = org.json4s.DefaultFormats
 
   // create java.util.Date from iso date string.
   def createDate(isoDate: String): java.util.Date = {
