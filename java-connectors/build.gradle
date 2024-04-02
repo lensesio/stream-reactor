@@ -6,7 +6,7 @@ plugins {
 
 allprojects {
 
-    group = "io.lenses.java.streamreactor"
+    group = "io.lenses.streamreactor"
     version = "1.0-SNAPSHOT"
 
     apply plugin: 'java'
@@ -114,7 +114,7 @@ allprojects {
         dependencies {
 //            // UNCOMMENT BELOW IF NEED CLEAN JAR
 //            exclude(dependency {
-//                it.moduleGroup != 'io.lenses.java.streamreactor'
+//                it.moduleGroup != 'io.lenses.streamreactor'
 //            })
 //        exclude(dependency('org.apache.logging.log4j:log4j-core:2.11.1'))
 //        exclude(dependency("org.apache.avro:.*"))
