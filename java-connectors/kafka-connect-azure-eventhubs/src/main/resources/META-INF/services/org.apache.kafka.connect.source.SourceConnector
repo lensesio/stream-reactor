@@ -1,1 +1,1 @@
-io.lenses.java.streamreactor.connect.azure.eventhubs.source.AzureEventHubsSourceConnector
+io.lenses.streamreactor.connect.azure.eventhubs.source.AzureEventHubsSourceConnector
