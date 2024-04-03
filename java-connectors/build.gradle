@@ -8,6 +8,7 @@ allprojects {
 
     group = "io.lenses.streamreactor"
     version = "1.0-SNAPSHOT"
+    description = "stream-reactor"
 
     apply plugin: 'java'
     apply plugin: 'java-library'
@@ -30,7 +31,7 @@ allprojects {
 
         //for jar building
         rootRelease = "${project.rootDir}/release/"
-        versionDir = "${rootRelease}/${project.description}-${project.version}-${kafkaVersion}"
+        versionDir = "${rootRelease}/${project.description}-${project.version}"
         confDir = "${versionDir}/conf"
         libsDir = "${versionDir}/libs"
 
@@ -130,8 +131,8 @@ allprojects {
     task fatJar(dependsOn: [test, jar, shadowJar])
 
     task collectFatJar(type: Copy, dependsOn: [fatJar]) {
-        from("${buildDir}/libs").include("*-all.jar")
-        into(libsDir)
+        from("${buildDir}/libs").include("kafka-connect-*-all.jar")
+        .exclude("*-common-*").into(libsDir)
     }
 }
 
