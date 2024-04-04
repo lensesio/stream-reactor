@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: ${{fromJSON(needs.initiate.outputs.dep_check_matrix)}}
+        module: ${{fromJSON(needs.build.outputs.dep_check_matrix)}}
     steps:
       - uses: actions/checkout@v4
       - name: Restore assembly
