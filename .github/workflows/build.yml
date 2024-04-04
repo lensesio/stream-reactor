@@ -218,6 +218,17 @@ jobs:
           path: ~/**/target/libs/*.jar
           key: assembly-${{ matrix.module }}-${{ github.run_id }}
           fail-on-cache-miss: true
+      - name: Extract branch or tag name
+        run: |
+          if [[ $GITHUB_REF == refs/heads/* ]]; then
+            echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+          elif [[ $GITHUB_REF == refs/tags/* ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_REF: ${{ github.ref }}
+        shell: bash
+        id: extract_branch_or_tag
       - name: Extract branch name
         shell: bash
         run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
@@ -230,7 +241,7 @@ jobs:
           format: 'HTML'
           args: >-
               --failOnCVSS 5
-              --suppression https://raw.githubusercontent.com/lensesio/stream-reactor/${{ steps.extract_branch.outputs.branch }}/suppression.xml
+              --suppression https://raw.githubusercontent.com/lensesio/stream-reactor/${{ steps.extract_branch_or_tag.outputs.branch }}/suppression.xml
       - name: Upload Test results
         uses: actions/upload-artifact@master
         with:
