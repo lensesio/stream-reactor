@@ -218,10 +218,9 @@ jobs:
           path: ~/**/target/libs/*.jar
           key: assembly-${{ matrix.module }}-${{ github.run_id }}
           fail-on-cache-miss: true
-      - name: Extract branch name
-        shell: bash
-        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
-        id: extract_branch
+      - name: Get branch names.
+        id: branch_name
+        uses: tj-actions/branch-names@v8
       - name: Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
@@ -230,7 +229,7 @@ jobs:
           format: 'HTML'
           args: >-
               --failOnCVSS 5
-              --suppression https://raw.githubusercontent.com/lensesio/stream-reactor/${{ steps.extract_branch.outputs.branch }}/suppression.xml
+              --suppression https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.branch_name.outputs.tag }}${{ steps.branch_name.outputs.current_branch }}/suppression.xml
       - name: Upload Test results
         uses: actions/upload-artifact@master
         with:
