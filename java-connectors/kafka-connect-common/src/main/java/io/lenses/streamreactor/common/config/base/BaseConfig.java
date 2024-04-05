@@ -9,7 +9,7 @@ import org.apache.kafka.common.config.ConfigDef;
  */
 public abstract class BaseConfig extends AbstractConfig {
 
-  private final String connectorPrefix;
+  protected final String connectorPrefix;
 
   public BaseConfig(String connectorPrefix, ConfigDef definition, Map<?, ?> properties) {
     super(definition, properties);

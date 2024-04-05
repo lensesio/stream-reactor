@@ -52,12 +52,13 @@ public class AzureEventHubsSourceTask extends SourceTask {
 
     ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue = new ArrayBlockingQueue<>(
         RECORDS_QUEUE_DEFAULT_SIZE);
+    Map<String, String> inputToOutputTopics = KcqlConfigPort.mapInputToOutputsFromConfig(
+        azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
     blockingQueueProducerProvider = new BlockingQueueProducerProvider(topicPartitionOffsetProvider);
     KafkaByteBlockingQueuedProducer producer = blockingQueueProducerProvider.createProducer(
-        azureEventHubsSourceConfig, recordsQueue);
-    String outputTopic = getOutputTopicFromConfig(azureEventHubsSourceConfig);
+        azureEventHubsSourceConfig, recordsQueue, inputToOutputTopics);
     EventHubsKafkaConsumerController kafkaConsumerController = new EventHubsKafkaConsumerController(
-        producer, recordsQueue, outputTopic);
+        producer, recordsQueue, inputToOutputTopics);
     initialize(kafkaConsumerController, azureEventHubsSourceConfig);
   }
 

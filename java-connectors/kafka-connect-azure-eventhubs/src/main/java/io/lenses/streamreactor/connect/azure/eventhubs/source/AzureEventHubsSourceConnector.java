@@ -4,9 +4,6 @@ import static io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHead
 
 import io.lenses.streamreactor.common.util.JarManifest;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
-import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
-import io.lenses.streamreactor.connect.azure.eventhubs.util.KcqlConfigPort;
-import io.lenses.kcql.Kcql;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -44,10 +41,6 @@ public class AzureEventHubsSourceConnector extends SourceConnector {
     log.info("Setting task configurations for {} workers.", maxTasks);
     List<Map<String, String>> taskConfigs = new ArrayList<>(maxTasks);
 
-    Kcql firstKcql = KcqlConfigPort.parseMultipleKcqlStatementsPickingOnlyFirst(
-        configProperties.get(AzureEventHubsConfigConstants.KCQL_CONFIG));
-    configProperties.put(AzureEventHubsConfigConstants.KCQL_CONFIG, firstKcql.getQuery());
-
     IntStream.range(0, maxTasks).forEach(task -> taskConfigs.add(configProperties));
     return taskConfigs;
   }
@@ -59,6 +52,7 @@ public class AzureEventHubsSourceConnector extends SourceConnector {
 
   @Override
   public void stop() {
+    // connector-specific implementation not needed
   }
 
   @Override

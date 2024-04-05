@@ -10,6 +10,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.concurrent.BlockingQueue;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.junit.jupiter.api.Test;
+import org.mockito.internal.util.collections.Sets;
 
 class KafkaByteBlockingQueuedProducerTest {
 
@@ -19,7 +20,7 @@ class KafkaByteBlockingQueuedProducerTest {
   KafkaByteBlockingQueuedProducer testObj = new KafkaByteBlockingQueuedProducer(
       mock(TopicPartitionOffsetProvider.class), mock(BlockingQueue.class),
       consumer, KeyValueTypes.DEFAULT_TYPES,
-      CLIENT_ID, "topic", false);
+      CLIENT_ID, Sets.newSet("topic"), false);
 
   @Test
   void closeShouldBeDelegatedToKafkaConsumer() {
