@@ -2,10 +2,12 @@ package io.lenses.streamreactor.connect.azure.eventhubs.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
 
 class KcqlConfigPortTest {
@@ -38,5 +40,34 @@ class KcqlConfigPortTest {
       assertEquals(inputs.get(indexOfInput), input);
       assertEquals(outputs.get(indexOfInput), inputToOutputsFromConfig.get(input));
     }
+  }
+
+  @Test
+  void mapInputToOutputsFromConfigShouldntAllowForIllegalNames() {
+    //given
+    String illegalInputKcql = "INSERT INTO OUTPUT SELECT * FROM 'INPUT*_'";
+    String illegalOutputKcql = "INSERT INTO 'OUTPUT*_' SELECT * FROM INPUT";
+    String inputErrorMessage = "Input topic INPUT*_, name is not correctly specified "
+        + "(It can contain only letters, numbers and hyphens, underscores and "
+        + "dots and has to start with number or letter";
+    String outputErrorMessage = "Output topic OUTPUT*_, name is not correctly specified "
+        + "(It can contain only letters, numbers and hyphens, underscores and "
+        + "dots and has to start with number or letter";
+
+    //when
+    try {
+      KcqlConfigPort.mapInputToOutputsFromConfig(illegalInputKcql);
+      fail("Exception not thrown");
+    } catch (ConfigException e) {
+      assertEquals(inputErrorMessage, e.getMessage());
+    }
+
+    try {
+      KcqlConfigPort.mapInputToOutputsFromConfig(illegalOutputKcql);
+      fail("Exception not thrown");
+    } catch (ConfigException e) {
+      assertEquals(outputErrorMessage, e.getMessage());
+    }
+
   }
 }

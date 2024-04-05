@@ -1,10 +1,8 @@
 package io.lenses.streamreactor.connect.azure.eventhubs.source;
 
-import io.lenses.kcql.Kcql;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
-import io.lenses.streamreactor.connect.azure.eventhubs.util.KcqlConfigPort;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -79,18 +77,5 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
     }
     throw new ConfigException(AzureEventHubsConfigConstants.CONSUMER_OFFSET, seekValue,
         CONSUMER_OFFSET_EXCEPTION_MESSAGE);
-  }
-
-  /**
-   * Returns input topic (specified in KCQL config).
-   *
-   * @param azureEventHubsSourceConfig task configuration
-   * @return input topic
-   */
-  private String getInputTopicFromConfig(
-      AzureEventHubsSourceConfig azureEventHubsSourceConfig) {
-    Kcql kcql = KcqlConfigPort.parseMultipleKcqlStatementsPickingOnlyFirst(
-        azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
-    return kcql.getSource();
   }
 }

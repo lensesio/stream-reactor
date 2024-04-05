@@ -19,10 +19,6 @@ public class KcqlConfigPort {
       "%s topic %s, name is not correctly specified (It can contain only letters, numbers and hyphens,"
           + " underscores and dots and has to start with number or letter";
 
-  public static Kcql parseMultipleKcqlStatementsPickingOnlyFirst(String kcql) {
-    return Kcql.parseMultiple(kcql).get(0);
-  }
-
   /**
    * This method parses KCQL statements and fetches input and output topics checking against
    * regex for invalid topic names in input and output.
@@ -41,7 +37,7 @@ public class KcqlConfigPort {
         throw new ConfigException(String.format(TOPIC_NAME_ERROR_MESSAGE, "Input", inputTopic));
       }
       if (!topicNameMatchesAgainstRegex(outputTopic)) {
-        throw new ConfigException(String.format(TOPIC_NAME_ERROR_MESSAGE, "Output", inputTopic));
+        throw new ConfigException(String.format(TOPIC_NAME_ERROR_MESSAGE, "Output", outputTopic));
       }
       if (inputToOutputTopics.containsKey(inputTopic)) {
         throw new ConfigException(String.format("Input %s cannot be mapped twice.", inputTopic));
