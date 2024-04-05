@@ -1,10 +1,10 @@
 package io.lenses.streamreactor.connect.azure.eventhubs.source;
 
+import io.lenses.kcql.Kcql;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
 import io.lenses.streamreactor.connect.azure.eventhubs.util.KcqlConfigPort;
-import io.lenses.kcql.Kcql;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;

@@ -18,8 +18,9 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.connect.source.SourceRecord;
 
 /**
- * Class is a bridge between EventHub KafkaConsumers and AzureEventHubsSourceTask. It verifies the configuration
- * of kafka consumers and instantiates them, then allows AzureEventHubsSourceTask to pull for SourceRecords.
+ * Class is a bridge between EventHub KafkaConsumers and AzureEventHubsSourceTask. It verifies the
+ * configuration of kafka consumers and instantiates them, then allows AzureEventHubsSourceTask to
+ * pull for SourceRecords.
  */
 @Slf4j
 public class EventHubsKafkaConsumerController {
@@ -44,8 +45,8 @@ public class EventHubsKafkaConsumerController {
   }
 
   /**
-   * This method leverages BlockingQueue mechanism that BlockingQueuedKafkaConsumer puts EventHub records
-   * into. It tries to poll the queue then returns list of SourceRecords
+   * This method leverages BlockingQueue mechanism that BlockingQueuedKafkaConsumer puts EventHub
+   * records into. It tries to poll the queue then returns list of SourceRecords
    *
    * @param duration how often to poll.
    * @return list of SourceRecords (can be empty if it couldn't poll from queue)
@@ -74,12 +75,13 @@ public class EventHubsKafkaConsumerController {
             inputTopic, consumerRecord.partition());
         AzureOffsetMarker offsetMarker = new AzureOffsetMarker(consumerRecord.offset());
 
-          SourceRecord sourceRecord = mapSourceRecordIncludingHeaders(consumerRecord, azureTopicPartitionKey,
-              offsetMarker, inputToOutputTopics.get(inputTopic),
-              queuedKafkaProducer.getKeyValueTypes().getKeyType().getSchema(),
-              queuedKafkaProducer.getKeyValueTypes().getValueType().getSchema());
+        SourceRecord sourceRecord = mapSourceRecordIncludingHeaders(consumerRecord,
+            azureTopicPartitionKey,
+            offsetMarker, inputToOutputTopics.get(inputTopic),
+            queuedKafkaProducer.getKeyValueTypes().getKeyType().getSchema(),
+            queuedKafkaProducer.getKeyValueTypes().getValueType().getSchema());
 
-          sourceRecords.add(sourceRecord);
+        sourceRecords.add(sourceRecord);
 
       }
     }

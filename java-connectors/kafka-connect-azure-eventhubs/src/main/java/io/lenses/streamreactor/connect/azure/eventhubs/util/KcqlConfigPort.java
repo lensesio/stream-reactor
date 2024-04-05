@@ -8,10 +8,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.kafka.common.config.ConfigException;
 
+/**
+ * Class that represents methods around KCQL handling.
+ */
 public class KcqlConfigPort {
 
-  private static final String TOPIC_NAME_REGEX = "^[\\w][\\w-\\_\\.]*$";
-  private static final Pattern TOPIC_NAME_PATTERN = Pattern.compile(TOPIC_NAME_REGEX, Pattern.MULTILINE);
+  private static final String TOPIC_NAME_REGEX = "^[\\w][\\w\\-\\_\\.]*$";
+  private static final Pattern TOPIC_NAME_PATTERN = Pattern.compile(TOPIC_NAME_REGEX);
   public static final String TOPIC_NAME_ERROR_MESSAGE =
       "%s topic %s, name is not correctly specified (It can contain only letters, numbers and hyphens,"
           + " underscores and dots and has to start with number or letter";
@@ -34,11 +37,11 @@ public class KcqlConfigPort {
       String inputTopic = kcql.getSource();
       String outputTopic = kcql.getTarget();
 
-      if (checkTopicNameAgainstRegex(inputTopic)) {
-        throw new ConfigException(String.format(TOPIC_NAME_ERROR_MESSAGE, "Input ", inputTopic));
+      if (!topicNameMatchesAgainstRegex(inputTopic)) {
+        throw new ConfigException(String.format(TOPIC_NAME_ERROR_MESSAGE, "Input", inputTopic));
       }
-      if (checkTopicNameAgainstRegex(outputTopic)) {
-        throw new ConfigException(String.format(TOPIC_NAME_ERROR_MESSAGE, "Output ", inputTopic));
+      if (!topicNameMatchesAgainstRegex(outputTopic)) {
+        throw new ConfigException(String.format(TOPIC_NAME_ERROR_MESSAGE, "Output", inputTopic));
       }
       if (inputToOutputTopics.containsKey(inputTopic)) {
         throw new ConfigException(String.format("Input %s cannot be mapped twice.", inputTopic));
@@ -50,7 +53,7 @@ public class KcqlConfigPort {
     return inputToOutputTopics;
   }
 
-  private static boolean checkTopicNameAgainstRegex(String topicName) {
+  private static boolean topicNameMatchesAgainstRegex(String topicName) {
     final Matcher matcher = TOPIC_NAME_PATTERN.matcher(topicName);
     return matcher.matches();
   }

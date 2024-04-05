@@ -1,23 +1,42 @@
 package io.lenses.streamreactor.connect.azure.eventhubs.util;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-import io.lenses.kcql.Kcql;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class KcqlConfigPortTest {
 
   @Test
-  void parseMultipleKcqlStatementsPickingOnlyFirstShouldDropSecondStatementAndParseFirst() {
+  void mapInputToOutputsFromConfigForMultipleKcqlStatementsShouldRetunMapOfInputToOutput() {
     //given
-    String kcql1 = "insert into output1 select * from input1";
-    String kcql2 = "insert into output2 select * from input2";
-    String bothStatements = kcql1 + "; " + kcql2 + ";";
+    int numberOfMappings = 3;
+    List<String> inputs = new ArrayList<>(numberOfMappings);
+    List<String> outputs = new ArrayList<>(numberOfMappings);
+    String kcqlTemplate = "insert into %s select * from %s;";
+    StringBuilder fullKcql = new StringBuilder();
 
+    for (int i = 0; i < numberOfMappings; i++) {
+      String newInput = "INPUT" + i;
+      String newOutput = "OUTPUT" + i;
+
+      inputs.add(i, newInput);
+      outputs.add(i, newOutput);
+      fullKcql.append(String.format(kcqlTemplate, newOutput, newInput));
+    }
     //when
-    Kcql kcql = KcqlConfigPort.parseMultipleKcqlStatementsPickingOnlyFirst(bothStatements);
+    Map<String, String> inputToOutputsFromConfig = KcqlConfigPort.mapInputToOutputsFromConfig(
+        fullKcql.toString());
 
     //then
-    assertEquals(kcql1, kcql.getQuery());
+    for (String input : inputToOutputsFromConfig.keySet()){
+      int indexOfInput = inputs.indexOf(input);
+      assertNotEquals(-1, indexOfInput);
+      assertEquals(inputs.get(indexOfInput), input);
+      assertEquals(outputs.get(indexOfInput), inputToOutputsFromConfig.get(input));
+    }
   }
 }

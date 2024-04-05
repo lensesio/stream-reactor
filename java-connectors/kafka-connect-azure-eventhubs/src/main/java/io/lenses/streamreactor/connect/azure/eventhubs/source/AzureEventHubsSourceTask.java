@@ -6,7 +6,6 @@ import io.lenses.streamreactor.common.util.JarManifest;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import io.lenses.streamreactor.connect.azure.eventhubs.util.KcqlConfigPort;
-import io.lenses.kcql.Kcql;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -90,18 +89,5 @@ public class AzureEventHubsSourceTask extends SourceTask {
   public void stop() {
     ofNullable(eventHubsKafkaConsumerController)
         .ifPresent(consumerController -> consumerController.close(closeTimeout));
-  }
-
-  /**
-   * Returns output topic (specified in config using KCQL).
-   *
-   * @param azureEventHubsSourceConfig task configuration
-   * @return output topic
-   */
-  private String getOutputTopicFromConfig(
-      AzureEventHubsSourceConfig azureEventHubsSourceConfig) {
-    Kcql kcql = KcqlConfigPort.parseMultipleKcqlStatementsPickingOnlyFirst(
-        azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
-    return kcql.getTarget();
   }
 }
