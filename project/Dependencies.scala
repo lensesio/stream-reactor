@@ -40,7 +40,7 @@ object Dependencies {
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.17.0"
 
-    val kafkaVersion:     String = "3.7.0"
+    val kafkaVersion:     String = "7.6.0-ce"
     val confluentVersion: String = "7.6.0"
 
     val enumeratumVersion = "1.7.3"
