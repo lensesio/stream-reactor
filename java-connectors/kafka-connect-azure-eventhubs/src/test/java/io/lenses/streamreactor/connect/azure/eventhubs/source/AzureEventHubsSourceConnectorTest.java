@@ -1,6 +1,7 @@
 package io.lenses.streamreactor.connect.azure.eventhubs.source;
 
 import static org.apache.kafka.connect.source.ExactlyOnceSupport.SUPPORTED;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.lenses.streamreactor.common.util.JarManifest;
@@ -56,7 +57,7 @@ class AzureEventHubsSourceConnectorTest {
     ExactlyOnceSupport exactlyOnceSupport = testObj.exactlyOnceSupport(new HashMap<>());
 
     //then
-    SUPPORTED.equals(exactlyOnceSupport);
+    assertEquals(SUPPORTED, exactlyOnceSupport);
   }
 
   private Map<String, String> createSimplePropertiesWithKcql() {

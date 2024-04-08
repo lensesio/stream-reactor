@@ -1,6 +1,7 @@
 package io.lenses.streamreactor.connect.azure.eventhubs.util;
 
 import io.lenses.kcql.Kcql;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ public class KcqlConfigPort {
   public static Map<String, String> mapInputToOutputsFromConfig(String kcqlString) {
     List<Kcql> kcqls = Kcql.parseMultiple(kcqlString);
     Map<String, String> inputToOutputTopics = new HashMap<>(kcqls.size());
+    List<String> outputTopics = new ArrayList<>(kcqls.size());
 
     for (Kcql kcql : kcqls) {
       String inputTopic = kcql.getSource();
@@ -42,8 +44,12 @@ public class KcqlConfigPort {
       if (inputToOutputTopics.containsKey(inputTopic)) {
         throw new ConfigException(String.format("Input %s cannot be mapped twice.", inputTopic));
       }
+      if (outputTopics.contains(outputTopic)) {
+        throw new ConfigException(String.format("Output %s cannot be mapped twice.", outputTopic));
+      }
 
       inputToOutputTopics.put(inputTopic, outputTopic);
+      outputTopics.add(outputTopic);
     }
 
     return inputToOutputTopics;

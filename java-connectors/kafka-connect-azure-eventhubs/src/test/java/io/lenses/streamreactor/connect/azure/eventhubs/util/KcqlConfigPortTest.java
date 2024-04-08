@@ -70,4 +70,38 @@ class KcqlConfigPortTest {
     }
 
   }
+
+  @Test
+  void mapInputToOutputsFromConfigShouldntAllowForOneToManyMappings() {
+    //given
+    String oneInputKcql = "INSERT INTO OUTPUT1 SELECT * FROM INPUT1;";
+    String sameInputKcql = "INSERT INTO OUTPUT2 SELECT * FROM INPUT1;";
+    String outputErrorMessage = "Input INPUT1 cannot be mapped twice.";
+
+    //when
+    try {
+      KcqlConfigPort.mapInputToOutputsFromConfig(oneInputKcql + sameInputKcql);
+      fail("Exception not thrown");
+    } catch (ConfigException e) {
+      assertEquals(outputErrorMessage, e.getMessage());
+    }
+
+  }
+
+  @Test
+  void mapInputToOutputsFromConfigShouldntAllowForMiltipleInputsToSameOutput() {
+    //given
+    String oneInputKcql = "INSERT INTO OUTPUT1 SELECT * FROM INPUT1;";
+    String anotherInputToSameOutputKcql = "INSERT INTO OUTPUT1 SELECT * FROM INPUT2;";
+    String outputErrorMessage = "Output OUTPUT1 cannot be mapped twice.";
+
+    //when
+    try {
+      KcqlConfigPort.mapInputToOutputsFromConfig(oneInputKcql + anotherInputToSameOutputKcql);
+      fail("Exception not thrown");
+    } catch (ConfigException e) {
+      assertEquals(outputErrorMessage, e.getMessage());
+    }
+
+  }
 }
