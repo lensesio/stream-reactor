@@ -76,12 +76,11 @@ object CloudSinkBucketOptions extends LazyLogging {
         CloudSinkBucketOptions(
           Option(kcql.getSource).filterNot(Set("*", "`*`").contains(_)),
           target,
-          formatSelection    = formatSelection,
-          keyNamer           = keyNamer,
-          partitionSelection = partitionSelection,
-          commitPolicy       = commitPolicy,
-          localStagingArea   = stagingArea,
-          dataStorage        = storageSettings,
+          formatSelection  = formatSelection,
+          keyNamer         = keyNamer,
+          commitPolicy     = commitPolicy,
+          localStagingArea = stagingArea,
+          dataStorage      = storageSettings,
         )
       }
     }.toSeq.traverse(identity)
@@ -112,12 +111,11 @@ object CloudSinkBucketOptions extends LazyLogging {
 }
 
 case class CloudSinkBucketOptions(
-  sourceTopic:        Option[String],
-  bucketAndPrefix:    CloudLocation,
-  formatSelection:    FormatSelection,
-  keyNamer:           KeyNamer,
-  partitionSelection: PartitionSelection,
-  commitPolicy:       CommitPolicy = CloudCommitPolicy.Default,
-  localStagingArea:   LocalStagingArea,
-  dataStorage:        DataStorageSettings,
+  sourceTopic:      Option[String],
+  bucketAndPrefix:  CloudLocation,
+  formatSelection:  FormatSelection,
+  keyNamer:         KeyNamer,
+  commitPolicy:     CommitPolicy = CloudCommitPolicy.Default,
+  localStagingArea: LocalStagingArea,
+  dataStorage:      DataStorageSettings,
 ) extends WithTransformableDataStorage
