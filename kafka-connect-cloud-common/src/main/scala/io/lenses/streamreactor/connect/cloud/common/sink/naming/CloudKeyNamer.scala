@@ -64,10 +64,10 @@ object CloudKeyNamer {
     )
 }
 class CloudKeyNamer(
-  formatSelection:    FormatSelection,
-  partitionSelection: PartitionSelection,
-  fileNamer:          FileNamer,
-  paddingService:     PaddingService,
+  formatSelection:        FormatSelection,
+  val partitionSelection: PartitionSelection,
+  fileNamer:              FileNamer,
+  paddingService:         PaddingService,
 ) extends KeyNamer {
 
   private val DefaultPrefix = ""
