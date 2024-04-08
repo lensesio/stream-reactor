@@ -1,6 +1,7 @@
 package io.lenses.streamreactor.connect.azure.eventhubs.source;
 
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 
@@ -10,5 +11,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 public interface ProducerProvider<K, V> {
 
   BlockingQueueProducer createProducer(AzureEventHubsSourceConfig azureEventHubsSourceConfig,
-      BlockingQueue<ConsumerRecords<K, V>> recordBlockingQueue);
+      BlockingQueue<ConsumerRecords<byte[], byte[]>> recordBlockingQueue,
+      Map<String, String> inputToOutputTopics);
 }

@@ -3,9 +3,8 @@ package io.lenses.streamreactor.connect.azure.eventhubs.source;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
-import io.lenses.streamreactor.connect.azure.eventhubs.util.KcqlConfigPort;
-import io.lenses.kcql.Kcql;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import lombok.extern.slf4j.Slf4j;
@@ -36,12 +35,14 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
    * Instantiates BlockingQueuedKafkaConsumer from given properties.
    *
    * @param azureEventHubsSourceConfig Config of Task
-   * @param recordBlockingQueue  BlockingQueue for ConsumerRecords
+   * @param recordBlockingQueue        BlockingQueue for ConsumerRecords
+   * @param inputToOutputTopics map of input to output topics
    * @return BlockingQueuedKafkaConsumer instance.
    */
   public KafkaByteBlockingQueuedProducer createProducer(
       AzureEventHubsSourceConfig azureEventHubsSourceConfig,
-      BlockingQueue<ConsumerRecords<byte[], byte[]>> recordBlockingQueue) {
+      BlockingQueue<ConsumerRecords<byte[], byte[]>> recordBlockingQueue,
+      Map<String, String> inputToOutputTopics) {
     String connectorName = azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.CONNECTOR_NAME);
     final String clientId = connectorName + "#" + UUID.randomUUID();
     log.info("Attempting to create Client with Id:{}", clientId);
@@ -61,10 +62,10 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
     KafkaConsumer<byte[], byte[]> kafkaConsumer = new KafkaConsumer<>(consumerProperties);
 
     boolean shouldSeekToLatest = shouldConsumerSeekToLatest(azureEventHubsSourceConfig);
-    String topic = getInputTopicFromConfig(azureEventHubsSourceConfig);
+    Set<String> inputTopics = inputToOutputTopics.keySet();
 
     return new KafkaByteBlockingQueuedProducer(topicPartitionOffsetProvider, recordBlockingQueue,
-        kafkaConsumer, keyValueTypes, clientId, topic, shouldSeekToLatest);
+        kafkaConsumer, keyValueTypes, clientId, inputTopics, shouldSeekToLatest);
   }
 
   private boolean shouldConsumerSeekToLatest(AzureEventHubsSourceConfig azureEventHubsSourceConfig) {
@@ -76,18 +77,5 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
     }
     throw new ConfigException(AzureEventHubsConfigConstants.CONSUMER_OFFSET, seekValue,
         CONSUMER_OFFSET_EXCEPTION_MESSAGE);
-  }
-
-  /**
-   * Returns input topic (specified in KCQL config).
-   *
-   * @param azureEventHubsSourceConfig task configuration
-   * @return input topic
-   */
-  private String getInputTopicFromConfig(
-      AzureEventHubsSourceConfig azureEventHubsSourceConfig) {
-    Kcql kcql = KcqlConfigPort.parseMultipleKcqlStatementsPickingOnlyFirst(
-        azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
-    return kcql.getSource();
   }
 }

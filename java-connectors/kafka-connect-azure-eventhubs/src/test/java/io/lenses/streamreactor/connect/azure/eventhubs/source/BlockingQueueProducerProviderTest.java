@@ -13,6 +13,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
+import java.util.HashMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.config.ConfigException;
@@ -52,8 +53,8 @@ class BlockingQueueProducerProviderTest {
     ConfigException configException;
     try(MockedConstruction<KafkaConsumer> ignored = Mockito.mockConstruction(KafkaConsumer.class)){
       configException = assertThrows(ConfigException.class, () -> {
-        testObj.createProducer(azureConfigMock, new ArrayBlockingQueue<>(1)
-        );
+        testObj.createProducer(azureConfigMock, new ArrayBlockingQueue<>(1),
+            new HashMap<>());
       });
     }
 
@@ -80,7 +81,8 @@ class BlockingQueueProducerProviderTest {
         mockedOffsetProvider);
     KafkaByteBlockingQueuedProducer consumer;
     try(MockedConstruction<KafkaConsumer> ignored = Mockito.mockConstruction(KafkaConsumer.class)){
-      consumer = testObj.createProducer(azureConfigMock, new ArrayBlockingQueue<>(1));
+      consumer = testObj.createProducer(azureConfigMock, new ArrayBlockingQueue<>(1),
+          new HashMap<>());
     }
 
     //then

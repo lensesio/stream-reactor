@@ -6,7 +6,6 @@ import io.lenses.streamreactor.common.util.JarManifest;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import io.lenses.streamreactor.connect.azure.eventhubs.util.KcqlConfigPort;
-import io.lenses.kcql.Kcql;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -52,12 +51,13 @@ public class AzureEventHubsSourceTask extends SourceTask {
 
     ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue = new ArrayBlockingQueue<>(
         RECORDS_QUEUE_DEFAULT_SIZE);
+    Map<String, String> inputToOutputTopics = KcqlConfigPort.mapInputToOutputsFromConfig(
+        azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
     blockingQueueProducerProvider = new BlockingQueueProducerProvider(topicPartitionOffsetProvider);
     KafkaByteBlockingQueuedProducer producer = blockingQueueProducerProvider.createProducer(
-        azureEventHubsSourceConfig, recordsQueue);
-    String outputTopic = getOutputTopicFromConfig(azureEventHubsSourceConfig);
+        azureEventHubsSourceConfig, recordsQueue, inputToOutputTopics);
     EventHubsKafkaConsumerController kafkaConsumerController = new EventHubsKafkaConsumerController(
-        producer, recordsQueue, outputTopic);
+        producer, recordsQueue, inputToOutputTopics);
     initialize(kafkaConsumerController, azureEventHubsSourceConfig);
   }
 
@@ -89,18 +89,5 @@ public class AzureEventHubsSourceTask extends SourceTask {
   public void stop() {
     ofNullable(eventHubsKafkaConsumerController)
         .ifPresent(consumerController -> consumerController.close(closeTimeout));
-  }
-
-  /**
-   * Returns output topic (specified in config using KCQL).
-   *
-   * @param azureEventHubsSourceConfig task configuration
-   * @return output topic
-   */
-  private String getOutputTopicFromConfig(
-      AzureEventHubsSourceConfig azureEventHubsSourceConfig) {
-    Kcql kcql = KcqlConfigPort.parseMultipleKcqlStatementsPickingOnlyFirst(
-        azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
-    return kcql.getTarget();
   }
 }

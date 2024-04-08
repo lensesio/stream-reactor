@@ -3,7 +3,7 @@ package io.lenses.streamreactor.connect.azure.eventhubs.source;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,7 +23,7 @@ public class KafkaByteBlockingQueuedProducer implements BlockingQueueProducer {
   private final BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue;
   private final Consumer<byte[], byte[]> consumer;
   private final String clientId;
-  private final String topic;
+  private final Set<String> inputTopics;
   private EventhubsPollingRunnable pollingRunnable;
   private final boolean shouldSeekToLatest;
   @Getter
@@ -42,18 +42,18 @@ public class KafkaByteBlockingQueuedProducer implements BlockingQueueProducer {
    * @param keyValueTypes                {@link KeyValueTypes} instance indicating key and value
    *                                     types
    * @param clientId                     consumer client id
-   * @param topic                        kafka topic to consume from
+   * @param inputTopics                        kafka inputTopics to consume from
    * @param shouldSeekToLatest           informs where should consumer seek when there are no
    *                                     offsets committed
    */
   public KafkaByteBlockingQueuedProducer(TopicPartitionOffsetProvider topicPartitionOffsetProvider,
       BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue, Consumer<byte[], byte[]> consumer,
-      KeyValueTypes keyValueTypes, String clientId, String topic, boolean shouldSeekToLatest) {
+      KeyValueTypes keyValueTypes, String clientId, Set<String> inputTopics, boolean shouldSeekToLatest) {
     this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;
     this.recordsQueue = recordsQueue;
     this.consumer = consumer;
     this.clientId = clientId;
-    this.topic = topic;
+    this.inputTopics = inputTopics;
     this.shouldSeekToLatest = shouldSeekToLatest;
     this.keyValueTypes = keyValueTypes;
 
@@ -82,8 +82,8 @@ public class KafkaByteBlockingQueuedProducer implements BlockingQueueProducer {
     @Override
     public void run() {
       running.set(true);
-      log.info("Subscribing to topic: {}", topic);
-      consumer.subscribe(Collections.singletonList(topic),
+      log.info("Subscribing to topics: {}", String.join(",", inputTopics));
+      consumer.subscribe(inputTopics,
           new AzureConsumerRebalancerListener(topicPartitionOffsetProvider, consumer, shouldSeekToLatest));
       while (running.get()) {
         ConsumerRecords<byte[], byte[]> consumerRecords = consumer.poll(DEFAULT_POLL_DURATION);
