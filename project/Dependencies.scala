@@ -79,7 +79,7 @@ object Dependencies {
 
     val jacksonVersion      = "2.17.0"
     val json4sVersion       = "4.0.7"
-    val mockitoScalaVersion = "1.17.30"
+    val mockitoScalaVersion = "1.17.31"
     val openCsvVersion      = "5.9"
     val jsonSmartVersion    = "2.5.1"
 
