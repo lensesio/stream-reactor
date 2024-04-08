@@ -52,8 +52,7 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
         AzureEventHubsConfigConstants.CONNECTOR_WITH_CONSUMER_PREFIX, STRIP_PREFIX);
 
     consumerProperties.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
-    consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, azureEventHubsSourceConfig.getString(
-            AzureEventHubsSourceConfig.getPrefixedKafkaConsumerConfigKey(ConsumerConfig.GROUP_ID_CONFIG)));
+    consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, connectorName);
     consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
             keyValueTypes.getKeyType().getDeserializerClass());
     consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
