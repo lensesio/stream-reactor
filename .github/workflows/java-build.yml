@@ -14,7 +14,7 @@ on:
 #        value: ${{ jobs.initiate.outputs.matrix }}
 
 jobs:
-  test-without-cache:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -29,11 +29,13 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.6
-          
+
       - name: Test with Gradle
         run: cd 'java-connectors' && ./gradlew test
 
   build-with-upload-artifact:
+    needs:
+      - test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -52,14 +54,8 @@ jobs:
       - name: Execute Gradle build
         run: cd 'java-connectors' && ./gradlew shadowJar --scan
 
-      - name: Archive test report
-        uses: actions/upload-artifact@v2
-        with:
-          name: Test report
-          path: build/reports/tests/test
-
       - name: Cache assembly
         uses: actions/cache/save@v3
         with:
-          path: ./java-connectors/release/*/libs/*.jar
+          path: ./release/**/libs/*.jar
           key: assembly-${{ matrix.module }}-${{ github.run_id }}
