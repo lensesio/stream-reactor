@@ -1,0 +1,52 @@
+name: CI
+on:
+  # remove push
+  push:
+  pull_request:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+    outputs:
+      modules:
+        description: "Stream reactor collection of modules"
+        value: ${{ jobs.initiate.outputs.matrix }}
+
+jobs:
+  test-without-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 21
+        uses: actions/setup-java@v2
+        with:
+          java-version: 21
+          distribution: 'temurin'
+      - name: Test with Gradle
+        run: ./java-connectors/gradlew test
+
+  build-with-upload-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 21
+        uses: actions/setup-java@v2
+        with:
+          java-version: 21
+          distribution: 'temurin'
+          cache: gradle
+      - name: build Java assemblies
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: clean shadowJar --scan
+      - name: Archive test report
+        uses: actions/upload-artifact@v2
+        with:
+          name: Test report
+          path: build/reports/tests/test
+      - name: Cache assembly
+        uses: actions/cache/save@v3
+        with:
+          path: ./java-connectors/release/*/libs/*.jar
+          key: assembly-${{ matrix.module }}-${{ github.run_id }}
