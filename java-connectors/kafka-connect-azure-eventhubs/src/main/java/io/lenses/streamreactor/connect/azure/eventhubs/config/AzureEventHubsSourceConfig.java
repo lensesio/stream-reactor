@@ -2,8 +2,8 @@ package io.lenses.streamreactor.connect.azure.eventhubs.config;
 
 import io.lenses.streamreactor.common.config.base.BaseConfig;
 import io.lenses.streamreactor.common.config.base.intf.ConnectorPrefixed;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 import lombok.Getter;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -23,8 +23,9 @@ public class AzureEventHubsSourceConfig extends BaseConfig implements ConnectorP
   private static final UnaryOperator<String> CONFIG_NAME_PREFIX_APPENDER = name ->
       AzureEventHubsConfigConstants.CONNECTOR_WITH_CONSUMER_PREFIX + name;
 
-  private static final List<String> EXCLUDED_CONSUMER_PROPERTIES =
-      List.of(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG);
+  private static final Set<String> EXCLUDED_CONSUMER_PROPERTIES =
+      Set.of(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+          ConsumerConfig.GROUP_ID_CONFIG, ConsumerConfig.CLIENT_ID_CONFIG, ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG);
 
 
   @Getter
