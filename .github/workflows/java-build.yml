@@ -17,7 +17,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 21
         uses: actions/setup-java@v3
@@ -38,7 +38,7 @@ jobs:
       - test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
@@ -57,5 +57,6 @@ jobs:
       - name: Cache assembly
         uses: actions/cache/save@v3
         with:
-          path: ./java-connectors/release/**/libs/*.jar
+          path: ~/java-connectors/release/**/libs/*.jar
           key: assembly-${{ matrix.module }}-${{ github.run_id }}
+        run: pwd && ls
