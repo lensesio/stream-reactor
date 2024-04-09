@@ -57,5 +57,5 @@ jobs:
       - name: Cache assembly
         uses: actions/cache/save@v3
         with:
-          path: ./release/**/libs/*.jar
+          path: ./java-connectors/release/**/libs/*.jar
           key: assembly-${{ matrix.module }}-${{ github.run_id }}
