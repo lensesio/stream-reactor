@@ -1,35 +1,37 @@
 plugins {
     id 'com.github.johnrengelman.shadow' version '8.1.1'
     id 'java'
+    id 'java-library'
 }
 
 allprojects {
 
-    group = "io.lenses.java.streamreactor"
+    group = "io.lenses.streamreactor"
     version = "1.0-SNAPSHOT"
+    description = "stream-reactor"
 
     apply plugin: 'java'
+    apply plugin: 'java-library'
     apply plugin: 'com.github.johnrengelman.shadow'
 
     java {
         setSourceCompatibility(JavaVersion.VERSION_11)
         setTargetCompatibility(JavaVersion.VERSION_11)
-        toolchain {
-            languageVersion = JavaLanguageVersion.of(21)
-        }
     }
 
     ext {
         //DEPENDENCY VERSIONS
         lombokVersion = '1.18.30'
-        kafkaVersion = '3.3.0'
-        logbackVersion = '1.4.7'
+        kafkaVersion = '3.6.1'
+        logbackVersion = '1.4.14'
+        jUnitVersion = '5.9.1'
         mockitoJupiterVersion = '5.10.0'
+        awaitilityVersion = '4.2.0'
         apacheToConfluentVersionAxis = ["2.8.1": "6.2.2", "3.3.0": "7.3.1"]
 
         //for jar building
         rootRelease = "${project.rootDir}/release/"
-        versionDir = "${rootRelease}/${project.description}-${project.version}-${kafkaVersion}"
+        versionDir = "${rootRelease}/${project.description}-${project.version}"
         confDir = "${versionDir}/conf"
         libsDir = "${versionDir}/libs"
 
@@ -47,31 +49,17 @@ allprojects {
         }
     }
 
-    //settings and dependencies for all projects
-    apply plugin: 'java'
-
     dependencies {
-        //tests
-        testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoJupiterVersion
-        testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: mockitoJupiterVersion
-        testImplementation(platform("org.junit:junit-bom:5.9.1"))
-
         //logback
         implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
 
         //lombok
-        compileOnly group: 'org.projectlombok', name: 'lombok', version: lombokVersion
+        compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.30'
         annotationProcessor group: 'org.projectlombok', name: 'lombok', version: lombokVersion
 
-        //apache kafka
-        implementation group: 'org.apache.kafka', name: 'connect-json', version: kafkaVersion
-        implementation group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
-
-        //confluent
-        implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version: apacheToConfluentVersionAxis.get(kafkaVersion)
-        implementation group: 'io.confluent', name: 'kafka-connect-avro-converter', version: apacheToConfluentVersionAxis.get(kafkaVersion)
-        implementation group: 'io.confluent', name: 'kafka-connect-avro-data', version: apacheToConfluentVersionAxis.get(kafkaVersion)
-        implementation group: 'io.confluent', name: 'kafka-connect-protobuf-converter', version: apacheToConfluentVersionAxis.get(kafkaVersion)
+        //tests
+        testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoJupiterVersion
+        testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: mockitoJupiterVersion
     }
 
     test {
@@ -99,6 +87,7 @@ allprojects {
     }
 
     shadowJar {
+
         manifest {
             attributes("StreamReactor-Version": project.version,
                     "Kafka-Version": kafkaVersion,
@@ -120,9 +109,13 @@ allprojects {
             exclude "META-INF/*.RSA"
         }
 
+        //shadowing antlr packages in order to avoid conflict when using kafka connect
+        relocate('org.antlr', 'lshaded.antlr')
+
         dependencies {
+//            // UNCOMMENT BELOW IF NEED CLEAN JAR
 //            exclude(dependency {
-//                it.moduleGroup != 'io.lenses.java.streamreactor'
+//                it.moduleGroup != 'io.lenses.streamreactor'
 //            })
 //        exclude(dependency('org.apache.logging.log4j:log4j-core:2.11.1'))
 //        exclude(dependency("org.apache.avro:.*"))
@@ -135,11 +128,11 @@ allprojects {
 
     }
 
-    task fatJar(dependsOn: [test, shadowJar])
+    task fatJar(dependsOn: [test, jar, shadowJar])
 
     task collectFatJar(type: Copy, dependsOn: [fatJar]) {
-        from "${buildDir}/libs"
-        into libsDir
+        from("${buildDir}/libs").include("kafka-connect-*-all.jar")
+        .exclude("*-common-*").into(libsDir)
     }
 }
 
