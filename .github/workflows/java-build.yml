@@ -1,4 +1,4 @@
-name: CI
+name: CI-java
 on:
   # remove push
   push:
@@ -18,13 +18,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
           java-version: 21
           distribution: 'temurin'
+
       - name: Test with Gradle
-        run: cd 'java-reactor' && ./gradlew test
+        run: cd 'java-connectors' && ./gradlew test
 
   build-with-upload-artifact:
     runs-on: ubuntu-latest
@@ -36,15 +38,19 @@ jobs:
           java-version: 21
           distribution: 'temurin'
           cache: gradle
-      - name: build Java assemblies
-        uses: gradle/gradle-build-action@v2
-        with:
-          arguments: clean shadowJar --scan
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Execute Gradle build
+        run: ./gradlew clean shadowJar --scan
+
       - name: Archive test report
         uses: actions/upload-artifact@v2
         with:
           name: Test report
           path: build/reports/tests/test
+
       - name: Cache assembly
         uses: actions/cache/save@v3
         with:
