@@ -1,3 +1,4 @@
+name: Publish New Java Release
 on:
   push:
     tags:
@@ -100,7 +101,7 @@ jobs:
       - name: Package Connector
         shell: bash
         run: |
-          $JAVA_RELEASE_FOLDER = java-connectors/release/stream-reactor*/libs
+          JAVA_RELEASE_FOLDER=java-connectors/release/stream-reactor*/libs
           FOLDER=${{ matrix.module }}-${{ env.TAG }}
           mkdir -p $FOLDER
           cp $JAVA_RELEASE_FOLDER/${{ matrix.module }}*.jar LICENSE $FOLDER/
