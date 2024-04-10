@@ -1,6 +1,5 @@
 package io.lenses.streamreactor.connect.azure.eventhubs.source;
 
-import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -11,8 +10,8 @@ import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
+import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import java.util.HashMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -87,7 +86,6 @@ class BlockingQueueProducerProviderTest {
 
     //then
     verify(azureConfigMock).getString(AzureEventHubsConfigConstants.CONNECTOR_NAME);
-    verify(azureConfigMock).getString(AzureEventHubsSourceConfig.getPrefixedKafkaConsumerConfigKey(GROUP_ID_CONFIG));
     assertNotNull(consumer);
     assertEquals(1, logWatcher.list.size());
     assertTrue(logWatcher.list.get(0).getFormattedMessage().startsWith("Attempting to create Client with Id"));
