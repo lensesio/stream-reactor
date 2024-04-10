@@ -35,7 +35,7 @@ jobs:
       - name: Read java modules lists
         id: java-mods
         run: |
-          echo "::set-output name=matrix::$(cat ./java-connectors/build/gradle-modules.txt)"
+          echo "::set-output name=matrix::$(cat ./java-connectors/gradle-modules.txt)"
 
   test:
     needs:
