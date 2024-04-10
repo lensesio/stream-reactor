@@ -8,10 +8,10 @@ on:
       version:
         required: true
         type: string
-#    outputs:
-#      modules:
-#        description: "Stream reactor collection of modules"
-#        value: ${{ jobs.initiate.outputs.matrix }}
+    outputs:
+      modules:
+        description: "Stream reactor collection of modules"
+        value: ${{ jobs.initiate.outputs.matrix }}
 
 jobs:
 
@@ -79,8 +79,8 @@ jobs:
       - name: Execute Gradle build
         run: cd 'java-connectors' && ./gradlew prepareRelease --scan
 
-      - name: Debug pwd and ls
-        run: pwd && ls -R java-connectors
+#      - name: Debug pwd and ls
+#        run: pwd && ls -R java-connectors
 
       - name: Cache assembly
         uses: actions/cache/save@v3
