@@ -44,3 +44,4 @@ bin/
 
 ### Lenses-specific ###
 release/
+gradle-modules.txt

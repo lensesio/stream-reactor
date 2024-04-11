@@ -29,17 +29,17 @@ allprojects {
         awaitilityVersion = '4.2.0'
         apacheToConfluentVersionAxis = ["2.8.1": "6.2.2", "3.3.0": "7.3.1"]
 
-        //for jar building
-        rootRelease = "${project.rootDir}/release/"
-        versionDir = "${rootRelease}/${project.description}-${project.version}"
-        confDir = "${versionDir}/conf"
-        libsDir = "${versionDir}/libs"
-
         //Other Manifest Info
         mainClassName = ''
         gitCommitHash = ("git rev-parse HEAD").execute().text.trim()
         gitTag = ("git describe --abbrev=0 --tags").execute().text.trim()
         gitRepo = ("git remote get-url origin").execute().text.trim()
+
+        //for jar building
+        rootRelease = "${project.rootDir}/release/"
+        versionDir = "${rootRelease}/${project.description}-${project.version}"
+        confDir = "${versionDir}/conf"
+        libsDir = "${versionDir}/libs"
     }
 
     repositories {
@@ -138,4 +138,19 @@ allprojects {
 
 task prepareRelease(dependsOn: [collectFatJar]) {
     dependsOn subprojects.collectFatJar
+}
+
+task releaseModuleList() {
+    def nonReleaseModules = ["java-reactor", "kafka-connect-cloud-common", "kafka-connect-common"]
+
+    def modulesFile = new File("gradle-modules.txt")
+    modulesFile.delete()
+    modulesFile.createNewFile()
+
+    def modulesBuilder = new StringBuilder("[")
+    allprojects.name.stream()
+            .filter {moduleName -> !nonReleaseModules.contains(moduleName)}
+            .forEach {moduleName -> modulesBuilder.append("\"" + moduleName + "\",") }
+    modulesBuilder.deleteCharAt(modulesBuilder.lastIndexOf(",")).append("]")
+    modulesFile.append(modulesBuilder)
 }
