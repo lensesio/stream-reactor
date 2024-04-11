@@ -78,26 +78,6 @@ jobs:
           key: assembly-java-${{ github.run_id }}
           fail-on-cache-miss: true
 
-#      - name: Package Connector
-#        shell: bash
-#        run: |
-#          $JAVA_RELEASE_FOLDER = java-connectors/release/stream-reactor*/libs
-#          cp LICENSE $JAVA_RELEASE_FOLDER/ && cd $JAVA_RELEASE_FOLDER/
-#          for file in *.jar; do
-#            NAME=${file##*/}
-#            echo name $NAME
-#            BASE=${name%-all.jar}
-#            echo base $BASE
-#            OUTPUT_FOLDER=${base}-${{ env.TAG }}
-#            echo output_folder $OUTPUT_FOLDER
-#            mkdir -p $OUTPUT_FOLDER
-#            cp ${file} LICENSE $OUTPUT_FOLDER/
-#            zip -r "$output_folder.zip" $OUTPUT_FOLDER/
-#          FOLDER=kafka-connect-${{ matrix.module }}-${{ env.TAG }}
-#          mkdir -p $FOLDER
-#          cp **/target/libs/*.jar LICENSE $FOLDER/
-#          zip -r "$FOLDER.zip" $FOLDER/
-
       - name: Package Connector
         shell: bash
         run: |

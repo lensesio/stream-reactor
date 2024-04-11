@@ -1,16 +1,16 @@
 name: CI
 
-#on:
-#  pull_request:
-#  workflow_call:
-#    inputs:
-#      version:
-#        required: true
-#        type: string
-#    outputs:
-#      modules:
-#        description: "Stream reactor collection of modules"
-#        value: ${{ jobs.initiate.outputs.matrix }}
+on:
+  pull_request:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+    outputs:
+      modules:
+        description: "Stream reactor collection of modules"
+        value: ${{ jobs.initiate.outputs.matrix }}
 
 jobs:
   initiate:
