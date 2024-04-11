@@ -74,7 +74,7 @@ jobs:
         uses: actions/cache/restore@v3
         with:
           path: |
-            ./java-connectors/${{ matrix.module }}/build/libs/${{ matrix.module }}*.jar
+            ./java-connectors/release/${{ matrix.module }}*.jar
           key: assembly-java-${{ github.run_id }}
           fail-on-cache-miss: true
 
@@ -102,7 +102,7 @@ jobs:
         shell: bash
         run: |
           #JAVA_RELEASE_FOLDER=java-connectors/release/stream-reactor*/libs
-          JAVA_RELEASE_FOLDER=java-connectors/${{ matrix.module }}/build/libs
+          JAVA_RELEASE_FOLDER=java-connectors/release/${{ matrix.module }}*.jar
           FOLDER=${{ matrix.module }}-${{ env.TAG }}
           mkdir -p $FOLDER
           cp $JAVA_RELEASE_FOLDER/${{ matrix.module }}*.jar LICENSE $FOLDER/
