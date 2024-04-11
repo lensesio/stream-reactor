@@ -1,10 +1,10 @@
 name: Publish New Release
 
-on:
-  push:
-    tags:
-      - "*"
-  workflow_dispatch:
+#on:
+#  push:
+#    tags:
+#      - "*"
+#  workflow_dispatch:
 
 jobs:
   validate-tag:
