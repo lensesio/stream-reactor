@@ -91,7 +91,7 @@ jobs:
         run: |
           JAVA_RELEASE_FOLDER=java-connectors/release
           JAVA_BUILD_FOLDER=java-connectors/${{ matrix.module }}/build/libs
-          mkdir -p JAVA_RELEASE_FOLDER
+          mkdir -p $JAVA_RELEASE_FOLDER
           cp $JAVA_BUILD_FOLDER/${{ matrix.module }}*.jar LICENSE $JAVA_RELEASE_FOLDER/
 
 #      - name: Debug pwd and ls
