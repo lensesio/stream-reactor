@@ -40,6 +40,9 @@ jobs:
   test:
     needs:
       - initiate
+    strategy:
+      matrix:
+        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,11 +59,15 @@ jobs:
           gradle-version: 8.6
 
       - name: Test with Gradle
-        run: cd 'java-connectors' && ./gradlew test
+        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:test
 
-  build-with-upload-artifact:
+  build-and-upload-artifact:
     needs:
       - test
+      - initiate
+    strategy:
+      matrix:
+        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -77,7 +84,7 @@ jobs:
           gradle-version: 8.6
 
       - name: Execute Gradle build
-        run: cd 'java-connectors' && ./gradlew prepareRelease --scan
+        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:shadowJar --scan
 
 #      - name: Debug pwd and ls
 #        run: pwd && ls -R java-connectors
@@ -85,5 +92,5 @@ jobs:
       - name: Cache assembly
         uses: actions/cache/save@v3
         with:
-          path: ./java-connectors/release/stream-reactor*/libs/*.jar
+          path: ./java-connectors/${{ matrix.module }}/build/libs/${{ matrix.module }}*.jar
           key: assembly-java-${{ github.run_id }}
