@@ -41,7 +41,7 @@ object Dependencies {
     val scalaCheckVersion              = "1.17.0"
 
     val kafkaVersion:     String = "3.7.0"
-    val confluentVersion: String = "7.6.0"
+    val confluentVersion: String = "7.6.1"
 
     val enumeratumVersion = "1.7.3"
 
