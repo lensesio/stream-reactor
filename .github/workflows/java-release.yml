@@ -21,11 +21,11 @@ jobs:
         shell: bash
         id: get_tag
         run: |
-          if [[ ${GITHUB_REF##*/} =~ ^[0-9]\.[0-9]\.[0-9]$ ]];
+          if [[ ${GITHUB_REF##*/} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]];
           then
               draft_release=false
           
-          elif [[ ${GITHUB_REF##*/} =~ ^[0-9]\.[0-9]\.[0-9]+(-(alpha|beta|rc)(\.[0-9]+)?)?(\+[A-Za-z0-9.]+)?$ ]];
+          elif [[ ${GITHUB_REF##*/} =~ ^[0-9]+\.[0-9]+\.[0-9]+\+(-(alpha|beta|rc)(\.[0-9]+)?)?(\+[A-Za-z0-9.]+)?$ ]];
           then
               draft_release=true
           else
@@ -71,7 +71,7 @@ jobs:
           cache: 'gradle'
 
       - name: Uncache assembly
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: |
             ./java-connectors/release/${{ matrix.module }}*.jar
