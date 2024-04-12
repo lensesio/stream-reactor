@@ -51,29 +51,32 @@ The following connectors have been deprecated and are no longer included in futu
 
 **Please take a moment and read the documentation and make sure the software prerequisites are met!!**
 
-| Connector                   | Type   | Description                                                 | Docs                                                                         |
-|-----------------------------|--------|-------------------------------------------------------------|------------------------------------------------------------------------------|
-| AWS S3                      | Sink   | Copy data from Kafka to AWS S3.                             | [Docs](https://docs.lenses.io/5.3/connectors/sinks/s3sinkconnector/)         |
-| AWS S3                      | Source | Copy data from AWS S3 to Kafka.                             | [Docs](https://docs.lenses.io/5.3/connectors/sources/s3sourceconnector/)     |
-| Azure Data Lake (Beta)      | Sink   | Copy data from Kafka to Azure Data Lake                     | [Docs](https://docs.lenses.io/5.3/connectors/sinks/datalakesinkconnector/)   |
-| AzureDocumentDb             | Sink   | Copy data from Kafka and Azure Document Db.                 | [Docs](https://docs.lenses.io/connectors/sink/azuredocdb.html)               |
-| Cassandra                   | Source | Copy data from Cassandra to Kafka.                          | [Docs](https://docs.lenses.io/connectors/source/cassandra.html)              |
-| *Cassandra                  | Sink   | Certified DSE Cassandra, copy data from Kafka to Cassandra. | [Docs](https://docs.lenses.io/connectors/sink/cassandra.html)                |
-| Elastic 6                   | Sink   | Copy data from Kafka to Elastic Search 6.x w. tcp or http   | [Docs](https://docs.lenses.io/connectors/sink/elastic6.html)                 |
-| FTP/HTTP                    | Source | Copy data from FTP/HTTP to Kafka.                           | [Docs](https://docs.lenses.io/5.3/connectors/sources/ftpsourceconnector/)    |
-| Google Cloud Storage (Beta) | Sink   | Copy data from Kafka to Google Cloud Storage.               | [Docs](https://docs.lenses.io/5.3/connectors/sinks/gcpstoragesinkconnector/) |
-| InfluxDb                    | Sink   | Copy data from Kafka to InfluxDb.                           | [Docs](https://docs.lenses.io/5.3/connectors/sinks/influxsinkconnector/)     |
-| JMS                         | Source | Copy data from JMS topics/queues to Kafka.                  | [Docs](https://docs.lenses.io/connectors/source/jms.html)                    |
-| JMS                         | Sink   | Copy data from Kafka to JMS.                                | [Docs](https://docs.lenses.io/connectors/sink/jms.html)                      |
-| MongoDB                     | Sink   | Copy data from Kafka to MongoDB.                            | [Docs](https://docs.lenses.io/connectors/sink/mongo.html)                    |
-| MQTT                        | Source | Copy data from MQTT to Kafka.                               | [Docs](https://docs.lenses.io/connectors/source/mqtt.html)                   |
-| MQTT                        | Sink   | Copy data from Kafka to MQTT.                               | [Docs](https://docs.lenses.io/connectors/sink/mqtt.html)                     |
-| Redis                       | Sink   | Copy data from Kafka to Redis.                              | [Docs](https://docs.lenses.io/connectors/sink/redis.html)                    |
+| Connector                   | Type   | Description                                                 | Docs                                                                             |
+|-----------------------------|--------|-------------------------------------------------------------|----------------------------------------------------------------------------------|
+| AWS S3                      | Sink   | Copy data from Kafka to AWS S3.                             | [Docs](https://docs.lenses.io/5.4/connectors/sinks/s3sinkconnector/)             |
+| AWS S3                      | Source | Copy data from AWS S3 to Kafka.                             | [Docs](https://docs.lenses.io/5.4/connectors/sources/s3sourceconnector/)         |
+| Azure Data Lake (Beta)      | Sink   | Copy data from Kafka to Azure Data Lake                     | [Docs](https://docs.lenses.io/5.4/connectors/sinks/datalakesinkconnector/)       |
+| AzureDocumentDb             | Sink   | Copy data from Kafka and Azure Document Db.                 | [Docs](https://docs.lenses.io/connectors/sink/azuredocdb.html)                   |
+| Cassandra                   | Source | Copy data from Cassandra to Kafka.                          | [Docs](https://docs.lenses.io/connectors/source/cassandra.html)                  |
+| *Cassandra                  | Sink   | Certified DSE Cassandra, copy data from Kafka to Cassandra. | [Docs](https://docs.lenses.io/connectors/sink/cassandra.html)                    |
+| Elastic 6                   | Sink   | Copy data from Kafka to Elastic Search 6.x w. tcp or http   | [Docs](https://docs.lenses.io/connectors/sink/elastic6.html)                     |
+| Elastic 7                   | Sink   | Copy data from Kafka to Elastic Search 7.x w. tcp or http   | [Docs](https://docs.lenses.io/connectors/sink/elastic7.html)                     |
+| FTP/HTTP                    | Source | Copy data from FTP/HTTP to Kafka.                           | [Docs](https://docs.lenses.io/5.4/connectors/sources/ftpsourceconnector/)        |
+| Google Cloud Storage (Beta) | Sink   | Copy data from Kafka to Google Cloud Storage.               | [Docs](https://docs.lenses.io/5.4/connectors/sinks/gcpstoragesinkconnector/)     |
+| Google Cloud Storage (Beta) | Source | Copy data from Google Cloud Storage to Kafka.               | [Docs](https://docs.lenses.io/5.4/connectors/sources/gcpstoragesourceconnector/) |
+| HTTP (Beta)                 | Sink   | Copy data from Kafka to HTTP.                               | [Docs](https://docs.lenses.io/5.4/connectors/sinks/httpsinkconnector/)           | 
+| InfluxDb                    | Sink   | Copy data from Kafka to InfluxDb.                           | [Docs](https://docs.lenses.io/5.4/connectors/sinks/influxsinkconnector/)         |
+| JMS                         | Source | Copy data from JMS topics/queues to Kafka.                  | [Docs](https://docs.lenses.io/connectors/source/jms.html)                        |
+| JMS                         | Sink   | Copy data from Kafka to JMS.                                | [Docs](https://docs.lenses.io/connectors/sink/jms.html)                          |
+| MongoDB                     | Sink   | Copy data from Kafka to MongoDB.                            | [Docs](https://docs.lenses.io/connectors/sink/mongo.html)                        |
+| MQTT                        | Source | Copy data from MQTT to Kafka.                               | [Docs](https://docs.lenses.io/connectors/source/mqtt.html)                       |
+| MQTT                        | Sink   | Copy data from Kafka to MQTT.                               | [Docs](https://docs.lenses.io/connectors/sink/mqtt.html)                         |
+| Redis                       | Sink   | Copy data from Kafka to Redis.                              | [Docs](https://docs.lenses.io/connectors/sink/redis.html)                        |
 
 ## Release Notes
 
 Please see the
-*[Stream Reactor Release Notes at Lenses Documentation](https://docs.lenses.io/4.3/integrations/connectors/sr-release-notes/)*.
+*[Stream Reactor Release Notes at Lenses Documentation](https://docs.lenses.io/5.4/connectors/release-notes/)*.
 
 ### Building
 
@@ -129,6 +132,10 @@ To run the tests:
 ```bash
 sbt e2e:test
 ```
+
+### Github Workflows
+
+For a detailed explanation of the Github workflow, please [see our Github Actions Workflow Guide](WORKFLOW.md).
 
 ## Contributing
 

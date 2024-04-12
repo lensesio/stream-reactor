@@ -22,10 +22,13 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
+import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionSelection
 
 import java.io.File
 
 trait KeyNamer {
+
+  def partitionSelection: PartitionSelection
 
   def stagingFile(
     stagingDirectory: File,
