@@ -1,7 +1,5 @@
 name: CI-java
 on:
-  # remove push
-  push:
   pull_request:
   workflow_call:
     inputs:
@@ -93,9 +91,6 @@ jobs:
           JAVA_BUILD_FOLDER=java-connectors/${{ matrix.module }}/build/libs
           mkdir -p $JAVA_RELEASE_FOLDER
           cp $JAVA_BUILD_FOLDER/${{ matrix.module }}*.jar LICENSE $JAVA_RELEASE_FOLDER/
-
-#      - name: Debug pwd and ls
-#        run: pwd && ls -R java-connectors
 
       - name: Cache assembly
         uses: actions/cache/save@v3

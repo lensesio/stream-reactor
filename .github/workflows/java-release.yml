@@ -81,7 +81,6 @@ jobs:
       - name: Package Connector
         shell: bash
         run: |
-          #JAVA_RELEASE_FOLDER=java-connectors/release/stream-reactor*/libs
           JAVA_RELEASE_FOLDER=java-connectors/release
           FOLDER=${{ matrix.module }}-${{ env.TAG }}
           mkdir -p $FOLDER

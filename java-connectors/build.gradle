@@ -141,7 +141,8 @@ task prepareRelease(dependsOn: [collectFatJar]) {
 }
 
 task releaseModuleList() {
-    def nonReleaseModules = ["java-reactor", "kafka-connect-cloud-common", "kafka-connect-common"]
+    def nonReleaseModules = ["java-reactor", "kafka-connect-cloud-common",
+                             "kafka-connect-common", "kafka-connect-query-language"]
 
     def modulesFile = new File("gradle-modules.txt")
     modulesFile.delete()
