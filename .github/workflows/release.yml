@@ -26,7 +26,7 @@ jobs:
           then
               draft_release=false
           
-          elif [[ ${GITHUB_REF##*/} =~ ^[0-9]+\.[0-9]+\.[0-9]+\+(-(alpha|beta|rc)(\.[0-9]+)?)?(\+[A-Za-z0-9.]+)?$ ]];
+          elif [[ ${GITHUB_REF##*/} =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)(\.[0-9]+)?)?(\+[A-Za-z0-9.]+)?$ ]];
           then
               draft_release=true
           else
