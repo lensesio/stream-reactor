@@ -17,6 +17,7 @@ import org.testcontainers.containers.Network
 
 import java.util
 import java.util.UUID
+import scala.annotation.nowarn
 
 class MqttManagerConnectionFailureTest extends AnyWordSpec with ForAllTestContainer with Matchers {
 
@@ -37,6 +38,7 @@ class MqttManagerConnectionFailureTest extends AnyWordSpec with ForAllTestContai
 
       // mqtt broker port will be mapped to a different host network port upon restart
       // using a proxy container to overcome this
+      @nowarn("cat=deprecation")
       val proxy = toxiProxyContainer.container.getProxy(mqttContainer.container, mqttPort)
 
       val mqttProxyUrl = s"tcp://${proxy.getContainerIpAddress}:${proxy.getProxyPort}"
