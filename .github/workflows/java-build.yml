@@ -1,0 +1,104 @@
+name: CI-java
+on:
+  # remove push
+  push:
+  pull_request:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+    outputs:
+      modules:
+        description: "Stream reactor collection of modules"
+        value: ${{ jobs.initiate.outputs.matrix }}
+
+jobs:
+
+  initiate:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.java-mods.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+      - name: Generate modules lists
+        run: cd 'java-connectors' && ./gradlew releaseModuleList
+        env:
+          JVM_OPTS: -Xmx512m
+      - name: Read java modules lists
+        id: java-mods
+        run: |
+          echo "::set-output name=matrix::$(cat ./java-connectors/gradle-modules.txt)"
+
+  test:
+    needs:
+      - initiate
+    strategy:
+      matrix:
+        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.6
+
+      - name: Test with Gradle
+        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:test
+
+  build-and-upload-artifact:
+    needs:
+      - test
+      - initiate
+    strategy:
+      matrix:
+        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.6
+
+      - name: Execute Gradle build
+        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:shadowJar --scan
+
+      - name: Move to release folder
+        shell: bash
+        run: |
+          JAVA_RELEASE_FOLDER=java-connectors/release
+          JAVA_BUILD_FOLDER=java-connectors/${{ matrix.module }}/build/libs
+          mkdir -p $JAVA_RELEASE_FOLDER
+          cp $JAVA_BUILD_FOLDER/${{ matrix.module }}*.jar LICENSE $JAVA_RELEASE_FOLDER/
+
+#      - name: Debug pwd and ls
+#        run: pwd && ls -R java-connectors
+
+      - name: Cache assembly
+        uses: actions/cache/save@v3
+        with:
+          path: ./java-connectors/release/${{ matrix.module }}*.jar
+          key: assembly-java-${{ github.run_id }}
