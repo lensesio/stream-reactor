@@ -32,8 +32,8 @@ jobs:
               echo "Exiting, github ref needs to be a tag with format x.y.z or x.y.z+(alpha|beta|rc)"
               exit 1
           fi
-          echo "::set-output name=draft_release::$draft_release"
-          echo "::set-output name=tag::${GITHUB_REF##*/}"
+          echo "draft_release=$draft_release" >> $GITHUB_OUTPUT
+          echo "tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
 
   build:
     needs:
@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: ${{fromJSON(needs.initiate.outputs.dep_check_matrix)}}
+        module: ${{fromJSON(needs.build.outputs.dep_check_modules)}}
     steps:
       - uses: actions/checkout@v4
       - name: Restore assembly
