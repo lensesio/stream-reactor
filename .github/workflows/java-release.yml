@@ -29,7 +29,7 @@ jobs:
           then
               draft_release=true
           else
-              echo "Exiting, github ref needs to be a tag with format x.y.z or x.y.z+(alpha|beta|rc)"
+              echo "Exiting, github ref needs to be a tag with format x.y.z or x.y.z-(alpha|beta|rc)"
               exit 1
           fi
           echo "::set-output name=draft_release::$draft_release"
