@@ -11,7 +11,9 @@ on:
       modules:
         description: "Stream reactor collection of modules"
         value: ${{ jobs.initiate.outputs.matrix }}
-
+      dep_check_modules:
+        description: "Modules for dependency checking"
+        value: ${{ jobs.initiate.outputs.dep_check_matrix }}
 jobs:
   initiate:
     timeout-minutes: 5
@@ -36,10 +38,10 @@ jobs:
       - name: Read modules lists
         id: read-mods
         run: |
-          echo "::set-output name=matrix::$(cat ./target/scala-2.13/resource_managed/main/modules.txt)"
-          echo "::set-output name=it-matrix::$(cat ./target/scala-2.13/resource_managed/main/it-modules.txt)"
-          echo "::set-output name=fun-matrix::$(cat ./target/scala-2.13/resource_managed/main/fun-modules.txt)"
-          echo "::set-output name=dep-check-matrix::$(cat ./target/scala-2.13/resource_managed/main/depcheck-modules.txt)"
+          echo "matrix=$(cat ./target/scala-2.13/resource_managed/main/modules.txt)" >> $GITHUB_OUTPUT
+          echo "it-matrix=$(cat ./target/scala-2.13/resource_managed/main/it-modules.txt)" >> $GITHUB_OUTPUT
+          echo "fun-matrix=$(cat ./target/scala-2.13/resource_managed/main/fun-modules.txt)" >> $GITHUB_OUTPUT
+          echo "dep-check-matrix=$(cat ./target/scala-2.13/resource_managed/main/depcheck-modules.txt)" >> $GITHUB_OUTPUT
       - name: Cleanup before cache
         shell: bash
         run: |
@@ -150,9 +152,9 @@ jobs:
         shell: bash
         run: |
           if [ "${{ inputs.version }}" != "" ]; then
-            echo "::set-output name=version::${{ inputs.version }}"
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
           else
-             echo "::set-output name=version::$(git describe --tags --always)"
+            echo "version=$(git describe --tags --always)" >> $GITHUB_OUTPUT
           fi
       - name: Build assembly
         env:
@@ -218,6 +220,9 @@ jobs:
           path: ~/**/target/libs/*.jar
           key: assembly-${{ matrix.module }}-${{ github.run_id }}
           fail-on-cache-miss: true
+      - name: Get branch names.
+        id: branch_name
+        uses: tj-actions/branch-names@v8
       - name: Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
@@ -226,7 +231,7 @@ jobs:
           format: 'HTML'
           args: >-
               --failOnCVSS 5
-              --suppression https://raw.githubusercontent.com/lensesio/stream-reactor/chore/update-kafka-versions/suppression.xml
+              --suppression https://raw.githubusercontent.com/${{ github.repository }}/${{ steps.branch_name.outputs.tag }}${{ steps.branch_name.outputs.current_branch }}/suppression.xml
       - name: Upload Test results
         uses: actions/upload-artifact@master
         with:
