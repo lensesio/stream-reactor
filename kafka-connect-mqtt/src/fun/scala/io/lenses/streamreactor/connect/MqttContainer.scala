@@ -8,6 +8,7 @@ import _root_.io.lenses.streamreactor.connect.testcontainers.S3Authentication
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.utility.DockerImageName
+import org.testcontainers.utility.MountableFile
 
 class MqttContainer(
   dockerImage:  DockerImageName,
@@ -17,7 +18,7 @@ class MqttContainer(
   val identity: S3Authentication = RandomAuthentication(),
 ) extends GenericContainer[MqttContainer](dockerImage.withTag(dockerTag)) {
 
-  withFileSystemBind(this.getClass.getResource("/mosquitto.config").getPath, "/mosquitto/config/mosquitto.conf")
+  withCopyToContainer(MountableFile.forClasspathResource("/mosquitto.config"), "/mosquitto/config/mosquitto.conf")
   withNetworkAliases(networkAlias)
   withExposedPorts(port)
   waitingFor(Wait.forListeningPort())
