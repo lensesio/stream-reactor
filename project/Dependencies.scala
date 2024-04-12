@@ -24,23 +24,23 @@ object Dependencies {
   val scalaVersion      = "2.13.13"
   val supportedScalaVersions: Seq[String] = List(Dependencies.scalaVersion)
 
-  val commonResolvers: Seq[MavenRepository] = Seq(
-    Resolver sonatypeRepo "public",
-    Resolver typesafeRepo "releases",
-    Resolver.mavenLocal,
-    "confluent" at "https://packages.confluent.io/maven/",
-    "typesafe" at "https://repo.typesafe.com/typesafe/releases/",
-    "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
-    "jitpack" at "https://jitpack.io",
-  )
+  val commonResolvers: Seq[MavenRepository] = Resolver.sonatypeOssRepos("public") ++
+    Seq(
+      Resolver typesafeRepo "releases",
+      Resolver.mavenLocal,
+      "confluent" at "https://packages.confluent.io/maven/",
+      "typesafe" at "https://repo.typesafe.com/typesafe/releases/",
+      "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos/",
+      "jitpack" at "https://jitpack.io",
+    )
 
   object Versions {
     // libraries versions
-    val scalatestVersion               = "3.2.17"
+    val scalatestVersion               = "3.2.18"
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.17.0"
 
-    val kafkaVersion:     String = "3.6.1"
+    val kafkaVersion:     String = "3.7.0"
     val confluentVersion: String = "7.6.0"
 
     val enumeratumVersion = "1.7.3"
@@ -48,9 +48,9 @@ object Dependencies {
     val http4sVersion    = "1.0.0-M32"
     val http4sJdkVersion = "1.0.0-M1"
     val avroVersion      = "1.11.3"
-    val avro4sVersion    = "4.1.1"
+    val avro4sVersion    = "4.1.2"
 
-    val catsEffectVersion     = "3.4.8"
+    val catsEffectVersion     = "3.4.11"
     val `cats-effect-testing` = "1.5.0"
 
     val antlr4Version: String = "4.13.1"
@@ -61,21 +61,21 @@ object Dependencies {
     // build plugins version
     val betterMonadicForVersion = "0.3.1"
 
-    val logbackVersion      = "1.4.14"
+    val logbackVersion      = "1.5.3"
     val scalaLoggingVersion = "3.9.5"
 
-    val wiremockVersion = "3.3.1"
+    val wiremockVersion = "3.5.2"
     val parquetVersion  = "1.13.1"
 
-    val jerseyCommonVersion = "3.1.1"
+    val jerseyCommonVersion = "3.1.5"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.25.6"
+    val awsSdkVersion  = "2.25.21"
 
     val azureDataLakeVersion = "12.18.3"
     val azureIdentityVersion = "1.11.4"
     val azureCoreVersion     = "1.47.0"
-    val gcpStorageVersion    = "2.32.1"
+    val gcpStorageVersion    = "2.36.1"
 
     val jacksonVersion      = "2.17.0"
     val json4sVersion       = "4.0.7"
@@ -86,42 +86,42 @@ object Dependencies {
     val xzVersion  = "1.9"
     val lz4Version = "1.8.0"
 
-    val bouncyCastleVersion = "1.70"
+    val bouncyCastleVersion = "1.77"
     val nettyVersion        = "4.1.108.Final"
 
     val cassandraDriverVersion = "3.11.5"
-    val jsonPathVersion        = "2.7.0"
+    val jsonPathVersion        = "2.9.0"
 
     val azureDocumentDbVersion     = "2.6.5"
-    val testcontainersScalaVersion = "0.40.14"
-    val testcontainersVersion      = "1.17.6"
+    val testcontainersScalaVersion = "0.40.17"
+    val testcontainersVersion      = "1.19.7"
 
-    val influxVersion = "6.8.0"
+    val influxVersion = "6.12.0"
 
     val jmsApiVersion         = "3.1.0"
-    val activeMqVersion       = "6.0.1"
+    val activeMqVersion       = "6.1.0"
     val protocVersion         = "3.11.4"
     val googleProtobufVersion = "3.25.3"
 
     val mqttVersion = "1.2.5"
 
     val commonsNetVersion      = "3.10.0"
-    val commonsCodecVersion    = "1.15"
-    val commonsCompressVersion = "1.26.0"
+    val commonsCodecVersion    = "1.16.1"
+    val commonsCompressVersion = "1.26.1"
     val commonsConfigVersion   = "2.10.1"
-    val commonsIOVersion       = "2.11.0"
+    val commonsIOVersion       = "2.16.0"
     val commonsHttpVersion     = "4.5.14"
     val commonsLang3Version    = "3.14.0"
     val jschVersion            = "0.2.17"
 
-    val minaVersion           = "2.2.1"
+    val minaVersion           = "2.2.3"
     val betterFilesVersion    = "3.9.2"
     val ftpServerVersion      = "1.2.0"
     val fakeSftpServerVersion = "2.0.0"
 
-    val mongoDbVersion = "3.12.12"
+    val mongoDbVersion = "3.12.14"
 
-    val jedisVersion = "4.4.0"
+    val jedisVersion = "4.4.7"
     val gsonVersion  = "2.10.1"
 
     val nimbusJoseJwtVersion        = "9.37.3"
@@ -135,13 +135,13 @@ object Dependencies {
     object Elastic6Versions extends ElasticVersions() {
       override val elastic4sVersion:     String = "6.7.8"
       override val elasticSearchVersion: String = "6.8.23"
-      override val jnaVersion:           String = "3.0.9"
+      override val jnaVersion:           String = "3.3.0"
     }
 
     object Elastic7Versions extends ElasticVersions {
-      override val elastic4sVersion:     String = "7.17.2"
-      override val elasticSearchVersion: String = "7.17.2"
-      override val jnaVersion:           String = "4.5.1"
+      override val elastic4sVersion:     String = "7.17.4"
+      override val elasticSearchVersion: String = "7.17.19"
+      override val jnaVersion:           String = "4.5.2"
     }
 
   }
@@ -164,8 +164,8 @@ object Dependencies {
   val logback          = "ch.qos.logback"              % "logback-classic"  % logbackVersion
   lazy val logbackCore = "ch.qos.logback"              % "logback-core"     % logbackVersion
   val scalaLogging     = "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion
-  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.9"
-  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.9"
+  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.12"
+  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.12"
 
   // testing
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
@@ -208,11 +208,11 @@ object Dependencies {
   val http4sCirce     = "org.http4s" %% "http4s-circe"           % http4sVersion
   val http4s: Seq[ModuleID] = Seq(http4sDsl, http4sJdkClient, http4sCirce)
 
-  val bouncyProv = "org.bouncycastle" % "bcprov-jdk15on" % bouncyCastleVersion
-  val bouncyUtil = "org.bouncycastle" % "bcutil-jdk15on" % bouncyCastleVersion
-  val bouncyPkix = "org.bouncycastle" % "bcpkix-jdk15on" % bouncyCastleVersion
-  val bouncyBcpg = "org.bouncycastle" % "bcpg-jdk15on"   % bouncyCastleVersion
-  val bouncyTls  = "org.bouncycastle" % "bctls-jdk15on"  % bouncyCastleVersion
+  val bouncyProv = "org.bouncycastle" % "bcprov-jdk18on" % bouncyCastleVersion
+  val bouncyUtil = "org.bouncycastle" % "bcutil-jdk18on" % bouncyCastleVersion
+  val bouncyPkix = "org.bouncycastle" % "bcpkix-jdk18on" % bouncyCastleVersion
+  val bouncyBcpg = "org.bouncycastle" % "bcpg-jdk18on"   % bouncyCastleVersion
+  val bouncyTls  = "org.bouncycastle" % "bctls-jdk18on"  % bouncyCastleVersion
   val bouncyCastle: Seq[ModuleID] = Seq(bouncyProv, bouncyUtil, bouncyPkix, bouncyBcpg, bouncyTls)
 
   lazy val avro         = "org.apache.avro"      % "avro"          % avroVersion
@@ -381,8 +381,8 @@ trait Dependencies {
   import Versions._
 
   val loggingDeps: Seq[ModuleID] = Seq(
-    "org.apache.logging.log4j" % "log4j-api"      % "2.22.1",
-    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.20.0",
+    "org.apache.logging.log4j" % "log4j-api"      % "2.23.1",
+    "org.apache.logging.log4j" % "log4j-to-slf4j" % "2.23.1",
     log4jToSlf4j,
     jclToSlf4j,
     logback,
