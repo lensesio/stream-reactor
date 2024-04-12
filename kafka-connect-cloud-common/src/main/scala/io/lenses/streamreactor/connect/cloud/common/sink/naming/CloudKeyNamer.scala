@@ -199,10 +199,7 @@ class CloudKeyNamer(
 
   private def getFieldStringValue(struct: SinkData, partitionName: Option[PartitionNamePath]) =
     adaptErrorResponse(SinkDataExtractor.extractPathFromSinkData(struct)(partitionName)).fold(Option.empty[String])(
-      fieldVal =>
-        Option(fieldVal
-          .replace("/", "-")
-          .replace("\\", "-")),
+      fieldVal => Option(fieldVal),
     )
 
   private def getPartitionValueFromSinkData(sinkData: SinkData, partitionName: PartitionNamePath): String =
