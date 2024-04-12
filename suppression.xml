@@ -73,4 +73,15 @@
         <packageUrl regex="true">^pkg:maven/com\.azure/azure\-identity@.*$</packageUrl>
         <cpe>cpe:/a:microsoft:azure_cli</cpe>
     </suppress>
+
+    <!--This CVE is not valid, verified by the project author.
+    https://github.com/JodaOrg/joda-time/issues/780
+    -->
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-common-assembly-6.4-SNAPSHOT.jar (shaded: joda-time:joda-time:2.10.8)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/joda\-time/joda\-time@.*$</packageUrl>
+        <vulnerabilityName>CVE-2024-23080</vulnerabilityName>
+    </suppress>
 </suppressions>
