@@ -39,21 +39,7 @@ class PartitionDisplayTest extends AnyFlatSpec with MockitoSugar with Matchers w
     reset(kcql)
   }
 
-  "apply" should "recognise KeysAndValues from KCQL" in {
-    when(kcql.getWithPartitioner).thenReturn("KEYSANDVALUES")
-
-    PartitionDisplay(kcql, emptyProps, Values) should be(KeysAndValues)
-  }
-
-  "apply" should "recognise Keys from KCQL" in {
-    when(kcql.getWithPartitioner).thenReturn("values")
-
-    PartitionDisplay(kcql, emptyProps, KeysAndValues) should be(Values)
-  }
-
   "apply" should "recognise Keys from KCQL props" in {
-    when(kcql.getWithPartitioner).thenReturn(null)
-
     def keyValueProp(includeKeys: Boolean): KcqlProperties[PropsKeyEntry, PropsKeyEnum.type] =
       KcqlProperties[PropsKeyEntry, PropsKeyEnum.type](schema = SinkPropsSchema.schema,
                                                        map = Map(
@@ -65,8 +51,6 @@ class PartitionDisplayTest extends AnyFlatSpec with MockitoSugar with Matchers w
   }
 
   "apply" should "default to specified default when no partitioner specified in kcql" in {
-    when(kcql.getWithPartitioner).thenReturn(null)
-
     PartitionDisplay(kcql, emptyProps, KeysAndValues) should be(KeysAndValues)
     PartitionDisplay(kcql, emptyProps, Values) should be(Values)
   }

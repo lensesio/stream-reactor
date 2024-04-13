@@ -67,7 +67,6 @@ public class Kcql {
     private TimeUnit timestampUnit = TimeUnit.MILLISECONDS;
     private String pipeline;
     private String subscription;
-    private String partitioner;
     private String withRegex;
 
     private final Map<String, String> properties = new HashMap<>();
@@ -78,14 +77,6 @@ public class Kcql {
 
     public void setQuery(String query) {
         this.query = query;
-    }
-
-    public String getWithPartitioner() {
-        return this.partitioner;
-    }
-
-    public void setWithPartitioner(String name) {
-        this.partitioner = name;
     }
 
     public String getWithSubscription() {
@@ -350,11 +341,6 @@ public class Kcql {
             @Override
             public void exitWith_subscription_value(ConnectorParser.With_subscription_valueContext ctx) {
                 kcql.subscription = unescape(ctx.getText());
-            }
-
-            @Override
-            public void exitWith_partitioner_value(ConnectorParser.With_partitioner_valueContext ctx) {
-                kcql.partitioner = unescape(ctx.getText());
             }
 
             @Override

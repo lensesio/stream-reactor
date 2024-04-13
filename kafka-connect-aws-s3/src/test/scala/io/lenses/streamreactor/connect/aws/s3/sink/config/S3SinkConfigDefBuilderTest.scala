@@ -47,7 +47,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
 
   "S3SinkConfigDefBuilder" should "respect defined properties" in {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1)",
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1)",
     )
 
     val kcql = S3SinkConfigDefBuilder(props).getKCQL
@@ -56,14 +56,24 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     val element = kcql.head
 
     element.getStoredAs should be("CSV")
-    element.getWithPartitioner should be("Values")
     element.getPartitionBy.asScala.toSet should be(Set("_key"))
+  }
 
+  "S3SinkConfigDefBuilder" should "raises an exception if WITHPARTITIONER is present" in {
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
+    )
+
+    val ex = CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).left.getOrElse(
+      fail("Expected an exception"),
+    )
+
+    ex.getMessage shouldBe CloudSinkBucketOptions.WithPartitionerError
   }
 
   "S3SinkConfigDefBuilder" should "defaults data storage settings if not provided" in {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1)",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV PROPERTIES('${FlushCount.entryName}'=1)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {

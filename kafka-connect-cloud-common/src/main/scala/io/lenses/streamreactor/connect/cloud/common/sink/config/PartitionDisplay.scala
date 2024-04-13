@@ -39,16 +39,12 @@ object PartitionDisplay extends Enum[PartitionDisplay] {
     kcql:    Kcql,
     props:   KcqlProperties[PropsKeyEntry, PropsKeyEnum.type],
     default: PartitionDisplay,
-  ): PartitionDisplay = fromProps(props).orElse(fromKcql(kcql)).getOrElse(default)
+  ): PartitionDisplay = fromProps(props).getOrElse(default)
 
   private def fromProps(props: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): Option[PartitionDisplay] =
     props.getOptionalBoolean(PartitionIncludeKeys).toOption.flatten.map {
       case true  => KeysAndValues
       case false => Values
     }
-
-  private def fromKcql(
-    kcql: Kcql,
-  ): Option[PartitionDisplay] = Option(kcql.getWithPartitioner).flatMap(PartitionDisplay.withNameInsensitiveOption)
 
 }

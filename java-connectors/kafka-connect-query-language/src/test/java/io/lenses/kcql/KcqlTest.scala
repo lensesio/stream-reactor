@@ -642,12 +642,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     kcql.getWithSubscription should be("shared")
   }
 
-  test("handleWithPartitioner") {
-    val syntax = "INSERT INTO A SELECT * FROM B WITHPARTITIONER = shared"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithPartitioner should be("shared")
-  }
-
   test("handleWithRegex") {
     val topic = "/TOPIC_A"
     val table = "TABLE_A"
