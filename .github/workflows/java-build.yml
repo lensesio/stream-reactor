@@ -59,7 +59,7 @@ jobs:
       - name: Test with Gradle
         run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:test
 
-  build-and-upload-artifact:
+  build-and-cache:
     needs:
       - test
       - initiate
@@ -97,3 +97,39 @@ jobs:
         with:
           path: ./java-connectors/release/${{ matrix.module }}*.jar
           key: assembly-java-${{ github.run_id }}
+
+  jar-dependency-check:
+    needs:
+      - build-and-cache
+      - initiate
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
+    steps:
+      - name: Restore assembly
+        uses: actions/cache/restore@v4
+        with:
+          path: ./java-connectors/release/${{ matrix.module }}*.jar
+          key: assembly-java-${{ github.run_id }}
+          fail-on-cache-miss: true
+
+      - name: Get branch names.
+        id: branch_name
+        uses: tj-actions/branch-names@v8
+      - name: Dependency Check
+        uses: dependency-check/Dependency-Check_Action@1.1.0
+        with:
+          project: kafka-connect-${{matrix.module}}-deps
+          path: ./java-connectors/release/${{ matrix.module }}*.jar
+          format: 'HTML'
+          args: >-
+            --failOnCVSS 5
+            --suppression https://raw.githubusercontent.com/${{ github.event.pull_request.head.repo.owner.login }}/${{github.event.repository.name}}/${{ steps.branch_name.outputs.tag }}${{ steps.branch_name.outputs.current_branch }}/suppression.xml      - name: Upload Test results
+
+      - name: Upload Test results
+        uses: actions/upload-artifact@master
+        with:
+          name: ${{matrix.module}}-depcheck-results
+          path: ${{github.workspace}}/reports
