@@ -118,9 +118,8 @@ jobs:
       - name: Get branch names.
         id: branch_name
         uses: tj-actions/branch-names@v8
-
-      - name: Dependency Check
-        uses: dependency-check/Dependency-Check_Action@1.1.0
+      - name: JAR Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
         with:
           project: kafka-connect-${{matrix.module}}-deps
           path: ./java-connectors/release/${{ matrix.module }}*.jar
@@ -128,9 +127,3 @@ jobs:
           args: >-
             --failOnCVSS 5
             --suppression https://raw.githubusercontent.com/${{ github.event.pull_request.head.repo.owner.login }}/${{github.event.repository.name}}/${{ steps.branch_name.outputs.tag }}${{ steps.branch_name.outputs.current_branch }}/suppression.xml
-
-      - name: Upload Test results
-        uses: actions/upload-artifact@master
-        with:
-          name: ${{matrix.module}}-depcheck-results
-          path: ${{github.workspace}}/reports
