@@ -87,13 +87,9 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
       topicPartition.toTopicPartition,
     )
 
-    either match {
-      case Left(_) => fail("Should not have failed")
-      case Right(value) =>
-        value shouldBe Map(HeaderPartitionField(PartitionNamePath("h")) -> "val1/val2")
-    }
-
+    either.value shouldBe Map(HeaderPartitionField(PartitionNamePath("h")) -> "val1/val2")
   }
+
   test("stagingFile should generate the correct staging file path with no prefix") {
     val stagingDirectory = Files.createTempDirectory("myTempDir").toFile
 
