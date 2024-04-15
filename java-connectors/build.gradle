@@ -7,7 +7,7 @@ plugins {
 allprojects {
 
     group = "io.lenses.streamreactor"
-    version = "1.0-SNAPSHOT"
+    version = "6.4.0-SNAPSHOT"
     description = "stream-reactor"
 
     apply plugin: 'java'
