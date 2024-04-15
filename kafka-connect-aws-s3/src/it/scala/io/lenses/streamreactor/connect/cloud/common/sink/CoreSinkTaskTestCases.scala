@@ -642,7 +642,7 @@ abstract class CoreSinkTaskTestCases[
     val task = createSinkTask()
 
     val props =
-      defaultProps + (s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title,salary PROPERTIES('${FlushCount.entryName}'=1)")
+      defaultProps + (s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title,salary PROPERTIES('${FlushCount.entryName}'=1,'${PartitionIncludeKeys.entryName}'=false)")
 
     task.start(props.asJava)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -932,7 +932,7 @@ abstract class CoreSinkTaskTestCases[
     val task = createSinkTask()
 
     val props = (defaultProps + (
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1)",
+      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1,'${PartitionIncludeKeys.entryName}'=false)",
     )).asJava
 
     task.start(props)
@@ -964,7 +964,7 @@ abstract class CoreSinkTaskTestCases[
     val task = createSinkTask()
 
     val props = (defaultProps + (
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _topic, _partition STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1,'padding.length.partition'='12', 'padding.length.offset'='12')",
+      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _topic, _partition STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1,'padding.length.partition'='12', 'padding.length.offset'='12', '${PartitionIncludeKeys.entryName}'=false)",
     )).asJava
 
     task.start(props)
@@ -1024,7 +1024,7 @@ abstract class CoreSinkTaskTestCases[
     val task = createSinkTask()
 
     val props = (defaultProps + (
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1,'padding.length.partition'='12', 'padding.length.offset'='12','${PartitionIncludeKeys.entryName}'=false)",
+      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1,'padding.length.partition'='12', 'padding.length.offset'='12','${PartitionIncludeKeys.entryName}'=false,, '${PartitionIncludeKeys.entryName}'=false)",
     )).asJava
 
     task.start(props)
@@ -2014,7 +2014,7 @@ abstract class CoreSinkTaskTestCases[
     val task = createSinkTask()
 
     val props = (defaultProps + (
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _date.uuuu,_date.LL,_date.dd PROPERTIES('${FlushCount.entryName}'=1,'padding.length.partition'='12', 'padding.length.offset'='12')",
+      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _date.uuuu,_date.LL,_date.dd PROPERTIES('${FlushCount.entryName}'=1,'padding.length.partition'='12', 'padding.length.offset'='12','${PartitionIncludeKeys.entryName}'=false)",
     )).asJava
 
     task.start(props)
