@@ -112,7 +112,7 @@ jobs:
       - name: Restore assembly
         uses: actions/cache/restore@v4
         with:
-          path: ~/**/target/libs/*.jar
+          path: ./java-connectors/release/${{ matrix.module }}*.jar
           key: assembly-java-${{ github.run_id }}
           fail-on-cache-miss: true
       - name: Get branch names.
@@ -122,7 +122,7 @@ jobs:
         uses: dependency-check/Dependency-Check_Action@main
         with:
           project: kafka-connect-${{matrix.module}}-deps
-          path: kafka-connect-${{matrix.module}}/target/libs/
+          path: ./java-connectors/release/${{ matrix.module }}*.jar
           format: 'HTML'
           args: >-
             --failOnCVSS 5
