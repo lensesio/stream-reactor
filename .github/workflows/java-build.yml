@@ -127,3 +127,9 @@ jobs:
           args: >-
             --failOnCVSS 5
             --suppression https://raw.githubusercontent.com/${{ github.event.pull_request.head.repo.owner.login }}/${{github.event.repository.name}}/${{ steps.branch_name.outputs.tag }}${{ steps.branch_name.outputs.current_branch }}/suppression.xml
+
+      - name: Upload Test results
+        uses: actions/upload-artifact@master
+        with:
+          name: ${{matrix.module}}-depcheck-results
+          path: ${{github.workspace}}/reports/java
