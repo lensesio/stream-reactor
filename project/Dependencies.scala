@@ -164,8 +164,8 @@ object Dependencies {
   val logback          = "ch.qos.logback"              % "logback-classic"  % logbackVersion
   lazy val logbackCore = "ch.qos.logback"              % "logback-core"     % logbackVersion
   val scalaLogging     = "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion
-  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.12"
-  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.12"
+  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.13"
+  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.13"
 
   // testing
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
