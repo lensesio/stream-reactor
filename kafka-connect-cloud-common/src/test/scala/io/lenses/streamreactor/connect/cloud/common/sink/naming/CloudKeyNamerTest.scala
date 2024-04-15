@@ -18,18 +18,19 @@ package io.lenses.streamreactor.connect.cloud.common.sink.naming
 import cats.implicits.none
 import io.lenses.streamreactor.connect.cloud.common.config.FormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.JsonFormatSelection
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.StringSinkData
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.Values
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionSelection.defaultPartitionSelection
+import io.lenses.streamreactor.connect.cloud.common.sink.config._
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.LeftPadPaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
-import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
-import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionPartitionField
-import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionSelection
-import io.lenses.streamreactor.connect.cloud.common.sink.config.TopicPartitionField
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.MockitoSugar
@@ -68,6 +69,26 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
   when(paddingService.padderFor(anyString)).thenReturn(paddingStrategy)
 
   private val s3KeyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
+
+  test("the partition values do not replace / or \\ characters") {
+    val partitionSelection =
+      PartitionSelection(isCustom = false, List(HeaderPartitionField(PartitionNamePath("h"))), Values)
+    val keyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
+    val either: Either[SinkError, Map[PartitionField, String]] = keyNamer.processPartitionValues(
+      MessageDetail(
+        NullSinkData(None),
+        NullSinkData(None),
+        Map("h" -> StringSinkData("val1/val2")),
+        None,
+        topicPartition.topic,
+        topicPartition.partition,
+        topicPartition.offset,
+      ),
+      topicPartition.toTopicPartition,
+    )
+
+    either.value shouldBe Map(HeaderPartitionField(PartitionNamePath("h")) -> "val1/val2")
+  }
 
   test("stagingFile should generate the correct staging file path with no prefix") {
     val stagingDirectory = Files.createTempDirectory("myTempDir").toFile
