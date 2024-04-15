@@ -73,4 +73,34 @@
         <packageUrl regex="true">^pkg:maven/com\.azure/azure\-identity@.*$</packageUrl>
         <cpe>cpe:/a:microsoft:azure_cli</cpe>
     </suppress>
+
+    <!--This CVE is not valid, verified by the project author.
+    https://github.com/JodaOrg/joda-time/issues/780
+    -->
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-common-assembly-6.4-SNAPSHOT.jar (shaded: joda-time:joda-time:2.10.8)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/joda\-time/joda\-time@.*$</packageUrl>
+        <vulnerabilityName>CVE-2024-23080</vulnerabilityName>
+    </suppress>
+
+    <!-- Similar to the above, there seems to be insufficient evidence for this one
+    https://vulners.com/cve/CVE-2024-23081
+    https://vulners.com/cve/CVE-2024-23082
+    -->
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-gcp-storage-assembly-6.4-SNAPSHOT.jar (shaded: org.threeten:threetenbp:1.6.8)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.threeten/threetenbp@.*$</packageUrl>
+        <vulnerabilityName>CVE-2024-23081</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-gcp-storage-assembly-6.4-SNAPSHOT.jar (shaded: org.threeten:threetenbp:1.6.8)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.threeten/threetenbp@.*$</packageUrl>
+        <vulnerabilityName>CVE-2024-23082</vulnerabilityName>
+    </suppress>
 </suppressions>
