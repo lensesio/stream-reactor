@@ -8,12 +8,12 @@ on:
         type: string
     outputs:
       modules:
-        description: "Stream reactor collection of modules"
-        value: ${{ jobs.initiate.outputs.matrix }}
+        description: "Stream reactor collection of java modules"
+        value: ${{ jobs.initiate-java-modules.outputs.matrix }}
 
 jobs:
 
-  initiate:
+  initiate-java-modules:
     timeout-minutes: 5
     runs-on: ubuntu-latest
     outputs:
@@ -37,10 +37,10 @@ jobs:
 
   test:
     needs:
-      - initiate
+      - initiate-java-modules
     strategy:
       matrix:
-        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
+        module: ${{fromJSON(needs.initiate-java-modules.outputs.matrix)}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,10 +62,10 @@ jobs:
   build-and-cache:
     needs:
       - test
-      - initiate
+      - initiate-java-modules
     strategy:
       matrix:
-        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
+        module: ${{fromJSON(needs.initiate-java-modules.outputs.matrix)}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -101,12 +101,12 @@ jobs:
   jar-dependency-check:
     needs:
       - build-and-cache
-      - initiate
+      - initiate-java-modules
     timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
+        module: ${{fromJSON(needs.initiate-java-modules.outputs.matrix)}}
     steps:
       - name: Restore assembly
         uses: actions/cache/restore@v4
@@ -132,4 +132,4 @@ jobs:
         uses: actions/upload-artifact@master
         with:
           name: ${{matrix.module}}-depcheck-results
-          path: ${{github.workspace}}/reports/java
+          path: ${{github.workspace}}/reports
