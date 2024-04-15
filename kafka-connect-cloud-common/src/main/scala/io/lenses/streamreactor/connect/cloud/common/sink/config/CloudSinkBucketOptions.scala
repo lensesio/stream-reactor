@@ -26,6 +26,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnu
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushInterval
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushSize
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.KeyNamerVersion
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitPolicy
@@ -34,11 +35,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
 import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.CloudSinkProps
 import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.SinkPropsSchema
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.FileExtensionNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.TopicPartitionOffsetFileNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming._
 import org.apache.kafka.common.config.ConfigException
 
 object CloudSinkBucketOptions extends LazyLogging {
@@ -78,17 +75,35 @@ object CloudSinkBucketOptions extends LazyLogging {
         partitionSelection = PartitionSelection(kcql, sinkProps)
         paddingService    <- PaddingService.fromConfig(config, sinkProps)
 
+        keyNameVersion = KeyNamerVersion(sinkProps, KeyNamerVersion.V0)
         fileNamer = if (partitionSelection.isCustom) {
-          new TopicPartitionOffsetFileNamer(
-            paddingService.padderFor("partition"),
-            paddingService.padderFor("offset"),
-            fileExtension,
-          )
+          keyNameVersion match {
+            case KeyNamerVersion.V0 =>
+              new TopicPartitionOffsetFileNamerV0(
+                paddingService.padderFor("partition"),
+                paddingService.padderFor("offset"),
+                fileExtension,
+              )
+            case KeyNamerVersion.V1 =>
+              new TopicPartitionOffsetFileNamerV1(
+                paddingService.padderFor("partition"),
+                paddingService.padderFor("offset"),
+                fileExtension,
+              )
+          }
         } else {
-          new OffsetFileNamer(
-            paddingService.padderFor("offset"),
-            fileExtension,
-          )
+          keyNameVersion match {
+            case KeyNamerVersion.V0 =>
+              new OffsetFileNamerV0(
+                paddingService.padderFor("offset"),
+                fileExtension,
+              )
+            case KeyNamerVersion.V1 =>
+              new OffsetFileNamerV1(
+                paddingService.padderFor("offset"),
+                fileExtension,
+              )
+          }
         }
         keyNamer         = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
         stagingArea     <- config.getLocalStagingArea()(connectorTaskId)

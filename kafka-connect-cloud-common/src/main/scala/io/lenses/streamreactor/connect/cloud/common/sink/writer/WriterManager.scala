@@ -27,6 +27,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.sink
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.FinalFileNameBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.BatchCloudSinkError
@@ -54,14 +55,14 @@ case class MapKey(topicPartition: TopicPartition, partitionValues: immutable.Map
   * sinks, since file handles cannot be safely shared without considerable overhead.
   */
 class WriterManager[SM <: FileMetadata](
-  commitPolicyFn:    TopicPartition => Either[SinkError, CommitPolicy],
-  bucketAndPrefixFn: TopicPartition => Either[SinkError, CloudLocation],
-  keyNamerFn:        TopicPartition => Either[SinkError, KeyNamer],
-  stagingFilenameFn: (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
-  finalFilenameFn:   (TopicPartition, Map[PartitionField, String], Offset) => Either[SinkError, CloudLocation],
-  formatWriterFn:    (TopicPartition, File) => Either[SinkError, FormatWriter],
-  indexManager:      IndexManager[SM],
-  transformerF:      MessageDetail => Either[RuntimeException, MessageDetail],
+  commitPolicyFn:         TopicPartition => Either[SinkError, CommitPolicy],
+  bucketAndPrefixFn:      TopicPartition => Either[SinkError, CloudLocation],
+  keyNamerFn:             TopicPartition => Either[SinkError, KeyNamer],
+  stagingFilenameFn:      (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
+  finalFilenameBuilderFn: (TopicPartition, Map[PartitionField, String]) => FinalFileNameBuilder,
+  formatWriterFn:         (TopicPartition, File) => Either[SinkError, FormatWriter],
+  indexManager:           IndexManager[SM],
+  transformerF:           MessageDetail => Either[RuntimeException, MessageDetail],
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
@@ -86,7 +87,7 @@ class WriterManager[SM <: FileMetadata](
 
   def recommitPending(): Either[SinkError, Unit] = {
     logger.debug(s"[{}] Retry Pending", connectorTaskId.show)
-    val result = commitWritersWithFilter(_._2.hasPendingUpload())
+    val result = commitWritersWithFilter(_._2.hasPendingUpload)
     logger.debug(s"[{}] Retry Pending Complete", connectorTaskId.show)
     result
   }
@@ -245,7 +246,7 @@ class WriterManager[SM <: FileMetadata](
         commitPolicy,
         indexManager,
         () => stagingFilenameFn(topicPartition, partitionValues),
-        finalFilenameFn.curried(topicPartition)(partitionValues),
+        finalFilenameBuilderFn(topicPartition, partitionValues),
         formatWriterFn.curried(topicPartition),
         seekedOffsets.get(topicPartition),
       )

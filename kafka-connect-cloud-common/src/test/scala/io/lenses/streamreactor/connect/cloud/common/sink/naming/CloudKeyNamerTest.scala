@@ -50,7 +50,7 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
   private val partitionSelection: PartitionSelection = defaultPartitionSelection(Values)
 
   private val fileNamer: FileNamer =
-    new OffsetFileNamer(paddingStrategy, JsonFormatSelection.extension)
+    new OffsetFileNamerV0(paddingStrategy, JsonFormatSelection.extension)
 
   private val bucketAndPrefix = CloudLocation("my-bucket", Some("prefix"))
   private val bucketNoPrefix  = CloudLocation("my-bucket", none)
@@ -116,14 +116,14 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
 
   test("finalFilename should write to the root of the bucket with no prefix") {
 
-    val result = s3KeyNamer.finalFilename(bucketNoPrefix, topicPartition, partitionValues)
+    val result = s3KeyNamer.finalFilename(bucketNoPrefix, topicPartition, partitionValues, 0L)
 
     result.value.path.value shouldEqual s"$TopicName/00$Partition/0$Offset.json"
   }
 
   test("finalFilename should generate the correct final S3 location") {
 
-    val result = s3KeyNamer.finalFilename(bucketAndPrefix, topicPartition, partitionValues)
+    val result = s3KeyNamer.finalFilename(bucketAndPrefix, topicPartition, partitionValues, 0L)
 
     result.value.path.value shouldEqual s"prefix/$TopicName/00$Partition/0$Offset.json"
   }

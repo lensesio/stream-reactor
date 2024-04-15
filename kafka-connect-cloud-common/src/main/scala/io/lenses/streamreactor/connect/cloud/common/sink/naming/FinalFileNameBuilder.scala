@@ -13,21 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.cloud.common.formats.writer
+package io.lenses.streamreactor.connect.cloud.common.sink.naming
 
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
-import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 
-import java.time.Instant
+/**
+  * Creates the object key for the cloud storage
+  */
+trait FinalFileNameBuilder {
 
-case class MessageDetail(
-  key:       SinkData,
-  value:     SinkData,
-  headers:   Map[String, SinkData],
-  timestamp: Option[Instant],
-  topic:     Topic,
-  partition: Int,
-  offset:    Offset,
-) {
-  def epochTimestamp: Long = timestamp.map(_.toEpochMilli).getOrElse(-1L)
+  /**
+    * Builds the key
+    *
+    * @param offset                  the offset of the last record
+    * @param earliestRecordTimestamp the earliest record timestamp
+    * @return the final file name
+    */
+  def build(
+    offset:                  Offset,
+    earliestRecordTimestamp: Long,
+  ): Either[SinkError, CloudLocation]
 }

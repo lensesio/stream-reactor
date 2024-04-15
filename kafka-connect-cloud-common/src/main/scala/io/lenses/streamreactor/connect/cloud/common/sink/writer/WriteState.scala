@@ -23,7 +23,7 @@ import org.apache.kafka.connect.data.Schema
 import java.io.File
 
 sealed abstract class WriteState(commitState: CommitState) {
-  def getCommitState = commitState
+  def getCommitState: CommitState = commitState
 }
 
 case class NoWriter(commitState: CommitState) extends WriteState(commitState) with LazyLogging {
@@ -32,24 +32,28 @@ case class NoWriter(commitState: CommitState) extends WriteState(commitState) wi
     formatWriter:      FormatWriter,
     file:              File,
     uncommittedOffset: Offset,
+    recordTimestamp:   Long,
   ): Writing = {
     logger.debug("state transition: NoWriter => Writing")
-    Writing(commitState, formatWriter, file, uncommittedOffset)
+    Writing(commitState, formatWriter, file, uncommittedOffset, recordTimestamp)
   }
 
 }
 
 case class Writing(
-  commitState:       CommitState,
-  formatWriter:      FormatWriter,
-  file:              File,
-  uncommittedOffset: Offset,
+  commitState:             CommitState,
+  formatWriter:            FormatWriter,
+  file:                    File,
+  uncommittedOffset:       Offset,
+  earliestRecordTimestamp: Long,
 ) extends WriteState(commitState)
     with LazyLogging {
 
   //TODO: it's not clear why we are only keeping track of one schema (VALUE) and not key/and headers
-  def updateOffset(o: Offset, schema: Option[Schema]): WriteState = {
-    logger.debug(s"state update: Uncommitted offset update ${uncommittedOffset} => $o")
+  def update(o: Offset, recordTimestamp: Long, schema: Option[Schema]): WriteState = {
+    logger.debug(
+      s"state update: Uncommitted offset update $uncommittedOffset => $o, earliest record timestamp $earliestRecordTimestamp => $recordTimestamp",
+    )
     copy(
       uncommittedOffset = o,
       commitState = commitState
@@ -57,23 +61,25 @@ case class Writing(
           schema,
           formatWriter.getPointer,
         ),
+      earliestRecordTimestamp = math.min(earliestRecordTimestamp, recordTimestamp),
     )
   }
 
-  def toUploading(): Uploading = {
+  def toUploading: Uploading = {
     logger.debug("state transition: Writing => Uploading")
-    Uploading(commitState.reset(), file, uncommittedOffset)
+    Uploading(commitState.reset(), file, uncommittedOffset, earliestRecordTimestamp)
   }
 }
 
 case class Uploading(
-  commitState:       CommitState,
-  file:              File,
-  uncommittedOffset: Offset,
+  commitState:             CommitState,
+  file:                    File,
+  uncommittedOffset:       Offset,
+  earliestRecordTimestamp: Long,
 ) extends WriteState(commitState)
     with LazyLogging {
 
-  def toNoWriter(): NoWriter = {
+  def toNoWriter: NoWriter = {
     logger.debug("state transition: Uploading => NoWriter")
     NoWriter(commitState.withCommittedOffset(uncommittedOffset))
   }

@@ -28,6 +28,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.FinalFileNameBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.transformers.TopicsTransformers
@@ -85,18 +86,21 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig] extends La
     val finalFilenameFn: (
       TopicPartition,
       immutable.Map[PartitionField, String],
-      Offset,
-    ) => Either[SinkError, CloudLocation] = (topicPartition, partitionValues, offset) =>
-      bucketOptsForTopic(config, topicPartition.topic) match {
-        case Some(bucketOptions) =>
-          for {
-            keyNamer <- keyNamerFn(topicPartition)
-            stagingFilename <- keyNamer.finalFilename(bucketOptions.bucketAndPrefix,
+    ) => FinalFileNameBuilder = (topicPartition, partitionValues) =>
+      (offset: Offset, earliestRecordTimestamp: Long) => {
+        bucketOptsForTopic(config, topicPartition.topic) match {
+          case Some(bucketOptions) =>
+            for {
+              keyNamer <- keyNamerFn(topicPartition)
+              finalFilename <- keyNamer.finalFilename(bucketOptions.bucketAndPrefix,
                                                       topicPartition.withOffset(offset),
                                                       partitionValues,
-            )
-          } yield stagingFilename
-        case None => fatalErrorTopicNotConfigured(topicPartition).asLeft
+                                                      earliestRecordTimestamp,
+              )
+            } yield finalFilename
+          case None => fatalErrorTopicNotConfigured(topicPartition).asLeft
+        }
+
       }
 
     val formatWriterFn: (TopicPartition, File) => Either[SinkError, FormatWriter] =

@@ -23,12 +23,12 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
-import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitContext
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.FinalFileNameBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.storage._
 import org.apache.kafka.connect.data.Schema
@@ -38,13 +38,13 @@ import scala.math.Ordered.orderingToOrdered
 import scala.util.Try
 
 class Writer[SM <: FileMetadata](
-  topicPartition:    TopicPartition,
-  commitPolicy:      CommitPolicy,
-  indexManager:      IndexManager[SM],
-  stagingFilenameFn: () => Either[SinkError, File],
-  finalFilenameFn:   Offset => Either[SinkError, CloudLocation],
-  formatWriterFn:    File => Either[SinkError, FormatWriter],
-  lastSeekedOffset:  Option[Offset],
+  topicPartition:       TopicPartition,
+  commitPolicy:         CommitPolicy,
+  indexManager:         IndexManager[SM],
+  stagingFilenameFn:    () => Either[SinkError, File],
+  finalFilenameBuilder: FinalFileNameBuilder,
+  formatWriterFn:       File => Either[SinkError, FormatWriter],
+  lastSeekedOffset:     Option[Offset],
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
@@ -61,26 +61,31 @@ class Writer[SM <: FileMetadata](
           logger.error(err.getMessage)
           NonFatalCloudSinkError(err.getMessage, err.some).asLeft
         case Right(_) =>
-          writeState = writingState.updateOffset(messageDetail.offset, messageDetail.value.schema())
+          writeState =
+            writingState.update(messageDetail.offset, messageDetail.epochTimestamp, messageDetail.value.schema())
           ().asRight
       }
 
     writeState match {
-      case writingWS @ Writing(_, _, _, _) =>
+      case writingWS: Writing =>
         innerMessageWrite(writingWS)
 
       case noWriter @ NoWriter(_) =>
         val writingStateEither = for {
           file         <- stagingFilenameFn()
           formatWriter <- formatWriterFn(file)
-          writingState <- noWriter.toWriting(formatWriter, file, messageDetail.offset).asRight
+          writingState <- noWriter.toWriting(formatWriter,
+                                             file,
+                                             messageDetail.offset,
+                                             messageDetail.epochTimestamp,
+          ).asRight
         } yield writingState
         writingStateEither.flatMap { writingState =>
           writeState = writingState
           innerMessageWrite(writingState)
         }
 
-      case Uploading(_, _, _) =>
+      case _: Uploading =>
         // before we write we need to retry the upload
         NonFatalCloudSinkError("Attempting Write in Uploading State").asLeft
     }
@@ -89,13 +94,13 @@ class Writer[SM <: FileMetadata](
   def commit: Either[SinkError, Unit] = {
 
     writeState match {
-      case writingState @ Writing(_, formatWriter, _, _) =>
-        formatWriter.complete() match {
+      case writingState: Writing =>
+        writingState.formatWriter.complete() match {
           case Left(ex) => return ex.asLeft
           case Right(_) =>
         }
-        writeState = writingState.toUploading()
-      case Uploading(_, _, _) =>
+        writeState = writingState.toUploading
+      case _: Uploading =>
       // your turn will come, nothing to do here because we're already in the correct state
       case NoWriter(_) =>
         // nothing to commit, get out of here
@@ -103,9 +108,9 @@ class Writer[SM <: FileMetadata](
     }
 
     writeState match {
-      case uploadState @ Uploading(commitState, file, uncommittedOffset) =>
+      case uploadState @ Uploading(commitState, file, uncommittedOffset, earliestRecordTimestamp) =>
         for {
-          finalFileName <- finalFilenameFn(uncommittedOffset)
+          finalFileName <- finalFilenameBuilder.build(uncommittedOffset, earliestRecordTimestamp)
           path          <- finalFileName.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
           indexFileName <- indexManager.write(
             finalFileName.bucket,
@@ -123,7 +128,7 @@ class Writer[SM <: FileMetadata](
           _ <- indexManager.clean(finalFileName.bucket, indexFileName, topicPartition)
           stateReset <- Try {
             logger.debug(s"[{}] Writer.resetState: Resetting state $writeState", connectorTaskId.show)
-            writeState = uploadState.toNoWriter()
+            writeState = uploadState.toNoWriter
             file.delete()
             logger.debug(s"[{}] Writer.resetState: New state $writeState", connectorTaskId.show)
           }.toEither.leftMap(e => FatalCloudSinkError(e.getMessage, commitState.topicPartition))
@@ -137,11 +142,11 @@ class Writer[SM <: FileMetadata](
   def close(): Unit =
     writeState = writeState match {
       case state @ NoWriter(_) => state
-      case Writing(commitState, formatWriter, file, _) =>
+      case Writing(commitState, formatWriter, file, _, _) =>
         Try(formatWriter.close())
         Try(file.delete())
         NoWriter(commitState.reset())
-      case Uploading(commitState, file, _) =>
+      case Uploading(commitState, file, _, _) =>
         Try(file.delete())
         NoWriter(commitState.reset())
     }
@@ -150,7 +155,7 @@ class Writer[SM <: FileMetadata](
 
   def shouldFlush: Boolean =
     writeState match {
-      case Writing(commitState, _, file, uncommittedOffset) => commitPolicy.shouldFlush(
+      case Writing(commitState, _, file, uncommittedOffset, _) => commitPolicy.shouldFlush(
           CloudCommitContext(
             topicPartition.withOffset(uncommittedOffset),
             commitState.recordCount,
@@ -160,8 +165,8 @@ class Writer[SM <: FileMetadata](
             file.getName,
           ),
         )
-      case NoWriter(_)        => false
-      case Uploading(_, _, _) => false
+      case NoWriter(_) => false
+      case _: Uploading => false
     }
 
   /**
@@ -186,7 +191,7 @@ class Writer[SM <: FileMetadata](
       def logSkipOutcome(currentOffset: Offset, latestOffset: Option[Offset], skipRecord: Boolean): Unit = {
         val skipping = if (skipRecord) "SKIPPING" else "PROCESSING"
         logger.debug(
-          s"[${connectorTaskId.show}] lastSeeked=${lastSeekedOffset} current=${currentOffset.value} latest=$latestOffset - $skipping",
+          s"[${connectorTaskId.show}] lastSeeked=$lastSeekedOffset current=${currentOffset.value} latest=$latestOffset - $skipping",
         )
       }
 
@@ -204,17 +209,17 @@ class Writer[SM <: FileMetadata](
     writeState match {
       case NoWriter(commitState) =>
         shouldSkipInternal(currentOffset, commitState.committedOffset)
-      case Uploading(commitState, _, uncommittedOffset) =>
+      case Uploading(commitState, _, uncommittedOffset, _) =>
         shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
-      case Writing(commitState, _, _, uncommittedOffset) =>
+      case Writing(commitState, _, _, uncommittedOffset, _) =>
         shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
     }
   }
 
-  def hasPendingUpload(): Boolean =
+  def hasPendingUpload: Boolean =
     writeState match {
-      case Uploading(_, _, _) => true
-      case _                  => false
+      case _: Uploading => true
+      case _ => false
     }
 
   def shouldRollover(schema: Schema): Boolean =
@@ -226,8 +231,8 @@ class Writer[SM <: FileMetadata](
 
   private def rolloverOnSchemaChange: Boolean =
     writeState match {
-      case Writing(_, formatWriter, _, _) => formatWriter.rolloverFileOnSchemaChange()
-      case _                              => false
+      case w: Writing => w.formatWriter.rolloverFileOnSchemaChange()
+      case _ => false
     }
 
 }

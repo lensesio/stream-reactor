@@ -113,13 +113,14 @@ class CloudKeyNamer(
     if (partitionSelection.partitionDisplay == KeysAndValues) s"${partition.name()}=" else ""
 
   override def finalFilename(
-    bucketAndPrefix:      CloudLocation,
-    topicPartitionOffset: TopicPartitionOffset,
-    partitionValues:      Map[PartitionField, String],
+    bucketAndPrefix:         CloudLocation,
+    topicPartitionOffset:    TopicPartitionOffset,
+    partitionValues:         Map[PartitionField, String],
+    earliestRecordTimestamp: Long,
   ): Either[FatalCloudSinkError, CloudLocation] =
     Try(
       bucketAndPrefix.withPath(
-        s"${prefix(bucketAndPrefix)}${buildPartitionPrefix(partitionValues)}/${fileNamer.fileName(topicPartitionOffset)}",
+        s"${prefix(bucketAndPrefix)}${buildPartitionPrefix(partitionValues)}/${fileNamer.fileName(topicPartitionOffset, earliestRecordTimestamp)}",
       ),
     ).toEither.left.map(ex => FatalCloudSinkError(ex.getMessage, topicPartitionOffset.toTopicPartition))
 

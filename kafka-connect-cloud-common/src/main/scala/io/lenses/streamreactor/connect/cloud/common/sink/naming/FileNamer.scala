@@ -20,28 +20,57 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingS
 
 trait FileNamer {
   def fileName(
-    topicPartitionOffset: TopicPartitionOffset,
+    topicPartitionOffset:    TopicPartitionOffset,
+    earliestRecordTimestamp: Long,
   ): String
 }
-class OffsetFileNamer(
+class OffsetFileNamerV0(
   offsetPaddingStrategy: PaddingStrategy,
   extension:             String,
 ) extends FileNamer {
   def fileName(
-    topicPartitionOffset: TopicPartitionOffset,
+    topicPartitionOffset:    TopicPartitionOffset,
+    earliestRecordTimestamp: Long,
   ): String =
     s"${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}.$extension"
 }
-class TopicPartitionOffsetFileNamer(
+
+class OffsetFileNamerV1(
+  offsetPaddingStrategy: PaddingStrategy,
+  extension:             String,
+) extends FileNamer {
+  def fileName(
+    topicPartitionOffset:    TopicPartitionOffset,
+    earliestRecordTimestamp: Long,
+  ): String =
+    s"${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}_$earliestRecordTimestamp.$extension"
+}
+class TopicPartitionOffsetFileNamerV0(
   partitionPaddingStrategy: PaddingStrategy,
   offsetPaddingStrategy:    PaddingStrategy,
   extension:                String,
 ) extends FileNamer {
   def fileName(
-    topicPartitionOffset: TopicPartitionOffset,
+    topicPartitionOffset:    TopicPartitionOffset,
+    earliestRecordTimestamp: Long,
   ): String =
     s"${topicPartitionOffset.topic.value}(${partitionPaddingStrategy.padString(
       topicPartitionOffset.partition.toString,
     )}_${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}).$extension"
+
+}
+
+class TopicPartitionOffsetFileNamerV1(
+  partitionPaddingStrategy: PaddingStrategy,
+  offsetPaddingStrategy:    PaddingStrategy,
+  extension:                String,
+) extends FileNamer {
+  def fileName(
+    topicPartitionOffset:    TopicPartitionOffset,
+    earliestRecordTimestamp: Long,
+  ): String =
+    s"${topicPartitionOffset.topic.value}(${partitionPaddingStrategy.padString(
+      topicPartitionOffset.partition.toString,
+    )}_${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}_${earliestRecordTimestamp}).$extension"
 
 }
