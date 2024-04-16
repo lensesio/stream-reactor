@@ -36,6 +36,9 @@ object SinkPropsSchema {
     StoreEnvelopeHeaders  -> BooleanPropsSchema,
     StoreEnvelopeValue    -> BooleanPropsSchema,
     StoreEnvelopeMetadata -> BooleanPropsSchema,
+    FlushCount            -> LongPropsSchema,
+    FlushSize             -> LongPropsSchema,
+    FlushInterval         -> IntPropsSchema,
   )
 
   val schema: KcqlPropsSchema[PropsKeyEntry, PropsKeyEnum.type] =
