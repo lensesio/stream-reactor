@@ -145,18 +145,6 @@ WITHREGEX
     : 'WITHREGEX'|'withregex'
     ;
 
-WITH_FLUSH_INTERVAL
-    : 'WITH_FLUSH_INTERVAL' | 'with_flush_interval'
-    ;
-
-WITH_FLUSH_SIZE
-    : 'WITH_FLUSH_SIZE' | 'with_flush_size'
-    ;
-
-WITH_FLUSH_COUNT
-    : 'WITH_FLUSH_COUNT' | 'with_flush_count'
-    ;
-
 TTL
    : 'TTL'|'ttl'
    ;

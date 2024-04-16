@@ -29,7 +29,7 @@ object Configuration {
         "connect.s3.vhost.bucket"    -> ConfigValue(true),
         "connect.s3.aws.region"      -> ConfigValue("eu-west-1"),
         "connect.s3.kcql" -> ConfigValue(
-          s"INSERT INTO `$bucketName:$prefix` SELECT * FROM `$topicName` STOREAS `$storeAs` WITH_FLUSH_COUNT=1",
+          s"INSERT INTO `$bucketName:$prefix` SELECT * FROM `$topicName` STOREAS `$storeAs` PROPERTIES('flush.count'=1)",
         ),
       ) ++ Seq(
         compressionCodec.map { s: String => ("connect.s3.compression.codec", ConfigValue(s)) },

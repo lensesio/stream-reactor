@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink.config
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushCount
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.Values
@@ -31,7 +32,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
   private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   test("envelope and CSV storage is not allowed") {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
@@ -42,7 +43,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
 
   test("envelope and Parquet storage is allowed") {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Parquet` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Parquet` WITHPARTITIONER=Values PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
@@ -52,7 +53,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
   }
   test("envelope and Avro storage is allowed") {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Avro` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Avro` WITHPARTITIONER=Values PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
@@ -62,7 +63,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
   }
   test("envelope and Json storage is allowed") {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Json` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Json` WITHPARTITIONER=Values PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
@@ -72,7 +73,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
   }
   test("text and envelope storage is not allowed") {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Text` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Text` WITHPARTITIONER=Values PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
@@ -82,7 +83,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
   }
   test("envelope and bytes storage is not allowed") {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Bytes` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1 PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true)",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Bytes` WITHPARTITIONER=Values PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
