@@ -7,7 +7,7 @@ plugins {
 allprojects {
 
     group = "io.lenses.streamreactor"
-    version = "1.0-SNAPSHOT"
+    version = "6.4.0-SNAPSHOT"
     description = "stream-reactor"
 
     apply plugin: 'java'
@@ -22,24 +22,23 @@ allprojects {
     ext {
         //DEPENDENCY VERSIONS
         lombokVersion = '1.18.30'
-        kafkaVersion = '3.6.1'
+        kafkaVersion = '3.7.0'
         logbackVersion = '1.4.14'
         jUnitVersion = '5.9.1'
         mockitoJupiterVersion = '5.10.0'
-        awaitilityVersion = '4.2.0'
         apacheToConfluentVersionAxis = ["2.8.1": "6.2.2", "3.3.0": "7.3.1"]
-
-        //for jar building
-        rootRelease = "${project.rootDir}/release/"
-        versionDir = "${rootRelease}/${project.description}-${project.version}"
-        confDir = "${versionDir}/conf"
-        libsDir = "${versionDir}/libs"
 
         //Other Manifest Info
         mainClassName = ''
         gitCommitHash = ("git rev-parse HEAD").execute().text.trim()
         gitTag = ("git describe --abbrev=0 --tags").execute().text.trim()
         gitRepo = ("git remote get-url origin").execute().text.trim()
+
+        //for jar building
+        rootRelease = "${project.rootDir}/release/"
+        versionDir = "${rootRelease}/${project.description}-${project.version}"
+        confDir = "${versionDir}/conf"
+        libsDir = "${versionDir}/libs"
     }
 
     repositories {
@@ -138,4 +137,20 @@ allprojects {
 
 task prepareRelease(dependsOn: [collectFatJar]) {
     dependsOn subprojects.collectFatJar
+}
+
+task releaseModuleList() {
+    def nonReleaseModules = ["java-reactor", "kafka-connect-cloud-common",
+                             "kafka-connect-common", "kafka-connect-query-language"]
+
+    def modulesFile = new File("gradle-modules.txt")
+    modulesFile.delete()
+    modulesFile.createNewFile()
+
+    def modulesBuilder = new StringBuilder("[")
+    allprojects.name.stream()
+            .filter {moduleName -> !nonReleaseModules.contains(moduleName)}
+            .forEach {moduleName -> modulesBuilder.append("\"" + moduleName + "\",") }
+    modulesBuilder.deleteCharAt(modulesBuilder.lastIndexOf(",")).append("]")
+    modulesFile.append(modulesBuilder)
 }

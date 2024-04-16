@@ -1,0 +1,135 @@
+name: CI-java
+on:
+  pull_request:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+    outputs:
+      java_modules:
+        description: "Stream reactor collection of java modules"
+        value: ${{ jobs.initiate-java-modules.outputs.java_matrix }}
+
+jobs:
+
+  initiate-java-modules:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    outputs:
+      java_matrix: ${{ steps.java-mods.outputs.java-matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+      - name: Generate modules lists
+        run: cd 'java-connectors' && ./gradlew releaseModuleList
+        env:
+          JVM_OPTS: -Xmx512m
+      - name: Read java modules lists
+        id: java-mods
+        run: |
+          echo "java-matrix=$(cat ./java-connectors/gradle-modules.txt)" >> $GITHUB_OUTPUT
+
+  test:
+    needs:
+      - initiate-java-modules
+    strategy:
+      matrix:
+        module: ${{fromJSON(needs.initiate-java-modules.outputs.java_matrix)}}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.6
+
+      - name: Test with Gradle
+        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:test
+
+  build-and-cache:
+    needs:
+      - test
+      - initiate-java-modules
+    strategy:
+      matrix:
+        module: ${{fromJSON(needs.initiate-java-modules.outputs.java_matrix)}}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.6
+
+      - name: Execute Gradle build
+        run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:shadowJar --scan
+
+      - name: Move to release folder
+        shell: bash
+        run: |
+          JAVA_RELEASE_FOLDER=java-connectors/release
+          JAVA_BUILD_FOLDER=java-connectors/${{ matrix.module }}/build/libs
+          mkdir -p $JAVA_RELEASE_FOLDER
+          cp $JAVA_BUILD_FOLDER/${{ matrix.module }}*.jar LICENSE $JAVA_RELEASE_FOLDER/
+
+      - name: Cache assembly
+        uses: actions/cache/save@v4
+        with:
+          path: ./java-connectors/release/${{ matrix.module }}*.jar
+          key: assembly-java-${{ github.run_id }}
+
+  jar-dependency-check:
+    needs:
+      - build-and-cache
+      - initiate-java-modules
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ${{fromJSON(needs.initiate-java-modules.outputs.java_matrix)}}
+    steps:
+      - name: Restore assembly
+        uses: actions/cache/restore@v4
+        with:
+          path: ./java-connectors/release/${{ matrix.module }}*.jar
+          key: assembly-java-${{ github.run_id }}
+          fail-on-cache-miss: true
+
+      - name: Get branch names.
+        id: branch_name
+        uses: tj-actions/branch-names@v8
+      - name: JAR Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: kafka-connect-${{matrix.module}}-deps
+          path: ./java-connectors/release/${{ matrix.module }}*.jar
+          format: 'HTML'
+          args: >-
+            --failOnCVSS 5
+            --suppression https://raw.githubusercontent.com/${{ github.event.pull_request.head.repo.owner.login }}/${{github.event.repository.name}}/${{ steps.branch_name.outputs.tag }}${{ steps.branch_name.outputs.current_branch }}/suppression.xml
+
+      - name: Upload Test results
+        uses: actions/upload-artifact@master
+        with:
+          name: ${{matrix.module}}-depcheck-results
+          path: ${{github.workspace}}/reports
