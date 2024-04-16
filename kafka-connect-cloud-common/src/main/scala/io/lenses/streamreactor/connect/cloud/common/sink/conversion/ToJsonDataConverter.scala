@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.conversion
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.ArraySinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.ByteArraySinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MapSinkData
@@ -23,21 +25,35 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.PrimitiveSink
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.json.JsonConverter
 
 import java.nio.ByteBuffer
-
+import scala.jdk.CollectionConverters._
 object ToJsonDataConverter {
+
+  private val jacksonJson: ObjectMapper = new ObjectMapper().registerModule(DefaultScalaModule)
 
   def convertMessageValueToByteArray(converter: JsonConverter, topic: Topic, data: SinkData): Array[Byte] =
     data match {
       case data: PrimitiveSinkData => converter.fromConnectData(topic.value, data.schema().orNull, data.safeValue)
       case StructSinkData(structVal)    => converter.fromConnectData(topic.value, data.schema().orNull, structVal)
       case MapSinkData(map, schema)     => converter.fromConnectData(topic.value, schema.orNull, map)
-      case ArraySinkData(array, schema) => converter.fromConnectData(topic.value, schema.orNull, array)
-      case ByteArraySinkData(_, _)      => throw new IllegalStateException("Cannot currently write byte array as json")
-      case NullSinkData(schema)         => converter.fromConnectData(topic.value, schema.orNull, null)
-      case other                        => throw new IllegalStateException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
+      case ArraySinkData(array, schema) =>
+        // This is a workaround to help some of the customers who use Kafka Connect SMT ignoring the best practices
+        val isPojo = array.size() > 0 && array.asScala.exists {
+          case _: Struct => false
+          case _ => true
+        }
+        if (isPojo) {
+          val json = jacksonJson.writeValueAsString(array)
+          json.getBytes()
+        } else {
+          converter.fromConnectData(topic.value, schema.orNull, array)
+        }
+      case ByteArraySinkData(_, _) => throw new IllegalStateException("Cannot currently write byte array as json")
+      case NullSinkData(schema)    => converter.fromConnectData(topic.value, schema.orNull, null)
+      case other                   => throw new IllegalStateException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
     }
 
   def convert(data: SinkData): Any = data match {
