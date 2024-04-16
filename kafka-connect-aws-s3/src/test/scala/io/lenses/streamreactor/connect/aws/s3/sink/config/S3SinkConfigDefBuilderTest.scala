@@ -240,7 +240,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     config.CloudSinkBucketOptions(connectorTaskId,
                                   S3SinkConfigDefBuilder(props),
     ).left.value.getMessage should startWith(
-      "FLUSH_COUNT > 1 is not allowed for BYTES",
+      s"${FlushCount.entryName} > 1 is not allowed for BYTES",
     )
   }
 

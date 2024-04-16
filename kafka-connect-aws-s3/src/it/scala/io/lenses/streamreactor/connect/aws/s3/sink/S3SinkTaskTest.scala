@@ -43,7 +43,7 @@ class S3SinkTaskTest
           sinkTask.start(
             (defaultProps ++ Map(
               "aws.access.key" -> "myAccessKey",
-              s"$prefix.kcql"  -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` PROEPRTIES('${FlushCount.entryName}'=1)",
+              s"$prefix.kcql"  -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1)",
             )).asJava,
           )
         }.getMessage

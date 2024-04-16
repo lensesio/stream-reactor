@@ -291,7 +291,7 @@ abstract class CoreSinkTaskTestCases[
   unitUnderTest should "skip when kafka connect resends the same offsets after opening" in {
 
     val props = (defaultProps + (
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS PROPERTIES('${FlushCount.entryName}'=2)",
+      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `Parquet` PROPERTIES('${FlushCount.entryName}'=2)",
     )).asJava
 
     var task: SinkTask = createTask(context, props)
@@ -688,7 +688,7 @@ abstract class CoreSinkTaskTestCases[
 
     Try(task.start(props)) match {
       case Failure(exception) =>
-        exception.getMessage should startWith("FLUSH_COUNT > 1 is not allowed for BYTES")
+        exception.getMessage should startWith(s"${FlushCount.entryName} > 1 is not allowed for BYTES")
       case Success(_) => fail("Exception expected")
     }
     Try(task.stop())

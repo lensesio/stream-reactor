@@ -252,7 +252,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
     CloudSinkBucketOptions(connectorTaskId,
                            GCPStorageSinkConfigDefBuilder(props),
     ).left.value.getMessage should startWith(
-      "FLUSH_COUNT > 1 is not allowed for BYTES",
+      s"${FlushCount.entryName} > 1 is not allowed for BYTES",
     )
   }
 

@@ -688,7 +688,7 @@ abstract class CoreSinkTaskTestCases[
 
     Try(task.start(props)) match {
       case Failure(exception) =>
-        exception.getMessage should startWith("FLUSH_COUNT > 1 is not allowed for BYTES")
+        exception.getMessage should startWith(s"${FlushCount.entryName} > 1 is not allowed for BYTES")
       case Success(_) => fail("Exception expected")
     }
     Try(task.stop())
@@ -1800,7 +1800,7 @@ abstract class CoreSinkTaskTestCases[
 
     val props = (defaultProps +
       (
-        s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `avro` PROPERTIES('${FlushCount.entryName}'=3",
+        s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `avro` PROPERTIES('${FlushCount.entryName}'=3)",
       )).asJava
 
     task.start(props)

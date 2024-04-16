@@ -85,7 +85,7 @@ class S3SinkTaskJsonEnvelopeTest
     val task = new S3SinkTask()
 
     val props = (defaultProps + (
-      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` PROPERTIES('store.envelope'=true,'padding.length.partition'='12', 'padding.length.offset'='12','${FlushCount.entryName}'=1)",
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` PROPERTIES('store.envelope'=true,'padding.length.partition'='12', 'padding.length.offset'='12','${FlushCount.entryName}'=3)",
     )).asJava
 
     task.start(props)
