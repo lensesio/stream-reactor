@@ -264,7 +264,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           commitPolicy    = CommitPolicy(Count(1)),
           formatSelection = JsonFormatSelection,
           keyNamer = new CloudKeyNamer(
-            JsonFormatSelection,
+            AvroFormatSelection,
             defaultPartitionSelection(Values),
             new OffsetFileNamer(
               identity[String],
@@ -275,10 +275,9 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
               "offset"    -> LeftPadPaddingStrategy(12, 0),
             )),
           ),
-          localStagingArea   = LocalStagingArea(localRoot),
-          partitionSelection = defaultPartitionSelection(Values),
-          dataStorage        = DataStorageSettings.disabled,
-        ), // JsonS3Format
+          localStagingArea = LocalStagingArea(localRoot),
+          dataStorage      = DataStorageSettings.disabled,
+        ),
       ),
       offsetSeekerOptions = OffsetSeekerOptions(5),
       compressionCodec,
