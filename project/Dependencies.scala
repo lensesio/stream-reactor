@@ -87,7 +87,7 @@ object Dependencies {
     val lz4Version = "1.8.0"
 
     val bouncyCastleVersion = "1.78"
-    val nettyVersion        = "4.1.108.Final"
+    val nettyVersion        = "4.1.109.Final"
 
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
@@ -99,7 +99,7 @@ object Dependencies {
     val influxVersion = "7.0.0"
 
     val jmsApiVersion         = "3.1.0"
-    val activeMqVersion       = "6.1.1"
+    val activeMqVersion       = "6.1.2"
     val protocVersion         = "3.11.4"
     val googleProtobufVersion = "3.25.3"
 
