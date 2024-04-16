@@ -7,9 +7,9 @@ on:
         required: true
         type: string
     outputs:
-      modules:
+      java_modules:
         description: "Stream reactor collection of java modules"
-        value: ${{ jobs.initiate-java-modules.outputs.matrix }}
+        value: ${{ jobs.initiate-java-modules.outputs.java_matrix }}
 
 jobs:
 
@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 5
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.java-mods.outputs.java-matrix }}
+      java_matrix: ${{ steps.java-mods.outputs.java-matrix }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -40,7 +40,7 @@ jobs:
       - initiate-java-modules
     strategy:
       matrix:
-        module: ${{fromJSON(needs.initiate-java-modules.outputs.matrix)}}
+        module: ${{fromJSON(needs.initiate-java-modules.outputs.java_matrix)}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,7 +65,7 @@ jobs:
       - initiate-java-modules
     strategy:
       matrix:
-        module: ${{fromJSON(needs.initiate-java-modules.outputs.matrix)}}
+        module: ${{fromJSON(needs.initiate-java-modules.outputs.java_matrix)}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -106,7 +106,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: ${{fromJSON(needs.initiate-java-modules.outputs.matrix)}}
+        module: ${{fromJSON(needs.initiate-java-modules.outputs.java_matrix)}}
     steps:
       - name: Restore assembly
         uses: actions/cache/restore@v4
