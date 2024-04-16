@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 5
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.java-mods.outputs.matrix }}
+      matrix: ${{ steps.java-mods.outputs.java-matrix }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -33,7 +33,7 @@ jobs:
       - name: Read java modules lists
         id: java-mods
         run: |
-          echo "matrix=$(cat ./java-connectors/gradle-modules.txt)" >> $GITHUB_OUTPUT
+          echo "java-matrix=$(cat ./java-connectors/gradle-modules.txt)" >> $GITHUB_OUTPUT
 
   test:
     needs:
