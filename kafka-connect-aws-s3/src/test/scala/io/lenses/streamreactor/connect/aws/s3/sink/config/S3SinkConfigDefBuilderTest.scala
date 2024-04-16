@@ -62,7 +62,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
 
   "S3SinkConfigDefBuilder" should "raises an exception if WITHPARTITIONER is present" in {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV WITHPARTITIONER=Values",
     )
 
     val ex = CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).left.getOrElse(

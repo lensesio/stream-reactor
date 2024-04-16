@@ -22,7 +22,10 @@ import io.lenses.streamreactor.connect.cloud.common.config.BytesFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.config.FormatSelection
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.{FlushCount, FlushInterval, FlushSize, PartitionIncludeKeys}
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushCount
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushInterval
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushSize
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitPolicy

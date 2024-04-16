@@ -66,7 +66,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
 
   "GCPSinkConfigDefBuilder" should "raises an exception when WITHPARTITIONER is used" in {
     val props = Map(
-      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV PROPERTIES('${FlushCount.entryName}'=1,'${PartitionIncludeKeys.entryName}'=false)",
+      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1,'${PartitionIncludeKeys.entryName}'=false)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
@@ -78,7 +78,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
 
   "GCPSinkConfigDefBuilder" should "defaults data storage settings if not provided" in {
     val props = Map(
-      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV WITH_FLUSH_COUNT = 1",
+      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV PROPERTIES('${FlushCount.entryName}'=1)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
