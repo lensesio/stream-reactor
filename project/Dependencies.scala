@@ -61,7 +61,7 @@ object Dependencies {
     // build plugins version
     val betterMonadicForVersion = "0.3.1"
 
-    val logbackVersion      = "1.5.4"
+    val logbackVersion      = "1.5.5"
     val scalaLoggingVersion = "3.9.5"
 
     val wiremockVersion = "3.5.2"
@@ -70,7 +70,7 @@ object Dependencies {
     val jerseyCommonVersion = "3.1.6"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.25.29"
+    val awsSdkVersion  = "2.25.31"
 
     val azureDataLakeVersion = "12.18.3"
     val azureIdentityVersion = "1.11.4"
@@ -87,7 +87,7 @@ object Dependencies {
     val lz4Version = "1.8.0"
 
     val bouncyCastleVersion = "1.78"
-    val nettyVersion        = "4.1.108.Final"
+    val nettyVersion        = "4.1.109.Final"
 
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
@@ -99,7 +99,7 @@ object Dependencies {
     val influxVersion = "7.0.0"
 
     val jmsApiVersion         = "3.1.0"
-    val activeMqVersion       = "6.1.1"
+    val activeMqVersion       = "6.1.2"
     val protocVersion         = "3.11.4"
     val googleProtobufVersion = "3.25.3"
 
@@ -121,7 +121,7 @@ object Dependencies {
 
     val mongoDbVersion = "3.12.14"
 
-    val jedisVersion = "4.4.8"
+    val jedisVersion = "5.1.2"
     val gsonVersion  = "2.10.1"
 
     val nimbusJoseJwtVersion        = "9.37.3"
@@ -164,8 +164,8 @@ object Dependencies {
   val logback          = "ch.qos.logback"              % "logback-classic"  % logbackVersion
   lazy val logbackCore = "ch.qos.logback"              % "logback-core"     % logbackVersion
   val scalaLogging     = "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion
-  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.12"
-  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.12"
+  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.13"
+  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.13"
 
   // testing
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
