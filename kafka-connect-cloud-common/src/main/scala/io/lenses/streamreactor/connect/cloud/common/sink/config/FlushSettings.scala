@@ -18,14 +18,20 @@ package io.lenses.streamreactor.connect.cloud.common.sink.config
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushCount
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushInterval
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushSize
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicyCondition
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.FileSize
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Interval
+import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.CloudSinkProps
+import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.duration.DurationLong
 import scala.concurrent.duration.FiniteDuration
 
 object FlushSettings {
@@ -51,23 +57,24 @@ trait FlushSettings extends BaseSettings with FlushConfigKeys {
     !isFlushCountDisabled
 
   def commitPolicy(kcql: Kcql): CommitPolicy = {
+    val props: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type] = CloudSinkProps.fromKcql(kcql)
     val conditions: Seq[CommitPolicyCondition] = Seq(
-      FileSize(flushSize(kcql)),
-      Interval(flushInterval(kcql)),
+      FileSize(flushSize(props)),
+      Interval(flushInterval(props)),
     ) ++
-      flushCount(kcql).fold(Seq.empty[CommitPolicyCondition])(c => Seq(Count(c)))
+      flushCount(props).fold(Seq.empty[CommitPolicyCondition])(c => Seq(Count(c)))
     CommitPolicy(conditions: _*)
   }
 
-  private def flushInterval(kcql: Kcql): FiniteDuration =
-    Option(kcql.getWithFlushInterval).filter(_ > 0).map(_.seconds).getOrElse(defaultFlushInterval)
+  private def flushInterval(props: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): FiniteDuration =
+    props.getOptionalInt(FlushInterval).filter(_ > 0).map(_.seconds).getOrElse(defaultFlushInterval)
 
-  private def flushSize(kcql: Kcql): Long =
-    Option(kcql.getWithFlushSize).filter(_ > 0).getOrElse(defaultFlushSize)
+  private def flushSize(props: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): Long =
+    props.getOptionalLong(FlushSize).filter(_ > 0).getOrElse(defaultFlushSize)
 
-  private def flushCount(kcql: Kcql): Option[Long] =
+  private def flushCount(props: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type]): Option[Long] =
     if (isFlushCountEnabled) {
-      Option(kcql.getWithFlushCount).filter(_ > 0).orElse(Some(defaultFlushCount))
+      props.getOptionalLong(FlushCount).filter(_ > 0).orElse(Some(defaultFlushCount))
     } else {
       None
     }

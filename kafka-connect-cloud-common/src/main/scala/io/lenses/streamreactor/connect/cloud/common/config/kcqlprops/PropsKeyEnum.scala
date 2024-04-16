@@ -52,4 +52,10 @@ object PropsKeyEnum extends Enum[PropsKeyEntry] {
   case object PaddingSelection extends PropsKeyEntry("padding.type")
 
   case object PartitionIncludeKeys extends PropsKeyEntry("partition.include.keys")
+
+  case object FlushSize extends PropsKeyEntry("flush.size")
+
+  case object FlushCount extends PropsKeyEntry("flush.count")
+
+  case object FlushInterval extends PropsKeyEntry("flush.interval")
 }
