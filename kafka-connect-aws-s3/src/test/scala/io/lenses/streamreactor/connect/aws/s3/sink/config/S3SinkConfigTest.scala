@@ -18,6 +18,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushCount
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.Values
@@ -32,7 +33,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
   private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   test("envelope and CSV storage is not allowed") {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `CSV` PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
@@ -43,7 +44,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
 
   test("envelope and Parquet storage is allowed") {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Parquet` WITHPARTITIONER=Values PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Parquet` PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1,'${PartitionIncludeKeys.entryName}'=false)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
@@ -53,7 +54,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
   }
   test("envelope and Avro storage is allowed") {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Avro` WITHPARTITIONER=Values PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Avro` PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
@@ -63,7 +64,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
   }
   test("envelope and Json storage is allowed") {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Json` WITHPARTITIONER=Values PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Json` PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1, '${PartitionIncludeKeys.entryName}'=false)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
@@ -73,7 +74,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
   }
   test("text and envelope storage is not allowed") {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Text` WITHPARTITIONER=Values PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Text` PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
@@ -83,7 +84,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
   }
   test("envelope and bytes storage is not allowed") {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Bytes` WITHPARTITIONER=Values PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Bytes` PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1,'${PartitionIncludeKeys.entryName}'=false)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
@@ -95,14 +96,6 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
   private val kcqlPartitioningTests =
     Table(
       ("test name", "kcql string", "expected partition display"),
-      ("using kcql string only (values)",
-       "insert into mybucket:myprefix select * from TopicName PARTITIONBY _key WITHPARTITIONER=Values",
-       Values,
-      ),
-      ("using kcql string only (keys and values)",
-       "insert into mybucket:myprefix select * from TopicName PARTITIONBY _key WITHPARTITIONER=KeysAndValues",
-       KeysAndValues,
-      ),
       ("using kcql property only (false)",
        "insert into mybucket:myprefix select * from TopicName PARTITIONBY _key PROPERTIES('partition.include.keys'=false)",
        Values,
@@ -110,10 +103,6 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
       ("using kcql property only (true)",
        "insert into mybucket:myprefix select * from TopicName PARTITIONBY _key PROPERTIES('partition.include.keys'=true)",
        KeysAndValues,
-      ),
-      ("using both",
-       "insert into mybucket:myprefix select * from TopicName PARTITIONBY _key WITHPARTITIONER=Values PROPERTIES('partition.include.keys'=false)",
-       Values,
       ),
     )
 
