@@ -19,6 +19,8 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushCount
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushInterval
 import io.lenses.streamreactor.connect.cloud.common.formats.AvroFormatReader
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.common.TopicPartition
@@ -86,7 +88,7 @@ class S3SinkTaskAvroEnvelopeTest
 
     val props = (
       defaultProps +
-        ("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS AVRO WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true, 'padding.length.partition'='12', 'padding.length.offset'='12')")
+        ("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS AVRO PROPERTIES('store.envelope'=true, 'padding.length.partition'='12', 'padding.length.offset'='12', '${FlushCount.entryName}'=3)")
     ).asJava
 
     task.start(props)
@@ -217,7 +219,7 @@ class S3SinkTaskAvroEnvelopeTest
     val task = new S3SinkTask()
 
     val props = (defaultProps + (
-      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS AVRO WITH_FLUSH_INTERVAL = 1 WITH_FLUSH_COUNT = 3 PROPERTIES('store.envelope'=true,'padding.length.partition'='12', 'padding.length.offset'='12')",
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS AVRO PROPERTIES('store.envelope'=true,'padding.length.partition'='12', 'padding.length.offset'='12','${FlushInterval.entryName}'=1, '${FlushCount.entryName}'=3 )",
     )).asJava
 
     task.start(props)

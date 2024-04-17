@@ -59,6 +59,17 @@ case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
       i <- Try(value.toInt).toOption
     } yield i
 
+  def getOptionalLong(key: U): Option[Long] =
+    for {
+      value:  String <- map.get(key.entryName)
+      schema: PropsSchema <- schema.schema.get(key)
+      _ <- schema match {
+        case LongPropsSchema => value.some
+        case _               => Option.empty[String]
+      }
+      i <- Try(value.toLong).toOption
+    } yield i
+
   def getOptionalChar(key: U): Option[Char] =
     for {
       value: Char <- map.get(key.entryName).filter(_.length == 1).flatMap(_.toCharArray.headOption)
