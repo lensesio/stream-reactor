@@ -1024,7 +1024,7 @@ abstract class CoreSinkTaskTestCases[
     val task = createSinkTask()
 
     val props = (defaultProps + (
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1,'padding.length.partition'='12', 'padding.length.offset'='12','${PartitionIncludeKeys.entryName}'=false,, '${PartitionIncludeKeys.entryName}'=false)",
+      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1,'padding.length.partition'='12', 'padding.length.offset'='12','${PartitionIncludeKeys.entryName}'=false)",
     )).asJava
 
     task.start(props)
