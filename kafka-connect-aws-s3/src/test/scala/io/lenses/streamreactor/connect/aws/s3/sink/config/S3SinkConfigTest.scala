@@ -44,7 +44,7 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
 
   test("envelope and Parquet storage is allowed") {
     val props = Map(
-      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Parquet` PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1,, '${PartitionIncludeKeys.entryName}'=false)",
+      "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Parquet` PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1,'${PartitionIncludeKeys.entryName}'=false)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
