@@ -21,12 +21,11 @@ import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
-import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData.firstUsers
-import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData.users
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.config.JsonFormatSelection
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.ArraySinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
@@ -48,12 +47,15 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.LeftPadP
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.NoOpPaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
+import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData.firstUsers
+import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData.users
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.UsersSchemaDecimal
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import scala.jdk.CollectionConverters._
 
 class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
@@ -244,4 +246,91 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       s"""{"name":"sam","title":"mr","salary":100.430000000000000000}""",
     )
   }
+
+  "json sink" should "write single json record when the input is not best practice: Array of POJO" in {
+
+    val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
+    val config = S3SinkConfig(
+      S3ConnectionConfig(
+        None,
+        Some(s3Container.identity.identity),
+        Some(s3Container.identity.credential),
+        AuthMode.Credentials,
+      ),
+      bucketOptions = Seq(
+        CloudSinkBucketOptions(
+          TopicName.some,
+          bucketAndPrefix,
+          commitPolicy    = CommitPolicy(Count(1)),
+          formatSelection = JsonFormatSelection,
+          keyNamer = new CloudKeyNamer(
+            AvroFormatSelection,
+            defaultPartitionSelection(Values),
+            new OffsetFileNamer(
+              identity[String],
+              JsonFormatSelection.extension,
+            ),
+            new PaddingService(Map[String, PaddingStrategy](
+              "partition" -> NoOpPaddingStrategy,
+              "offset"    -> LeftPadPaddingStrategy(12, 0),
+            )),
+          ),
+          localStagingArea = LocalStagingArea(localRoot),
+          dataStorage      = DataStorageSettings.disabled,
+        ),
+      ),
+      offsetSeekerOptions = OffsetSeekerOptions(5),
+      compressionCodec,
+      batchDelete = true,
+    )
+
+    val sink   = writerManagerCreator.from(config)
+    val topic  = Topic(TopicName)
+    val offset = Offset(1)
+    val listOfPojo: java.util.List[Pojo] = List(
+      new Pojo("sam", "mr", 100.43),
+      new Pojo("laura", "ms", 429.06),
+    ).asJava
+
+    sink.write(
+      TopicPartitionOffset(topic, 1, offset),
+      MessageDetail(NullSinkData(None),
+                    ArraySinkData(listOfPojo, None),
+                    Map.empty[String, SinkData],
+                    None,
+                    topic,
+                    1,
+                    offset,
+      ),
+    )
+    sink.close()
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
+
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1.json") should be(
+      """[{"name":"sam","title":"mr","salary":100.43},{"name":"laura","title":"ms","salary":429.06}]""",
+    )
+  }
+}
+
+//create a class with the following fields
+//.put("name", "sam").put("title", "mr").put("salary", 100.43),
+class Pojo {
+  private var name:   String = _
+  private var title:  String = _
+  private var salary: Double = _
+
+  def this(name: String, title: String, salary: Double) = {
+    this()
+    this.name   = name
+    this.title  = title
+    this.salary = salary
+  }
+
+  def getName: String = name
+  def setName(name: String): Unit = this.name = name
+  def getTitle: String = title
+  def setTitle(title: String): Unit = this.title = title
+  def getSalary: Double = salary
+  def setSalary(salary: Double): Unit = this.salary = salary
 }
