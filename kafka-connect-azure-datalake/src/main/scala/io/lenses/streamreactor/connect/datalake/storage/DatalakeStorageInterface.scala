@@ -220,4 +220,11 @@ class DatalakeStorageInterface(connectorTaskId: ConnectorTaskId, client: DataLak
         }.toEither.leftMap(FileDeleteError(_, file))
     }.sequence
   } yield ()
+
+  /**
+    * Gets the system name for use in log messages.
+    *
+    * @return
+    */
+  override def system(): String = "Azure Datalake"
 }

@@ -15,8 +15,11 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.naming
 
+import cats.implicits.toTraverseOps
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
+import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
+import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 
 import scala.util.Try
 
@@ -35,9 +38,25 @@ object IndexFilenames {
     f".indexes/${connectorTaskId.name}/$topic/$partition%05d/"
 
   /**
+    * Parses the filename of the index file, converting it to a TopicPartitionOffset
+    *
+    * @param maybeIndex option of the index filename
+    * @return either an error, or a TopicPartitionOffset
+    */
+  def indexToOffset(
+    topicPartition: TopicPartition,
+    maybeIndex:     Option[String],
+  ): Either[Throwable, Option[TopicPartitionOffset]] =
+    maybeIndex.map(index =>
+      for {
+        offset <- IndexFilenames.offsetFromIndex(index)
+      } yield topicPartition.withOffset(offset),
+    ).sequence
+
+  /**
     * Parses an index filename and returns an offset
     */
-  def offsetFromIndex(indexFilename: String): Either[Throwable, Offset] = {
+  private def offsetFromIndex(indexFilename: String): Either[Throwable, Offset] = {
     val lastIndex = indexFilename.lastIndexOf("/")
     val (_, last) = indexFilename.splitAt(lastIndex + 1)
 

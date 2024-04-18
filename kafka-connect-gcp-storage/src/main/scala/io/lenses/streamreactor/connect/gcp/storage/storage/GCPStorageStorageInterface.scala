@@ -85,37 +85,44 @@ class GCPStorageStorageInterface(connectorTaskId: ConnectorTaskId, storage: Stor
 
   override def close(): Unit = Try(storage.close()).getOrElse(())
 
-  private def usingBlob[X](bucket: String, path: String)(f: Blob => X): Either[FileLoadError, X] =
+  private def usingBlob[X](bucket: String, path: String)(f: Option[Blob] => X): Either[FileLoadError, X] =
     Try {
-      val blob = storage.get(BlobId.of(bucket, path))
-      f(blob)
+      val blob     = storage.get(BlobId.of(bucket, path))
+      val optiBlob = Option(blob)
+      f(optiBlob)
     }.toEither.leftMap {
       FileLoadError(_, path)
     }
 
   override def pathExists(bucket: String, path: String): Either[FileLoadError, Boolean] =
     usingBlob[Boolean](bucket, path) {
-      blob =>
-        blob.exists().booleanValue()
+      maybeBlob =>
+        maybeBlob.nonEmpty && maybeBlob.exists(blob => blob.exists())
     }
 
   override def getBlob(bucket: String, path: String): Either[FileLoadError, InputStream] =
     usingBlob[InputStream](bucket, path) {
-      blob =>
+      case Some(blob) =>
         val reader = blob.reader()
         Channels.newInputStream(reader)
+      case None =>
+        throw new IllegalStateException("No/null blob found (file doesn't exist?)")
     }
 
   override def getBlobAsString(bucket: String, path: String): Either[FileLoadError, String] =
     usingBlob[String](bucket, path) {
-      blob =>
+      case Some(blob) =>
         new String(blob.getContent())
+      case None =>
+        throw new IllegalStateException("No/null blob found (file doesn't exist?)")
     }
 
   override def getMetadata(bucket: String, path: String): Either[FileLoadError, ObjectMetadata] =
     usingBlob[ObjectMetadata](bucket, path) {
-      blob =>
+      case Some(blob) =>
         ObjectMetadata(blob.getSize, blob.getCreateTimeOffsetDateTime.toInstant)
+      case None =>
+        throw new IllegalStateException("No/null blob found (file doesn't exist?)")
     }
 
   override def writeStringToFile(bucket: String, path: String, data: UploadableString): Either[UploadError, Unit] = {
@@ -270,4 +277,10 @@ class GCPStorageStorageInterface(connectorTaskId: ConnectorTaskId, storage: Stor
       .map(lmValue => GCPStorageFileMetadata(fileName, lmValue))
       .orElse(getMetadata(bucket, fileName).map(oMeta => GCPStorageFileMetadata(fileName, oMeta.lastModified)).toOption)
 
+  /**
+    * Gets the system name for use in log messages.
+    *
+    * @return
+    */
+  override def system(): String = "GCP Storage"
 }
