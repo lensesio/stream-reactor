@@ -49,7 +49,8 @@ project(":kafka-connect-query-language") {
         archives javadocJar, sourcesJar
     }
 
-    compileJava.dependsOn generateGrammarSource
+    //order should be: generateGrammarSource -> updateLicenseMain -> compileJava
+    checkLicenseMain.dependsOn("generateGrammarSource")
 
     task compile(dependsOn: 'compileJava')
     task fatJarNoTest(dependsOn: 'shadowJar')

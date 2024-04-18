@@ -56,7 +56,7 @@ jobs:
         with:
           gradle-version: 8.6
 
-      - name: Test with Gradle
+      - name: Check License Headers and Test with Gradle
         run: cd 'java-connectors' && ./gradlew ${{ matrix.module }}:test
 
   build-and-cache:

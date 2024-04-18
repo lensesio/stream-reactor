@@ -1,5 +1,6 @@
 plugins {
     id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'org.cadixdev.licenser' version '0.6.1'
     id 'java'
     id 'java-library'
 }
@@ -13,6 +14,7 @@ allprojects {
     apply plugin: 'java'
     apply plugin: 'java-library'
     apply plugin: 'com.github.johnrengelman.shadow'
+    apply plugin: 'org.cadixdev.licenser'
 
     java {
         setSourceCompatibility(JavaVersion.VERSION_11)
@@ -71,6 +73,22 @@ allprojects {
         }
     }
 
+    license {
+        include("**/**.java", "**/**Test.java")
+        exclude("**/kcql/antlr4/**.java") //antlr generated files
+        header = project.file("${project.rootDir}/HEADER.txt")
+        newLine = false
+
+        style {
+            java = 'BLOCK_COMMENT'
+        }
+
+        properties {
+            name = 'Lenses.io'
+            year = LocalDate.now().year
+        }
+    }
+
     jar {
         manifest {
             attributes("StreamReactor-Version": project.version,
@@ -126,6 +144,7 @@ allprojects {
         }
 
     }
+    compileJava.dependsOn("checkLicenses")
 
     task fatJar(dependsOn: [test, jar, shadowJar])
 
