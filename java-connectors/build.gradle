@@ -75,6 +75,7 @@ allprojects {
 
     license {
         include("**/**.java", "**/**Test.java")
+        exclude("**/kcql/antlr4/**.java") //antlr generated files
         header = project.file("${project.rootDir}/HEADER.txt")
         newLine = false
 
@@ -143,7 +144,7 @@ allprojects {
         }
 
     }
-    compileJava.dependsOn("updateLicenses")
+    compileJava.dependsOn("checkLicenses")
 
     task fatJar(dependsOn: [test, jar, shadowJar])
 
