@@ -38,7 +38,7 @@ object Dependencies {
     // libraries versions
     val scalatestVersion               = "3.2.18"
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
-    val scalaCheckVersion              = "1.17.0"
+    val scalaCheckVersion              = "1.17.1"
 
     val kafkaVersion:     String = "3.7.0"
     val confluentVersion: String = "7.6.1"
