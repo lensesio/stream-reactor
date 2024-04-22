@@ -58,9 +58,6 @@ allprojects {
         compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.30'
         annotationProcessor group: 'org.projectlombok', name: 'lombok', version: lombokVersion
 
-        //checkstyle
-        checkstyle "com.puppycrawl.tools:checkstyle:${checkstyle.toolVersion}"
-
         //tests
         testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoJupiterVersion
         testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: mockitoJupiterVersion
@@ -93,7 +90,6 @@ allprojects {
             year = LocalDate.now().year
         }
     }
-
 
     jar {
         manifest {
