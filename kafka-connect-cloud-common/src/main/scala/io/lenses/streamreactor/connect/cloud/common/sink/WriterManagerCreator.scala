@@ -28,7 +28,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.FinalFileNameBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.transformers.TopicsTransformers
@@ -62,7 +62,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig] extends La
         case None                => fatalErrorTopicNotConfigured(topicPartition).asLeft
       }
 
-    val keyNamerFn: TopicPartition => Either[SinkError, KeyNamer] = topicPartition =>
+    val keyNamerBuilderFn: TopicPartition => Either[SinkError, KeyNamer] = topicPartition =>
       bucketOptsForTopic(config, topicPartition.topic) match {
         case Some(bucketOptions) => bucketOptions.keyNamer.asRight
         case None                => fatalErrorTopicNotConfigured(topicPartition).asLeft
@@ -73,11 +73,11 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig] extends La
         bucketOptsForTopic(config, topicPartition.topic) match {
           case Some(bucketOptions) =>
             for {
-              keyNamer <- keyNamerFn(topicPartition)
-              stagingFilename <- keyNamer.stagingFile(bucketOptions.localStagingArea.dir,
-                                                      bucketOptions.bucketAndPrefix,
-                                                      topicPartition,
-                                                      partitionValues,
+              keyNamer <- keyNamerBuilderFn(topicPartition)
+              stagingFilename <- keyNamer.staging(bucketOptions.localStagingArea.dir,
+                                                  bucketOptions.bucketAndPrefix,
+                                                  topicPartition,
+                                                  partitionValues,
               )
             } yield stagingFilename
           case None => fatalErrorTopicNotConfigured(topicPartition).asLeft
@@ -86,16 +86,16 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig] extends La
     val finalFilenameFn: (
       TopicPartition,
       immutable.Map[PartitionField, String],
-    ) => FinalFileNameBuilder = (topicPartition, partitionValues) =>
+    ) => ObjectKeyBuilder = (topicPartition, partitionValues) =>
       (offset: Offset, earliestRecordTimestamp: Long) => {
         bucketOptsForTopic(config, topicPartition.topic) match {
           case Some(bucketOptions) =>
             for {
-              keyNamer <- keyNamerFn(topicPartition)
-              finalFilename <- keyNamer.finalFilename(bucketOptions.bucketAndPrefix,
-                                                      topicPartition.withOffset(offset),
-                                                      partitionValues,
-                                                      earliestRecordTimestamp,
+              keyNamer <- keyNamerBuilderFn(topicPartition)
+              finalFilename <- keyNamer.value(bucketOptions.bucketAndPrefix,
+                                              topicPartition.withOffset(offset),
+                                              partitionValues,
+                                              earliestRecordTimestamp,
               )
             } yield finalFilename
           case None => fatalErrorTopicNotConfigured(topicPartition).asLeft
@@ -123,7 +123,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig] extends La
     new WriterManager(
       commitPolicyFn,
       bucketAndPrefixFn,
-      keyNamerFn,
+      keyNamerBuilderFn,
       stagingFilenameFn,
       finalFilenameFn,
       formatWriterFn,

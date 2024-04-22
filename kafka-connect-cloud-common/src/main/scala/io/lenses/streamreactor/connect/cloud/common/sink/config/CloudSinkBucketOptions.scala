@@ -74,44 +74,16 @@ object CloudSinkBucketOptions extends LazyLogging {
         sinkProps          = CloudSinkProps.fromKcql(kcql)
         partitionSelection = PartitionSelection(kcql, sinkProps)
         paddingService    <- PaddingService.fromConfig(config, sinkProps)
+        storageSettings   <- DataStorageSettings.from(sinkProps)
+        keyNameVersion     = KeyNamerVersion(sinkProps, KeyNamerVersion.V0)
+        fileNamer         <- getFileNamer(keyNameVersion, storageSettings, fileExtension, partitionSelection, paddingService)
+        keyNamer           = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
+        stagingArea       <- config.getLocalStagingArea()(connectorTaskId)
+        target            <- CloudLocation.splitAndValidate(kcql.getTarget)
 
-        keyNameVersion = KeyNamerVersion(sinkProps, KeyNamerVersion.V0)
-        fileNamer = if (partitionSelection.isCustom) {
-          keyNameVersion match {
-            case KeyNamerVersion.V0 =>
-              new TopicPartitionOffsetFileNamerV0(
-                paddingService.padderFor("partition"),
-                paddingService.padderFor("offset"),
-                fileExtension,
-              )
-            case KeyNamerVersion.V1 =>
-              new TopicPartitionOffsetFileNamerV1(
-                paddingService.padderFor("partition"),
-                paddingService.padderFor("offset"),
-                fileExtension,
-              )
-          }
-        } else {
-          keyNameVersion match {
-            case KeyNamerVersion.V0 =>
-              new OffsetFileNamerV0(
-                paddingService.padderFor("offset"),
-                fileExtension,
-              )
-            case KeyNamerVersion.V1 =>
-              new OffsetFileNamerV1(
-                paddingService.padderFor("offset"),
-                fileExtension,
-              )
-          }
-        }
-        keyNamer         = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
-        stagingArea     <- config.getLocalStagingArea()(connectorTaskId)
-        target          <- CloudLocation.splitAndValidate(kcql.getTarget)
-        storageSettings <- DataStorageSettings.from(sinkProps)
-        _               <- validateEnvelopeAndFormat(formatSelection, storageSettings)
-        commitPolicy     = config.commitPolicy(kcql)
-        _               <- validateCommitPolicyForBytesFormat(formatSelection, commitPolicy)
+        _           <- validateEnvelopeAndFormat(formatSelection, storageSettings)
+        commitPolicy = config.commitPolicy(kcql)
+        _           <- validateCommitPolicyForBytesFormat(formatSelection, commitPolicy)
       } yield {
         CloudSinkBucketOptions(
           Option(kcql.getSource).filterNot(Set("*", "`*`").contains(_)),
@@ -124,6 +96,53 @@ object CloudSinkBucketOptions extends LazyLogging {
         )
       }
     }.toSeq.traverse(identity)
+
+  /**
+    * When non-envelope storage is used the fast seeks cannot not be achieved since the data stored does
+    * not guarantee the timestamp is present. Therefore, we use the V0 key namer.
+    *
+    * @param keyNameVersion
+    * @param storageSettings
+    * @param fileExtension
+    * @param partitionSelection
+    * @param paddingService
+    * @return
+    */
+  private def getFileNamer(
+    keyNameVersion:     KeyNamerVersion,
+    storageSettings:    DataStorageSettings,
+    fileExtension:      String,
+    partitionSelection: PartitionSelection,
+    paddingService:     PaddingService,
+  ): Either[Throwable, FileNamer] =
+    keyNameVersion match {
+      case KeyNamerVersion.V0 =>
+        if (partitionSelection.isCustom) {
+          new TopicPartitionOffsetFileNamerV0(
+            paddingService.padderFor("partition"),
+            paddingService.padderFor("offset"),
+            fileExtension,
+          ).asRight
+        } else {
+          new OffsetFileNamerV0(
+            paddingService.padderFor("offset"),
+            fileExtension,
+          ).asRight
+        }
+      case KeyNamerVersion.V1 =>
+        if (partitionSelection.isCustom) {
+          new TopicPartitionOffsetFileNamerV1(
+            paddingService.padderFor("partition"),
+            paddingService.padderFor("offset"),
+            fileExtension,
+          ).asRight
+        } else {
+          new OffsetFileNamerV1(
+            paddingService.padderFor("offset"),
+            fileExtension,
+          ).asRight
+        }
+    }
 
   private def validateWithFlush(kcql: Kcql): Either[Throwable, Unit] = {
     val sql = kcql.getQuery.toUpperCase()

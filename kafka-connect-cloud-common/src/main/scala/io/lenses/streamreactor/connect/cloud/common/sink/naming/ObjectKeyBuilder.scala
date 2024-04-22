@@ -22,7 +22,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 /**
   * Creates the object key for the cloud storage
   */
-trait FinalFileNameBuilder {
+trait ObjectKeyBuilder {
 
   /**
     * Builds the key

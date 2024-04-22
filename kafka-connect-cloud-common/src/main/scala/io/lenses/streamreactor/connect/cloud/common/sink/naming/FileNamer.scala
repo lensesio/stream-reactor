@@ -71,6 +71,6 @@ class TopicPartitionOffsetFileNamerV1(
   ): String =
     s"${topicPartitionOffset.topic.value}(${partitionPaddingStrategy.padString(
       topicPartitionOffset.partition.toString,
-    )}_${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}_${earliestRecordTimestamp}).$extension"
+    )}_${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}_${earliestRecordTimestamp.toString}).$extension"
 
 }

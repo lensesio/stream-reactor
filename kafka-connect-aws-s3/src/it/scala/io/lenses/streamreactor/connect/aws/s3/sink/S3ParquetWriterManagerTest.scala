@@ -47,14 +47,16 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.LeftPadP
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.NoOpPaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamerV1
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.time.Instant
 
 class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
@@ -83,7 +85,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         keyNamer = new CloudKeyNamer(
           ParquetFormatSelection,
           defaultPartitionSelection(Values),
-          new OffsetFileNamer(
+          new OffsetFileNamerV1(
             identity[String],
             ParquetFormatSelection.extension,
           ),
@@ -111,7 +113,15 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         val offset = Offset(index.toLong + 1)
         sink.write(
           TopicPartitionOffset(topic, 1, offset),
-          MessageDetail(NullSinkData(None), StructSinkData(struct), Map.empty[String, SinkData], None, topic, 1, offset),
+          MessageDetail(
+            NullSinkData(None),
+            StructSinkData(struct),
+            Map.empty[String, SinkData],
+            Some(Instant.ofEpochMilli(1001L + index.toLong)),
+            topic,
+            1,
+            offset,
+          ),
         )
     }
 
@@ -119,7 +129,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2.parquet")
+    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_1001.parquet")
     val genericRecords: List[GenericRecord] = parquetFormatReader.read(byteArray)
     genericRecords.size should be(2)
 
@@ -149,7 +159,15 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         val offset = Offset(index.toLong + 1)
         sink.write(
           TopicPartitionOffset(topic, 1, offset),
-          MessageDetail(NullSinkData(None), StructSinkData(user), Map.empty[String, SinkData], None, topic, 1, offset),
+          MessageDetail(
+            NullSinkData(None),
+            StructSinkData(user),
+            Map.empty[String, SinkData],
+            Some(Instant.ofEpochMilli(index.toLong)),
+            topic,
+            1,
+            offset,
+          ),
         )
     }
     sink.close()
@@ -158,7 +176,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
 
     // records 1 and 2
     val genericRecords1: List[GenericRecord] = parquetFormatReader.read(
-      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2.parquet"),
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_0.parquet"),
     )
     genericRecords1.size should be(2)
     genericRecords1(0).get("name").toString should be("sam")
@@ -166,14 +184,14 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
 
     // record 3 only - next schema is different so ending the file
     val genericRecords2: List[GenericRecord] = parquetFormatReader.read(
-      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/3.parquet"),
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/3_2.parquet"),
     )
     genericRecords2.size should be(1)
     genericRecords2(0).get("name").toString should be("tom")
 
     // record 3 only - next schema is different so ending the file
     val genericRecords3: List[GenericRecord] = parquetFormatReader.read(
-      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/5.parquet"),
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/5_3.parquet"),
     )
     genericRecords3.size should be(2)
     genericRecords3(0).get("name").toString should be("bobo")

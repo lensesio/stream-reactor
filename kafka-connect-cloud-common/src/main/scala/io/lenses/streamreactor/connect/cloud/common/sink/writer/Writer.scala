@@ -28,7 +28,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitContext
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.FinalFileNameBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.storage._
 import org.apache.kafka.connect.data.Schema
@@ -38,13 +38,13 @@ import scala.math.Ordered.orderingToOrdered
 import scala.util.Try
 
 class Writer[SM <: FileMetadata](
-  topicPartition:       TopicPartition,
-  commitPolicy:         CommitPolicy,
-  indexManager:         IndexManager[SM],
-  stagingFilenameFn:    () => Either[SinkError, File],
-  finalFilenameBuilder: FinalFileNameBuilder,
-  formatWriterFn:       File => Either[SinkError, FormatWriter],
-  lastSeekedOffset:     Option[Offset],
+  topicPartition:    TopicPartition,
+  commitPolicy:      CommitPolicy,
+  indexManager:      IndexManager[SM],
+  stagingFilenameFn: () => Either[SinkError, File],
+  objectKeyBuilder:  ObjectKeyBuilder,
+  formatWriterFn:    File => Either[SinkError, FormatWriter],
+  lastSeekedOffset:  Option[Offset],
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
@@ -110,14 +110,14 @@ class Writer[SM <: FileMetadata](
     writeState match {
       case uploadState @ Uploading(commitState, file, uncommittedOffset, earliestRecordTimestamp) =>
         for {
-          finalFileName <- finalFilenameBuilder.build(uncommittedOffset, earliestRecordTimestamp)
-          path          <- finalFileName.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
+          key  <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp)
+          path <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
           indexFileName <- indexManager.write(
-            finalFileName.bucket,
+            key.bucket,
             path,
             topicPartition.withOffset(uncommittedOffset),
           )
-          _ <- storageInterface.uploadFile(UploadableFile(file), finalFileName.bucket, path)
+          _ <- storageInterface.uploadFile(UploadableFile(file), key.bucket, path)
             .recover {
               case _: NonExistingFileError => ()
               case _: ZeroByteFileError    => ()
@@ -125,7 +125,7 @@ class Writer[SM <: FileMetadata](
             .leftMap {
               case UploadFailedError(exception, _) => NonFatalCloudSinkError(exception.getMessage, exception.some)
             }
-          _ <- indexManager.clean(finalFileName.bucket, indexFileName, topicPartition)
+          _ <- indexManager.clean(key.bucket, indexFileName, topicPartition)
           stateReset <- Try {
             logger.debug(s"[{}] Writer.resetState: Resetting state $writeState", connectorTaskId.show)
             writeState = uploadState.toNoWriter
