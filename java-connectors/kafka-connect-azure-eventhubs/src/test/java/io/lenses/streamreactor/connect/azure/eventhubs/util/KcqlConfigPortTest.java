@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.azure.eventhubs.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,20 +70,9 @@ class KcqlConfigPortTest {
         + "dots and has to start with number or letter";
 
     //when
-    try {
-      KcqlConfigPort.mapInputToOutputsFromConfig(illegalInputKcql);
-      fail("Exception not thrown");
-    } catch (ConfigException e) {
-      assertEquals(inputErrorMessage, e.getMessage());
-    }
+    mapInputToOutputAddertingExceptionWithSpecificMessage(illegalInputKcql, inputErrorMessage);
 
-    try {
-      KcqlConfigPort.mapInputToOutputsFromConfig(illegalOutputKcql);
-      fail("Exception not thrown");
-    } catch (ConfigException e) {
-      assertEquals(outputErrorMessage, e.getMessage());
-    }
-
+    mapInputToOutputAddertingExceptionWithSpecificMessage(illegalOutputKcql, outputErrorMessage);
   }
 
   @Test
@@ -94,13 +83,8 @@ class KcqlConfigPortTest {
     String outputErrorMessage = "Input INPUT1 cannot be mapped twice.";
 
     //when
-    try {
-      KcqlConfigPort.mapInputToOutputsFromConfig(oneInputKcql + sameInputKcql);
-      fail("Exception not thrown");
-    } catch (ConfigException e) {
-      assertEquals(outputErrorMessage, e.getMessage());
-    }
-
+    mapInputToOutputAddertingExceptionWithSpecificMessage(oneInputKcql + sameInputKcql,
+        outputErrorMessage);
   }
 
   @Test
@@ -111,12 +95,14 @@ class KcqlConfigPortTest {
     String outputErrorMessage = "Output OUTPUT1 cannot be mapped twice.";
 
     //when
-    try {
-      KcqlConfigPort.mapInputToOutputsFromConfig(oneInputKcql + anotherInputToSameOutputKcql);
-      fail("Exception not thrown");
-    } catch (ConfigException e) {
-      assertEquals(outputErrorMessage, e.getMessage());
-    }
+    mapInputToOutputAddertingExceptionWithSpecificMessage(
+        oneInputKcql + anotherInputToSameOutputKcql,
+        outputErrorMessage);
+  }
 
+  private static void mapInputToOutputAddertingExceptionWithSpecificMessage(String illegalKcql,
+      String expectedMessage) {
+    assertThrows(ConfigException.class,
+        () -> KcqlConfigPort.mapInputToOutputsFromConfig(illegalKcql), expectedMessage);
   }
 }

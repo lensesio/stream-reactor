@@ -15,7 +15,10 @@
  */
 package io.lenses.streamreactor.common.exception;
 
-public class ConnectorStartupException extends RuntimeException{
+/**
+ * Exception to indicate there's something wrong during Connector's startup.
+ */
+public class ConnectorStartupException extends RuntimeException {
 
   public ConnectorStartupException(Throwable cause) {
     super(cause);

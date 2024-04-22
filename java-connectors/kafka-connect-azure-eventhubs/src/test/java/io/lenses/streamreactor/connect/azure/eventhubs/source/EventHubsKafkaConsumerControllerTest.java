@@ -63,12 +63,14 @@ class EventHubsKafkaConsumerControllerTest {
     Duration duration = Duration.of(2, ChronoUnit.SECONDS);
     Map<String, String> inputOutputMap = Map.of(INPUT_TOPIC, OUTPUT_TOPIC);
 
-    SourceDataType mockedDataType = mock(SourceDataType.class);
-    when(mockedDataType.getSchema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA);
+    SourceDataType mockedKeyDataType = mock(SourceDataType.class);
+    when(mockedKeyDataType.getSchema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA);
+    SourceDataType mockedValueDataType = mock(SourceDataType.class);
+    when(mockedValueDataType.getSchema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA);
 
     KeyValueTypes mockedKeyValueTypes = mock(KeyValueTypes.class);
-    when(mockedKeyValueTypes.getKeyType()).thenReturn(mockedDataType);
-    when(mockedKeyValueTypes.getValueType()).thenReturn(mockedDataType);
+    when(mockedKeyValueTypes.getKeyType()).thenReturn(mockedKeyDataType);
+    when(mockedKeyValueTypes.getValueType()).thenReturn(mockedValueDataType);
 
     KafkaByteBlockingQueuedProducer mockedBlockingProducer = mock(
         KafkaByteBlockingQueuedProducer.class);
@@ -95,7 +97,8 @@ class EventHubsKafkaConsumerControllerTest {
 
     //then
     verify(mockedBlockingProducer).start();
-    verify(mockedDataType, times(2)).getSchema();
+    verify(mockedKeyDataType, times(1)).getSchema();
+    verify(mockedValueDataType, times(1)).getSchema();
     verify(mockedBlockingProducer, times(2)).getKeyValueTypes();
     assertNotNull(mockedRecords);
     assertEquals(1, sourceRecords.size());
@@ -112,9 +115,14 @@ class EventHubsKafkaConsumerControllerTest {
     SourceDataType mockedDataType = mock(SourceDataType.class);
     when(mockedDataType.getSchema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA);
 
+    SourceDataType mockedKeyDataType = mock(SourceDataType.class);
+    when(mockedKeyDataType.getSchema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA);
+    SourceDataType mockedValueDataType = mock(SourceDataType.class);
+    when(mockedValueDataType.getSchema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA);
+
     KeyValueTypes mockedKeyValueTypes = mock(KeyValueTypes.class);
-    when(mockedKeyValueTypes.getKeyType()).thenReturn(mockedDataType);
-    when(mockedKeyValueTypes.getValueType()).thenReturn(mockedDataType);
+    when(mockedKeyValueTypes.getKeyType()).thenReturn(mockedKeyDataType);
+    when(mockedKeyValueTypes.getValueType()).thenReturn(mockedValueDataType);
 
     KafkaByteBlockingQueuedProducer mockedBlockingProducer = mock(
         KafkaByteBlockingQueuedProducer.class);
@@ -144,7 +152,8 @@ class EventHubsKafkaConsumerControllerTest {
 
     //then
     verify(mockedBlockingProducer).start();
-    verify(mockedDataType, times(4)).getSchema();
+    verify(mockedKeyDataType, times(2)).getSchema(); //1x both records
+    verify(mockedValueDataType, times(2)).getSchema(); //1x both records
     verify(mockedBlockingProducer, times(4)).getKeyValueTypes();
     assertNotNull(mockedRecords);
     assertEquals(2, sourceRecords.size());

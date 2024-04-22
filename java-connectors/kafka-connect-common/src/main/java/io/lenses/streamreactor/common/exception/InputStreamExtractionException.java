@@ -15,6 +15,9 @@
  */
 package io.lenses.streamreactor.common.exception;
 
+/**
+ * Exception to indicate there's something wrong when reading from InputStream.
+ */
 public class InputStreamExtractionException extends RuntimeException {
 
   public InputStreamExtractionException(Throwable cause) {

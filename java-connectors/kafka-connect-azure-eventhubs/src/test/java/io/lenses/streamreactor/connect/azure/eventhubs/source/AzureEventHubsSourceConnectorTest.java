@@ -76,11 +76,11 @@ class AzureEventHubsSourceConnectorTest {
   }
 
   private Map<String, String> createSimplePropertiesWithKcql() {
-    Map<String, String> properties = new HashMap<>();
-
-    properties.put(AzureEventHubsConfigConstants.CONNECTOR_NAME, CONNECTOR_NAME);
-    properties.put("connector.class", AzureEventHubsSourceConnector.class.getCanonicalName());
-    properties.put(AzureEventHubsConfigConstants.KCQL_CONFIG, KCQL);
+    Map<String, String> properties = Map.of(
+        AzureEventHubsConfigConstants.CONNECTOR_NAME, CONNECTOR_NAME,
+        "connector.class", AzureEventHubsSourceConnector.class.getCanonicalName(),
+        AzureEventHubsConfigConstants.KCQL_CONFIG, KCQL
+    );
 
     return properties;
   }

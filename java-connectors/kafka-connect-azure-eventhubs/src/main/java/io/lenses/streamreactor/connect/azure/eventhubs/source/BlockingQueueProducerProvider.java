@@ -63,6 +63,21 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
     log.info("Attempting to create Client with Id:{}", clientId);
     KeyValueTypes keyValueTypes = KeyValueTypes.DEFAULT_TYPES;
 
+    Map<String, Object> consumerProperties = prepareConsumerProperties(azureEventHubsSourceConfig,
+        clientId, connectorName, keyValueTypes);
+
+    KafkaConsumer<byte[], byte[]> kafkaConsumer = new KafkaConsumer<>(consumerProperties);
+
+    boolean shouldSeekToLatest = shouldConsumerSeekToLatest(azureEventHubsSourceConfig);
+    Set<String> inputTopics = inputToOutputTopics.keySet();
+
+    return new KafkaByteBlockingQueuedProducer(topicPartitionOffsetProvider, recordBlockingQueue,
+        kafkaConsumer, keyValueTypes, clientId, inputTopics, shouldSeekToLatest);
+  }
+
+  private static Map<String, Object> prepareConsumerProperties(
+      AzureEventHubsSourceConfig azureEventHubsSourceConfig, String clientId, String connectorName,
+      KeyValueTypes keyValueTypes) {
     Map<String, Object> consumerProperties = azureEventHubsSourceConfig.originalsWithPrefix(
         AzureEventHubsConfigConstants.CONNECTOR_WITH_CONSUMER_PREFIX, STRIP_PREFIX);
 
@@ -73,13 +88,7 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
     consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
         keyValueTypes.getValueType().getDeserializerClass());
     consumerProperties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
-    KafkaConsumer<byte[], byte[]> kafkaConsumer = new KafkaConsumer<>(consumerProperties);
-
-    boolean shouldSeekToLatest = shouldConsumerSeekToLatest(azureEventHubsSourceConfig);
-    Set<String> inputTopics = inputToOutputTopics.keySet();
-
-    return new KafkaByteBlockingQueuedProducer(topicPartitionOffsetProvider, recordBlockingQueue,
-        kafkaConsumer, keyValueTypes, clientId, inputTopics, shouldSeekToLatest);
+    return consumerProperties;
   }
 
   private boolean shouldConsumerSeekToLatest(AzureEventHubsSourceConfig azureEventHubsSourceConfig) {

@@ -70,7 +70,7 @@ class SourceRecordMapperTest {
     assertRecordAttributesAreMappedFromSourceConsumerRecord(sourceRecord, consumerRecord,
         OUTPUT_TOPIC, optionalStringSchema, stringSchema, topicPartitionKey, azureOffsetMarker);
     verify(consumerRecord).headers();
-    assertThat(sourceRecord.headers()).isNotEmpty().hasSize(1);
+    assertThat(sourceRecord.headers()).hasSize(1);
     assertThat(((byte[])sourceRecord.headers().lastWithName(HEADER_KEY).value())).hasSize(headerLength);
   }
 
