@@ -38,10 +38,10 @@ object Dependencies {
     // libraries versions
     val scalatestVersion               = "3.2.18"
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
-    val scalaCheckVersion              = "1.17.0"
+    val scalaCheckVersion              = "1.18.0"
 
     val kafkaVersion:     String = "3.7.0"
-    val confluentVersion: String = "7.6.0"
+    val confluentVersion: String = "7.6.1"
 
     val enumeratumVersion = "1.7.3"
 
@@ -50,7 +50,7 @@ object Dependencies {
     val avroVersion      = "1.11.3"
     val avro4sVersion    = "4.1.2"
 
-    val catsEffectVersion     = "3.4.11"
+    val catsEffectVersion     = "3.5.4"
     val `cats-effect-testing` = "1.5.0"
 
     val antlr4Version: String = "4.13.1"
@@ -61,45 +61,45 @@ object Dependencies {
     // build plugins version
     val betterMonadicForVersion = "0.3.1"
 
-    val logbackVersion      = "1.5.3"
+    val logbackVersion      = "1.5.6"
     val scalaLoggingVersion = "3.9.5"
 
-    val wiremockVersion = "3.5.2"
+    val wiremockVersion = "3.5.3"
     val parquetVersion  = "1.13.1"
 
-    val jerseyCommonVersion = "3.1.5"
+    val jerseyCommonVersion = "3.1.6"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.25.29"
+    val awsSdkVersion  = "2.25.35"
 
     val azureDataLakeVersion = "12.18.3"
     val azureIdentityVersion = "1.11.4"
     val azureCoreVersion     = "1.48.0"
-    val gcpStorageVersion    = "2.36.1"
+    val gcpStorageVersion    = "2.37.0"
 
     val jacksonVersion      = "2.17.0"
     val json4sVersion       = "4.0.7"
-    val mockitoScalaVersion = "1.17.30"
+    val mockitoScalaVersion = "1.17.31"
     val openCsvVersion      = "5.9"
     val jsonSmartVersion    = "2.5.1"
 
     val xzVersion  = "1.9"
     val lz4Version = "1.8.0"
 
-    val bouncyCastleVersion = "1.77"
-    val nettyVersion        = "4.1.108.Final"
+    val bouncyCastleVersion = "1.78.1"
+    val nettyVersion        = "4.1.109.Final"
 
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
 
     val azureDocumentDbVersion     = "2.6.5"
-    val testcontainersScalaVersion = "0.40.17"
+    val testcontainersScalaVersion = "0.41.3"
     val testcontainersVersion      = "1.19.7"
 
-    val influxVersion = "6.12.0"
+    val influxVersion = "7.0.0"
 
     val jmsApiVersion         = "3.1.0"
-    val activeMqVersion       = "6.1.0"
+    val activeMqVersion       = "6.1.2"
     val protocVersion         = "3.11.4"
     val googleProtobufVersion = "3.25.3"
 
@@ -109,7 +109,7 @@ object Dependencies {
     val commonsCodecVersion    = "1.16.1"
     val commonsCompressVersion = "1.26.1"
     val commonsConfigVersion   = "2.10.1"
-    val commonsIOVersion       = "2.16.0"
+    val commonsIOVersion       = "2.16.1"
     val commonsHttpVersion     = "4.5.14"
     val commonsLang3Version    = "3.14.0"
     val jschVersion            = "0.2.17"
@@ -121,7 +121,7 @@ object Dependencies {
 
     val mongoDbVersion = "3.12.14"
 
-    val jedisVersion = "4.4.7"
+    val jedisVersion = "5.1.2"
     val gsonVersion  = "2.10.1"
 
     val nimbusJoseJwtVersion        = "9.37.3"
@@ -140,8 +140,8 @@ object Dependencies {
 
     object Elastic7Versions extends ElasticVersions {
       override val elastic4sVersion:     String = "7.17.4"
-      override val elasticSearchVersion: String = "7.17.19"
-      override val jnaVersion:           String = "4.5.2"
+      override val elasticSearchVersion: String = "7.17.20"
+      override val jnaVersion:           String = "5.14.0"
     }
 
   }
@@ -164,8 +164,8 @@ object Dependencies {
   val logback          = "ch.qos.logback"              % "logback-classic"  % logbackVersion
   lazy val logbackCore = "ch.qos.logback"              % "logback-core"     % logbackVersion
   val scalaLogging     = "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion
-  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.12"
-  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.12"
+  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.13"
+  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.13"
 
   // testing
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion

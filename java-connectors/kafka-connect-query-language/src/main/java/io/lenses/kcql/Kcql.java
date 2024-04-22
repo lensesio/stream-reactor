@@ -67,11 +67,7 @@ public class Kcql {
     private TimeUnit timestampUnit = TimeUnit.MILLISECONDS;
     private String pipeline;
     private String subscription;
-    private String partitioner;
     private String withRegex;
-    private long withFlushInterval;
-    private long withFlushSize;
-    private long withFlushCount;
 
     private final Map<String, String> properties = new HashMap<>();
 
@@ -81,14 +77,6 @@ public class Kcql {
 
     public void setQuery(String query) {
         this.query = query;
-    }
-
-    public String getWithPartitioner() {
-        return this.partitioner;
-    }
-
-    public void setWithPartitioner(String name) {
-        this.partitioner = name;
     }
 
     public String getWithSubscription() {
@@ -297,22 +285,6 @@ public class Kcql {
         this.withRegex = withRegex;
     }
 
-    public long getWithFlushInterval() {
-        return withFlushInterval;
-    }
-
-    public long getWithFlushSize() {
-        return withFlushSize;
-    }
-
-    private void setWithFlushCount(long withFlushCount) {
-        this.withFlushCount = withFlushCount;
-    }
-
-    public long getWithFlushCount() {
-        return withFlushCount;
-    }
-
     private void setDynamicTarget(String dynamicTarget) {
         this.dynamicTarget = dynamicTarget;
     }
@@ -327,14 +299,6 @@ public class Kcql {
 
     private void setTimestampUnit(TimeUnit timestampUnit) {
         this.timestampUnit = timestampUnit;
-    }
-
-    private void setWithFlushInterval(long withFlushInterval) {
-        this.withFlushInterval = withFlushInterval;
-    }
-
-    private void setWithFlushSize(long withFlushSize) {
-        this.withFlushSize = withFlushSize;
     }
 
     /**
@@ -377,11 +341,6 @@ public class Kcql {
             @Override
             public void exitWith_subscription_value(ConnectorParser.With_subscription_valueContext ctx) {
                 kcql.subscription = unescape(ctx.getText());
-            }
-
-            @Override
-            public void exitWith_partitioner_value(ConnectorParser.With_partitioner_valueContext ctx) {
-                kcql.partitioner = unescape(ctx.getText());
             }
 
             @Override
@@ -736,46 +695,6 @@ public class Kcql {
             @Override
             public void exitWith_regex_value(ConnectorParser.With_regex_valueContext ctx) {
                 kcql.withRegex = unescape(ctx.getText());
-            }
-
-
-            @Override
-            public void exitWith_flush_bytes_value(ConnectorParser.With_flush_bytes_valueContext ctx) {
-                try {
-                    long size = Long.parseLong(ctx.getText());
-                    if (size <= 0) {
-                        throw new IllegalArgumentException("Invalid value specified for WITH_FLUSH_SIZE. Expecting a LONG number greater than 0.");
-                    }
-                    kcql.setWithFlushSize(size);
-                } catch (NumberFormatException ex) {
-                    throw new IllegalArgumentException("Invalid value specified for WITH_FLUSH_SIZE. Expecting a LONG number greater than 0.");
-                }
-            }
-
-            @Override
-            public void exitWith_flush_interval_value(ConnectorParser.With_flush_interval_valueContext ctx) {
-                try {
-                    long interval = Long.parseLong(ctx.getText());
-                    if (interval <= 0) {
-                        throw new IllegalArgumentException("Invalid value specified for WITH_FLUSH_INTERVAL. Expecting a LONG number greater than 0.");
-                    }
-                    kcql.setWithFlushInterval(interval);
-                } catch (NumberFormatException ex) {
-                    throw new IllegalArgumentException("Invalid value specified for WITH_FLUSH_INTERVAL. Expecting a LONG number greater than 0.");
-                }
-            }
-
-            @Override
-            public void exitWith_flush_records_value(ConnectorParser.With_flush_records_valueContext ctx) {
-                try {
-                    long interval = Long.parseLong(ctx.getText());
-                    if (interval <= 0) {
-                        throw new IllegalArgumentException("Invalid value specified for WITH_FLUSH_COUNT. Expecting a LONG number greater than 0.");
-                    }
-                    kcql.setWithFlushCount(interval);
-                } catch (NumberFormatException ex) {
-                    throw new IllegalArgumentException("Invalid value specified for WITH_FLUSH_COUNT. Expecting a LONG number greater than 0.");
-                }
             }
 
         });

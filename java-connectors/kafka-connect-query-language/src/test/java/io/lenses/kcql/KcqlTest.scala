@@ -642,12 +642,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     kcql.getWithSubscription should be("shared")
   }
 
-  test("handleWithPartitioner") {
-    val syntax = "INSERT INTO A SELECT * FROM B WITHPARTITIONER = shared"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithPartitioner should be("shared")
-  }
-
   test("handleWithRegex") {
     val topic = "/TOPIC_A"
     val table = "TABLE_A"
@@ -656,56 +650,6 @@ class KcqlTest extends AnyFunSuite with OptionValues {
     val kcql = Kcql.parse(syntax)
     kcql.getWithRegex should be("/^#?([a-f0-9]{6}|[a-f0-9]{3})$/")
     kcql.getWithConverter should be("com.blah.Converter")
-  }
-
-  test("handleWithFlushInterval") {
-    val topic  = "/TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_FLUSH_INTERVAL = 2010"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithFlushInterval should be(2010)
-  }
-
-  test("throwExceptionWithFlushInterval") {
-    assertThrows[IllegalArgumentException] {
-      val topic  = "TOPIC_A"
-      val table  = "TABLE_A"
-      val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_FLUSH_INTERVAL = 0"
-      Kcql.parse(syntax)
-    }
-  }
-
-  test("handleWithSize") {
-    val topic  = "/TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_FLUSH_SIZE = 2010"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithFlushSize should be(2010)
-  }
-
-  test("throwExceptionWithSize") {
-    assertThrows[IllegalArgumentException] {
-      val topic  = "TOPIC_A"
-      val table  = "TABLE_A"
-      val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_FLUSH_SIZE = 0"
-      Kcql.parse(syntax)
-    }
-  }
-  test("handleWithCount") {
-    val topic  = "/TOPIC_A"
-    val table  = "TABLE_A"
-    val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_FLUSH_COUNT = 2010"
-    val kcql   = Kcql.parse(syntax)
-    kcql.getWithFlushCount should be(2010)
-  }
-
-  test("throwExceptionWithCount") {
-    assertThrows[IllegalArgumentException] {
-      val topic  = "TOPIC_A"
-      val table  = "TABLE_A"
-      val syntax = s"INSERT INTO $table SELECT col1,col2 FROM $topic WITH_FLUSH_COUNT = 0"
-      Kcql.parse(syntax)
-    }
   }
 
   test("handleTTL") {

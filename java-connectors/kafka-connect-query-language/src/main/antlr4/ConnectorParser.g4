@@ -39,9 +39,8 @@ insert_from_clause
    : write_mode table_name select_clause_basic ( autocreate )? (with_structure)? ( PK primary_key_list)? (with_target)? ( autoevolve )? ( batching )?
     (partitionby)? (timestamp_clause)? (timestamp_unit_clause)?
     ( with_format_clause )? (with_unwrap_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_type)? (with_doc_type)? (with_index_suffix)?
-    (ttl_clause)? (with_converter)? (with_jms_selector)? (with_key)? (key_delimiter)? (with_pipeline_clause)? (with_partitioner_clause)?
-    (with_subscription_clause)? (with_regex_clause)? (with_flush_size_clause)?
-    (with_flush_interval_clause)? (with_flush_records_clause)?
+    (ttl_clause)? (with_converter)? (with_jms_selector)? (with_key)? (key_delimiter)? (with_pipeline_clause)?
+    (with_subscription_clause)? (with_regex_clause)?
     (limit_clause)?
     (properties_clause)?
    ;
@@ -326,14 +325,6 @@ pipeline_value
     :  (FIELD | (DOT|TOPICNAME)+ | INT)+
     ;
 
-with_partitioner_clause
-   : WITHPARTITIONER EQUAL with_partitioner_value
-   ;
-
-with_partitioner_value
-   : FIELD
-   ;
-
 with_subscription_clause
    : WITHSUBSCRIPTION EQUAL with_subscription_value
    ;
@@ -348,29 +339,4 @@ with_regex_clause
 
 with_regex_value
     : ID | TOPICNAME
-    ;
-
-
-with_flush_size_clause
-    : WITH_FLUSH_SIZE EQUAL with_flush_bytes_value
-    ;
-
-with_flush_bytes_value
-    : INT
-    ;
-
-with_flush_interval_clause
-    : WITH_FLUSH_INTERVAL EQUAL with_flush_interval_value
-    ;
-
-with_flush_interval_value
-    : INT
-    ;
-
-with_flush_records_clause
-    : WITH_FLUSH_COUNT EQUAL with_flush_records_value
-    ;
-
-with_flush_records_value
-    : INT
     ;
