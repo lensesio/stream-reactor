@@ -25,6 +25,8 @@ object StringPropsSchema extends PropsSchema
 
 object IntPropsSchema extends PropsSchema
 
+object LongPropsSchema extends PropsSchema
+
 object BooleanPropsSchema extends PropsSchema
 
 object CharPropsSchema extends PropsSchema

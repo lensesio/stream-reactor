@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushCount
 import io.lenses.streamreactor.connect.cloud.common.sink.CoreSinkTaskTestCases
 import software.amazon.awssdk.services.s3.S3Client
 
@@ -42,7 +43,7 @@ class S3SinkTaskTest
           sinkTask.start(
             (defaultProps ++ Map(
               "aws.access.key" -> "myAccessKey",
-              s"$prefix.kcql"  -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` WITH_FLUSH_COUNT = 1",
+              s"$prefix.kcql"  -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1)",
             )).asJava,
           )
         }.getMessage
