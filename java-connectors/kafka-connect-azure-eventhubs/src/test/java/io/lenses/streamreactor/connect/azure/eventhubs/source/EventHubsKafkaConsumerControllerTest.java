@@ -79,6 +79,7 @@ class EventHubsKafkaConsumerControllerTest {
     when(headersMock.iterator()).thenReturn(emptyHeaderList.iterator());
 
     ConsumerRecord consumerRecord = mock(ConsumerRecord.class);
+    when(consumerRecord.topic()).thenReturn(INPUT_TOPIC);
     when(consumerRecord.headers()).thenReturn(headersMock);
     List<ConsumerRecord<String, String>> consumerRecordList = Collections.singletonList(consumerRecord);
 
