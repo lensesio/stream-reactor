@@ -35,6 +35,9 @@ import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
+/**
+ * Class that reads JAR Manifest files so we can easily get some of the properties from it.
+ */
 public class JarManifest {
 
   private static final String UNKNOWN = "unknown";
@@ -42,6 +45,10 @@ public class JarManifest {
   private static final String SEMICOLON = ":";
   private final Map<String, String> jarAttributes = new HashMap<>();
 
+  /**
+   * Creates JarManifest.
+   * @param location Jar file location
+   */
   public JarManifest(URL location) {
     Manifest manifest;
 
@@ -53,6 +60,10 @@ public class JarManifest {
     extractMainAttributes(manifest.getMainAttributes());
   }
 
+  /**
+   * Creates JarManifest.
+   * @param jarFile
+   */
   public JarManifest(JarFile jarFile) {
     Manifest manifest;
     try {
@@ -79,10 +90,16 @@ public class JarManifest {
         ofNullable(mainAttributes.getValue(REACTOR_DOCS.getAttributeName())).orElse(UNKNOWN));
   }
 
+  /**
+   * Get StreamReactor version.
+   */
   public String getVersion() {
     return jarAttributes.getOrDefault(REACTOR_VER.getAttributeName(), "");
   }
 
+  /**
+   * Get all manifest file attributes in a {@link String} form.
+   */
   public String buildManifestString() {
     StringBuilder manifestBuilder = new StringBuilder();
     manifestBuilder.append(REACTOR_VER.attributeName).append(SEMICOLON)
@@ -100,6 +117,9 @@ public class JarManifest {
     return manifestBuilder.toString();
   }
 
+  /**
+   * Enum that represents StreamReactor's important parameters from Manifest file.
+   */
   public enum ManifestAttributes {
     REACTOR_VER("StreamReactor-Version"),
     KAFKA_VER("Kafka-Version"),

@@ -29,6 +29,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -41,6 +42,11 @@ import org.junit.jupiter.api.Test;
 
 class EventHubsKafkaConsumerControllerTest {
 
+  private static final String INPUT_TOPIC = "INPUT";
+  private static final String OUTPUT_TOPIC = "OUTPUT";
+  private static final String INPUT_TOPIC_2 = "INPUT2";
+  private static final String OUTPUT_TOPIC_2 = "OUTPUT2";
+  public static final int DEFAULT_CAPACITY = 10;
   private ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue;
 
   private EventHubsKafkaConsumerController testObj;
@@ -48,17 +54,14 @@ class EventHubsKafkaConsumerControllerTest {
 
   @BeforeEach
   void setUp() {
-    recordsQueue = new ArrayBlockingQueue<>(10);
+    recordsQueue = new ArrayBlockingQueue<>(DEFAULT_CAPACITY);
   }
 
   @Test
   void pollShouldPollQueueAndReturnSourceRecords() throws InterruptedException {
     //given
     Duration duration = Duration.of(2, ChronoUnit.SECONDS);
-    String inputTopic = "INPUT";
-    String outputTopic = "OUTPUT";
-    HashMap<String, String> inputOutputMap = new HashMap<>();
-    inputOutputMap.put(inputTopic, outputTopic);
+    Map<String, String> inputOutputMap = Map.of(INPUT_TOPIC, OUTPUT_TOPIC);
 
     SourceDataType mockedDataType = mock(SourceDataType.class);
     when(mockedDataType.getSchema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA);
@@ -102,13 +105,8 @@ class EventHubsKafkaConsumerControllerTest {
       throws InterruptedException {
     //given
     Duration duration = Duration.of(2, ChronoUnit.SECONDS);
-    String inputTopic = "INPUT";
-    String outputTopic = "OUTPUT";
-    String inputTopic2 = "INPUT2";
-    String outputTopic2 = "OUTPUT2";
-    HashMap<String, String> inputOutputMap = new HashMap<>();
-    inputOutputMap.put(inputTopic, outputTopic);
-    inputOutputMap.put(inputTopic2, outputTopic2);
+    Map<String, String> inputOutputMap = Map.of(INPUT_TOPIC, OUTPUT_TOPIC, INPUT_TOPIC_2,
+        OUTPUT_TOPIC_2);
 
     SourceDataType mockedDataType = mock(SourceDataType.class);
     when(mockedDataType.getSchema()).thenReturn(Schema.OPTIONAL_STRING_SCHEMA);
@@ -127,10 +125,10 @@ class EventHubsKafkaConsumerControllerTest {
 
     ConsumerRecord consumerRecord = mock(ConsumerRecord.class);
     when(consumerRecord.headers()).thenReturn(headersMock);
-    when(consumerRecord.topic()).thenReturn(inputTopic);
+    when(consumerRecord.topic()).thenReturn(INPUT_TOPIC);
     ConsumerRecord consumerRecord2 = mock(ConsumerRecord.class);
     when(consumerRecord2.headers()).thenReturn(headersMock);
-    when(consumerRecord2.topic()).thenReturn(inputTopic2);
+    when(consumerRecord2.topic()).thenReturn(INPUT_TOPIC_2);
     List<ConsumerRecord> consumerRecordList = List.of(consumerRecord, consumerRecord2);
 
     ConsumerRecords mockedRecords = mock(ConsumerRecords.class);
@@ -149,8 +147,8 @@ class EventHubsKafkaConsumerControllerTest {
     verify(mockedBlockingProducer, times(4)).getKeyValueTypes();
     assertNotNull(mockedRecords);
     assertEquals(2, sourceRecords.size());
-    assertEquals(outputTopic, sourceRecords.get(0).topic());
-    assertEquals(outputTopic2, sourceRecords.get(1).topic());
+    assertEquals(OUTPUT_TOPIC, sourceRecords.get(0).topic());
+    assertEquals(OUTPUT_TOPIC_2, sourceRecords.get(1).topic());
   }
 
   @Test
