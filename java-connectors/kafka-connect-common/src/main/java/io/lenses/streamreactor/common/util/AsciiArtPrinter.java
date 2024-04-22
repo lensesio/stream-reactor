@@ -17,6 +17,7 @@ package io.lenses.streamreactor.common.util;
 
 import static java.util.Optional.ofNullable;
 
+import io.lenses.streamreactor.common.exception.InputStreamExtractionException;
 import java.io.InputStream;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -28,15 +29,20 @@ import lombok.extern.slf4j.Slf4j;
 public class AsciiArtPrinter {
 
   /**
-   * Method fetches ASCII art and logs it.
+   * Method fetches ASCII art and logs it. If it cannot display ASCII art then it logs a
+   * warning with cause.
    *
    * @param jarManifest JarManifest of Connector
    * @param asciiArtResource URI to ASCII art
    */
   public static void printAsciiHeader(JarManifest jarManifest, String asciiArtResource) {
-    Optional<InputStream> asciiArtStream = ofNullable(
+    try {
+      Optional<InputStream> asciiArtStream = ofNullable(
         AsciiArtPrinter.class.getResourceAsStream(asciiArtResource));
-    asciiArtStream.ifPresent(inputStream -> log.info(InputStreamHandler.extractString(inputStream)));
+      asciiArtStream.ifPresent(inputStream -> log.info(InputStreamHandler.extractString(inputStream)));
+    } catch (InputStreamExtractionException exception) {
+      log.warn("Unable display ASCIIArt from input stream.", exception);
+    }
     log.info(jarManifest.buildManifestString());
   }
 

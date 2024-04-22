@@ -93,7 +93,7 @@ class TopicPartitionOffsetProviderTest {
     }
 
     @Test
-    void AzureTopicPartitionKeyShouldReturnTopicAndPartitionValues() {
+    void azureTopicPartitionKeyShouldReturnTopicAndPartitionValues() {
       //given
       int partition = 10;
       String topic = "topic";

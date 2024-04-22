@@ -24,6 +24,7 @@ import static io.lenses.streamreactor.common.util.JarManifest.ManifestAttributes
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 
+import io.lenses.streamreactor.common.exception.ConnectorStartupException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -55,7 +56,7 @@ public class JarManifest {
     try (JarFile jarFile = new JarFile(new File(location.toURI()))) {
       manifest = jarFile.getManifest();
     } catch (URISyntaxException | IOException e) {
-      throw new RuntimeException(e);
+      throw new ConnectorStartupException(e);
     }
     extractMainAttributes(manifest.getMainAttributes());
   }
@@ -70,7 +71,7 @@ public class JarManifest {
       Optional<JarFile> jarFileOptional = of(jarFile);
       manifest = jarFileOptional.get().getManifest();
     } catch (NullPointerException | IOException e) {
-      throw new RuntimeException(e);
+      throw new ConnectorStartupException(e);
     }
     extractMainAttributes(manifest.getMainAttributes());
   }

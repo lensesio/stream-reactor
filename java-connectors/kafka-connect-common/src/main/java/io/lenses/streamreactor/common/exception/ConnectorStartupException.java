@@ -13,15 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.common.util;
+package io.lenses.streamreactor.common.exception;
 
-/**
- * Utility methods class for {@link String} objects.
- */
-public class StringUtils {
+public class ConnectorStartupException extends RuntimeException{
 
-  public static boolean isBlank(String str) {
-    return str == null || str.trim().isEmpty();
+  public ConnectorStartupException(Throwable cause) {
+    super(cause);
   }
-
 }
