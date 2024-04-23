@@ -1,0 +1,17 @@
+project(":kafka-connect-common") {
+    test {
+        maxParallelForks = 1
+    }
+
+    dependencies {
+        //apache kafka
+        api group: 'org.apache.kafka', name: 'connect-json', version: kafkaVersion
+        api group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
+
+        //confluent - may be needed soon
+//        implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version: apacheToConfluentVersionAxis.get(kafkaVersion)
+//        implementation group: 'io.confluent', name: 'kafka-connect-avro-converter', version: apacheToConfluentVersionAxis.get(kafkaVersion)
+//        implementation group: 'io.confluent', name: 'kafka-connect-avro-data', version: apacheToConfluentVersionAxis.get(kafkaVersion)
+//        implementation group: 'io.confluent', name: 'kafka-connect-protobuf-converter', version: apacheToConfluentVersionAxis.get(kafkaVersion)
+    }
+}

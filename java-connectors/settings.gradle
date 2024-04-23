@@ -1,0 +1,5 @@
+rootProject.name = 'java-reactor'
+include 'kafka-connect-common',
+'kafka-connect-azure-eventhubs',
+'kafka-connect-query-language'
+
