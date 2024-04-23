@@ -29,7 +29,7 @@ class GCPStorageSinkConfigTest extends AnyFunSuite with Matchers {
   private implicit val cloudLocationValidator: CloudLocationValidator = GCPStorageLocationValidator
   test("envelope and CSV storage is not allowed") {
     val props = Map(
-      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true)",
+      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
@@ -40,7 +40,7 @@ class GCPStorageSinkConfigTest extends AnyFunSuite with Matchers {
 
   test("envelope and Parquet storage is allowed") {
     val props = Map(
-      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Parquet` WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true)",
+      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Parquet` PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
@@ -50,7 +50,7 @@ class GCPStorageSinkConfigTest extends AnyFunSuite with Matchers {
   }
   test("envelope and Avro storage is allowed") {
     val props = Map(
-      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Avro` WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true)",
+      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Avro` PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
@@ -60,7 +60,7 @@ class GCPStorageSinkConfigTest extends AnyFunSuite with Matchers {
   }
   test("envelope and Json storage is allowed") {
     val props = Map(
-      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Json` WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true)",
+      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Json` PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
@@ -70,7 +70,7 @@ class GCPStorageSinkConfigTest extends AnyFunSuite with Matchers {
   }
   test("text and envelope storage is not allowed") {
     val props = Map(
-      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Text` WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true)",
+      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Text` PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
@@ -80,7 +80,7 @@ class GCPStorageSinkConfigTest extends AnyFunSuite with Matchers {
   }
   test("envelope and bytes storage is not allowed") {
     val props = Map(
-      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Bytes` WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true)",
+      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Bytes` PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {

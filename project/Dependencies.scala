@@ -38,7 +38,7 @@ object Dependencies {
     // libraries versions
     val scalatestVersion               = "3.2.18"
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
-    val scalaCheckVersion              = "1.17.0"
+    val scalaCheckVersion              = "1.18.0"
 
     val kafkaVersion:     String = "3.7.0"
     val confluentVersion: String = "7.6.1"
@@ -61,21 +61,21 @@ object Dependencies {
     // build plugins version
     val betterMonadicForVersion = "0.3.1"
 
-    val logbackVersion      = "1.5.5"
+    val logbackVersion      = "1.5.6"
     val scalaLoggingVersion = "3.9.5"
 
-    val wiremockVersion = "3.5.2"
+    val wiremockVersion = "3.5.3"
     val parquetVersion  = "1.13.1"
 
     val jerseyCommonVersion = "3.1.6"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.25.31"
+    val awsSdkVersion  = "2.25.35"
 
     val azureDataLakeVersion = "12.18.3"
     val azureIdentityVersion = "1.11.4"
     val azureCoreVersion     = "1.47.0"
-    val gcpStorageVersion    = "2.36.1"
+    val gcpStorageVersion    = "2.37.0"
 
     val jacksonVersion      = "2.17.0"
     val json4sVersion       = "4.0.7"
@@ -86,7 +86,7 @@ object Dependencies {
     val xzVersion  = "1.9"
     val lz4Version = "1.8.0"
 
-    val bouncyCastleVersion = "1.78"
+    val bouncyCastleVersion = "1.78.1"
     val nettyVersion        = "4.1.109.Final"
 
     val cassandraDriverVersion = "3.11.5"

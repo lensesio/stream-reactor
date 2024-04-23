@@ -125,10 +125,6 @@ WITHTARGET
     : 'WITHTARGET' | 'withtarget'
     ;
 
-WITHPARTITIONER
-    : 'WITHPARTITIONER' | 'withpartitioner'
-    ;
-
 WITHSUBSCRIPTION
     : 'WITHSUBSCRIPTION' | 'withsubscription'
     ;

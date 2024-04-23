@@ -8,6 +8,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushCount
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushInterval
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushSize
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.ParquetFormatReader
@@ -641,7 +642,7 @@ abstract class CoreSinkTaskTestCases[
     val task = createSinkTask()
 
     val props =
-      defaultProps + (s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title,salary WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1)")
+      defaultProps + (s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title,salary PROPERTIES('${FlushCount.entryName}'=1,'${PartitionIncludeKeys.entryName}'=false)")
 
     task.start(props.asJava)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -931,7 +932,7 @@ abstract class CoreSinkTaskTestCases[
     val task = createSinkTask()
 
     val props = (defaultProps + (
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1)",
+      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1,'${PartitionIncludeKeys.entryName}'=false)",
     )).asJava
 
     task.start(props)
@@ -963,7 +964,7 @@ abstract class CoreSinkTaskTestCases[
     val task = createSinkTask()
 
     val props = (defaultProps + (
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _topic, _partition STOREAS `CSV` WITHPARTITIONER=Values PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12','${FlushCount.entryName}'=1)",
+      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _topic, _partition STOREAS `CSV` PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12','${FlushCount.entryName}'=1,'${PartitionIncludeKeys.entryName}'=false)",
     )).asJava
 
     task.start(props)
@@ -1023,7 +1024,7 @@ abstract class CoreSinkTaskTestCases[
     val task = createSinkTask()
 
     val props = (defaultProps + (
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12', '${FlushCount.entryName}'=1)",
+      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` PROPERTIES('padding.length.partition'='12', 'padding.length.offset'='12', '${FlushCount.entryName}'=1,'${PartitionIncludeKeys.entryName}'=false)",
     )).asJava
 
     task.start(props)
@@ -2013,7 +2014,7 @@ abstract class CoreSinkTaskTestCases[
     val task = createSinkTask()
 
     val props = (defaultProps + (
-      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _date.uuuu,_date.LL,_date.dd WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1,'padding.length.partition'='12', 'padding.length.offset'='12')",
+      s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _date.uuuu,_date.LL,_date.dd PROPERTIES('${FlushCount.entryName}'=1,'padding.length.partition'='12', 'padding.length.offset'='12', '${PartitionIncludeKeys.entryName}'=false)",
     )).asJava
 
     task.start(props)

@@ -20,6 +20,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushCount
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushInterval
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushSize
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.FileSize
@@ -50,7 +51,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
 
   "GCPSinkConfigDefBuilder" should "respect defined properties" in {
     val props = Map(
-      "connect.gcpstorage.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1)",
+      "connect.gcpstorage.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` PROPERTIES('${FlushCount.entryName}'=1)",
     )
 
     val kcql = GCPStorageSinkConfigDefBuilder(props).getKCQL
@@ -59,14 +60,25 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
     val element = kcql.head
 
     element.getStoredAs should be("CSV")
-    element.getWithPartitioner should be("Values")
     element.getPartitionBy.asScala.toSet should be(Set("_key"))
 
   }
 
+  "GCPSinkConfigDefBuilder" should "raises an exception when WITHPARTITIONER is used" in {
+    val props = Map(
+      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1,'${PartitionIncludeKeys.entryName}'=false)",
+    )
+
+    CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
+      case Left(value) =>
+        value.getMessage shouldBe CloudSinkBucketOptions.WithPartitionerError
+      case Right(_) => fail("Should have failed")
+    }
+  }
+
   "GCPSinkConfigDefBuilder" should "defaults data storage settings if not provided" in {
     val props = Map(
-      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1)",
+      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV PROPERTIES('${FlushCount.entryName}'=1)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
@@ -77,7 +89,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
 
   "GCPSinkConfigDefBuilder" should "default all fields to true when envelope is set" in {
     val props = Map(
-      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `JSON` WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true)",
+      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `JSON` PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
@@ -88,7 +100,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
 
   "GCPSinkConfigDefBuilder" should "enable Value and Key only" in {
     val props = Map(
-      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `PARQUET` WITHPARTITIONER=Values PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false)",
+      "connect.gcpstorage.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `PARQUET` PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false)",
     )
 
     CloudSinkBucketOptions(connectorTaskId, GCPStorageSinkConfigDefBuilder(props)) match {
@@ -106,14 +118,12 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
            |select * from $TopicName 
            |PARTITIONBY _key 
            |STOREAS `AVRO`
-           |WITHPARTITIONER=Values
            |PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false);
            |
            |insert into mybucket:myprefix 
            |select * from $TopicName 
            |PARTITIONBY _key 
            |STOREAS `AVRO`
-           |WITHPARTITIONER=Values 
            |PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=true)
            |""".stripMargin,
     )
@@ -132,7 +142,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
   }
   "GCPSinkConfigDefBuilder" should "respect default flush settings" in {
     val props = Map(
-      "connect.gcpstorage.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values",
+      "connect.gcpstorage.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV`",
     )
 
     val commitPolicy =
@@ -152,7 +162,7 @@ class GCPStorageGCPStorageSinkConfigDefBuilderTest
   "GCPSinkConfigDefBuilder" should "respect disabled flush count" in {
     val props = Map(
       "connect.gcpstorage.disable.flush.count" -> true.toString,
-      "connect.gcpstorage.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values",
+      "connect.gcpstorage.kcql"                -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV`",
     )
 
     val commitPolicy =

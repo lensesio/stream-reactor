@@ -22,14 +22,14 @@ jobs:
         shell: bash
         id: get_tag
         run: |
-          if [[ ${GITHUB_REF##*/} =~ ^[0-9]\.[0-9]\.[0-9]$ ]];
+          if [[ ${GITHUB_REF##*/} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]];
           then
               draft_release=false
-          elif [[ ${GITHUB_REF##*/} =~ ^[0-9]\.[0-9]\.[0-9]+(-(alpha|beta|rc)(\.[0-9]+)?)?(\+[A-Za-z0-9.]+)?$ ]];
+          elif [[ ${GITHUB_REF##*/} =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)(\.[0-9]+)?)?(\+[A-Za-z0-9.]+)?$ ]];
           then
               draft_release=true
           else
-              echo "Exiting, github ref needs to be a tag with format x.y.z or x.y.z+(alpha|beta|rc)"
+              echo "Exiting, github ref needs to be a tag with format x.y.z or x.y.z-(alpha|beta|rc)"
               exit 1
           fi
           echo "draft_release=$draft_release" >> $GITHUB_OUTPUT
