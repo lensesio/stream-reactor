@@ -34,6 +34,8 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.EitherValues
 import org.scalatest.OptionValues
 
+import java.io.FileNotFoundException
+import java.io.IOException
 import java.time.Instant
 
 class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues with OptionValues with BeforeAndAfter {
@@ -51,6 +53,10 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
   private val maxIndexes = 5
 
   private val indexManager = new IndexManager(maxIndexes)
+
+  before {
+    when(storageInterface.system()).thenReturn("TestaCloud")
+  }
 
   after {
     reset(storageInterface)
@@ -124,7 +130,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
   }
 
   "clean" should "return error when too many indexes have accumulated" in {
-    setUpTooManyIndexes
+    setUpTooManyIndexes()
 
     val capturedEx = indexManager.clean(bucketName, indexPath, topicPartition).left.value
     capturedEx shouldBe a[FatalCloudSinkError]
@@ -138,7 +144,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     cleanInOrder.verifyNoMoreInteractions()
   }
 
-  private def setUpTooManyIndexes = {
+  private def setUpTooManyIndexes() = {
     val tenIndexes = Range(0, 9).map(x => f".indexes/sinkName/myTopic/00005/000000000000000000$x%020d").toList
     when(
       storageInterface.listKeysRecursive(
@@ -223,9 +229,9 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     cleanInOrder.verifyNoMoreInteractions()
   }
 
-  "seek" should "correctly seek files" in {
+  "initial seek" should "correctly seek files" in {
 
-    val existingIndexes = setUpExistingIndexes
+    val existingIndexes = setUpExistingIndexes()
     when(
       storageInterface.listKeysRecursive(
         any[String],
@@ -240,7 +246,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
       ).some.asRight,
     )
     when(storageInterface.deleteFiles(eqTo(bucketName), any[List[String]])).thenReturn(().asRight)
-    val seekRes = indexManager.seek(topicPartition, bucketName)
+    val seekRes = indexManager.initialSeek(topicPartition, bucketName)
     seekRes.value should be(Some(topicPartition.withOffset(Offset(70))))
 
     val seekInOrder = inOrder(storageInterface)
@@ -270,15 +276,15 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     seekInOrder.verifyNoMoreInteractions()
   }
 
-  "seek" should "sulk when too many index files have accumulated" in {
+  "initial seek" should "sulk when too many index files have accumulated" in {
 
-    setUpTooManyIndexes
+    setUpTooManyIndexes()
     val target = "testString"
     when(storageInterface.getBlobAsString(any[String], any[String])).thenReturn(target.asRight)
     when(storageInterface.pathExists(any[String], any[String])).thenReturn(true.asRight)
     when(storageInterface.deleteFiles(eqTo(bucketName), any[List[String]])).thenReturn(().asRight)
 
-    val seekRes    = indexManager.seek(topicPartition, bucketName)
+    val seekRes    = indexManager.initialSeek(topicPartition, bucketName)
     val capturedEx = seekRes.left.value
     capturedEx shouldBe a[FatalCloudSinkError]
     capturedEx.message() should startWith("Too many index files have accumulated")
@@ -293,7 +299,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
 
   "scanIndexes" should "identify most recent index" in {
 
-    val existingIndexes = setUpExistingIndexes
+    val existingIndexes = setUpExistingIndexes()
 
     indexManager.scanIndexes(bucketName, existingIndexes.map(_._1).toList) should be(
       Right(Some(".indexes/sinkName/myTopic/00005/00000000000000000070")),
@@ -313,7 +319,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
     scannedInOrder.verifyNoMoreInteractions()
   }
 
-  private def setUpExistingIndexes = {
+  private def setUpExistingIndexes() = {
     // of the 3 indexes:
     // * 50, the file exists but has been superceded by a new one.  DELETE
     // * 70, the file exists and is the latest index. File exists.  KEEP
@@ -348,5 +354,24 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
       ".indexes/sinkName/myTopic/00005/00000000000000000100",
     )
     scannedInOrder.verifyNoMoreInteractions()
+  }
+
+  "handleSeekAndCleanErrors" should "handle FileLoadError correctly" in {
+    val fileLoadError = FileLoadError(new FileNotFoundException("what"), "noFile.txt")
+    val result        = indexManager.handleSeekAndCleanErrors(fileLoadError)
+    result shouldBe a[NonFatalCloudSinkError]
+    result.message should include("The TestaCloud storage state is corrupted.")
+  }
+
+  "handleSeekAndCleanErrors" should "handle FileDeleteError correctly" in {
+    val fileDeleteError = FileDeleteError(new IOException("need input"), "noinput.txt")
+    val result          = indexManager.handleSeekAndCleanErrors(fileDeleteError)
+    result shouldBe a[NonFatalCloudSinkError]
+  }
+
+  "handleSeekAndCleanErrors" should "handle FileNameParseError correctly" in {
+    val fileNameParseError = FileNameParseError(new FileNotFoundException("Invalid file name"), "nofile.txt")
+    val result             = indexManager.handleSeekAndCleanErrors(fileNameParseError)
+    result shouldBe a[NonFatalCloudSinkError]
   }
 }

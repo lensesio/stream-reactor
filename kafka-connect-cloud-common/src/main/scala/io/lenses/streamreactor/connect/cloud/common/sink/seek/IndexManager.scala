@@ -25,10 +25,10 @@ import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.IndexFilenames
-import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
-import io.lenses.streamreactor.connect.cloud.common.storage.FileLoadError
-import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
-import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.IndexFilenames.indexToOffset
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerErrors.corruptStorageState
+import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerErrors.fileDeleteError
+import io.lenses.streamreactor.connect.cloud.common.storage._
 
 class IndexManager[SM <: FileMetadata](
   maxIndexes: Int,
@@ -55,9 +55,9 @@ class IndexManager[SM <: FileMetadata](
       indexFileLocation.some,
     )
       .leftMap { e =>
-        val logLine = s"Couldn't retrieve listing for (${mostRecentIndexFile}})"
+        val logLine = s"Couldn't retrieve listing for ($mostRecentIndexFile})"
         logger.error("[{}] {}", connectorTaskId.show, logLine, e.exception)
-        new NonFatalCloudSinkError(logLine, e.exception)
+        new NonFatalCloudSinkError(logLine, e.exception.some)
       }
       .flatMap {
         case None => 0.asRight
@@ -127,13 +127,13 @@ class IndexManager[SM <: FileMetadata](
   }
 
   /**
-    * Seeks the filesystem to find the latyest offsets for a topic/partition.
+    * Seeks the filesystem to find the latest offsets for a topic/partition.
     *
     * @param topicPartition     the TopicPartition for which to retrieve the offsets
     * @param bucket    the configured bucket
     * @return either a SinkError or an option to a TopicPartitionOffset with the seek result.
     */
-  def seek(
+  def initialSeek(
     topicPartition: TopicPartition,
     bucket:         String,
   ): Either[SinkError, Option[TopicPartitionOffset]] = {
@@ -144,7 +144,7 @@ class IndexManager[SM <: FileMetadata](
     )
       .leftMap { e =>
         logger.error("Error retrieving listing", e.exception)
-        new NonFatalCloudSinkError("Couldn't retrieve listing", e.exception)
+        new NonFatalCloudSinkError("Couldn't retrieve listing", Option(e.exception))
       }
       .flatMap {
         case None => Option.empty[TopicPartitionOffset].asRight[SinkError]
@@ -164,48 +164,33 @@ class IndexManager[SM <: FileMetadata](
     topicPartition: TopicPartition,
     bucket:         String,
     indexes:        Seq[String],
-  ) = {
+  ): Either[NonFatalCloudSinkError, Option[TopicPartitionOffset]] = {
+    for {
+      validIndex     <- scanIndexes(bucket, indexes)
+      indexesToDelete = indexes.filterNot(validIndex.contains)
+      _              <- storageInterface.deleteFiles(bucket, indexesToDelete)
+      offset         <- indexToOffset(topicPartition, validIndex).leftMap(FileNameParseError(_, s"$validIndex"))
+    } yield {
+      logger.info("[{}] Seeked offset {} for TP {}", connectorTaskId.show, offset, topicPartition)
+      offset
+    }
+  }.leftMap(e => handleSeekAndCleanErrors(e))
 
-    /**
-      * Parses the filename of the index file, converting it to a TopicPartitionOffset
-      *
-      * @param maybeIndex option of the index filename
-      * @return either an error, or a TopicPartitionOffset
-      */
-    def indexToOffset(maybeIndex: Option[String]): Either[Throwable, Option[TopicPartitionOffset]] =
-      maybeIndex match {
-        case Some(index) =>
-          for {
-            offset <- IndexFilenames.offsetFromIndex(index)
-          } yield Some(topicPartition.withOffset(offset))
-        case None => Option.empty[TopicPartitionOffset].asRight
-      }
-
-    {
-      for {
-        validIndex     <- scanIndexes(bucket, indexes)
-        indexesToDelete = indexes.filterNot(validIndex.contains)
-        _              <- storageInterface.deleteFiles(bucket, indexesToDelete)
-        offset         <- indexToOffset(validIndex)
-      } yield {
-        logger.info("[{}] Seeked offset {} for TP {}", connectorTaskId.show, offset, topicPartition)
-        offset
-      }
-    }.leftMap {
+  def handleSeekAndCleanErrors(uploadError: UploadError): NonFatalCloudSinkError =
+    uploadError match {
       case err: FileLoadError =>
         val logLine = s"File load error while seeking: ${err.message()}"
         logger.error(s"[{}] {}", connectorTaskId.show, logLine, err.exception)
-        new NonFatalCloudSinkError(logLine, err.exception)
+        NonFatalCloudSinkError(corruptStorageState(storageInterface.system()))
       case err: FileDeleteError =>
         val logLine = s"File delete error while seeking: ${err.message()}"
         logger.error(s"[{}] {}", connectorTaskId.show, logLine, err.exception)
-        new NonFatalCloudSinkError(logLine, err.exception)
-      case err: Throwable =>
-        val logLine = s"Error while seeking: ${err.getMessage}"
+        NonFatalCloudSinkError(fileDeleteError(storageInterface.system()))
+      case err: FileNameParseError =>
+        val logLine = s"Error while seeking: ${err.message()}"
         logger.error(s"[{}] {}", connectorTaskId.show, logLine, err)
-        new NonFatalCloudSinkError(logLine, err)
+        new NonFatalCloudSinkError(logLine, err.exception.some)
     }
-  }
 
   /**
     * Given a bucket and a list of files, attempts to load them to establish the most recent valid index

@@ -59,7 +59,7 @@ class Writer[SM <: FileMetadata](
       writingState.formatWriter.write(messageDetail) match {
         case Left(err: Throwable) =>
           logger.error(err.getMessage)
-          NonFatalCloudSinkError(err.getMessage, err).asLeft
+          NonFatalCloudSinkError(err.getMessage, err.some).asLeft
         case Right(_) =>
           writeState = writingState.updateOffset(messageDetail.offset, messageDetail.value.schema())
           ().asRight
@@ -118,7 +118,7 @@ class Writer[SM <: FileMetadata](
               case _: ZeroByteFileError    => ()
             }
             .leftMap {
-              case UploadFailedError(exception, _) => NonFatalCloudSinkError(exception.getMessage, exception)
+              case UploadFailedError(exception, _) => NonFatalCloudSinkError(exception.getMessage, exception.some)
             }
           _ <- indexManager.clean(finalFileName.bucket, indexFileName, topicPartition)
           stateReset <- Try {

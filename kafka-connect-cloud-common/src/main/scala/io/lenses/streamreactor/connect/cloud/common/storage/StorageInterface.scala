@@ -24,6 +24,12 @@ import java.time.Instant
 
 trait StorageInterface[SM <: FileMetadata] extends ResultProcessors {
 
+  /**
+    * Gets the system name for use in log messages.
+    * @return
+    */
+  def system(): String
+
   def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, Unit]
 
   def close(): Unit
