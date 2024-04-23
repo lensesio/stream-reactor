@@ -15,10 +15,11 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink
 
+import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 
 trait SinkError {
-  def exception(): Throwable
+  def exception(): Option[Throwable]
 
   def message(): String
 
@@ -28,7 +29,7 @@ trait SinkError {
 }
 
 // Cannot be retried, must be cleaned up
-case class FatalCloudSinkError(message: String, exception: Throwable, topicPartition: TopicPartition)
+case class FatalCloudSinkError(message: String, exception: Option[Throwable], topicPartition: TopicPartition)
     extends SinkError {
 
   override def rollBack(): Boolean = true
@@ -39,12 +40,12 @@ case class FatalCloudSinkError(message: String, exception: Throwable, topicParti
 case object FatalCloudSinkError {
 
   def apply(message: String, topicPartition: TopicPartition): FatalCloudSinkError =
-    FatalCloudSinkError(message, new IllegalStateException(message), topicPartition)
+    FatalCloudSinkError(message, Option.empty, topicPartition)
 
 }
 
 // Can be retried
-case class NonFatalCloudSinkError(message: String, exception: Throwable) extends SinkError {
+case class NonFatalCloudSinkError(message: String, exception: Option[Throwable]) extends SinkError {
 
   override def rollBack(): Boolean = false
 
@@ -53,10 +54,10 @@ case class NonFatalCloudSinkError(message: String, exception: Throwable) extends
 
 case object NonFatalCloudSinkError {
   def apply(message: String): NonFatalCloudSinkError =
-    NonFatalCloudSinkError(message, new IllegalStateException(message))
+    NonFatalCloudSinkError(message, Option.empty)
 
   def apply(exception: Throwable): NonFatalCloudSinkError =
-    NonFatalCloudSinkError(exception.getMessage, exception)
+    NonFatalCloudSinkError(exception.getMessage, exception.some)
 }
 
 case object BatchCloudSinkError {
@@ -76,11 +77,10 @@ case class BatchCloudSinkError(
   nonFatal: Set[NonFatalCloudSinkError],
 ) extends SinkError {
 
-  override def exception(): Throwable =
+  override def exception(): Option[Throwable] =
     fatal.++(nonFatal)
       .headOption
-      .map(_.exception)
-      .getOrElse(new IllegalStateException("No exception found in BatchCloudSinkError"))
+      .flatMap { ex: SinkError => ex.exception() }
 
   override def message(): String =
     "fatal:\n" + fatal.map(_.message).mkString("\n") + "\n\nnonFatal:\n" + nonFatal.map(_.message).mkString(

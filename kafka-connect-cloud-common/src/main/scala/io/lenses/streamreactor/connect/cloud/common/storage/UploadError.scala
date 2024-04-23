@@ -42,7 +42,7 @@ case class FileCreateError(exception: Throwable, data: String) extends UploadErr
 }
 
 case class FileDeleteError(exception: Throwable, fileName: String) extends UploadError {
-  override def message() = s"error deleting file (${fileName}) ${exception.getMessage}"
+  override def message() = s"error deleting file ($fileName) ${exception.getMessage}"
 }
 
 case class FileLoadError(exception: Throwable, fileName: String) extends UploadError {
@@ -51,6 +51,11 @@ case class FileLoadError(exception: Throwable, fileName: String) extends UploadE
   def toException = new RuntimeException(message(), exception)
 }
 
+case class FileNameParseError(exception: Throwable, fileName: String) extends UploadError {
+  override def message() = s"error parsing file name ($fileName) ${exception.getMessage}"
+
+  def toException = new RuntimeException(message(), exception)
+}
 case class FileListError(exception: Throwable, bucket: String, path: Option[String]) extends UploadError {
   override def message() = s"error listing files (${path}) ${exception.getMessage}"
 }

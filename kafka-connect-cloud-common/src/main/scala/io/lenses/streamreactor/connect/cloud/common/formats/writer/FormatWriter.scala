@@ -44,7 +44,7 @@ object FormatWriter {
       outputStream <- Try(new BuildLocalOutputStream(toBufferedOutputStream(path), topicPartition))
       writer       <- Try(FormatWriter(formatSelection, outputStream))
     } yield writer
-  }.toEither.leftMap(ex => NonFatalCloudSinkError(ex.getMessage, ex))
+  }.toEither.leftMap(ex => new NonFatalCloudSinkError(ex.getMessage, ex.some))
 
   def apply(
     formatInfo:   FormatSelection,
