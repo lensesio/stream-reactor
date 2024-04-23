@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -80,9 +81,7 @@ class EventHubsKafkaConsumerControllerTest {
     List<Header> emptyHeaderList = Collections.emptyList();
     when(headersMock.iterator()).thenReturn(emptyHeaderList.iterator());
 
-    ConsumerRecord consumerRecord = mock(ConsumerRecord.class);
-    when(consumerRecord.topic()).thenReturn(INPUT_TOPIC);
-    when(consumerRecord.headers()).thenReturn(headersMock);
+    ConsumerRecord consumerRecord = mockConsumerRecord(INPUT_TOPIC, Optional.of(headersMock));
     List<ConsumerRecord<String, String>> consumerRecordList = Collections.singletonList(consumerRecord);
 
     ConsumerRecords mockedRecords = mock(ConsumerRecords.class);
@@ -132,12 +131,10 @@ class EventHubsKafkaConsumerControllerTest {
     List<Header> emptyHeaderList = Collections.emptyList();
     when(headersMock.iterator()).thenReturn(emptyHeaderList.iterator());
 
-    ConsumerRecord consumerRecord = mock(ConsumerRecord.class);
-    when(consumerRecord.headers()).thenReturn(headersMock);
-    when(consumerRecord.topic()).thenReturn(INPUT_TOPIC);
-    ConsumerRecord consumerRecord2 = mock(ConsumerRecord.class);
-    when(consumerRecord2.headers()).thenReturn(headersMock);
-    when(consumerRecord2.topic()).thenReturn(INPUT_TOPIC_2);
+    ConsumerRecord consumerRecord = mockConsumerRecord(INPUT_TOPIC, Optional.of(headersMock)
+    );
+    ConsumerRecord consumerRecord2 = mockConsumerRecord(INPUT_TOPIC_2, Optional.of(headersMock)
+    );
     List<ConsumerRecord> consumerRecordList = List.of(consumerRecord, consumerRecord2);
 
     ConsumerRecords mockedRecords = mock(ConsumerRecords.class);
@@ -180,5 +177,12 @@ class EventHubsKafkaConsumerControllerTest {
 
     //then
     verify(mockedBlockingProducer).stop(duration);
+  }
+
+  private static ConsumerRecord mockConsumerRecord(String inputTopic, Optional<Headers> headersMock) {
+    ConsumerRecord consumerRecord = mock(ConsumerRecord.class);
+    headersMock.ifPresent(headers -> when(consumerRecord.headers()).thenReturn(headers));
+    when(consumerRecord.topic()).thenReturn(inputTopic);
+    return consumerRecord;
   }
 }

@@ -20,7 +20,7 @@ import static io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHead
 import io.lenses.streamreactor.common.util.JarManifest;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
-import io.lenses.streamreactor.connect.azure.eventhubs.util.KcqlConfigPort;
+import io.lenses.streamreactor.connect.azure.eventhubs.util.KcqlConfigTopicMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -85,6 +85,6 @@ public class AzureEventHubsSourceConnector extends SourceConnector {
   private static void parseAndValidateConfigs(Map<String, String> props) {
     AzureEventHubsSourceConfig azureEventHubsSourceConfig = new AzureEventHubsSourceConfig(props);
     String kcqlMappings = azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG);
-    KcqlConfigPort.mapInputToOutputsFromConfig(kcqlMappings);
+    KcqlConfigTopicMapper.mapInputToOutputsFromConfig(kcqlMappings);
   }
 }

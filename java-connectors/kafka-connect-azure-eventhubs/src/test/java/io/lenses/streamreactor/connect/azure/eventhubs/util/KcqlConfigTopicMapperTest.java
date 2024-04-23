@@ -25,7 +25,7 @@ import java.util.Map;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
 
-class KcqlConfigPortTest {
+class KcqlConfigTopicMapperTest {
 
   @Test
   void mapInputToOutputsFromConfigForMultipleKcqlStatementsShouldRetunMapOfInputToOutput() {
@@ -45,7 +45,7 @@ class KcqlConfigPortTest {
       fullKcql.append(String.format(kcqlTemplate, newOutput, newInput));
     }
     //when
-    Map<String, String> inputToOutputsFromConfig = KcqlConfigPort.mapInputToOutputsFromConfig(
+    Map<String, String> inputToOutputsFromConfig = KcqlConfigTopicMapper.mapInputToOutputsFromConfig(
         fullKcql.toString());
 
     //then
@@ -103,6 +103,6 @@ class KcqlConfigPortTest {
   private static void mapInputToOutputAddertingExceptionWithSpecificMessage(String illegalKcql,
       String expectedMessage) {
     assertThrows(ConfigException.class,
-        () -> KcqlConfigPort.mapInputToOutputsFromConfig(illegalKcql), expectedMessage);
+        () -> KcqlConfigTopicMapper.mapInputToOutputsFromConfig(illegalKcql), expectedMessage);
   }
 }

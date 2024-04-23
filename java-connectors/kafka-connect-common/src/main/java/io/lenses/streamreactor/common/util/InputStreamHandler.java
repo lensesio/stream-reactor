@@ -30,7 +30,8 @@ import lombok.extern.slf4j.Slf4j;
 public class InputStreamHandler {
 
   /**
-   * Extracts String from InputStream byte buffer.
+   * Extracts String from InputStream byte buffer. Method is using char type buffer of
+   * length of 1024 which should make it performant but not take too much space by JVM.
    *
    * @param inputStream {@link InputStream to read}
    * @return String representation of inputStream

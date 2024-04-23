@@ -20,7 +20,7 @@ import static java.util.Optional.ofNullable;
 import io.lenses.streamreactor.common.util.JarManifest;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
-import io.lenses.streamreactor.connect.azure.eventhubs.util.KcqlConfigPort;
+import io.lenses.streamreactor.connect.azure.eventhubs.util.KcqlConfigTopicMapper;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -38,6 +38,7 @@ import org.apache.kafka.connect.storage.OffsetStorageReader;
 @Slf4j
 public class AzureEventHubsSourceTask extends SourceTask {
 
+  private static final Duration ONE_SECOND_DURATION = Duration.of(1, ChronoUnit.SECONDS);
   private Duration closeTimeout;
   private static final int RECORDS_QUEUE_DEFAULT_SIZE = 10;
   private final JarManifest jarManifest;
@@ -66,7 +67,7 @@ public class AzureEventHubsSourceTask extends SourceTask {
 
     ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue = new ArrayBlockingQueue<>(
         RECORDS_QUEUE_DEFAULT_SIZE);
-    Map<String, String> inputToOutputTopics = KcqlConfigPort.mapInputToOutputsFromConfig(
+    Map<String, String> inputToOutputTopics = KcqlConfigTopicMapper.mapInputToOutputsFromConfig(
         azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
     blockingQueueProducerProvider = new BlockingQueueProducerProvider(topicPartitionOffsetProvider);
     KafkaByteBlockingQueuedProducer producer = blockingQueueProducerProvider.createProducer(
@@ -95,8 +96,8 @@ public class AzureEventHubsSourceTask extends SourceTask {
 
   @Override
   public List<SourceRecord> poll() throws InterruptedException {
-    List<SourceRecord> poll = eventHubsKafkaConsumerController.poll(
-        Duration.of(1, ChronoUnit.SECONDS));
+    List<SourceRecord> poll =
+        eventHubsKafkaConsumerController.poll(ONE_SECOND_DURATION);
     return poll.isEmpty() ? null : poll;
   }
 

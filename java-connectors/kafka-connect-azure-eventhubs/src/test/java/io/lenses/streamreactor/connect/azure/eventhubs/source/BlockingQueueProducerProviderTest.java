@@ -55,7 +55,7 @@ class BlockingQueueProducerProviderTest {
   }
 
   @Test
-  void whenConstructorInvokedWithoutOffsetParameter_ThenConfigExceptionIsThrown(){
+  void whenConstructorInvokedWithoutOffsetParameterThenConfigExceptionIsThrown(){
     //given
     AzureEventHubsSourceConfig azureConfigMock = mock(AzureEventHubsSourceConfig.class);
     TopicPartitionOffsetProvider mockedOffsetProvider = mock(TopicPartitionOffsetProvider.class);
@@ -79,7 +79,7 @@ class BlockingQueueProducerProviderTest {
   }
 
   @Test
-  void whenConstructorInvokedWithParameters_ThenMockKafkaConsumerShouldBeCreatedAndLogged(){
+  void whenConstructorInvokedWithParametersThenMockKafkaConsumerShouldBeCreatedAndLogged(){
     //given
     String earliestOffset = "earliest";
     TopicPartitionOffsetProvider mockedOffsetProvider = mock(TopicPartitionOffsetProvider.class);

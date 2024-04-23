@@ -25,9 +25,9 @@ import java.util.regex.Pattern;
 import org.apache.kafka.common.config.ConfigException;
 
 /**
- * Class that represents methods around KCQL handling.
+ * Class that represents methods around KCQL topic handling.
  */
-public class KcqlConfigPort {
+public class KcqlConfigTopicMapper {
 
   private static final String TOPIC_NAME_REGEX = "^[\\w][\\w\\-\\_\\.]*$";
   private static final Pattern TOPIC_NAME_PATTERN = Pattern.compile(TOPIC_NAME_REGEX);

@@ -16,7 +16,6 @@
 package io.lenses.streamreactor.connect.azure.eventhubs.source;
 
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.storage.OffsetStorageReader;
@@ -47,18 +46,9 @@ public final class TopicPartitionOffsetProvider {
    *     AzureOffsetMarker if combo already did commit some.
    */
   public Optional<AzureOffsetMarker> getOffset(AzureTopicPartitionKey azureTopicPartitionKey) {
-    Optional<AzureOffsetMarker> toReturn = Optional.empty();
-    Optional<Map<String, Object>> offsetOptional = Optional.ofNullable(
-        offsetStorageReader.offset(azureTopicPartitionKey));
-
-    if (offsetOptional.isPresent()) {
-      Long offset = (Long) offsetOptional.get().get(OFFSET_KEY);
-      if (offset != null) {
-        toReturn = Optional.of(new AzureOffsetMarker(offset));
-      }
-    }
-
-    return toReturn;
+    return Optional.ofNullable(offsetStorageReader.offset(azureTopicPartitionKey))
+        .map(offsetMap -> (Long) offsetMap.get(OFFSET_KEY))
+        .map(AzureOffsetMarker::new);
   }
 
   /**
