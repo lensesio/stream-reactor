@@ -17,29 +17,16 @@ package io.lenses.streamreactor.connect.cloud.common.sink.seek
 
 object IndexManagerErrors {
 
-  private def errorWrapper(error: String): String =
-    s"""
-       |===============================================================================================
-       |$error
-       |===============================================================================================
-       |""".stripMargin.linesIterator.filter(_.nonEmpty).mkString(System.lineSeparator())
-
   def corruptStorageState(system: String): String =
-    errorWrapper(
-      s"""
-         |The $system storage state is corrupted. The connector state is out of sync
-         |with the data. This could happen if the connector has been recreated and the data was deleted.
-         |Delete the connector's .index subfolder as well and restart the connector.
-         |""".stripMargin,
-    )
+    s"""
+       |The $system storage state is corrupted. The connector state is out of sync
+       |with the data. This could happen if the connector has been recreated and the data was deleted.
+       |Delete the connector's .index subfolder as well and restart the connector.""".stripMargin
 
   def fileDeleteError(system: String): String =
-    errorWrapper(
-      s"""
-         |There was an issue deleting old index files from the indexes directory.  This could happen if
-         |you have not granted the connector role appropriate delete permissions via the $system
-         |permissions model.
-         |""".stripMargin,
-    )
+    s"""
+       |There was an issue deleting old index files from the indexes directory.  This could happen if
+       |you have not granted the connector role appropriate delete permissions via the $system
+       |permissions model.""".stripMargin
 
 }

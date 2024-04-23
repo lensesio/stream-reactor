@@ -23,11 +23,10 @@ class IndexManagerErrorsTest extends AnyFlatSpec with Matchers {
   "corruptStorageState" should "return the correct error message" in {
     val system = "TestSystem"
     val expectedError =
-      """===============================================================================================
+      """
         |The TestSystem storage state is corrupted. The connector state is out of sync
         |with the data. This could happen if the connector has been recreated and the data was deleted.
-        |Delete the connector's .index subfolder as well and restart the connector.
-        |===============================================================================================""".stripMargin
+        |Delete the connector's .index subfolder as well and restart the connector.""".stripMargin
 
     val result = IndexManagerErrors.corruptStorageState(system)
     result shouldBe expectedError
@@ -36,11 +35,10 @@ class IndexManagerErrorsTest extends AnyFlatSpec with Matchers {
   "fileDeleteError" should "return the correct error message" in {
     val system = "TestSystem"
     val expectedError =
-      """===============================================================================================
+      """
         |There was an issue deleting old index files from the indexes directory.  This could happen if
         |you have not granted the connector role appropriate delete permissions via the TestSystem
-        |permissions model.
-        |===============================================================================================""".stripMargin
+        |permissions model.""".stripMargin
 
     val result = IndexManagerErrors.fileDeleteError(system)
     result shouldBe expectedError
