@@ -15,8 +15,23 @@
  */
 package io.lenses.streamreactor.connect.azure.eventhubs.source;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType;
 import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.header.Headers;
@@ -24,24 +39,14 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.stream.Collectors;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
-
 class EventHubsKafkaConsumerControllerTest {
 
   private static final String INPUT_TOPIC = "INPUT";
   private static final String OUTPUT_TOPIC = "OUTPUT";
   private static final String INPUT_TOPIC_2 = "INPUT2";
   private static final String OUTPUT_TOPIC_2 = "OUTPUT2";
-  public static final int DEFAULT_CAPACITY = 10;
-
-  private final Duration DURATION_2_SECONDS = Duration.of(2, ChronoUnit.SECONDS);
+  private static final int DEFAULT_CAPACITY = 10;
+  private static final Duration DURATION_2_SECONDS = Duration.of(2, ChronoUnit.SECONDS);
 
   private EventHubsKafkaConsumerController testObj;
 
@@ -136,7 +141,8 @@ class EventHubsKafkaConsumerControllerTest {
     return mockedKeyValueTypes;
   }
 
-  private static ConsumerRecord<byte[], byte[]> mockConsumerRecord(String inputTopic, Optional<Headers> headersMock) {
+  private static ConsumerRecord<byte[], byte[]> mockConsumerRecord(
+      String inputTopic, Optional<Headers> headersMock) {
     ConsumerRecord<byte[], byte[]> consumerRecord = mock(ConsumerRecord.class);
     headersMock.ifPresent(headers -> when(consumerRecord.headers()).thenReturn(headers));
     when(consumerRecord.topic()).thenReturn(inputTopic);
@@ -152,20 +158,19 @@ class EventHubsKafkaConsumerControllerTest {
 
   private static KafkaByteBlockingQueuedProducer mockByteBlockingProducer(KeyValueTypes mockedKeyValueTypes) {
     KafkaByteBlockingQueuedProducer mockedBlockingProducer = mock(
-            KafkaByteBlockingQueuedProducer.class);
+        KafkaByteBlockingQueuedProducer.class);
     when(mockedBlockingProducer.getKeyValueTypes()).thenReturn(mockedKeyValueTypes);
     return mockedBlockingProducer;
   }
 
-  private static ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> mockRecordsQueue(
-          String ... inputTopics
-  ) {
+  private static ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> mockRecordsQueue
+      (String... inputTopics) {
 
     Headers headersMock = mockEmptyHeaders();
 
     List<ConsumerRecord<byte[], byte[]>> consumerRecordList = Arrays.stream(inputTopics)
-            .map(it -> mockConsumerRecord(it, Optional.of(headersMock)))
-            .collect(Collectors.toList());
+        .map(it -> mockConsumerRecord(it, Optional.of(headersMock)))
+        .collect(Collectors.toList());
 
     ConsumerRecords<byte[], byte[]> mockedRecords = mock(ConsumerRecords.class);
     when(mockedRecords.count()).thenReturn(consumerRecordList.size());
