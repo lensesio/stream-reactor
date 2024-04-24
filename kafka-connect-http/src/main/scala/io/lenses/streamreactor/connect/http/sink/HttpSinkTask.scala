@@ -20,7 +20,7 @@ import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.unsafe.IORuntime
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic

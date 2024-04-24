@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.influx
 
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
-import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.influx.config.InfluxConfig

@@ -22,7 +22,7 @@ import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
 import io.lenses.streamreactor.connect.mqtt.config.MqttSourceConfig
 import io.lenses.streamreactor.connect.mqtt.config.MqttSourceSettings
 import io.lenses.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
-import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.SourceRecord

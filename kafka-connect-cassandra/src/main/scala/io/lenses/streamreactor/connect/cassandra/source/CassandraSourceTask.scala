@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.cassandra.source
 
 import io.lenses.streamreactor.common.queues.QueueHelpers
-import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.util.JarManifest
 
 import java.util

@@ -19,7 +19,7 @@ import cats.implicits.toBifunctorOps
 import cats.implicits.toShow
 import io.lenses.streamreactor.common.errors.ErrorHandler
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
-import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator

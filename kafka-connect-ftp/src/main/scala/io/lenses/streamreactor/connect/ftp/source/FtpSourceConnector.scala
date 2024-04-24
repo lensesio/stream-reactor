@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.ftp.source
 
-import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.util.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.connector.Task

@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.toShow
 import io.lenses.streamreactor.common.errors.ErrorHandler
-import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX

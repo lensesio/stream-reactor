@@ -22,7 +22,7 @@ import cats.effect.Ref
 import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.common.config.base.traits.WithConnectorPrefix
-import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSourceConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
