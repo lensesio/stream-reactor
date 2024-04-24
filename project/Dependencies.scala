@@ -64,13 +64,13 @@ object Dependencies {
     val logbackVersion      = "1.5.6"
     val scalaLoggingVersion = "3.9.5"
 
-    val wiremockVersion = "3.5.3"
+    val wiremockVersion = "3.5.4"
     val parquetVersion  = "1.13.1"
 
     val jerseyCommonVersion = "3.1.6"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.25.35"
+    val awsSdkVersion  = "2.25.36"
 
     val azureDataLakeVersion = "12.18.3"
     val azureIdentityVersion = "1.11.4"

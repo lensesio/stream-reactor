@@ -38,6 +38,7 @@ import io.lenses.streamreactor.connect.cloud.common.utils.MapUtils
 import io.lenses.streamreactor.connect.cloud.common.utils.TimestampUtils
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
@@ -88,7 +89,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig, CT](
         if (error.rollBack()) {
           rollback(error.topicPartitions())
         }
-        throw new IllegalStateException(error.message(), error.exception())
+        throw new ConnectException(error.message(), error.exception().orNull)
       case Right(_) =>
     }
 
@@ -252,7 +253,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig, CT](
 
   def convertPropsToConfig(connectorTaskId: ConnectorTaskId, props: Map[String, String]): Either[Throwable, C]
 
-  def createWriterMan(props: Map[String, String]): Either[Throwable, WriterManager[MD]] =
+  private def createWriterMan(props: Map[String, String]): Either[Throwable, WriterManager[MD]] =
     for {
       config          <- convertPropsToConfig(connectorTaskId, props)
       s3Client        <- createClient(config)
