@@ -12,6 +12,7 @@ ThisBuild / scalaVersion := Dependencies.scalaVersion
 
 lazy val subProjects: Seq[Project] = Seq(
   `query-language`,
+  `java-common`,
   common,
   `sql-common`,
   `cloud-common`,
@@ -58,6 +59,19 @@ lazy val `query-language` = (project in file("java-connectors/kafka-connect-quer
   .configureTests(baseTestDeps)
   .configureAntlr()
 
+lazy val `java-common` = (project in file("java-connectors/kafka-connect-common"))
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-java-common",
+        description := "Common components from java",
+        libraryDependencies ++= javaCommonDeps,
+        publish / skip := true,
+      ),
+  )
+  .configureAssembly(false)
+  .configureTests(javaCommonTestDeps)
+
 lazy val `sql-common` = (project in file("kafka-connect-sql-common"))
   .dependsOn(`query-language`)
   .dependsOn(`common`)
@@ -75,6 +89,7 @@ lazy val `sql-common` = (project in file("kafka-connect-sql-common"))
 
 lazy val common = (project in file("kafka-connect-common"))
   .dependsOn(`query-language`)
+  .dependsOn(`java-common`)
   .settings(
     settings ++
       Seq(
