@@ -148,7 +148,7 @@ class WriterManager[SM <: FileMetadata](
     logger.debug(s"[{}] seekOffsetsForTopicPartition {}", connectorTaskId.show, topicPartition)
     for {
       bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
-      offset          <- indexManager.seek(topicPartition, bucketAndPrefix.bucket)
+      offset          <- indexManager.initialSeek(topicPartition, bucketAndPrefix.bucket)
     } yield offset
   }
 
@@ -168,7 +168,7 @@ class WriterManager[SM <: FileMetadata](
       shouldSkip = writer.shouldSkip(topicPartitionOffset.offset)
       resultIfNotSkipped <- if (!shouldSkip) {
         transformerF(messageDetail).leftMap(ex =>
-          FatalCloudSinkError(ex.getMessage, ex, topicPartitionOffset.toTopicPartition),
+          new FatalCloudSinkError(ex.getMessage, ex.some, topicPartitionOffset.toTopicPartition),
         ).flatMap { transformed =>
           writeAndCommit(topicPartitionOffset, transformed, writer)
         }

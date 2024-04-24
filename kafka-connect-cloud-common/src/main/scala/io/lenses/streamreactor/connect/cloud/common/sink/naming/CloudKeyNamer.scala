@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.cloud.common.sink.naming
 
 import cats.implicits.catsSyntaxEitherId
+import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toTraverseOps
 import io.lenses.streamreactor.connect.cloud.common.config.FormatSelection
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
@@ -94,7 +95,7 @@ class CloudKeyNamer(
         .toFile
       createFileAndParents(file)
       file
-    }.toEither.left.map(ex => FatalCloudSinkError(ex.getMessage, ex, topicPartition))
+    }.toEither.left.map(ex => new FatalCloudSinkError(ex.getMessage, ex.some, topicPartition))
 
   private def buildPartitionPrefix(partitionValues: Map[PartitionField, String]): String =
     partitionSelection.partitions.map {
