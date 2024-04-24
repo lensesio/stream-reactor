@@ -45,7 +45,7 @@ class MqttSinkTask extends SinkTask with StrictLogging {
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean            = false
   private var writer:         Option[MqttWriter] = None
-  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
     printAsciiHeader(manifest, "/mqtt-sink-ascii.txt")

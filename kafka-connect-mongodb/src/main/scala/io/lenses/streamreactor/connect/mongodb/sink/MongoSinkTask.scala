@@ -42,7 +42,7 @@ import scala.util.Try
   */
 class MongoSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[MongoWriter] = None
-  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false

@@ -30,7 +30,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class HttpSinkConnector extends SinkConnector with LazyLogging {
 
-  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   private var props:         Option[Map[String, String]] = Option.empty
   private var maybeSinkName: Option[String]              = Option.empty
 

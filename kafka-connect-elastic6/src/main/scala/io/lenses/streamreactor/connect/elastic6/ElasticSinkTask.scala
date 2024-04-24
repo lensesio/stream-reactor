@@ -36,7 +36,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[ElasticJsonWriter] = None
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Parse the configurations and setup the writer

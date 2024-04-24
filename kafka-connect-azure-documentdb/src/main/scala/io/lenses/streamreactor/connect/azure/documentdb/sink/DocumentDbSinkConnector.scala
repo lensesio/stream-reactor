@@ -49,7 +49,7 @@ class DocumentDbSinkConnector private[sink] (builder: DocumentDbSinkSettings => 
     extends SinkConnector
     with StrictLogging {
   private var configProps: util.Map[String, String] = _
-  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   def this() = this(DocumentClientProvider.get)
 

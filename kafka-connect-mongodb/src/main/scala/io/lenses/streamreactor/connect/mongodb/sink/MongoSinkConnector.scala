@@ -42,7 +42,7 @@ import scala.util.Try
   */
 class MongoSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
-  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SinkTask class to use

@@ -28,7 +28,7 @@ import java.util
 
 class DatalakeSinkConnector extends SinkConnector with LazyLogging {
 
-  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   private val props: util.Map[String, String] = new util.HashMap[String, String]()
 
   override def version(): String = manifest.getVersion()

@@ -47,7 +47,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 
 class S3ConsumerGroupsSinkTask extends SinkTask with ErrorHandler {
 
-  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   private var connectorTaskId: ConnectorTaskId      = _
   private var writerManager:   ConsumerGroupsWriter = _

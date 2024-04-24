@@ -56,7 +56,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
   private var tracker:      Long                          = 0
   private var pollInterval: Long                          = CassandraConfigConstants.DEFAULT_POLL_INTERVAL
   private var name:         String                        = ""
-  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Starts the Cassandra source, parsing the options and setting up the reader.

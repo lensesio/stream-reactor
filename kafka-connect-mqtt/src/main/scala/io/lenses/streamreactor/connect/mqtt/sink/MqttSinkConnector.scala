@@ -36,7 +36,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 class MqttSinkConnector extends SinkConnector with StrictLogging {
   private val configDef = MqttSinkConfig.config
   private var configProps: Option[util.Map[String, String]] = None
-  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Mqtt sink connector.")

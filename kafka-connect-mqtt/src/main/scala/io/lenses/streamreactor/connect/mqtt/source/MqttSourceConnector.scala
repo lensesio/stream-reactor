@@ -32,7 +32,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 class MqttSourceConnector extends SourceConnector with StrictLogging {
   private val configDef = MqttSourceConfig.config
   private var configProps: util.Map[String, String] = _
-  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SourceTask class to use

@@ -42,7 +42,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 class HttpSinkTask extends SinkTask with LazyLogging {
-  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   implicit val runtime:           IORuntime                 = IORuntime.global
   private var maybeTemplate:      Option[TemplateType]      = Option.empty
   private var maybeWriterManager: Option[HttpWriterManager] = Option.empty

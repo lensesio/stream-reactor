@@ -56,7 +56,7 @@ abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], C
   private val contextOffsetFn: CloudLocation => Option[CloudLocation] =
     SourceContextReader.getCurrentOffset(() => context)
 
-  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   @volatile
   private var s3SourceTaskState: Option[CloudSourceTaskState] = None
