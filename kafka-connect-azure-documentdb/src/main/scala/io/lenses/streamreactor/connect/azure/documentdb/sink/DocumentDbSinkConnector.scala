@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.azure.documentdb.sink
 
 import io.lenses.streamreactor.common.config.Helpers
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.azure.documentdb.DocumentClientProvider
 import io.lenses.streamreactor.connect.azure.documentdb.config.DocumentDbConfig
 import io.lenses.streamreactor.connect.azure.documentdb.config.DocumentDbConfigConstants
@@ -49,7 +49,7 @@ class DocumentDbSinkConnector private[sink] (builder: DocumentDbSinkSettings => 
     extends SinkConnector
     with StrictLogging {
   private var configProps: util.Map[String, String] = _
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   def this() = this(DocumentClientProvider.get)
 
@@ -118,7 +118,7 @@ class DocumentDbSinkConnector private[sink] (builder: DocumentDbSinkSettings => 
 
   override def stop(): Unit = {}
 
-  override def version(): String = manifest.version()
+  override def version(): String = manifest.getVersion()
 
   override def config(): ConfigDef = DocumentDbConfig.config
 

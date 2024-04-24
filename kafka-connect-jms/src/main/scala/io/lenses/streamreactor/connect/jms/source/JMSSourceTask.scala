@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.jms.source
 
 import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.jms.config.JMSConfig
 import io.lenses.streamreactor.connect.jms.config.JMSConfigConstants
@@ -50,7 +50,7 @@ class JMSSourceTask extends SourceTask with StrictLogging {
   private var enableProgress: Boolean    = false
   private val pollingTimeout: AtomicLong = new AtomicLong(0L)
   private val recordsToCommit = new ConcurrentHashMap[SourceRecord, MessageAndTimestamp]()
-  private val manifest        = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest        = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   private val EmptyRecords    = Collections.emptyList[SourceRecord]()
   private var lastEvictedTimestamp: FiniteDuration = FiniteDuration(System.currentTimeMillis(), MILLISECONDS)
   private var evictInterval:        Int            = 0
@@ -133,7 +133,7 @@ class JMSSourceTask extends SourceTask with StrictLogging {
     evictUncommittedMessages()
   }
 
-  override def version: String = manifest.version()
+  override def version: String = manifest.getVersion()
 }
 
 case class MessageAndTimestamp(msg: Message, timestamp: FiniteDuration)

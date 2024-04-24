@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.ftp.source
 
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.ftp.source.OpTimer.profile
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
@@ -106,7 +106,7 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
 
 class FtpSourceTask extends SourceTask with StrictLogging {
   var poller: Option[FtpSourcePoller] = None
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def stop(): Unit = {
     logger.info("stop")
@@ -115,7 +115,7 @@ class FtpSourceTask extends SourceTask with StrictLogging {
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info("start")
-    logger.info(manifest.printManifest())
+    logger.info(manifest.buildManifestString())
 
     val conf = if (context.configs().isEmpty) props else context.configs()
 
@@ -127,7 +127,7 @@ class FtpSourceTask extends SourceTask with StrictLogging {
     poller = Some(new FtpSourcePoller(sourceConfig, context.offsetStorageReader))
   }
 
-  override def version(): String = manifest.version()
+  override def version(): String = manifest.getVersion()
 
   override def poll(): util.List[SourceRecord] = poller match {
     case Some(poller) => poller.poll().asJava

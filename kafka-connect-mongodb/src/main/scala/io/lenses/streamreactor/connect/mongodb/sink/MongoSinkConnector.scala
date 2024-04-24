@@ -16,12 +16,13 @@
 package io.lenses.streamreactor.connect.mongodb.sink
 
 import io.lenses.streamreactor.common.config.Helpers
-import io.lenses.streamreactor.common.utils.JarManifest
+//import io.lenses.streamreactor.common.util.JarManifest
 
 import java.util
 import io.lenses.streamreactor.connect.mongodb.config.MongoConfig
 import io.lenses.streamreactor.connect.mongodb.config.MongoConfigConstants
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.common.util.JarManifest
 import org.apache.kafka.common.config.Config
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -41,7 +42,7 @@ import scala.util.Try
   */
 class MongoSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SinkTask class to use
@@ -77,7 +78,7 @@ class MongoSinkConnector extends SinkConnector with StrictLogging {
 
   override def stop(): Unit = {}
 
-  override def version(): String = manifest.version()
+  override def version(): String = manifest.getVersion()
 
   override def config(): ConfigDef = MongoConfig.config
 

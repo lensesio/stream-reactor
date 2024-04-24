@@ -26,16 +26,16 @@ import scala.util.Try
 
 object AsciiArtPrinter extends LazyLogging {
 
-  def printAsciiHeader(manifest: JarManifest, asciiArtResource: String): Unit = Try {
+  def printAsciiHeader(manifest: io.lenses.streamreactor.common.util.JarManifest, asciiArtResource: String): Unit = Try {
     implicit val codec: Codec = Codec("UTF-8")
     codec.onMalformedInput(CodingErrorAction.REPLACE)
     codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
     logger.info(
       Source.fromInputStream(
         getClass.getResourceAsStream(asciiArtResource),
-      ).mkString + s" ${manifest.version()}",
+      ).mkString + s" ${manifest.getVersion()}",
     )
-    logger.info(manifest.printManifest())
+    logger.info(manifest.buildManifestString())
   } match {
     case Failure(exception) => logger.error("Unable to print ASCII Art on startup", exception)
     case Success(_)         => ()

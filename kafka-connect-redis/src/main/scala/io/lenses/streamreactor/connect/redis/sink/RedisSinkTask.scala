@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.redis.sink
 
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.redis.sink.config.RedisConfig
 import io.lenses.streamreactor.connect.redis.sink.config.RedisConfigConstants
@@ -45,7 +45,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
   var writer: List[DbWriter] = List[DbWriter]()
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Parse the configurations and setup the writer
@@ -243,5 +243,5 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     //have the writer expose a is busy; can expose an await using a countdownlatch internally
   }
 
-  override def version: String = manifest.version()
+  override def version: String = manifest.getVersion()
 }

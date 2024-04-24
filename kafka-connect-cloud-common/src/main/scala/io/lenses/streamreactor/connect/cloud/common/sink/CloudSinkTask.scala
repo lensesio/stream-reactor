@@ -20,7 +20,7 @@ import cats.implicits.toShow
 import io.lenses.streamreactor.common.errors.ErrorHandler
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
@@ -60,7 +60,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig, CT](
   private var writerManager:    WriterManager[MD] = _
   implicit var connectorTaskId: ConnectorTaskId   = _
 
-  override def version(): String = manifest.version()
+  override def version(): String = manifest.getVersion()
 
   override def start(fallbackProps: util.Map[String, String]): Unit = {
 

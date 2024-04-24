@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.influx
 
 import io.lenses.streamreactor.common.config.Helpers
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 
 import java.util
 import io.lenses.streamreactor.connect.influx.config.InfluxConfig
@@ -38,7 +38,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 class InfluxSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: Option[util.Map[String, String]] = None
   private val configDef = InfluxConfig.config
-  private val manifest  = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest  = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SinkTask class to use
@@ -69,7 +69,7 @@ class InfluxSinkConnector extends SinkConnector with StrictLogging {
 
   override def stop(): Unit = {}
 
-  override def version(): String = manifest.version()
+  override def version(): String = manifest.getVersion()
 
   override def config(): ConfigDef = configDef
 }

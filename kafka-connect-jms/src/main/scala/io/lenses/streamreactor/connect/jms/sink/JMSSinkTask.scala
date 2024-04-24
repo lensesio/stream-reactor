@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.jms.sink
 
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.jms.config.JMSConfig
 import io.lenses.streamreactor.connect.jms.config.JMSConfigConstants
@@ -43,7 +43,7 @@ class JMSSinkTask extends SinkTask with StrictLogging {
   var writer: Option[JMSWriter] = None
   val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Parse the configurations and setup the writer
@@ -92,5 +92,5 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     //TODO
     //have the writer expose a is busy; can expose an await using a countdownlatch internally
   }
-  override def version: String = manifest.version()
+  override def version: String = manifest.getVersion()
 }

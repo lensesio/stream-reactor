@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.cassandra.source
 
 import io.lenses.streamreactor.common.queues.QueueHelpers
 import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
@@ -56,7 +56,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
   private var tracker:      Long                          = 0
   private var pollInterval: Long                          = CassandraConfigConstants.DEFAULT_POLL_INTERVAL
   private var name:         String                        = ""
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Starts the Cassandra source, parsing the options and setting up the reader.
@@ -205,7 +205,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     *
     * @return
     */
-  override def version: String = manifest.version()
+  override def version: String = manifest.getVersion()
 
   /**
     * Check the queue size of a table.

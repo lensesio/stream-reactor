@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.mqtt.sink
 import io.lenses.streamreactor.common.converters.sink.Converter
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
 import io.lenses.streamreactor.connect.mqtt.config.MqttSinkConfig
@@ -45,7 +45,7 @@ class MqttSinkTask extends SinkTask with StrictLogging {
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean            = false
   private var writer:         Option[MqttWriter] = None
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
     printAsciiHeader(manifest, "/mqtt-sink-ascii.txt")
@@ -110,5 +110,5 @@ class MqttSinkTask extends SinkTask with StrictLogging {
     writer.foreach(w => w.flush())
   }
 
-  override def version: String = manifest.version()
+  override def version: String = manifest.getVersion()
 }

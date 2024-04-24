@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.sink
 
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.TaskDistributor
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings
@@ -28,10 +28,10 @@ import java.util
 
 class GCPStorageSinkConnector extends SinkConnector with LazyLogging {
 
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   private val props: util.Map[String, String] = new util.HashMap[String, String]()
 
-  override def version(): String = manifest.version()
+  override def version(): String = manifest.getVersion()
 
   override def taskClass(): Class[_ <: Task] = classOf[GCPStorageSinkTask]
 

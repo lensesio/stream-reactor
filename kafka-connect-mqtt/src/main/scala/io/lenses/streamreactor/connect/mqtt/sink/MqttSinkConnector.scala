@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.mqtt.sink
 
 import io.lenses.streamreactor.common.config.Helpers
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
 import io.lenses.streamreactor.connect.mqtt.config.MqttSinkConfig
 import com.typesafe.scalalogging.StrictLogging
@@ -36,7 +36,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 class MqttSinkConnector extends SinkConnector with StrictLogging {
   private val configDef = MqttSinkConfig.config
   private var configProps: Option[util.Map[String, String]] = None
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Mqtt sink connector.")
@@ -46,7 +46,7 @@ class MqttSinkConnector extends SinkConnector with StrictLogging {
 
   override def taskClass(): Class[_ <: Task] = classOf[MqttSinkTask]
 
-  override def version(): String = manifest.version()
+  override def version(): String = manifest.getVersion()
 
   override def stop(): Unit = {}
 

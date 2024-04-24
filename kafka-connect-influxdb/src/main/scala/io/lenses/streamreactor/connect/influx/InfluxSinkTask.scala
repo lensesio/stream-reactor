@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.influx
 
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.influx.config.InfluxConfig
 import io.lenses.streamreactor.connect.influx.config.InfluxConfigConstants
@@ -44,7 +44,7 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
   var writer: Option[InfluxDbWriter] = None
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Parse the configurations and setup the writer
@@ -93,7 +93,7 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
     progressCounter.empty()
   }
 
-  override def version: String = manifest.version()
+  override def version: String = manifest.getVersion()
 
   override def flush(offsets: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 }

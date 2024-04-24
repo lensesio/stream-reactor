@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.ftp.source
 
 import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
@@ -29,7 +29,7 @@ import scala.util.Try
 
 class FtpSourceConnector extends SourceConnector with StrictLogging {
   private var configProps: Option[util.Map[String, String]] = None
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def taskClass(): Class[_ <: Task] = classOf[FtpSourceTask]
 
@@ -57,7 +57,7 @@ class FtpSourceConnector extends SourceConnector with StrictLogging {
     }
   }
 
-  override def version(): String = manifest.version()
+  override def version(): String = manifest.getVersion()
 
   override def config() = FtpSourceConfig.definition
 }

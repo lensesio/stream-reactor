@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.mqtt.source
 
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 
 import java.util
 import java.util.Collections
@@ -32,7 +32,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 class MqttSourceConnector extends SourceConnector with StrictLogging {
   private val configDef = MqttSourceConfig.config
   private var configProps: util.Map[String, String] = _
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SourceTask class to use
@@ -96,5 +96,5 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
 
   override def config(): ConfigDef = configDef
 
-  override def version(): String = manifest.version()
+  override def version(): String = manifest.getVersion()
 }

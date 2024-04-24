@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.redis.sink
 
 import io.lenses.streamreactor.common.config.Helpers
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.redis.sink.config.RedisConfig
 import io.lenses.streamreactor.connect.redis.sink.config.RedisConfigConstants
 import com.typesafe.scalalogging.StrictLogging
@@ -37,7 +37,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 class RedisSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
   private val configDef = RedisConfig.config
-  private val manifest  = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest  = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SinkTask class to use
@@ -68,7 +68,7 @@ class RedisSinkConnector extends SinkConnector with StrictLogging {
 
   override def stop(): Unit = {}
 
-  override def version(): String = manifest.version()
+  override def version(): String = manifest.getVersion()
 
   override def config(): ConfigDef = configDef
 }

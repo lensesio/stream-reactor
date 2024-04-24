@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.cassandra.source
 
 import java.util
 import io.lenses.kcql.Kcql
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
 import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigSource
 import com.typesafe.scalalogging.StrictLogging
@@ -41,7 +41,7 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
 
   private var configProps: Option[util.Map[String, String]] = None
   private val configDef = CassandraConfigSource.sourceConfig
-  private val manifest  = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest  = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Defines the sink class to use
@@ -91,7 +91,7 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
     *
     * @return
     */
-  override def version(): String = manifest.version()
+  override def version(): String = manifest.getVersion()
 
   override def config(): ConfigDef = configDef
 }

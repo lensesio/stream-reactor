@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import cats.implicits.toShow
 import io.lenses.streamreactor.common.errors.ErrorHandler
 import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3ConsumerGroupsSinkConfig
@@ -47,12 +47,12 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 
 class S3ConsumerGroupsSinkTask extends SinkTask with ErrorHandler {
 
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private val manifest =  new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   private var connectorTaskId: ConnectorTaskId      = _
   private var writerManager:   ConsumerGroupsWriter = _
 
-  override def version(): String = manifest.version()
+  override def version(): String = manifest.getVersion()
 
   override def start(fallbackProps: util.Map[String, String]): Unit = {
 
