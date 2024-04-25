@@ -18,15 +18,18 @@ package io.lenses.streamreactor.connect.cassandra.sink
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.config.Helpers
 import io.lenses.streamreactor.common.utils.JarManifestProvided
-import io.lenses.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink}
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigSink
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkConnector
 
 import java.util
-import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
-import scala.util.{Failure, Try}
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.util.Failure
+import scala.util.Try
 
 /**
   * <h1>CassandraSinkConnector</h1>

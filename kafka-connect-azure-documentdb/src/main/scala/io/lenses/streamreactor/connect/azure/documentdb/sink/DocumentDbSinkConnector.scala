@@ -46,7 +46,9 @@ import scala.util.Try
   * Sets up DocumentDbSinkTask and configurations for the tasks.
   */
 class DocumentDbSinkConnector private[sink] (builder: DocumentDbSinkSettings => DocumentClient)
-    extends SinkConnector with StrictLogging with JarManifestProvided {
+    extends SinkConnector
+    with StrictLogging
+    with JarManifestProvided {
   private var configProps: util.Map[String, String] = _
 
   def this() = this(DocumentClientProvider.get)

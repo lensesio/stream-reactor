@@ -16,7 +16,8 @@
 package io.lenses.streamreactor.connect.mongodb.sink
 
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.{JarManifestProvided, ProgressCounter}
+import io.lenses.streamreactor.common.utils.JarManifestProvided
+import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.mongodb.config.MongoConfig
 import io.lenses.streamreactor.connect.mongodb.config.MongoConfigConstants
 import com.typesafe.scalalogging.StrictLogging

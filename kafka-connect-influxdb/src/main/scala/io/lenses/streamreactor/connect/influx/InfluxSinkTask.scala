@@ -18,15 +18,21 @@ package io.lenses.streamreactor.connect.influx
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.{JarManifestProvided, ProgressCounter}
-import io.lenses.streamreactor.connect.influx.config.{InfluxConfig, InfluxConfigConstants, InfluxSettings}
-import io.lenses.streamreactor.connect.influx.writers.{InfluxDbWriter, WriterFactoryFn}
+import io.lenses.streamreactor.common.utils.JarManifestProvided
+import io.lenses.streamreactor.common.utils.ProgressCounter
+import io.lenses.streamreactor.connect.influx.config.InfluxConfig
+import io.lenses.streamreactor.connect.influx.config.InfluxConfigConstants
+import io.lenses.streamreactor.connect.influx.config.InfluxSettings
+import io.lenses.streamreactor.connect.influx.writers.InfluxDbWriter
+import io.lenses.streamreactor.connect.influx.writers.WriterFactoryFn
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTask
 
 import java.util
-import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsScala}
+import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 /**
   * <h1>InfluxSinkTask</h1>

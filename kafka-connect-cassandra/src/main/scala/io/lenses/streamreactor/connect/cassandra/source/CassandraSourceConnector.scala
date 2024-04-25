@@ -18,14 +18,18 @@ package io.lenses.streamreactor.connect.cassandra.source
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.utils.JarManifestProvided
-import io.lenses.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource}
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigSource
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
 import java.util
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
   * <h1>CassandraSourceConnector</h1>

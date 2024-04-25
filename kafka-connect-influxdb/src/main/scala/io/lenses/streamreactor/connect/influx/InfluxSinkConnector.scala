@@ -18,13 +18,15 @@ package io.lenses.streamreactor.connect.influx
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.config.Helpers
 import io.lenses.streamreactor.common.utils.JarManifestProvided
-import io.lenses.streamreactor.connect.influx.config.{InfluxConfig, InfluxConfigConstants}
+import io.lenses.streamreactor.connect.influx.config.InfluxConfig
+import io.lenses.streamreactor.connect.influx.config.InfluxConfigConstants
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
 import java.util
-import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
   * <h1>InfluxSinkConnector</h1>

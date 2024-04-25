@@ -17,26 +17,34 @@ package io.lenses.streamreactor.connect.jms.source
 
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.{JarManifestProvided, ProgressCounter}
-import io.lenses.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
+import io.lenses.streamreactor.common.utils.JarManifestProvided
+import io.lenses.streamreactor.common.utils.ProgressCounter
+import io.lenses.streamreactor.connect.jms.config.JMSConfig
+import io.lenses.streamreactor.connect.jms.config.JMSConfigConstants
+import io.lenses.streamreactor.connect.jms.config.JMSSettings
 import io.lenses.streamreactor.connect.jms.source.readers.JMSReader
 import jakarta.jms.Message
-import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
+import org.apache.kafka.connect.source.SourceRecord
+import org.apache.kafka.connect.source.SourceTask
 
 import java.util
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.function.BiConsumer
-import scala.concurrent.duration.{FiniteDuration, _}
-import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
   * Created by andrew@datamountaineer.com on 10/03/2017.
   * stream-reactor
   */
-class JMSSourceTask extends SourceTask with StrictLogging with JarManifestProvided{
+class JMSSourceTask extends SourceTask with StrictLogging with JarManifestProvided {
   private var reader: JMSReader = _
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean    = false

@@ -17,7 +17,8 @@ package io.lenses.streamreactor.connect.elastic6
 
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.{JarManifestProvided, ProgressCounter}
+import io.lenses.streamreactor.common.utils.JarManifestProvided
+import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfig
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfigConstants
 import io.lenses.streamreactor.connect.elastic6.config.ElasticSettings

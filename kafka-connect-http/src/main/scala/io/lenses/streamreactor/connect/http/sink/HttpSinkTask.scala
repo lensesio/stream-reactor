@@ -30,7 +30,7 @@ import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.config
 import io.lenses.streamreactor.connect.http.sink.tpl.RawTemplate
 import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
-import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
+import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask

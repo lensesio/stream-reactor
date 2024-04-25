@@ -18,13 +18,15 @@ package io.lenses.streamreactor.connect.elastic7
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.config.Helpers
 import io.lenses.streamreactor.common.utils.JarManifestProvided
-import io.lenses.streamreactor.connect.elastic7.config.{ElasticConfig, ElasticConfigConstants}
+import io.lenses.streamreactor.connect.elastic7.config.ElasticConfig
+import io.lenses.streamreactor.connect.elastic7.config.ElasticConfigConstants
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
 import java.util
-import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class ElasticSinkConnector extends SinkConnector with StrictLogging with JarManifestProvided {
   private var configProps: Option[util.Map[String, String]] = None
@@ -58,5 +60,5 @@ class ElasticSinkConnector extends SinkConnector with StrictLogging with JarMani
   }
 
   override def stop(): Unit = {}
-  override def config():  ConfigDef = configDef
+  override def config(): ConfigDef = configDef
 }

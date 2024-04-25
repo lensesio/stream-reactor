@@ -16,7 +16,8 @@
 package io.lenses.streamreactor.connect.cassandra.sink
 
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.{JarManifestProvided, ProgressCounter}
+import io.lenses.streamreactor.common.utils.JarManifestProvided
+import io.lenses.streamreactor.common.utils.ProgressCounter
 
 import java.util
 import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigSink

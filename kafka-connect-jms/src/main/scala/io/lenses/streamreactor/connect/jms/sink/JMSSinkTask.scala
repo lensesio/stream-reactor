@@ -17,7 +17,8 @@ package io.lenses.streamreactor.connect.jms.sink
 
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.{JarManifestProvided, ProgressCounter}
+import io.lenses.streamreactor.common.utils.JarManifestProvided
+import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.jms.config.JMSConfig
 import io.lenses.streamreactor.connect.jms.config.JMSConfigConstants
 import io.lenses.streamreactor.connect.jms.config.JMSSettings

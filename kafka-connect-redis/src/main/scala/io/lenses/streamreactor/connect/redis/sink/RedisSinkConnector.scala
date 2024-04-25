@@ -18,13 +18,15 @@ package io.lenses.streamreactor.connect.redis.sink
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.config.Helpers
 import io.lenses.streamreactor.common.utils.JarManifestProvided
-import io.lenses.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants}
+import io.lenses.streamreactor.connect.redis.sink.config.RedisConfig
+import io.lenses.streamreactor.connect.redis.sink.config.RedisConfigConstants
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
 import java.util
-import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
   * <h1>RedisSinkConnector</h1>

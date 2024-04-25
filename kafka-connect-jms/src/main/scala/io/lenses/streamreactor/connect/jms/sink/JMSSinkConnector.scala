@@ -18,13 +18,15 @@ package io.lenses.streamreactor.connect.jms.sink
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.config.Helpers
 import io.lenses.streamreactor.common.utils.JarManifestProvided
-import io.lenses.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants}
+import io.lenses.streamreactor.connect.jms.config.JMSConfig
+import io.lenses.streamreactor.connect.jms.config.JMSConfigConstants
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
 import java.util
-import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
   * <h1>JMSSinkConnector</h1>

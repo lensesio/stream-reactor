@@ -47,7 +47,10 @@ import java.util
 import java.util.Collections
 import scala.jdk.CollectionConverters._
 abstract class CloudSourceTask[MD <: FileMetadata, C <: CloudSourceConfig[MD], CT]
-    extends SourceTask with LazyLogging with WithConnectorPrefix with JarManifestProvided {
+    extends SourceTask
+    with LazyLogging
+    with WithConnectorPrefix
+    with JarManifestProvided {
 
   def validator: CloudLocationValidator
 

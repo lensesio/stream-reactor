@@ -27,7 +27,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
 import io.lenses.streamreactor.connect.cloud.common.consumers.ConsumerGroupsWriter
 import io.lenses.streamreactor.connect.cloud.common.utils.MapUtils
-import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
+import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 

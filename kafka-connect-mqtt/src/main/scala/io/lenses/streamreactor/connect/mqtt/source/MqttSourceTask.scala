@@ -15,7 +15,8 @@
  */
 package io.lenses.streamreactor.connect.mqtt.source
 
-import io.lenses.streamreactor.common.utils.{JarManifestProvided, ProgressCounter}
+import io.lenses.streamreactor.common.utils.JarManifestProvided
+import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.converters.source.Converter
 import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
 import io.lenses.streamreactor.connect.mqtt.config.MqttSourceConfig

@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.mqtt.source
 
-
 import java.util
 import java.util.Collections
 import io.lenses.streamreactor.connect.mqtt.config.MqttSourceConfig
