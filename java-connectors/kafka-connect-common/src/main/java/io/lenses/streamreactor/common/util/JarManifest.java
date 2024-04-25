@@ -53,12 +53,16 @@ public class JarManifest {
   public JarManifest(URL location) {
     Manifest manifest;
 
-    try (JarFile jarFile = new JarFile(new File(location.toURI()))) {
-      manifest = jarFile.getManifest();
+    try {
+      File file = new File(location.toURI());
+      if (file.isFile()) {
+        JarFile jarFile = new JarFile(file);
+        manifest = jarFile.getManifest();
+        extractMainAttributes(manifest.getMainAttributes());
+      }
     } catch (URISyntaxException | IOException e) {
       throw new ConnectorStartupException(e);
     }
-    extractMainAttributes(manifest.getMainAttributes());
   }
 
   /**
@@ -69,11 +73,13 @@ public class JarManifest {
     Manifest manifest;
     try {
       Optional<JarFile> jarFileOptional = of(jarFile);
-      manifest = jarFileOptional.get().getManifest();
+      if (jarFileOptional.isPresent()) {
+        manifest = jarFileOptional.get().getManifest();
+        extractMainAttributes(manifest.getMainAttributes());
+      }
     } catch (NullPointerException | IOException e) {
       throw new ConnectorStartupException(e);
     }
-    extractMainAttributes(manifest.getMainAttributes());
   }
 
   private void extractMainAttributes(Attributes mainAttributes) {

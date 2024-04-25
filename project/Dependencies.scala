@@ -41,6 +41,7 @@ object Dependencies {
     val scalaCheckVersion              = "1.18.0"
 
     val junitJupiterVersion = "5.10.2"
+    val assertjCoreVersion  = "3.25.3"
 
     val kafkaVersion:     String = "3.7.0"
     val confluentVersion: String = "7.6.1"
@@ -179,6 +180,7 @@ object Dependencies {
   val `mockitoScala` = "org.mockito"    %% "mockito-scala" % mockitoScalaVersion
 
   val `junitJupiter` = "org.junit.jupiter" % "junit-jupiter-api" % junitJupiterVersion
+  val `assertjCore`  = "org.assertj"       % "assertj-core"      % assertjCoreVersion
 
   val catsEffectScalatest = "org.typelevel" %% "cats-effect-testing-scalatest" % `cats-effect-testing`
 
@@ -446,7 +448,7 @@ trait Dependencies {
   ) ++ enumeratum ++ circe
 
   val javaCommonDeps:     Seq[ModuleID] = Seq(lombok, kafkaConnectJson, kafkaClients)
-  val javaCommonTestDeps: Seq[ModuleID] = Seq(junitJupiter, `mockitoScala`, logback)
+  val javaCommonTestDeps: Seq[ModuleID] = Seq(junitJupiter, assertjCore, `mockitoScala`, logback)
 
   //Specific modules dependencies
 
