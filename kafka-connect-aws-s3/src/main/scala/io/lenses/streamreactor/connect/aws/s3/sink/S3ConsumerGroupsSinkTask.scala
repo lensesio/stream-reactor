@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import cats.implicits.toShow
 import io.lenses.streamreactor.common.errors.ErrorHandler
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.util.JarManifest
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3ConsumerGroupsSinkConfig
@@ -27,7 +27,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
 import io.lenses.streamreactor.connect.cloud.common.consumers.ConsumerGroupsWriter
 import io.lenses.streamreactor.connect.cloud.common.utils.MapUtils
-import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
+import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 
@@ -45,14 +45,10 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   * But since the s3 key is unique for group-topic-partition the last write will be the latest offset.
   */
 
-class S3ConsumerGroupsSinkTask extends SinkTask with ErrorHandler {
-
-  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+class S3ConsumerGroupsSinkTask extends SinkTask with ErrorHandler with JarManifestProvided {
 
   private var connectorTaskId: ConnectorTaskId      = _
   private var writerManager:   ConsumerGroupsWriter = _
-
-  override def version(): String = manifest.getVersion()
 
   override def start(fallbackProps: util.Map[String, String]): Unit = {
 

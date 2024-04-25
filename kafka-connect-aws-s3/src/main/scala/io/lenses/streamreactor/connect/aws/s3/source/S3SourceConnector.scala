@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import io.lenses.streamreactor.common.util.JarManifest
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfigDef
 import io.lenses.streamreactor.connect.cloud.common.config.TaskDistributor
@@ -27,12 +27,9 @@ import org.apache.kafka.connect.source.SourceConnector
 
 import java.util
 
-class S3SourceConnector extends SourceConnector with LazyLogging {
+class S3SourceConnector extends SourceConnector with LazyLogging with JarManifestProvided {
 
-  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   private val props: util.Map[String, String] = new util.HashMap[String, String]()
-
-  override def version(): String = manifest.getVersion()
 
   override def taskClass(): Class[_ <: Task] = classOf[S3SourceTask]
 

@@ -17,8 +17,7 @@ package io.lenses.streamreactor.connect.jms.sink
 
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.util.JarManifest
-import io.lenses.streamreactor.common.utils.ProgressCounter
+import io.lenses.streamreactor.common.utils.{JarManifestProvided, ProgressCounter}
 import io.lenses.streamreactor.connect.jms.config.JMSConfig
 import io.lenses.streamreactor.connect.jms.config.JMSConfigConstants
 import io.lenses.streamreactor.connect.jms.config.JMSSettings
@@ -38,12 +37,11 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   *
   * Kafka Connect JMS sink task. Called by framework to put records to the target sink
   */
-class JMSSinkTask extends SinkTask with StrictLogging {
+class JMSSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
 
   var writer: Option[JMSWriter] = None
   val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Parse the configurations and setup the writer
@@ -92,5 +90,4 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     //TODO
     //have the writer expose a is busy; can expose an await using a countdownlatch internally
   }
-  override def version: String = manifest.getVersion()
 }

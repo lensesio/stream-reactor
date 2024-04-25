@@ -15,8 +15,7 @@
  */
 package io.lenses.streamreactor.connect.mqtt.source
 
-import io.lenses.streamreactor.common.util.JarManifest
-import io.lenses.streamreactor.common.utils.ProgressCounter
+import io.lenses.streamreactor.common.utils.{JarManifestProvided, ProgressCounter}
 import io.lenses.streamreactor.connect.converters.source.Converter
 import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
 import io.lenses.streamreactor.connect.mqtt.config.MqttSourceConfig
@@ -36,11 +35,10 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class MqttSourceTask extends SourceTask with StrictLogging {
+class MqttSourceTask extends SourceTask with StrictLogging with JarManifestProvided {
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean             = false
   private var mqttManager:    Option[MqttManager] = None
-  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
     printAsciiHeader(manifest, "/mqtt-source-ascii.txt")
@@ -111,6 +109,4 @@ class MqttSourceTask extends SourceTask with StrictLogging {
     mqttManager.foreach(_.close())
     progressCounter.empty()
   }
-
-  override def version: String = manifest.getVersion()
 }

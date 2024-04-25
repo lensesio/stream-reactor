@@ -15,22 +15,18 @@
  */
 package io.lenses.streamreactor.connect.cassandra.sink
 
-import io.lenses.streamreactor.common.config.Helpers
-import io.lenses.streamreactor.common.util.JarManifest
-
-import java.util
-import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigSink
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.common.config.Helpers
+import io.lenses.streamreactor.common.utils.JarManifestProvided
+import io.lenses.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink}
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkConnector
 
-import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.jdk.CollectionConverters.SeqHasAsJava
-import scala.util.Failure
-import scala.util.Try
+import java.util
+import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
+import scala.util.{Failure, Try}
 
 /**
   * <h1>CassandraSinkConnector</h1>
@@ -38,10 +34,9 @@ import scala.util.Try
   *
   * Sets up CassandraSinkTask and configurations for the tasks.
   */
-class CassandraSinkConnector extends SinkConnector with StrictLogging {
+class CassandraSinkConnector extends SinkConnector with StrictLogging with JarManifestProvided {
   private var configProps: util.Map[String, String] = _
   private val configDef = CassandraConfigSink.sinkConfig
-  private val manifest  = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SinkTask class to use
@@ -76,8 +71,6 @@ class CassandraSinkConnector extends SinkConnector with StrictLogging {
   }
 
   override def stop(): Unit = {}
-
-  override def version(): String = manifest.getVersion()
 
   override def config(): ConfigDef = configDef
 }

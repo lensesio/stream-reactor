@@ -17,8 +17,7 @@ package io.lenses.streamreactor.connect.redis.sink
 
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.util.JarManifest
-import io.lenses.streamreactor.common.utils.ProgressCounter
+import io.lenses.streamreactor.common.utils.{JarManifestProvided, ProgressCounter}
 import io.lenses.streamreactor.connect.redis.sink.config.RedisConfig
 import io.lenses.streamreactor.connect.redis.sink.config.RedisConfigConstants
 import io.lenses.streamreactor.connect.redis.sink.config.RedisSinkSettings
@@ -41,11 +40,10 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   * Kafka Connect Redis sink task. Called by framework to put records to the
   * target sink
   */
-class RedisSinkTask extends SinkTask with StrictLogging {
+class RedisSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
   var writer: List[DbWriter] = List[DbWriter]()
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Parse the configurations and setup the writer
@@ -242,6 +240,4 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     //TODO
     //have the writer expose a is busy; can expose an await using a countdownlatch internally
   }
-
-  override def version: String = manifest.getVersion()
 }

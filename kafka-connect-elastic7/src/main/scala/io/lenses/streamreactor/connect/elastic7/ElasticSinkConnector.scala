@@ -15,24 +15,20 @@
  */
 package io.lenses.streamreactor.connect.elastic7
 
-import io.lenses.streamreactor.common.config.Helpers
-import io.lenses.streamreactor.common.util.JarManifest
-
-import java.util
-import io.lenses.streamreactor.connect.elastic7.config.ElasticConfig
-import io.lenses.streamreactor.connect.elastic7.config.ElasticConfigConstants
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.common.config.Helpers
+import io.lenses.streamreactor.common.utils.JarManifestProvided
+import io.lenses.streamreactor.connect.elastic7.config.{ElasticConfig, ElasticConfigConstants}
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
-import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.jdk.CollectionConverters.SeqHasAsJava
+import java.util
+import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
 
-class ElasticSinkConnector extends SinkConnector with StrictLogging {
+class ElasticSinkConnector extends SinkConnector with StrictLogging with JarManifestProvided {
   private var configProps: Option[util.Map[String, String]] = None
   private val configDef = ElasticConfig.config
-  private val manifest  = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SinkTask class to use
@@ -62,6 +58,5 @@ class ElasticSinkConnector extends SinkConnector with StrictLogging {
   }
 
   override def stop(): Unit = {}
-  override def version(): String    = manifest.getVersion()
   override def config():  ConfigDef = configDef
 }

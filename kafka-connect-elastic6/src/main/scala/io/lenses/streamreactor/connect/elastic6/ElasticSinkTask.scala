@@ -17,8 +17,7 @@ package io.lenses.streamreactor.connect.elastic6
 
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.util.JarManifest
-import io.lenses.streamreactor.common.utils.ProgressCounter
+import io.lenses.streamreactor.common.utils.{JarManifestProvided, ProgressCounter}
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfig
 import io.lenses.streamreactor.connect.elastic6.config.ElasticConfigConstants
 import io.lenses.streamreactor.connect.elastic6.config.ElasticSettings
@@ -32,11 +31,10 @@ import java.util
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-class ElasticSinkTask extends SinkTask with StrictLogging {
+class ElasticSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
   private var writer: Option[ElasticJsonWriter] = None
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Parse the configurations and setup the writer
@@ -85,5 +83,4 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit =
     logger.info("Flushing Elastic Sink")
 
-  override def version: String = manifest.getVersion()
 }

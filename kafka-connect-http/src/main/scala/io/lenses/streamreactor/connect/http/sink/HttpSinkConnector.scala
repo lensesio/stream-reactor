@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.http.sink
 
 import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.common.util.JarManifest
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -28,14 +28,12 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-class HttpSinkConnector extends SinkConnector with LazyLogging {
+class HttpSinkConnector extends SinkConnector with LazyLogging with JarManifestProvided {
 
-  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   private var props:         Option[Map[String, String]] = Option.empty
   private var maybeSinkName: Option[String]              = Option.empty
 
   private def sinkName = maybeSinkName.getOrElse("Lenses.io HTTP Sink")
-  override def version(): String = manifest.getVersion()
 
   override def taskClass(): Class[_ <: Task] = classOf[HttpSinkTask]
 

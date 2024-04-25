@@ -15,21 +15,17 @@
  */
 package io.lenses.streamreactor.connect.cassandra.source
 
-import java.util
-import io.lenses.kcql.Kcql
-import io.lenses.streamreactor.common.util.JarManifest
-import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigSource
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.kcql.Kcql
+import io.lenses.streamreactor.common.utils.JarManifestProvided
+import io.lenses.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource}
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
-import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsJava
-import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.jdk.CollectionConverters.SeqHasAsJava
+import java.util
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SeqHasAsJava}
 
 /**
   * <h1>CassandraSourceConnector</h1>
@@ -37,11 +33,10 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
   *
   * Sets up CassandraSourceTask and configurations for the tasks.
   */
-class CassandraSourceConnector extends SourceConnector with StrictLogging {
+class CassandraSourceConnector extends SourceConnector with StrictLogging with JarManifestProvided {
 
   private var configProps: Option[util.Map[String, String]] = None
   private val configDef = CassandraConfigSource.sourceConfig
-  private val manifest  = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Defines the sink class to use
@@ -85,13 +80,6 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
     configProps = Some(props)
 
   override def stop(): Unit = {}
-
-  /**
-    * Gets the version of this sink.
-    *
-    * @return
-    */
-  override def version(): String = manifest.getVersion()
 
   override def config(): ConfigDef = configDef
 }

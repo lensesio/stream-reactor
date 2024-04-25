@@ -15,29 +15,24 @@
  */
 package io.lenses.streamreactor.connect.jms.source
 
-import io.lenses.streamreactor.common.util.JarManifest
-import io.lenses.streamreactor.connect.jms.config.JMSConfig
-import io.lenses.streamreactor.connect.jms.config.JMSConfigConstants
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.common.utils.JarManifestProvided
+import io.lenses.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants}
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
 import java.util
-import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsJava
-import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsJava, MapHasAsScala, SeqHasAsJava}
 
 /**
   * Created by andrew@datamountaineer.com on 10/03/2017.
   * stream-reactor
   */
-class JMSSourceConnector extends SourceConnector with StrictLogging {
+class JMSSourceConnector extends SourceConnector with StrictLogging with JarManifestProvided {
   private var configProps: Map[String, String] = _
   private val configDef = JMSConfig.config
-  private val manifest  = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def taskClass(): Class[_ <: Task] = classOf[JMSSourceTask]
 
@@ -58,8 +53,6 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
   }
 
   override def stop(): Unit = {}
-
-  override def version(): String = manifest.getVersion()
 
   private def kcqlTaskScaling(maxTasks: Int): util.List[util.Map[String, String]] = {
     val raw = getRawKcqlString

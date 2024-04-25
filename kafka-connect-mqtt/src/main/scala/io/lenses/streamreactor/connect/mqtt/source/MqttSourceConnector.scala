@@ -15,13 +15,13 @@
  */
 package io.lenses.streamreactor.connect.mqtt.source
 
-import io.lenses.streamreactor.common.util.JarManifest
 
 import java.util
 import java.util.Collections
 import io.lenses.streamreactor.connect.mqtt.config.MqttSourceConfig
 import io.lenses.streamreactor.connect.mqtt.config.MqttSourceSettings
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
@@ -29,10 +29,9 @@ import org.apache.kafka.connect.source.SourceConnector
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-class MqttSourceConnector extends SourceConnector with StrictLogging {
+class MqttSourceConnector extends SourceConnector with StrictLogging with JarManifestProvided {
   private val configDef = MqttSourceConfig.config
   private var configProps: util.Map[String, String] = _
-  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SourceTask class to use
@@ -95,6 +94,4 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
   override def stop(): Unit = {}
 
   override def config(): ConfigDef = configDef
-
-  override def version(): String = manifest.getVersion()
 }

@@ -15,18 +15,16 @@
  */
 package io.lenses.streamreactor.connect.jms.sink
 
-import io.lenses.streamreactor.common.config.Helpers
-import io.lenses.streamreactor.common.util.JarManifest
-import io.lenses.streamreactor.connect.jms.config.JMSConfig
-import io.lenses.streamreactor.connect.jms.config.JMSConfigConstants
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.common.config.Helpers
+import io.lenses.streamreactor.common.utils.JarManifestProvided
+import io.lenses.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants}
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
 import java.util
-import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.jdk.CollectionConverters.{MapHasAsScala, SeqHasAsJava}
 
 /**
   * <h1>JMSSinkConnector</h1>
@@ -34,10 +32,9 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
   *
   * Sets up JmsSinkTask and configurations for the tasks.
   */
-class JMSSinkConnector extends SinkConnector with StrictLogging {
+class JMSSinkConnector extends SinkConnector with StrictLogging with JarManifestProvided {
   private var configProps: Option[util.Map[String, String]] = None
   private val configDef = JMSConfig.config
-  private val manifest  = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SinkTask class to use
@@ -67,8 +64,5 @@ class JMSSinkConnector extends SinkConnector with StrictLogging {
   }
 
   override def stop(): Unit = {}
-
-  override def version(): String = manifest.getVersion()
-
   override def config(): ConfigDef = configDef
 }

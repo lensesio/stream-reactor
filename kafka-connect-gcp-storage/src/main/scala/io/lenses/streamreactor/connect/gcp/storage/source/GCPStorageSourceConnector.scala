@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.gcp.storage.source
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.common.util.JarManifest
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.connect.cloud.common.config.TaskDistributor
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.gcp.storage.source.config.GCPStorageSourceConfigDef
@@ -27,12 +27,9 @@ import org.apache.kafka.connect.source.SourceConnector
 
 import java.util
 
-class GCPStorageSourceConnector extends SourceConnector with LazyLogging {
+class GCPStorageSourceConnector extends SourceConnector with LazyLogging with JarManifestProvided {
 
-  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   private val props: util.Map[String, String] = new util.HashMap[String, String]()
-
-  override def version(): String = manifest.getVersion()
 
   override def taskClass(): Class[_ <: Task] = classOf[GCPStorageSourceTask]
 

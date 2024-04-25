@@ -16,8 +16,7 @@
 package io.lenses.streamreactor.connect.cassandra.sink
 
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.util.JarManifest
-import io.lenses.streamreactor.common.utils.ProgressCounter
+import io.lenses.streamreactor.common.utils.{JarManifestProvided, ProgressCounter}
 
 import java.util
 import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigSink
@@ -41,11 +40,10 @@ import scala.util.Try
   * Kafka Connect Cassandra sink task. Called by
   * framework to put records to the target sink
   */
-class CassandraSinkTask extends SinkTask with StrictLogging {
+class CassandraSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
   private var writer: Option[CassandraJsonWriter] = None
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   logger.info("Task initialising")
 
   /**
@@ -91,6 +89,4 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
-
-  override def version: String = manifest.getVersion()
 }

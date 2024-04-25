@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.common.util.JarManifest
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3ConsumerGroupsSinkConfigDef
 import io.lenses.streamreactor.connect.cloud.common.config.TaskDistributor
@@ -29,12 +29,9 @@ import java.util
 /**
   * A connector which stores the latest Kafka consumer group offset from "__consumer_offsets" topic in S3.
   */
-class S3ConsumerGroupsSinkConnector extends SinkConnector with LazyLogging {
+class S3ConsumerGroupsSinkConnector extends SinkConnector with LazyLogging with JarManifestProvided {
 
-  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   private val props: util.Map[String, String] = new util.HashMap[String, String]()
-
-  override def version(): String = manifest.getVersion()
 
   override def taskClass(): Class[_ <: Task] = classOf[S3ConsumerGroupsSinkTask]
 

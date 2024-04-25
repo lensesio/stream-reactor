@@ -16,8 +16,7 @@
 package io.lenses.streamreactor.connect.azure.documentdb.sink
 
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.util.JarManifest
-import io.lenses.streamreactor.common.utils.ProgressCounter
+import io.lenses.streamreactor.common.utils.{JarManifestProvided, ProgressCounter}
 import io.lenses.streamreactor.connect.azure.documentdb.config.DocumentDbConfig
 import io.lenses.streamreactor.connect.azure.documentdb.config.DocumentDbConfigConstants
 import com.typesafe.scalalogging.StrictLogging
@@ -40,9 +39,8 @@ import scala.util.Try
   * Kafka Connect Azure Document DB sink task. Called by
   * framework to put records to the target sink
   */
-class DocumentDbSinkTask extends SinkTask with StrictLogging {
+class DocumentDbSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
   private var writer: Option[DocumentDbWriter] = None
-  private val manifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
