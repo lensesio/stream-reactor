@@ -25,7 +25,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 
-class CommonConfigDefTest extends AnyFlatSpec with Matchers with EitherValues {
+class S3CommonConfigDefTest extends AnyFlatSpec with Matchers with EitherValues {
 
   private val DeprecatedProps: Map[String, String] = Map(
     DEP_AWS_ACCESS_KEY              -> "DepAccessKey",
@@ -45,7 +45,7 @@ class CommonConfigDefTest extends AnyFlatSpec with Matchers with EitherValues {
     KCQL_CONFIG                 -> "SELECT * FROM DEFAULT",
     AWS_REGION                  -> "eu-west-1",
   )
-  val commonConfigDef = new CommonConfigDef {
+  val commonConfigDef = new S3CommonConfigDef {
     override def connectorPrefix: String = CONNECTOR_PREFIX
   }
   "CommonConfigDef" should "parse original properties" in {

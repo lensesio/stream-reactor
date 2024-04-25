@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.config.traits
 
+import io.lenses.streamreactor.common.config.base.RetryConfig
+import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
@@ -26,20 +28,20 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
   * Trait representing a generic cloud configuration.
   * This trait serves as a marker trait for cloud-specific configuration implementations.
   */
-trait CloudConfig
+sealed trait CloudConfig
 
 /**
   * Trait representing configuration for a cloud sink.
   * Extends [[CloudConfig]].
   */
-trait CloudSinkConfig extends CloudConfig {
+trait CloudSinkConfig[CC] extends CloudConfig {
 
   /**
     * Retrieves the connection configuration for the cloud sink.
     *
     * @return The connection configuration for the cloud sink.
     */
-  def connectionConfig: CloudConnectionConfig
+  def connectionConfig: CC
 
   /**
     * Retrieves the bucket options for the cloud sink.
@@ -61,6 +63,10 @@ trait CloudSinkConfig extends CloudConfig {
     * @return The compression codec for the cloud sink.
     */
   def compressionCodec: CompressionCodec
+
+  def connectorRetryConfig: RetryConfig
+
+  def errorPolicy: ErrorPolicy
 }
 
 /**
@@ -70,13 +76,6 @@ trait CloudSinkConfig extends CloudConfig {
   * @tparam MD The type of file metadata associated with the cloud source.
   */
 trait CloudSourceConfig[MD <: FileMetadata] extends CloudConfig {
-
-  /**
-    * Retrieves the connection configuration for the cloud source.
-    *
-    * @return The connection configuration for the cloud source.
-    */
-  def connectionConfig: CloudConnectionConfig
 
   /**
     * Retrieves the bucket options for the cloud source.

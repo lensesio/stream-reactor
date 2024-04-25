@@ -29,6 +29,8 @@ trait BaseSettings extends WithConnectorPrefix {
 
   def getInt(key: String): Integer
 
+  def getLong(key: String): java.lang.Long
+
   def getBoolean(key: String): java.lang.Boolean
 
   def getPassword(key: String): Password

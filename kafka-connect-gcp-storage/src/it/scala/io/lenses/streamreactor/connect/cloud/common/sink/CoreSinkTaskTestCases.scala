@@ -1,10 +1,11 @@
 package io.lenses.streamreactor.connect.cloud.common.sink
 
+import com.opencsv.CSVReader
+import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.ERROR_POLICY_PROP_SUFFIX
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.MAX_RETRIES_PROP_SUFFIX
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.RETRY_INTERVAL_PROP_SUFFIX
-import com.opencsv.CSVReader
-import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushCount
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushInterval
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushSize
@@ -38,11 +39,11 @@ import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 
 import java.io.StringReader
-import java.lang
 import java.nio.file.Files
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.lang
 import java.util
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
@@ -51,13 +52,14 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 abstract class CoreSinkTaskTestCases[
-  SM <: FileMetadata,
-  SI <: StorageInterface[SM],
-  CSC <: CloudSinkConfig,
-  C,
-  T <: CloudSinkTask[SM, CSC, C],
+  MD <: FileMetadata,
+  SI <: StorageInterface[MD],
+  C <: CloudSinkConfig[CC],
+  CC <: ConnectionConfig,
+  CT,
+  T <: CloudSinkTask[MD, C, CC, CT],
 ](unitUnderTest: String,
-) extends CloudPlatformEmulatorSuite[SM, SI, CSC, C, T]
+) extends CloudPlatformEmulatorSuite[MD, SI, C, CC, CT, T]
     with Matchers
     with MockitoSugar
     with LazyLogging {

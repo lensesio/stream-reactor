@@ -23,11 +23,11 @@ import io.lenses.streamreactor.connect.gcp.storage.config.UploadSettings
 
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-case class GCPStorageSinkConfigDefBuilder(props: Map[String, String])
+case class GCPStorageSinkConfigDefBuilder(props: Map[String, AnyRef])
     extends BaseConfig(GCPConfigSettings.CONNECTOR_PREFIX, GCPStorageSinkConfigDef.config, props)
     with CloudSinkConfigDefBuilder
     with ErrorPolicySettings
-    with NumberRetriesSettings
+    with RetryConfigSettings
     with AuthModeSettings
     with UploadSettings {
 

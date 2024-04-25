@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.config
+import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.common.config.base.RetryConfig
+import io.lenses.streamreactor.common.errors.NoopErrorPolicy
+import io.lenses.streamreactor.common.errors.RetryErrorPolicy
+import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
@@ -28,7 +33,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
-class S3SinkConfigTest extends AnyFunSuite with Matchers {
+class S3SinkConfigTest extends AnyFunSuite with Matchers with LazyLogging {
   private implicit val connectorTaskId:        ConnectorTaskId        = ConnectorTaskId("connector", 1, 0)
   private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   test("envelope and CSV storage is not allowed") {
@@ -120,6 +125,54 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers {
             stuff.head.keyNamer.partitionSelection.partitionDisplay should be(expectedResult)
         }
       }
+  }
+
+  test("set error policies in a case insensitive way") {
+
+    val errorPolicyValuesMap = Table(
+      ("testName", "value", "errorPolicyClass"),
+      ("lcvalue-noop", "noop", NoopErrorPolicy()),
+      ("lcvalue-throw", "throw", ThrowErrorPolicy()),
+      ("lcvalue-retry", "retry", RetryErrorPolicy()),
+      ("ucvalue-noop", "NOOP", NoopErrorPolicy()),
+      ("ucvalue-throw", "THROW", ThrowErrorPolicy()),
+      ("ucvalue-retry", "RETRY", RetryErrorPolicy()),
+      ("value-unspecified", "", ThrowErrorPolicy()),
+    )
+
+    forAll(errorPolicyValuesMap) {
+      (name, value, clazz) =>
+        logger.debug("Executing {}", name)
+        S3SinkConfigDefBuilder(
+          Map(
+            "connect.s3.kcql"         -> "select * from `blah` where `blah`",
+            "connect.s3.error.policy" -> value,
+          ),
+        ).getErrorPolicyOrDefault should be(clazz)
+    }
+  }
+
+  val retryValuesMap = Table[String, Any, Any, RetryConfig](
+    ("testName", "retries", "interval", "result"),
+    ("noret-noint", 0, 0L, new RetryConfig(0, 0L)),
+    ("ret-and-int", 1, 2L, new RetryConfig(1, 2L)),
+    ("noret-noint-strings", "0", "0", new RetryConfig(0, 0L)),
+    ("ret-and-int-strings", "1", "2", new RetryConfig(1, 2L)),
+  )
+
+  test("should set retry config") {
+    forAll(retryValuesMap) {
+      (name: String, ret: Any, interval: Any, result: RetryConfig) =>
+        logger.debug("Executing {}", name)
+
+        val props = Map(
+          "connect.s3.kcql"           -> s"insert into mybucket:myprefix select * from TopicName PARTITIONBY _key STOREAS `Bytes` PROPERTIES('${FlushCount.entryName}'=1,'${DataStorageSettings.StoreEnvelopeKey}'=true)",
+          "connect.s3.max.retries"    -> s"$ret",
+          "connect.s3.retry.interval" -> s"$interval",
+        )
+
+        S3SinkConfigDefBuilder(props).getRetryConfig should be(result)
+    }
   }
 
 }

@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.gcp.storage.config
 
 import cats.implicits.catsSyntaxOptionId
+import io.lenses.streamreactor.connect.gcp.common.config.AuthModeSettings
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.GCP_PROJECT_ID
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.HOST
@@ -27,12 +28,9 @@ import org.scalatest.matchers.should.Matchers
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-class CommonConfigDefTest
-    extends AnyFlatSpec
-    with Matchers
-    with EitherValues
-    with AuthModeSettingsConfigKeys
-    with UploadConfigKeys {
+class CommonConfigDefTest extends AnyFlatSpec with Matchers with EitherValues with UploadConfigKeys {
+
+  private val authModeConfig = new AuthModeSettings(connectorPrefix)
 
   private val commonConfigDef = new CommonConfigDef {
     override def connectorPrefix: String = CONNECTOR_PREFIX
@@ -40,10 +38,10 @@ class CommonConfigDefTest
 
   private val DefaultProps: Map[String, String] =
     Map(
-      GCP_PROJECT_ID -> "projectId",
-      AUTH_MODE      -> "none",
-      HOST           -> "localhost:9090",
-      KCQL_CONFIG    -> "SELECT * FROM DEFAULT",
+      GCP_PROJECT_ID                -> "projectId",
+      authModeConfig.getAuthModeKey -> "none",
+      HOST                          -> "localhost:9090",
+      KCQL_CONFIG                   -> "SELECT * FROM DEFAULT",
     )
 
   "CommonConfigDef" should "retain original properties after parsing" in {

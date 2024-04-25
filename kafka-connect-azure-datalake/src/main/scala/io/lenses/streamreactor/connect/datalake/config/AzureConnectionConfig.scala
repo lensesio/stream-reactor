@@ -15,14 +15,11 @@
  */
 package io.lenses.streamreactor.connect.datalake.config
 
-import io.lenses.streamreactor.common.errors.ErrorPolicy
-import io.lenses.streamreactor.common.errors.ErrorPolicyEnum
-import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
+import io.lenses.streamreactor.common.config.base.RetryConfig
+import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getInt
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getLong
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getString
-import io.lenses.streamreactor.connect.cloud.common.config.RetryConfig
-import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudConnectionConfig
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings._
 
 object AzureConnectionConfig {
@@ -30,12 +27,7 @@ object AzureConnectionConfig {
   def apply(props: Map[String, _], authMode: AuthMode): AzureConnectionConfig = AzureConnectionConfig(
     authMode,
     getString(props, ENDPOINT),
-    getErrorPolicy(props),
-    RetryConfig(
-      getInt(props, NBR_OF_RETRIES).getOrElse(NBR_OF_RETIRES_DEFAULT),
-      getLong(props, ERROR_RETRY_INTERVAL).getOrElse(ERROR_RETRY_INTERVAL_DEFAULT),
-    ),
-    RetryConfig(
+    new RetryConfig(
       getInt(props, HTTP_NBR_OF_RETRIES).getOrElse(HTTP_NBR_OF_RETIRES_DEFAULT),
       getLong(props, HTTP_ERROR_RETRY_INTERVAL).getOrElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
     ),
@@ -48,10 +40,6 @@ object AzureConnectionConfig {
     ),
   )
 
-  private def getErrorPolicy(props: Map[String, _]) =
-    ErrorPolicy(
-      ErrorPolicyEnum.withName(getString(props, ERROR_POLICY).map(_.toUpperCase()).getOrElse(ERROR_POLICY_DEFAULT)),
-    )
 }
 
 case class HttpTimeoutConfig(socketTimeout: Option[Long], connectionTimeout: Option[Long])
@@ -66,9 +54,7 @@ object ConnectionPoolConfig {
 case class AzureConnectionConfig(
   authMode:             AuthMode,
   endpoint:             Option[String]               = None,
-  errorPolicy:          ErrorPolicy                  = ThrowErrorPolicy(),
-  connectorRetryConfig: RetryConfig                  = RetryConfig(NBR_OF_RETIRES_DEFAULT, ERROR_RETRY_INTERVAL_DEFAULT),
-  httpRetryConfig:      RetryConfig                  = RetryConfig(HTTP_NBR_OF_RETIRES_DEFAULT, HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
+  httpRetryConfig:      RetryConfig                  = new RetryConfig(HTTP_NBR_OF_RETIRES_DEFAULT, HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
   timeouts:             HttpTimeoutConfig            = HttpTimeoutConfig(None, None),
   connectionPoolConfig: Option[ConnectionPoolConfig] = Option.empty,
-) extends CloudConnectionConfig
+) extends ConnectionConfig

@@ -25,7 +25,7 @@ import org.apache.kafka.common.config.ConfigDef
 abstract class CloudSourceConfigDefBuilder(
   connectorPrefix: String,
   configDef:       ConfigDef,
-  props:           Map[String, String],
+  props:           Map[String, AnyRef],
 ) extends BaseConfig(connectorPrefix, configDef, props)
     with CloudSourceSettings
     with KcqlSettings

@@ -17,6 +17,9 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxOptionId
+import io.lenses.streamreactor.common.config.base.RetryConfig
+import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.errors.ErrorPolicyEnum
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
@@ -101,7 +104,9 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
     ),
     offsetSeekerOptions = OffsetSeekerOptions(5),
     compressionCodec,
-    batchDelete = true,
+    batchDelete          = true,
+    errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
+    connectorRetryConfig = new RetryConfig(1, 1L),
   )
 
   "parquet sink" should "write 2 records to parquet format in s3" in {

@@ -13,5 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.cloud.common.config
-case class RetryConfig(numberOfRetries: Int, errorRetryInterval: Long)
+package io.lenses.streamreactor.connect.gcp.common.auth.mode;
+
+import lombok.NonNull;
+
+import java.util.Optional;
+
+public enum AuthModeEnum {
+    CREDENTIALS,
+    DEFAULT,
+    FILE,
+    NONE;
+
+    public static Optional<AuthModeEnum> valueOfCaseInsensitiveOptional(@NonNull String name) {
+        try {
+            return Optional.of(AuthModeEnum.valueOf(name.toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
+}

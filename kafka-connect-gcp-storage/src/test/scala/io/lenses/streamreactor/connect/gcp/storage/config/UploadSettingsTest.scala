@@ -38,6 +38,8 @@ class UploadSettingsTest extends AnyFunSuite with Matchers with UploadConfigKeys
     override def getPassword(key: String): Password = ???
 
     override def getList(key: String): util.List[String] = ???
+
+    override def getLong(key: String): lang.Long = ???
   }
 
   test("isAvoidResumableUpload should default to false") {

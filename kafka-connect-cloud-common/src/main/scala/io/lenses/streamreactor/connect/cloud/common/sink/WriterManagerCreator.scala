@@ -39,7 +39,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import java.io.File
 import scala.collection.immutable
 
-class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig] extends LazyLogging {
+class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends LazyLogging {
 
   def from(
     config: SC,
@@ -134,7 +134,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig] extends La
     )
   }
 
-  private def bucketOptsForTopic(config: CloudSinkConfig, topic: Topic): Option[CloudSinkBucketOptions] =
+  private def bucketOptsForTopic(config: CloudSinkConfig[_], topic: Topic): Option[CloudSinkBucketOptions] =
     config.bucketOptions.find(bo => bo.sourceTopic.isEmpty || bo.sourceTopic.contains(topic.value))
 
   private def fatalErrorTopicNotConfigured(topicPartition: TopicPartition): SinkError =

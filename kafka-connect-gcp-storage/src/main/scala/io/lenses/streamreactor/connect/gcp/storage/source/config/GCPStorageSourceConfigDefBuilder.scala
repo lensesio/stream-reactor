@@ -21,7 +21,7 @@ import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings
 
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-case class GCPStorageSourceConfigDefBuilder(props: Map[String, String])
+case class GCPStorageSourceConfigDefBuilder(props: Map[String, AnyRef])
     extends CloudSourceConfigDefBuilder(GCPConfigSettings.CONNECTOR_PREFIX, GCPStorageSourceConfigDef.config, props)
     with AuthModeSettings {
 

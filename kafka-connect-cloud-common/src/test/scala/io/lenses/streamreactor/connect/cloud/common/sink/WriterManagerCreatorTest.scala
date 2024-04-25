@@ -15,12 +15,11 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink
 
-import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.config.base.RetryConfig
+import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig
 import io.lenses.streamreactor.common.errors.NoopErrorPolicy
-import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudConnectionConfig
-import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
-import io.lenses.streamreactor.connect.cloud.common.config.RetryConfig
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
@@ -36,17 +35,15 @@ import java.time.Instant
 
 class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSugar {
 
-  case class FakeConnectionConfig(
-    errorPolicy:          ErrorPolicy,
-    connectorRetryConfig: RetryConfig,
-  ) extends CloudConnectionConfig
-
+  case class FakeConnectionConfig() extends ConnectionConfig
   case class FakeCloudSinkConfig(
-    connectionConfig:    FakeConnectionConfig,
-    bucketOptions:       Seq[CloudSinkBucketOptions],
-    offsetSeekerOptions: OffsetSeekerOptions,
-    compressionCodec:    CompressionCodec,
-  ) extends CloudSinkConfig
+    connectionConfig:     FakeConnectionConfig,
+    bucketOptions:        Seq[CloudSinkBucketOptions],
+    offsetSeekerOptions:  OffsetSeekerOptions,
+    compressionCodec:     CompressionCodec,
+    connectorRetryConfig: RetryConfig,
+    errorPolicy:          NoopErrorPolicy,
+  ) extends CloudSinkConfig[FakeConnectionConfig]
 
   case class FakeFileMetadata(file: String, lastModified: Instant) extends FileMetadata
 
@@ -57,10 +54,12 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
   test("create WriterManager from GCPStorageSinkConfig") {
 
     val config = FakeCloudSinkConfig(
-      connectionConfig    = FakeConnectionConfig(NoopErrorPolicy(), RetryConfig(1, 1L)),
-      bucketOptions       = Seq.empty,
-      offsetSeekerOptions = OffsetSeekerOptions(maxIndexFiles = 10),
-      compressionCodec    = CompressionCodecName.ZSTD.toCodec(),
+      connectionConfig     = FakeConnectionConfig(),
+      bucketOptions        = Seq.empty,
+      offsetSeekerOptions  = OffsetSeekerOptions(maxIndexFiles = 10),
+      compressionCodec     = CompressionCodecName.ZSTD.toCodec(),
+      errorPolicy          = NoopErrorPolicy(),
+      connectorRetryConfig = new RetryConfig(1, 1L),
     )
 
     val writerManagerCreator = new WriterManagerCreator[FakeFileMetadata, FakeCloudSinkConfig]()

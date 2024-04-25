@@ -22,20 +22,26 @@ import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.datalake.auth.DatalakeClientCreator
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings
+import io.lenses.streamreactor.connect.datalake.config.AzureConnectionConfig
 import io.lenses.streamreactor.connect.datalake.model.location.DatalakeLocationValidator
 import io.lenses.streamreactor.connect.datalake.sink.config.DatalakeSinkConfig
 import io.lenses.streamreactor.connect.datalake.storage.DatalakeFileMetadata
 import io.lenses.streamreactor.connect.datalake.storage.DatalakeStorageInterface
 object DatalakeSinkTask {}
 class DatalakeSinkTask
-    extends CloudSinkTask[DatalakeFileMetadata, DatalakeSinkConfig, DataLakeServiceClient](
+    extends CloudSinkTask[
+      DatalakeFileMetadata,
+      DatalakeSinkConfig,
+      AzureConnectionConfig,
+      DataLakeServiceClient,
+    ](
       AzureConfigSettings.CONNECTOR_PREFIX,
       "/datalake-sink-ascii.txt",
       new JarManifest(DatalakeSinkTask.getClass.getProtectionDomain.getCodeSource.getLocation),
     ) {
 
-  override def createClient(config: DatalakeSinkConfig): Either[Throwable, DataLakeServiceClient] =
-    DatalakeClientCreator.make(config.connectionConfig)
+  override def createClient(config: AzureConnectionConfig): Either[Throwable, DataLakeServiceClient] =
+    DatalakeClientCreator.make(config)
 
   override def createStorageInterface(
     connectorTaskId: ConnectorTaskId,

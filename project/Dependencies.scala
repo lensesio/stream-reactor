@@ -80,11 +80,12 @@ object Dependencies {
     val azureDataLakeVersion = "12.18.4"
     val azureIdentityVersion = "1.12.0"
     val azureCoreVersion     = "1.48.0"
-    val gcpStorageVersion    = "2.37.0"
+    val gcpCloudVersion      = "2.37.0"
 
     val jacksonVersion      = "2.17.0"
     val json4sVersion       = "4.0.7"
     val mockitoScalaVersion = "1.17.31"
+    val mockitoJavaVersion  = "5.2.0"
     val openCsvVersion      = "5.9"
     val jsonSmartVersion    = "2.5.1"
 
@@ -176,8 +177,9 @@ object Dependencies {
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
   val scalatestPlusScalaCheck =
     "org.scalatestplus" %% "scalatestplus-scalacheck" % scalatestPlusScalaCheckVersion
-  val scalaCheck     = "org.scalacheck" %% "scalacheck"    % scalaCheckVersion
-  val `mockitoScala` = "org.mockito"    %% "mockito-scala" % mockitoScalaVersion
+  val scalaCheck     = "org.scalacheck" %% "scalacheck"     % scalaCheckVersion
+  val `mockitoScala` = "org.mockito"    %% "mockito-scala"  % mockitoScalaVersion
+  val `mockitoJava`  = "org.mockito"     % "mockito-inline" % mockitoJavaVersion
 
   val `junitJupiter` = "org.junit.jupiter" % "junit-jupiter-api" % junitJupiterVersion
   val `assertjCore`  = "org.assertj"       % "assertj-core"      % assertjCoreVersion
@@ -275,7 +277,9 @@ object Dependencies {
   lazy val azureIdentity:    ModuleID = "com.azure" % "azure-identity"              % azureIdentityVersion
   lazy val azureCore:        ModuleID = "com.azure" % "azure-core"                  % azureCoreVersion
 
-  lazy val gcpStorageSdk = "com.google.cloud" % "google-cloud-storage" % gcpStorageVersion
+  lazy val gcpCloudCoreSdk = "com.google.cloud" % "google-cloud-core"      % gcpCloudVersion
+  lazy val gcpCloudHttp    = "com.google.cloud" % "google-cloud-core-http" % gcpCloudVersion
+  lazy val gcpStorageSdk   = "com.google.cloud" % "google-cloud-storage"   % gcpCloudVersion
 
   lazy val json4sNative  = "org.json4s" %% "json4s-native"  % json4sVersion
   lazy val json4sJackson = "org.json4s" %% "json4s-jackson" % json4sVersion
@@ -448,7 +452,7 @@ trait Dependencies {
   ) ++ enumeratum ++ circe
 
   val javaCommonDeps:     Seq[ModuleID] = Seq(lombok, kafkaConnectJson, kafkaClients)
-  val javaCommonTestDeps: Seq[ModuleID] = Seq(junitJupiter, assertjCore, `mockitoScala`, logback)
+  val javaCommonTestDeps: Seq[ModuleID] = Seq(junitJupiter, assertjCore, `mockitoJava`, logback)
 
   //Specific modules dependencies
 
@@ -480,6 +484,13 @@ trait Dependencies {
     azureDataLakeSdk,
     azureIdentity,
     azureCore,
+  )
+
+  val kafkaConnectGcpCommonDeps: Seq[ModuleID] = Seq(
+    lombok,
+    kafkaClients,
+    gcpCloudCoreSdk,
+    gcpCloudHttp,
   )
 
   val kafkaConnectGcpStorageDeps: Seq[ModuleID] = Seq(
