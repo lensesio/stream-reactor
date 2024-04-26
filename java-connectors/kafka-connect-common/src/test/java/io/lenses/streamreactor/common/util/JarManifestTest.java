@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.common.util;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.Test;
 class JarManifestTest {
 
   private static final String UNKNOWN = "unknown";
+  private static final String EMPTY_STRING = "";
 
   JarManifest testObj;
 
@@ -78,5 +80,16 @@ class JarManifestTest {
     verify(manifest).getMainAttributes();
     verify(attributes).getValue(ManifestAttributes.REACTOR_VER.getAttributeName());
     assertEquals(UNKNOWN, streamReactorVersion);
+  }
+
+  @Test
+  void getVersionShouldReturnDefaultIfFileProvidedIsNotJar() {
+    //given
+
+    //when
+    testObj = new JarManifest(getClass().getProtectionDomain().getCodeSource().getLocation());
+
+    //then
+    assertThat(testObj.getVersion()).isEqualTo(EMPTY_STRING);
   }
 }

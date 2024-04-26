@@ -15,16 +15,16 @@
  */
 package io.lenses.streamreactor.connect.influx
 
+import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
-import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.influx.config.InfluxConfig
 import io.lenses.streamreactor.connect.influx.config.InfluxConfigConstants
 import io.lenses.streamreactor.connect.influx.config.InfluxSettings
 import io.lenses.streamreactor.connect.influx.writers.InfluxDbWriter
 import io.lenses.streamreactor.connect.influx.writers.WriterFactoryFn
-import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.SinkRecord
@@ -39,12 +39,11 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   *
   * Kafka Connect InfluxDb sink task. Called by framework to put records to the target database
   */
-class InfluxSinkTask extends SinkTask with StrictLogging {
+class InfluxSinkTask extends SinkTask with StrictLogging with JarManifestProvided {
 
   var writer: Option[InfluxDbWriter] = None
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Parse the configurations and setup the writer
@@ -92,8 +91,6 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
     writer.foreach(w => w.close())
     progressCounter.empty()
   }
-
-  override def version: String = manifest.version()
 
   override def flush(offsets: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 }

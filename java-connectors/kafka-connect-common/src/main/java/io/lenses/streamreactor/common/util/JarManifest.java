@@ -29,12 +29,15 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
-import java.util.jar.Manifest;
+import java.util.stream.Collectors;
 
 /**
  * Class that reads JAR Manifest files so we can easily get some of the properties from it.
@@ -44,21 +47,24 @@ public class JarManifest {
   private static final String UNKNOWN = "unknown";
   private static final String NEW_LINE = System.getProperty("line.separator");
   private static final String SEMICOLON = ":";
-  private final Map<String, String> jarAttributes = new HashMap<>();
+  private Map<String, String> jarAttributes = new HashMap<>();
 
   /**
    * Creates JarManifest.
    * @param location Jar file location
    */
   public JarManifest(URL location) {
-    Manifest manifest;
-
-    try (JarFile jarFile = new JarFile(new File(location.toURI()))) {
-      manifest = jarFile.getManifest();
+    try {
+      File file = new File(location.toURI());
+      if (file.isFile()) {
+        try (JarFile jarFile = new JarFile(file)) {
+          ofNullable(jarFile.getManifest()).flatMap(mf -> of(mf.getMainAttributes()))
+              .ifPresent(mainAttrs -> jarAttributes = extractMainAttributes(mainAttrs));
+        }
+      }
     } catch (URISyntaxException | IOException e) {
       throw new ConnectorStartupException(e);
     }
-    extractMainAttributes(manifest.getMainAttributes());
   }
 
   /**
@@ -66,29 +72,23 @@ public class JarManifest {
    * @param jarFile
    */
   public JarManifest(JarFile jarFile) {
-    Manifest manifest;
-    try {
-      Optional<JarFile> jarFileOptional = of(jarFile);
-      manifest = jarFileOptional.get().getManifest();
-    } catch (NullPointerException | IOException e) {
-      throw new ConnectorStartupException(e);
+    Optional<JarFile> jarFileOptional = ofNullable(jarFile);
+    if (jarFileOptional.isPresent()) {
+      try (JarFile jf = jarFileOptional.get()) {
+        ofNullable(jf.getManifest()).flatMap(mf -> of(mf.getMainAttributes()))
+            .ifPresent(mainAttrs -> jarAttributes = extractMainAttributes(mainAttrs));
+      } catch (IOException e) {
+        throw new ConnectorStartupException(e);
+      }
     }
-    extractMainAttributes(manifest.getMainAttributes());
   }
 
-  private void extractMainAttributes(Attributes mainAttributes) {
-    jarAttributes.put(REACTOR_VER.getAttributeName(),
-        ofNullable(mainAttributes.getValue(REACTOR_VER.getAttributeName())).orElse(UNKNOWN));
-    jarAttributes.put(KAFKA_VER.getAttributeName(),
-        ofNullable(mainAttributes.getValue(KAFKA_VER.getAttributeName())).orElse(UNKNOWN));
-    jarAttributes.put(GIT_REPO.getAttributeName(),
-        ofNullable(mainAttributes.getValue(GIT_REPO.getAttributeName())).orElse(UNKNOWN));
-    jarAttributes.put(GIT_HASH.getAttributeName(),
-        ofNullable(mainAttributes.getValue(GIT_HASH.getAttributeName())).orElse(UNKNOWN));
-    jarAttributes.put(GIT_TAG.getAttributeName(),
-        ofNullable(mainAttributes.getValue(GIT_TAG.getAttributeName())).orElse(UNKNOWN));
-    jarAttributes.put(REACTOR_DOCS.getAttributeName(),
-        ofNullable(mainAttributes.getValue(REACTOR_DOCS.getAttributeName())).orElse(UNKNOWN));
+  private Map<String, String> extractMainAttributes(Attributes mainAttributes) {
+    return Collections.unmodifiableMap(Arrays.stream(ManifestAttributes.values())
+        .collect(Collectors.toMap(ManifestAttributes::getAttributeName,
+            manifestAttribute ->
+                ofNullable(mainAttributes.getValue(manifestAttribute.getAttributeName())).orElse(UNKNOWN))
+        ));
   }
 
   /**
@@ -103,18 +103,12 @@ public class JarManifest {
    */
   public String buildManifestString() {
     StringBuilder manifestBuilder = new StringBuilder();
-    manifestBuilder.append(REACTOR_VER.attributeName).append(SEMICOLON)
-        .append(jarAttributes.get(REACTOR_VER.getAttributeName())).append(NEW_LINE);
-    manifestBuilder.append(KAFKA_VER.attributeName).append(SEMICOLON)
-        .append(jarAttributes.get(KAFKA_VER.getAttributeName())).append(NEW_LINE);
-    manifestBuilder.append(GIT_REPO.attributeName).append(SEMICOLON)
-        .append(jarAttributes.get(GIT_REPO.getAttributeName())).append(NEW_LINE);
-    manifestBuilder.append(GIT_HASH.attributeName).append(SEMICOLON)
-        .append(jarAttributes.get(GIT_HASH.getAttributeName())).append(NEW_LINE);
-    manifestBuilder.append(GIT_TAG.attributeName).append(SEMICOLON)
-        .append(jarAttributes.get(GIT_TAG.getAttributeName())).append(NEW_LINE);
-    manifestBuilder.append(REACTOR_DOCS.attributeName).append(SEMICOLON)
-        .append(jarAttributes.get(REACTOR_DOCS.getAttributeName())).append(NEW_LINE);
+    List<ManifestAttributes> attributesInStringOrder =
+        List.of(REACTOR_VER, KAFKA_VER, GIT_REPO, GIT_HASH, GIT_TAG, REACTOR_DOCS);
+    attributesInStringOrder.forEach(
+        attribute -> manifestBuilder.append(attribute.attributeName).append(SEMICOLON)
+            .append(jarAttributes.get(attribute.getAttributeName())).append(NEW_LINE)
+    );
     return manifestBuilder.toString();
   }
 

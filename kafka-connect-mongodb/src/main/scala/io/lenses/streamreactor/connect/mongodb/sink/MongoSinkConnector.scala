@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.mongodb.sink
 
 import io.lenses.streamreactor.common.config.Helpers
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 
 import java.util
 import io.lenses.streamreactor.connect.mongodb.config.MongoConfig
@@ -39,9 +39,8 @@ import scala.util.Try
   *
   * Sets up MongoSinkTask and configurations for the tasks.
   */
-class MongoSinkConnector extends SinkConnector with StrictLogging {
+class MongoSinkConnector extends SinkConnector with StrictLogging with JarManifestProvided {
   private var configProps: util.Map[String, String] = _
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SinkTask class to use
@@ -76,8 +75,6 @@ class MongoSinkConnector extends SinkConnector with StrictLogging {
   }
 
   override def stop(): Unit = {}
-
-  override def version(): String = manifest.version()
 
   override def config(): ConfigDef = MongoConfig.config
 
