@@ -16,10 +16,10 @@
 package io.lenses.streamreactor.connect.mqtt.sink
 
 import io.lenses.streamreactor.common.config.Helpers
-import io.lenses.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
 import io.lenses.streamreactor.connect.mqtt.config.MqttSinkConfig
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
@@ -33,10 +33,9 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
   * Created by andrew@datamountaineer.com on 28/08/2017.
   * stream-reactor
   */
-class MqttSinkConnector extends SinkConnector with StrictLogging {
+class MqttSinkConnector extends SinkConnector with StrictLogging with JarManifestProvided {
   private val configDef = MqttSinkConfig.config
   private var configProps: Option[util.Map[String, String]] = None
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Mqtt sink connector.")
@@ -45,8 +44,6 @@ class MqttSinkConnector extends SinkConnector with StrictLogging {
   }
 
   override def taskClass(): Class[_ <: Task] = classOf[MqttSinkTask]
-
-  override def version(): String = manifest.version()
 
   override def stop(): Unit = {}
 

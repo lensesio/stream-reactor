@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.gcp.storage.sink
 
 import com.google.cloud.storage.Storage
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
@@ -32,7 +32,7 @@ class GCPStorageSinkTask
     extends CloudSinkTask[GCPStorageFileMetadata, GCPStorageSinkConfig, Storage](
       GCPConfigSettings.CONNECTOR_PREFIX,
       "/gcpstorage-sink-ascii.txt",
-      JarManifest(GCPStorageSinkTask.getClass.getProtectionDomain.getCodeSource.getLocation),
+      new JarManifest(GCPStorageSinkTask.getClass.getProtectionDomain.getCodeSource.getLocation),
     ) {
 
   override def createClient(config: GCPStorageSinkConfig): Either[Throwable, Storage] =
