@@ -30,12 +30,14 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
+import java.util.stream.Collectors;
 
 /**
  * Class that reads JAR Manifest files so we can easily get some of the properties from it.
@@ -55,10 +57,10 @@ public class JarManifest {
     try {
       File file = new File(location.toURI());
       if (file.isFile()) {
-        JarFile jarFile = new JarFile(file);
-        ofNullable(jarFile.getManifest()).flatMap(mf -> of(mf.getMainAttributes()))
-            .ifPresent(mainAttrs -> jarAttributes = extractMainAttributes(mainAttrs));
-        jarFile.close();
+        try (JarFile jarFile = new JarFile(file)) {
+          ofNullable(jarFile.getManifest()).flatMap(mf -> of(mf.getMainAttributes()))
+              .ifPresent(mainAttrs -> jarAttributes = extractMainAttributes(mainAttrs));
+        }
       }
     } catch (URISyntaxException | IOException e) {
       throw new ConnectorStartupException(e);
@@ -70,25 +72,23 @@ public class JarManifest {
    * @param jarFile
    */
   public JarManifest(JarFile jarFile) {
-    try {
-      Optional<JarFile> jarFileOptional = ofNullable(jarFile);
-      if (jarFileOptional.isPresent()) {
-        ofNullable(jarFileOptional.get().getManifest()).flatMap(mf -> of(mf.getMainAttributes()))
+    Optional<JarFile> jarFileOptional = ofNullable(jarFile);
+    if (jarFileOptional.isPresent()) {
+      try (JarFile jf = jarFileOptional.get()) {
+        ofNullable(jf.getManifest()).flatMap(mf -> of(mf.getMainAttributes()))
             .ifPresent(mainAttrs -> jarAttributes = extractMainAttributes(mainAttrs));
+      } catch (IOException e) {
+        throw new ConnectorStartupException(e);
       }
-    } catch (IOException e) {
-      throw new ConnectorStartupException(e);
     }
   }
 
-
   private Map<String, String> extractMainAttributes(Attributes mainAttributes) {
-    final Map<String, String> attributesFromJar = new HashMap<>();
-    Arrays.stream(ManifestAttributes.values()).forEach(manifestAttribute ->
-        attributesFromJar.put(manifestAttribute.getAttributeName(),
-            ofNullable(mainAttributes.getValue(manifestAttribute.getAttributeName())).orElse(UNKNOWN))
-    );
-    return attributesFromJar;
+    return Collections.unmodifiableMap(Arrays.stream(ManifestAttributes.values())
+        .collect(Collectors.toMap(ManifestAttributes::getAttributeName,
+            manifestAttribute ->
+                ofNullable(mainAttributes.getValue(manifestAttribute.getAttributeName())).orElse(UNKNOWN))
+        ));
   }
 
   /**
