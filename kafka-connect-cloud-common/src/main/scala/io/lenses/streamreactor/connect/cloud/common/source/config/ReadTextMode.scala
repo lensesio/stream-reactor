@@ -59,7 +59,7 @@ object ReadTextMode {
           lastEndLineMissing <- props.getOptionalBoolean(PropsKeyEnum.ReadLastEndLineMissing).toOption.flatten.orElse(
             Some(false),
           )
-        } yield StartEndLineReadTextMode(startLine, endLine, trim)
+        } yield StartEndLineReadTextMode(startLine, endLine, trim, lastEndLineMissing)
       case None => Option.empty
     }
   }
