@@ -15,14 +15,15 @@
  */
 package io.lenses.streamreactor.connect.jms.source
 
-import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.JarManifest
+import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.jms.config.JMSConfig
 import io.lenses.streamreactor.connect.jms.config.JMSConfigConstants
 import io.lenses.streamreactor.connect.jms.config.JMSSettings
 import io.lenses.streamreactor.connect.jms.source.readers.JMSReader
-import com.typesafe.scalalogging.StrictLogging
+import jakarta.jms.Message
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask
 
@@ -31,7 +32,6 @@ import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.function.BiConsumer
-import jakarta.jms.Message
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters.MapHasAsScala
@@ -44,13 +44,12 @@ import scala.util.Try
   * Created by andrew@datamountaineer.com on 10/03/2017.
   * stream-reactor
   */
-class JMSSourceTask extends SourceTask with StrictLogging {
+class JMSSourceTask extends SourceTask with StrictLogging with JarManifestProvided {
   private var reader: JMSReader = _
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean    = false
   private val pollingTimeout: AtomicLong = new AtomicLong(0L)
   private val recordsToCommit = new ConcurrentHashMap[SourceRecord, MessageAndTimestamp]()
-  private val manifest        = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   private val EmptyRecords    = Collections.emptyList[SourceRecord]()
   private var lastEvictedTimestamp: FiniteDuration = FiniteDuration(System.currentTimeMillis(), MILLISECONDS)
   private var evictInterval:        Int            = 0
@@ -132,8 +131,6 @@ class JMSSourceTask extends SourceTask with StrictLogging {
     }
     evictUncommittedMessages()
   }
-
-  override def version: String = manifest.version()
 }
 
 case class MessageAndTimestamp(msg: Message, timestamp: FiniteDuration)

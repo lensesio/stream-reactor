@@ -17,8 +17,8 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.toShow
 import io.lenses.streamreactor.common.errors.ErrorHandler
-import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.CONNECTOR_PREFIX
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3ConsumerGroupsSinkConfig
@@ -45,14 +45,10 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   * But since the s3 key is unique for group-topic-partition the last write will be the latest offset.
   */
 
-class S3ConsumerGroupsSinkTask extends SinkTask with ErrorHandler {
-
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+class S3ConsumerGroupsSinkTask extends SinkTask with ErrorHandler with JarManifestProvided {
 
   private var connectorTaskId: ConnectorTaskId      = _
   private var writerManager:   ConsumerGroupsWriter = _
-
-  override def version(): String = manifest.version()
 
   override def start(fallbackProps: util.Map[String, String]): Unit = {
 

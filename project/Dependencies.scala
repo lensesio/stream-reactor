@@ -40,6 +40,9 @@ object Dependencies {
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.18.0"
 
+    val junitJupiterVersion = "5.10.2"
+    val assertjCoreVersion  = "3.25.3"
+
     val kafkaVersion:     String = "3.7.0"
     val confluentVersion: String = "7.6.1"
 
@@ -60,6 +63,8 @@ object Dependencies {
 
     // build plugins version
     val betterMonadicForVersion = "0.3.1"
+
+    val lombokVersion = "1.18.32"
 
     val logbackVersion      = "1.5.6"
     val scalaLoggingVersion = "3.9.5"
@@ -171,8 +176,11 @@ object Dependencies {
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
   val scalatestPlusScalaCheck =
     "org.scalatestplus" %% "scalatestplus-scalacheck" % scalatestPlusScalaCheckVersion
-  val scalaCheck      = "org.scalacheck" %% "scalacheck"    % scalaCheckVersion
-  val `mockito-scala` = "org.mockito"    %% "mockito-scala" % mockitoScalaVersion
+  val scalaCheck     = "org.scalacheck" %% "scalacheck"    % scalaCheckVersion
+  val `mockitoScala` = "org.mockito"    %% "mockito-scala" % mockitoScalaVersion
+
+  val `junitJupiter` = "org.junit.jupiter" % "junit-jupiter-api" % junitJupiterVersion
+  val `assertjCore`  = "org.assertj"       % "assertj-core"      % assertjCoreVersion
 
   val catsEffectScalatest = "org.typelevel" %% "cats-effect-testing-scalatest" % `cats-effect-testing`
 
@@ -257,6 +265,8 @@ object Dependencies {
     .excludeAll(ExclusionRule(organization = "org.eclipse.jetty"))
 
   lazy val calciteLinq4J = "org.apache.calcite" % "calcite-linq4j" % calciteVersion
+
+  lazy val lombok = "org.projectlombok" % "lombok" % lombokVersion
 
   lazy val s3Sdk  = "software.amazon.awssdk" % "s3"  % awsSdkVersion
   lazy val stsSdk = "software.amazon.awssdk" % "sts" % awsSdkVersion
@@ -401,7 +411,7 @@ trait Dependencies {
     catsEffectScalatest,
     scalatestPlusScalaCheck,
     scalaCheck,
-    `mockito-scala`,
+    `mockitoScala`,
     `wiremock`,
     jerseyCommon,
     avro4s,
@@ -436,6 +446,9 @@ trait Dependencies {
     confluentAvroData,
     confluentJsonSchemaSerializer,
   ) ++ enumeratum ++ circe
+
+  val javaCommonDeps:     Seq[ModuleID] = Seq(lombok, kafkaConnectJson, kafkaClients)
+  val javaCommonTestDeps: Seq[ModuleID] = Seq(junitJupiter, assertjCore, `mockitoScala`, logback)
 
   //Specific modules dependencies
 
