@@ -37,6 +37,8 @@ object PropsKeyEnum extends Enum[PropsKeyEntry] {
   case object ReadStartLine extends PropsKeyEntry("read.text.start.line")
   case object ReadEndLine   extends PropsKeyEntry("read.text.end.line")
 
+  case object ReadLastEndLineMissing extends PropsKeyEntry("read.text.last.end.line.missing")
+
   case object ReadTrimLine extends PropsKeyEntry("read.text.trim")
 
   case object StoreEnvelope         extends PropsKeyEntry(DataStorageSettings.StoreEnvelopeKey)
