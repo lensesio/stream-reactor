@@ -7,9 +7,11 @@ import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
 import org.scalatest.EitherValues
 import org.scalatest.concurrent.Eventually.eventually
+import org.scalatest.concurrent.PatienceConfiguration
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
+import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest
 
 import scala.jdk.CollectionConverters.ListHasAsScala
@@ -54,11 +56,12 @@ class S3SourceTaskBucketRootTest
           task.start(props)
 
           withCleanup(task.stop()) {
-            val sourceRecords1 = eventually {
-              val records = task.poll()
-              records.size() shouldBe 190
-              records
-            }
+            val sourceRecords1 =
+              eventually(PatienceConfiguration.Timeout(3.seconds), PatienceConfiguration.Interval(500.millis)) {
+                val records = task.poll()
+                records.size() shouldBe 190
+                records
+              }
 
             val sourceRecords2 = task.poll()
             val sourceRecords3 = task.poll()
