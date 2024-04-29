@@ -129,7 +129,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_1001.parquet")
+    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_1001_1002.parquet")
     val genericRecords: List[GenericRecord] = parquetFormatReader.read(byteArray)
     genericRecords.size should be(2)
 
@@ -176,7 +176,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
 
     // records 1 and 2
     val genericRecords1: List[GenericRecord] = parquetFormatReader.read(
-      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_0.parquet"),
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_0_1.parquet"),
     )
     genericRecords1.size should be(2)
     genericRecords1(0).get("name").toString should be("sam")
@@ -184,14 +184,13 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
 
     // record 3 only - next schema is different so ending the file
     val genericRecords2: List[GenericRecord] = parquetFormatReader.read(
-      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/3_2.parquet"),
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/3_2_2.parquet"),
     )
     genericRecords2.size should be(1)
     genericRecords2(0).get("name").toString should be("tom")
 
-    // record 3 only - next schema is different so ending the file
     val genericRecords3: List[GenericRecord] = parquetFormatReader.read(
-      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/5_3.parquet"),
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/5_3_4.parquet"),
     )
     genericRecords3.size should be(2)
     genericRecords3(0).get("name").toString should be("bobo")

@@ -134,7 +134,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     val keys = listBucketPath(BucketName, "streamReactorBackups/myTopic/1/")
     keys.size should be(1)
 
-    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_101.avro")
+    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_101_102.avro")
     val genericRecords: List[GenericRecord] = avroFormatReader.read(byteArray)
     genericRecords.size should be(2)
 
@@ -169,7 +169,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_99.avro")
+    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_99_100.avro")
     val genericRecords: List[GenericRecord] = avroFormatReader.read(byteArray)
     genericRecords.size should be(2)
 
@@ -266,7 +266,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_10.avro")
+    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_10_10.avro")
     val genericRecords: List[GenericRecord] = avroFormatReader.read(byteArray)
     genericRecords.size should be(2)
 
@@ -318,7 +318,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     // records 1 and 2
     val genericRecords1: List[GenericRecord] = avroFormatReader.read(
-      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_0.avro"),
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_0_1.avro"),
     )
     genericRecords1.size should be(2)
     genericRecords1(0).get("name").toString should be("sam")
@@ -326,14 +326,14 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     // record 3 only - next schema is different so ending the file
     val genericRecords2: List[GenericRecord] = avroFormatReader.read(
-      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/3_2.avro"),
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/3_2_2.avro"),
     )
     genericRecords2.size should be(1)
     genericRecords2(0).get("name").toString should be("tom")
 
     // record 3 only - next schema is different so ending the file
     val genericRecords3: List[GenericRecord] = avroFormatReader.read(
-      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/5_3.avro"),
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/5_3_4.avro"),
     )
     genericRecords3.size should be(2)
     genericRecords3(0).get("name").toString should be("bobo")

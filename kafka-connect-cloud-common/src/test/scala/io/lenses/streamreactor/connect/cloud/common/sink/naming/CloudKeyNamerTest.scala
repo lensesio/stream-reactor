@@ -125,7 +125,7 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
       new OffsetFileNamerV0(paddingStrategy, JsonFormatSelection.extension)
     val s3KeyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
 
-    val result = s3KeyNamer.value(bucketNoPrefix, topicPartition, partitionValues, 0L)
+    val result = s3KeyNamer.value(bucketNoPrefix, topicPartition, partitionValues, 0L, 10L)
 
     result.value.path.value shouldEqual s"$TopicName/00$Partition/0$Offset.json"
   }
@@ -135,7 +135,7 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
       new OffsetFileNamerV0(paddingStrategy, JsonFormatSelection.extension)
     val s3KeyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
 
-    val result = s3KeyNamer.value(bucketAndPrefix, topicPartition, partitionValues, 0L)
+    val result = s3KeyNamer.value(bucketAndPrefix, topicPartition, partitionValues, 0L, 10L)
 
     result.value.path.value shouldEqual s"prefix/$TopicName/00$Partition/0$Offset.json"
   }
@@ -145,9 +145,9 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
       new OffsetFileNamerV1(paddingStrategy, JsonFormatSelection.extension)
     val s3KeyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
 
-    val result = s3KeyNamer.value(bucketAndPrefix, topicPartition, partitionValues, 101L)
+    val result = s3KeyNamer.value(bucketAndPrefix, topicPartition, partitionValues, 101L, 9999L)
 
-    result.value.path.value shouldEqual s"prefix/$TopicName/00$Partition/0${Offset}_101.json"
+    result.value.path.value shouldEqual s"prefix/$TopicName/00$Partition/0${Offset}_101_9999.json"
   }
 
   test("should generate the correct final S3 location for TopicPartitionOffsetFileNamerV0 format") {
@@ -155,7 +155,7 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
       new TopicPartitionOffsetFileNamerV0(paddingStrategy, paddingStrategy, JsonFormatSelection.extension)
     val s3KeyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
 
-    val result = s3KeyNamer.value(bucketAndPrefix, topicPartition, partitionValues, 101L)
+    val result = s3KeyNamer.value(bucketAndPrefix, topicPartition, partitionValues, 101L, 1000L)
 
     result.value.path.value shouldEqual s"prefix/$TopicName/00$Partition/${topicPartition.topic.value}(009_0$Offset).json"
   }
@@ -165,9 +165,9 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
       new TopicPartitionOffsetFileNamerV1(paddingStrategy, paddingStrategy, JsonFormatSelection.extension)
     val s3KeyNamer = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
 
-    val result = s3KeyNamer.value(bucketAndPrefix, topicPartition, partitionValues, 101L)
+    val result = s3KeyNamer.value(bucketAndPrefix, topicPartition, partitionValues, 101L, 1000L)
 
-    result.value.path.value shouldEqual s"prefix/$TopicName/00$Partition/${topicPartition.topic.value}(009_0${Offset}_101).json"
+    result.value.path.value shouldEqual s"prefix/$TopicName/00$Partition/${topicPartition.topic.value}(009_0${Offset}_101_1000).json"
   }
 
 }

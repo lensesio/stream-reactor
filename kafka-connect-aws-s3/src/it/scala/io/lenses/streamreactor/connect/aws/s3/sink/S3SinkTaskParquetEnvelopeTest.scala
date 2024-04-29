@@ -68,7 +68,7 @@ class S3SinkTaskParquetEnvelopeTest
     val props = (defaultProps + (
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET`  PROPERTIES('store.envelope'=true,'padding.length.partition'='12', 'padding.length.offset'='12', '${FlushCount.entryName}'=3)",
     )).asJava
-    testScenario(props, "streamReactorBackups/myTopic/000000000001/000000000003_10001.parquet")
+    testScenario(props, "streamReactorBackups/myTopic/000000000001/000000000003_10001_10003.parquet")
   }
 
   "S3SinkTask" should "write to avro format using V0 key format" in {

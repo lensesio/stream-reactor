@@ -402,7 +402,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000_0.parquet")
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000_0_0.parquet")
 
     val genericRecords = parquetFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -471,7 +471,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000_0.avro")
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000_0_0.avro")
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)

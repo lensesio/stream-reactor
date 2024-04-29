@@ -22,6 +22,7 @@ trait FileNamer {
   def fileName(
     topicPartitionOffset:    TopicPartitionOffset,
     earliestRecordTimestamp: Long,
+    latestRecordTimestamp:   Long,
   ): String
 }
 class OffsetFileNamerV0(
@@ -31,6 +32,7 @@ class OffsetFileNamerV0(
   def fileName(
     topicPartitionOffset:    TopicPartitionOffset,
     earliestRecordTimestamp: Long,
+    latestRecordTimestamp:   Long,
   ): String =
     s"${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}.$extension"
 }
@@ -42,8 +44,9 @@ class OffsetFileNamerV1(
   def fileName(
     topicPartitionOffset:    TopicPartitionOffset,
     earliestRecordTimestamp: Long,
+    latestRecordTimestamp:   Long,
   ): String =
-    s"${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}_$earliestRecordTimestamp.$extension"
+    s"${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}_${earliestRecordTimestamp}_$latestRecordTimestamp.$extension"
 }
 class TopicPartitionOffsetFileNamerV0(
   partitionPaddingStrategy: PaddingStrategy,
@@ -53,6 +56,7 @@ class TopicPartitionOffsetFileNamerV0(
   def fileName(
     topicPartitionOffset:    TopicPartitionOffset,
     earliestRecordTimestamp: Long,
+    latestRecordTimestamp:   Long,
   ): String =
     s"${topicPartitionOffset.topic.value}(${partitionPaddingStrategy.padString(
       topicPartitionOffset.partition.toString,
@@ -68,9 +72,10 @@ class TopicPartitionOffsetFileNamerV1(
   def fileName(
     topicPartitionOffset:    TopicPartitionOffset,
     earliestRecordTimestamp: Long,
+    latestRecordTimestamp:   Long,
   ): String =
     s"${topicPartitionOffset.topic.value}(${partitionPaddingStrategy.padString(
       topicPartitionOffset.partition.toString,
-    )}_${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}_${earliestRecordTimestamp.toString}).$extension"
+    )}_${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}_${earliestRecordTimestamp}_$latestRecordTimestamp).$extension"
 
 }

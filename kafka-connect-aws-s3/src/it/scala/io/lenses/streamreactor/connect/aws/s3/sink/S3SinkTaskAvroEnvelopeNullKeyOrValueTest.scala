@@ -87,7 +87,8 @@ class S3SinkTaskAvroEnvelopeNullKeyOrValueTest
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(2)
 
-    val bytes1 = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002_10001.avro")
+    val bytes1 =
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002_10001_10002.avro")
 
     val genericRecords1 = avroFormatReader.read(bytes1)
     genericRecords1.size should be(2)
@@ -144,7 +145,8 @@ class S3SinkTaskAvroEnvelopeNullKeyOrValueTest
     headers2.get("h1").toString should be("record1-header2")
     headers2.get("h2") should be(2L)
 
-    val bytes2 = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000003_10003.avro")
+    val bytes2 =
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000003_10003_10003.avro")
 
     val genericRecords2 = avroFormatReader.read(bytes2)
     genericRecords2.size should be(1)
@@ -212,7 +214,8 @@ class S3SinkTaskAvroEnvelopeNullKeyOrValueTest
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(2)
 
-    val bytes1 = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002_10001.avro")
+    val bytes1 =
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002_10001_10002.avro")
 
     val genericRecords1 = avroFormatReader.read(bytes1)
     genericRecords1.size should be(2)
@@ -269,7 +272,8 @@ class S3SinkTaskAvroEnvelopeNullKeyOrValueTest
     headers2.get("h1").toString should be("record1-header2")
     headers2.get("h2") should be(2L)
 
-    val bytes2 = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000003_10003.avro")
+    val bytes2 =
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000003_10003_10003.avro")
 
     val genericRecords2 = avroFormatReader.read(bytes2)
     genericRecords2.size should be(1)

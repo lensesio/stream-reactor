@@ -92,7 +92,7 @@ class S3SinkTaskAvroEnvelopeTest
         defaultProps +
           ("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS AVRO PROPERTIES('store.envelope'=true, 'padding.length.partition'='12', 'padding.length.offset'='12', '${FlushCount.entryName}'=3)")
       ).asJava,
-      "streamReactorBackups/myTopic/000000000001/000000000003_10001.avro",
+      "streamReactorBackups/myTopic/000000000001/000000000003_10001_10003.avro",
     )
   }
 
@@ -284,7 +284,7 @@ class S3SinkTaskAvroEnvelopeTest
 
     val genericRecords1 =
       avroFormatReader.read(remoteFileAsBytes(BucketName,
-                                              "streamReactorBackups/myTopic/000000000001/000000000002_10001.avro",
+                                              "streamReactorBackups/myTopic/000000000001/000000000002_10001_10002.avro",
       ))
     genericRecords1.size should be(2)
 
@@ -342,7 +342,7 @@ class S3SinkTaskAvroEnvelopeTest
 
     val genericRecords2 =
       avroFormatReader.read(remoteFileAsBytes(BucketName,
-                                              "streamReactorBackups/myTopic/000000000001/000000000003_10003.avro",
+                                              "streamReactorBackups/myTopic/000000000001/000000000003_10003_10003.avro",
       ))
     genericRecords2.size should be(1)
 

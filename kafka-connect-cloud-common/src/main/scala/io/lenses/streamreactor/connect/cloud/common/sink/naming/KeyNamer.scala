@@ -42,6 +42,7 @@ trait KeyNamer {
     topicPartitionOffset:    TopicPartitionOffset,
     partitionValues:         Map[PartitionField, String],
     earliestRecordTimestamp: Long,
+    latestRecordTimestamp:   Long,
   ): Either[FatalCloudSinkError, CloudLocation]
 
   def processPartitionValues(

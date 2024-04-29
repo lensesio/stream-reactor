@@ -187,7 +187,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1_111.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1_111_111.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}""",
     )
   }
@@ -252,7 +252,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/3_1.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/3_1_3.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}{"name":"tom","title":null,"salary":395.44}""",
     )
   }
@@ -323,7 +323,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1_5555.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1_5555_5555.json") should be(
       s"""{"name":"sam","title":"mr","salary":100.430000000000000000}""",
     )
   }
@@ -389,7 +389,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1_1.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1_1_1.json") should be(
       """[{"name":"sam","title":"mr","salary":100.43},{"name":"laura","title":"ms","salary":429.06}]""",
     )
   }

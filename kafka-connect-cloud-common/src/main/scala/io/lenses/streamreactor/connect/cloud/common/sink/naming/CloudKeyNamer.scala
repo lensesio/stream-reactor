@@ -117,10 +117,11 @@ class CloudKeyNamer(
     topicPartitionOffset:    TopicPartitionOffset,
     partitionValues:         Map[PartitionField, String],
     earliestRecordTimestamp: Long,
+    latestRecordTimestamp:   Long,
   ): Either[FatalCloudSinkError, CloudLocation] =
     Try(
       bucketAndPrefix.withPath(
-        s"${prefix(bucketAndPrefix)}${buildPartitionPrefix(partitionValues)}/${fileNamer.fileName(topicPartitionOffset, earliestRecordTimestamp)}",
+        s"${prefix(bucketAndPrefix)}${buildPartitionPrefix(partitionValues)}/${fileNamer.fileName(topicPartitionOffset, earliestRecordTimestamp, latestRecordTimestamp)}",
       ),
     ).toEither.left.map(ex => FatalCloudSinkError(ex.getMessage, topicPartitionOffset.toTopicPartition))
 

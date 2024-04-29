@@ -35,7 +35,7 @@ case class NoWriter(commitState: CommitState) extends WriteState(commitState) wi
     recordTimestamp:   Long,
   ): Writing = {
     logger.debug("state transition: NoWriter => Writing")
-    Writing(commitState, formatWriter, file, uncommittedOffset, recordTimestamp)
+    Writing(commitState, formatWriter, file, uncommittedOffset, recordTimestamp, recordTimestamp)
   }
 
 }
@@ -46,6 +46,7 @@ case class Writing(
   file:                    File,
   uncommittedOffset:       Offset,
   earliestRecordTimestamp: Long,
+  latestRecordTimestamp:   Long,
 ) extends WriteState(commitState)
     with LazyLogging {
 
@@ -62,12 +63,13 @@ case class Writing(
           formatWriter.getPointer,
         ),
       earliestRecordTimestamp = math.min(earliestRecordTimestamp, recordTimestamp),
+      latestRecordTimestamp   = math.max(latestRecordTimestamp, recordTimestamp),
     )
   }
 
   def toUploading: Uploading = {
     logger.debug("state transition: Writing => Uploading")
-    Uploading(commitState.reset(), file, uncommittedOffset, earliestRecordTimestamp)
+    Uploading(commitState.reset(), file, uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
   }
 }
 
@@ -76,6 +78,7 @@ case class Uploading(
   file:                    File,
   uncommittedOffset:       Offset,
   earliestRecordTimestamp: Long,
+  latestRecordTimestamp:   Long,
 ) extends WriteState(commitState)
     with LazyLogging {
 

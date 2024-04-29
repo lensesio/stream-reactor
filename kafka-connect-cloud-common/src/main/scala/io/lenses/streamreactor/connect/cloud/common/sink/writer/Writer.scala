@@ -108,9 +108,14 @@ class Writer[SM <: FileMetadata](
     }
 
     writeState match {
-      case uploadState @ Uploading(commitState, file, uncommittedOffset, earliestRecordTimestamp) =>
+      case uploadState @ Uploading(commitState,
+                                   file,
+                                   uncommittedOffset,
+                                   earliestRecordTimestamp,
+                                   latestRecordTimestamp,
+          ) =>
         for {
-          key  <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp)
+          key  <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
           path <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
           indexFileName <- indexManager.write(
             key.bucket,
@@ -142,11 +147,11 @@ class Writer[SM <: FileMetadata](
   def close(): Unit =
     writeState = writeState match {
       case state @ NoWriter(_) => state
-      case Writing(commitState, formatWriter, file, _, _) =>
+      case Writing(commitState, formatWriter, file, _, _, _) =>
         Try(formatWriter.close())
         Try(file.delete())
         NoWriter(commitState.reset())
-      case Uploading(commitState, file, _, _) =>
+      case Uploading(commitState, file, _, _, _) =>
         Try(file.delete())
         NoWriter(commitState.reset())
     }
@@ -155,7 +160,7 @@ class Writer[SM <: FileMetadata](
 
   def shouldFlush: Boolean =
     writeState match {
-      case Writing(commitState, _, file, uncommittedOffset, _) => commitPolicy.shouldFlush(
+      case Writing(commitState, _, file, uncommittedOffset, _, _) => commitPolicy.shouldFlush(
           CloudCommitContext(
             topicPartition.withOffset(uncommittedOffset),
             commitState.recordCount,
@@ -209,9 +214,9 @@ class Writer[SM <: FileMetadata](
     writeState match {
       case NoWriter(commitState) =>
         shouldSkipInternal(currentOffset, commitState.committedOffset)
-      case Uploading(commitState, _, uncommittedOffset, _) =>
+      case Uploading(commitState, _, uncommittedOffset, _, _) =>
         shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
-      case Writing(commitState, _, _, uncommittedOffset, _) =>
+      case Writing(commitState, _, _, uncommittedOffset, _, _) =>
         shouldSkipInternal(currentOffset, Option(largestOffset(commitState.committedOffset, uncommittedOffset)))
     }
   }
