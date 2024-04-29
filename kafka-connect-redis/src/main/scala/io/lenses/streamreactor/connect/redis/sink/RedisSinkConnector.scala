@@ -15,11 +15,11 @@
  */
 package io.lenses.streamreactor.connect.redis.sink
 
+import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.config.Helpers
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.connect.redis.sink.config.RedisConfig
 import io.lenses.streamreactor.connect.redis.sink.config.RedisConfigConstants
-import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
@@ -34,10 +34,9 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
   *
   * Sets up RedisSinkTask and configurations for the tasks.
   */
-class RedisSinkConnector extends SinkConnector with StrictLogging {
+class RedisSinkConnector extends SinkConnector with StrictLogging with JarManifestProvided {
   private var configProps: util.Map[String, String] = _
   private val configDef = RedisConfig.config
-  private val manifest  = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SinkTask class to use
@@ -67,8 +66,6 @@ class RedisSinkConnector extends SinkConnector with StrictLogging {
   }
 
   override def stop(): Unit = {}
-
-  override def version(): String = manifest.version()
 
   override def config(): ConfigDef = configDef
 }

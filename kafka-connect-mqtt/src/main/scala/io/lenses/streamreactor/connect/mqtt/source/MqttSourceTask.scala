@@ -15,14 +15,14 @@
  */
 package io.lenses.streamreactor.connect.mqtt.source
 
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.common.utils.ProgressCounter
 import io.lenses.streamreactor.connect.converters.source.Converter
 import io.lenses.streamreactor.connect.mqtt.config.MqttConfigConstants
 import io.lenses.streamreactor.connect.mqtt.config.MqttSourceConfig
 import io.lenses.streamreactor.connect.mqtt.config.MqttSourceSettings
 import io.lenses.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
-import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.SourceRecord
@@ -36,11 +36,10 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class MqttSourceTask extends SourceTask with StrictLogging {
+class MqttSourceTask extends SourceTask with StrictLogging with JarManifestProvided {
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean             = false
   private var mqttManager:    Option[MqttManager] = None
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
     printAsciiHeader(manifest, "/mqtt-source-ascii.txt")
@@ -111,6 +110,4 @@ class MqttSourceTask extends SourceTask with StrictLogging {
     mqttManager.foreach(_.close())
     progressCounter.empty()
   }
-
-  override def version: String = manifest.version()
 }

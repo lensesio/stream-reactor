@@ -56,7 +56,10 @@ object ReadTextMode {
           startLine <- props.getString(PropsKeyEnum.ReadStartLine)
           endLine   <- props.getString(PropsKeyEnum.ReadEndLine)
           trim      <- props.getOptionalBoolean(PropsKeyEnum.ReadTrimLine).toOption.flatten.orElse(Some(false))
-        } yield StartEndLineReadTextMode(startLine, endLine, trim)
+          lastEndLineMissing <- props.getOptionalBoolean(PropsKeyEnum.ReadLastEndLineMissing).toOption.flatten.orElse(
+            Some(false),
+          )
+        } yield StartEndLineReadTextMode(startLine, endLine, trim, lastEndLineMissing)
       case None => Option.empty
     }
   }
@@ -76,7 +79,8 @@ case class StartEndTagReadTextMode(startTag: String, endTag: String, buffer: Int
   }
 }
 
-case class StartEndLineReadTextMode(startLine: String, endLine: String, trim: Boolean) extends ReadTextMode {
+case class StartEndLineReadTextMode(startLine: String, endLine: String, trim: Boolean, lastEndLineMissing: Boolean)
+    extends ReadTextMode {
   override def createStreamReader(
     input: InputStream,
   ): CloudDataIterator[String] = {
@@ -85,6 +89,7 @@ case class StartEndLineReadTextMode(startLine: String, endLine: String, trim: Bo
       startLine,
       endLine,
       trim,
+      lastEndLineMissing,
     )
     new CustomTextStreamReader(() => lineReader.next(), () => lineReader.close())
 
