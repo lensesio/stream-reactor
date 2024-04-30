@@ -10,7 +10,9 @@ trait TempFileHelper {
     val folder     = new File(folderName)
     try {
       folder.mkdir()
+      folder.deleteOnExit()
       val file = new File(folder, fileName)
+      file.deleteOnExit()
       f(file)
     } catch {
       case e: Throwable => Left(e)

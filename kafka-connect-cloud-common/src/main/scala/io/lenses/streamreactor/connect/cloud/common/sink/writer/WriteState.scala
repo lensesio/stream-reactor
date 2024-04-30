@@ -50,7 +50,6 @@ case class Writing(
 ) extends WriteState(commitState)
     with LazyLogging {
 
-  //TODO: it's not clear why we are only keeping track of one schema (VALUE) and not key/and headers
   def update(o: Offset, recordTimestamp: Long, schema: Option[Schema]): WriteState = {
     logger.debug(
       s"state update: Uncommitted offset update $uncommittedOffset => $o, earliest record timestamp $earliestRecordTimestamp => $recordTimestamp",
