@@ -23,7 +23,7 @@ import org.scalatest.matchers.should.Matchers
 
 class HierarchicalPartitionExtractorTest extends AnyFlatSpecLike with Matchers with LazyLogging {
 
-  private val hpe = new HierarchicalPartitionExtractor()
+  private val hpe = HierarchicalPartitionExtractor
 
   "apply" should "parse a flattish path" in {
     val path = "topic/123/1.csv"
@@ -40,4 +40,13 @@ class HierarchicalPartitionExtractorTest extends AnyFlatSpecLike with Matchers w
     hpe.extract(path) should be(789.some)
   }
 
+  "apply" should "parse a path with a single level" in {
+    val path = "topic/1.json"
+    hpe.extract(path) should be(None)
+  }
+
+  "apply" should "handle left 0 zero padding for the partition" in {
+    val path = "/topic/000789/1.json"
+    hpe.extract(path) should be(789.some)
+  }
 }

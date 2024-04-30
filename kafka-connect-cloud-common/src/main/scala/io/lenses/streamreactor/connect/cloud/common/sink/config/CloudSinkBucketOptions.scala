@@ -26,6 +26,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnu
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushInterval
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushSize
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.KeyNamerVersion
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitPolicy
@@ -34,11 +35,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
 import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.CloudSinkProps
 import io.lenses.streamreactor.connect.cloud.common.sink.config.kcqlprops.SinkPropsSchema
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.FileExtensionNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.TopicPartitionOffsetFileNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming._
 import org.apache.kafka.common.config.ConfigException
 
 object CloudSinkBucketOptions extends LazyLogging {
@@ -77,26 +74,17 @@ object CloudSinkBucketOptions extends LazyLogging {
         sinkProps          = CloudSinkProps.fromKcql(kcql)
         partitionSelection = PartitionSelection(kcql, sinkProps)
         paddingService    <- PaddingService.fromConfig(config, sinkProps)
+        storageSettings   <- DataStorageSettings.from(sinkProps)
+        keyNameVersion     = KeyNamerVersion(sinkProps, KeyNamerVersion.V1)
+        fileNamer         <- getFileNamer(keyNameVersion, storageSettings, fileExtension, partitionSelection, paddingService)
+        _                  = println("File Namer: " + fileNamer)
+        keyNamer           = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
+        stagingArea       <- config.getLocalStagingArea()(connectorTaskId)
+        target            <- CloudLocation.splitAndValidate(kcql.getTarget)
 
-        fileNamer = if (partitionSelection.isCustom) {
-          new TopicPartitionOffsetFileNamer(
-            paddingService.padderFor("partition"),
-            paddingService.padderFor("offset"),
-            fileExtension,
-          )
-        } else {
-          new OffsetFileNamer(
-            paddingService.padderFor("offset"),
-            fileExtension,
-          )
-        }
-        keyNamer         = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
-        stagingArea     <- config.getLocalStagingArea()(connectorTaskId)
-        target          <- CloudLocation.splitAndValidate(kcql.getTarget)
-        storageSettings <- DataStorageSettings.from(sinkProps)
-        _               <- validateEnvelopeAndFormat(formatSelection, storageSettings)
-        commitPolicy     = config.commitPolicy(kcql)
-        _               <- validateCommitPolicyForBytesFormat(formatSelection, commitPolicy)
+        _           <- validateEnvelopeAndFormat(formatSelection, storageSettings)
+        commitPolicy = config.commitPolicy(kcql)
+        _           <- validateCommitPolicyForBytesFormat(formatSelection, commitPolicy)
       } yield {
         CloudSinkBucketOptions(
           Option(kcql.getSource).filterNot(Set("*", "`*`").contains(_)),
@@ -109,6 +97,69 @@ object CloudSinkBucketOptions extends LazyLogging {
         )
       }
     }.toSeq.traverse(identity)
+
+  /**
+    * When non-envelope storage is used the fast seeks cannot not be achieved since the data stored does
+    * not guarantee the timestamp is present. Therefore, we use the V0 key namer.
+    *
+    * @param keyNameVersion
+    * @param storageSettings
+    * @param fileExtension
+    * @param partitionSelection
+    * @param paddingService
+    * @return
+    */
+  private def getFileNamer(
+    keyNameVersion:     KeyNamerVersion,
+    storageSettings:    DataStorageSettings,
+    fileExtension:      String,
+    partitionSelection: PartitionSelection,
+    paddingService:     PaddingService,
+  ): Either[Throwable, FileNamer] =
+    if (!storageSettings.envelope) {
+      if (partitionSelection.isCustom) {
+        new TopicPartitionOffsetFileNamerV0(
+          paddingService.padderFor("partition"),
+          paddingService.padderFor("offset"),
+          fileExtension,
+        ).asRight
+      } else {
+        new OffsetFileNamerV0(
+          paddingService.padderFor("offset"),
+          fileExtension,
+        ).asRight
+      }
+    } else {
+      keyNameVersion match {
+        case KeyNamerVersion.V0 =>
+          if (partitionSelection.isCustom) {
+            new TopicPartitionOffsetFileNamerV0(
+              paddingService.padderFor("partition"),
+              paddingService.padderFor("offset"),
+              fileExtension,
+            ).asRight
+          } else {
+            new OffsetFileNamerV0(
+              paddingService.padderFor("offset"),
+              fileExtension,
+            ).asRight
+
+          }
+        case KeyNamerVersion.V1 =>
+          if (partitionSelection.isCustom) {
+            new TopicPartitionOffsetFileNamerV1(
+              paddingService.padderFor("partition"),
+              paddingService.padderFor("offset"),
+              fileExtension,
+            ).asRight
+          } else {
+            new OffsetFileNamerV1(
+              paddingService.padderFor("offset"),
+              fileExtension,
+            ).asRight
+          }
+      }
+    }
 
   private def validateWithFlush(kcql: Kcql): Either[Throwable, Unit] = {
     val sql = kcql.getQuery.toUpperCase()

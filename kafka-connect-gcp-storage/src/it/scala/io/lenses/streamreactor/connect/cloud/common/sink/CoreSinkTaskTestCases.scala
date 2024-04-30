@@ -8,7 +8,9 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushCount
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushInterval
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushSize
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.KeyNameFormatVersion
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys
+import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.StoreEnvelope
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.ParquetFormatReader
@@ -17,6 +19,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData._
 import org.apache.avro.generic.GenericData
+import org.apache.avro.generic.GenericRecord
 import org.apache.avro.util.Utf8
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
@@ -86,8 +89,8 @@ abstract class CoreSinkTaskTestCases[
                      schema,
                      user,
                      k.toLong,
-                     null,
-                     null,
+                     k.toLong,
+                     TimestampType.CREATE_TIME,
                      createHeaders(("headerPartitionKey", (k % 2).toString)),
       )
   }
@@ -98,7 +101,7 @@ abstract class CoreSinkTaskTestCases[
   }
 
   private def toSinkRecord(user: Struct, k: Int, topicName: String = TopicName) =
-    new SinkRecord(topicName, 1, null, null, schema, user, k.toLong)
+    new SinkRecord(topicName, 1, null, null, schema, user, k.toLong, k.toLong, TimestampType.CREATE_TIME)
 
   private val keySchema = SchemaBuilder.struct()
     .field("phonePrefix", SchemaBuilder.string().required().build())
@@ -363,10 +366,53 @@ abstract class CoreSinkTaskTestCases[
 
   }
 
-  unitUnderTest should "write to parquet format" in {
+  unitUnderTest should "write to parquet format not using the envelope data storage" in {
 
     val props = (defaultProps + (
       s"$prefix.kcql" -> s"""insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('${FlushCount.entryName}'=1)""",
+    )).asJava
+    val task = createTask(context, props)
+
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(records.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
+
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000.parquet")
+
+    val genericRecords = parquetFormatReader.read(bytes)
+    genericRecords.size should be(1)
+    checkRecord(genericRecords.head, "sam", "mr", 100.43)
+
+  }
+
+  unitUnderTest should "write to parquet format using the envelope data storage" in {
+
+    val props = (defaultProps + (
+      s"$prefix.kcql" -> s"""insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('${FlushCount.entryName}'=1, '${StoreEnvelope.entryName}'= true)""",
+    )).asJava
+    val task = createTask(context, props)
+
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(records.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
+
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000_0_0.parquet")
+
+    val genericRecords = parquetFormatReader.read(bytes)
+    genericRecords.size should be(1)
+    checkRecord(genericRecords.head.get("value").asInstanceOf[GenericRecord], "sam", "mr", 100.43)
+  }
+
+  unitUnderTest should "write to parquet format using V0 key format" in {
+
+    val props = (defaultProps + (
+      s"$prefix.kcql" -> s"""insert into $BucketName:$PrefixName select * from $TopicName STOREAS PARQUET PROPERTIES('${FlushCount.entryName}'=1, '${KeyNameFormatVersion.entryName}'=0)""",
     )).asJava
     val task = createTask(context, props)
 
@@ -409,6 +455,53 @@ abstract class CoreSinkTaskTestCases[
 
   }
 
+  unitUnderTest should "write to avro format using the envelope data storage" in {
+
+    val task = createSinkTask()
+
+    val props = (
+      defaultProps + (s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` PROPERTIES('${FlushCount.entryName}'=1, '${StoreEnvelope.entryName}'= true)")
+    ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(records.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
+
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000_0_0.avro")
+
+    val genericRecords = avroFormatReader.read(bytes)
+    genericRecords.size should be(1)
+    checkRecord(genericRecords.head.get("value").asInstanceOf[GenericRecord], "sam", "mr", 100.43)
+
+  }
+
+  unitUnderTest should "write to avro format using V0 key format and envelope data storage" in {
+
+    val task = createSinkTask()
+
+    val props = (
+      defaultProps + (s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` PROPERTIES('${FlushCount.entryName}'=1, '${KeyNameFormatVersion.entryName}'=0, '${StoreEnvelope.entryName}'= true)")
+    ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(records.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
+
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000.avro")
+
+    val genericRecords = avroFormatReader.read(bytes)
+    genericRecords.size should be(1)
+    checkRecord(genericRecords.head.get("value").asInstanceOf[GenericData.Record], "sam", "mr", 100.43)
+
+  }
   unitUnderTest should "error when trying to write AVRO to text format" in {
 
     val task = createSinkTask()

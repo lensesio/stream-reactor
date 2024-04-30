@@ -30,17 +30,19 @@ trait KeyNamer {
 
   def partitionSelection: PartitionSelection
 
-  def stagingFile(
+  def staging(
     stagingDirectory: File,
     bucketAndPrefix:  CloudLocation,
     topicPartition:   TopicPartition,
     partitionValues:  Map[PartitionField, String],
   ): Either[FatalCloudSinkError, File]
 
-  def finalFilename(
-    bucketAndPrefix:      CloudLocation,
-    topicPartitionOffset: TopicPartitionOffset,
-    partitionValues:      Map[PartitionField, String],
+  def value(
+    bucketAndPrefix:         CloudLocation,
+    topicPartitionOffset:    TopicPartitionOffset,
+    partitionValues:         Map[PartitionField, String],
+    earliestRecordTimestamp: Long,
+    latestRecordTimestamp:   Long,
   ): Either[FatalCloudSinkError, CloudLocation]
 
   def processPartitionValues(

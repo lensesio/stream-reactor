@@ -49,7 +49,7 @@ trait RemoteFileHelper[SI <: StorageInterface[_]] {
 
   def remoteFileAsStream(bucketName: String, fileName: String): InputStream =
     storageInterface.getBlob(bucketName, fileName)
-      .leftMap((f: FileLoadError) => fail(f.exception)).merge
+      .leftMap((f: FileLoadError) => fail(f.message(), f.exception)).merge
 
   def remoteFileAsString(bucketName: String, fileName: String): String =
     streamToString(remoteFileAsStream(bucketName, fileName))

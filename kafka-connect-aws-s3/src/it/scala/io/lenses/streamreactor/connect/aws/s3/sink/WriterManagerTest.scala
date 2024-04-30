@@ -13,6 +13,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.FileSize
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Interval
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -36,7 +37,7 @@ class WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
       keyNamerFn =
         _ => s3KeyNamer.asRight,
       stagingFilenameFn = (_, _) => new File("blah.csv").asRight,
-      finalFilenameFn   = (_, _, _) => mock[CloudLocation].asRight,
+      objKeyBuilderFn   = (_, _) => mock[ObjectKeyBuilder],
       formatWriterFn    = (_, _) => mock[FormatWriter].asRight,
       indexManager      = mock[IndexManager[S3FileMetadata]],
       _.asRight,

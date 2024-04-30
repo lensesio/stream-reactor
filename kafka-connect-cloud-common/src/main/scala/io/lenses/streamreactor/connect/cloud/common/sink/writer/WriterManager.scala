@@ -27,6 +27,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.sink
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.BatchCloudSinkError
@@ -58,7 +59,7 @@ class WriterManager[SM <: FileMetadata](
   bucketAndPrefixFn: TopicPartition => Either[SinkError, CloudLocation],
   keyNamerFn:        TopicPartition => Either[SinkError, KeyNamer],
   stagingFilenameFn: (TopicPartition, Map[PartitionField, String]) => Either[SinkError, File],
-  finalFilenameFn:   (TopicPartition, Map[PartitionField, String], Offset) => Either[SinkError, CloudLocation],
+  objKeyBuilderFn:   (TopicPartition, Map[PartitionField, String]) => ObjectKeyBuilder,
   formatWriterFn:    (TopicPartition, File) => Either[SinkError, FormatWriter],
   indexManager:      IndexManager[SM],
   transformerF:      MessageDetail => Either[RuntimeException, MessageDetail],
@@ -86,7 +87,7 @@ class WriterManager[SM <: FileMetadata](
 
   def recommitPending(): Either[SinkError, Unit] = {
     logger.debug(s"[{}] Retry Pending", connectorTaskId.show)
-    val result = commitWritersWithFilter(_._2.hasPendingUpload())
+    val result = commitWritersWithFilter(_._2.hasPendingUpload)
     logger.debug(s"[{}] Retry Pending Complete", connectorTaskId.show)
     result
   }
@@ -245,7 +246,7 @@ class WriterManager[SM <: FileMetadata](
         commitPolicy,
         indexManager,
         () => stagingFilenameFn(topicPartition, partitionValues),
-        finalFilenameFn.curried(topicPartition)(partitionValues),
+        objKeyBuilderFn(topicPartition, partitionValues),
         formatWriterFn.curried(topicPartition),
         seekedOffsets.get(topicPartition),
       )

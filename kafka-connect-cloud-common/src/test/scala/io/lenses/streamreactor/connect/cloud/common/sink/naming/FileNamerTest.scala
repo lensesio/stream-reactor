@@ -25,17 +25,27 @@ class FileNamerTest extends AnyFunSuite with Matchers {
   private val paddingStrategy      = LeftPad.toPaddingStrategy(5, '0')
   private val topicPartitionOffset = Topic("topic").withPartition(9).atOffset(81)
 
-  test("OffsetFileNamer.fileName should generate the correct file name") {
+  test("OffsetFileNamerV0.fileName should generate the correct file name") {
 
-    val result = new OffsetFileNamer(paddingStrategy, extension).fileName(topicPartitionOffset)
+    val result = new OffsetFileNamerV0(paddingStrategy, extension).fileName(topicPartitionOffset, 0L, 0L)
 
     result shouldEqual "00081.avro"
+  }
+
+  test("OffsetFileNamerV1.fileName should generate the correct file name") {
+
+    val result = new OffsetFileNamerV1(paddingStrategy, extension).fileName(topicPartitionOffset, 1L, 9L)
+
+    result shouldEqual "00081_1_9.avro"
   }
 
   test("TopicPartitionOffsetFileNamer.fileName should generate the correct file name") {
 
     val result =
-      new TopicPartitionOffsetFileNamer(paddingStrategy, paddingStrategy, extension).fileName(topicPartitionOffset)
+      new TopicPartitionOffsetFileNamerV0(paddingStrategy, paddingStrategy, extension).fileName(topicPartitionOffset,
+                                                                                                0L,
+                                                                                                0L,
+      )
 
     result shouldEqual "topic(00009_00081).avro"
   }

@@ -28,4 +28,6 @@ case class MessageDetail(
   topic:     Topic,
   partition: Int,
   offset:    Offset,
-)
+) {
+  def epochTimestamp: Long = timestamp.map(_.toEpochMilli).getOrElse(-1L)
+}

@@ -9,9 +9,9 @@ import io.lenses.streamreactor.connect.aws.s3.source.S3SourceTaskTest.formats
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
+import io.lenses.streamreactor.connect.cloud.common.config.Format.Bytes
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.Format
-import io.lenses.streamreactor.connect.cloud.common.config.Format.Bytes
 import io.lenses.streamreactor.connect.cloud.common.config.FormatOptions
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
@@ -20,12 +20,11 @@ import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.Eventually
+import org.scalatest.concurrent.PatienceConfiguration
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
-import org.scalatest.time.Milliseconds
-import org.scalatest.time.Seconds
-import org.scalatest.time.Span
+import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 
 import java.util
 import scala.jdk.CollectionConverters.ListHasAsScala
@@ -51,7 +50,7 @@ class S3SourceTaskTest
     with CloudSourceSettingsKeys {
 
   override implicit def patienceConfig: PatienceConfig =
-    PatienceConfig(timeout = Span(10, Seconds), interval = Span(500, Milliseconds))
+    PatienceConfig(timeout = 10.seconds, interval = 500.millis)
   implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   private var bucketSetupOpt:          Option[BucketSetup]    = None
   def bucketSetup:                     BucketSetup            = bucketSetupOpt.getOrElse(throw new IllegalStateException("Not initialised"))
@@ -240,7 +239,6 @@ class S3SourceTaskTest
 
         task.start(props)
         withCleanup(task.stop()) {
-          //Let the partitions scan do its work
           val sourceRecords1 = eventually {
             val records = task.poll()
             records.size() shouldBe 190
@@ -289,11 +287,12 @@ class S3SourceTaskTest
     task.start(props)
     withCleanup(task.stop()) {
       //Let the partitions scan do its work
-      val sourceRecords1 = eventually {
-        val records = task.poll()
-        records.size() shouldBe 5
-        records
-      }
+      val sourceRecords1 =
+        eventually(PatienceConfiguration.Timeout(5.seconds), PatienceConfiguration.Interval(100.millis)) {
+          val records = task.poll()
+          records.size() shouldBe 5
+          records
+        }
       val sourceRecords2 = task.poll()
 
       task.stop()

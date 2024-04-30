@@ -48,13 +48,16 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.NoOpPadd
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamerV0
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamerV1
 import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData.firstUsers
 import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData.users
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.UsersSchemaDecimal
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.time.Instant
 import scala.jdk.CollectionConverters._
 
 class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
@@ -67,7 +70,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   private val PathPrefix = "streamReactorBackups"
   private implicit val cloudLocationValidator: S3LocationValidator.type = S3LocationValidator
 
-  "json sink" should "write single json record" in {
+  "json sink" should "write single json record using v0 key naming" in {
 
     val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
     val config = S3SinkConfig(
@@ -86,7 +89,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           keyNamer = new CloudKeyNamer(
             JsonFormatSelection,
             defaultPartitionSelection(Values),
-            new OffsetFileNamer(
+            new OffsetFileNamerV0(
               identity[String],
               JsonFormatSelection.extension,
             ),
@@ -109,13 +112,82 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     val offset = Offset(1)
     sink.write(
       TopicPartitionOffset(topic, 1, offset),
-      MessageDetail(NullSinkData(None), StructSinkData(users.head), Map.empty[String, SinkData], None, topic, 1, offset),
+      MessageDetail(
+        NullSinkData(None),
+        StructSinkData(users.head),
+        Map.empty[String, SinkData],
+        Some(Instant.ofEpochMilli(1001L)),
+        topic,
+        1,
+        offset,
+      ),
     )
     sink.close()
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
     remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1.json") should be(
+      """{"name":"sam","title":"mr","salary":100.43}""",
+    )
+  }
+
+  "json sink" should "write single json record using v1 key naming" in {
+
+    val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
+    val config = S3SinkConfig(
+      S3ConnectionConfig(
+        None,
+        Some(s3Container.identity.identity),
+        Some(s3Container.identity.credential),
+        AuthMode.Credentials,
+      ),
+      bucketOptions = Seq(
+        CloudSinkBucketOptions(
+          TopicName.some,
+          bucketAndPrefix,
+          commitPolicy    = CommitPolicy(Count(1)),
+          formatSelection = JsonFormatSelection,
+          keyNamer = new CloudKeyNamer(
+            JsonFormatSelection,
+            defaultPartitionSelection(Values),
+            new OffsetFileNamerV1(
+              identity[String],
+              JsonFormatSelection.extension,
+            ),
+            new PaddingService(Map[String, PaddingStrategy](
+              "partition" -> NoOpPaddingStrategy,
+              "offset"    -> LeftPadPaddingStrategy(12, 0),
+            )),
+          ),
+          localStagingArea = LocalStagingArea(localRoot),
+          dataStorage      = DataStorageSettings.disabled,
+        ), // JsonS3Format
+      ),
+      offsetSeekerOptions = OffsetSeekerOptions(5),
+      compressionCodec,
+      batchDelete = true,
+    )
+
+    val sink   = writerManagerCreator.from(config)
+    val topic  = Topic(TopicName)
+    val offset = Offset(1)
+    sink.write(
+      TopicPartitionOffset(topic, 1, offset),
+      MessageDetail(
+        NullSinkData(None),
+        StructSinkData(users.head),
+        Map.empty[String, SinkData],
+        Some(Instant.ofEpochMilli(111L)),
+        topic,
+        1,
+        offset,
+      ),
+    )
+    sink.close()
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
+
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1_111_111.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}""",
     )
   }
@@ -139,7 +211,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           keyNamer = new CloudKeyNamer(
             AvroFormatSelection,
             defaultPartitionSelection(Values),
-            new OffsetFileNamer(
+            new OffsetFileNamerV1(
               identity[String],
               JsonFormatSelection.extension,
             ),
@@ -164,7 +236,15 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         val offset = Offset(index.toLong + 1)
         sink.write(
           TopicPartitionOffset(topic, 1, offset),
-          MessageDetail(NullSinkData(None), StructSinkData(struct), Map.empty[String, SinkData], None, topic, 0, offset),
+          MessageDetail(
+            NullSinkData(None),
+            StructSinkData(struct),
+            Map.empty[String, SinkData],
+            Some(Instant.ofEpochMilli((index + 1).toLong)),
+            topic,
+            0,
+            offset,
+          ),
         )
     }
 
@@ -172,7 +252,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/3.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/3_1_3.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}{"name":"tom","title":null,"salary":395.44}""",
     )
   }
@@ -196,7 +276,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           keyNamer = new CloudKeyNamer(
             AvroFormatSelection,
             defaultPartitionSelection(Values),
-            new OffsetFileNamer(
+            new OffsetFileNamerV1(
               identity[String],
               JsonFormatSelection.extension,
             ),
@@ -228,13 +308,14 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         )
     sink.write(
       TopicPartitionOffset(topic, 1, offset),
-      MessageDetail(NullSinkData(None),
-                    StructSinkData(usersWithDecimal),
-                    Map.empty[String, SinkData],
-                    None,
-                    topic,
-                    0,
-                    offset,
+      MessageDetail(
+        NullSinkData(None),
+        StructSinkData(usersWithDecimal),
+        Map.empty[String, SinkData],
+        Some(Instant.ofEpochMilli(5555L)),
+        topic,
+        0,
+        offset,
       ),
     )
 
@@ -242,7 +323,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1_5555_5555.json") should be(
       s"""{"name":"sam","title":"mr","salary":100.430000000000000000}""",
     )
   }
@@ -266,7 +347,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           keyNamer = new CloudKeyNamer(
             AvroFormatSelection,
             defaultPartitionSelection(Values),
-            new OffsetFileNamer(
+            new OffsetFileNamerV1(
               identity[String],
               JsonFormatSelection.extension,
             ),
@@ -294,20 +375,21 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     sink.write(
       TopicPartitionOffset(topic, 1, offset),
-      MessageDetail(NullSinkData(None),
-                    ArraySinkData(listOfPojo, None),
-                    Map.empty[String, SinkData],
-                    None,
-                    topic,
-                    1,
-                    offset,
+      MessageDetail(
+        NullSinkData(None),
+        ArraySinkData(listOfPojo, None),
+        Map.empty[String, SinkData],
+        Some(Instant.ofEpochMilli(1L)),
+        topic,
+        1,
+        offset,
       ),
     )
     sink.close()
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1_1_1.json") should be(
       """[{"name":"sam","title":"mr","salary":100.43},{"name":"laura","title":"ms","salary":429.06}]""",
     )
   }
