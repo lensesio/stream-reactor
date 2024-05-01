@@ -61,5 +61,4 @@ object PropsKeyEnum extends Enum[PropsKeyEntry] {
 
   case object FlushInterval extends PropsKeyEntry("flush.interval")
 
-  case object KeyNameFormatVersion extends PropsKeyEntry("key.name.format.version")
 }

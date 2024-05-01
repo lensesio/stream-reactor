@@ -25,19 +25,8 @@ trait FileNamer {
     latestRecordTimestamp:   Long,
   ): String
 }
-class OffsetFileNamerV0(
-  offsetPaddingStrategy: PaddingStrategy,
-  extension:             String,
-) extends FileNamer {
-  def fileName(
-    topicPartitionOffset:    TopicPartitionOffset,
-    earliestRecordTimestamp: Long,
-    latestRecordTimestamp:   Long,
-  ): String =
-    s"${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}.$extension"
-}
 
-class OffsetFileNamerV1(
+class OffsetFileNamer(
   offsetPaddingStrategy: PaddingStrategy,
   extension:             String,
 ) extends FileNamer {
@@ -48,7 +37,7 @@ class OffsetFileNamerV1(
   ): String =
     s"${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}_${earliestRecordTimestamp}_$latestRecordTimestamp.$extension"
 }
-class TopicPartitionOffsetFileNamerV0(
+class TopicPartitionOffsetFileNamer(
   partitionPaddingStrategy: PaddingStrategy,
   offsetPaddingStrategy:    PaddingStrategy,
   extension:                String,
@@ -61,21 +50,5 @@ class TopicPartitionOffsetFileNamerV0(
     s"${topicPartitionOffset.topic.value}(${partitionPaddingStrategy.padString(
       topicPartitionOffset.partition.toString,
     )}_${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}).$extension"
-
-}
-
-class TopicPartitionOffsetFileNamerV1(
-  partitionPaddingStrategy: PaddingStrategy,
-  offsetPaddingStrategy:    PaddingStrategy,
-  extension:                String,
-) extends FileNamer {
-  def fileName(
-    topicPartitionOffset:    TopicPartitionOffset,
-    earliestRecordTimestamp: Long,
-    latestRecordTimestamp:   Long,
-  ): String =
-    s"${topicPartitionOffset.topic.value}(${partitionPaddingStrategy.padString(
-      topicPartitionOffset.partition.toString,
-    )}_${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}_${earliestRecordTimestamp}_$latestRecordTimestamp).$extension"
 
 }

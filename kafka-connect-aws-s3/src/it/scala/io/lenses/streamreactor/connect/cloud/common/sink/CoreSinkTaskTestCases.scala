@@ -33,6 +33,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.sink.SinkTask
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
+import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 
 import java.io.StringReader
@@ -58,7 +59,8 @@ abstract class CoreSinkTaskTestCases[
 ) extends CloudPlatformEmulatorSuite[SM, SI, CSC, C, T]
     with Matchers
     with MockitoSugar
-    with LazyLogging {
+    with LazyLogging
+    with EitherValues {
 
   private val context = mock[SinkTaskContext]
 
@@ -86,8 +88,8 @@ abstract class CoreSinkTaskTestCases[
                      schema,
                      user,
                      k.toLong,
-                     null,
-                     null,
+                     k,
+                     TimestampType.CREATE_TIME,
                      createHeaders(("headerPartitionKey", (k % 2).toString)),
       )
   }
@@ -98,7 +100,7 @@ abstract class CoreSinkTaskTestCases[
   }
 
   private def toSinkRecord(user: Struct, k: Int, topicName: String = TopicName) =
-    new SinkRecord(topicName, 1, null, null, schema, user, k.toLong)
+    new SinkRecord(topicName, 1, null, null, schema, user, k.toLong, k, TimestampType.CREATE_TIME)
 
   private val keySchema = SchemaBuilder.struct()
     .field("phonePrefix", SchemaBuilder.string().required().build())
@@ -113,8 +115,8 @@ abstract class CoreSinkTaskTestCases[
                    null,
                    users(0),
                    0,
-                   null,
-                   null,
+                   0,
+                   TimestampType.CREATE_TIME,
     ),
     new SinkRecord(TopicName,
                    1,
@@ -123,8 +125,8 @@ abstract class CoreSinkTaskTestCases[
                    null,
                    users(1),
                    1,
-                   null,
-                   null,
+                   1,
+                   TimestampType.CREATE_TIME,
     ),
     new SinkRecord(TopicName,
                    1,
@@ -133,8 +135,8 @@ abstract class CoreSinkTaskTestCases[
                    null,
                    users(2),
                    2,
-                   null,
-                   null,
+                   2,
+                   TimestampType.CREATE_TIME,
     ),
   )
 
@@ -164,7 +166,7 @@ abstract class CoreSinkTaskTestCases[
     task.stop()
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000002.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000002_0_2.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}{"name":"tom","title":null,"salary":395.44}""",
     )
 
@@ -183,13 +185,13 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000000.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000000_0_0.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}""",
     )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000001.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000001_1_1.json") should be(
       """{"name":"laura","title":"ms","salary":429.06}""",
     )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000002.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000002_2_2.json") should be(
       """{"name":"tom","title":null,"salary":395.44}""",
     )
 
@@ -213,7 +215,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000001.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000001_0_1.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}""",
     )
 
@@ -233,16 +235,16 @@ abstract class CoreSinkTaskTestCases[
     task.stop()
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
-    getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000000.parquet").size should be >= 941L
-    getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000001.parquet").size should be >= 954L
+    getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000000_0_0.parquet").value.size should be >= 941L
+    getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000001_1_1.parquet").value.size should be >= 954L
 
     var genericRecords =
-      parquetFormatReader.read(remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000.parquet"))
+      parquetFormatReader.read(remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000_0_0.parquet"))
     genericRecords.size should be(1)
     checkRecord(genericRecords.head, "sam", "mr", 100.43)
 
     genericRecords =
-      parquetFormatReader.read(remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000001.parquet"))
+      parquetFormatReader.read(remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000001_1_1.parquet"))
     genericRecords.size should be(1)
     checkRecord(genericRecords.head, "laura", "ms", 429.06)
 
@@ -276,13 +278,13 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000000.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000000_0_0.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}""",
     )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000001.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000001_1_1.json") should be(
       """{"name":"laura","title":"ms","salary":429.06}""",
     )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000002.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000002_2_2.json") should be(
       """{"name":"tom","title":null,"salary":395.44}""",
     )
 
@@ -304,10 +306,10 @@ abstract class CoreSinkTaskTestCases[
 
     val list = listBucketPath(BucketName, "streamReactorBackups/myTopic/1/")
     list.size should be(1)
-    list should contain("streamReactorBackups/myTopic/1/000000000001.parquet")
+    list should contain("streamReactorBackups/myTopic/1/000000000001_0_1.parquet")
 
     val modificationDate =
-      getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000001.parquet").lastModified
+      getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000001_0_1.parquet").value.lastModified
 
     task = createTask(context, props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
@@ -317,7 +319,7 @@ abstract class CoreSinkTaskTestCases[
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
     // file should not have been overwritten
-    getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000001.parquet").lastModified should be(
+    getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000001_0_1.parquet").value.lastModified should be(
       modificationDate,
     )
 
@@ -333,7 +335,7 @@ abstract class CoreSinkTaskTestCases[
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
     // file should not have been overwritten
-    getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000001.parquet").lastModified should be(
+    getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000001_0_1.parquet").value.lastModified should be(
       modificationDate,
     )
 
@@ -354,7 +356,7 @@ abstract class CoreSinkTaskTestCases[
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
 
     // file should not have been overwritten
-    getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000001.parquet").lastModified should be(
+    getMetadata(BucketName, "streamReactorBackups/myTopic/1/000000000001_0_1.parquet").value.lastModified should be(
       modificationDate,
     )
 
@@ -377,7 +379,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000.parquet")
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000_0_0.parquet")
 
     val genericRecords = parquetFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -401,7 +403,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000.avro")
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000_0_0.avro")
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -430,10 +432,10 @@ abstract class CoreSinkTaskTestCases[
   unitUnderTest should "write to text format" in {
 
     val textRecords = List(
-      new SinkRecord(TopicName, 1, null, null, null, "Sausages", 0),
-      new SinkRecord(TopicName, 1, null, null, null, "Mash", 1),
-      new SinkRecord(TopicName, 1, null, null, null, "Peas", 2),
-      new SinkRecord(TopicName, 1, null, null, null, "Gravy", 3),
+      new SinkRecord(TopicName, 1, null, null, null, "Sausages", 0, 0, TimestampType.CREATE_TIME),
+      new SinkRecord(TopicName, 1, null, null, null, "Mash", 1, 1, TimestampType.CREATE_TIME),
+      new SinkRecord(TopicName, 1, null, null, null, "Peas", 2, 2, TimestampType.CREATE_TIME),
+      new SinkRecord(TopicName, 1, null, null, null, "Gravy", 3, 3, TimestampType.CREATE_TIME),
     )
     val task = createSinkTask()
 
@@ -448,10 +450,10 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
 
-    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000001.text")
+    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000001_0_1.text")
     new String(file1Bytes) should be("Sausages\nMash\n")
 
-    val file2Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000003.text")
+    val file2Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000003_2_3.text")
     new String(file2Bytes) should be("Peas\nGravy\n")
 
   }
@@ -476,7 +478,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
 
-    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000001.csv")
+    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000001_0_1.csv")
 
     val file1Reader    = new StringReader(new String(file1Bytes))
     val file1CsvReader = new CSVReader(file1Reader)
@@ -486,7 +488,7 @@ abstract class CoreSinkTaskTestCases[
     file1CsvReader.readNext() should be(Array("laura", "ms", "429.06"))
     file1CsvReader.readNext() should be(null)
 
-    val file2Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000003.csv")
+    val file2Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000003_2_3.csv")
 
     val file2Reader    = new StringReader(new String(file2Bytes))
     val file2CsvReader = new CSVReader(file2Reader)
@@ -517,7 +519,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
 
-    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000001.csv")
+    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000001_0_1.csv")
 
     val file1Reader    = new StringReader(new String(file1Bytes))
     val file1CsvReader = new CSVReader(file1Reader)
@@ -526,7 +528,7 @@ abstract class CoreSinkTaskTestCases[
     file1CsvReader.readNext() should be(Array("laura", "ms", "429.06"))
     file1CsvReader.readNext() should be(null)
 
-    val file2Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000003.csv")
+    val file2Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000003_2_3.csv")
 
     val file2Reader    = new StringReader(new String(file2Bytes))
     val file2CsvReader = new CSVReader(file2Reader)
@@ -701,7 +703,7 @@ abstract class CoreSinkTaskTestCases[
     val bytes: Array[Byte] = IOUtils.toByteArray(stream)
 
     val textRecords = List(
-      new SinkRecord(TopicName, 1, null, null, null, bytes, 0),
+      new SinkRecord(TopicName, 1, null, null, null, bytes, 0, 6, TimestampType.CREATE_TIME),
     )
     val task = createSinkTask()
 
@@ -717,7 +719,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000.bytes") should be(bytes)
+    remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000_6_6.bytes") should be(bytes)
 
   }
 
@@ -749,8 +751,8 @@ abstract class CoreSinkTaskTestCases[
                      null,
                      users(0),
                      0,
-                     null,
-                     null,
+                     0,
+                     TimestampType.CREATE_TIME,
                      createHeaders(("phonePrefix", "+44"), ("region", "8")),
       ),
       new SinkRecord(TopicName,
@@ -760,8 +762,8 @@ abstract class CoreSinkTaskTestCases[
                      null,
                      users(1),
                      1,
-                     null,
-                     null,
+                     1,
+                     TimestampType.CREATE_TIME,
                      createHeaders(("phonePrefix", "+49"), ("region", "5")),
       ),
       new SinkRecord(TopicName,
@@ -771,8 +773,8 @@ abstract class CoreSinkTaskTestCases[
                      null,
                      users(2),
                      2,
-                     null,
-                     null,
+                     2,
+                     TimestampType.CREATE_TIME,
                      createHeaders(("phonePrefix", "+49"), ("region", "5")),
       ),
     )
@@ -1127,7 +1129,7 @@ abstract class CoreSinkTaskTestCases[
   unitUnderTest should "write multiple partitions independently" in {
 
     val kafkaPartitionedRecords = List(
-      new SinkRecord(TopicName, 0, null, null, schema, users(0), 0),
+      new SinkRecord(TopicName, 0, null, null, schema, users(0), 0, 0, TimestampType.CREATE_TIME),
       toSinkRecord(users(1), 0),
       toSinkRecord(users(2), 1),
     )
@@ -1154,7 +1156,7 @@ abstract class CoreSinkTaskTestCases[
     fileList.size should be(1)
 
     fileList should contain(
-      "streamReactorBackups/myTopic/000000000001/000000000001.json",
+      "streamReactorBackups/myTopic/000000000001/000000000001_0_1.json",
     )
   }
 
@@ -1174,6 +1176,9 @@ abstract class CoreSinkTaskTestCases[
                      SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA).build(),
                      map,
                      0,
+                     0,
+                     TimestampType.CREATE_TIME,
+                     createHeaders(("phonePrefix", "+44"), ("region", "8")),
       ),
     )
 
@@ -1211,7 +1216,7 @@ abstract class CoreSinkTaskTestCases[
     )
 
     val kafkaPartitionedRecords = List(
-      new SinkRecord(TopicName, 0, null, null, null, array, 0),
+      new SinkRecord(TopicName, 0, null, null, null, array, 0, 1, TimestampType.CREATE_TIME),
     )
 
     val topicPartitionsToManage = Seq(
@@ -1234,7 +1239,7 @@ abstract class CoreSinkTaskTestCases[
     val fileList = listBucketPath(BucketName, "streamReactorBackups/")
     fileList.size should be(1)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000000/000000000000.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000000/000000000000_1_1.json") should be(
       """["jedi","klingons","cylons"]""",
     )
 
@@ -1249,7 +1254,16 @@ abstract class CoreSinkTaskTestCases[
     ).asJava
 
     val kafkaPartitionedRecords = List(
-      new SinkRecord(TopicName, 0, null, null, SchemaBuilder.array(Schema.STRING_SCHEMA), array, 0),
+      new SinkRecord(TopicName,
+                     0,
+                     null,
+                     null,
+                     SchemaBuilder.array(Schema.STRING_SCHEMA),
+                     array,
+                     0,
+                     0,
+                     TimestampType.CREATE_TIME,
+      ),
     )
 
     val topicPartitionsToManage = Seq(
@@ -1271,7 +1285,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000000/").size should be(1)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000000/000000000000.avro")
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000000/000000000000_0_0.avro")
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -1287,7 +1301,16 @@ abstract class CoreSinkTaskTestCases[
     ).asJava
 
     val kafkaPartitionedRecords = List(
-      new SinkRecord(TopicName, 0, null, null, SchemaBuilder.map(Schema.STRING_SCHEMA, schema), map, 0),
+      new SinkRecord(TopicName,
+                     0,
+                     null,
+                     null,
+                     SchemaBuilder.map(Schema.STRING_SCHEMA, schema),
+                     map,
+                     0,
+                     0,
+                     TimestampType.CREATE_TIME,
+      ),
     )
 
     val topicPartitionsToManage = Seq(
@@ -1309,7 +1332,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000000/").size should be(1)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000000/000000000000.avro")
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000000/000000000000_0_0.avro")
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -1337,7 +1360,16 @@ abstract class CoreSinkTaskTestCases[
       .build()
 
     val kafkaPartitionedRecords = List(
-      new SinkRecord(TopicName, 0, null, null, SchemaBuilder.map(Schema.STRING_SCHEMA, optionalSchema).build(), map, 0),
+      new SinkRecord(TopicName,
+                     0,
+                     null,
+                     null,
+                     SchemaBuilder.map(Schema.STRING_SCHEMA, optionalSchema).build(),
+                     map,
+                     0,
+                     2,
+                     TimestampType.CREATE_TIME,
+      ),
     )
 
     val topicPartitionsToManage = Seq(
@@ -1359,7 +1391,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000000/").size should be(1)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000000/000000000000.avro")
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000000/000000000000_2_2.avro")
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -1391,7 +1423,7 @@ abstract class CoreSinkTaskTestCases[
     ).asJava
 
     val kafkaPartitionedRecords = List(
-      new SinkRecord(TopicName, 0, null, null, mapSchema, map, 0),
+      new SinkRecord(TopicName, 0, null, null, mapSchema, map, 0, 1, TimestampType.CREATE_TIME),
     )
 
     val topicPartitionsToManage = Seq(
@@ -1413,7 +1445,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000000/").size should be(1)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000000/000000000000.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000000/000000000000_1_1.json") should be(
       """{"jedi":{"name":"sam","title":"mr","salary":100.43},"cylons":null}""",
     )
 
@@ -1435,6 +1467,8 @@ abstract class CoreSinkTaskTestCases[
                      SchemaBuilder.map(Schema.STRING_SCHEMA, SchemaBuilder.array(Schema.STRING_SCHEMA)),
                      map,
                      0,
+                     0,
+                     TimestampType.CREATE_TIME,
       ),
     )
 
@@ -1458,7 +1492,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000000/").size should be(1)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000000/000000000000.avro")
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000000/000000000000_0_0.avro")
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -1742,13 +1776,13 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(3)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000_0_0.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}""",
     )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001_1_1.json") should be(
       """{"name":"laura","title":"ms","salary":429.06}""",
     )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002_2_2.json") should be(
       """{"name":"tom","title":null,"salary":395.44}""",
     )
 
@@ -1783,13 +1817,13 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(3)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000_0_0.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}""",
     )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000001_1_1.json") should be(
       """{"name":"laura","title":"ms","salary":429.06}""",
     )
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002_2_2.json") should be(
       """{"name":"tom","title":null,"salary":395.44}""",
     )
 
@@ -1814,7 +1848,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000002.avro")
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000002_0_2.avro")
 
     val genericRecords1 = avroFormatReader.read(bytes)
     genericRecords1.size should be(3)
@@ -1857,7 +1891,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000002.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/000000000002_0_2.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}{"name":"tom","title":null,"salary":395.44}""",
     )
 
@@ -1898,7 +1932,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000.avro")
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/000000000000_0_0.avro")
 
     val genericRecords1 = avroFormatReader.read(bytes)
     genericRecords1.size should be(1)
@@ -1947,11 +1981,11 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(2)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000000_0_0.json") should be(
       """{"name":"sam","title":"mr","salary":100.43}""",
     )
     // file 1 will not exist because it had been deleted before upload.  We continue with the upload regardless.  There will be a message in the log.
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/000000000001/000000000002_2_2.json") should be(
       """{"name":"tom","title":null,"salary":395.44}""",
     )
 
@@ -1984,7 +2018,7 @@ abstract class CoreSinkTaskTestCases[
     Seq(TopicName, topic2Name).foreach {
       tName =>
         listBucketPath(BucketName, s"streamReactorBackups/$tName/000000000001/").size should be(1)
-        remoteFileAsString(BucketName, s"streamReactorBackups/$tName/000000000001/000000000002.json") should be(
+        remoteFileAsString(BucketName, s"streamReactorBackups/$tName/000000000001/000000000002_0_2.json") should be(
           """
             |{"name":"sam","title":"mr","salary":100.43}
             |{"name":"laura","title":"ms","salary":429.06}
@@ -2048,7 +2082,7 @@ abstract class CoreSinkTaskTestCases[
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/2.json") should be(
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/2_0_2.json") should be(
       """
         |{"name":"sam","title":"mr","salary":100.43}
         |{"name":"laura","title":"ms","salary":429.06}
@@ -2059,7 +2093,17 @@ abstract class CoreSinkTaskTestCases[
   }
 
   private def createSinkRecord(partition: Int, valueStruct: Struct, offset: Int, headers: lang.Iterable[Header]) =
-    new SinkRecord(TopicName, partition, null, null, null, valueStruct, offset.toLong, null, null, headers)
+    new SinkRecord(TopicName,
+                   partition,
+                   null,
+                   null,
+                   null,
+                   valueStruct,
+                   offset.toLong,
+                   offset,
+                   TimestampType.CREATE_TIME,
+                   headers,
+    )
 
   private def createKey(keySchema: Schema, keyValuePair: (String, Any)*): Struct = {
     val struct = new Struct(keySchema)
