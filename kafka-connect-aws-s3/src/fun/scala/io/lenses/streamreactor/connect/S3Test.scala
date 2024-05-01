@@ -76,7 +76,7 @@ class S3Test
         IO {
           // Write records to topic
 
-          producer.send(new ProducerRecord[String, Order]("orders", order)).get
+          producer.send(new ProducerRecord[String, Order]("orders", null, 0L, null, order)).get
           producer.flush()
 
           eventually {
@@ -86,7 +86,7 @@ class S3Test
             assert(files.contents().size() == 1)
           }
 
-          readKeyToOrder(s3Client, bucketName, "myfiles/orders/0/000000000000.json")
+          readKeyToOrder(s3Client, bucketName, "myfiles/orders/0/000000000000_0_0.json")
         }.asserting {
           key: Order =>
             key should be(order)

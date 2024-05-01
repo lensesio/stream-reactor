@@ -127,7 +127,7 @@ class CloudKeyNamerTest extends AnyFunSuite with Matchers with OptionValues with
 
     val result = s3KeyNamer.value(bucketNoPrefix, topicPartition, partitionValues, 0L, 10L)
 
-    result.value.path.value shouldEqual s"$TopicName/00$Partition/0$Offset.json"
+    result.value.path.value shouldEqual s"$TopicName/00$Partition/0${Offset}_0_10.json"
   }
 
   test("should generate the correct final S3 location for v1 OffsetFileNamerV1 format") {
