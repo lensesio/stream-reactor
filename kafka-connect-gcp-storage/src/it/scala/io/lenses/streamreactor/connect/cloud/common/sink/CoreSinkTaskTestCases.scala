@@ -477,7 +477,7 @@ abstract class CoreSinkTaskTestCases[
   unitUnderTest should "write to text format" in {
 
     val textRecords = List(
-      new SinkRecord(TopicName, 1, null, null, null, "Sausages", 0,0, TimestampType.CREATE_TIME),
+      new SinkRecord(TopicName, 1, null, null, null, "Sausages", 0, 0, TimestampType.CREATE_TIME),
       new SinkRecord(TopicName, 1, null, null, null, "Mash", 1, 1, TimestampType.CREATE_TIME),
       new SinkRecord(TopicName, 1, null, null, null, "Peas", 2, 2, TimestampType.CREATE_TIME),
       new SinkRecord(TopicName, 1, null, null, null, "Gravy", 3, 3, TimestampType.CREATE_TIME),
