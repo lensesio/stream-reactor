@@ -48,7 +48,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.NoOpPadd
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamerV1
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
@@ -85,7 +85,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         keyNamer = new CloudKeyNamer(
           ParquetFormatSelection,
           defaultPartitionSelection(Values),
-          new OffsetFileNamerV1(
+          new OffsetFileNamer(
             identity[String],
             ParquetFormatSelection.extension,
           ),

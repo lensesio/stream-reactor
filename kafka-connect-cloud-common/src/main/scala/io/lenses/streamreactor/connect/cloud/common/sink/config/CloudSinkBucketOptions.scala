@@ -26,7 +26,6 @@ import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnu
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushInterval
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushSize
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.PartitionIncludeKeys
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.KeyNamerVersion
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitPolicy
@@ -75,8 +74,7 @@ object CloudSinkBucketOptions extends LazyLogging {
         partitionSelection = PartitionSelection(kcql, sinkProps)
         paddingService    <- PaddingService.fromConfig(config, sinkProps)
         storageSettings   <- DataStorageSettings.from(sinkProps)
-        keyNameVersion     = KeyNamerVersion(sinkProps, KeyNamerVersion.V1)
-        fileNamer         <- getFileNamer(keyNameVersion, storageSettings, fileExtension, partitionSelection, paddingService)
+        fileNamer         <- getFileNamer(storageSettings, fileExtension, partitionSelection, paddingService)
         _                  = println("File Namer: " + fileNamer)
         keyNamer           = CloudKeyNamer(formatSelection, partitionSelection, fileNamer, paddingService)
         stagingArea       <- config.getLocalStagingArea()(connectorTaskId)
@@ -110,55 +108,22 @@ object CloudSinkBucketOptions extends LazyLogging {
     * @return
     */
   private def getFileNamer(
-    keyNameVersion:     KeyNamerVersion,
     storageSettings:    DataStorageSettings,
     fileExtension:      String,
     partitionSelection: PartitionSelection,
     paddingService:     PaddingService,
   ): Either[Throwable, FileNamer] =
-    if (!storageSettings.envelope) {
-      if (partitionSelection.isCustom) {
-        new TopicPartitionOffsetFileNamerV0(
-          paddingService.padderFor("partition"),
-          paddingService.padderFor("offset"),
-          fileExtension,
-        ).asRight
-      } else {
-        new OffsetFileNamerV0(
-          paddingService.padderFor("offset"),
-          fileExtension,
-        ).asRight
-      }
+    if (partitionSelection.isCustom) {
+      new TopicPartitionOffsetFileNamer(
+        paddingService.padderFor("partition"),
+        paddingService.padderFor("offset"),
+        fileExtension,
+      ).asRight
     } else {
-      keyNameVersion match {
-        case KeyNamerVersion.V0 =>
-          if (partitionSelection.isCustom) {
-            new TopicPartitionOffsetFileNamerV0(
-              paddingService.padderFor("partition"),
-              paddingService.padderFor("offset"),
-              fileExtension,
-            ).asRight
-          } else {
-            new OffsetFileNamerV0(
-              paddingService.padderFor("offset"),
-              fileExtension,
-            ).asRight
-
-          }
-        case KeyNamerVersion.V1 =>
-          if (partitionSelection.isCustom) {
-            new TopicPartitionOffsetFileNamerV1(
-              paddingService.padderFor("partition"),
-              paddingService.padderFor("offset"),
-              fileExtension,
-            ).asRight
-          } else {
-            new OffsetFileNamerV1(
-              paddingService.padderFor("offset"),
-              fileExtension,
-            ).asRight
-          }
-      }
+      new OffsetFileNamer(
+        paddingService.padderFor("offset"),
+        fileExtension,
+      ).asRight
     }
 
   private def validateWithFlush(kcql: Kcql): Either[Throwable, Unit] = {

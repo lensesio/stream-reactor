@@ -343,7 +343,7 @@ class S3SinkTaskJsonEnvelopeTest
     val files = listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/")
     files.size should be(1)
 
-    val bytes       = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000003.json")
+    val bytes       = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000003_10001_10003.json")
     val jsonRecords = new String(bytes).split("\n")
     jsonRecords.size should be(3)
 

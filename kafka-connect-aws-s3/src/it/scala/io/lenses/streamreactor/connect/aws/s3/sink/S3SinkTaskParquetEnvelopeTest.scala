@@ -20,7 +20,6 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.FlushCount
-import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum.KeyNameFormatVersion
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.ParquetFormatReader
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.common.TopicPartition
@@ -69,14 +68,6 @@ class S3SinkTaskParquetEnvelopeTest
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET`  PROPERTIES('store.envelope'=true,'padding.length.partition'='12', 'padding.length.offset'='12', '${FlushCount.entryName}'=3)",
     )).asJava
     testScenario(props, "streamReactorBackups/myTopic/000000000001/000000000003_10001_10003.parquet")
-  }
-
-  "S3SinkTask" should "write to avro format using V0 key format" in {
-
-    val props = (defaultProps + (
-      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET`  PROPERTIES('store.envelope'=true,'padding.length.partition'='12', 'padding.length.offset'='12', '${FlushCount.entryName}'=3, '${KeyNameFormatVersion.entryName}'=0)",
-    )).asJava
-    testScenario(props, "streamReactorBackups/myTopic/000000000001/000000000003.parquet")
   }
 
   private def testScenario(props: java.util.Map[String, String], expectedFile: String) = {
