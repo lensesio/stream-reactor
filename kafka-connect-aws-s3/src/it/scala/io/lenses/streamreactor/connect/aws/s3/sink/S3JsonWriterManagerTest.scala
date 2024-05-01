@@ -107,8 +107,8 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       offsetSeekerOptions = OffsetSeekerOptions(5),
       compressionCodec,
-      batchDelete = true,
-      errorPolicy = ErrorPolicy(ErrorPolicyEnum.THROW),
+      batchDelete          = true,
+      errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
       connectorRetryConfig = new RetryConfig(1, 1L),
     )
 

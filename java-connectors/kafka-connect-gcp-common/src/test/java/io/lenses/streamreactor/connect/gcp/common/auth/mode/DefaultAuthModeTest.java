@@ -32,7 +32,7 @@ class DefaultAuthModeTest {
         try (MockedStatic<GoogleCredentials> mockedStatic = mockStatic(GoogleCredentials.class)) {
             when(GoogleCredentials.getApplicationDefault()).thenReturn(mockCreds);
 
-            val credentials = DefaultAuthMode.INSTANCE.getCredentials();
+            val credentials = new DefaultAuthMode().getCredentials();
             assertEquals(mockCreds, credentials);
 
             mockedStatic.verify(GoogleCredentials::getApplicationDefault);

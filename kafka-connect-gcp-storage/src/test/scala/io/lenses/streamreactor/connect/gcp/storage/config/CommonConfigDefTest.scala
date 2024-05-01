@@ -30,7 +30,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 
 class CommonConfigDefTest extends AnyFlatSpec with Matchers with EitherValues with UploadConfigKeys {
 
-  private val authModeConfig = new AuthModeSettings(connectorPrefix)
+  private val authModeConfig = new AuthModeSettings(javaConnectorPrefix)
 
   private val commonConfigDef = new CommonConfigDef {
     override def connectorPrefix: String = CONNECTOR_PREFIX

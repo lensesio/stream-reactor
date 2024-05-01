@@ -18,11 +18,9 @@ package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Optional;
 
 /**
  * Authentication mode using a json file for credentials.

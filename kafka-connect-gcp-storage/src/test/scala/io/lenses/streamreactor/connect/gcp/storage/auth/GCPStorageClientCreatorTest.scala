@@ -33,19 +33,16 @@ import org.threeten.bp.Duration
 
 import java.net.URL
 import java.nio.charset.Charset
-import java.util.Optional
 
 class GCPStorageClientCreatorTest extends AnyFunSuite with Matchers with EitherValues {
 
   private val jsonCredsUrl: URL = getClass.getResource("/test-gcp-credentials.json")
 
   private val defaultConfigBuilder = GCPConnectionConfig.builder()
-    .host(Optional.of("custom-host"))
-    .projectId(Optional.of("project-id"))
-    .quotaProjectId(Optional.of("quota-project-id"))
-    .authMode(NoAuthMode.INSTANCE)
-    .httpRetryConfig(RetryConfig.builder().build())
-    .timeouts(HttpTimeoutConfig.builder().connectionTimeout(Optional.empty()).socketTimeout(Optional.empty()).build())
+    .host("custom-host")
+    .projectId("project-id")
+    .quotaProjectId("quota-project-id")
+    .authMode(new NoAuthMode());
 
   test("should provide specified base options") {
     val config = defaultConfigBuilder.build()
@@ -67,7 +64,7 @@ class GCPStorageClientCreatorTest extends AnyFunSuite with Matchers with EitherV
   }
 
   test("should handle AuthMode.Default") {
-    val config = defaultConfigBuilder.authMode(DefaultAuthMode.INSTANCE).build()
+    val config = defaultConfigBuilder.authMode(new DefaultAuthMode()).build()
 
     // we probably don't have GCP credentials configured so we would expect this to fail.
     GCPStorageClientCreator.make(config).swap.value.getMessage should startWith(
@@ -120,7 +117,7 @@ class GCPStorageClientCreatorTest extends AnyFunSuite with Matchers with EitherV
   test("should handle http timeout config") {
 
     val config = defaultConfigBuilder.timeouts(
-      new HttpTimeoutConfig(Optional.of(250L), Optional.of(800L)),
+      new HttpTimeoutConfig(250L, 800L),
     ).build()
 
     val transportOpts: TransportOptions = GCPStorageClientCreator.make(config).value.getOptions.getTransportOptions

@@ -22,19 +22,32 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
-import java.util.Optional;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 @Data
 @Builder
 @AllArgsConstructor
 public class GCPConnectionConfig  implements ConnectionConfig {
 
-    private Optional<String> projectId;
-    private Optional<String> quotaProjectId;
+    // TODO: These values are duplicated with GCPConfigSettings.  This will be fixed in the next PR.
+    private static final int HTTP_NUM_OF_RETRIES_DEFAULT = 5;
+    private static final long HTTP_ERROR_RETRY_INTERVAL_DEFAULT = 50L;
+
+    @Nullable
+    private String projectId;
+    @Nullable
+    private String quotaProjectId;
+    @Nonnull
     private AuthMode authMode;
-    private Optional<String> host;
-    private RetryConfig httpRetryConfig;
-    private HttpTimeoutConfig timeouts;
+    @Nullable
+    private String host;
+    @Nonnull
+    @Builder.Default
+    private RetryConfig httpRetryConfig = RetryConfig.builder().retryLimit(HTTP_NUM_OF_RETRIES_DEFAULT).retryIntervalMillis(HTTP_ERROR_RETRY_INTERVAL_DEFAULT).build();
+    @Nonnull
+    @Builder.Default
+    private HttpTimeoutConfig timeouts = HttpTimeoutConfig.builder().build();
 
 }
 

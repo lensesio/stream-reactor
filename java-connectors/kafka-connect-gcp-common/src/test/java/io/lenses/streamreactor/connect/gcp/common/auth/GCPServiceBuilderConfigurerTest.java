@@ -17,7 +17,8 @@ package io.lenses.streamreactor.connect.gcp.common.auth;
 
 
 import com.google.api.gax.retrying.RetrySettings;
-import com.google.cloud.*;
+import com.google.cloud.NoCredentials;
+import com.google.cloud.ServiceOptions;
 import com.google.cloud.http.HttpTransportOptions;
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode;
@@ -40,25 +41,14 @@ class GCPServiceBuilderConfigurerTest {
     @BeforeEach
     public void setUp() {
         configBuilder = GCPConnectionConfig.builder()
-                .projectId(Optional.empty())
-                .quotaProjectId(Optional.empty())
-                .authMode(NoAuthMode.INSTANCE)
-                .host(Optional.empty())
-                .httpRetryConfig(RetryConfig.builder().build())
-                .timeouts(
-                        HttpTimeoutConfig.builder()
-                                .connectionTimeout(Optional.empty())
-                                .socketTimeout(Optional.empty())
-                                .build()
-                );
-
+                .authMode(new NoAuthMode());
     }
 
     @Test
     void testConfigure_withHostAndProjectIdConfigured() throws IOException {
         val config = configBuilder
-                .host(Optional.of("example.com"))
-                .projectId(Optional.of("test-project"))
+                .host("example.com")
+                .projectId("test-project")
                 .build();
 
         val builder = createMockBuilder();
@@ -70,7 +60,7 @@ class GCPServiceBuilderConfigurerTest {
 
     @Test
     void testConfigure_withRetrySettingsConfigured() throws IOException {
-        RetryConfig retryConfig = RetryConfig.builder().errorRetryInterval(1000).numberOfRetries(3).build();
+        RetryConfig retryConfig = RetryConfig.builder().retryIntervalMillis(1000).retryLimit(3).build();
 
         val config = configBuilder.httpRetryConfig(retryConfig)
                 .build();
@@ -85,8 +75,8 @@ class GCPServiceBuilderConfigurerTest {
     @Test
     void testConfigure_withTransportOptionsConfigured() throws IOException {
         val timeoutConfig = HttpTimeoutConfig.builder()
-                        .socketTimeout(Optional.of(5000L))
-                                .connectionTimeout(Optional.of(3000L))
+                        .socketTimeoutMillis(5000L)
+                                .connectionTimeoutMillis(3000L)
                                         .build();
 
         val config = configBuilder.timeouts(timeoutConfig).build();

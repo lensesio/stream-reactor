@@ -13,23 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.gcp.common.auth.mode;
+package io.lenses.streamreactor.common.config.base.model;
 
-import lombok.NonNull;
+import lombok.AllArgsConstructor;
 
-import java.util.Optional;
+@AllArgsConstructor
+public class ConnectorPrefix {
 
-public enum AuthModeEnum {
-    CREDENTIALS,
-    DEFAULT,
-    FILE,
-    NONE;
+    private final String prefix;
 
-    public static Optional<AuthModeEnum> valueOfCaseInsensitiveOptional(@NonNull String name) {
-        try {
-            return Optional.of(AuthModeEnum.valueOf(name.toUpperCase()));
-        } catch (IllegalArgumentException e) {
-            return Optional.empty();
-        }
+    public String prefixKey(String suffix) {
+        return String.format("%s.%s", prefix, suffix);
     }
+
 }

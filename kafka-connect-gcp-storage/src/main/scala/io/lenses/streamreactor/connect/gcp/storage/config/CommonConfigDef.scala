@@ -46,7 +46,7 @@ import org.apache.kafka.common.config.ConfigDef.Type
 
 trait CommonConfigDef extends CompressionCodecConfigKeys {
 
-  private val authModeSettingsConfigKeys = new AuthModeSettings(connectorPrefix)
+  private val authModeSettingsConfigKeys = new AuthModeSettings(javaConnectorPrefix)
 
   import authModeSettingsConfigKeys._
 

@@ -17,18 +17,13 @@ package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
 import com.google.auth.Credentials;
 import com.google.cloud.NoCredentials;
-
-import java.io.IOException;
-import java.util.Optional;
+import lombok.EqualsAndHashCode;
 
 /**
  * Authentication mode indicating no authentication is required.
  */
+@EqualsAndHashCode
 public class NoAuthMode implements AuthMode {
-    private NoAuthMode() {
-    }
-
-    public static AuthMode INSTANCE = new NoAuthMode();
 
     @Override
     public Credentials getCredentials() {

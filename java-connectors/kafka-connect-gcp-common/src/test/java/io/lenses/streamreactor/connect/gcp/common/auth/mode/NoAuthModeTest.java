@@ -25,7 +25,7 @@ class NoAuthModeTest {
 
     @Test
     void getCredentialsShouldReturnCredentials() throws Exception {
-        val authMode = NoAuthMode.INSTANCE;
+        val authMode = new NoAuthMode();
 
         assertEquals(NoCredentials.getInstance(), authMode.getCredentials());
     }

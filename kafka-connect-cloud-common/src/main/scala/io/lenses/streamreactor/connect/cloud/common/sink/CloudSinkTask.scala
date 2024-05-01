@@ -275,7 +275,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
 
   private def initializeFromConfig(config: C): Either[Throwable, Unit] =
     Try(initialize(
-      config.connectorRetryConfig.getNumberOfRetries,
+      config.connectorRetryConfig.getRetryLimit,
       config.errorPolicy,
     )).toEither
 
@@ -283,7 +283,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
     Try {
       //if error policy is retry set retry interval
       config.errorPolicy match {
-        case RetryErrorPolicy() => context.timeout(config.connectorRetryConfig.getErrorRetryInterval)
+        case RetryErrorPolicy() => context.timeout(config.connectorRetryConfig.getRetryIntervalMillis)
         case _                  =>
       }
     }.toEither

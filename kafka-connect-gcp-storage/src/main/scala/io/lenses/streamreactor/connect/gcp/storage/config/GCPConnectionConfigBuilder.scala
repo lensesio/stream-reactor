@@ -22,22 +22,20 @@ import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.common.auth.HttpTimeoutConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings._
 
-import scala.jdk.OptionConverters.RichOption
-
 object GCPConnectionConfigBuilder {
 
   def apply(props: Map[String, _], authMode: AuthMode): GCPConnectionConfig = new GCPConnectionConfig(
-    getString(props, GCP_PROJECT_ID).toJava,
-    getString(props, GCP_QUOTA_PROJECT_ID).toJava,
+    getString(props, GCP_PROJECT_ID).orNull,
+    getString(props, GCP_QUOTA_PROJECT_ID).orNull,
     authMode,
-    getString(props, HOST).toJava,
+    getString(props, HOST).orNull,
     new RetryConfig(
       getInt(props, HTTP_NBR_OF_RETRIES).getOrElse(HTTP_NBR_OF_RETIRES_DEFAULT),
       getLong(props, HTTP_ERROR_RETRY_INTERVAL).getOrElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
     ),
     new HttpTimeoutConfig(
-      getLong(props, HTTP_SOCKET_TIMEOUT).map(Long.box).toJava,
-      getLong(props, HTTP_CONNECTION_TIMEOUT).map(Long.box).toJava,
+      getLong(props, HTTP_SOCKET_TIMEOUT).map(Long.box).orNull,
+      getLong(props, HTTP_CONNECTION_TIMEOUT).map(Long.box).orNull,
     ),
   )
 

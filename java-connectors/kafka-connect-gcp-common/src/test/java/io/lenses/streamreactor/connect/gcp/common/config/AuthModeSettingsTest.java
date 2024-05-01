@@ -14,8 +14,13 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.gcp.common.config;
+
 import io.lenses.streamreactor.common.config.base.ConfigMap;
-import io.lenses.streamreactor.connect.gcp.common.auth.mode.*;
+import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.CredentialsAuthMode;
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.DefaultAuthMode;
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.FileAuthMode;
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode;
 import lombok.val;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
@@ -34,7 +39,8 @@ class AuthModeSettingsTest {
 
     @BeforeEach
     public void setUp() {
-        authModeSettings = new AuthModeSettings(CONNECTOR_PREFIX);
+        val connectorPrefix = new ConnectorPrefix(CONNECTOR_PREFIX);
+        authModeSettings = new AuthModeSettings(connectorPrefix);
     }
 
     @Test

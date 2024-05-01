@@ -4,12 +4,10 @@ import cats.implicits.catsSyntaxApplicativeError
 import com.google.cloud.storage.BucketInfo
 import com.google.cloud.storage.Storage
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.common.config.base.RetryConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudPlatformEmulatorSuite
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
-import io.lenses.streamreactor.connect.gcp.common.auth.HttpTimeoutConfig
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode
 import io.lenses.streamreactor.connect.gcp.common.config.AuthModeSettings
 import io.lenses.streamreactor.connect.gcp.storage.auth.GCPStorageClientCreator
@@ -25,7 +23,6 @@ import io.lenses.streamreactor.connect.testcontainers.TestContainersPausableCont
 
 import java.io.File
 import java.nio.file.Files
-import java.util.Optional
 import scala.util.Try
 
 trait GCPProxyContainerTest
@@ -41,7 +38,7 @@ trait GCPProxyContainerTest
     with UploadConfigKeys
     with LazyLogging {
 
-  private val authModeConfig = new AuthModeSettings(connectorPrefix)
+  private val authModeConfig = new AuthModeSettings(javaConnectorPrefix)
 
   implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("unit-tests", 1, 1)
 
@@ -55,12 +52,9 @@ trait GCPProxyContainerTest
   override def createClient(): Either[Throwable, Storage] = {
 
     val gcpConfig: GCPConnectionConfig = GCPConnectionConfig.builder()
-      .projectId(Optional.of("test"))
-      .quotaProjectId(Optional.empty())
-      .authMode(NoAuthMode.INSTANCE)
-      .host(Optional.of(container.getEndpointUrl()))
-      .httpRetryConfig(RetryConfig.builder().build())
-      .timeouts(HttpTimeoutConfig.builder().socketTimeout(Optional.empty()).connectionTimeout(Optional.empty()).build())
+      .projectId("test")
+      .authMode(new NoAuthMode())
+      .host(container.getEndpointUrl())
       .build()
 
     GCPStorageClientCreator.make(gcpConfig)

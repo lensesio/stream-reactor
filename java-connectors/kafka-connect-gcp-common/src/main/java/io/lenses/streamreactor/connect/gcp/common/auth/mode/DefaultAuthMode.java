@@ -17,9 +17,9 @@ package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
+import lombok.EqualsAndHashCode;
 
 import java.io.IOException;
-import java.util.Optional;
 
 /**
  * Default authentication mode without explicit credentials.
@@ -28,11 +28,8 @@ import java.util.Optional;
  * The credentials are made available to Cloud Client Libraries and Google API Client Libraries, allowing the code to run seamlessly
  * in both development and production environments without altering the authentication process for Google Cloud services and APIs.
  */
+@EqualsAndHashCode
 public class DefaultAuthMode implements AuthMode {
-    private DefaultAuthMode() {
-    }
-
-    public static AuthMode INSTANCE = new DefaultAuthMode();
 
     @Override
     public Credentials getCredentials() throws IOException {

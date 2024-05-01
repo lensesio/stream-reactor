@@ -16,77 +16,111 @@
 package io.lenses.streamreactor.connect.gcp.common.config;
 
 import io.lenses.streamreactor.common.config.base.ConfigMap;
+import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.*;
-import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigException;
 
-@AllArgsConstructor
+/**
+ * Configuration settings for specifying authentication mode and related credentials for GCP connectors.
+ * This class provides methods to define and parse authentication mode settings based on Kafka Connect's {@link ConfigDef}.
+ *
+ * Authentication modes supported:
+ * - 'credentials': Use GCP credentials for authentication.
+ * - 'file': Authenticate using credentials stored in a file.
+ * - 'default': Default authentication mode.
+ * - 'none': No authentication required.
+ *
+ * Keys used in configuration:
+ * - {@code gcp.auth.mode}: Key to specify the authentication mode.
+ * - {@code gcp.credentials}: Key for providing GCP credentials (used with 'credentials' auth mode).
+ * - {@code gcp.file}: Key for specifying the file path containing GCP credentials (used with 'file' auth mode).
+ */
+@Getter
 public class AuthModeSettings {
 
-    private final String connectorPrefix;
+    public static final String EMPTY_STRING = "";
 
-    public String getAuthModeKey() {
-        return generateKey("gcp.auth.mode");
+    // Auth Mode values
+    public static final String PROP_KEY_CREDENTIALS = "CREDENTIALS";
+    public static final String PROP_KEY_FILE = "FILE";
+    public static final String PROP_KEY_NONE = "NONE";
+    public static final String PROP_KEY_DEFAULT = "DEFAULT";
+
+    private final String authModeKey;
+    private final String credentialsKey;
+    private final String fileKey;
+
+    /**
+     * Constructs an instance of AuthModeSettings.
+     *
+     * @param connectorPrefix The prefix used to generate keys for configuration settings.
+     */
+    public AuthModeSettings(ConnectorPrefix connectorPrefix) {
+        this.authModeKey = connectorPrefix.prefixKey("gcp.auth.mode");
+        this.credentialsKey = connectorPrefix.prefixKey("gcp.credentials");
+        this.fileKey = connectorPrefix.prefixKey("gcp.file");
     }
 
-    public String getCredentialsKey() {
-        return generateKey("gcp.credentials");
-    }
 
-    public String getFileKey() {
-        return generateKey("gcp.file");
-    }
-
-    private String generateKey(String suffix) {
-        return String.format("%s.%s", connectorPrefix, suffix);
-    }
-
-
+    /**
+     * Configures the provided ConfigDef with authentication mode settings.
+     *
+     * @param configDef The ConfigDef instance to be updated with authentication mode definitions.
+     * @return The updated ConfigDef with authentication mode settings defined.
+     */
     public ConfigDef withAuthModeSettings(ConfigDef configDef) {
         return configDef.define(
-                        getAuthModeKey(),
+                        authModeKey,
                         Type.STRING,
-                        AuthModeEnum.DEFAULT.name(),
+                        PROP_KEY_DEFAULT,
                         Importance.HIGH,
-                        "Authenticate mode, 'credentials', 'file' or 'default'"
+                        "Authenticate mode, 'credentials', 'file', 'default' or 'none'"
                         )
                 .define(
-                        getCredentialsKey(),
+                        credentialsKey,
                         Type.PASSWORD,
-                        "",
+                        EMPTY_STRING,
                         Importance.HIGH,
                         "GCP Credentials if using 'credentials' auth mode."
                         )
                 .define(
-                        getFileKey(),
+                        fileKey,
                         Type.STRING,
-                        "",
+                        EMPTY_STRING,
                         Importance.HIGH,
-                        "File containing GCP Credentials if using 'file' auth mode"
+                        "File containing GCP Credentials if using 'file' auth mode.  This can be relative from the current working directory of the java process or from the root.  Remember your path format is operating system dependent. (eg for unix-based /home/my/path/file)"
                         );
     }
 
+    /**
+     * Parses authentication mode from the provided ConfigMap and returns the corresponding AuthMode instance.
+     *
+     * @param configMap The ConfigMap containing configuration settings.
+     * @return The parsed AuthMode based on the configuration settings.
+     * @throws ConfigException If an invalid or unsupported authentication mode is specified.
+     */
     public AuthMode parseFromConfig(ConfigMap configMap) {
         return configMap.getString(getAuthModeKey())
-                .map(authModeStr -> AuthModeEnum.valueOfCaseInsensitiveOptional(authModeStr)
-                        .orElseThrow(() -> new ConfigException(String.format("Unsupported auth mode `%s`", authModeStr))))
-                .map(authModeEnum -> {
-                    switch (authModeEnum) {
-                        case CREDENTIALS:
+                .map(authModeString -> {
+                    switch (authModeString.toUpperCase()) {
+                        case PROP_KEY_CREDENTIALS:
                             return createCredentialsAuthMode(configMap);
-                        case FILE:
+                        case PROP_KEY_FILE:
                             return createFileAuthMode(configMap);
-                        case NONE:
-                            return NoAuthMode.INSTANCE;
-                        case DEFAULT:
+                        case PROP_KEY_NONE:
+                            return new NoAuthMode();
+                        case PROP_KEY_DEFAULT:
+                            return new DefaultAuthMode();
+                        case EMPTY_STRING:
                         default:
-                            return DefaultAuthMode.INSTANCE;
+                            throw new ConfigException(String.format("Unsupported auth mode `%s`", authModeString));
                     }
                 })
-                .orElse(DefaultAuthMode.INSTANCE);
+                .orElse(new DefaultAuthMode());
     }
 
     private FileAuthMode createFileAuthMode(ConfigMap configMap) {

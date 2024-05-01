@@ -51,11 +51,11 @@ public class GCPServiceBuilderConfigurer {
           >
   B configure(GCPConnectionConfig config, B builder) throws IOException {
 
-    config.getHost().ifPresent(builder::setHost);
+    Optional.ofNullable(config.getHost()).ifPresent(builder::setHost);
 
-    config.getProjectId().ifPresent(builder :: setProjectId);
+    Optional.ofNullable(config.getProjectId()).ifPresent(builder :: setProjectId);
 
-    config.getQuotaProjectId().ifPresent(builder :: setQuotaProjectId);
+    Optional.ofNullable(config.getQuotaProjectId()).ifPresent(builder :: setQuotaProjectId);
 
     val authMode = config.getAuthMode();
 
@@ -69,12 +69,14 @@ public class GCPServiceBuilderConfigurer {
   }
 
   private static Optional<TransportOptions> createTransportOptions(HttpTimeoutConfig timeoutConfig) {
-    if (timeoutConfig.getConnectionTimeout().isPresent() || timeoutConfig.getSocketTimeout().isPresent()) {
+    val connectionTimeout = Optional.ofNullable(timeoutConfig.getConnectionTimeoutMillis());
+    val socketTimeout = Optional.ofNullable(timeoutConfig.getSocketTimeoutMillis());
+    if (connectionTimeout.isPresent() || socketTimeout.isPresent()) {
       HttpTransportOptions.Builder httpTransportOptionsBuilder = HttpTransportOptions.newBuilder();
-      timeoutConfig.getSocketTimeout().ifPresent(sock ->
+      socketTimeout.ifPresent(sock ->
               httpTransportOptionsBuilder.setReadTimeout(sock.intValue())
       );
-      timeoutConfig.getConnectionTimeout().ifPresent(conn ->
+      connectionTimeout.ifPresent(conn ->
               httpTransportOptionsBuilder.setConnectTimeout(conn.intValue())
       );
       return Optional.of(httpTransportOptionsBuilder.build());
@@ -85,9 +87,9 @@ public class GCPServiceBuilderConfigurer {
   private static RetrySettings createRetrySettings(RetryConfig httpRetryConfig) {
 
     return RetrySettings.newBuilder()
-            .setInitialRetryDelay(Duration.ofMillis(httpRetryConfig.getErrorRetryInterval()))
-            .setMaxRetryDelay(Duration.ofMillis(httpRetryConfig.getErrorRetryInterval() * 5))
-            .setMaxAttempts(httpRetryConfig.getNumberOfRetries())
+            .setInitialRetryDelay(Duration.ofMillis(httpRetryConfig.getRetryIntervalMillis()))
+            .setMaxRetryDelay(Duration.ofMillis(httpRetryConfig.getRetryIntervalMillis() * 5))
+            .setMaxAttempts(httpRetryConfig.getRetryLimit())
             .build();
   }
 }

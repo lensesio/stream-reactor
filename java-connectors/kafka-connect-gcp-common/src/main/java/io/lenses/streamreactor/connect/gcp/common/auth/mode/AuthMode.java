@@ -18,10 +18,19 @@ package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 import com.google.auth.Credentials;
 
 import java.io.IOException;
-import java.util.Optional;
 
+/**
+ * Interface representing different authentication modes for GCP connectors.
+ * Implementations of this interface provide methods to obtain Google Cloud Platform (GCP) {@link Credentials}.
+ */
 public interface AuthMode {
-    // Marker interface
+
+    /**
+     * Retrieves the GCP credentials required for authentication.
+     *
+     * @return The GCP {@link Credentials}.
+     * @throws IOException If an I/O error occurs while obtaining credentials.
+     */
     Credentials getCredentials() throws IOException;
 }
 

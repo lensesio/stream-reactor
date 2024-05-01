@@ -19,12 +19,30 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * Configuration class for defining retry behavior.
+ * This class encapsulates settings related to retrying operations, such as the maximum
+ * number of retry attempts and the interval (in milliseconds) between retries.
+ *
+ * Different connector implementations may interpret these settings differently based
+ * on their specific requirements and behavior.
+ */
 @Data
 @Builder
 @AllArgsConstructor
 public class RetryConfig {
 
-  private int numberOfRetries;
-  private long errorRetryInterval;
+  /**
+   * Maximum number of retry attempts allowed.
+   * This value specifies the maximum number of times an operation will be retried
+   * before giving up. A value of 0 indicates no retries will be attempted.
+   */
+  private int retryLimit;
 
+  /**
+   * Interval (in milliseconds) between retry attempts.
+   * This value specifies the time delay between consecutive retry attempts,
+   * measured in milliseconds.
+   */
+  private long retryIntervalMillis;
 }

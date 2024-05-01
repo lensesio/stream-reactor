@@ -25,7 +25,7 @@ import scala.util.Try
 
 trait AuthModeSettings extends BaseSettings {
 
-  private val javaAuthModeSettings = new JavaAuthModeSettings(connectorPrefix)
+  private val javaAuthModeSettings = new JavaAuthModeSettings(javaConnectorPrefix)
 
   def getAuthMode(props: Map[String, AnyRef]): Either[Throwable, AuthMode] = {
     val configMap = new ConfigMap(props.asJava)

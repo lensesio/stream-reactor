@@ -68,6 +68,6 @@ trait RetryConfigSettings extends BaseSettings with ConnectorRetryConfigKeys {
   private def getRetryInterval: Long = getLong(RetryInterval)
 
   def getRetryConfig: RetryConfig =
-    RetryConfig.builder().numberOfRetries(getNumberRetries).errorRetryInterval(getRetryInterval).build()
+    RetryConfig.builder().retryLimit(getNumberRetries).retryIntervalMillis(getRetryInterval).build()
 
 }

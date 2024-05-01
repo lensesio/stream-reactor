@@ -27,7 +27,7 @@ import java.util.Optional;
 @AllArgsConstructor
 public class ConfigMap {
 
-  private Map<String, Object> wrapped;
+  private final Map<String, Object> wrapped;
 
   /**
    * Retrieves a String property value associated with the given key.

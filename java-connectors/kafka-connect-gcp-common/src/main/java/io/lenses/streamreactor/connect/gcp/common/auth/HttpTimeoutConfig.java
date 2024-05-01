@@ -19,13 +19,15 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
-import javax.swing.text.html.Option;
+import javax.annotation.Nullable;
 import java.util.Optional;
 
 @Data
 @Builder
 @AllArgsConstructor
 public class HttpTimeoutConfig {
-    private Optional<Long> socketTimeout;
-    private Optional<Long> connectionTimeout;
+    @Nullable
+    private Long socketTimeoutMillis;
+    @Nullable
+    private Long connectionTimeoutMillis;
 }

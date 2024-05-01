@@ -15,5 +15,10 @@
  */
 package io.lenses.streamreactor.common.config.base.intf;
 
+/**
+ * A marker interface for defining connection configurations across different implementations.
+ * Implementations of this interface signify various types of connection configurations,
+ * providing a unified categorization without requiring shared behavior or properties.
+ */
 public interface ConnectionConfig {
 }

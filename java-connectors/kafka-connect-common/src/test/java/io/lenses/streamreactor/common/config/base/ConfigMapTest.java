@@ -33,18 +33,15 @@ class ConfigMapTest {
 
     @BeforeEach
     void setUp() {
-        // Create a sample map with test properties
         Map<String, Object> testMap = new HashMap<>();
         testMap.put("username", "user123");
         testMap.put("password", new Password("secret"));
 
-        // Initialize ConfigMap with the test map
         configMap = new ConfigMap(testMap);
     }
 
     @Test
     void testGetString_existingKey_shouldReturnValue() {
-        // Test existing key
         Optional<String> value = configMap.getString("username");
 
         assertTrue(value.isPresent());
@@ -53,7 +50,6 @@ class ConfigMapTest {
 
     @Test
     void testGetString_nonExistingKey_shouldReturnEmpty() {
-        // Test non-existing key
         Optional<String> value = configMap.getString("invalidKey");
 
         assertFalse(value.isPresent());
@@ -61,7 +57,6 @@ class ConfigMapTest {
 
     @Test
     void testGetPassword_existingKey_shouldReturnPassword() {
-        // Test existing key for Password type
         Optional<Password> password = configMap.getPassword("password");
 
         assertTrue(password.isPresent());
@@ -70,7 +65,6 @@ class ConfigMapTest {
 
     @Test
     void testGetPassword_nonExistingKey_shouldReturnEmpty() {
-        // Test non-existing key for Password type
         Optional<Password> password = configMap.getPassword("invalidKey");
 
         assertFalse(password.isPresent());
