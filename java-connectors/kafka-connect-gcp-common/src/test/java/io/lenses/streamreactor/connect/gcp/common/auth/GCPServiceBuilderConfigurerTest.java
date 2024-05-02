@@ -26,6 +26,7 @@ import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.threeten.bp.Duration;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -99,7 +100,7 @@ class GCPServiceBuilderConfigurerTest {
         // Ensure that no properties are set if configuration is empty
         verify(builder, never()).setHost(anyString());
         verify(builder, never()).setProjectId(anyString());
-        verify(builder, times(1)).setRetrySettings(RetrySettings.newBuilder().build());
+        verify(builder, times(1)).setRetrySettings(RetrySettings.newBuilder().setInitialRetryDelay(Duration.ofMillis(50)).setMaxRetryDelay(Duration.ofMillis(250)).setMaxAttempts(5).build());
         verify(builder, times(1)).setCredentials(NoCredentials.getInstance());
         verify(builder, never()).setTransportOptions(any());
     }
