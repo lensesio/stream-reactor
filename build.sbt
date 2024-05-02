@@ -7,6 +7,7 @@ import sbt.*
 import sbt.Project.projectToLocalProject
 
 import java.io.File
+import scala.sys.process._
 
 ThisBuild / scalaVersion := Dependencies.scalaVersion
 
@@ -474,10 +475,26 @@ addCommandAlias(
   "validateAll",
   "headerCheck;test:headerCheck;it:headerCheck;fun:headerCheck;scalafmtCheckAll;test-common/scalafmtCheck;test-common/headerCheck",
 )
+
+lazy val gradleSpotlessApply = taskKey[Unit]("Run 'gradle spotlessApply' via external process")
+gradleSpotlessApply := {
+  // Specify the desired working directory for the external process
+  val targetDirectory = baseDirectory.value / "java-connectors"
+
+  // Execute 'gradle spotlessApply' in the specified directory
+  val exitCode = Process("gradle spotlessApply", targetDirectory).!
+
+  if (exitCode != 0) {
+    throw new RuntimeException("gradle spotlessApply command failed")
+  }
+}
+
+// Add the custom command to the 'formatAll' alias
 addCommandAlias(
   "formatAll",
-  "headerCreateAll;scalafmtAll;scalafmtSbt;test-common/scalafmt;test-common/headerCreateAll",
+  ";headerCreateAll;scalafmtAll;scalafmtSbt;test-common/scalafmt;test-common/headerCreateAll;gradleSpotlessApply",
 )
+
 addCommandAlias("fullTest", ";test;it:test;fun:test")
 addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")
 
