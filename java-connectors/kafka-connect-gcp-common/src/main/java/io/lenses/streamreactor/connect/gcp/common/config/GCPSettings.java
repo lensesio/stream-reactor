@@ -40,7 +40,7 @@ public class GCPSettings {
   public static final Long HTTP_ERROR_RETRY_INTERVAL_DEFAULT = 50L;
   public static final Integer HTTP_NUMBER_OF_RETIRES_DEFAULT = 5;
   public static final Long HTTP_SOCKET_TIMEOUT_DEFAULT = 60000L;
-  public static final Integer HTTP_CONNECTION_TIMEOUT_DEFAULT = 60000;
+  public static final Long HTTP_CONNECTION_TIMEOUT_DEFAULT = 60000L;
 
   private final AuthModeSettings authModeSettings;
 
@@ -102,7 +102,7 @@ public class GCPSettings {
                 "Socket timeout (ms)")
             .define(
                 httpConnectionTimeout,
-                ConfigDef.Type.INT,
+                ConfigDef.Type.LONG,
                 HTTP_CONNECTION_TIMEOUT_DEFAULT,
                 ConfigDef.Importance.LOW,
                 "Connection timeout (ms)");
@@ -111,18 +111,26 @@ public class GCPSettings {
   }
 
   public GCPConnectionConfig parseFromConfig(ConnectConfig connectConfig) {
-    return new GCPConnectionConfig(
-        connectConfig.getString(gcpProjectId).orElse(null),
-        connectConfig.getString(gcpQuotaProjectId).orElse(null),
-        authModeSettings.parseFromConfig(connectConfig),
-        connectConfig.getString(host).orElse(null),
+    val builder =
+        GCPConnectionConfig.builder().authMode(authModeSettings.parseFromConfig(connectConfig));
+    connectConfig.getString(gcpProjectId).ifPresent(builder::projectId);
+    connectConfig.getString(gcpQuotaProjectId).ifPresent(builder::quotaProjectId);
+    connectConfig.getString(host).ifPresent(builder::host);
+
+    val retryConfig =
         new RetryConfig(
             connectConfig.getInt(httpNbrOfRetries).orElse(HTTP_NUMBER_OF_RETIRES_DEFAULT),
             connectConfig
                 .getLong(httpErrorRetryInterval)
-                .orElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT)),
+                .orElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT));
+
+    val timeoutConfig =
         new HttpTimeoutConfig(
             connectConfig.getLong(httpSocketTimeout).orElse(null),
-            connectConfig.getLong(httpConnectionTimeout).orElse(null)));
+            connectConfig.getLong(httpConnectionTimeout).orElse(null));
+
+    builder.httpRetryConfig(retryConfig);
+    builder.timeouts(timeoutConfig);
+    return builder.build();
   }
 }

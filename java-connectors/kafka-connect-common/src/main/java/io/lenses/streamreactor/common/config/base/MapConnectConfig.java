@@ -28,6 +28,7 @@ public class MapConnectConfig implements ConnectConfig {
 
   private final Map<String, Object> wrapped;
 
+  @Override
   public Optional<String> getString(String key) {
     return Optional.ofNullable((String) wrapped.get(key));
   }
@@ -42,6 +43,7 @@ public class MapConnectConfig implements ConnectConfig {
     return Optional.ofNullable((Long) wrapped.get(key));
   }
 
+  @Override
   public Optional<Password> getPassword(String key) {
     return Optional.ofNullable((Password) wrapped.get(key));
   }

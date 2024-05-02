@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.source.config
 
+import io.lenses.streamreactor.common.config.base.MapConnectConfig
+import io.lenses.streamreactor.common.utils.AnyRefMapper.mapAnyRef
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSourceConfig
 import io.lenses.streamreactor.connect.cloud.common.config.traits.PropsToConfigConverter
@@ -26,6 +28,7 @@ import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.model.location.GCPStorageLocationValidator
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageFileMetadata
 
+import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
 
 object GCPStorageSourceConfig extends PropsToConfigConverter[GCPStorageSourceConfig] {
@@ -42,9 +45,11 @@ object GCPStorageSourceConfig extends PropsToConfigConverter[GCPStorageSourceCon
     Try(GCPStorageSourceConfig(GCPStorageSourceConfigDefBuilder(props))).toEither.flatten
 
   def apply(gcpConfigDefBuilder: GCPStorageSourceConfigDefBuilder): Either[Throwable, GCPStorageSourceConfig] = {
-    val parsedValues = gcpConfigDefBuilder.getParsedValues
+    //val configAdaptor = new ConfigAdaptor(gcpConfigDefBuilder)
+    val parsedValues     = gcpConfigDefBuilder.getParsedValues
+    val configMapVersion = new MapConnectConfig(mapAnyRef(parsedValues).asJava)
     for {
-      gcpConnectionSettings <- gcpConfigDefBuilder.getGcpConnectionSettings(gcpConfigDefBuilder)
+      gcpConnectionSettings <- gcpConfigDefBuilder.getGcpConnectionSettings(configMapVersion)
       sbo <- CloudSourceBucketOptions[GCPStorageFileMetadata](
         gcpConfigDefBuilder,
         gcpConfigDefBuilder.getPartitionExtractor(parsedValues),

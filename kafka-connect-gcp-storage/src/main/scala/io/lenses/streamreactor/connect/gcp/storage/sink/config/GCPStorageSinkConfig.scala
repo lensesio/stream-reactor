@@ -15,8 +15,10 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.sink.config
 
+import io.lenses.streamreactor.common.config.base.MapConnectConfig
 import io.lenses.streamreactor.common.config.base.RetryConfig
 import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.utils.AnyRefMapper.mapAnyRef
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.config.traits.PropsToConfigConverter
@@ -26,6 +28,8 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketO
 import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES
+
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig] {
 
@@ -44,9 +48,11 @@ object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig]
   )(
     implicit
     cloudLocationValidator: CloudLocationValidator,
-  ): Either[Throwable, GCPStorageSinkConfig] =
+  ): Either[Throwable, GCPStorageSinkConfig] = {
+    val parsedValues     = gcpConfigDefBuilder.getParsedValues
+    val configMapVersion = new MapConnectConfig(mapAnyRef(parsedValues).asJava)
     for {
-      gcpConnectionSettings <- gcpConfigDefBuilder.getGcpConnectionSettings(gcpConfigDefBuilder)
+      gcpConnectionSettings <- gcpConfigDefBuilder.getGcpConnectionSettings(configMapVersion)
       sinkBucketOptions     <- CloudSinkBucketOptions(connectorTaskId, gcpConfigDefBuilder)
       offsetSeekerOptions = OffsetSeekerOptions(
         gcpConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
@@ -60,6 +66,7 @@ object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig]
       errorPolicy          = gcpConfigDefBuilder.getErrorPolicyOrDefault,
       connectorRetryConfig = gcpConfigDefBuilder.getRetryConfig,
     )
+  }
 
 }
 

@@ -139,6 +139,7 @@ public class AuthModeSettings {
   private CredentialsAuthMode createCredentialsAuthMode(ConnectConfig configAdaptor) {
     return configAdaptor
         .getPassword(getCredentialsKey())
+        .filter(password -> !(password.value().isEmpty()))
         .map(CredentialsAuthMode::new)
         .orElseThrow(
             () ->

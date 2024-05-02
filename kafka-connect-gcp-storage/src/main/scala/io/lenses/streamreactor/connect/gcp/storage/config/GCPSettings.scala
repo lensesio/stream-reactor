@@ -15,11 +15,10 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.config
 
-import io.lenses.streamreactor.common.config.base.ConfigAdaptor
+import io.lenses.streamreactor.common.config.base.ConnectConfig
 import io.lenses.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.common.config.{ GCPSettings => JavaGCPSettings }
-import org.apache.kafka.common.config.AbstractConfig
 
 import scala.util.Try
 
@@ -27,9 +26,7 @@ trait GCPSettings extends BaseSettings {
 
   private val javaGcpSettings = new JavaGCPSettings(javaConnectorPrefix)
 
-  def getGcpConnectionSettings(abstractConfig: AbstractConfig): Either[Throwable, GCPConnectionConfig] = {
-    val configMap = new ConfigAdaptor(abstractConfig)
-    Try(javaGcpSettings.parseFromConfig(configMap)).toEither
-  }
+  def getGcpConnectionSettings(config: ConnectConfig): Either[Throwable, GCPConnectionConfig] =
+    Try(javaGcpSettings.parseFromConfig(config)).toEither
 
 }

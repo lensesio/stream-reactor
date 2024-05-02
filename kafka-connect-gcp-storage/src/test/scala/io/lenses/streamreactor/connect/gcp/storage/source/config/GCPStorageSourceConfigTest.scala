@@ -27,7 +27,7 @@ import org.scalatest.matchers.should.Matchers._
 
 class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues {
 
-  val taskId = ConnectorTaskId("name", 1, 1)
+  private val taskId = ConnectorTaskId("name", 1, 1)
   implicit val validator: CloudLocationValidator = GCPStorageLocationValidator
   test("fromProps should reject configuration when no kcql string is provided") {
     val props  = Map[String, String]()
@@ -79,8 +79,8 @@ class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues {
       "connect.gcpstorage.gcp.auth.mode"   -> "credentials",
       "connect.gcpstorage.gcp.credentials" -> password,
     )
-    val storageConfig = GCPStorageSourceConfig.fromProps(taskId, props).value
-    storageConfig.connectionConfig.getAuthMode should be(new CredentialsAuthMode(password))
+    val storageConfig = GCPStorageSourceConfig.fromProps(taskId, props)
+    storageConfig.value.connectionConfig.getAuthMode should be(new CredentialsAuthMode(password))
   }
 
   test("apply should return Left with ConnectException when password property is missed") {
@@ -102,6 +102,7 @@ class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues {
     result.left.value match {
       case ex if expectedExceptionClass == ex.getClass.getName =>
         ex.getMessage should be(expectedMessage)
-      case ex => fail(s"Unexpected exception, was a ${ex.getClass.getName}")
+      case ex =>
+        fail(s"Unexpected exception, was a ${ex.getClass.getName} with stacky ${ex.printStackTrace()}")
     }
 }

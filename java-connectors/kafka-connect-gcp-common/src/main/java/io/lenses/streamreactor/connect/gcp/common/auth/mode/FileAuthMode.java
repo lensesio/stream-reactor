@@ -20,11 +20,13 @@ import com.google.auth.oauth2.GoogleCredentials;
 import java.io.FileInputStream;
 import java.io.IOException;
 import lombok.AllArgsConstructor;
+import lombok.ToString;
 
 /**
  * Authentication mode using a json file for credentials.
  */
 @AllArgsConstructor
+@ToString
 public class FileAuthMode implements AuthMode {
 
   private final String filePath;

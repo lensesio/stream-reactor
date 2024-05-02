@@ -21,6 +21,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.apache.kafka.common.config.types.Password;
 
 /**
@@ -28,6 +29,7 @@ import org.apache.kafka.common.config.types.Password;
  */
 @AllArgsConstructor
 @EqualsAndHashCode
+@ToString
 public class CredentialsAuthMode implements AuthMode {
   private final Password passwordCredentials;
 
