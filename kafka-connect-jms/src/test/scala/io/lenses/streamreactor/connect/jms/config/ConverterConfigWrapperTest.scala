@@ -22,7 +22,7 @@ import org.scalatest.EitherValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-class SourceConverterConfigWrapperTest extends AnyWordSpecLike with MockitoSugar with EitherValues with Matchers {
+class SourceConverterConfigAdaptorTest extends AnyWordSpecLike with MockitoSugar with EitherValues with Matchers {
   private val converter = mock[JMSSourceMessageConverter]
   private val wrapper   = SourceConverterConfigWrapper(converter)
 
@@ -34,7 +34,7 @@ class SourceConverterConfigWrapperTest extends AnyWordSpecLike with MockitoSugar
     wrapper.forSink.left.value should be("Configured source, requested sink")
   }
 }
-class SinkConverterConfigWrapperTest extends AnyWordSpecLike with MockitoSugar with EitherValues with Matchers {
+class SinkConverterConfigAdaptorTest extends AnyWordSpecLike with MockitoSugar with EitherValues with Matchers {
   private val converter = mock[JMSSinkMessageConverter]
   private val wrapper   = SinkConverterConfigWrapper(converter)
 

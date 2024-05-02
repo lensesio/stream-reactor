@@ -46,7 +46,7 @@ object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig]
     cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, GCPStorageSinkConfig] =
     for {
-      gcpConnectionSettings <- gcpConfigDefBuilder.getGcpConnectionSettings(gcpConfigDefBuilder.props)
+      gcpConnectionSettings <- gcpConfigDefBuilder.getGcpConnectionSettings(gcpConfigDefBuilder)
       sinkBucketOptions     <- CloudSinkBucketOptions(connectorTaskId, gcpConfigDefBuilder)
       offsetSeekerOptions = OffsetSeekerOptions(
         gcpConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),

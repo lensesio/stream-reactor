@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.config;
 
-import io.lenses.streamreactor.common.config.base.ConfigMap;
+import io.lenses.streamreactor.common.config.base.ConnectConfig;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.*;
 import lombok.Getter;
@@ -99,18 +99,18 @@ public class AuthModeSettings {
     /**
      * Parses authentication mode from the provided ConfigMap and returns the corresponding AuthMode instance.
      *
-     * @param configMap The ConfigMap containing configuration settings.
+     * @param configAdaptor The ConfigMap containing configuration settings.
      * @return The parsed AuthMode based on the configuration settings.
      * @throws ConfigException If an invalid or unsupported authentication mode is specified.
      */
-    public AuthMode parseFromConfig(ConfigMap configMap) {
-        return configMap.getString(getAuthModeKey())
+    public AuthMode parseFromConfig(ConnectConfig configAdaptor) {
+        return configAdaptor.getString(getAuthModeKey())
                 .map(authModeString -> {
                     switch (authModeString.toUpperCase()) {
                         case PROP_KEY_CREDENTIALS:
-                            return createCredentialsAuthMode(configMap);
+                            return createCredentialsAuthMode(configAdaptor);
                         case PROP_KEY_FILE:
-                            return createFileAuthMode(configMap);
+                            return createFileAuthMode(configAdaptor);
                         case PROP_KEY_NONE:
                             return new NoAuthMode();
                         case PROP_KEY_DEFAULT:
@@ -123,11 +123,11 @@ public class AuthModeSettings {
                 .orElse(new DefaultAuthMode());
     }
 
-    private FileAuthMode createFileAuthMode(ConfigMap configMap) {
-        return configMap.getString(getFileKey()).map(FileAuthMode::new).orElseThrow(() -> new ConfigException(String.format("No `%s` specified in configuration", getFileKey())));
+    private FileAuthMode createFileAuthMode(ConnectConfig connectConfig) {
+        return connectConfig.getString(getFileKey()).map(FileAuthMode::new).orElseThrow(() -> new ConfigException(String.format("No `%s` specified in configuration", getFileKey())));
     }
 
-    private CredentialsAuthMode createCredentialsAuthMode(ConfigMap configMap) {
-        return configMap.getPassword(getCredentialsKey()).map(CredentialsAuthMode::new).orElseThrow(() -> new ConfigException(String.format("No `%s` specified in configuration", getCredentialsKey())));
+    private CredentialsAuthMode createCredentialsAuthMode(ConnectConfig configAdaptor) {
+        return configAdaptor.getPassword(getCredentialsKey()).map(CredentialsAuthMode::new).orElseThrow(() -> new ConfigException(String.format("No `%s` specified in configuration", getCredentialsKey())));
     }
 }

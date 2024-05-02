@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.config;
 
-import io.lenses.streamreactor.common.config.base.ConfigMap;
+import io.lenses.streamreactor.common.config.base.MapConnectConfig;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.CredentialsAuthMode;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.DefaultAuthMode;
@@ -63,7 +63,7 @@ class AuthModeSettingsTest {
 
     @Test
     void testParseFromConfig_CredentialsAuthMode() {
-        val configMap = new ConfigMap(
+        val configMap = new MapConnectConfig(
                 Map.of(
                         authModeSettings.getAuthModeKey(), "credentials",
                         authModeSettings.getCredentialsKey(), new Password("password")
@@ -78,8 +78,7 @@ class AuthModeSettingsTest {
 
     @Test
     void testParseFromConfig_FileAuthMode() {
-
-        val configMap = new ConfigMap(
+        val configMap = new MapConnectConfig(
                 Map.of(
                         authModeSettings.getAuthModeKey(), "file",
                         authModeSettings.getFileKey(), "\"path/to/file\""
@@ -94,7 +93,7 @@ class AuthModeSettingsTest {
     @Test
     void testParseFromConfig_NoneAuthMode() {
 
-        val configMap = new ConfigMap(
+        val configMap = new MapConnectConfig(
                 Map.of(
                         authModeSettings.getAuthModeKey(), "none"
                 )
@@ -108,7 +107,7 @@ class AuthModeSettingsTest {
     @Test
     void testParseFromConfig_DefaultAuthMode() {
 
-        val configMap = new ConfigMap(
+        val configMap = new MapConnectConfig(
                 Map.of(
                         authModeSettings.getAuthModeKey(), "default"
                 )
@@ -123,7 +122,7 @@ class AuthModeSettingsTest {
     @Test
     void testParseFromConfig_UnsupportedAuthMode() {
 
-        val configMap = new ConfigMap(
+        val configMap = new MapConnectConfig(
                 Map.of(
                         authModeSettings.getAuthModeKey(), "invalid"
                 )

@@ -44,7 +44,7 @@ object GCPStorageSourceConfig extends PropsToConfigConverter[GCPStorageSourceCon
   def apply(gcpConfigDefBuilder: GCPStorageSourceConfigDefBuilder): Either[Throwable, GCPStorageSourceConfig] = {
     val parsedValues = gcpConfigDefBuilder.getParsedValues
     for {
-      gcpConnectionSettings <- gcpConfigDefBuilder.getGcpConnectionSettings(gcpConfigDefBuilder.props)
+      gcpConnectionSettings <- gcpConfigDefBuilder.getGcpConnectionSettings(gcpConfigDefBuilder)
       sbo <- CloudSourceBucketOptions[GCPStorageFileMetadata](
         gcpConfigDefBuilder,
         gcpConfigDefBuilder.getPartitionExtractor(parsedValues),

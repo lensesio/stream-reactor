@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.config;
 
-import io.lenses.streamreactor.common.config.base.ConfigMap;
+import io.lenses.streamreactor.common.config.base.MapConnectConfig;
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import lombok.val;
@@ -45,7 +45,7 @@ class GCPSettingsTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideRetryConfigData")
     void testHttpRetryConfig(String testName, Object retries, Object interval, RetryConfig expected) {
-        val configMap = new ConfigMap(Map.of(
+        val configMap = new MapConnectConfig(Map.of(
                 "connect.gcpstorage.http.max.retries", retries,
                 "connect.gcpstorage.http.retry.interval", interval
         ));

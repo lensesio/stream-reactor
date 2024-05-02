@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.config;
 
-import io.lenses.streamreactor.common.config.base.ConfigMap;
+import io.lenses.streamreactor.common.config.base.ConnectConfig;
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig;
@@ -120,19 +120,19 @@ public class GCPSettings {
 
   }
 
-  public GCPConnectionConfig parseFromConfig(ConfigMap configMap) {
+  public GCPConnectionConfig parseFromConfig(ConnectConfig connectConfig) {
       return new GCPConnectionConfig(
-              configMap.getString(gcpProjectId).orElse(null),
-              configMap.getString(gcpQuotaProjectId).orElse(null),
-              authModeSettings.parseFromConfig(configMap),
-              configMap.getString(host).orElse(null),
+              connectConfig.getString(gcpProjectId).orElse(null),
+              connectConfig.getString(gcpQuotaProjectId).orElse(null),
+              authModeSettings.parseFromConfig(connectConfig),
+              connectConfig.getString(host).orElse(null),
               new RetryConfig(
-                      configMap.getInt(httpNbrOfRetries).orElse(HTTP_NUMBER_OF_RETIRES_DEFAULT),
-                      configMap.getLong(httpErrorRetryInterval).orElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT)
+                      connectConfig.getInt(httpNbrOfRetries).orElse(HTTP_NUMBER_OF_RETIRES_DEFAULT),
+                      connectConfig.getLong(httpErrorRetryInterval).orElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT)
                       ),
               new HttpTimeoutConfig(
-                      configMap.getLong(httpSocketTimeout).orElse(null),
-                      configMap.getLong(httpConnectionTimeout).orElse(null)
+                      connectConfig.getLong(httpSocketTimeout).orElse(null),
+                      connectConfig.getLong(httpConnectionTimeout).orElse(null)
                       )
               );
 
