@@ -15,19 +15,16 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import io.lenses.streamreactor.common.errors.ErrorPolicy
-import io.lenses.streamreactor.common.errors.ErrorPolicyEnum
-import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
 import enumeratum.Enum
 import enumeratum.EnumEntry
+import io.lenses.streamreactor.common.config.base.RetryConfig
+import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getBoolean
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getInt
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getLong
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getPassword
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getString
-import io.lenses.streamreactor.connect.cloud.common.config.RetryConfig
-import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudConnectionConfig
 
 import scala.collection.immutable
 
@@ -54,12 +51,7 @@ object S3ConnectionConfig {
     ),
     getString(props, CUSTOM_ENDPOINT),
     getBoolean(props, ENABLE_VIRTUAL_HOST_BUCKETS).getOrElse(false),
-    getErrorPolicy(props),
-    RetryConfig(
-      getInt(props, NBR_OF_RETRIES).getOrElse(NBR_OF_RETIRES_DEFAULT),
-      getLong(props, ERROR_RETRY_INTERVAL).getOrElse(ERROR_RETRY_INTERVAL_DEFAULT),
-    ),
-    RetryConfig(
+    new RetryConfig(
       getInt(props, HTTP_NBR_OF_RETRIES).getOrElse(HTTP_NBR_OF_RETIRES_DEFAULT),
       getLong(props, HTTP_ERROR_RETRY_INTERVAL).getOrElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
     ),
@@ -71,11 +63,6 @@ object S3ConnectionConfig {
       getInt(props, POOL_MAX_CONNECTIONS),
     ),
   )
-
-  private def getErrorPolicy(props: Map[String, _]) =
-    ErrorPolicy(
-      ErrorPolicyEnum.withName(getString(props, ERROR_POLICY).map(_.toUpperCase()).getOrElse(ERROR_POLICY_DEFAULT)),
-    )
 }
 
 case class HttpTimeoutConfig(socketTimeout: Option[Int], connectionTimeout: Option[Long])
@@ -94,9 +81,7 @@ case class S3ConnectionConfig(
   authMode:                 AuthMode,
   customEndpoint:           Option[String]               = None,
   enableVirtualHostBuckets: Boolean                      = false,
-  errorPolicy:              ErrorPolicy                  = ThrowErrorPolicy(),
-  connectorRetryConfig:     RetryConfig                  = RetryConfig(NBR_OF_RETIRES_DEFAULT, ERROR_RETRY_INTERVAL_DEFAULT),
-  httpRetryConfig:          RetryConfig                  = RetryConfig(HTTP_NBR_OF_RETIRES_DEFAULT, HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
+  httpRetryConfig:          RetryConfig                  = new RetryConfig(HTTP_NBR_OF_RETIRES_DEFAULT, HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
   timeouts:                 HttpTimeoutConfig            = HttpTimeoutConfig(None, None),
   connectionPoolConfig:     Option[ConnectionPoolConfig] = Option.empty,
-) extends CloudConnectionConfig
+) extends ConnectionConfig

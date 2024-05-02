@@ -17,6 +17,9 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxOptionId
+import io.lenses.streamreactor.common.config.base.RetryConfig
+import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.errors.ErrorPolicyEnum
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
@@ -57,6 +60,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.time.Instant
+
 import scala.jdk.CollectionConverters._
 
 class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
@@ -103,7 +107,9 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       offsetSeekerOptions = OffsetSeekerOptions(5),
       compressionCodec,
-      batchDelete = true,
+      batchDelete          = true,
+      errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig = new RetryConfig(1, 1L),
     )
 
     val sink   = writerManagerCreator.from(config)
@@ -164,7 +170,9 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       offsetSeekerOptions = OffsetSeekerOptions(5),
       compressionCodec,
-      batchDelete = true,
+      batchDelete          = true,
+      errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig = new RetryConfig(1, 1L),
     )
 
     val sink = writerManagerCreator.from(config)
@@ -229,7 +237,9 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       offsetSeekerOptions = OffsetSeekerOptions(5),
       compressionCodec,
-      batchDelete = true,
+      batchDelete          = true,
+      errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig = new RetryConfig(1, 1L),
     )
 
     val sink = writerManagerCreator.from(config)
@@ -300,7 +310,9 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       ),
       offsetSeekerOptions = OffsetSeekerOptions(5),
       compressionCodec,
-      batchDelete = true,
+      batchDelete          = true,
+      errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
+      connectorRetryConfig = new RetryConfig(1, 1L),
     )
 
     val sink   = writerManagerCreator.from(config)

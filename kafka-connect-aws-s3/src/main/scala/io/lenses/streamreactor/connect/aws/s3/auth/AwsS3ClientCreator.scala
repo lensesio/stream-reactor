@@ -48,9 +48,9 @@ object AwsS3ClientCreator extends ClientCreator[S3ConnectionConfig, S3Client] {
       retryPolicy <- Try {
         RetryPolicy
           .builder()
-          .numRetries(config.httpRetryConfig.numberOfRetries)
+          .numRetries(config.httpRetryConfig.getRetryLimit)
           .backoffStrategy(
-            FixedDelayBackoffStrategy.create(Duration.ofMillis(config.httpRetryConfig.errorRetryInterval)),
+            FixedDelayBackoffStrategy.create(Duration.ofMillis(config.httpRetryConfig.getRetryIntervalMillis)),
           )
           .build()
       }.toEither

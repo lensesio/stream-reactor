@@ -59,7 +59,7 @@ object DatalakeClientCreator extends ClientCreator[AzureConnectionConfig, DataLa
       httpClientOptions.setMaximumConnectionPoolSize(cpc.maxConnections)
     }
     val configuration = new ConfigurationBuilder().putProperty(Configuration.PROPERTY_AZURE_REQUEST_RETRY_COUNT,
-                                                               config.httpRetryConfig.numberOfRetries.toString,
+                                                               config.httpRetryConfig.getRetryLimit.toString,
     ).build()
     httpClientOptions.setConfiguration(configuration)
     HttpClient.createDefault(httpClientOptions)

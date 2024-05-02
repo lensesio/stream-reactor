@@ -25,7 +25,14 @@ import java.nio.file.Files
 import scala.util.Try
 
 trait S3ProxyContainerTest
-    extends CloudPlatformEmulatorSuite[S3FileMetadata, AwsS3StorageInterface, S3SinkConfig, S3Client, S3SinkTask]
+    extends CloudPlatformEmulatorSuite[
+      S3FileMetadata,
+      AwsS3StorageInterface,
+      S3SinkConfig,
+      S3ConnectionConfig,
+      S3Client,
+      S3SinkTask,
+    ]
     with TaskIndexKey
     with LazyLogging {
 

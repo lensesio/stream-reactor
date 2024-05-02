@@ -39,11 +39,16 @@ import GCPConfigSettings.KCQL_DOC
 import GCPConfigSettings.NBR_OF_RETIRES_DEFAULT
 import GCPConfigSettings.NBR_OF_RETRIES
 import GCPConfigSettings.NBR_OF_RETRIES_DOC
+import io.lenses.streamreactor.connect.gcp.common.config.AuthModeSettings
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
-trait CommonConfigDef extends CompressionCodecConfigKeys with AuthModeSettingsConfigKeys {
+trait CommonConfigDef extends CompressionCodecConfigKeys {
+
+  private val authModeSettingsConfigKeys = new AuthModeSettings(javaConnectorPrefix)
+
+  import authModeSettingsConfigKeys._
 
   def config: ConfigDef = {
     val conf = new ConfigDef()

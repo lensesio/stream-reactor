@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConnectionConfig
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
@@ -30,7 +31,12 @@ import software.amazon.awssdk.services.s3.S3Client
 object S3SinkTask {}
 
 class S3SinkTask
-    extends CloudSinkTask[S3FileMetadata, S3SinkConfig, S3Client](
+    extends CloudSinkTask[
+      S3FileMetadata,
+      S3SinkConfig,
+      S3ConnectionConfig,
+      S3Client,
+    ](
       S3ConfigSettings.CONNECTOR_PREFIX,
       "/aws-s3-sink-ascii.txt",
       new JarManifest(S3SinkTask.getClass.getProtectionDomain.getCodeSource.getLocation),
@@ -45,8 +51,8 @@ class S3SinkTask
   ): AwsS3StorageInterface =
     new AwsS3StorageInterface(connectorTaskId, cloudClient, config.batchDelete)
 
-  override def createClient(config: S3SinkConfig): Either[Throwable, S3Client] =
-    AwsS3ClientCreator.make(config.connectionConfig)
+  override def createClient(config: S3ConnectionConfig): Either[Throwable, S3Client] =
+    AwsS3ClientCreator.make(config)
 
   override def convertPropsToConfig(
     connectorTaskId: ConnectorTaskId,

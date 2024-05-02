@@ -3,6 +3,7 @@ package io.lenses.streamreactor.connect.cloud.common.sink
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toBifunctorOps
+import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
@@ -15,11 +16,12 @@ import org.scalatest.flatspec.AnyFlatSpec
 import scala.util.Try
 
 trait CloudPlatformEmulatorSuite[
-  SM <: FileMetadata,
-  SI <: StorageInterface[SM],
-  CSC <: CloudSinkConfig,
-  C,
-  T <: CloudSinkTask[SM, CSC, C],
+  MD <: FileMetadata,
+  SI <: StorageInterface[MD],
+  C <: CloudSinkConfig[CC],
+  CC <: ConnectionConfig,
+  CT,
+  T <: CloudSinkTask[MD, C, CC, CT],
 ] extends AnyFlatSpec
     with BeforeAndAfter
     with BeforeAndAfterAll
@@ -34,17 +36,17 @@ trait CloudPlatformEmulatorSuite[
 
   var maybeStorageInterface: Option[SI] = None
 
-  var maybeClient: Option[C] = None
+  var maybeClient: Option[CT] = None
 
   implicit def storageInterface: SI = maybeStorageInterface.getOrElse(fail("Unset SI"))
-  def client:                    C  = maybeClient.getOrElse(fail("Unset client"))
+  def client:                    CT = maybeClient.getOrElse(fail("Unset client"))
 
-  def createClient(): Either[Throwable, C]
-  def createStorageInterface(client: C): Either[Throwable, SI]
+  def createClient(): Either[Throwable, CT]
+  def createStorageInterface(client: CT): Either[Throwable, SI]
 
   val defaultProps: Map[String, String]
 
-  def createBucket(client: C): Either[Throwable, Unit]
+  def createBucket(client: CT): Either[Throwable, Unit]
 
   override protected def beforeAll(): Unit = {
 

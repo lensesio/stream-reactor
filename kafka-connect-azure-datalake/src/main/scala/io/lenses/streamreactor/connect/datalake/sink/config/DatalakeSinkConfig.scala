@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.datalake.sink.config
 
+import io.lenses.streamreactor.common.config.base.RetryConfig
+import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.config.traits.PropsToConfigConverter
@@ -29,7 +31,7 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
 
   def fromProps(
     connectorTaskId: ConnectorTaskId,
-    props:           Map[String, String],
+    props:           Map[String, AnyRef],
   )(
     implicit
     cloudLocationValidator: CloudLocationValidator,
@@ -54,13 +56,17 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
       sinkBucketOptions,
       offsetSeekerOptions,
       s3ConfigDefBuilder.getCompressionCodec(),
+      s3ConfigDefBuilder.getErrorPolicyOrDefault,
+      s3ConfigDefBuilder.getRetryConfig,
     )
 
 }
 
 case class DatalakeSinkConfig(
-  connectionConfig:    AzureConnectionConfig,
-  bucketOptions:       Seq[CloudSinkBucketOptions] = Seq.empty,
-  offsetSeekerOptions: OffsetSeekerOptions,
-  compressionCodec:    CompressionCodec,
-) extends CloudSinkConfig
+  connectionConfig:     AzureConnectionConfig,
+  bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
+  offsetSeekerOptions:  OffsetSeekerOptions,
+  compressionCodec:     CompressionCodec,
+  errorPolicy:          ErrorPolicy,
+  connectorRetryConfig: RetryConfig,
+) extends CloudSinkConfig[AzureConnectionConfig]

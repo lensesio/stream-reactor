@@ -32,26 +32,6 @@ object S3ConfigSettings {
   val KCQL_DOC =
     "Contains the Kafka Connect Query Language describing the flow from Apache Kafka topics to Apache Hive tables."
 
-  val ERROR_POLICY = s"$CONNECTOR_PREFIX.$ERROR_POLICY_PROP_SUFFIX"
-  val ERROR_POLICY_DOC: String =
-    """
-      |Specifies the action to be taken if an error occurs while inserting the data.
-      | There are three available options:
-      |    NOOP - the error is swallowed
-      |    THROW - the error is allowed to propagate.
-      |    RETRY - The exception causes the Connect framework to retry the message. The number of retries is set by connect.s3.max.retries.
-      |All errors will be logged automatically, even if the code swallows them.
-    """.stripMargin
-  val ERROR_POLICY_DEFAULT = "THROW"
-
-  val ERROR_RETRY_INTERVAL     = s"$CONNECTOR_PREFIX.$RETRY_INTERVAL_PROP_SUFFIX"
-  val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
-  val ERROR_RETRY_INTERVAL_DEFAULT: Long = 60000L
-
-  val NBR_OF_RETRIES     = s"$CONNECTOR_PREFIX.$MAX_RETRIES_PROP_SUFFIX"
-  val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
-  val NBR_OF_RETIRES_DEFAULT: Int = 20
-
   val HTTP_ERROR_RETRY_INTERVAL = s"$CONNECTOR_PREFIX.http.$RETRY_INTERVAL_PROP_SUFFIX"
   val HTTP_ERROR_RETRY_INTERVAL_DOC =
     "If greater than zero, used to determine the delay after which to retry the http request in milliseconds.  Based on an exponential backoff algorithm."

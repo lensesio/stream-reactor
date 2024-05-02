@@ -15,12 +15,15 @@
  */
 package io.lenses.streamreactor.common.config.base.traits
 
-import java.util
+import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix
 
+import java.util
 import org.apache.kafka.common.config.types.Password
 
 trait WithConnectorPrefix {
   def connectorPrefix: String
+
+  val javaConnectorPrefix = new ConnectorPrefix(connectorPrefix)
 
 }
 trait BaseSettings extends WithConnectorPrefix {
@@ -28,6 +31,8 @@ trait BaseSettings extends WithConnectorPrefix {
   def getString(key: String): String
 
   def getInt(key: String): Integer
+
+  def getLong(key: String): java.lang.Long
 
   def getBoolean(key: String): java.lang.Boolean
 
