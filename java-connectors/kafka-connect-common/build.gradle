@@ -1,4 +1,5 @@
 project(":kafka-connect-common") {
+
     test {
         maxParallelForks = 1
     }

@@ -1,5 +1,6 @@
 project(":kafka-connect-query-language") {
     apply plugin: 'antlr'
+    apply plugin: 'com.diffplug.spotless'
 
     test {
         maxParallelForks = 1
@@ -50,7 +51,7 @@ project(":kafka-connect-query-language") {
     }
 
     //order should be: generateGrammarSource -> updateLicenseMain -> compileJava
-    checkLicenseMain.dependsOn("generateGrammarSource")
+    //spotlessApply.dependsOn("generateGrammarSource")
 
     task compile(dependsOn: 'compileJava')
     task fatJarNoTest(dependsOn: 'shadowJar')

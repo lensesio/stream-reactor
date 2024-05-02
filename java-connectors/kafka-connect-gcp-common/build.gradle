@@ -1,0 +1,24 @@
+project(":kafka-connect-gcp-common") {
+
+    apply plugin: 'com.diffplug.spotless'
+
+    test {
+        maxParallelForks = 1
+    }
+
+    ext {
+        gcpCloudVersion = "2.37.0"
+    }
+
+    dependencies {
+        implementation project(':kafka-connect-common')
+
+        //apache kafka
+        api group: 'org.apache.kafka', name: 'connect-json', version: kafkaVersion
+        api group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
+
+        //gcp
+        implementation group: 'com.google.cloud', name: 'google-cloud-core', version: gcpCloudVersion
+        implementation group: 'com.google.cloud', name: 'google-cloud-core-http', version: gcpCloudVersion
+    }
+}
