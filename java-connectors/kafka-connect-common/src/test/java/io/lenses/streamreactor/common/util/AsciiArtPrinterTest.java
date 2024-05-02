@@ -36,25 +36,27 @@ class AsciiArtPrinterTest {
   void setUp() {
     logWatcher = new ListAppender<>();
     logWatcher.start();
-    ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(AsciiArtPrinter.class)).addAppender(logWatcher);
+    ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(AsciiArtPrinter.class))
+        .addAppender(logWatcher);
   }
 
   @AfterEach
   void teardown() {
-    ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(AsciiArtPrinter.class)).detachAndStopAllAppenders();
+    ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(AsciiArtPrinter.class))
+        .detachAndStopAllAppenders();
   }
 
   @Test
   void printAsciiHeaderShouldPrintAsciiAndJarManifestIfBothValid() {
-    //given
+    // given
     JarManifest jarManifest = mock(JarManifest.class);
     when(jarManifest.buildManifestString()).thenReturn(SOME_MANIFEST_DATA);
     String testingAsciiArt = "/testingAsciiArt.txt";
 
-    //when
+    // when
     AsciiArtPrinter.printAsciiHeader(jarManifest, testingAsciiArt);
 
-    //when
+    // when
     verify(jarManifest).buildManifestString();
     assertEquals(2, logWatcher.list.size());
     assertTrue(logWatcher.list.get(0).getFormattedMessage().startsWith("###########"));
@@ -63,15 +65,15 @@ class AsciiArtPrinterTest {
 
   @Test
   void printAsciiHeaderShouldPrintOnlyJarManifestIfCouldntMakeInpurStreamToAscii() {
-    //given
+    // given
     JarManifest jarManifest = mock(JarManifest.class);
     when(jarManifest.buildManifestString()).thenReturn(SOME_MANIFEST_DATA);
     String testingAsciiArt = "/testingAsciiArta.txt";
 
-    //when
+    // when
     AsciiArtPrinter.printAsciiHeader(jarManifest, testingAsciiArt);
 
-    //when
+    // when
     verify(jarManifest).buildManifestString();
     assertEquals(1, logWatcher.list.size());
     assertTrue(logWatcher.list.get(0).getFormattedMessage().equals(SOME_MANIFEST_DATA));

@@ -25,7 +25,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
  */
 public interface ProducerProvider<K, V> {
 
-  BlockingQueueProducer createProducer(AzureEventHubsSourceConfig azureEventHubsSourceConfig,
+  BlockingQueueProducer createProducer(
+      AzureEventHubsSourceConfig azureEventHubsSourceConfig,
       BlockingQueue<ConsumerRecords<byte[], byte[]>> recordBlockingQueue,
       Map<String, String> inputToOutputTopics);
 }

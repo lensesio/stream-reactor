@@ -32,20 +32,25 @@ class KafkaByteBlockingQueuedProducerTest {
   private static final String CLIENT_ID = "clientId";
   private static Consumer consumer = mock(Consumer.class);
 
-  KafkaByteBlockingQueuedProducer testObj = new KafkaByteBlockingQueuedProducer(
-      mock(TopicPartitionOffsetProvider.class), mock(BlockingQueue.class),
-      consumer, KeyValueTypes.DEFAULT_TYPES,
-      CLIENT_ID, Sets.newSet("topic"), false);
+  KafkaByteBlockingQueuedProducer testObj =
+      new KafkaByteBlockingQueuedProducer(
+          mock(TopicPartitionOffsetProvider.class),
+          mock(BlockingQueue.class),
+          consumer,
+          KeyValueTypes.DEFAULT_TYPES,
+          CLIENT_ID,
+          Sets.newSet("topic"),
+          false);
 
   @Test
   void closeShouldBeDelegatedToKafkaConsumer() {
-    //given
+    // given
     Duration tenSeconds = Duration.of(10, ChronoUnit.SECONDS);
 
-    //when
+    // when
     testObj.stop(tenSeconds);
 
-    //then
+    // then
     verify(consumer).close(eq(tenSeconds));
   }
 }

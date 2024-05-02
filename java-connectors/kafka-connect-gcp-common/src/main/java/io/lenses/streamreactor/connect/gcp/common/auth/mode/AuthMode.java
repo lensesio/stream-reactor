@@ -16,7 +16,6 @@
 package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
 import com.google.auth.Credentials;
-
 import java.io.IOException;
 
 /**
@@ -25,12 +24,11 @@ import java.io.IOException;
  */
 public interface AuthMode {
 
-    /**
-     * Retrieves the GCP credentials required for authentication.
-     *
-     * @return The GCP {@link Credentials}.
-     * @throws IOException If an I/O error occurs while obtaining credentials.
-     */
-    Credentials getCredentials() throws IOException;
+  /**
+   * Retrieves the GCP credentials required for authentication.
+   *
+   * @return The GCP {@link Credentials}.
+   * @throws IOException If an I/O error occurs while obtaining credentials.
+   */
+  Credentials getCredentials() throws IOException;
 }
-

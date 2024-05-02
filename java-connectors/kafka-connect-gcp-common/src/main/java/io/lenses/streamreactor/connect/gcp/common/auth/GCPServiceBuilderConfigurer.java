@@ -21,12 +21,12 @@ import com.google.cloud.ServiceOptions;
 import com.google.cloud.TransportOptions;
 import com.google.cloud.http.HttpTransportOptions;
 import io.lenses.streamreactor.common.config.base.RetryConfig;
+import java.io.IOException;
+import java.util.Optional;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.threeten.bp.Duration;
 
-import java.io.IOException;
-import java.util.Optional;
 /**
  * Utility class for configuring generic GCP service clients using a {@link GCPConnectionConfig}.
  */
@@ -47,15 +47,14 @@ public class GCPServiceBuilderConfigurer {
   public static <
           X extends Service<Y>,
           Y extends ServiceOptions<X, Y>,
-          B extends ServiceOptions.Builder<X, Y, B>
-          >
-  B configure(GCPConnectionConfig config, B builder) throws IOException {
+          B extends ServiceOptions.Builder<X, Y, B>>
+      B configure(GCPConnectionConfig config, B builder) throws IOException {
 
     Optional.ofNullable(config.getHost()).ifPresent(builder::setHost);
 
-    Optional.ofNullable(config.getProjectId()).ifPresent(builder :: setProjectId);
+    Optional.ofNullable(config.getProjectId()).ifPresent(builder::setProjectId);
 
-    Optional.ofNullable(config.getQuotaProjectId()).ifPresent(builder :: setQuotaProjectId);
+    Optional.ofNullable(config.getQuotaProjectId()).ifPresent(builder::setQuotaProjectId);
 
     val authMode = config.getAuthMode();
 
@@ -68,17 +67,15 @@ public class GCPServiceBuilderConfigurer {
     return builder;
   }
 
-  private static Optional<TransportOptions> createTransportOptions(HttpTimeoutConfig timeoutConfig) {
+  private static Optional<TransportOptions> createTransportOptions(
+      HttpTimeoutConfig timeoutConfig) {
     val connectionTimeout = Optional.ofNullable(timeoutConfig.getConnectionTimeoutMillis());
     val socketTimeout = Optional.ofNullable(timeoutConfig.getSocketTimeoutMillis());
     if (connectionTimeout.isPresent() || socketTimeout.isPresent()) {
       HttpTransportOptions.Builder httpTransportOptionsBuilder = HttpTransportOptions.newBuilder();
-      socketTimeout.ifPresent(sock ->
-              httpTransportOptionsBuilder.setReadTimeout(sock.intValue())
-      );
-      connectionTimeout.ifPresent(conn ->
-              httpTransportOptionsBuilder.setConnectTimeout(conn.intValue())
-      );
+      socketTimeout.ifPresent(sock -> httpTransportOptionsBuilder.setReadTimeout(sock.intValue()));
+      connectionTimeout.ifPresent(
+          conn -> httpTransportOptionsBuilder.setConnectTimeout(conn.intValue()));
       return Optional.of(httpTransportOptionsBuilder.build());
     }
     return Optional.empty();
@@ -87,9 +84,9 @@ public class GCPServiceBuilderConfigurer {
   private static RetrySettings createRetrySettings(RetryConfig httpRetryConfig) {
 
     return RetrySettings.newBuilder()
-            .setInitialRetryDelay(Duration.ofMillis(httpRetryConfig.getRetryIntervalMillis()))
-            .setMaxRetryDelay(Duration.ofMillis(httpRetryConfig.getRetryIntervalMillis() * 5))
-            .setMaxAttempts(httpRetryConfig.getRetryLimit())
-            .build();
+        .setInitialRetryDelay(Duration.ofMillis(httpRetryConfig.getRetryIntervalMillis()))
+        .setMaxRetryDelay(Duration.ofMillis(httpRetryConfig.getRetryIntervalMillis() * 5))
+        .setMaxAttempts(httpRetryConfig.getRetryLimit())
+        .build();
   }
 }

@@ -36,11 +36,11 @@ class AzureConsumerRebalancerListenerTest {
   private final boolean SEEK_TO_LATEST = true;
 
   @Test
-  void onPartitionsAssignedShouldSeekToBeginningIfOffsetProviderProvidesEmptyOffsetAndSeekingToEarliest() {
-    //given
+  void
+      onPartitionsAssignedShouldSeekToBeginningIfOffsetProviderProvidesEmptyOffsetAndSeekingToEarliest() {
+    // given
     Consumer<String, String> stringKafkaConsumer = mock(Consumer.class);
-    TopicPartitionOffsetProvider offsetProvider = mock(
-        TopicPartitionOffsetProvider.class);
+    TopicPartitionOffsetProvider offsetProvider = mock(TopicPartitionOffsetProvider.class);
     AzureConsumerRebalancerListener testObj =
         new AzureConsumerRebalancerListener(offsetProvider, stringKafkaConsumer, SEEK_TO_EARLIEST);
     String topic = "topic1";
@@ -49,10 +49,10 @@ class AzureConsumerRebalancerListenerTest {
     when(topicPartition1.topic()).thenReturn(topic);
     when(topicPartition1.partition()).thenReturn(partition);
 
-    //when
+    // when
     testObj.onPartitionsAssigned(Collections.singletonList(topicPartition1));
 
-    //then
+    // then
     verify(topicPartition1, times(1)).topic();
     verify(topicPartition1, times(1)).partition();
     verify(stringKafkaConsumer).seekToBeginning(anyList());
@@ -60,10 +60,9 @@ class AzureConsumerRebalancerListenerTest {
 
   @Test
   void onPartitionsAssignedShouldSeekToEndIfOffsetProviderProvidesEmptyOffsetAndSeekingToLatest() {
-    //given
+    // given
     Consumer<String, String> stringKafkaConsumer = mock(Consumer.class);
-    TopicPartitionOffsetProvider offsetProvider = mock(
-        TopicPartitionOffsetProvider.class);
+    TopicPartitionOffsetProvider offsetProvider = mock(TopicPartitionOffsetProvider.class);
     AzureConsumerRebalancerListener testObj =
         new AzureConsumerRebalancerListener(offsetProvider, stringKafkaConsumer, SEEK_TO_LATEST);
     String topic = "topic1";
@@ -72,10 +71,10 @@ class AzureConsumerRebalancerListenerTest {
     when(topicPartition1.topic()).thenReturn(topic);
     when(topicPartition1.partition()).thenReturn(partition);
 
-    //when
+    // when
     testObj.onPartitionsAssigned(Collections.singletonList(topicPartition1));
 
-    //then
+    // then
     verify(topicPartition1, times(1)).topic();
     verify(topicPartition1, times(1)).partition();
     verify(stringKafkaConsumer).seekToEnd(anyList());
@@ -83,11 +82,10 @@ class AzureConsumerRebalancerListenerTest {
 
   @Test
   void onPartitionsAssignedShouldSeekToSpecificOffsetIfOffsetProviderProvidesIt() {
-    //given
+    // given
     Long specificOffset = 100L;
     Consumer<String, String> stringKafkaConsumer = mock(Consumer.class);
-    TopicPartitionOffsetProvider offsetProvider = mock(
-        TopicPartitionOffsetProvider.class);
+    TopicPartitionOffsetProvider offsetProvider = mock(TopicPartitionOffsetProvider.class);
     when(offsetProvider.getOffset(any(AzureTopicPartitionKey.class)))
         .thenReturn(Optional.of(new AzureOffsetMarker(specificOffset)));
     AzureConsumerRebalancerListener testObj =
@@ -98,10 +96,10 @@ class AzureConsumerRebalancerListenerTest {
     when(topicPartition1.topic()).thenReturn(topic);
     when(topicPartition1.partition()).thenReturn(partition);
 
-    //when
+    // when
     testObj.onPartitionsAssigned(Collections.singletonList(topicPartition1));
 
-    //then
+    // then
     verify(topicPartition1, times(1)).topic();
     verify(topicPartition1, times(1)).partition();
     verify(stringKafkaConsumer).seek(topicPartition1, specificOffset);

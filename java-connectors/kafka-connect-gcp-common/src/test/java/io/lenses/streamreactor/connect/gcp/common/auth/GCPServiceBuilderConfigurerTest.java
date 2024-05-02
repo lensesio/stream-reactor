@@ -15,6 +15,9 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.*;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.NoCredentials;
@@ -22,117 +25,122 @@ import com.google.cloud.ServiceOptions;
 import com.google.cloud.http.HttpTransportOptions;
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode;
+import java.io.IOException;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.threeten.bp.Duration;
 
-import java.io.IOException;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.*;
-
 class GCPServiceBuilderConfigurerTest {
 
-    private GCPConnectionConfig.GCPConnectionConfigBuilder configBuilder;
+  private GCPConnectionConfig.GCPConnectionConfigBuilder configBuilder;
 
-    @BeforeEach
-    public void setUp() {
-        configBuilder = GCPConnectionConfig.builder()
-                .authMode(new NoAuthMode());
-    }
+  @BeforeEach
+  public void setUp() {
+    configBuilder = GCPConnectionConfig.builder().authMode(new NoAuthMode());
+  }
 
-    @Test
-    void testConfigure_withHostAndProjectIdConfigured() throws IOException {
-        val config = configBuilder
-                .host("example.com")
-                .projectId("test-project")
-                .build();
+  @Test
+  void testConfigure_withHostAndProjectIdConfigured() throws IOException {
+    val config = configBuilder.host("example.com").projectId("test-project").build();
 
-        val builder = createMockBuilder();
+    val builder = createMockBuilder();
 
-        GCPServiceBuilderConfigurer.configure(config, builder);
+    GCPServiceBuilderConfigurer.configure(config, builder);
 
-        assertHostAndProjectIdConfigured(builder, "example.com", "test-project");
-    }
+    assertHostAndProjectIdConfigured(builder, "example.com", "test-project");
+  }
 
-    @Test
-    void testConfigure_withRetrySettingsConfigured() throws IOException {
-        RetryConfig retryConfig = RetryConfig.builder().retryIntervalMillis(1000).retryLimit(3).build();
+  @Test
+  void testConfigure_withRetrySettingsConfigured() throws IOException {
+    RetryConfig retryConfig = RetryConfig.builder().retryIntervalMillis(1000).retryLimit(3).build();
 
-        val config = configBuilder.httpRetryConfig(retryConfig)
-                .build();
+    val config = configBuilder.httpRetryConfig(retryConfig).build();
 
-        val builder = createMockBuilder();
+    val builder = createMockBuilder();
 
-        GCPServiceBuilderConfigurer.configure(config, builder);
+    GCPServiceBuilderConfigurer.configure(config, builder);
 
-        assertRetrySettingsConfigured(builder, 1000, 5000, 3);
-    }
+    assertRetrySettingsConfigured(builder, 1000, 5000, 3);
+  }
 
-    @Test
-    void testConfigure_withTransportOptionsConfigured() throws IOException {
-        val timeoutConfig = HttpTimeoutConfig.builder()
-                        .socketTimeoutMillis(5000L)
-                                .connectionTimeoutMillis(3000L)
-                                        .build();
+  @Test
+  void testConfigure_withTransportOptionsConfigured() throws IOException {
+    val timeoutConfig =
+        HttpTimeoutConfig.builder()
+            .socketTimeoutMillis(5000L)
+            .connectionTimeoutMillis(3000L)
+            .build();
 
-        val config = configBuilder.timeouts(timeoutConfig).build();
+    val config = configBuilder.timeouts(timeoutConfig).build();
 
-        val builder = createMockBuilder();
+    val builder = createMockBuilder();
 
-        GCPServiceBuilderConfigurer.configure(config, builder);
+    GCPServiceBuilderConfigurer.configure(config, builder);
 
-        assertTransportOptionsConfigured(builder, 5000, 3000);
-    }
+    assertTransportOptionsConfigured(builder, 5000, 3000);
+  }
 
-    @Test
-    void testConfigure_withEmptyConfig() throws IOException {
-        val builder = createMockBuilder();
+  @Test
+  void testConfigure_withEmptyConfig() throws IOException {
+    val builder = createMockBuilder();
 
-        val config = configBuilder.build();
+    val config = configBuilder.build();
 
-        GCPServiceBuilderConfigurer.configure(config, builder);
+    GCPServiceBuilderConfigurer.configure(config, builder);
 
-        // Ensure that no properties are set if configuration is empty
-        verify(builder, never()).setHost(anyString());
-        verify(builder, never()).setProjectId(anyString());
-        verify(builder, times(1)).setRetrySettings(RetrySettings.newBuilder().setInitialRetryDelay(Duration.ofMillis(50)).setMaxRetryDelay(Duration.ofMillis(250)).setMaxAttempts(5).build());
-        verify(builder, times(1)).setCredentials(NoCredentials.getInstance());
-        verify(builder, never()).setTransportOptions(any());
-    }
+    // Ensure that no properties are set if configuration is empty
+    verify(builder, never()).setHost(anyString());
+    verify(builder, never()).setProjectId(anyString());
+    verify(builder, times(1))
+        .setRetrySettings(
+            RetrySettings.newBuilder()
+                .setInitialRetryDelay(Duration.ofMillis(50))
+                .setMaxRetryDelay(Duration.ofMillis(250))
+                .setMaxAttempts(5)
+                .build());
+    verify(builder, times(1)).setCredentials(NoCredentials.getInstance());
+    verify(builder, never()).setTransportOptions(any());
+  }
 
-    private TestSvcServiceOptionsBuilder createMockBuilder() {
-        return mock(TestSvcServiceOptionsBuilder.class);
-    }
+  private TestSvcServiceOptionsBuilder createMockBuilder() {
+    return mock(TestSvcServiceOptionsBuilder.class);
+  }
 
-    private void assertHostAndProjectIdConfigured(ServiceOptions.Builder<?, ?, ?> builder, String expectedHost, String expectedProjectId) {
-        verify(builder, times(1)).setHost(expectedHost);
-        verify(builder, times(1)).setProjectId(expectedProjectId);
-    }
+  private void assertHostAndProjectIdConfigured(
+      ServiceOptions.Builder<?, ?, ?> builder, String expectedHost, String expectedProjectId) {
+    verify(builder, times(1)).setHost(expectedHost);
+    verify(builder, times(1)).setProjectId(expectedProjectId);
+  }
 
-    private void assertRetrySettingsConfigured(ServiceOptions.Builder<?, ?, ?> builder, long expectedInitialRetryDelay, long expectedMaxRetryDelay, int expectedMaxAttempts) {
-        ArgumentCaptor<RetrySettings> retrySettingsCaptor = ArgumentCaptor.forClass(RetrySettings.class);
-        verify(builder).setRetrySettings(retrySettingsCaptor.capture());
+  private void assertRetrySettingsConfigured(
+      ServiceOptions.Builder<?, ?, ?> builder,
+      long expectedInitialRetryDelay,
+      long expectedMaxRetryDelay,
+      int expectedMaxAttempts) {
+    ArgumentCaptor<RetrySettings> retrySettingsCaptor =
+        ArgumentCaptor.forClass(RetrySettings.class);
+    verify(builder).setRetrySettings(retrySettingsCaptor.capture());
 
-        RetrySettings capturedRetrySettings = retrySettingsCaptor.getValue();
-        assertNotNull(capturedRetrySettings);
-        assertEquals(1000, capturedRetrySettings.getInitialRetryDelay().toMillis());
-        assertEquals(5000, capturedRetrySettings.getMaxRetryDelay().toMillis());
-        assertEquals(3, capturedRetrySettings.getMaxAttempts());
-    }
+    RetrySettings capturedRetrySettings = retrySettingsCaptor.getValue();
+    assertNotNull(capturedRetrySettings);
+    assertEquals(1000, capturedRetrySettings.getInitialRetryDelay().toMillis());
+    assertEquals(5000, capturedRetrySettings.getMaxRetryDelay().toMillis());
+    assertEquals(3, capturedRetrySettings.getMaxAttempts());
+  }
 
-    private void assertTransportOptionsConfigured(ServiceOptions.Builder<?, ?, ?> builder, int expectedReadTimeout, int expectedConnectTimeout) {
-        ArgumentCaptor<HttpTransportOptions> transportOptionsCaptor = ArgumentCaptor.forClass(HttpTransportOptions.class);
-        verify(builder).setTransportOptions(transportOptionsCaptor.capture());
+  private void assertTransportOptionsConfigured(
+      ServiceOptions.Builder<?, ?, ?> builder,
+      int expectedReadTimeout,
+      int expectedConnectTimeout) {
+    ArgumentCaptor<HttpTransportOptions> transportOptionsCaptor =
+        ArgumentCaptor.forClass(HttpTransportOptions.class);
+    verify(builder).setTransportOptions(transportOptionsCaptor.capture());
 
-        HttpTransportOptions capturedTransportOptions = transportOptionsCaptor.getValue();
-        assertNotNull(capturedTransportOptions);
-        assertEquals(5000, capturedTransportOptions.getReadTimeout());
-        assertEquals(3000, capturedTransportOptions.getConnectTimeout());
-    }
-
+    HttpTransportOptions capturedTransportOptions = transportOptionsCaptor.getValue();
+    assertNotNull(capturedTransportOptions);
+    assertEquals(5000, capturedTransportOptions.getReadTimeout());
+    assertEquals(3000, capturedTransportOptions.getConnectTimeout());
+  }
 }

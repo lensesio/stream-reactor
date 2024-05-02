@@ -52,92 +52,100 @@ class AzureEventHubsSourceTaskTest {
     testObj = new AzureEventHubsSourceTask(mockedJarManifest);
     logWatcher = new ListAppender<>();
     logWatcher.start();
-    ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(AzureEventHubsSourceTask.class)).addAppender(logWatcher);
+    ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(AzureEventHubsSourceTask.class))
+        .addAppender(logWatcher);
   }
 
   @AfterEach
   void teardown() {
-    ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(AzureEventHubsSourceTask.class)).detachAndStopAllAppenders();
+    ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(AzureEventHubsSourceTask.class))
+        .detachAndStopAllAppenders();
   }
 
   @Test
   void stopShouldCallStopOnController() {
-    //given
+    // given
     Duration thirtySeconds = Duration.ofSeconds(30);
-    EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
+    EventHubsKafkaConsumerController mockedController =
+        mock(EventHubsKafkaConsumerController.class);
     AzureEventHubsSourceConfig azureEventHubsSourceConfig = mock(AzureEventHubsSourceConfig.class);
     when(azureEventHubsSourceConfig.getInt(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT))
         .thenReturn(thirtySeconds.toSecondsPart());
     testObj.initialize(mockedController, azureEventHubsSourceConfig);
 
-    //when
+    // when
     testObj.stop();
 
-    //then
+    // then
     verify(mockedController, times(1)).close(thirtySeconds);
   }
 
   @Test
   void initializeShouldLog() {
-    //given
-    EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
+    // given
+    EventHubsKafkaConsumerController mockedController =
+        mock(EventHubsKafkaConsumerController.class);
     AzureEventHubsSourceConfig azureEventHubsSourceConfig = mock(AzureEventHubsSourceConfig.class);
     testObj.initialize(mockedController, azureEventHubsSourceConfig);
 
-    //when
+    // when
     testObj.stop();
 
-    //then
+    // then
     assertEquals(1, logWatcher.list.size());
-    assertEquals("AzureEventHubsSourceTask initialised.", logWatcher.list.get(0).getFormattedMessage());
+    assertEquals(
+        "AzureEventHubsSourceTask initialised.", logWatcher.list.get(0).getFormattedMessage());
   }
 
   @Test
   void pollShouldCallPollOnControllerAndReturnNullIfListIsEmpty() throws InterruptedException {
-    //given
+    // given
     AzureEventHubsSourceConfig azureEventHubsSourceConfig = mock(AzureEventHubsSourceConfig.class);
-    EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
+    EventHubsKafkaConsumerController mockedController =
+        mock(EventHubsKafkaConsumerController.class);
     testObj.initialize(mockedController, azureEventHubsSourceConfig);
     when(mockedController.poll(any(Duration.class))).thenReturn(Collections.emptyList());
 
-    //when
+    // when
     List<SourceRecord> poll = testObj.poll();
 
-    //then
+    // then
     assertNull(poll);
   }
 
   @Test
   void pollShouldCallPollOnControllerAndReturnListThatHasElements() throws InterruptedException {
-    //given
+    // given
     AzureEventHubsSourceConfig azureEventHubsSourceConfig = mock(AzureEventHubsSourceConfig.class);
-    EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
+    EventHubsKafkaConsumerController mockedController =
+        mock(EventHubsKafkaConsumerController.class);
     testObj.initialize(mockedController, azureEventHubsSourceConfig);
     SourceRecord mockedRecord = mock(SourceRecord.class);
     List<SourceRecord> sourceRecords = Collections.singletonList(mockedRecord);
     when(mockedController.poll(any(Duration.class))).thenReturn(sourceRecords);
 
-    //when
+    // when
     List<SourceRecord> poll = testObj.poll();
 
-    //then
+    // then
     assertNotNull(poll);
     assertIterableEquals(sourceRecords, poll);
   }
 
   @Test
   void getVersionShouldDelegateToJarManifestGetVersion() {
-    //given
+    // given
     AzureEventHubsSourceConfig azureEventHubsSourceConfig = mock(AzureEventHubsSourceConfig.class);
-    EventHubsKafkaConsumerController mockedController = mock(EventHubsKafkaConsumerController.class);
+    EventHubsKafkaConsumerController mockedController =
+        mock(EventHubsKafkaConsumerController.class);
     testObj.initialize(mockedController, azureEventHubsSourceConfig);
     final String SOME_VERSION = "SOME_VERSION";
     when(mockedJarManifest.getVersion()).thenReturn(SOME_VERSION);
 
-    //when
+    // when
     String version = testObj.version();
 
-    //then
+    // then
     assertEquals(SOME_VERSION, version);
     verify(mockedJarManifest, atMostOnce()).getVersion();
   }

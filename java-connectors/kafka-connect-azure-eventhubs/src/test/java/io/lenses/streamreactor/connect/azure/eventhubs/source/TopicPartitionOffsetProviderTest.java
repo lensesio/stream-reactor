@@ -33,77 +33,79 @@ import org.junit.jupiter.api.Test;
 class TopicPartitionOffsetProviderTest {
 
   @Test
-    void getOffsetShouldCallOffsetStorageReader() {
-      //given
-      OffsetStorageReader offsetStorageReader = mock(OffsetStorageReader.class);
-      TopicPartitionOffsetProvider topicPartitionOffsetProvider = new TopicPartitionOffsetProvider(
-          offsetStorageReader);
-      String topic = "some_topic";
-      Integer partition = 1;
+  void getOffsetShouldCallOffsetStorageReader() {
+    // given
+    OffsetStorageReader offsetStorageReader = mock(OffsetStorageReader.class);
+    TopicPartitionOffsetProvider topicPartitionOffsetProvider =
+        new TopicPartitionOffsetProvider(offsetStorageReader);
+    String topic = "some_topic";
+    Integer partition = 1;
 
-      //when
-      AzureTopicPartitionKey azureTopicPartitionKey = new AzureTopicPartitionKey(topic, partition);
-      topicPartitionOffsetProvider.getOffset(azureTopicPartitionKey);
+    // when
+    AzureTopicPartitionKey azureTopicPartitionKey = new AzureTopicPartitionKey(topic, partition);
+    topicPartitionOffsetProvider.getOffset(azureTopicPartitionKey);
 
-      //then
-      verify(offsetStorageReader).offset(azureTopicPartitionKey);
-    }
+    // then
+    verify(offsetStorageReader).offset(azureTopicPartitionKey);
+  }
 
-    @Test
-    void getOffsetShouldReturnEmptyOptionalIfCommitsNotFound() {
-      //given
-      OffsetStorageReader offsetStorageReader = mock(OffsetStorageReader.class);
-      when(offsetStorageReader.offset(any(Map.class))).thenReturn(new HashMap());
-      String topic = "some_topic";
-      Integer partition = 1;
-      TopicPartitionOffsetProvider topicPartitionOffsetProvider = new TopicPartitionOffsetProvider(
-          offsetStorageReader);
+  @Test
+  void getOffsetShouldReturnEmptyOptionalIfCommitsNotFound() {
+    // given
+    OffsetStorageReader offsetStorageReader = mock(OffsetStorageReader.class);
+    when(offsetStorageReader.offset(any(Map.class))).thenReturn(new HashMap());
+    String topic = "some_topic";
+    Integer partition = 1;
+    TopicPartitionOffsetProvider topicPartitionOffsetProvider =
+        new TopicPartitionOffsetProvider(offsetStorageReader);
 
-      //when
-      AzureTopicPartitionKey azureTopicPartitionKey = new AzureTopicPartitionKey(topic, partition);
-      Optional<AzureOffsetMarker> offset = topicPartitionOffsetProvider.getOffset(azureTopicPartitionKey);
+    // when
+    AzureTopicPartitionKey azureTopicPartitionKey = new AzureTopicPartitionKey(topic, partition);
+    Optional<AzureOffsetMarker> offset =
+        topicPartitionOffsetProvider.getOffset(azureTopicPartitionKey);
 
-      //then
-      verify(offsetStorageReader).offset(azureTopicPartitionKey);
-      assertTrue(offset.isEmpty());
-    }
+    // then
+    verify(offsetStorageReader).offset(azureTopicPartitionKey);
+    assertTrue(offset.isEmpty());
+  }
 
-    @Test
-    void getOffsetShouldReturnValidAzureOffsetMarkerIfCommitsFound() {
-      //given
-      long offsetOne = 1L;
-      String OFFSET_KEY = "OFFSET";
-      OffsetStorageReader offsetStorageReader = mock(OffsetStorageReader.class);
-      HashMap<String, Long> offsets = new HashMap<>();
-      offsets.put(OFFSET_KEY, offsetOne);
-      when(offsetStorageReader.offset(any(Map.class))).thenReturn(offsets);
-      String topic = "some_topic";
-      Integer partition = 1;
-      TopicPartitionOffsetProvider topicPartitionOffsetProvider = new TopicPartitionOffsetProvider(
-          offsetStorageReader);
+  @Test
+  void getOffsetShouldReturnValidAzureOffsetMarkerIfCommitsFound() {
+    // given
+    long offsetOne = 1L;
+    String OFFSET_KEY = "OFFSET";
+    OffsetStorageReader offsetStorageReader = mock(OffsetStorageReader.class);
+    HashMap<String, Long> offsets = new HashMap<>();
+    offsets.put(OFFSET_KEY, offsetOne);
+    when(offsetStorageReader.offset(any(Map.class))).thenReturn(offsets);
+    String topic = "some_topic";
+    Integer partition = 1;
+    TopicPartitionOffsetProvider topicPartitionOffsetProvider =
+        new TopicPartitionOffsetProvider(offsetStorageReader);
 
-      //when
-      AzureTopicPartitionKey azureTopicPartitionKey = new AzureTopicPartitionKey(topic, partition);
-      Optional<AzureOffsetMarker> offset = topicPartitionOffsetProvider.getOffset(azureTopicPartitionKey);
+    // when
+    AzureTopicPartitionKey azureTopicPartitionKey = new AzureTopicPartitionKey(topic, partition);
+    Optional<AzureOffsetMarker> offset =
+        topicPartitionOffsetProvider.getOffset(azureTopicPartitionKey);
 
-      //then
-      verify(offsetStorageReader).offset(azureTopicPartitionKey);
-      assertTrue(offset.isPresent());
-      assertEquals(offsetOne, offset.get().getOffsetValue());
-    }
+    // then
+    verify(offsetStorageReader).offset(azureTopicPartitionKey);
+    assertTrue(offset.isPresent());
+    assertEquals(offsetOne, offset.get().getOffsetValue());
+  }
 
-    @Test
-    void azureTopicPartitionKeyShouldReturnTopicAndPartitionValues() {
-      //given
-      int partition = 10;
-      String topic = "topic";
+  @Test
+  void azureTopicPartitionKeyShouldReturnTopicAndPartitionValues() {
+    // given
+    int partition = 10;
+    String topic = "topic";
 
-      //when
-      final AzureTopicPartitionKey azureTopicPartitionKey = new AzureTopicPartitionKey(topic, partition);
+    // when
+    final AzureTopicPartitionKey azureTopicPartitionKey =
+        new AzureTopicPartitionKey(topic, partition);
 
-      //then
-      assertEquals(partition, azureTopicPartitionKey.getPartition());
-      assertEquals(topic, azureTopicPartitionKey.getTopic());
-    }
-
+    // then
+    assertEquals(partition, azureTopicPartitionKey.getPartition());
+    assertEquals(topic, azureTopicPartitionKey.getTopic());
+  }
 }

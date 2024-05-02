@@ -43,7 +43,7 @@ class SourceRecordMapperTest {
 
   @Test
   void shouldMapSourceRecordIncludingHeaders() {
-    //given
+    // given
     AzureTopicPartitionKey topicPartitionKey = new AzureTopicPartitionKey(TOPIC, PARTITION);
     AzureOffsetMarker azureOffsetMarker = new AzureOffsetMarker(OFFSET);
 
@@ -59,43 +59,67 @@ class SourceRecordMapperTest {
 
     ConsumerRecord<String, String> consumerRecord = mockConsumerRecord(Optional.of(mockedHeaders));
 
-    //when
+    // when
     Schema stringSchema = Schema.STRING_SCHEMA;
     Schema optionalStringSchema = Schema.OPTIONAL_STRING_SCHEMA;
-    SourceRecord sourceRecord = SourceRecordMapper.mapSourceRecordIncludingHeaders(
-        consumerRecord, topicPartitionKey, azureOffsetMarker,
-        OUTPUT_TOPIC, optionalStringSchema, stringSchema);
+    SourceRecord sourceRecord =
+        SourceRecordMapper.mapSourceRecordIncludingHeaders(
+            consumerRecord,
+            topicPartitionKey,
+            azureOffsetMarker,
+            OUTPUT_TOPIC,
+            optionalStringSchema,
+            stringSchema);
 
-    //then
-    assertRecordAttributesAreMappedFromSourceConsumerRecord(sourceRecord, consumerRecord,
-        OUTPUT_TOPIC, optionalStringSchema, stringSchema, topicPartitionKey, azureOffsetMarker);
+    // then
+    assertRecordAttributesAreMappedFromSourceConsumerRecord(
+        sourceRecord,
+        consumerRecord,
+        OUTPUT_TOPIC,
+        optionalStringSchema,
+        stringSchema,
+        topicPartitionKey,
+        azureOffsetMarker);
     verify(consumerRecord).headers();
     assertThat(sourceRecord.headers()).hasSize(1);
-    assertThat(((byte[])sourceRecord.headers().lastWithName(HEADER_KEY).value())).hasSize(headerLength);
+    assertThat(((byte[]) sourceRecord.headers().lastWithName(HEADER_KEY).value()))
+        .hasSize(headerLength);
   }
 
   @Test
   void mapSourceRecordWithoutHeaders() {
-    //given
+    // given
     AzureTopicPartitionKey topicPartitionKey = new AzureTopicPartitionKey(TOPIC, PARTITION);
     AzureOffsetMarker azureOffsetMarker = new AzureOffsetMarker(OFFSET);
 
     ConsumerRecord<String, String> consumerRecord = mockConsumerRecord(Optional.empty());
 
-    //when
+    // when
     Schema stringSchema = Schema.STRING_SCHEMA;
     Schema optionalStringSchema = Schema.OPTIONAL_STRING_SCHEMA;
-    SourceRecord sourceRecord = SourceRecordMapper.mapSourceRecordWithoutHeaders(
-        consumerRecord, topicPartitionKey, azureOffsetMarker, OUTPUT_TOPIC,
-        optionalStringSchema, stringSchema);
+    SourceRecord sourceRecord =
+        SourceRecordMapper.mapSourceRecordWithoutHeaders(
+            consumerRecord,
+            topicPartitionKey,
+            azureOffsetMarker,
+            OUTPUT_TOPIC,
+            optionalStringSchema,
+            stringSchema);
 
-    //then
-    assertRecordAttributesAreMappedFromSourceConsumerRecord(sourceRecord, consumerRecord,
-        OUTPUT_TOPIC, optionalStringSchema, stringSchema, topicPartitionKey, azureOffsetMarker);
+    // then
+    assertRecordAttributesAreMappedFromSourceConsumerRecord(
+        sourceRecord,
+        consumerRecord,
+        OUTPUT_TOPIC,
+        optionalStringSchema,
+        stringSchema,
+        topicPartitionKey,
+        azureOffsetMarker);
     assertThat(sourceRecord.headers()).isEmpty();
   }
 
-  private static ConsumerRecord<String, String> mockConsumerRecord(Optional<Headers> mockedHeaders) {
+  private static ConsumerRecord<String, String> mockConsumerRecord(
+      Optional<Headers> mockedHeaders) {
     ConsumerRecord<String, String> consumerRecord = mock(ConsumerRecord.class);
     when(consumerRecord.topic()).thenReturn(TOPIC);
     when(consumerRecord.partition()).thenReturn(PARTITION);
@@ -105,9 +129,14 @@ class SourceRecordMapperTest {
     return consumerRecord;
   }
 
-  private void assertRecordAttributesAreMappedFromSourceConsumerRecord(SourceRecord mappedRecord,
-      ConsumerRecord<String, String> originalRecord, String outputTopic, Schema keySchema, Schema valueSchema,
-      AzureTopicPartitionKey sourcePartitionKey, AzureOffsetMarker offsetMarker) {
+  private void assertRecordAttributesAreMappedFromSourceConsumerRecord(
+      SourceRecord mappedRecord,
+      ConsumerRecord<String, String> originalRecord,
+      String outputTopic,
+      Schema keySchema,
+      Schema valueSchema,
+      AzureTopicPartitionKey sourcePartitionKey,
+      AzureOffsetMarker offsetMarker) {
     verify(originalRecord).timestamp();
     verify(originalRecord).key();
     verify(originalRecord).value();

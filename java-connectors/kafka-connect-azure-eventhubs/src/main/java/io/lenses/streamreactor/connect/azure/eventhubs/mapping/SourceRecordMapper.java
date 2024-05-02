@@ -42,17 +42,27 @@ public class SourceRecordMapper {
    */
   public static SourceRecord mapSourceRecordIncludingHeaders(
       ConsumerRecord<?, ?> consumerRecord,
-      Map<String, String> partitionKey, Map<String, Object> offsetMap,
-      String outputTopic, Schema keySchema, Schema valueSchema) {
+      Map<String, String> partitionKey,
+      Map<String, Object> offsetMap,
+      String outputTopic,
+      Schema keySchema,
+      Schema valueSchema) {
     Iterable<Header> headers = consumerRecord.headers();
     ConnectHeaders connectHeaders = new ConnectHeaders();
     for (Header header : headers) {
-      connectHeaders.add(header.key(),
-          new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, header.value()));
+      connectHeaders.add(
+          header.key(), new SchemaAndValue(Schema.OPTIONAL_BYTES_SCHEMA, header.value()));
     }
-    return new SourceRecord(partitionKey, offsetMap,
-        outputTopic, null, keySchema, consumerRecord.key(),
-        valueSchema, consumerRecord.value(), consumerRecord.timestamp(),
+    return new SourceRecord(
+        partitionKey,
+        offsetMap,
+        outputTopic,
+        null,
+        keySchema,
+        consumerRecord.key(),
+        valueSchema,
+        consumerRecord.value(),
+        consumerRecord.timestamp(),
         connectHeaders);
   }
 
@@ -70,11 +80,21 @@ public class SourceRecordMapper {
    */
   public static SourceRecord mapSourceRecordWithoutHeaders(
       ConsumerRecord<?, ?> consumerRecord,
-      Map<String, String> partitionKey, Map<String, Object> offsetMap,
-      String outputTopic, Schema keySchema, Schema valueSchema) {
-    return new SourceRecord(partitionKey, offsetMap,
-        outputTopic, null, keySchema, consumerRecord.key(),
-        valueSchema, consumerRecord.value(), consumerRecord.timestamp(), null);
+      Map<String, String> partitionKey,
+      Map<String, Object> offsetMap,
+      String outputTopic,
+      Schema keySchema,
+      Schema valueSchema) {
+    return new SourceRecord(
+        partitionKey,
+        offsetMap,
+        outputTopic,
+        null,
+        keySchema,
+        consumerRecord.key(),
+        valueSchema,
+        consumerRecord.value(),
+        consumerRecord.timestamp(),
+        null);
   }
-
 }

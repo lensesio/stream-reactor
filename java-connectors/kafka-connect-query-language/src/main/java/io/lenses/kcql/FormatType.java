@@ -15,7 +15,6 @@
  */
 package io.lenses.kcql;
 
-
 public enum FormatType {
   AVRO,
   PROTOBUF,

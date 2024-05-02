@@ -51,7 +51,8 @@ public class EventHubsKafkaConsumerController {
    * @param recordsQueue        queue that contains EventHub records
    * @param inputToOutputTopics input to output topics
    */
-  public EventHubsKafkaConsumerController(KafkaByteBlockingQueuedProducer queuedKafkaProducer,
+  public EventHubsKafkaConsumerController(
+      KafkaByteBlockingQueuedProducer queuedKafkaProducer,
       BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue,
       Map<String, String> inputToOutputTopics) {
     this.recordsQueue = recordsQueue;
@@ -74,8 +75,7 @@ public class EventHubsKafkaConsumerController {
 
     ConsumerRecords<byte[], byte[]> consumerRecords = null;
     try {
-      consumerRecords = recordsQueue.poll(
-          duration.get(ChronoUnit.SECONDS), TimeUnit.SECONDS);
+      consumerRecords = recordsQueue.poll(duration.get(ChronoUnit.SECONDS), TimeUnit.SECONDS);
     } catch (InterruptedException e) {
       log.info("{} has been interrupted on poll", this.getClass().getSimpleName());
       throw e;
@@ -86,18 +86,20 @@ public class EventHubsKafkaConsumerController {
       for (ConsumerRecord<byte[], byte[]> consumerRecord : consumerRecords) {
 
         String inputTopic = consumerRecord.topic();
-        AzureTopicPartitionKey azureTopicPartitionKey = new AzureTopicPartitionKey(
-            inputTopic, consumerRecord.partition());
+        AzureTopicPartitionKey azureTopicPartitionKey =
+            new AzureTopicPartitionKey(inputTopic, consumerRecord.partition());
         AzureOffsetMarker offsetMarker = new AzureOffsetMarker(consumerRecord.offset());
 
-        SourceRecord sourceRecord = mapSourceRecordIncludingHeaders(consumerRecord,
-            azureTopicPartitionKey,
-            offsetMarker, inputToOutputTopics.get(inputTopic),
-            queuedKafkaProducer.getKeyValueTypes().getKeyType().getSchema(),
-            queuedKafkaProducer.getKeyValueTypes().getValueType().getSchema());
+        SourceRecord sourceRecord =
+            mapSourceRecordIncludingHeaders(
+                consumerRecord,
+                azureTopicPartitionKey,
+                offsetMarker,
+                inputToOutputTopics.get(inputTopic),
+                queuedKafkaProducer.getKeyValueTypes().getKeyType().getSchema(),
+                queuedKafkaProducer.getKeyValueTypes().getValueType().getSchema());
 
         sourceRecords.add(sourceRecord);
-
       }
     }
     return sourceRecords != null ? sourceRecords : Collections.emptyList();

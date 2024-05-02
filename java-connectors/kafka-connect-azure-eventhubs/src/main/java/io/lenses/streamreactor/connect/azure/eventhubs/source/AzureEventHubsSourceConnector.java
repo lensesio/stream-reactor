@@ -84,7 +84,8 @@ public class AzureEventHubsSourceConnector extends SourceConnector {
 
   private static void parseAndValidateConfigs(Map<String, String> props) {
     AzureEventHubsSourceConfig azureEventHubsSourceConfig = new AzureEventHubsSourceConfig(props);
-    String kcqlMappings = azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG);
+    String kcqlMappings =
+        azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG);
     KcqlConfigTopicMapper.mapInputToOutputsFromConfig(kcqlMappings);
   }
 }

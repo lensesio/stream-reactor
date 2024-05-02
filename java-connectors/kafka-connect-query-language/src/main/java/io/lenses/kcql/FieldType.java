@@ -15,22 +15,21 @@
  */
 package io.lenses.kcql;
 
-
 public enum FieldType {
-    KEY("KEY"),
-    OFFSET("OFFSET"),
-    PARTITION("PARTITION"),
-    TIMESTAMP("TIMESTAMP"),
-    TOPIC("TOPIC"),
-    VALUE("VALUE");
+  KEY("KEY"),
+  OFFSET("OFFSET"),
+  PARTITION("PARTITION"),
+  TIMESTAMP("TIMESTAMP"),
+  TOPIC("TOPIC"),
+  VALUE("VALUE");
 
-    private final String value;
+  private final String value;
 
-    FieldType(String value) {
-        this.value = value;
-    }
+  FieldType(String value) {
+    this.value = value;
+  }
 
-    public String getValue() {
-        return value;
-    }
+  public String getValue() {
+    return value;
+  }
 }

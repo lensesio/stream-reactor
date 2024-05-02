@@ -37,13 +37,13 @@ public class AsciiArtPrinter {
    */
   public static void printAsciiHeader(JarManifest jarManifest, String asciiArtResource) {
     try {
-      Optional<InputStream> asciiArtStream = ofNullable(
-          AsciiArtPrinter.class.getResourceAsStream(asciiArtResource));
-      asciiArtStream.ifPresent(inputStream -> log.info(InputStreamHandler.extractString(inputStream)));
+      Optional<InputStream> asciiArtStream =
+          ofNullable(AsciiArtPrinter.class.getResourceAsStream(asciiArtResource));
+      asciiArtStream.ifPresent(
+          inputStream -> log.info(InputStreamHandler.extractString(inputStream)));
     } catch (InputStreamExtractionException exception) {
       log.warn("Unable display ASCIIArt from input stream.", exception);
     }
     log.info(jarManifest.buildManifestString());
   }
-
 }

@@ -20,5 +20,4 @@ package io.lenses.streamreactor.common.config.base.intf;
  * Implementations of this interface signify various types of connection configurations,
  * providing a unified categorization without requiring shared behavior or properties.
  */
-public interface ConnectionConfig {
-}
+public interface ConnectionConfig {}

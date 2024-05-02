@@ -32,7 +32,6 @@ public final class TopicPartitionOffsetProvider {
 
   private final OffsetStorageReader offsetStorageReader;
 
-
   public TopicPartitionOffsetProvider(OffsetStorageReader offsetStorageReader) {
     this.offsetStorageReader = offsetStorageReader;
   }

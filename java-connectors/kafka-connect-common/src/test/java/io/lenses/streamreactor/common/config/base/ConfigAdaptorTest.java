@@ -15,57 +15,56 @@
  */
 package io.lenses.streamreactor.common.config.base;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.Optional;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.types.Password;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 class ConfigAdaptorTest {
 
-    private ConnectConfig connectConfig;
+  private ConnectConfig connectConfig;
 
-    @BeforeEach
-    void setUp() {
-        AbstractConfig config = mock(AbstractConfig.class);
-        when(config.getString("username")).thenReturn("user123");
-        when(config.getPassword("password")).thenReturn(new Password("secret"));
+  @BeforeEach
+  void setUp() {
+    AbstractConfig config = mock(AbstractConfig.class);
+    when(config.getString("username")).thenReturn("user123");
+    when(config.getPassword("password")).thenReturn(new Password("secret"));
 
-        connectConfig = new ConfigAdaptor(config);
-    }
+    connectConfig = new ConfigAdaptor(config);
+  }
 
-    @Test
-    void testGetString_existingKey_shouldReturnValue() {
-        Optional<String> value = connectConfig.getString("username");
+  @Test
+  void testGetString_existingKey_shouldReturnValue() {
+    Optional<String> value = connectConfig.getString("username");
 
-        assertTrue(value.isPresent());
-        assertEquals("user123", value.get());
-    }
+    assertTrue(value.isPresent());
+    assertEquals("user123", value.get());
+  }
 
-    @Test
-    void testGetString_nonExistingKey_shouldReturnEmpty() {
-        Optional<String> value = connectConfig.getString("invalidKey");
+  @Test
+  void testGetString_nonExistingKey_shouldReturnEmpty() {
+    Optional<String> value = connectConfig.getString("invalidKey");
 
-        assertFalse(value.isPresent());
-    }
+    assertFalse(value.isPresent());
+  }
 
-    @Test
-    void testGetPassword_existingKey_shouldReturnPassword() {
-        Optional<Password> password = connectConfig.getPassword("password");
+  @Test
+  void testGetPassword_existingKey_shouldReturnPassword() {
+    Optional<Password> password = connectConfig.getPassword("password");
 
-        assertTrue(password.isPresent());
-        assertEquals("secret", password.get().value());
-    }
+    assertTrue(password.isPresent());
+    assertEquals("secret", password.get().value());
+  }
 
-    @Test
-    void testGetPassword_nonExistingKey_shouldReturnEmpty() {
-        Optional<Password> password = connectConfig.getPassword("invalidKey");
+  @Test
+  void testGetPassword_nonExistingKey_shouldReturnEmpty() {
+    Optional<Password> password = connectConfig.getPassword("invalidKey");
 
-        assertFalse(password.isPresent());
-    }
+    assertFalse(password.isPresent());
+  }
 }

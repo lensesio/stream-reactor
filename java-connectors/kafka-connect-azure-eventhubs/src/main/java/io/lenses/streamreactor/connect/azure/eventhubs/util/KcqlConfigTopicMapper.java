@@ -32,8 +32,8 @@ public class KcqlConfigTopicMapper {
   private static final String TOPIC_NAME_REGEX = "^[\\w][\\w\\-\\_\\.]*$";
   private static final Pattern TOPIC_NAME_PATTERN = Pattern.compile(TOPIC_NAME_REGEX);
   public static final String TOPIC_NAME_ERROR_MESSAGE =
-      "%s topic %s, name is not correctly specified (It can contain only letters, numbers and hyphens,"
-          + " underscores and dots and has to start with number or letter";
+      "%s topic %s, name is not correctly specified (It can contain only letters, numbers and"
+          + " hyphens, underscores and dots and has to start with number or letter";
 
   /**
    * This method parses KCQL statements and fetches input and output topics checking against

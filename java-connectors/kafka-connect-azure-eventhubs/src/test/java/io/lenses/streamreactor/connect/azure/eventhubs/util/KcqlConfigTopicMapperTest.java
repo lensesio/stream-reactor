@@ -29,7 +29,7 @@ class KcqlConfigTopicMapperTest {
 
   @Test
   void mapInputToOutputsFromConfigForMultipleKcqlStatementsShouldRetunMapOfInputToOutput() {
-    //given
+    // given
     int numberOfMappings = 3;
     List<String> inputs = new ArrayList<>(numberOfMappings);
     List<String> outputs = new ArrayList<>(numberOfMappings);
@@ -44,12 +44,12 @@ class KcqlConfigTopicMapperTest {
       outputs.add(i, newOutput);
       fullKcql.append(String.format(kcqlTemplate, newOutput, newInput));
     }
-    //when
-    Map<String, String> inputToOutputsFromConfig = KcqlConfigTopicMapper.mapInputToOutputsFromConfig(
-        fullKcql.toString());
+    // when
+    Map<String, String> inputToOutputsFromConfig =
+        KcqlConfigTopicMapper.mapInputToOutputsFromConfig(fullKcql.toString());
 
-    //then
-    for (String input : inputToOutputsFromConfig.keySet()){
+    // then
+    for (String input : inputToOutputsFromConfig.keySet()) {
       int indexOfInput = inputs.indexOf(input);
       assertNotEquals(-1, indexOfInput);
       assertEquals(inputs.get(indexOfInput), input);
@@ -59,17 +59,19 @@ class KcqlConfigTopicMapperTest {
 
   @Test
   void mapInputToOutputsFromConfigShouldntAllowForIllegalNames() {
-    //given
+    // given
     String illegalInputKcql = "INSERT INTO OUTPUT SELECT * FROM 'INPUT*_'";
     String illegalOutputKcql = "INSERT INTO 'OUTPUT*_' SELECT * FROM INPUT";
-    String inputErrorMessage = "Input topic INPUT*_, name is not correctly specified "
-        + "(It can contain only letters, numbers and hyphens, underscores and "
-        + "dots and has to start with number or letter";
-    String outputErrorMessage = "Output topic OUTPUT*_, name is not correctly specified "
-        + "(It can contain only letters, numbers and hyphens, underscores and "
-        + "dots and has to start with number or letter";
+    String inputErrorMessage =
+        "Input topic INPUT*_, name is not correctly specified "
+            + "(It can contain only letters, numbers and hyphens, underscores and "
+            + "dots and has to start with number or letter";
+    String outputErrorMessage =
+        "Output topic OUTPUT*_, name is not correctly specified "
+            + "(It can contain only letters, numbers and hyphens, underscores and "
+            + "dots and has to start with number or letter";
 
-    //when
+    // when
     mapInputToOutputAddertingExceptionWithSpecificMessage(illegalInputKcql, inputErrorMessage);
 
     mapInputToOutputAddertingExceptionWithSpecificMessage(illegalOutputKcql, outputErrorMessage);
@@ -77,32 +79,33 @@ class KcqlConfigTopicMapperTest {
 
   @Test
   void mapInputToOutputsFromConfigShouldntAllowForOneToManyMappings() {
-    //given
+    // given
     String oneInputKcql = "INSERT INTO OUTPUT1 SELECT * FROM INPUT1;";
     String sameInputKcql = "INSERT INTO OUTPUT2 SELECT * FROM INPUT1;";
     String outputErrorMessage = "Input INPUT1 cannot be mapped twice.";
 
-    //when
-    mapInputToOutputAddertingExceptionWithSpecificMessage(oneInputKcql + sameInputKcql,
-        outputErrorMessage);
+    // when
+    mapInputToOutputAddertingExceptionWithSpecificMessage(
+        oneInputKcql + sameInputKcql, outputErrorMessage);
   }
 
   @Test
   void mapInputToOutputsFromConfigShouldntAllowForMiltipleInputsToSameOutput() {
-    //given
+    // given
     String oneInputKcql = "INSERT INTO OUTPUT1 SELECT * FROM INPUT1;";
     String anotherInputToSameOutputKcql = "INSERT INTO OUTPUT1 SELECT * FROM INPUT2;";
     String outputErrorMessage = "Output OUTPUT1 cannot be mapped twice.";
 
-    //when
+    // when
     mapInputToOutputAddertingExceptionWithSpecificMessage(
-        oneInputKcql + anotherInputToSameOutputKcql,
-        outputErrorMessage);
+        oneInputKcql + anotherInputToSameOutputKcql, outputErrorMessage);
   }
 
-  private static void mapInputToOutputAddertingExceptionWithSpecificMessage(String illegalKcql,
-      String expectedMessage) {
-    assertThrows(ConfigException.class,
-        () -> KcqlConfigTopicMapper.mapInputToOutputsFromConfig(illegalKcql), expectedMessage);
+  private static void mapInputToOutputAddertingExceptionWithSpecificMessage(
+      String illegalKcql, String expectedMessage) {
+    assertThrows(
+        ConfigException.class,
+        () -> KcqlConfigTopicMapper.mapInputToOutputsFromConfig(illegalKcql),
+        expectedMessage);
   }
 }

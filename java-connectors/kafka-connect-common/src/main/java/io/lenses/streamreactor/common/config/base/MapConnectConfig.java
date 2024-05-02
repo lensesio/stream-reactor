@@ -15,11 +15,10 @@
  */
 package io.lenses.streamreactor.common.config.base;
 
-import lombok.AllArgsConstructor;
-import org.apache.kafka.common.config.types.Password;
-
 import java.util.Map;
 import java.util.Optional;
+import lombok.AllArgsConstructor;
+import org.apache.kafka.common.config.types.Password;
 
 /**
  * A wrapper for Kafka Connect properties that provides methods to retrieve property values.
@@ -27,25 +26,23 @@ import java.util.Optional;
 @AllArgsConstructor
 public class MapConnectConfig implements ConnectConfig {
 
-    private final Map<String, Object> wrapped;
+  private final Map<String, Object> wrapped;
 
+  public Optional<String> getString(String key) {
+    return Optional.ofNullable((String) wrapped.get(key));
+  }
 
-    public Optional<String> getString(String key) {
-        return Optional.ofNullable((String) wrapped.get(key));
-    }
+  @Override
+  public Optional<Integer> getInt(String key) {
+    return Optional.ofNullable((Integer) wrapped.get(key));
+  }
 
-    @Override
-    public Optional<Integer> getInt(String key) {
-        return Optional.ofNullable((Integer) wrapped.get(key));
-    }
+  @Override
+  public Optional<Long> getLong(String key) {
+    return Optional.ofNullable((Long) wrapped.get(key));
+  }
 
-    @Override
-    public Optional<Long> getLong(String key) {
-        return Optional.ofNullable((Long) wrapped.get(key));
-    }
-
-    public Optional<Password> getPassword(String key) {
-        return Optional.ofNullable((Password) wrapped.get(key));
-    }
-
+  public Optional<Password> getPassword(String key) {
+    return Optional.ofNullable((Password) wrapped.get(key));
+  }
 }

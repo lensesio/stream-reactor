@@ -15,22 +15,21 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
+import static io.lenses.streamreactor.connect.gcp.common.auth.mode.TestFileUtil.absolutePathForResource;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 
-import static io.lenses.streamreactor.connect.gcp.common.auth.mode.TestFileUtil.absolutePathForResource;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 class FileAuthModeTest {
 
-    @Test
-    void getCredentialsShouldReturnCredentials() throws Exception {
-        val filePath = absolutePathForResource("/test-gcp-credentials.json");
-        val authMode = new FileAuthMode(filePath);
+  @Test
+  void getCredentialsShouldReturnCredentials() throws Exception {
+    val filePath = absolutePathForResource("/test-gcp-credentials.json");
+    val authMode = new FileAuthMode(filePath);
 
-        val googleCredentials = (ServiceAccountCredentials) authMode.getCredentials();
-        assertEquals("your-client-id", googleCredentials.getClientId());
-    }
-
+    val googleCredentials = (ServiceAccountCredentials) authMode.getCredentials();
+    assertEquals("your-client-id", googleCredentials.getClientId());
+  }
 }

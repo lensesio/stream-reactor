@@ -45,14 +45,15 @@ class JarManifestTest {
 
     when(jarFile.getManifest()).thenReturn(manifest);
     when(manifest.getMainAttributes()).thenReturn(attributes);
-    when(attributes.getValue(ManifestAttributes.REACTOR_VER.getAttributeName())).thenReturn(STREAM_REACTOR_VERSION);
+    when(attributes.getValue(ManifestAttributes.REACTOR_VER.getAttributeName()))
+        .thenReturn(STREAM_REACTOR_VERSION);
 
     testObj = new JarManifest(jarFile);
 
     // when
     String streamReactorVersion = testObj.getVersion();
 
-    //then
+    // then
     verify(jarFile).getManifest();
     verify(manifest).getMainAttributes();
     verify(attributes).getValue(ManifestAttributes.REACTOR_VER.getAttributeName());
@@ -75,7 +76,7 @@ class JarManifestTest {
     // when
     String streamReactorVersion = testObj.getVersion();
 
-    //then
+    // then
     verify(jarFile).getManifest();
     verify(manifest).getMainAttributes();
     verify(attributes).getValue(ManifestAttributes.REACTOR_VER.getAttributeName());
@@ -84,12 +85,12 @@ class JarManifestTest {
 
   @Test
   void getVersionShouldReturnDefaultIfFileProvidedIsNotJar() {
-    //given
+    // given
 
-    //when
+    // when
     testObj = new JarManifest(getClass().getProtectionDomain().getCodeSource().getLocation());
 
-    //then
+    // then
     assertThat(testObj.getVersion()).isEqualTo(EMPTY_STRING);
   }
 }

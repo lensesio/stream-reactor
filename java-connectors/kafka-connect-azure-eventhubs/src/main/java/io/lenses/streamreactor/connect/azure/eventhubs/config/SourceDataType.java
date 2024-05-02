@@ -30,7 +30,6 @@ import org.apache.kafka.connect.data.Schema;
  */
 @Getter
 public enum SourceDataType {
-
   BYTES(ByteArrayDeserializer.class, Schema.OPTIONAL_BYTES_SCHEMA);
 
   private final Class<? extends Deserializer> deserializerClass;

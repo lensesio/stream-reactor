@@ -41,7 +41,6 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
       "allowed values are: earliest/latest";
   private final TopicPartitionOffsetProvider topicPartitionOffsetProvider;
 
-
   public BlockingQueueProducerProvider(TopicPartitionOffsetProvider topicPartitionOffsetProvider) {
     this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;
   }
@@ -58,47 +57,64 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
       AzureEventHubsSourceConfig azureEventHubsSourceConfig,
       BlockingQueue<ConsumerRecords<byte[], byte[]>> recordBlockingQueue,
       Map<String, String> inputToOutputTopics) {
-    String connectorName = azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.CONNECTOR_NAME);
+    String connectorName =
+        azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.CONNECTOR_NAME);
     final String clientId = connectorName + "#" + UUID.randomUUID();
     log.info("Attempting to create Client with Id:{}", clientId);
     KeyValueTypes keyValueTypes = KeyValueTypes.DEFAULT_TYPES;
 
-    Map<String, Object> consumerProperties = prepareConsumerProperties(azureEventHubsSourceConfig,
-        clientId, connectorName, keyValueTypes);
+    Map<String, Object> consumerProperties =
+        prepareConsumerProperties(
+            azureEventHubsSourceConfig, clientId, connectorName, keyValueTypes);
 
     KafkaConsumer<byte[], byte[]> kafkaConsumer = new KafkaConsumer<>(consumerProperties);
 
     boolean shouldSeekToLatest = shouldConsumerSeekToLatest(azureEventHubsSourceConfig);
     Set<String> inputTopics = inputToOutputTopics.keySet();
 
-    return new KafkaByteBlockingQueuedProducer(topicPartitionOffsetProvider, recordBlockingQueue,
-        kafkaConsumer, keyValueTypes, clientId, inputTopics, shouldSeekToLatest);
+    return new KafkaByteBlockingQueuedProducer(
+        topicPartitionOffsetProvider,
+        recordBlockingQueue,
+        kafkaConsumer,
+        keyValueTypes,
+        clientId,
+        inputTopics,
+        shouldSeekToLatest);
   }
 
   private static Map<String, Object> prepareConsumerProperties(
-      AzureEventHubsSourceConfig azureEventHubsSourceConfig, String clientId, String connectorName,
+      AzureEventHubsSourceConfig azureEventHubsSourceConfig,
+      String clientId,
+      String connectorName,
       KeyValueTypes keyValueTypes) {
-    Map<String, Object> consumerProperties = azureEventHubsSourceConfig.originalsWithPrefix(
-        AzureEventHubsConfigConstants.CONNECTOR_WITH_CONSUMER_PREFIX, STRIP_PREFIX);
+    Map<String, Object> consumerProperties =
+        azureEventHubsSourceConfig.originalsWithPrefix(
+            AzureEventHubsConfigConstants.CONNECTOR_WITH_CONSUMER_PREFIX, STRIP_PREFIX);
 
     consumerProperties.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
     consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, connectorName);
-    consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-            keyValueTypes.getKeyType().getDeserializerClass());
-    consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+    consumerProperties.put(
+        ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+        keyValueTypes.getKeyType().getDeserializerClass());
+    consumerProperties.put(
+        ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
         keyValueTypes.getValueType().getDeserializerClass());
     consumerProperties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
     return consumerProperties;
   }
 
-  private boolean shouldConsumerSeekToLatest(AzureEventHubsSourceConfig azureEventHubsSourceConfig) {
-    String seekValue = azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.CONSUMER_OFFSET);
+  private boolean shouldConsumerSeekToLatest(
+      AzureEventHubsSourceConfig azureEventHubsSourceConfig) {
+    String seekValue =
+        azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.CONSUMER_OFFSET);
     if (EARLIEST_OFFSET.equalsIgnoreCase(seekValue)) {
       return false;
     } else if (LATEST_OFFSET.equalsIgnoreCase(seekValue)) {
       return true;
     }
-    throw new ConfigException(AzureEventHubsConfigConstants.CONSUMER_OFFSET, seekValue,
+    throw new ConfigException(
+        AzureEventHubsConfigConstants.CONSUMER_OFFSET,
+        seekValue,
         CONSUMER_OFFSET_EXCEPTION_MESSAGE);
   }
 }

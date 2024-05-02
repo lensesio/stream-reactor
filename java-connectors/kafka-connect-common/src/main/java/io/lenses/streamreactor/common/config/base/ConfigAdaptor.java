@@ -15,11 +15,10 @@
  */
 package io.lenses.streamreactor.common.config.base;
 
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.types.Password;
-
-import java.util.Optional;
 
 /**
  * A wrapper for Kafka Connect properties that provides methods to retrieve property values.
@@ -33,6 +32,7 @@ public class ConfigAdaptor implements ConnectConfig {
   public Optional<String> getString(String key) {
     return Optional.ofNullable(abstractConfig.getString(key));
   }
+
   @Override
   public Optional<Integer> getInt(String key) {
     return Optional.ofNullable(abstractConfig.getInt(key));
@@ -42,9 +42,9 @@ public class ConfigAdaptor implements ConnectConfig {
   public Optional<Long> getLong(String key) {
     return Optional.ofNullable(abstractConfig.getLong(key));
   }
+
   @Override
   public Optional<Password> getPassword(String key) {
     return Optional.ofNullable(abstractConfig.getPassword(key));
   }
-
 }

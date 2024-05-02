@@ -20,10 +20,9 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class ConnectorPrefix {
 
-    private final String prefix;
+  private final String prefix;
 
-    public String prefixKey(String suffix) {
-        return String.format("%s.%s", prefix, suffix);
-    }
-
+  public String prefixKey(String suffix) {
+    return String.format("%s.%s", prefix, suffix);
+  }
 }

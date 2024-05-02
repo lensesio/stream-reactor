@@ -46,7 +46,8 @@ public class AzureConsumerRebalancerListener implements ConsumerRebalanceListene
    */
   public AzureConsumerRebalancerListener(
       TopicPartitionOffsetProvider topicPartitionOffsetProvider,
-      Consumer<?, ?> kafkaConsumer, boolean shouldSeekToLatest) {
+      Consumer<?, ?> kafkaConsumer,
+      boolean shouldSeekToLatest) {
     this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;
     this.kafkaConsumer = kafkaConsumer;
     this.shouldSeekToLatest = shouldSeekToLatest;
@@ -60,14 +61,16 @@ public class AzureConsumerRebalancerListener implements ConsumerRebalanceListene
   @Override
   public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
     List<TopicPartition> partitionsWithoutOffsets = new ArrayList<>();
-    partitions.forEach(partition -> {
-      AzureTopicPartitionKey partitionKey = new AzureTopicPartitionKey(
-          partition.topic(), partition.partition());
-      Optional<AzureOffsetMarker> partitionOffset = topicPartitionOffsetProvider.getOffset(partitionKey);
-      partitionOffset.ifPresentOrElse(
-          offset -> kafkaConsumer.seek(partition, offset.getOffsetValue()),
-          () -> partitionsWithoutOffsets.add(partition));
-    });
+    partitions.forEach(
+        partition -> {
+          AzureTopicPartitionKey partitionKey =
+              new AzureTopicPartitionKey(partition.topic(), partition.partition());
+          Optional<AzureOffsetMarker> partitionOffset =
+              topicPartitionOffsetProvider.getOffset(partitionKey);
+          partitionOffset.ifPresentOrElse(
+              offset -> kafkaConsumer.seek(partition, offset.getOffsetValue()),
+              () -> partitionsWithoutOffsets.add(partition));
+        });
     if (!partitionsWithoutOffsets.isEmpty()) {
       if (shouldSeekToLatest) {
         kafkaConsumer.seekToEnd(partitionsWithoutOffsets);
@@ -76,5 +79,4 @@ public class AzureConsumerRebalancerListener implements ConsumerRebalanceListene
       }
     }
   }
-
 }

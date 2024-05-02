@@ -33,7 +33,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
  */
 @Slf4j
 public class KafkaByteBlockingQueuedProducer implements BlockingQueueProducer {
-  private static final Duration DEFAULT_POLL_DURATION =  Duration.of(1, ChronoUnit.SECONDS);
+  private static final Duration DEFAULT_POLL_DURATION = Duration.of(1, ChronoUnit.SECONDS);
   private final TopicPartitionOffsetProvider topicPartitionOffsetProvider;
   private final BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue;
   private final Consumer<byte[], byte[]> consumer;
@@ -41,8 +41,7 @@ public class KafkaByteBlockingQueuedProducer implements BlockingQueueProducer {
   private final Set<String> inputTopics;
   private EventhubsPollingRunnable pollingRunnable;
   private final boolean shouldSeekToLatest;
-  @Getter
-  private final KeyValueTypes keyValueTypes;
+  @Getter private final KeyValueTypes keyValueTypes;
   private final AtomicBoolean initialized = new AtomicBoolean(false);
   private final AtomicBoolean running = new AtomicBoolean(false);
 
@@ -61,9 +60,14 @@ public class KafkaByteBlockingQueuedProducer implements BlockingQueueProducer {
    * @param shouldSeekToLatest           informs where should consumer seek when there are no
    *                                     offsets committed
    */
-  public KafkaByteBlockingQueuedProducer(TopicPartitionOffsetProvider topicPartitionOffsetProvider,
-      BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue, Consumer<byte[], byte[]> consumer,
-      KeyValueTypes keyValueTypes, String clientId, Set<String> inputTopics, boolean shouldSeekToLatest) {
+  public KafkaByteBlockingQueuedProducer(
+      TopicPartitionOffsetProvider topicPartitionOffsetProvider,
+      BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue,
+      Consumer<byte[], byte[]> consumer,
+      KeyValueTypes keyValueTypes,
+      String clientId,
+      Set<String> inputTopics,
+      boolean shouldSeekToLatest) {
     this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;
     this.recordsQueue = recordsQueue;
     this.consumer = consumer;
@@ -98,8 +102,10 @@ public class KafkaByteBlockingQueuedProducer implements BlockingQueueProducer {
     public void run() {
       running.set(true);
       log.info("Subscribing to topics: {}", String.join(",", inputTopics));
-      consumer.subscribe(inputTopics,
-          new AzureConsumerRebalancerListener(topicPartitionOffsetProvider, consumer, shouldSeekToLatest));
+      consumer.subscribe(
+          inputTopics,
+          new AzureConsumerRebalancerListener(
+              topicPartitionOffsetProvider, consumer, shouldSeekToLatest));
       while (running.get()) {
         ConsumerRecords<byte[], byte[]> consumerRecords = consumer.poll(DEFAULT_POLL_DURATION);
         if (consumerRecords != null && !consumerRecords.isEmpty()) {

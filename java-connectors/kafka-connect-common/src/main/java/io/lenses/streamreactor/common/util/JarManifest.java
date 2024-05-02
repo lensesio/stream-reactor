@@ -58,7 +58,8 @@ public class JarManifest {
       File file = new File(location.toURI());
       if (file.isFile()) {
         try (JarFile jarFile = new JarFile(file)) {
-          ofNullable(jarFile.getManifest()).flatMap(mf -> of(mf.getMainAttributes()))
+          ofNullable(jarFile.getManifest())
+              .flatMap(mf -> of(mf.getMainAttributes()))
               .ifPresent(mainAttrs -> jarAttributes = extractMainAttributes(mainAttrs));
         }
       }
@@ -75,7 +76,8 @@ public class JarManifest {
     Optional<JarFile> jarFileOptional = ofNullable(jarFile);
     if (jarFileOptional.isPresent()) {
       try (JarFile jf = jarFileOptional.get()) {
-        ofNullable(jf.getManifest()).flatMap(mf -> of(mf.getMainAttributes()))
+        ofNullable(jf.getManifest())
+            .flatMap(mf -> of(mf.getMainAttributes()))
             .ifPresent(mainAttrs -> jarAttributes = extractMainAttributes(mainAttrs));
       } catch (IOException e) {
         throw new ConnectorStartupException(e);
@@ -84,11 +86,14 @@ public class JarManifest {
   }
 
   private Map<String, String> extractMainAttributes(Attributes mainAttributes) {
-    return Collections.unmodifiableMap(Arrays.stream(ManifestAttributes.values())
-        .collect(Collectors.toMap(ManifestAttributes::getAttributeName,
-            manifestAttribute ->
-                ofNullable(mainAttributes.getValue(manifestAttribute.getAttributeName())).orElse(UNKNOWN))
-        ));
+    return Collections.unmodifiableMap(
+        Arrays.stream(ManifestAttributes.values())
+            .collect(
+                Collectors.toMap(
+                    ManifestAttributes::getAttributeName,
+                    manifestAttribute ->
+                        ofNullable(mainAttributes.getValue(manifestAttribute.getAttributeName()))
+                            .orElse(UNKNOWN))));
   }
 
   /**
@@ -106,9 +111,12 @@ public class JarManifest {
     List<ManifestAttributes> attributesInStringOrder =
         List.of(REACTOR_VER, KAFKA_VER, GIT_REPO, GIT_HASH, GIT_TAG, REACTOR_DOCS);
     attributesInStringOrder.forEach(
-        attribute -> manifestBuilder.append(attribute.attributeName).append(SEMICOLON)
-            .append(jarAttributes.get(attribute.getAttributeName())).append(NEW_LINE)
-    );
+        attribute ->
+            manifestBuilder
+                .append(attribute.attributeName)
+                .append(SEMICOLON)
+                .append(jarAttributes.get(attribute.getAttributeName()))
+                .append(NEW_LINE));
     return manifestBuilder.toString();
   }
 

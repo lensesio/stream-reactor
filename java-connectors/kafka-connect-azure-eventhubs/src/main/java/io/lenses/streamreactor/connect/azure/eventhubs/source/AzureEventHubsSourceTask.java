@@ -60,20 +60,25 @@ public class AzureEventHubsSourceTask extends SourceTask {
 
   @Override
   public void start(Map<String, String> props) {
-    OffsetStorageReader offsetStorageReader = ofNullable(this.context).flatMap(
-        context -> ofNullable(context.offsetStorageReader())).orElseThrow();
+    OffsetStorageReader offsetStorageReader =
+        ofNullable(this.context)
+            .flatMap(context -> ofNullable(context.offsetStorageReader()))
+            .orElseThrow();
     AzureEventHubsSourceConfig azureEventHubsSourceConfig = new AzureEventHubsSourceConfig(props);
-    TopicPartitionOffsetProvider topicPartitionOffsetProvider = new TopicPartitionOffsetProvider(offsetStorageReader);
+    TopicPartitionOffsetProvider topicPartitionOffsetProvider =
+        new TopicPartitionOffsetProvider(offsetStorageReader);
 
-    ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue = new ArrayBlockingQueue<>(
-        RECORDS_QUEUE_DEFAULT_SIZE);
-    Map<String, String> inputToOutputTopics = KcqlConfigTopicMapper.mapInputToOutputsFromConfig(
-        azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
+    ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue =
+        new ArrayBlockingQueue<>(RECORDS_QUEUE_DEFAULT_SIZE);
+    Map<String, String> inputToOutputTopics =
+        KcqlConfigTopicMapper.mapInputToOutputsFromConfig(
+            azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
     blockingQueueProducerProvider = new BlockingQueueProducerProvider(topicPartitionOffsetProvider);
-    KafkaByteBlockingQueuedProducer producer = blockingQueueProducerProvider.createProducer(
-        azureEventHubsSourceConfig, recordsQueue, inputToOutputTopics);
-    EventHubsKafkaConsumerController kafkaConsumerController = new EventHubsKafkaConsumerController(
-        producer, recordsQueue, inputToOutputTopics);
+    KafkaByteBlockingQueuedProducer producer =
+        blockingQueueProducerProvider.createProducer(
+            azureEventHubsSourceConfig, recordsQueue, inputToOutputTopics);
+    EventHubsKafkaConsumerController kafkaConsumerController =
+        new EventHubsKafkaConsumerController(producer, recordsQueue, inputToOutputTopics);
     initialize(kafkaConsumerController, azureEventHubsSourceConfig);
   }
 
@@ -84,20 +89,20 @@ public class AzureEventHubsSourceTask extends SourceTask {
    * @param eventHubsKafkaConsumerController {@link EventHubsKafkaConsumerController} for this task
    * @param azureEventHubsSourceConfig config for task
    */
-  public void initialize(EventHubsKafkaConsumerController eventHubsKafkaConsumerController,
+  public void initialize(
+      EventHubsKafkaConsumerController eventHubsKafkaConsumerController,
       AzureEventHubsSourceConfig azureEventHubsSourceConfig) {
     this.eventHubsKafkaConsumerController = eventHubsKafkaConsumerController;
     closeTimeout =
-        Duration.of(azureEventHubsSourceConfig.getInt(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT),
+        Duration.of(
+            azureEventHubsSourceConfig.getInt(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT),
             ChronoUnit.SECONDS);
     log.info("{} initialised.", getClass().getSimpleName());
   }
 
-
   @Override
   public List<SourceRecord> poll() throws InterruptedException {
-    List<SourceRecord> poll =
-        eventHubsKafkaConsumerController.poll(ONE_SECOND_DURATION);
+    List<SourceRecord> poll = eventHubsKafkaConsumerController.poll(ONE_SECOND_DURATION);
     return poll.isEmpty() ? null : poll;
   }
 

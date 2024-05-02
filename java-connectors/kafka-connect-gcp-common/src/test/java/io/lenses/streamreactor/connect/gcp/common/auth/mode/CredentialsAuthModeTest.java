@@ -15,23 +15,22 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
+import static io.lenses.streamreactor.connect.gcp.common.auth.mode.TestFileUtil.resourceAsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import lombok.val;
 import org.apache.kafka.common.config.types.Password;
 import org.junit.jupiter.api.Test;
 
-import static io.lenses.streamreactor.connect.gcp.common.auth.mode.TestFileUtil.resourceAsString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 class CredentialsAuthModeTest {
 
-    @Test
-    void getCredentialsShouldReturnCredentials() throws Exception {
-        val password = new Password(resourceAsString("/test-gcp-credentials.json"));
-        val authMode = new CredentialsAuthMode(password);
+  @Test
+  void getCredentialsShouldReturnCredentials() throws Exception {
+    val password = new Password(resourceAsString("/test-gcp-credentials.json"));
+    val authMode = new CredentialsAuthMode(password);
 
-        val googleCredentials = (ServiceAccountCredentials) authMode.getCredentials();
-        assertEquals("your-client-id", googleCredentials.getClientId());
-    }
-
+    val googleCredentials = (ServiceAccountCredentials) authMode.getCredentials();
+    assertEquals("your-client-id", googleCredentials.getClientId());
+  }
 }

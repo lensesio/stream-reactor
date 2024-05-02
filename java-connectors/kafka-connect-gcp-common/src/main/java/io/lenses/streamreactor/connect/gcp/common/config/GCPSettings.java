@@ -37,11 +37,10 @@ public class GCPSettings {
   private final String httpSocketTimeout;
   private final String httpConnectionTimeout;
 
-
   public static final Long HTTP_ERROR_RETRY_INTERVAL_DEFAULT = 50L;
-    public static final Integer HTTP_NUMBER_OF_RETIRES_DEFAULT = 5;
-    public static final Long HTTP_SOCKET_TIMEOUT_DEFAULT = 60000L;
-    public static final Integer HTTP_CONNECTION_TIMEOUT_DEFAULT = 60000;
+  public static final Integer HTTP_NUMBER_OF_RETIRES_DEFAULT = 5;
+  public static final Long HTTP_SOCKET_TIMEOUT_DEFAULT = 60000L;
+  public static final Integer HTTP_CONNECTION_TIMEOUT_DEFAULT = 60000;
 
   private final AuthModeSettings authModeSettings;
 
@@ -58,83 +57,72 @@ public class GCPSettings {
   }
 
   public ConfigDef withGCPSettings(ConfigDef configDef) {
-      val conf = configDef.define(
-                      gcpProjectId,
-            ConfigDef.Type.STRING,
-                      EMPTY_STRING,
-            ConfigDef.Importance.HIGH,
-            "GCP Project ID"
-            )
+    val conf =
+        configDef
             .define(
-                    gcpQuotaProjectId,
-                    ConfigDef.Type.STRING,
-                    EMPTY_STRING,
-                    ConfigDef.Importance.HIGH,
-                    "GCP Quota Project ID"
-                    )
+                gcpProjectId,
+                ConfigDef.Type.STRING,
+                EMPTY_STRING,
+                ConfigDef.Importance.HIGH,
+                "GCP Project ID")
             .define(
-                    host,
-                    ConfigDef.Type.STRING,
-                    EMPTY_STRING,
-                    ConfigDef.Importance.LOW,
-                    "GCP Host"
-                    )
+                gcpQuotaProjectId,
+                ConfigDef.Type.STRING,
+                EMPTY_STRING,
+                ConfigDef.Importance.HIGH,
+                "GCP Quota Project ID")
+            .define(host, ConfigDef.Type.STRING, EMPTY_STRING, ConfigDef.Importance.LOW, "GCP Host")
             .define(
-                    httpNbrOfRetries,
-                    ConfigDef.Type.INT,
-                    HTTP_NUMBER_OF_RETIRES_DEFAULT,
-                    ConfigDef.Importance.MEDIUM,
-                    "Number of times to retry the http request, in the case of a resolvable error on the server side.",
-                    "Error",
-                    2,
-                    ConfigDef.Width.LONG,
-                    httpNbrOfRetries
-                    )
-              .define(
-                      httpErrorRetryInterval,
-                      ConfigDef.Type.LONG,
-                      HTTP_ERROR_RETRY_INTERVAL_DEFAULT,
-                      ConfigDef.Importance.MEDIUM,
-                      "If greater than zero, used to determine the delay after which to retry the http request in milliseconds.  Based on an exponential backoff algorithm.",
-                      "Error",
-                      3,
-                      ConfigDef.Width.LONG,
-                      httpErrorRetryInterval
-                      )
+                httpNbrOfRetries,
+                ConfigDef.Type.INT,
+                HTTP_NUMBER_OF_RETIRES_DEFAULT,
+                ConfigDef.Importance.MEDIUM,
+                "Number of times to retry the http request, in the case of a resolvable error on"
+                    + " the server side.",
+                "Error",
+                2,
+                ConfigDef.Width.LONG,
+                httpNbrOfRetries)
             .define(
-                    httpSocketTimeout,
-                    ConfigDef.Type.LONG,
-                    HTTP_SOCKET_TIMEOUT_DEFAULT,
-                    ConfigDef.Importance.LOW,
-                    "Socket timeout (ms)"
-                    )
+                httpErrorRetryInterval,
+                ConfigDef.Type.LONG,
+                HTTP_ERROR_RETRY_INTERVAL_DEFAULT,
+                ConfigDef.Importance.MEDIUM,
+                "If greater than zero, used to determine the delay after which to retry the http"
+                    + " request in milliseconds.  Based on an exponential backoff algorithm.",
+                "Error",
+                3,
+                ConfigDef.Width.LONG,
+                httpErrorRetryInterval)
             .define(
-                    httpConnectionTimeout,
-                    ConfigDef.Type.INT,
-                    HTTP_CONNECTION_TIMEOUT_DEFAULT,
-                    ConfigDef.Importance.LOW,
-                    "Connection timeout (ms)"
-                    );
+                httpSocketTimeout,
+                ConfigDef.Type.LONG,
+                HTTP_SOCKET_TIMEOUT_DEFAULT,
+                ConfigDef.Importance.LOW,
+                "Socket timeout (ms)")
+            .define(
+                httpConnectionTimeout,
+                ConfigDef.Type.INT,
+                HTTP_CONNECTION_TIMEOUT_DEFAULT,
+                ConfigDef.Importance.LOW,
+                "Connection timeout (ms)");
 
     return authModeSettings.withAuthModeSettings(conf);
-
   }
 
   public GCPConnectionConfig parseFromConfig(ConnectConfig connectConfig) {
-      return new GCPConnectionConfig(
-              connectConfig.getString(gcpProjectId).orElse(null),
-              connectConfig.getString(gcpQuotaProjectId).orElse(null),
-              authModeSettings.parseFromConfig(connectConfig),
-              connectConfig.getString(host).orElse(null),
-              new RetryConfig(
-                      connectConfig.getInt(httpNbrOfRetries).orElse(HTTP_NUMBER_OF_RETIRES_DEFAULT),
-                      connectConfig.getLong(httpErrorRetryInterval).orElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT)
-                      ),
-              new HttpTimeoutConfig(
-                      connectConfig.getLong(httpSocketTimeout).orElse(null),
-                      connectConfig.getLong(httpConnectionTimeout).orElse(null)
-                      )
-              );
-
+    return new GCPConnectionConfig(
+        connectConfig.getString(gcpProjectId).orElse(null),
+        connectConfig.getString(gcpQuotaProjectId).orElse(null),
+        authModeSettings.parseFromConfig(connectConfig),
+        connectConfig.getString(host).orElse(null),
+        new RetryConfig(
+            connectConfig.getInt(httpNbrOfRetries).orElse(HTTP_NUMBER_OF_RETIRES_DEFAULT),
+            connectConfig
+                .getLong(httpErrorRetryInterval)
+                .orElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT)),
+        new HttpTimeoutConfig(
+            connectConfig.getLong(httpSocketTimeout).orElse(null),
+            connectConfig.getLong(httpConnectionTimeout).orElse(null)));
   }
 }

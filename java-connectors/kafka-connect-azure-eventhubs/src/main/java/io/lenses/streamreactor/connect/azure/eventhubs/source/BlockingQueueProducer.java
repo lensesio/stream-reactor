@@ -33,5 +33,4 @@ public interface BlockingQueueProducer {
    * @param timeoutDuration maximum time to stop the Producer
    */
   void stop(Duration timeoutDuration);
-
 }

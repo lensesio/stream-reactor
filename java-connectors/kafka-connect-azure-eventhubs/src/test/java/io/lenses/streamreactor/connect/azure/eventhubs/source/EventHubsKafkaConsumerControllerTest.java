@@ -52,7 +52,7 @@ class EventHubsKafkaConsumerControllerTest {
 
   @Test
   void pollShouldPollQueueAndReturnSourceRecords() throws InterruptedException {
-    //given
+    // given
     Map<String, String> inputOutputMap = Map.of(INPUT_TOPIC, OUTPUT_TOPIC);
 
     SourceDataType mockedKeyDataType = mockSourceDataType();
@@ -60,16 +60,18 @@ class EventHubsKafkaConsumerControllerTest {
 
     KeyValueTypes mockedKeyValueTypes = mockKeyValueTypes(mockedKeyDataType, mockedValueDataType);
 
-    KafkaByteBlockingQueuedProducer mockedBlockingProducer = mockByteBlockingProducer(mockedKeyValueTypes);
+    KafkaByteBlockingQueuedProducer mockedBlockingProducer =
+        mockByteBlockingProducer(mockedKeyValueTypes);
 
-    ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue = mockRecordsQueue(INPUT_TOPIC);
+    ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue =
+        mockRecordsQueue(INPUT_TOPIC);
 
-    //when
-    testObj = new EventHubsKafkaConsumerController(mockedBlockingProducer, recordsQueue,
-        inputOutputMap);
+    // when
+    testObj =
+        new EventHubsKafkaConsumerController(mockedBlockingProducer, recordsQueue, inputOutputMap);
     List<SourceRecord> sourceRecords = testObj.poll(DURATION_2_SECONDS);
 
-    //then
+    // then
     verify(mockedBlockingProducer).start();
     verify(mockedKeyDataType, times(1)).getSchema();
     verify(mockedValueDataType, times(1)).getSchema();
@@ -80,28 +82,30 @@ class EventHubsKafkaConsumerControllerTest {
   @Test
   void pollWithMultipleInputsAndOutputsShouldPollQueueAndReturnSourceRecordsToCorrectOutput()
       throws InterruptedException {
-    //given
-    Map<String, String> inputOutputMap = Map.of(INPUT_TOPIC, OUTPUT_TOPIC, INPUT_TOPIC_2,
-        OUTPUT_TOPIC_2);
+    // given
+    Map<String, String> inputOutputMap =
+        Map.of(INPUT_TOPIC, OUTPUT_TOPIC, INPUT_TOPIC_2, OUTPUT_TOPIC_2);
 
     SourceDataType mockedKeyDataType = mockSourceDataType();
     SourceDataType mockedValueDataType = mockSourceDataType();
 
     KeyValueTypes mockedKeyValueTypes = mockKeyValueTypes(mockedKeyDataType, mockedValueDataType);
 
-    KafkaByteBlockingQueuedProducer mockedBlockingProducer = mockByteBlockingProducer(mockedKeyValueTypes);
+    KafkaByteBlockingQueuedProducer mockedBlockingProducer =
+        mockByteBlockingProducer(mockedKeyValueTypes);
 
-    ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue = mockRecordsQueue(INPUT_TOPIC, INPUT_TOPIC_2);
+    ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue =
+        mockRecordsQueue(INPUT_TOPIC, INPUT_TOPIC_2);
 
-    //when
-    testObj = new EventHubsKafkaConsumerController(mockedBlockingProducer, recordsQueue,
-        inputOutputMap);
+    // when
+    testObj =
+        new EventHubsKafkaConsumerController(mockedBlockingProducer, recordsQueue, inputOutputMap);
     List<SourceRecord> sourceRecords = testObj.poll(DURATION_2_SECONDS);
 
-    //then
+    // then
     verify(mockedBlockingProducer).start();
-    verify(mockedKeyDataType, times(2)).getSchema(); //1x both records
-    verify(mockedValueDataType, times(2)).getSchema(); //1x both records
+    verify(mockedKeyDataType, times(2)).getSchema(); // 1x both records
+    verify(mockedValueDataType, times(2)).getSchema(); // 1x both records
     verify(mockedBlockingProducer, times(4)).getKeyValueTypes();
     assertEquals(2, sourceRecords.size());
     assertEquals(OUTPUT_TOPIC, sourceRecords.get(0).topic());
@@ -110,21 +114,21 @@ class EventHubsKafkaConsumerControllerTest {
 
   @Test
   void closeShouldCloseTheProducer() {
-    //given
-    KafkaByteBlockingQueuedProducer mockedBlockingProducer = mock(
-        KafkaByteBlockingQueuedProducer.class);
+    // given
+    KafkaByteBlockingQueuedProducer mockedBlockingProducer =
+        mock(KafkaByteBlockingQueuedProducer.class);
 
     Map<String, String> inputOutputMap = Map.of(INPUT_TOPIC, OUTPUT_TOPIC);
 
     ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue = mockRecordsQueue();
 
-    testObj = new EventHubsKafkaConsumerController(mockedBlockingProducer, recordsQueue,
-        inputOutputMap);
+    testObj =
+        new EventHubsKafkaConsumerController(mockedBlockingProducer, recordsQueue, inputOutputMap);
 
-    //when
+    // when
     testObj.close(DURATION_2_SECONDS);
 
-    //then
+    // then
     verify(mockedBlockingProducer).stop(DURATION_2_SECONDS);
   }
 
@@ -134,7 +138,8 @@ class EventHubsKafkaConsumerControllerTest {
     return mockedDataType;
   }
 
-  private static KeyValueTypes mockKeyValueTypes(SourceDataType keyDataType, SourceDataType valueDataType) {
+  private static KeyValueTypes mockKeyValueTypes(
+      SourceDataType keyDataType, SourceDataType valueDataType) {
     KeyValueTypes mockedKeyValueTypes = mock(KeyValueTypes.class);
     when(mockedKeyValueTypes.getKeyType()).thenReturn(keyDataType);
     when(mockedKeyValueTypes.getValueType()).thenReturn(valueDataType);
@@ -155,22 +160,23 @@ class EventHubsKafkaConsumerControllerTest {
     return headersMock;
   }
 
-
-  private static KafkaByteBlockingQueuedProducer mockByteBlockingProducer(KeyValueTypes mockedKeyValueTypes) {
-    KafkaByteBlockingQueuedProducer mockedBlockingProducer = mock(
-        KafkaByteBlockingQueuedProducer.class);
+  private static KafkaByteBlockingQueuedProducer mockByteBlockingProducer(
+      KeyValueTypes mockedKeyValueTypes) {
+    KafkaByteBlockingQueuedProducer mockedBlockingProducer =
+        mock(KafkaByteBlockingQueuedProducer.class);
     when(mockedBlockingProducer.getKeyValueTypes()).thenReturn(mockedKeyValueTypes);
     return mockedBlockingProducer;
   }
 
-  private static ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> mockRecordsQueue
-      (String... inputTopics) {
+  private static ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> mockRecordsQueue(
+      String... inputTopics) {
 
     Headers headersMock = mockEmptyHeaders();
 
-    List<ConsumerRecord<byte[], byte[]>> consumerRecordList = Arrays.stream(inputTopics)
-        .map(it -> mockConsumerRecord(it, Optional.of(headersMock)))
-        .collect(Collectors.toList());
+    List<ConsumerRecord<byte[], byte[]>> consumerRecordList =
+        Arrays.stream(inputTopics)
+            .map(it -> mockConsumerRecord(it, Optional.of(headersMock)))
+            .collect(Collectors.toList());
 
     ConsumerRecords<byte[], byte[]> mockedRecords = mock(ConsumerRecords.class);
     when(mockedRecords.count()).thenReturn(consumerRecordList.size());
@@ -178,6 +184,4 @@ class EventHubsKafkaConsumerControllerTest {
 
     return new ArrayBlockingQueue<>(DEFAULT_CAPACITY, false, List.of(mockedRecords));
   }
-
-
 }

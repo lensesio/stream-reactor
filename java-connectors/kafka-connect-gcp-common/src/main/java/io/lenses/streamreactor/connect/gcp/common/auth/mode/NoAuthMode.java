@@ -25,8 +25,8 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode
 public class NoAuthMode implements AuthMode {
 
-    @Override
-    public Credentials getCredentials() {
-        return NoCredentials.getInstance();
-    }
+  @Override
+  public Credentials getCredentials() {
+    return NoCredentials.getInstance();
+  }
 }

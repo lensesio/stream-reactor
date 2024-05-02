@@ -15,19 +15,18 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.google.cloud.NoCredentials;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 class NoAuthModeTest {
 
-    @Test
-    void getCredentialsShouldReturnCredentials() throws Exception {
-        val authMode = new NoAuthMode();
+  @Test
+  void getCredentialsShouldReturnCredentials() throws Exception {
+    val authMode = new NoAuthMode();
 
-        assertEquals(NoCredentials.getInstance(), authMode.getCredentials());
-    }
-
+    assertEquals(NoCredentials.getInstance(), authMode.getCredentials());
+  }
 }

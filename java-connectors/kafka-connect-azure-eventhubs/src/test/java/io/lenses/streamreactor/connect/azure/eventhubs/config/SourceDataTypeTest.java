@@ -27,34 +27,34 @@ class SourceDataTypeTest {
 
   @Test
   void fromNameShouldReturnEnum() {
-    //given
+    // given
 
-    //when
+    // when
     SourceDataType s = SourceDataType.fromName(SourceDataType.BYTES.name());
 
-    //then
+    // then
     assertEquals(SourceDataType.BYTES, s);
   }
 
   @Test
   void getDeserializerClassShouldReturnSpecifiedDeserializer() {
-    //given
+    // given
 
-    //when
+    // when
     Class<? extends Deserializer> deserializerClass = SourceDataType.BYTES.getDeserializerClass();
 
-    //then
+    // then
     assertEquals(ByteArrayDeserializer.class, deserializerClass);
   }
 
   @Test
   void getSchema() {
-    //given
+    // given
 
-    //when
+    // when
     Schema schema = SourceDataType.BYTES.getSchema();
 
-    //then
+    // then
     assertEquals(OPTIONAL_BYTES_SCHEMA, schema);
   }
 }
