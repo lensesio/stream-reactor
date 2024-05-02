@@ -15,39 +15,34 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth;
 
+import static io.lenses.streamreactor.connect.gcp.common.config.GCPSettings.*;
+
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.AuthMode;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 @Data
 @Builder
 @AllArgsConstructor
-public class GCPConnectionConfig  implements ConnectionConfig {
+public class GCPConnectionConfig implements ConnectionConfig {
 
-    // TODO: These values are duplicated with GCPConfigSettings.  This will be fixed in the next PR.
-    private static final int HTTP_NUM_OF_RETRIES_DEFAULT = 5;
-    private static final long HTTP_ERROR_RETRY_INTERVAL_DEFAULT = 50L;
+  @Nullable private String projectId;
+  @Nullable private String quotaProjectId;
+  @Nonnull private AuthMode authMode;
+  @Nullable private String host;
 
-    @Nullable
-    private String projectId;
-    @Nullable
-    private String quotaProjectId;
-    @Nonnull
-    private AuthMode authMode;
-    @Nullable
-    private String host;
-    @Nonnull
-    @Builder.Default
-    private RetryConfig httpRetryConfig = RetryConfig.builder().retryLimit(HTTP_NUM_OF_RETRIES_DEFAULT).retryIntervalMillis(HTTP_ERROR_RETRY_INTERVAL_DEFAULT).build();
-    @Nonnull
-    @Builder.Default
-    private HttpTimeoutConfig timeouts = HttpTimeoutConfig.builder().build();
+  @Nonnull @Builder.Default
+  private RetryConfig httpRetryConfig =
+      RetryConfig.builder()
+          .retryLimit(HTTP_NUMBER_OF_RETIRES_DEFAULT)
+          .retryIntervalMillis(HTTP_ERROR_RETRY_INTERVAL_DEFAULT)
+          .build();
 
+  @Nonnull @Builder.Default
+  private HttpTimeoutConfig timeouts = HttpTimeoutConfig.builder().build();
 }
-

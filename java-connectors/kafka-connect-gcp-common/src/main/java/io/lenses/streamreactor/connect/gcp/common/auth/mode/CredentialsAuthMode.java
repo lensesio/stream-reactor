@@ -17,25 +17,25 @@ package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import org.apache.kafka.common.config.types.Password;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import org.apache.kafka.common.config.types.Password;
 
 /**
  * Authentication mode using credentials from a string in configuration.
  */
 @AllArgsConstructor
 @EqualsAndHashCode
+@ToString
 public class CredentialsAuthMode implements AuthMode {
-    private final Password passwordCredentials;
+  private final Password passwordCredentials;
 
-    @Override
-    public Credentials getCredentials() throws IOException {
-        return GoogleCredentials.fromStream(
-                new ByteArrayInputStream(passwordCredentials.value().getBytes())
-        );
-    }
+  @Override
+  public Credentials getCredentials() throws IOException {
+    return GoogleCredentials.fromStream(
+        new ByteArrayInputStream(passwordCredentials.value().getBytes()));
+  }
 }

@@ -13,20 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.gcp.common.auth.mode;
+package io.lenses.streamreactor.common.config.source;
 
-import com.google.auth.Credentials;
-import com.google.cloud.NoCredentials;
-import lombok.EqualsAndHashCode;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-/**
- * Authentication mode indicating no authentication is required.
- */
-@EqualsAndHashCode
-public class NoAuthMode implements AuthMode {
+import org.apache.kafka.common.config.AbstractConfig;
 
-  @Override
-  public Credentials getCredentials() {
-    return NoCredentials.getInstance();
+class ConfigAdaptorSourceTest extends ConfigSourceTestBase {
+
+  ConfigSource createConfigSource() {
+
+    AbstractConfig config = mock(AbstractConfig.class);
+    when(config.getString(USERNAME_KEY)).thenReturn(USERNAME_VALUE);
+    when(config.getPassword(PASSWORD_KEY)).thenReturn(PASSWORD_VALUE);
+
+    return new ConfigAdaptorSource(config);
   }
 }

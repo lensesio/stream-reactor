@@ -15,19 +15,15 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth;
 
+import javax.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-
-import javax.annotation.Nullable;
-import java.util.Optional;
 
 @Data
 @Builder
 @AllArgsConstructor
 public class HttpTimeoutConfig {
-    @Nullable
-    private Long socketTimeoutMillis;
-    @Nullable
-    private Long connectionTimeoutMillis;
+  @Nullable private Long socketTimeoutMillis;
+  @Nullable private Long connectionTimeoutMillis;
 }

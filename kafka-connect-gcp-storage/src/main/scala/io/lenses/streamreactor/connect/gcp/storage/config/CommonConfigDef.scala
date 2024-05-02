@@ -16,63 +16,20 @@
 package io.lenses.streamreactor.connect.gcp.storage.config
 
 import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecConfigKeys
-import GCPConfigSettings.ERROR_POLICY
-import GCPConfigSettings.ERROR_POLICY_DEFAULT
-import GCPConfigSettings.ERROR_POLICY_DOC
-import GCPConfigSettings.ERROR_RETRY_INTERVAL
-import GCPConfigSettings.ERROR_RETRY_INTERVAL_DEFAULT
-import GCPConfigSettings.ERROR_RETRY_INTERVAL_DOC
-import GCPConfigSettings.GCP_PROJECT_ID
-import GCPConfigSettings.GCP_QUOTA_PROJECT_ID
-import GCPConfigSettings.HOST
-import GCPConfigSettings.HTTP_CONNECTION_TIMEOUT
-import GCPConfigSettings.HTTP_CONNECTION_TIMEOUT_DEFAULT
-import GCPConfigSettings.HTTP_CONNECTION_TIMEOUT_DOC
-import GCPConfigSettings.HTTP_NBR_OF_RETIRES_DEFAULT
-import GCPConfigSettings.HTTP_NBR_OF_RETRIES
-import GCPConfigSettings.HTTP_NBR_OF_RETRIES_DOC
-import GCPConfigSettings.HTTP_SOCKET_TIMEOUT
-import GCPConfigSettings.HTTP_SOCKET_TIMEOUT_DEFAULT
-import GCPConfigSettings.HTTP_SOCKET_TIMEOUT_DOC
-import GCPConfigSettings.KCQL_CONFIG
-import GCPConfigSettings.KCQL_DOC
-import GCPConfigSettings.NBR_OF_RETIRES_DEFAULT
-import GCPConfigSettings.NBR_OF_RETRIES
-import GCPConfigSettings.NBR_OF_RETRIES_DOC
-import io.lenses.streamreactor.connect.gcp.common.config.AuthModeSettings
+import io.lenses.streamreactor.connect.gcp.common.config.GCPSettings
+import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
 trait CommonConfigDef extends CompressionCodecConfigKeys {
 
-  private val authModeSettingsConfigKeys = new AuthModeSettings(javaConnectorPrefix)
+  private val authModeSettingsConfigKeys: GCPSettings = new GCPSettings(javaConnectorPrefix)
 
   import authModeSettingsConfigKeys._
 
   def config: ConfigDef = {
     val conf = new ConfigDef()
-      .define(
-        GCP_PROJECT_ID,
-        Type.STRING,
-        "",
-        Importance.HIGH,
-        "GCP Project ID",
-      )
-      .define(
-        GCP_QUOTA_PROJECT_ID,
-        Type.STRING,
-        "",
-        Importance.HIGH,
-        "GCP Quota Project ID",
-      )
-      .define(
-        HOST,
-        Type.STRING,
-        "",
-        Importance.LOW,
-        "GCP Host",
-      )
       .define(
         KCQL_CONFIG,
         Type.STRING,
@@ -113,31 +70,6 @@ trait CommonConfigDef extends CompressionCodecConfigKeys {
         ERROR_RETRY_INTERVAL,
       )
       .define(
-        HTTP_NBR_OF_RETRIES,
-        Type.INT,
-        HTTP_NBR_OF_RETIRES_DEFAULT,
-        Importance.MEDIUM,
-        HTTP_NBR_OF_RETRIES_DOC,
-        "Error",
-        2,
-        ConfigDef.Width.LONG,
-        HTTP_NBR_OF_RETRIES,
-      )
-      .define(
-        HTTP_SOCKET_TIMEOUT,
-        Type.LONG,
-        HTTP_SOCKET_TIMEOUT_DEFAULT,
-        Importance.LOW,
-        HTTP_SOCKET_TIMEOUT_DOC,
-      )
-      .define(
-        HTTP_CONNECTION_TIMEOUT,
-        Type.INT,
-        HTTP_CONNECTION_TIMEOUT_DEFAULT,
-        Importance.LOW,
-        HTTP_CONNECTION_TIMEOUT_DOC,
-      )
-      .define(
         COMPRESSION_CODEC,
         Type.STRING,
         COMPRESSION_CODEC_DEFAULT,
@@ -151,6 +83,7 @@ trait CommonConfigDef extends CompressionCodecConfigKeys {
         Importance.LOW,
         COMPRESSION_LEVEL_DOC,
       )
-    withAuthModeSettings(conf)
+    withGCPSettings(conf)
+
   }
 }

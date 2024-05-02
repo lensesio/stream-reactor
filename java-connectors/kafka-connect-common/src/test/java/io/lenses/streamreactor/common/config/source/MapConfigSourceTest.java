@@ -13,20 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.gcp.common.auth.mode;
+package io.lenses.streamreactor.common.config.source;
 
-import com.google.auth.Credentials;
-import com.google.cloud.NoCredentials;
-import lombok.EqualsAndHashCode;
+import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Authentication mode indicating no authentication is required.
- */
-@EqualsAndHashCode
-public class NoAuthMode implements AuthMode {
+import java.util.Map;
+
+class MapConfigSourceTest extends ConfigSourceTestBase {
 
   @Override
-  public Credentials getCredentials() {
-    return NoCredentials.getInstance();
+  ConfigSource createConfigSource() {
+    return new MapConfigSource(
+        Map.of(
+            USERNAME_KEY, USERNAME_VALUE,
+            PASSWORD_KEY, PASSWORD_VALUE));
   }
 }
