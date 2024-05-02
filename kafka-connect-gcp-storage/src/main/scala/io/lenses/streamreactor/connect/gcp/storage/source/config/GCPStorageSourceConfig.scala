@@ -23,7 +23,6 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConnectionConfigBuilder
 import io.lenses.streamreactor.connect.gcp.storage.model.location.GCPStorageLocationValidator
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageFileMetadata
 
@@ -45,13 +44,13 @@ object GCPStorageSourceConfig extends PropsToConfigConverter[GCPStorageSourceCon
   def apply(gcpConfigDefBuilder: GCPStorageSourceConfigDefBuilder): Either[Throwable, GCPStorageSourceConfig] = {
     val parsedValues = gcpConfigDefBuilder.getParsedValues
     for {
-      authMode <- gcpConfigDefBuilder.getAuthMode(gcpConfigDefBuilder.props)
+      gcpConnectionSettings <- gcpConfigDefBuilder.getGcpConnectionSettings(gcpConfigDefBuilder.props)
       sbo <- CloudSourceBucketOptions[GCPStorageFileMetadata](
         gcpConfigDefBuilder,
         gcpConfigDefBuilder.getPartitionExtractor(parsedValues),
       )
     } yield GCPStorageSourceConfig(
-      GCPConnectionConfigBuilder(parsedValues, authMode),
+      gcpConnectionSettings,
       sbo,
       gcpConfigDefBuilder.getCompressionCodec(),
       gcpConfigDefBuilder.getPartitionSearcherOptions(parsedValues),

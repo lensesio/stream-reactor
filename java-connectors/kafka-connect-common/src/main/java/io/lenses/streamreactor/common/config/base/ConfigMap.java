@@ -38,7 +38,25 @@ public class ConfigMap {
   public Optional<String> getString(String key) {
     return Optional.ofNullable((String) wrapped.get(key));
   }
+  /**
+   * Retrieves a String property value associated with the given key.
+   *
+   * @param key the property key
+   * @return an {@link Optional} containing the property value if present, otherwise empty
+   */
+  public Optional<Integer> getInt(String key) {
+    return Optional.ofNullable((Integer) wrapped.get(key));
+  }
 
+  /**
+   * Retrieves a String property value associated with the given key.
+   *
+   * @param key the property key
+   * @return an {@link Optional} containing the property value if present, otherwise empty
+   */
+  public Optional<Long> getLong(String key) {
+    return Optional.ofNullable((Long) wrapped.get(key));
+  }
   /**
    * Retrieves a Password property value associated with the given key.
    *

@@ -21,10 +21,6 @@ object GCPConfigSettings {
 
   val CONNECTOR_PREFIX = "connect.gcpstorage"
 
-  val GCP_PROJECT_ID:       String = s"$CONNECTOR_PREFIX.gcp.project.id"
-  val GCP_QUOTA_PROJECT_ID: String = s"$CONNECTOR_PREFIX.gcp.quota.project.id"
-  val HOST:                 String = s"$CONNECTOR_PREFIX.endpoint"
-
   val KCQL_CONFIG = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_DOC =
     "Contains the Kafka Connect Query Language describing the flow from Apache Kafka topics to Apache Hive tables."
@@ -48,24 +44,6 @@ object GCPConfigSettings {
   val NBR_OF_RETRIES     = s"$CONNECTOR_PREFIX.$MAX_RETRIES_PROP_SUFFIX"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT: Int = 20
-
-  val HTTP_ERROR_RETRY_INTERVAL = s"$CONNECTOR_PREFIX.http.$RETRY_INTERVAL_PROP_SUFFIX"
-  val HTTP_ERROR_RETRY_INTERVAL_DOC =
-    "If greater than zero, used to determine the delay after which to retry the http request in milliseconds.  Based on an exponential backoff algorithm."
-  val HTTP_ERROR_RETRY_INTERVAL_DEFAULT: Long = 50L
-
-  val HTTP_NBR_OF_RETRIES = s"$CONNECTOR_PREFIX.http.$MAX_RETRIES_PROP_SUFFIX"
-  val HTTP_NBR_OF_RETRIES_DOC =
-    "Number of times to retry the http request, in the case of a resolvable error on the server side."
-  val HTTP_NBR_OF_RETIRES_DEFAULT: Int = 5
-
-  val HTTP_SOCKET_TIMEOUT         = s"$CONNECTOR_PREFIX.http.socket.timeout"
-  val HTTP_SOCKET_TIMEOUT_DOC     = "Socket timeout (ms)"
-  val HTTP_SOCKET_TIMEOUT_DEFAULT = 60000L
-
-  val HTTP_CONNECTION_TIMEOUT         = s"$CONNECTOR_PREFIX.http.connection.timeout"
-  val HTTP_CONNECTION_TIMEOUT_DOC     = "Connection timeout (ms)"
-  val HTTP_CONNECTION_TIMEOUT_DEFAULT = 60000
 
   val SEEK_MAX_INDEX_FILES = s"$CONNECTOR_PREFIX.seek.max.files"
   val SEEK_MAX_INDEX_FILES_DOC =

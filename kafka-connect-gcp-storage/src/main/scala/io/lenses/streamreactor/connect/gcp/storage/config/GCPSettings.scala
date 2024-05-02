@@ -17,19 +17,19 @@ package io.lenses.streamreactor.connect.gcp.storage.config
 
 import io.lenses.streamreactor.common.config.base.ConfigMap
 import io.lenses.streamreactor.common.config.base.traits.BaseSettings
-import io.lenses.streamreactor.connect.gcp.common.auth.mode.AuthMode
-import io.lenses.streamreactor.connect.gcp.common.config.{ AuthModeSettings => JavaAuthModeSettings }
+import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
+import io.lenses.streamreactor.connect.gcp.common.config.{ GCPSettings => JavaGCPSettings }
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
 
-trait AuthModeSettings extends BaseSettings {
+trait GCPSettings extends BaseSettings {
 
-  private val javaAuthModeSettings = new JavaAuthModeSettings(javaConnectorPrefix)
+  private val javaGcpSettings = new JavaGCPSettings(javaConnectorPrefix)
 
-  def getAuthMode(props: Map[String, AnyRef]): Either[Throwable, AuthMode] = {
+  def getGcpConnectionSettings(props: Map[String, AnyRef]): Either[Throwable, GCPConnectionConfig] = {
     val configMap = new ConfigMap(props.asJava)
-    Try(javaAuthModeSettings.parseFromConfig(configMap)).toEither
+    Try(javaGcpSettings.parseFromConfig(configMap)).toEither
   }
 
 }

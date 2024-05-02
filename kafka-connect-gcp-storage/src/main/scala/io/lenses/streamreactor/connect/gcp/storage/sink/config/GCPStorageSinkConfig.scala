@@ -25,7 +25,6 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConnectionConfigBuilder
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES
 
 object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig] {
@@ -47,13 +46,13 @@ object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig]
     cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, GCPStorageSinkConfig] =
     for {
-      authMode          <- gcpConfigDefBuilder.getAuthMode(gcpConfigDefBuilder.props)
-      sinkBucketOptions <- CloudSinkBucketOptions(connectorTaskId, gcpConfigDefBuilder)
+      gcpConnectionSettings <- gcpConfigDefBuilder.getGcpConnectionSettings(gcpConfigDefBuilder.props)
+      sinkBucketOptions     <- CloudSinkBucketOptions(connectorTaskId, gcpConfigDefBuilder)
       offsetSeekerOptions = OffsetSeekerOptions(
         gcpConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
       )
     } yield GCPStorageSinkConfig(
-      GCPConnectionConfigBuilder(gcpConfigDefBuilder.getParsedValues, authMode),
+      gcpConnectionSettings,
       sinkBucketOptions,
       offsetSeekerOptions,
       gcpConfigDefBuilder.getCompressionCodec(),

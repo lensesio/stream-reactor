@@ -24,15 +24,11 @@ import lombok.Data;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
+import static io.lenses.streamreactor.connect.gcp.common.config.GCPSettings.*;
 @Data
 @Builder
 @AllArgsConstructor
 public class GCPConnectionConfig  implements ConnectionConfig {
-
-    // TODO: These values are duplicated with GCPConfigSettings.  This will be fixed in the next PR.
-    private static final int HTTP_NUM_OF_RETRIES_DEFAULT = 5;
-    private static final long HTTP_ERROR_RETRY_INTERVAL_DEFAULT = 50L;
 
     @Nullable
     private String projectId;
@@ -44,7 +40,7 @@ public class GCPConnectionConfig  implements ConnectionConfig {
     private String host;
     @Nonnull
     @Builder.Default
-    private RetryConfig httpRetryConfig = RetryConfig.builder().retryLimit(HTTP_NUM_OF_RETRIES_DEFAULT).retryIntervalMillis(HTTP_ERROR_RETRY_INTERVAL_DEFAULT).build();
+    private RetryConfig httpRetryConfig = RetryConfig.builder().retryLimit(HTTP_NUMBER_OF_RETIRES_DEFAULT).retryIntervalMillis(HTTP_ERROR_RETRY_INTERVAL_DEFAULT).build();
     @Nonnull
     @Builder.Default
     private HttpTimeoutConfig timeouts = HttpTimeoutConfig.builder().build();

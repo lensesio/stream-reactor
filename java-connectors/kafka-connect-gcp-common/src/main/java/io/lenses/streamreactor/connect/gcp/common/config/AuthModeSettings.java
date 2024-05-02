@@ -60,9 +60,9 @@ public class AuthModeSettings {
      * @param connectorPrefix The prefix used to generate keys for configuration settings.
      */
     public AuthModeSettings(ConnectorPrefix connectorPrefix) {
-        this.authModeKey = connectorPrefix.prefixKey("gcp.auth.mode");
-        this.credentialsKey = connectorPrefix.prefixKey("gcp.credentials");
-        this.fileKey = connectorPrefix.prefixKey("gcp.file");
+        authModeKey = connectorPrefix.prefixKey("gcp.auth.mode");
+        credentialsKey = connectorPrefix.prefixKey("gcp.credentials");
+        fileKey = connectorPrefix.prefixKey("gcp.file");
     }
 
 
