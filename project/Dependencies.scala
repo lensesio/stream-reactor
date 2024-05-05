@@ -79,7 +79,7 @@ object Dependencies {
 
     val azureDataLakeVersion = "12.18.4"
     val azureIdentityVersion = "1.12.0"
-    val azureCoreVersion     = "1.48.0"
+    val azureCoreVersion     = "1.49.0"
     val gcpCloudVersion      = "2.37.0"
 
     val jacksonVersion      = "2.17.0"
