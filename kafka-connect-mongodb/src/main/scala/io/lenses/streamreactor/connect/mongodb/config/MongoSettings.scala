@@ -104,8 +104,7 @@ object MongoSettings extends StrictLogging {
     )
   }
 
-  /**
-    * Parse out the jsonDateTimeFields list into the structure we need, which is
+  /** Parse out the jsonDateTimeFields list into the structure we need, which is
     * a Set of field 'paths'; ie. :
     *    Set(
     *      Seq("top-level-field"),

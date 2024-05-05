@@ -279,8 +279,7 @@ class AwsS3StorageInterface(connectorTaskId: ConnectorTaskId, s3Client: S3Client
       .map(lmValue => S3FileMetadata(fileName, lmValue))
       .orElse(getMetadata(bucket, fileName).map(oMeta => S3FileMetadata(fileName, oMeta.lastModified)).toOption)
 
-  /**
-    * Gets the system name for use in log messages.
+  /** Gets the system name for use in log messages.
     *
     * @return
     */

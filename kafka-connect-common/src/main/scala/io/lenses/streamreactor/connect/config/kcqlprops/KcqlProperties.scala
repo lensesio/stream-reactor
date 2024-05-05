@@ -50,7 +50,7 @@ case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
 
   def getOptionalInt(key: U): Option[Int] =
     for {
-      value:  String <- map.get(key.entryName)
+      value:  String      <- map.get(key.entryName)
       schema: PropsSchema <- schema.schema.get(key)
       _ <- schema match {
         case IntPropsSchema => value.some
@@ -61,7 +61,7 @@ case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
 
   def getOptionalLong(key: U): Option[Long] =
     for {
-      value:  String <- map.get(key.entryName)
+      value:  String      <- map.get(key.entryName)
       schema: PropsSchema <- schema.schema.get(key)
       _ <- schema match {
         case LongPropsSchema => value.some
@@ -72,7 +72,7 @@ case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
 
   def getOptionalChar(key: U): Option[Char] =
     for {
-      value: Char <- map.get(key.entryName).filter(_.length == 1).flatMap(_.toCharArray.headOption)
+      value: Char        <- map.get(key.entryName).filter(_.length == 1).flatMap(_.toCharArray.headOption)
       _:     PropsSchema <- schema.schema.get(key).filter(_ == CharPropsSchema)
     } yield value
 
@@ -128,7 +128,7 @@ case class KcqlProperties[U <: EnumEntry, T <: Enum[U]](
 
   def getString(key: U): Option[String] =
     for {
-      value:  String <- map.get(key.entryName)
+      value:  String      <- map.get(key.entryName)
       schema: PropsSchema <- schema.schema.get(key)
       _ <- schema match {
         case StringPropsSchema => value.some

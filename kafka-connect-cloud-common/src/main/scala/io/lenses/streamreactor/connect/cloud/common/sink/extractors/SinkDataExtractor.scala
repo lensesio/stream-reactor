@@ -20,13 +20,11 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.formats.writer._
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionNamePath
 
-/**
-  * Extracts values from a SinkData wrapper type
+/** Extracts values from a SinkData wrapper type
   */
 object SinkDataExtractor extends LazyLogging {
 
-  /**
-    * Returns the value of a struct as a String for text output
+  /** Returns the value of a struct as a String for text output
     */
   def extractPathFromSinkData(
     sinkData:     SinkData,

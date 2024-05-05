@@ -277,8 +277,7 @@ class GCPStorageStorageInterface(connectorTaskId: ConnectorTaskId, storage: Stor
       .map(lmValue => GCPStorageFileMetadata(fileName, lmValue))
       .orElse(getMetadata(bucket, fileName).map(oMeta => GCPStorageFileMetadata(fileName, oMeta.lastModified)).toOption)
 
-  /**
-    * Gets the system name for use in log messages.
+  /** Gets the system name for use in log messages.
     *
     * @return
     */

@@ -20,8 +20,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.ListOfKeysResponse
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 
-/**
-  * As AWS's List results are always returned in UTF-8 binary order, the default mode of listing simply defers to Amazon to decide the order.
+/** As AWS's List results are always returned in UTF-8 binary order, the default mode of listing simply defers to Amazon to decide the order.
   */
 object DefaultOrderingBatchLister extends BatchLister {
 

@@ -31,14 +31,12 @@ import org.apache.kafka.connect.errors.ConnectException
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-/**
-  * Created by andrew@datamountaineer.com on 21/04/16.
+/** Created by andrew@datamountaineer.com on 21/04/16.
   * stream-reactor
   */
 object CassandraUtils {
 
-  /**
-    * Check if we have tables in Cassandra and if we have table named the same as our topic
+  /** Check if we have tables in Cassandra and if we have table named the same as our topic
     *
     * @param cluster  A Cassandra cluster to check on
     * @param routes   A list of route mappings
@@ -59,8 +57,7 @@ object CassandraUtils {
       throw new ConnectException(s"No tables found in Cassandra for topics ${missing.mkString(",")}")
   }
 
-  /**
-    * Get buckets between two dates (Instant), this is used within the BUCKETTIMESERIES mode
+  /** Get buckets between two dates (Instant), this is used within the BUCKETTIMESERIES mode
     * @param previousDate The first date
     * @param upperBoundDate The second date
     * @param bucketMode The bucket mode that is been used on BUCKETTIMESERIES

@@ -70,13 +70,11 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
 
   }
 
-  /**
-    * Close elastic4s client
+  /** Close elastic4s client
     */
   def close(): Unit = client.close()
 
-  /**
-    * Write SinkRecords to Elastic Search if list is not empty
+  /** Write SinkRecords to Elastic Search if list is not empty
     *
     * @param records A list of SinkRecords
     */
@@ -89,8 +87,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
       insert(grouped)
     }
 
-  /**
-    * Create a bulk index statement and execute against elastic4s client
+  /** Create a bulk index statement and execute against elastic4s client
     *
     * @param records A list of SinkRecords
     */
@@ -112,24 +109,25 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
           sinkRecords.grouped(settings.batchSize)
             .map { batch =>
               val indexes = batch.map { r =>
-                val (json, pks) = if (kcqlValue.primaryKeysPath.isEmpty) {
-                  (Transform(
-                     kcqlValue.fields,
-                     r.valueSchema(),
-                     r.value(),
-                     kcql.hasRetainStructure,
-                   ),
-                   Seq.empty,
-                  )
-                } else {
-                  TransformAndExtractPK(
-                    kcqlValue.fields,
-                    kcqlValue.primaryKeysPath,
-                    r.valueSchema(),
-                    r.value(),
-                    kcql.hasRetainStructure,
-                  )
-                }
+                val (json, pks) =
+                  if (kcqlValue.primaryKeysPath.isEmpty) {
+                    (Transform(
+                       kcqlValue.fields,
+                       r.valueSchema(),
+                       r.value(),
+                       kcql.hasRetainStructure,
+                     ),
+                     Seq.empty,
+                    )
+                  } else {
+                    TransformAndExtractPK(
+                      kcqlValue.fields,
+                      kcqlValue.primaryKeysPath,
+                      r.valueSchema(),
+                      r.value(),
+                      kcql.hasRetainStructure,
+                    )
+                  }
                 val idFromPk = pks.mkString(settings.pkJoinerSeparator)
 
                 kcql.getWriteMode match {
@@ -160,8 +158,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
     ()
   }
 
-  /**
-    * Create id from record infos
+  /** Create id from record infos
     *
     * @param record One SinkRecord
     */

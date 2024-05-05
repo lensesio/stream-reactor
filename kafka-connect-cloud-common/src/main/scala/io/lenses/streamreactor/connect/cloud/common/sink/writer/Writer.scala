@@ -74,11 +74,8 @@ class Writer[SM <: FileMetadata](
         val writingStateEither = for {
           file         <- stagingFilenameFn()
           formatWriter <- formatWriterFn(file)
-          writingState <- noWriter.toWriting(formatWriter,
-                                             file,
-                                             messageDetail.offset,
-                                             messageDetail.epochTimestamp,
-          ).asRight
+          writingState <-
+            noWriter.toWriting(formatWriter, file, messageDetail.offset, messageDetail.epochTimestamp).asRight
         } yield writingState
         writingStateEither.flatMap { writingState =>
           writeState = writingState
@@ -174,8 +171,7 @@ class Writer[SM <: FileMetadata](
       case _: Uploading => false
     }
 
-  /**
-    * If the offsets provided by Kafka Connect have already been processed, then they must be skipped to avoid duplicate records and protect the integrity of the data files.
+  /** If the offsets provided by Kafka Connect have already been processed, then they must be skipped to avoid duplicate records and protect the integrity of the data files.
     *
     * @param currentOffset the current offset
     * @return true if the given offset should be skipped, false otherwise
@@ -200,13 +196,14 @@ class Writer[SM <: FileMetadata](
         )
       }
 
-      val shouldSkip = if (latestOffset.isEmpty) {
-        false
-      } else if (latestOffset.exists(_ >= currentOffset)) {
-        true
-      } else {
-        false
-      }
+      val shouldSkip =
+        if (latestOffset.isEmpty) {
+          false
+        } else if (latestOffset.exists(_ >= currentOffset)) {
+          true
+        } else {
+          false
+        }
       logSkipOutcome(currentOffset, latestOffset, skipRecord = shouldSkip)
       shouldSkip
     }

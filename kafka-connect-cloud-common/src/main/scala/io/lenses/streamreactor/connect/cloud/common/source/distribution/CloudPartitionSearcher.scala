@@ -23,8 +23,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.cloud.common.storage.DirectoryLister
 
-/**
-  * Class implementing a partition searcher for S3 cloud storage.
+/** Class implementing a partition searcher for S3 cloud storage.
   * This class searches for new partitions within specified roots in S3.
   *
   * @param roots           The list of root locations in which to search for partitions.
@@ -40,8 +39,7 @@ class CloudPartitionSearcher(
 ) extends PartitionSearcher
     with LazyLogging {
 
-  /**
-    * Finds new partitions based on the provided last found partition responses.
+  /** Finds new partitions based on the provided last found partition responses.
     *
     * @param lastFound The previously found partition responses.
     * @return          A sequence of new partition responses.

@@ -23,8 +23,7 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-/**
-  * Generic converter for files to source records. Needs to track
+/** Generic converter for files to source records. Needs to track
   * file offsets for the FtpMonitor.
   */
 abstract class FileConverter() {

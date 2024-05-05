@@ -38,8 +38,7 @@ class IndexManager[SM <: FileMetadata](
   storageInterface: StorageInterface[SM],
 ) extends LazyLogging {
 
-  /**
-    * deletes all index files except for the one corresponding to topicPartitionOffset
+  /** deletes all index files except for the one corresponding to topicPartitionOffset
     *
     * @param mostRecentIndexFile the latest offset successfully written
     * @param topicPartition      the topicPartition
@@ -126,8 +125,7 @@ class IndexManager[SM <: FileMetadata](
 
   }
 
-  /**
-    * Seeks the filesystem to find the latest offsets for a topic/partition.
+  /** Seeks the filesystem to find the latest offsets for a topic/partition.
     *
     * @param topicPartition     the TopicPartition for which to retrieve the offsets
     * @param bucket    the configured bucket
@@ -192,8 +190,7 @@ class IndexManager[SM <: FileMetadata](
         new NonFatalCloudSinkError(logLine, err.exception.some)
     }
 
-  /**
-    * Given a bucket and a list of files, attempts to load them to establish the most recent valid index
+  /** Given a bucket and a list of files, attempts to load them to establish the most recent valid index
     *
     * @param bucket    the configured bucket
     * @param indexFiles      List of index files

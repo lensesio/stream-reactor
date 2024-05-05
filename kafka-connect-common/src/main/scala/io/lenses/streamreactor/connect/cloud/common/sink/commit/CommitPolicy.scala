@@ -20,8 +20,7 @@ import com.typesafe.scalalogging.Logger
 
 import scala.util.Try
 
-/**
-  * The [[CommitPolicy]] is responsible for determining when
+/** The [[CommitPolicy]] is responsible for determining when
   * a sink partition (a single file) should be flushed (closed on disk, and moved to be visible).
   *
   * By default, it flushes based on configurable conditions such as number of records, file size,
@@ -31,8 +30,7 @@ import scala.util.Try
   */
 case class CommitPolicy(logger: Logger, conditions: CommitPolicyCondition*) {
 
-  /**
-    * Checks if the output file should be flushed based on the provided `CommitContext`.
+  /** Checks if the output file should be flushed based on the provided `CommitContext`.
     *
     * @param context the commit context
     * @return true if the partition should be flushed, false otherwise

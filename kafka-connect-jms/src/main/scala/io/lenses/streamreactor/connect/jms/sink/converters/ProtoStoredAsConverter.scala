@@ -105,7 +105,8 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
           parseMethod.invoke(null)
             .asInstanceOf[Descriptors.Descriptor]
         } catch {
-          case x: Exception => logger.error("Invalid storedAs settings: " + x.getMessage)
+          case x: Exception =>
+            logger.error("Invalid storedAs settings: " + x.getMessage)
             null
         }
       },
@@ -139,33 +140,35 @@ case class ProtoStoredAsConverter() extends ProtoConverter with StrictLogging {
       .headOption
       .orNull
 
-  private def getDescriptor(message: String, protoPath: String, protoFile: String): Descriptors.Descriptor = try {
-    val descFile: File = generateDescFile(protoPath, protoFile)
-    val fileDescriptorSet = DescriptorProtos.FileDescriptorSet.parseFrom(new FileInputStream(descFile.getAbsolutePath))
-    val fileDescriptorProto = fileDescriptorSet.getFileList.stream.filter((fdp: DescriptorProtos.FileDescriptorProto) =>
-      fdp.getName == protoFile,
-    )
-      .findFirst
-      .orElse(null)
-
-    if (fileDescriptorProto != null) {
-      val fileDescriptor = buildFileDescriptor(fileDescriptorProto, fileDescriptorSet)
-      val descriptor = fileDescriptor.getMessageTypes.stream
-        .filter((pointerDescriptor: Descriptors.Descriptor) => pointerDescriptor.getFullName == message)
+  private def getDescriptor(message: String, protoPath: String, protoFile: String): Descriptors.Descriptor =
+    try {
+      val descFile: File = generateDescFile(protoPath, protoFile)
+      val fileDescriptorSet =
+        DescriptorProtos.FileDescriptorSet.parseFrom(new FileInputStream(descFile.getAbsolutePath))
+      val fileDescriptorProto = fileDescriptorSet.getFileList.stream.filter(
+        (fdp: DescriptorProtos.FileDescriptorProto) => fdp.getName == protoFile,
+      )
         .findFirst
         .orElse(null)
 
-      logger.debug(s"Descriptor value is $descriptor")
-      descriptor
-    } else {
-      logger.error(s"File descriptor name=$message doesn't match with proto file name=$protoFile")
-      null
+      if (fileDescriptorProto != null) {
+        val fileDescriptor = buildFileDescriptor(fileDescriptorProto, fileDescriptorSet)
+        val descriptor = fileDescriptor.getMessageTypes.stream
+          .filter((pointerDescriptor: Descriptors.Descriptor) => pointerDescriptor.getFullName == message)
+          .findFirst
+          .orElse(null)
+
+        logger.debug(s"Descriptor value is $descriptor")
+        descriptor
+      } else {
+        logger.error(s"File descriptor name=$message doesn't match with proto file name=$protoFile")
+        null
+      }
+    } catch {
+      case x @ (_: IOException | _: InterruptedException) =>
+        logger.error("Unexpected error", x.getMessage)
+        null
     }
-  } catch {
-    case x @ (_: IOException | _: InterruptedException) =>
-      logger.error("Unexpected error", x.getMessage)
-      null
-  }
 
   private def generateDescFile(protoPath: String, protoFile: String) = {
     val descFile = File.createTempFile(protoFile, ".desc")

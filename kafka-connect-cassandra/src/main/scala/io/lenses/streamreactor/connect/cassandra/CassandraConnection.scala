@@ -28,8 +28,7 @@ import com.datastax.driver.core._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.AbstractConfig
 
-/**
-  * Set up a Casssandra connection
+/** Set up a Casssandra connection
   */
 
 object CassandraConnection extends StrictLogging {
@@ -83,8 +82,7 @@ object CassandraConnection extends StrictLogging {
     builder.build()
   }
 
-  /**
-    * Get a Cassandra session
+  /** Get a Cassandra session
     *
     * @param keySpace A configuration to build the setting from
     * @param cluster  The cluster the get the session for
@@ -92,8 +90,7 @@ object CassandraConnection extends StrictLogging {
   def getSession(keySpace: String, cluster: Cluster): Session =
     cluster.connect(keySpace)
 
-  /**
-    * Add authentication to the connection builder
+  /** Add authentication to the connection builder
     *
     * @param connectorConfig The connector configuration to get the parameters from
     * @param builder         The builder to add the authentication to
@@ -111,8 +108,7 @@ object CassandraConnection extends StrictLogging {
     builder
   }
 
-  /**
-    * Add SSL connection options to the connection builder
+  /** Add SSL connection options to the connection builder
     *
     * @param connectorConfig The connector configuration to get the parameters from
     * @param builder         The builder to add the authentication to
@@ -144,8 +140,7 @@ object CassandraConnection extends StrictLogging {
   }
 }
 
-/**
-  * <h1>CassandraConnection</h1>
+/** <h1>CassandraConnection</h1>
   *
   * Case class to hold a Cassandra cluster and session connection
   */

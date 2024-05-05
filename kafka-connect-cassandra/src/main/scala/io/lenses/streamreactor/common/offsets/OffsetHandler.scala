@@ -22,14 +22,12 @@ import java.util.Collections
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-/**
-  * Created by andrew@datamountaineer.com on 25/04/16.
+/** Created by andrew@datamountaineer.com on 25/04/16.
   * stream-reactor
   */
 object OffsetHandler {
 
-  /**
-    * Recover the offsets
+  /** Recover the offsets
     *
     * @param lookupPartitionKey A partition key for the offset map
     * @param sourcePartition A list of datasets .i.e tables to get the partition offsets for
@@ -45,8 +43,7 @@ object OffsetHandler {
     context.offsetStorageReader().offsets(partitions)
   }
 
-  /**
-    * Returns a last stored offset for the partitionKeyValue
+  /** Returns a last stored offset for the partitionKeyValue
     *
     * @param offsets The offsets to search through.
     * @param lookupPartitionKey The key for this partition .i.e. cassandra.assigned.tables.

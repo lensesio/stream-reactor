@@ -38,8 +38,7 @@ class ResultReader(
 ) extends LazyLogging
     with AutoCloseable {
 
-  /**
-    * Retrieves the results for a particular reader, or None if no further results are available
+  /** Retrieves the results for a particular reader, or None if no further results are available
     */
   def retrieveResults(limit: Int): Option[Vector[SourceRecord]] = {
     val results: Vector[SourceRecord] = accumulate(limit, reader, Vector.empty[SourceRecord])

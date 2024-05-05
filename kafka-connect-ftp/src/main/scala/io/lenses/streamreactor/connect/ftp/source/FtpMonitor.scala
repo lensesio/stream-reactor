@@ -385,7 +385,8 @@ class FtpMonitor(settings: FtpMonitorSettings, fileConverter: FileConverter) ext
       Try(settings.directories.to(LazyList).flatMap(dir =>
         fetchFromMonitoredPlaces(dir).map { case (meta, body) => (meta, body, dir) },
       ))
-    case Failure(err) => logger.warn(s"cannot connect to ftp: ${err.toString}")
+    case Failure(err) =>
+      logger.warn(s"cannot connect to ftp: ${err.toString}")
       Failure(err)
   }
 }
