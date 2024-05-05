@@ -78,7 +78,7 @@ object Dependencies {
     val awsSdkVersion  = "2.25.40"
 
     val azureDataLakeVersion = "12.18.4"
-    val azureIdentityVersion = "1.12.0"
+    val azureIdentityVersion = "1.12.1"
     val azureCoreVersion     = "1.48.0"
     val gcpCloudVersion      = "2.37.0"
 
