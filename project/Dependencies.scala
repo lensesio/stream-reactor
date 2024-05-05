@@ -82,7 +82,7 @@ object Dependencies {
     val azureCoreVersion     = "1.49.0"
     val gcpCloudVersion      = "2.37.0"
 
-    val jacksonVersion      = "2.17.0"
+    val jacksonVersion      = "2.17.1"
     val json4sVersion       = "4.0.7"
     val mockitoScalaVersion = "1.17.31"
     val mockitoJavaVersion  = "5.2.0"
