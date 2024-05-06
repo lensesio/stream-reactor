@@ -399,10 +399,6 @@ public class SchemaManager {
     checkState(firstField.getName().equalsIgnoreCase(secondField.getName()),
             String.format("Cannot perform union operation on two fields having different names. " +
                     "Field names are '%s' and '%s'.", firstField.getName(), secondField.getName()));
-    checkState(firstField.getType() == secondField.getType(),
-            String.format("Cannot perform union operation on two fields having different datatypes. " +
-                    "Field name is '%s' and datatypes are '%s' and '%s'.", firstField.getName(), firstField.getType(), secondField.getType()));
-
     Field.Builder retBuilder = firstField.toBuilder();
     if (isFieldRelaxation(firstField, secondField)) {
       retBuilder.setMode(secondField.getMode());
