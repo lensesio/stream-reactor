@@ -15,6 +15,16 @@ Lenses offers the leading Developer Experience solution for engineers building r
 
 Speak to us on our Community Slack channel (Register at https://launchpass.com/lensesio) or ask the Community a question in our [Ask Marios](http://www.lenses.io) forum. 
 
+## Version Support Policy
+
+Under our standard support agreement, we provide assistance for the current major version as well as the preceding major version exclusively. For instance, if version 8.x is the current major release, we offer support for Lenses connectors versions within the 8.x and 7.x series.
+
+Enterprise-level support commences from version 7.0 onwards.
+
+Lenses prioritizes backporting fixes rather than incorporating new features, and this is done on a limited basis across select prior releases. For further clarification, please refer to our maintenance policy.
+
+Should you reach out to our support team regarding issues encountered while using an unsupported version, we will direct you to this section of our policy page and encourage you to upgrade.
+
 ## Kafka Connectors Roadmap
 
 A series of next-generation Connectors are in active development. Give us your feedback of which connectors we should be working on or to to get the latest information, send us an email at info@lenses.io
