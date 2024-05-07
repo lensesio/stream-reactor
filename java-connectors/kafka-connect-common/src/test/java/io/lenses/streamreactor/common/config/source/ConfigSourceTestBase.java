@@ -24,10 +24,10 @@ import org.junit.jupiter.api.Test;
 
 abstract class ConfigSourceTestBase {
 
-  public static final String PASSWORD_KEY = "password";
-  public static final Password PASSWORD_VALUE = new Password("secret");
-  public static final String USERNAME_KEY = "username";
-  public static final String USERNAME_VALUE = "user123";
+  protected static final String PASSWORD_KEY = "password";
+  protected static final Password PASSWORD_VALUE = new Password("secret");
+  protected static final String USERNAME_KEY = "username";
+  protected static final String USERNAME_VALUE = "user123";
   private ConfigSource configSource;
 
   @BeforeEach

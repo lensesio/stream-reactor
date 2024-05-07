@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 
 import org.apache.kafka.common.config.AbstractConfig;
 
-class ConfigAdaptorSourceTest extends ConfigSourceTestBase {
+class ConfigWrapperSourceTest extends ConfigSourceTestBase {
 
   ConfigSource createConfigSource() {
 
@@ -28,6 +28,6 @@ class ConfigAdaptorSourceTest extends ConfigSourceTestBase {
     when(config.getString(USERNAME_KEY)).thenReturn(USERNAME_VALUE);
     when(config.getPassword(PASSWORD_KEY)).thenReturn(PASSWORD_VALUE);
 
-    return new ConfigAdaptorSource(config);
+    return new ConfigWrapperSource(config);
   }
 }

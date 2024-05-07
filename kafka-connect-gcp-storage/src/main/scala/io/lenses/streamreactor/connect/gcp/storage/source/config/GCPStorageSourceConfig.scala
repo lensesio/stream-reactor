@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.source.config
 
-import io.lenses.streamreactor.common.config.source.ConfigAdaptorSource
+import io.lenses.streamreactor.common.config.source.ConfigWrapperSource
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSourceConfig
 import io.lenses.streamreactor.connect.cloud.common.config.traits.PropsToConfigConverter
@@ -44,7 +44,7 @@ object GCPStorageSourceConfig extends PropsToConfigConverter[GCPStorageSourceCon
 
   def apply(gcpConfigDefBuilder: GCPStorageSourceConfigDefBuilder): Either[Throwable, GCPStorageSourceConfig] = {
     val parsedValues     = gcpConfigDefBuilder.getParsedValues
-    val configMapVersion = new ConfigAdaptorSource(gcpConfigDefBuilder)
+    val configMapVersion = new ConfigWrapperSource(gcpConfigDefBuilder)
     for {
       gcpConnectionSettings <- gcpConfigDefBuilder.getGcpConnectionSettings(configMapVersion)
       sbo <- CloudSourceBucketOptions[GCPStorageFileMetadata](

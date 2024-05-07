@@ -16,7 +16,7 @@
 package io.lenses.streamreactor.connect.gcp.storage.sink.config
 
 import io.lenses.streamreactor.common.config.base.RetryConfig
-import io.lenses.streamreactor.common.config.source.ConfigAdaptorSource
+import io.lenses.streamreactor.common.config.source.ConfigWrapperSource
 import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
@@ -46,7 +46,7 @@ object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig]
     implicit
     cloudLocationValidator: CloudLocationValidator,
   ): Either[Throwable, GCPStorageSinkConfig] = {
-    val configSource = new ConfigAdaptorSource(gcpConfigDefBuilder)
+    val configSource = new ConfigWrapperSource(gcpConfigDefBuilder)
     for {
       gcpConnectionSettings <- gcpConfigDefBuilder.getGcpConnectionSettings(configSource)
       sinkBucketOptions     <- CloudSinkBucketOptions(connectorTaskId, gcpConfigDefBuilder)

@@ -55,8 +55,8 @@ allprojects {
         implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
 
         //lombok
-        compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.30'
-        testCompileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.30'
+        compileOnly group: 'org.projectlombok', name: 'lombok', version: lombokVersion
+        testCompileOnly group: 'org.projectlombok', name: 'lombok', version: lombokVersion
         annotationProcessor group: 'org.projectlombok', name: 'lombok', version: lombokVersion
         testAnnotationProcessor group: 'org.projectlombok', name: 'lombok', version: lombokVersion
 

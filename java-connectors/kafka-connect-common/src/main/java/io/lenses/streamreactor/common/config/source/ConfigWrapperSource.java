@@ -24,7 +24,7 @@ import org.apache.kafka.common.config.types.Password;
  * A wrapper for Kafka Connect properties stored in the `AbstractConfig` that provides methods to retrieve property values.
  */
 @AllArgsConstructor
-public class ConfigAdaptorSource implements ConfigSource {
+public class ConfigWrapperSource implements ConfigSource {
 
   private final AbstractConfig abstractConfig;
 
