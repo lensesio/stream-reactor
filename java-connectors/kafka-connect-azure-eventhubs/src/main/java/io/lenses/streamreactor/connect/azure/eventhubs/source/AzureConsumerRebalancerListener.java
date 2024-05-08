@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -41,8 +41,8 @@ public class AzureConsumerRebalancerListener implements ConsumerRebalanceListene
    * Constructs {@link AzureConsumerRebalancerListener} for particular Kafka Consumer.
    *
    * @param topicPartitionOffsetProvider provider of committed offsets
-   * @param kafkaConsumer Kafka Consumer
-   * @param shouldSeekToLatest informs whether we should seek to latest or earliest if no offsets found
+   * @param kafkaConsumer                Kafka Consumer
+   * @param shouldSeekToLatest           informs whether we should seek to latest or earliest if no offsets found
    */
   public AzureConsumerRebalancerListener(
       TopicPartitionOffsetProvider topicPartitionOffsetProvider,
@@ -61,8 +61,9 @@ public class AzureConsumerRebalancerListener implements ConsumerRebalanceListene
   public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
     List<TopicPartition> partitionsWithoutOffsets = new ArrayList<>();
     partitions.forEach(partition -> {
-      AzureTopicPartitionKey partitionKey = new AzureTopicPartitionKey(
-          partition.topic(), partition.partition());
+      AzureTopicPartitionKey partitionKey =
+          new AzureTopicPartitionKey(
+              partition.topic(), partition.partition());
       Optional<AzureOffsetMarker> partitionOffset = topicPartitionOffsetProvider.getOffset(partitionKey);
       partitionOffset.ifPresentOrElse(
           offset -> kafkaConsumer.seek(partition, offset.getOffsetValue()),

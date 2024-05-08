@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -57,6 +57,7 @@ public enum SourceDataType {
   @Getter
   @EqualsAndHashCode
   public static class KeyValueTypes {
+
     private final SourceDataType keyType;
     private final SourceDataType valueType;
     public static final KeyValueTypes DEFAULT_TYPES = new KeyValueTypes(BYTES, BYTES);

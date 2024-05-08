@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -41,7 +41,6 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
       "allowed values are: earliest/latest";
   private final TopicPartitionOffsetProvider topicPartitionOffsetProvider;
 
-
   public BlockingQueueProducerProvider(TopicPartitionOffsetProvider topicPartitionOffsetProvider) {
     this.topicPartitionOffsetProvider = topicPartitionOffsetProvider;
   }
@@ -51,7 +50,7 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
    *
    * @param azureEventHubsSourceConfig Config of Task
    * @param recordBlockingQueue        BlockingQueue for ConsumerRecords
-   * @param inputToOutputTopics map of input to output topics
+   * @param inputToOutputTopics        map of input to output topics
    * @return BlockingQueuedKafkaConsumer instance.
    */
   public KafkaByteBlockingQueuedProducer createProducer(
@@ -63,8 +62,9 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
     log.info("Attempting to create Client with Id:{}", clientId);
     KeyValueTypes keyValueTypes = KeyValueTypes.DEFAULT_TYPES;
 
-    Map<String, Object> consumerProperties = prepareConsumerProperties(azureEventHubsSourceConfig,
-        clientId, connectorName, keyValueTypes);
+    Map<String, Object> consumerProperties =
+        prepareConsumerProperties(azureEventHubsSourceConfig,
+            clientId, connectorName, keyValueTypes);
 
     KafkaConsumer<byte[], byte[]> kafkaConsumer = new KafkaConsumer<>(consumerProperties);
 
@@ -78,13 +78,14 @@ public class BlockingQueueProducerProvider implements ProducerProvider<byte[], b
   private static Map<String, Object> prepareConsumerProperties(
       AzureEventHubsSourceConfig azureEventHubsSourceConfig, String clientId, String connectorName,
       KeyValueTypes keyValueTypes) {
-    Map<String, Object> consumerProperties = azureEventHubsSourceConfig.originalsWithPrefix(
-        AzureEventHubsConfigConstants.CONNECTOR_WITH_CONSUMER_PREFIX, STRIP_PREFIX);
+    Map<String, Object> consumerProperties =
+        azureEventHubsSourceConfig.originalsWithPrefix(
+            AzureEventHubsConfigConstants.CONNECTOR_WITH_CONSUMER_PREFIX, STRIP_PREFIX);
 
     consumerProperties.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
     consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, connectorName);
     consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-            keyValueTypes.getKeyType().getDeserializerClass());
+        keyValueTypes.getKeyType().getDeserializerClass());
     consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
         keyValueTypes.getValueType().getDeserializerClass());
     consumerProperties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");

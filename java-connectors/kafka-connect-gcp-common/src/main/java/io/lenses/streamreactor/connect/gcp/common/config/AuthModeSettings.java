@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,7 +27,8 @@ import org.apache.kafka.common.config.ConfigException;
 
 /**
  * Configuration settings for specifying authentication mode and related credentials for GCP connectors.
- * This class provides methods to define and parse authentication mode settings based on Kafka Connect's {@link ConfigDef}.
+ * This class provides methods to define and parse authentication mode settings based on Kafka Connect's
+ * {@link ConfigDef}.
  *
  * Authentication modes supported:
  * - 'credentials': Use GCP credentials for authentication.
@@ -105,7 +106,8 @@ public class AuthModeSettings implements ConfigSettings<AuthMode> {
    * @return The parsed AuthMode based on the configuration settings.
    * @throws ConfigException If an invalid or unsupported authentication mode is specified.
    */
-  @Override public AuthMode parseFromConfig(ConfigSource configSource) {
+  @Override
+  public AuthMode parseFromConfig(ConfigSource configSource) {
     return configSource
         .getString(getAuthModeKey())
         .map(
@@ -134,9 +136,8 @@ public class AuthModeSettings implements ConfigSettings<AuthMode> {
         .filter(file -> !(file.isEmpty()))
         .map(FileAuthMode::new)
         .orElseThrow(
-            () ->
-                new ConfigException(
-                    String.format("No `%s` specified in configuration", getFileKey())));
+            () -> new ConfigException(
+                String.format("No `%s` specified in configuration", getFileKey())));
   }
 
   private CredentialsAuthMode createCredentialsAuthMode(ConfigSource configAdaptor) {
@@ -145,8 +146,7 @@ public class AuthModeSettings implements ConfigSettings<AuthMode> {
         .filter(password -> !(password.value().isEmpty()))
         .map(CredentialsAuthMode::new)
         .orElseThrow(
-            () ->
-                new ConfigException(
-                    String.format("No `%s` specified in configuration", getCredentialsKey())));
+            () -> new ConfigException(
+                String.format("No `%s` specified in configuration", getCredentialsKey())));
   }
 }

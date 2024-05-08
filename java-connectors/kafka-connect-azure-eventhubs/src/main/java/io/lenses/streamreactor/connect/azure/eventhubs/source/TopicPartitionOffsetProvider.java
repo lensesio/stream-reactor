@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,7 +32,6 @@ public final class TopicPartitionOffsetProvider {
 
   private final OffsetStorageReader offsetStorageReader;
 
-
   public TopicPartitionOffsetProvider(OffsetStorageReader offsetStorageReader) {
     this.offsetStorageReader = offsetStorageReader;
   }
@@ -43,7 +42,7 @@ public final class TopicPartitionOffsetProvider {
    * @param azureTopicPartitionKey key of topic+partition combo.
    *
    * @return empty optional if topic+partition combo has not committed any offsets or
-   *     AzureOffsetMarker if combo already did commit some.
+   *         AzureOffsetMarker if combo already did commit some.
    */
   public Optional<AzureOffsetMarker> getOffset(AzureTopicPartitionKey azureTopicPartitionKey) {
     return Optional.ofNullable(offsetStorageReader.offset(azureTopicPartitionKey))

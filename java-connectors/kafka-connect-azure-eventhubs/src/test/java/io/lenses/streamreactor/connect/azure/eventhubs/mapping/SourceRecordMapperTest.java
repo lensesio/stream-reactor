@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,6 +34,7 @@ import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.Test;
 
 class SourceRecordMapperTest {
+
   private static final String TOPIC = "topic";
   private static final Integer PARTITION = 10;
   private static final Long OFFSET = 111L;
@@ -47,7 +48,7 @@ class SourceRecordMapperTest {
     AzureTopicPartitionKey topicPartitionKey = new AzureTopicPartitionKey(TOPIC, PARTITION);
     AzureOffsetMarker azureOffsetMarker = new AzureOffsetMarker(OFFSET);
 
-    byte[] exampleHeaderValue = new byte[] {1, 10};
+    byte[] exampleHeaderValue = new byte[]{1, 10};
     int headerLength = exampleHeaderValue.length;
     Header mockedHeader = mock(Header.class);
     when(mockedHeader.key()).thenReturn(HEADER_KEY);
@@ -62,16 +63,17 @@ class SourceRecordMapperTest {
     //when
     Schema stringSchema = Schema.STRING_SCHEMA;
     Schema optionalStringSchema = Schema.OPTIONAL_STRING_SCHEMA;
-    SourceRecord sourceRecord = SourceRecordMapper.mapSourceRecordIncludingHeaders(
-        consumerRecord, topicPartitionKey, azureOffsetMarker,
-        OUTPUT_TOPIC, optionalStringSchema, stringSchema);
+    SourceRecord sourceRecord =
+        SourceRecordMapper.mapSourceRecordIncludingHeaders(
+            consumerRecord, topicPartitionKey, azureOffsetMarker,
+            OUTPUT_TOPIC, optionalStringSchema, stringSchema);
 
     //then
     assertRecordAttributesAreMappedFromSourceConsumerRecord(sourceRecord, consumerRecord,
         OUTPUT_TOPIC, optionalStringSchema, stringSchema, topicPartitionKey, azureOffsetMarker);
     verify(consumerRecord).headers();
     assertThat(sourceRecord.headers()).hasSize(1);
-    assertThat(((byte[])sourceRecord.headers().lastWithName(HEADER_KEY).value())).hasSize(headerLength);
+    assertThat(((byte[]) sourceRecord.headers().lastWithName(HEADER_KEY).value())).hasSize(headerLength);
   }
 
   @Test
@@ -85,9 +87,10 @@ class SourceRecordMapperTest {
     //when
     Schema stringSchema = Schema.STRING_SCHEMA;
     Schema optionalStringSchema = Schema.OPTIONAL_STRING_SCHEMA;
-    SourceRecord sourceRecord = SourceRecordMapper.mapSourceRecordWithoutHeaders(
-        consumerRecord, topicPartitionKey, azureOffsetMarker, OUTPUT_TOPIC,
-        optionalStringSchema, stringSchema);
+    SourceRecord sourceRecord =
+        SourceRecordMapper.mapSourceRecordWithoutHeaders(
+            consumerRecord, topicPartitionKey, azureOffsetMarker, OUTPUT_TOPIC,
+            optionalStringSchema, stringSchema);
 
     //then
     assertRecordAttributesAreMappedFromSourceConsumerRecord(sourceRecord, consumerRecord,

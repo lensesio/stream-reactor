@@ -4,16 +4,9 @@
   "https://checkstyle.org/dtds/configuration_1_3.dtd">
 
 <!--
-    Checkstyle configuration that checks the Google coding conventions from Google Java Style
-    that can be found at https://google.github.io/styleguide/javaguide.html
-
-    Checkstyle is very configurable. Be sure to read the documentation at
-    http://checkstyle.org (or in your downloaded distribution).
-
-    To completely disable a check, just comment it out or delete it from the file.
-    To suppress certain violations please review suppression filters.
-
-    Authors: Max Vetrenko, Ruslan Diachenko, Roman Ivanov.
+    This Checkstyle configuration that checks the Google coding conventions from Google Java Style
+    (which can be found at https://google.github.io/styleguide/javaguide.html ) with slight
+    modifications.
  -->
 
 <module name="Checker">
@@ -268,12 +261,12 @@
     <module name="NoWhitespaceBeforeCaseDefaultColon"/>
     <module name="OverloadMethodsDeclarationOrder"/>
     <module name="VariableDeclarationUsageDistance"/>
-    <module name="CustomImportOrder">
-      <property name="sortImportsInGroupAlphabetically" value="true"/>
-      <property name="separateLineBetweenGroups" value="true"/>
-      <property name="customImportOrderRules" value="STATIC###THIRD_PARTY_PACKAGE"/>
-      <property name="tokens" value="IMPORT, STATIC_IMPORT, PACKAGE_DEF"/>
-    </module>
+<!--    <module name="CustomImportOrder">-->
+<!--      <property name="sortImportsInGroupAlphabetically" value="true"/>-->
+<!--      <property name="separateLineBetweenGroups" value="true"/>-->
+<!--      <property name="customImportOrderRules" value="STATIC###THIRD_PARTY_PACKAGE"/>-->
+<!--      <property name="tokens" value="IMPORT, STATIC_IMPORT, PACKAGE_DEF"/>-->
+<!--    </module>-->
     <module name="MethodParamPad">
       <property name="tokens"
         value="CTOR_DEF, LITERAL_NEW, METHOD_CALL, METHOD_DEF,
@@ -317,7 +310,6 @@
       <property name="forbiddenSummaryFragments"
         value="^@return the *|^This method returns |^A [{]@code [a-zA-Z0-9]+[}]( is a )"/>
     </module>
-    <module name="JavadocParagraph"/>
     <module name="AtclauseOrder">
       <property name="tagOrder" value="@param, @return, @throws, @deprecated"/>
       <property name="target"
