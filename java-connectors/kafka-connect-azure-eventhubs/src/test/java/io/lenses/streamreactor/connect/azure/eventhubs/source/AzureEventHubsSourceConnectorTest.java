@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -51,14 +51,15 @@ class AzureEventHubsSourceConnectorTest {
     int maxTasks = 3;
 
     //when
-    Field configPropertiesField = testObj.getClass()
-        .getDeclaredField("configProperties");
+    Field configPropertiesField =
+        testObj.getClass()
+            .getDeclaredField("configProperties");
     configPropertiesField.setAccessible(true);
     configPropertiesField.set(testObj, simpleProperties);
     List<Map<String, String>> taskConfigs = testObj.taskConfigs(maxTasks);
 
     //then
-    for (Map<String, String> taskConfig : taskConfigs){
+    for (Map<String, String> taskConfig : taskConfigs) {
       assertTrue(taskConfig.equals(simpleProperties));
     }
 
@@ -76,11 +77,12 @@ class AzureEventHubsSourceConnectorTest {
   }
 
   private Map<String, String> createSimplePropertiesWithKcql() {
-    Map<String, String> properties = Map.of(
-        AzureEventHubsConfigConstants.CONNECTOR_NAME, CONNECTOR_NAME,
-        "connector.class", AzureEventHubsSourceConnector.class.getCanonicalName(),
-        AzureEventHubsConfigConstants.KCQL_CONFIG, KCQL
-    );
+    Map<String, String> properties =
+        Map.of(
+            AzureEventHubsConfigConstants.CONNECTOR_NAME, CONNECTOR_NAME,
+            "connector.class", AzureEventHubsSourceConnector.class.getCanonicalName(),
+            AzureEventHubsConfigConstants.KCQL_CONFIG, KCQL
+        );
 
     return properties;
   }

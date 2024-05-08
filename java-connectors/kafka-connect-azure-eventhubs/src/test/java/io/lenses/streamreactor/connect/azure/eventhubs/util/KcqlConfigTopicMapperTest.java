@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -45,11 +45,12 @@ class KcqlConfigTopicMapperTest {
       fullKcql.append(String.format(kcqlTemplate, newOutput, newInput));
     }
     //when
-    Map<String, String> inputToOutputsFromConfig = KcqlConfigTopicMapper.mapInputToOutputsFromConfig(
-        fullKcql.toString());
+    Map<String, String> inputToOutputsFromConfig =
+        KcqlConfigTopicMapper.mapInputToOutputsFromConfig(
+            fullKcql.toString());
 
     //then
-    for (String input : inputToOutputsFromConfig.keySet()){
+    for (String input : inputToOutputsFromConfig.keySet()) {
       int indexOfInput = inputs.indexOf(input);
       assertNotEquals(-1, indexOfInput);
       assertEquals(inputs.get(indexOfInput), input);
@@ -62,12 +63,14 @@ class KcqlConfigTopicMapperTest {
     //given
     String illegalInputKcql = "INSERT INTO OUTPUT SELECT * FROM 'INPUT*_'";
     String illegalOutputKcql = "INSERT INTO 'OUTPUT*_' SELECT * FROM INPUT";
-    String inputErrorMessage = "Input topic INPUT*_, name is not correctly specified "
-        + "(It can contain only letters, numbers and hyphens, underscores and "
-        + "dots and has to start with number or letter";
-    String outputErrorMessage = "Output topic OUTPUT*_, name is not correctly specified "
-        + "(It can contain only letters, numbers and hyphens, underscores and "
-        + "dots and has to start with number or letter";
+    String inputErrorMessage =
+        "Input topic INPUT*_, name is not correctly specified "
+            + "(It can contain only letters, numbers and hyphens, underscores and "
+            + "dots and has to start with number or letter";
+    String outputErrorMessage =
+        "Output topic OUTPUT*_, name is not correctly specified "
+            + "(It can contain only letters, numbers and hyphens, underscores and "
+            + "dots and has to start with number or letter";
 
     //when
     mapInputToOutputAddertingExceptionWithSpecificMessage(illegalInputKcql, inputErrorMessage);

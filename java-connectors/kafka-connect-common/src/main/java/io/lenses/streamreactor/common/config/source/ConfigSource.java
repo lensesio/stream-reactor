@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,6 +23,7 @@ import org.apache.kafka.common.config.types.Password;
  * Implementations of this interface provide methods to retrieve property values based on specific key types.
  */
 public interface ConfigSource {
+
   /**
    * Retrieves a String property value associated with the given key.
    *

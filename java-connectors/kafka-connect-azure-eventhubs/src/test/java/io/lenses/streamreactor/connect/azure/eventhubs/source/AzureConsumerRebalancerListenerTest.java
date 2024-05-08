@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -39,8 +39,9 @@ class AzureConsumerRebalancerListenerTest {
   void onPartitionsAssignedShouldSeekToBeginningIfOffsetProviderProvidesEmptyOffsetAndSeekingToEarliest() {
     //given
     Consumer<String, String> stringKafkaConsumer = mock(Consumer.class);
-    TopicPartitionOffsetProvider offsetProvider = mock(
-        TopicPartitionOffsetProvider.class);
+    TopicPartitionOffsetProvider offsetProvider =
+        mock(
+            TopicPartitionOffsetProvider.class);
     AzureConsumerRebalancerListener testObj =
         new AzureConsumerRebalancerListener(offsetProvider, stringKafkaConsumer, SEEK_TO_EARLIEST);
     String topic = "topic1";
@@ -62,8 +63,9 @@ class AzureConsumerRebalancerListenerTest {
   void onPartitionsAssignedShouldSeekToEndIfOffsetProviderProvidesEmptyOffsetAndSeekingToLatest() {
     //given
     Consumer<String, String> stringKafkaConsumer = mock(Consumer.class);
-    TopicPartitionOffsetProvider offsetProvider = mock(
-        TopicPartitionOffsetProvider.class);
+    TopicPartitionOffsetProvider offsetProvider =
+        mock(
+            TopicPartitionOffsetProvider.class);
     AzureConsumerRebalancerListener testObj =
         new AzureConsumerRebalancerListener(offsetProvider, stringKafkaConsumer, SEEK_TO_LATEST);
     String topic = "topic1";
@@ -86,8 +88,9 @@ class AzureConsumerRebalancerListenerTest {
     //given
     Long specificOffset = 100L;
     Consumer<String, String> stringKafkaConsumer = mock(Consumer.class);
-    TopicPartitionOffsetProvider offsetProvider = mock(
-        TopicPartitionOffsetProvider.class);
+    TopicPartitionOffsetProvider offsetProvider =
+        mock(
+            TopicPartitionOffsetProvider.class);
     when(offsetProvider.getOffset(any(AzureTopicPartitionKey.class)))
         .thenReturn(Optional.of(new AzureOffsetMarker(specificOffset)));
     AzureConsumerRebalancerListener testObj =

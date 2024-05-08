@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,19 +25,19 @@ import org.apache.kafka.common.config.ConfigDef;
  */
 public interface ConfigSettings<M> {
 
-    /**
-     * Adds the settings defined by this interface to the provided {@code ConfigDef}.
-     *
-     * @param configDef the {@code ConfigDef} to which settings should be added
-     * @return the updated {@code ConfigDef} with added settings
-     */
-    ConfigDef withSettings(ConfigDef configDef);
+  /**
+   * Adds the settings defined by this interface to the provided {@code ConfigDef}.
+   *
+   * @param configDef the {@code ConfigDef} to which settings should be added
+   * @return the updated {@code ConfigDef} with added settings
+   */
+  ConfigDef withSettings(ConfigDef configDef);
 
-    /**
-     * Parses settings from the specified {@code ConfigSource} and materializes an object of type {@code M}.
-     *
-     * @param configSource the {@code ConfigSource} containing configuration settings
-     * @return an object of type {@code M} materialized from the given {@code ConfigSource}
-     */
-    M parseFromConfig(ConfigSource configSource);
+  /**
+   * Parses settings from the specified {@code ConfigSource} and materializes an object of type {@code M}.
+   *
+   * @param configSource the {@code ConfigSource} containing configuration settings
+   * @return an object of type {@code M} materialized from the given {@code ConfigSource}
+   */
+  M parseFromConfig(ConfigSource configSource);
 }

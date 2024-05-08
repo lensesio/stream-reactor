@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -40,17 +40,16 @@ public class GCPServiceBuilderConfigurer {
    *
    * @param <X>     Type representing the GCP service interface (e.g., Storage, BigQuery)
    * @param <Y>     Type representing the service options (e.g., StorageOptions, BigQueryOptions)
-   * @param <B>     Type representing the service options builder (e.g., StorageOptions.Builder, BigQueryOptions.Builder)
-   * @param config  The GCP connection configuration containing settings such as host, project ID, and authentication details.
+   * @param <B>     Type representing the service options builder (e.g., StorageOptions.Builder,
+   *                BigQueryOptions.Builder)
+   * @param config  The GCP connection configuration containing settings such as host, project ID, and authentication
+   *                details.
    * @param builder The builder instance of the GCP service client options.
    * @return The configured builder instance with updated settings.
    * @throws IOException if an error occurs during configuration, such as credential retrieval.
    */
-  public static <
-          X extends Service<Y>,
-          Y extends ServiceOptions<X, Y>,
-          B extends ServiceOptions.Builder<X, Y, B>>
-      B configure(GCPConnectionConfig config, B builder) throws IOException {
+  public static <X extends Service<Y>, Y extends ServiceOptions<X, Y>, B extends ServiceOptions.Builder<X, Y, B>> B configure(
+      GCPConnectionConfig config, B builder) throws IOException {
 
     Optional.ofNullable(config.getHost()).ifPresent(builder::setHost);
 
@@ -58,18 +57,19 @@ public class GCPServiceBuilderConfigurer {
 
     Optional.ofNullable(config.getQuotaProjectId()).ifPresent(builder::setQuotaProjectId);
 
-    val authMode = config.getAuthMode()
-      .orElseThrow(createConfigException("AuthMode has to be configured by setting x.y.z property"));
+    val authMode =
+        config.getAuthMode()
+            .orElseThrow(createConfigException("AuthMode has to be configured by setting x.y.z property"));
 
     builder.setCredentials(authMode.getCredentials());
 
     builder.setRetrySettings(createRetrySettings(
-      config.getHttpRetryConfig()
-        .orElseThrow(createConfigException("RetrySettings has to be configured by setting a.b"))));
+        config.getHttpRetryConfig()
+            .orElseThrow(createConfigException("RetrySettings has to be configured by setting a.b"))));
 
     createTransportOptions(config.getTimeouts()
-      .orElseThrow(createConfigException("TransportOptions have to be configured by setting c.d")))
-      .ifPresent(builder::setTransportOptions);
+        .orElseThrow(createConfigException("TransportOptions have to be configured by setting c.d")))
+        .ifPresent(builder::setTransportOptions);
 
     return builder;
   }

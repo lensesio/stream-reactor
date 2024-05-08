@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,7 +33,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
  */
 @Slf4j
 public class KafkaByteBlockingQueuedProducer implements BlockingQueueProducer {
-  private static final Duration DEFAULT_POLL_DURATION =  Duration.of(1, ChronoUnit.SECONDS);
+
+  private static final Duration DEFAULT_POLL_DURATION = Duration.of(1, ChronoUnit.SECONDS);
   private final TopicPartitionOffsetProvider topicPartitionOffsetProvider;
   private final BlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue;
   private final Consumer<byte[], byte[]> consumer;
@@ -57,7 +58,7 @@ public class KafkaByteBlockingQueuedProducer implements BlockingQueueProducer {
    * @param keyValueTypes                {@link KeyValueTypes} instance indicating key and value
    *                                     types
    * @param clientId                     consumer client id
-   * @param inputTopics                        kafka inputTopics to consume from
+   * @param inputTopics                  kafka inputTopics to consume from
    * @param shouldSeekToLatest           informs where should consumer seek when there are no
    *                                     offsets committed
    */

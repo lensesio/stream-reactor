@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,22 +15,22 @@
  */
 package io.lenses.kcql;
 
-
 public enum FieldType {
-    KEY("KEY"),
-    OFFSET("OFFSET"),
-    PARTITION("PARTITION"),
-    TIMESTAMP("TIMESTAMP"),
-    TOPIC("TOPIC"),
-    VALUE("VALUE");
 
-    private final String value;
+  KEY("KEY"),
+  OFFSET("OFFSET"),
+  PARTITION("PARTITION"),
+  TIMESTAMP("TIMESTAMP"),
+  TOPIC("TOPIC"),
+  VALUE("VALUE");
 
-    FieldType(String value) {
-        this.value = value;
-    }
+  private final String value;
 
-    public String getValue() {
-        return value;
-    }
+  FieldType(String value) {
+    this.value = value;
+  }
+
+  public String getValue() {
+    return value;
+  }
 }

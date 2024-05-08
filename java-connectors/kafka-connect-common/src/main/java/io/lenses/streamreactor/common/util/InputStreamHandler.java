@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -42,7 +42,7 @@ public class InputStreamHandler {
     char[] buffer = new char[bufferSize];
     StringBuilder out = new StringBuilder();
     try (Reader in = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
-      for (int numRead; (numRead = in.read(buffer, 0, buffer.length)) > 0; ) {
+      for (int numRead; (numRead = in.read(buffer, 0, buffer.length)) > 0;) {
         out.append(buffer, 0, numRead);
       }
     } catch (IOException ioException) {
