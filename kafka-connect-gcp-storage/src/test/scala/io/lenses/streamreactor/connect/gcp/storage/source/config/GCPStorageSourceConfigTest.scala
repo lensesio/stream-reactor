@@ -21,11 +21,13 @@ import io.lenses.streamreactor.connect.gcp.common.auth.mode.CredentialsAuthMode
 import io.lenses.streamreactor.connect.gcp.storage.model.location.GCPStorageLocationValidator
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
-import org.scalatest.EitherValues
+import org.scalatest.{EitherValues, OptionValues}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
 
-class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues {
+import scala.jdk.OptionConverters.RichOptional
+
+class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues with OptionValues {
 
   private val taskId = ConnectorTaskId("name", 1, 1)
   implicit val validator: CloudLocationValidator = GCPStorageLocationValidator
@@ -80,7 +82,7 @@ class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues {
       "connect.gcpstorage.gcp.credentials" -> password,
     )
     val storageConfig = GCPStorageSourceConfig.fromProps(taskId, props)
-    storageConfig.value.connectionConfig.getAuthMode should be(new CredentialsAuthMode(password))
+    storageConfig.value.connectionConfig.getAuthMode.toScala.value should be(new CredentialsAuthMode(password))
   }
 
   test("apply should return Left with ConnectException when password property is missed") {
