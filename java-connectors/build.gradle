@@ -142,8 +142,9 @@ allprojects {
                 endWithNewline()
             }
             java {
-                googleJavaFormat().reflowLongStrings().skipJavadocFormatting()
-                removeUnusedImports()
+                toggleOffOn()
+                // optional: you can specify a specific version and/or config file
+                eclipse('4.30').configFile("${rootDir}/config/Lenses_eclipse.xml")
                 licenseHeaderFile(rootProject.file("HEADER.txt"))
             }
         }
@@ -155,7 +156,7 @@ allprojects {
 
     task collectFatJar(type: Copy, dependsOn: [fatJar]) {
         from("${buildDir}/libs").include("kafka-connect-*-all.jar")
-        .exclude("*-common-*").into(libsDir)
+                .exclude("*-common-*").into(libsDir)
     }
 }
 
@@ -165,7 +166,7 @@ task prepareRelease(dependsOn: [collectFatJar]) {
 
 task releaseModuleList() {
     def nonReleaseModules = ["java-reactor", "kafka-connect-cloud-common",
-                            "kafka-connect-common", "kafka-connect-query-language"]
+                             "kafka-connect-common", "kafka-connect-query-language"]
 
     def modulesFile = new File("gradle-modules.txt")
     modulesFile.delete()

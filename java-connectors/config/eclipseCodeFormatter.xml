@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="EclipseCodeFormatterProjectSettings">
+    <option name="selectedGlobalProfile">
+      <Settings>
+        <option name="formatOtherFileTypesWithIntelliJ" value="false" />
+        <option name="formatter" value="ECLIPSE" />
+        <option name="id" value="1715074792265" />
+        <option name="name" value="Lenses Eclipse" />
+        <option name="optimizeImports" value="false" />
+        <option name="pathToConfigFileJava" value="$PROJECT_DIR$/config/Lenses_eclipse.xml" />
+        <option name="selectedJavaProfile" value="Lenses style" />
+      </Settings>
+    </option>
+  </component>
+</project>
