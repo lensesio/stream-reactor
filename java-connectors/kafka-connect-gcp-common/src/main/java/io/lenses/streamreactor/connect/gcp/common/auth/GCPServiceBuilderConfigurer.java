@@ -23,8 +23,10 @@ import com.google.cloud.http.HttpTransportOptions;
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import java.io.IOException;
 import java.util.Optional;
+import java.util.function.Supplier;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.apache.kafka.common.config.ConfigException;
 import org.threeten.bp.Duration;
 
 /**
@@ -56,13 +58,18 @@ public class GCPServiceBuilderConfigurer {
 
     Optional.ofNullable(config.getQuotaProjectId()).ifPresent(builder::setQuotaProjectId);
 
-    val authMode = config.getAuthMode();
+    val authMode = config.getAuthMode()
+      .orElseThrow(createConfigException("AuthMode has to be configured by setting x.y.z property"));
 
     builder.setCredentials(authMode.getCredentials());
 
-    builder.setRetrySettings(createRetrySettings(config.getHttpRetryConfig()));
+    builder.setRetrySettings(createRetrySettings(
+      config.getHttpRetryConfig()
+        .orElseThrow(createConfigException("RetrySettings has to be configured by setting a.b"))));
 
-    createTransportOptions(config.getTimeouts()).ifPresent(builder::setTransportOptions);
+    createTransportOptions(config.getTimeouts()
+      .orElseThrow(createConfigException("TransportOptions have to be configured by setting c.d")))
+      .ifPresent(builder::setTransportOptions);
 
     return builder;
   }
@@ -88,5 +95,9 @@ public class GCPServiceBuilderConfigurer {
         .setMaxRetryDelay(Duration.ofMillis(httpRetryConfig.getRetryIntervalMillis() * 5L))
         .setMaxAttempts(httpRetryConfig.getRetryLimit())
         .build();
+  }
+
+  private Supplier<ConfigException> createConfigException(String message) {
+    return () -> new ConfigException(message);
   }
 }

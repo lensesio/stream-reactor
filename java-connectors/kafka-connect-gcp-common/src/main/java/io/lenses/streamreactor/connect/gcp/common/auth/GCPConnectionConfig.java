@@ -15,34 +15,45 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth;
 
-import static io.lenses.streamreactor.connect.gcp.common.config.GCPSettings.*;
-
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.AuthMode;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NonNull;
+import lombok.Getter;
 
-@Data
+import java.util.Optional;
+
+import static io.lenses.streamreactor.connect.gcp.common.config.GCPSettings.HTTP_ERROR_RETRY_INTERVAL_DEFAULT;
+import static io.lenses.streamreactor.connect.gcp.common.config.GCPSettings.HTTP_NUMBER_OF_RETIRES_DEFAULT;
+
 @Builder
-@AllArgsConstructor
+@Getter
 public class GCPConnectionConfig implements ConnectionConfig {
 
   private String projectId;
   private String quotaProjectId;
-  @NonNull
   private AuthMode authMode;
   private String host;
 
-  @NonNull @Builder.Default
+  @Builder.Default
   private RetryConfig httpRetryConfig =
       RetryConfig.builder()
           .retryLimit(HTTP_NUMBER_OF_RETIRES_DEFAULT)
           .retryIntervalMillis(HTTP_ERROR_RETRY_INTERVAL_DEFAULT)
           .build();
 
-  @NonNull @Builder.Default
+  @Builder.Default
   private HttpTimeoutConfig timeouts = HttpTimeoutConfig.builder().build();
+
+  public Optional<AuthMode> getAuthMode() {
+    return Optional.ofNullable(authMode);
+  }
+
+  public Optional<RetryConfig> getHttpRetryConfig() {
+    return Optional.ofNullable(httpRetryConfig);
+  }
+
+  public Optional<HttpTimeoutConfig> getTimeouts() {
+    return Optional.ofNullable(timeouts);
+  }
 }
