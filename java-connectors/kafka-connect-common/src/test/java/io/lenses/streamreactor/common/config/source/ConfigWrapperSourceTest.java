@@ -13,16 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.gcp.common.auth;
+package io.lenses.streamreactor.common.config.source;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-@Data
-@Builder
-@AllArgsConstructor
-public class HttpTimeoutConfig {
-  private Long socketTimeoutMillis;
-  private Long connectionTimeoutMillis;
+import org.apache.kafka.common.config.AbstractConfig;
+
+class ConfigWrapperSourceTest extends ConfigSourceTestBase {
+
+  ConfigSource createConfigSource() {
+
+    AbstractConfig config = mock(AbstractConfig.class);
+    when(config.getString(USERNAME_KEY)).thenReturn(USERNAME_VALUE);
+    when(config.getPassword(PASSWORD_KEY)).thenReturn(PASSWORD_VALUE);
+
+    return new ConfigWrapperSource(config);
+  }
 }

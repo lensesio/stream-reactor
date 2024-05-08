@@ -10,6 +10,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.CloudPlatformEmulatorSu
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode
 import io.lenses.streamreactor.connect.gcp.common.config.AuthModeSettings
+import io.lenses.streamreactor.connect.gcp.common.config.GCPSettings
 import io.lenses.streamreactor.connect.gcp.storage.auth.GCPStorageClientCreator
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings._
 import io.lenses.streamreactor.connect.gcp.storage.config.UploadConfigKeys
@@ -38,6 +39,7 @@ trait GCPProxyContainerTest
     with UploadConfigKeys
     with LazyLogging {
 
+  private val gcpSettings    = new GCPSettings(javaConnectorPrefix)
   private val authModeConfig = new AuthModeSettings(javaConnectorPrefix)
 
   implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("unit-tests", 1, 1)
@@ -64,9 +66,9 @@ trait GCPProxyContainerTest
 
   lazy val defaultProps: Map[String, String] =
     Map(
-      GCP_PROJECT_ID                -> "projectId",
+      gcpSettings.getGcpProjectId   -> "projectId",
       authModeConfig.getAuthModeKey -> "none",
-      HOST                          -> container.getEndpointUrl(),
+      gcpSettings.getHost           -> container.getEndpointUrl(),
       "name"                        -> "gcpSinkTaskTest",
       TASK_INDEX                    -> "1:1",
       AVOID_RESUMABLE_UPLOAD        -> "true",

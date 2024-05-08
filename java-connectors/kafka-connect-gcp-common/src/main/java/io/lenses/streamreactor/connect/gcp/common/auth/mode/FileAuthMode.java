@@ -17,22 +17,23 @@ package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
-import lombok.AllArgsConstructor;
-
 import java.io.FileInputStream;
 import java.io.IOException;
+import lombok.AllArgsConstructor;
+import lombok.ToString;
 
 /**
  * Authentication mode using a json file for credentials.
  */
 @AllArgsConstructor
+@ToString
 public class FileAuthMode implements AuthMode {
 
-    private final String filePath;
+  private final String filePath;
 
-    @Override
-    public Credentials getCredentials() throws IOException {
-        FileInputStream fileInputStream = new FileInputStream(filePath);
-        return GoogleCredentials.fromStream(fileInputStream);
-    }
+  @Override
+  public Credentials getCredentials() throws IOException {
+    FileInputStream fileInputStream = new FileInputStream(filePath);
+    return GoogleCredentials.fromStream(fileInputStream);
+  }
 }

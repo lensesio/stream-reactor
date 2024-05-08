@@ -15,30 +15,30 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
-import com.google.common.io.ByteStreams;
-import lombok.experimental.UtilityClass;
+import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.io.ByteStreams;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class TestFileUtil {
 
-    static String streamToString(InputStream inputStream) throws Exception {
-        byte[] bytes = ByteStreams.toByteArray(inputStream);
-        return new String(bytes, StandardCharsets.UTF_8);
-    }
+  static String streamToString(InputStream inputStream) throws Exception {
+    byte[] bytes = ByteStreams.toByteArray(inputStream);
+    return new String(bytes, StandardCharsets.UTF_8);
+  }
 
-    static String resourceAsString(String resourceFile) throws Exception {
-        return streamToString(TestFileUtil.class.getResourceAsStream(resourceFile));
-    }
-    static  String absolutePathForResource(String resourceName) {
-        URL resourceUrl = TestFileUtil.class.getResource(resourceName);
-        checkNotNull(resourceUrl, String.format("Resource not found: %s", resourceName));
-        return new File(resourceUrl.getFile()).getAbsolutePath();
-    }
+  static String resourceAsString(String resourceFile) throws Exception {
+    return streamToString(TestFileUtil.class.getResourceAsStream(resourceFile));
+  }
+
+  static String absolutePathForResource(String resourceName) {
+    URL resourceUrl = TestFileUtil.class.getResource(resourceName);
+    checkNotNull(resourceUrl, String.format("Resource not found: %s", resourceName));
+    return new File(resourceUrl.getFile()).getAbsolutePath();
+  }
 }
