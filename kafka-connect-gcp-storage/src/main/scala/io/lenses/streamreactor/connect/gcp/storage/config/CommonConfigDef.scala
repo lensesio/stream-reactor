@@ -83,7 +83,7 @@ trait CommonConfigDef extends CompressionCodecConfigKeys {
         Importance.LOW,
         COMPRESSION_LEVEL_DOC,
       )
-    withGCPSettings(conf)
+    withSettings(conf)
 
   }
 }

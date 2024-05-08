@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.config;
 
+import io.lenses.streamreactor.common.config.base.ConfigSettings;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.common.config.source.ConfigSource;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.*;
@@ -40,7 +41,7 @@ import org.apache.kafka.common.config.ConfigException;
  * - {@code gcp.file}: Key for specifying the file path containing GCP credentials (used with 'file' auth mode).
  */
 @Getter
-public class AuthModeSettings {
+public class AuthModeSettings implements ConfigSettings<AuthMode> {
 
   public static final String EMPTY_STRING = "";
 
@@ -71,7 +72,8 @@ public class AuthModeSettings {
    * @param configDef The ConfigDef instance to be updated with authentication mode definitions.
    * @return The updated ConfigDef with authentication mode settings defined.
    */
-  public ConfigDef withAuthModeSettings(ConfigDef configDef) {
+  @Override
+  public ConfigDef withSettings(ConfigDef configDef) {
     return configDef
         .define(
             authModeKey,
@@ -103,7 +105,7 @@ public class AuthModeSettings {
    * @return The parsed AuthMode based on the configuration settings.
    * @throws ConfigException If an invalid or unsupported authentication mode is specified.
    */
-  public AuthMode parseFromConfig(ConfigSource configSource) {
+  @Override public AuthMode parseFromConfig(ConfigSource configSource) {
     return configSource
         .getString(getAuthModeKey())
         .map(

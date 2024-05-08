@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.config;
 
+import io.lenses.streamreactor.common.config.base.ConfigSettings;
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.common.config.source.ConfigSource;
@@ -29,7 +30,7 @@ import org.apache.kafka.common.config.ConfigDef;
  * This class provides methods for defining and parsing GCP-specific configuration properties.
  */
 @Getter
-public class GCPSettings {
+public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
 
   public static final String EMPTY_STRING = "";
 
@@ -71,7 +72,8 @@ public class GCPSettings {
    * @param configDef the base configuration definition to extend
    * @return the updated {@link ConfigDef} with GCP-specific settings
    */
-  public ConfigDef withGCPSettings(ConfigDef configDef) {
+  @Override
+  public ConfigDef withSettings(ConfigDef configDef) {
     val conf =
         configDef
             .define(
@@ -122,7 +124,7 @@ public class GCPSettings {
                 ConfigDef.Importance.LOW,
                 "Connection timeout (ms)");
 
-    return authModeSettings.withAuthModeSettings(conf);
+    return authModeSettings.withSettings(conf);
   }
 
   public GCPConnectionConfig parseFromConfig(ConfigSource configSource) {

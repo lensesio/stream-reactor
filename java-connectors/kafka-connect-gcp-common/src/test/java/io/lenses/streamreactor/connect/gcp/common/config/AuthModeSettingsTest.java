@@ -52,7 +52,7 @@ class AuthModeSettingsTest {
   @Test
   void testWithAuthModeSettings() {
     val configDef = new ConfigDef();
-    val result = authModeSettings.withAuthModeSettings(configDef);
+    val result = authModeSettings.withSettings(configDef);
 
     assertNotNull(result);
     assertTrue(result.configKeys().containsKey(authModeSettings.getAuthModeKey()));
