@@ -13,21 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.common.config.base;
+package io.lenses.streamreactor.common.config.source;
 
-import lombok.AllArgsConstructor;
+import java.util.Optional;
 import org.apache.kafka.common.config.types.Password;
 
-import java.util.Map;
-import java.util.Optional;
-
 /**
- * A wrapper for Kafka Connect properties that provides methods to retrieve property values.
+ * A source for retrieving configuration properties, including sensitive data like passwords.
+ * Implementations of this interface provide methods to retrieve property values based on specific key types.
  */
-@AllArgsConstructor
-public class ConfigMap {
-
-  private final Map<String, Object> wrapped;
+public interface ConfigSource {
+  /**
+   * Retrieves a String property value associated with the given key.
+   *
+   * @param key the property key
+   * @return an {@link Optional} containing the property value if present, otherwise empty
+   */
+  Optional<String> getString(String key);
 
   /**
    * Retrieves a String property value associated with the given key.
@@ -35,9 +37,15 @@ public class ConfigMap {
    * @param key the property key
    * @return an {@link Optional} containing the property value if present, otherwise empty
    */
-  public Optional<String> getString(String key) {
-    return Optional.ofNullable((String) wrapped.get(key));
-  }
+  Optional<Integer> getInt(String key);
+
+  /**
+   * Retrieves a String property value associated with the given key.
+   *
+   * @param key the property key
+   * @return an {@link Optional} containing the property value if present, otherwise empty
+   */
+  Optional<Long> getLong(String key);
 
   /**
    * Retrieves a Password property value associated with the given key.
@@ -45,8 +53,5 @@ public class ConfigMap {
    * @param key the property key
    * @return an {@link Optional} containing the {@link Password} value if present, otherwise empty
    */
-  public Optional<Password> getPassword(String key) {
-    return Optional.ofNullable((Password) wrapped.get(key));
-  }
-
+  Optional<Password> getPassword(String key);
 }

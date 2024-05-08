@@ -29,7 +29,7 @@ class GCPConfigSettingsTest extends AnyFlatSpec with Matchers with LazyLogging {
     val configKeys =
       GCPStorageSinkConfigDef.config.configKeys().keySet().asScala
 
-    configKeys.size shouldBe 21
+    configKeys.size shouldBe 22
     configKeys.foreach {
       k => k.toLowerCase should be(k)
     }

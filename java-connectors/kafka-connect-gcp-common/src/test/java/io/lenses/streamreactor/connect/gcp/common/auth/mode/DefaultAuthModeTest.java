@@ -15,27 +15,27 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.*;
+
 import com.google.auth.oauth2.GoogleCredentials;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
-
 class DefaultAuthModeTest {
 
-    @Test
-    void getCredentialsShouldReturnCredentials() throws Exception {
-        val mockCreds = mock(GoogleCredentials.class);
+  @Test
+  void getCredentialsShouldReturnCredentials() throws Exception {
+    val mockCreds = mock(GoogleCredentials.class);
 
-        try (MockedStatic<GoogleCredentials> mockedStatic = mockStatic(GoogleCredentials.class)) {
-            when(GoogleCredentials.getApplicationDefault()).thenReturn(mockCreds);
+    try (MockedStatic<GoogleCredentials> mockedStatic = mockStatic(GoogleCredentials.class)) {
+      when(GoogleCredentials.getApplicationDefault()).thenReturn(mockCreds);
 
-            val credentials = new DefaultAuthMode().getCredentials();
-            assertEquals(mockCreds, credentials);
+      val credentials = new DefaultAuthMode().getCredentials();
+      assertEquals(mockCreds, credentials);
 
-            mockedStatic.verify(GoogleCredentials::getApplicationDefault);
-        }
+      mockedStatic.verify(GoogleCredentials::getApplicationDefault);
     }
+  }
 }

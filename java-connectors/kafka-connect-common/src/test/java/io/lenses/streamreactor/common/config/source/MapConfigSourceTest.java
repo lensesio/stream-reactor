@@ -13,16 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.gcp.common.auth;
+package io.lenses.streamreactor.common.config.source;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import static org.junit.jupiter.api.Assertions.*;
 
-@Data
-@Builder
-@AllArgsConstructor
-public class HttpTimeoutConfig {
-  private Long socketTimeoutMillis;
-  private Long connectionTimeoutMillis;
+import java.util.Map;
+
+class MapConfigSourceTest extends ConfigSourceTestBase {
+
+  @Override
+  ConfigSource createConfigSource() {
+    return new MapConfigSource(
+        Map.of(
+            USERNAME_KEY, USERNAME_VALUE,
+            PASSWORD_KEY, PASSWORD_VALUE));
+  }
 }
