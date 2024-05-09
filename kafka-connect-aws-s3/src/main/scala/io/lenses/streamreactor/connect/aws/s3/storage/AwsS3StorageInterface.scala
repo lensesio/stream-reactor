@@ -49,6 +49,8 @@ class AwsS3StorageInterface(connectorTaskId: ConnectorTaskId, s3Client: S3Client
     extends StorageInterface[S3FileMetadata]
     with LazyLogging {
 
+  val storageClassLogger = new StorageClassLogger(connectorTaskId)
+
   override def list(
     bucket:     String,
     prefix:     Option[String],
@@ -71,6 +73,7 @@ class AwsS3StorageInterface(connectorTaskId: ConnectorTaskId, s3Client: S3Client
       val listObjectsV2Response = s3Client.listObjectsV2(request)
       val contents = listObjectsV2Response.contents().asScala.map {
         obj =>
+          storageClassLogger.log(bucket, obj.key, obj.storageClass().name(), "list")
           S3FileMetadata(obj.key(), obj.lastModified())
       }.toSeq
 
@@ -127,9 +130,12 @@ class AwsS3StorageInterface(connectorTaskId: ConnectorTaskId, s3Client: S3Client
       processFn(
         bucket,
         prefix,
-        pagReq.iterator().asScala.flatMap(_.contents().asScala.toSeq.map(o =>
-          S3FileMetadata(o.key(), o.lastModified()),
-        )).toSeq,
+        pagReq.iterator().asScala.flatMap(
+          _.contents().asScala.toSeq.map { o =>
+            storageClassLogger.log(bucket, o.key(), o.storageClass().name(), "listRecursive")
+            S3FileMetadata(o.key(), o.lastModified())
+          },
+        ).toSeq,
       )
     }.toEither.leftMap { ex =>
       val errorMsg = s"Error listing objects in bucket '$bucket' with prefix '$prefix': ${ex.getMessage}"
@@ -192,7 +198,7 @@ class AwsS3StorageInterface(connectorTaskId: ConnectorTaskId, s3Client: S3Client
       .toEither
       .leftMap(ex => FileLoadError(ex, path))
       .map { is =>
-        logStorageClass(bucket, path, is.response().storageClass(), "getBlob")
+        storageClassLogger.log(bucket, path, is.response().storageClass().name(), "getBlob")
         is
       }
 
@@ -208,21 +214,11 @@ class AwsS3StorageInterface(connectorTaskId: ConnectorTaskId, s3Client: S3Client
 
       val response = s3Client.headObject(request)
 
-      logStorageClass(bucket, path, response.storageClass(), "getMetadata")
+      storageClassLogger.log(bucket, path, response.storageClass().name(), "getMetadata")
 
       ObjectMetadata(response.contentLength(), response.lastModified())
     }.toEither
       .leftMap(ex => FileLoadError(ex, path))
-
-  private def logStorageClass(bucket: String, path: String, storageClass: StorageClass, operation: String): Unit = {
-    val problematicStorageClasses = Set(StorageClass.GLACIER, StorageClass.GLACIER_IR, StorageClass.SNOW)
-    logger.debug(
-      s"[${connectorTaskId.show}] Storage class for object '$path' in bucket '$bucket' during operation '$operation': $storageClass",
-    )
-    if (problematicStorageClasses.contains(storageClass)) {
-      logger.error(s"GLACIER storage class found for file $path!!!!")
-    }
-  }
 
   override def close(): Unit = s3Client.close()
 

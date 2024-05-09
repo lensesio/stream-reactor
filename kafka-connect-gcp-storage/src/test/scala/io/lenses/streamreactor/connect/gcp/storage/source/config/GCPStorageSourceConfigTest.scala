@@ -21,7 +21,8 @@ import io.lenses.streamreactor.connect.gcp.common.auth.mode.CredentialsAuthMode
 import io.lenses.streamreactor.connect.gcp.storage.model.location.GCPStorageLocationValidator
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
-import org.scalatest.{EitherValues, OptionValues}
+import org.scalatest.EitherValues
+import org.scalatest.OptionValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
 
