@@ -30,8 +30,10 @@ class AwsS3DirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client)
     extends LazyLogging
     with DirectoryLister {
 
-  private val listObjectsF: ListObjectsV2Request => IO[Iterator[ListObjectsV2Response]] = e =>
-    IO(s3Client.listObjectsV2Paginator(e).iterator().asScala)
+  private val listObjectsF: ListObjectsV2Request => IO[Iterator[ListObjectsV2Response]] = e => {
+    val log = s"[${connectorTaskId.show}] Listing objects with request: $e"
+    IO(logger.debug(log)) *> IO(s3Client.listObjectsV2Paginator(e).iterator().asScala)
+  }
 
   /**
     * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
@@ -42,14 +44,22 @@ class AwsS3DirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client)
     recurseLevels:    Int,
     exclude:          Set[String],
     wildcardExcludes: Set[String],
-  ): IO[Set[String]] =
+  ): IO[Set[String]] = {
+    logger.info(
+      s"[${connectorTaskId.show}] Finding directories in bucket '${bucketAndPrefix.bucket}' with prefix '${bucketAndPrefix.prefix}'",
+    )
+
     for {
       iterator   <- listObjects(filesLimit, bucketAndPrefix)
       prefixInfo <- extractPrefixesFromResponse(iterator, exclude, wildcardExcludes, recurseLevels)
       flattened  <- flattenPrefixes(bucketAndPrefix, filesLimit, prefixInfo, recurseLevels, exclude, wildcardExcludes)
     } yield flattened
+  }
 
   private def listObjects(filesLimit: Int, bucketAndPrefix: CloudLocation): IO[Iterator[ListObjectsV2Response]] = {
+    logger.debug(
+      s"[${connectorTaskId.show}] Listing objects in bucket '${bucketAndPrefix.bucket}' with prefix '${bucketAndPrefix.prefix}'",
+    )
 
     def createListObjectsRequest(
       bucketAndPrefix: CloudLocation,
@@ -67,9 +77,6 @@ class AwsS3DirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client)
     listObjectsF(createListObjectsRequest(bucketAndPrefix))
   }
 
-  /**
-    * @param wildcardExcludes allows ignoring paths containing certain strings.  Mainly it is used to prevent us from reading anything inside the .indexes key prefix, as these should be ignored by the source.
-    */
   private def flattenPrefixes(
     bucketAndPrefix:  CloudLocation,
     filesLimit:       Int,
@@ -77,7 +84,11 @@ class AwsS3DirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client)
     recurseLevels:    Int,
     exclude:          Set[String],
     wildcardExcludes: Set[String],
-  ): IO[Set[String]] =
+  ): IO[Set[String]] = {
+    logger.info(
+      s"[${connectorTaskId.show}] Flattening prefixes for bucket '${bucketAndPrefix.bucket}' with ${prefixes.size} prefixes",
+    )
+
     if (recurseLevels <= 0) IO.delay(prefixes)
     else {
       prefixes.map(bucketAndPrefix.fromRoot).toList
@@ -88,13 +99,16 @@ class AwsS3DirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client)
           result.foldLeft(Set.empty[String])(_ ++ _)
         }
     }
+  }
 
   private def extractPrefixesFromResponse(
     iterator:         Iterator[ListObjectsV2Response],
     exclude:          Set[String],
     wildcardExcludes: Set[String],
     levelsToRecurse:  Int,
-  ): IO[Set[String]] =
+  ): IO[Set[String]] = {
+    logger.debug(s"[${connectorTaskId.show}] Extracting prefixes from response")
+
     IO {
       val paths = iterator.foldLeft(Set.empty[String]) {
         case (acc, listResp) =>
@@ -117,4 +131,5 @@ class AwsS3DirectoryLister(connectorTaskId: ConnectorTaskId, s3Client: S3Client)
       }
       paths
     }
+  }
 }

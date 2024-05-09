@@ -65,43 +65,57 @@ class AwsS3StorageInterface(connectorTaskId: ConnectorTaskId, s3Client: S3Client
       prefix.foreach(builder.prefix)
       lastFile.foreach(lf => builder.startAfter(lf.file))
 
-      val listObjectsV2Response = s3Client.listObjectsV2(builder.build())
-      processAsKey(
-        bucket,
-        prefix,
-        listObjectsV2Response
-          .contents()
-          .asScala
-          .map(o => S3FileMetadata(o.key(), o.lastModified()))
-          .toSeq,
-      )
+      val request = builder.build()
+      logger.info(s"[${connectorTaskId.show}] Listing objects with request: $request")
 
+      val listObjectsV2Response = s3Client.listObjectsV2(request)
+      val contents = listObjectsV2Response.contents().asScala.map {
+        obj =>
+          S3FileMetadata(obj.key(), obj.lastModified())
+      }.toSeq
+
+      processAsKey(bucket, prefix, contents)
     }.toEither.leftMap {
-      ex: Throwable => FileListError(ex, bucket, prefix)
+      ex: Throwable =>
+        val errorMsg = s"Error listing objects in bucket '$bucket' with prefix '$prefix': ${ex.getMessage}"
+        logger.error(s"[${connectorTaskId.show}] $errorMsg", ex)
+        FileListError(ex, bucket, prefix)
     }
 
-  override def listFileMetaRecursive(
+  def listFileMetaRecursive(
     bucket: String,
     prefix: Option[String],
-  ): Either[FileListError, Option[ListOfMetadataResponse[S3FileMetadata]]] =
+  ): Either[FileListError, Option[ListOfMetadataResponse[S3FileMetadata]]] = {
+
+    logger.info(
+      s"[${connectorTaskId.show}] Listing file metadata recursively for bucket '$bucket' with prefix '$prefix'",
+    )
+
     listRecursive[ListOfMetadataResponse[S3FileMetadata], S3FileMetadata](bucket,
                                                                           prefix,
                                                                           processObjectsAsFileMeta[S3FileMetadata],
     )
+  }
 
   def listKeysRecursive(
     bucket: String,
     prefix: Option[String],
-  ): Either[FileListError, Option[ListOfKeysResponse[S3FileMetadata]]] =
+  ): Either[FileListError, Option[ListOfKeysResponse[S3FileMetadata]]] = {
+
+    logger.info(s"[${connectorTaskId.show}] Listing keys recursively for bucket '$bucket' with prefix '$prefix'")
+
     listRecursive[ListOfKeysResponse[S3FileMetadata], String](bucket, prefix, processAsKey[S3FileMetadata])
+  }
 
   private def listRecursive[LR <: ListResponse[T, S3FileMetadata], T](
     bucket:    String,
     prefix:    Option[String],
     processFn: (String, Option[String], Seq[S3FileMetadata]) => Option[LR],
   ): Either[FileListError, Option[LR]] = {
-    logger.debug(s"[{}] List path {}:{}", connectorTaskId.show, bucket, prefix)
-    Try {
+
+    logger.info(s"[${connectorTaskId.show}] List path $bucket:$prefix")
+
+    val result = Try {
       val options = ListObjectsV2Request
         .builder()
         .bucket(bucket)
@@ -117,9 +131,13 @@ class AwsS3StorageInterface(connectorTaskId: ConnectorTaskId, s3Client: S3Client
           S3FileMetadata(o.key(), o.lastModified()),
         )).toSeq,
       )
-    }.toEither.leftMap {
-      ex: Throwable => FileListError(ex, bucket, prefix)
+    }.toEither.leftMap { ex =>
+      val errorMsg = s"Error listing objects in bucket '$bucket' with prefix '$prefix': ${ex.getMessage}"
+      logger.error(s"[${connectorTaskId.show}] $errorMsg", ex)
+      FileListError(ex, bucket, prefix)
     }
+
+    result
   }
 
   override def uploadFile(source: UploadableFile, bucket: String, path: String): Either[UploadError, Unit] = {
@@ -163,27 +181,48 @@ class AwsS3StorageInterface(connectorTaskId: ConnectorTaskId, s3Client: S3Client
       .bucket(bucket)
       .key(path)
       .build()
-    s3Client
-      .getObject(
-        request,
-      )
+
+    logger.info(s"[${connectorTaskId.show}] Getting blob from bucket '$bucket' at path '$path'")
+
+    s3Client.getObject(request)
   }
 
   override def getBlob(bucket: String, path: String): Either[FileLoadError, InputStream] =
-    Try(getBlobInner(bucket, path)).toEither.leftMap(FileLoadError(_, path))
+    Try(getBlobInner(bucket, path))
+      .toEither
+      .leftMap(ex => FileLoadError(ex, path))
+      .map { is =>
+        logStorageClass(bucket, path, is.response().storageClass(), "getBlob")
+        is
+      }
 
   override def getMetadata(bucket: String, path: String): Either[FileLoadError, ObjectMetadata] =
     Try {
-      val response = s3Client
-        .headObject(
-          HeadObjectRequest
-            .builder()
-            .bucket(bucket)
-            .key(path)
-            .build(),
-        )
+      val request = HeadObjectRequest
+        .builder()
+        .bucket(bucket)
+        .key(path)
+        .build()
+
+      logger.debug(s"[${connectorTaskId.show}] Getting metadata for object in bucket '$bucket' at path '$path'")
+
+      val response = s3Client.headObject(request)
+
+      logStorageClass(bucket, path, response.storageClass(), "getMetadata")
+
       ObjectMetadata(response.contentLength(), response.lastModified())
-    }.toEither.leftMap(ex => FileLoadError(ex, path))
+    }.toEither
+      .leftMap(ex => FileLoadError(ex, path))
+
+  private def logStorageClass(bucket: String, path: String, storageClass: StorageClass, operation: String): Unit = {
+    val problematicStorageClasses = Set(StorageClass.GLACIER, StorageClass.GLACIER_IR, StorageClass.SNOW)
+    logger.debug(
+      s"[${connectorTaskId.show}] Storage class for object '$path' in bucket '$bucket' during operation '$operation': $storageClass",
+    )
+    if (problematicStorageClasses.contains(storageClass)) {
+      logger.error(s"GLACIER storage class found for file $path!!!!")
+    }
+  }
 
   override def close(): Unit = s3Client.close()
 
@@ -274,10 +313,24 @@ class AwsS3StorageInterface(connectorTaskId: ConnectorTaskId, s3Client: S3Client
     } yield ()
   }
 
-  override def seekToFile(bucket: String, fileName: String, lastModified: Option[Instant]): Option[S3FileMetadata] =
-    lastModified
-      .map(lmValue => S3FileMetadata(fileName, lmValue))
-      .orElse(getMetadata(bucket, fileName).map(oMeta => S3FileMetadata(fileName, oMeta.lastModified)).toOption)
+  override def seekToFile(bucket: String, fileName: String, lastModified: Option[Instant]): Option[S3FileMetadata] = {
+
+    logger.info(
+      s"[${connectorTaskId.show}] Seeking to file '$fileName' in bucket '$bucket' with lastModified: $lastModified",
+    )
+
+    val fileMetadata = lastModified.map(lmValue => S3FileMetadata(fileName, lmValue))
+      .orElse {
+        getMetadata(bucket, fileName).map { oMeta =>
+          logger.info(s"[${connectorTaskId.show}] Retrieved metadata for file '$fileName' in bucket '$bucket': $oMeta")
+          S3FileMetadata(fileName, oMeta.lastModified)
+        }.toOption
+      }
+
+    logger.debug(s"[${connectorTaskId.show}] Seek result for file '$fileName' in bucket '$bucket': $fileMetadata")
+
+    fileMetadata
+  }
 
   /**
     * Gets the system name for use in log messages.
