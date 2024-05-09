@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
+import io.lenses.streamreactor.common.config.base.KcqlSettings
 import io.lenses.streamreactor.common.config.base.traits.ConnectorRetryConfigKeys
 import io.lenses.streamreactor.common.config.base.traits.ErrorPolicyConfigKey
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
@@ -80,7 +81,6 @@ trait S3CommonConfigDef
         Importance.LOW,
         "Enable virtual host buckets",
       )
-      .define(KCQL_CONFIG, Type.STRING, Importance.HIGH, KCQL_DOC)
       .define(
         HTTP_NBR_OF_RETRIES,
         Type.INT,
@@ -140,5 +140,6 @@ trait S3CommonConfigDef
       )
     withConnectorRetryConfig(config)
     withErrorPolicyConfig(config)
+    new KcqlSettings(javaConnectorPrefix).withSettings(config)
   }
 }

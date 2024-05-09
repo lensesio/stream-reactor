@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.config
 
+import io.lenses.streamreactor.common.config.base.KcqlSettings
 import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecConfigKeys
 import io.lenses.streamreactor.connect.gcp.common.config.GCPSettings
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings._
@@ -30,12 +31,6 @@ trait CommonConfigDef extends CompressionCodecConfigKeys {
 
   def config: ConfigDef = {
     val conf = new ConfigDef()
-      .define(
-        KCQL_CONFIG,
-        Type.STRING,
-        Importance.HIGH,
-        KCQL_DOC,
-      )
       .define(
         ERROR_POLICY,
         Type.STRING,
@@ -84,6 +79,6 @@ trait CommonConfigDef extends CompressionCodecConfigKeys {
         COMPRESSION_LEVEL_DOC,
       )
     withSettings(conf)
-
+    new KcqlSettings(javaConnectorPrefix).withSettings(conf)
   }
 }

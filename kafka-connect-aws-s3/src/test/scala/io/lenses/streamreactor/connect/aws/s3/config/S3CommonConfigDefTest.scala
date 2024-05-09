@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.config
 
+import io.lenses.streamreactor.common.config.base.KcqlSettings
+import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor._
 import org.scalatest.EitherValues
@@ -26,6 +28,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 
 class S3CommonConfigDefTest extends AnyFlatSpec with Matchers with EitherValues {
+  val KCQL_CONFIG = new KcqlSettings(new ConnectorPrefix("connect.s3")).getKcqlSettingsKey
 
   private val DeprecatedProps: Map[String, String] = Map(
     DEP_AWS_ACCESS_KEY              -> "DepAccessKey",

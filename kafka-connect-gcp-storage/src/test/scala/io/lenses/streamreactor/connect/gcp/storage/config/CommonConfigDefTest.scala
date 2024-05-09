@@ -16,10 +16,11 @@
 package io.lenses.streamreactor.connect.gcp.storage.config
 
 import cats.implicits.catsSyntaxOptionId
+import io.lenses.streamreactor.common.config.base.KcqlSettings
+import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix
 import io.lenses.streamreactor.connect.gcp.common.config.AuthModeSettings
 import io.lenses.streamreactor.connect.gcp.common.config.GCPSettings
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.CONNECTOR_PREFIX
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.KCQL_CONFIG
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -28,6 +29,8 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 class CommonConfigDefTest extends AnyFlatSpec with Matchers with EitherValues with UploadConfigKeys {
+
+  private val KCQL_CONFIG: String = new KcqlSettings(new ConnectorPrefix("connect.gcpstorage")).getKcqlSettingsKey
 
   private val authModeConfig = new AuthModeSettings(javaConnectorPrefix)
   private val gcpSettings    = new GCPSettings(javaConnectorPrefix)
@@ -38,10 +41,10 @@ class CommonConfigDefTest extends AnyFlatSpec with Matchers with EitherValues wi
 
   private val DefaultProps: Map[String, String] =
     Map(
-      gcpSettings.getGcpProjectId   -> "projectId",
-      authModeConfig.getAuthModeKey -> "none",
-      gcpSettings.getHost           -> "localhost:9090",
-      KCQL_CONFIG                   -> "SELECT * FROM DEFAULT",
+      gcpSettings.getGcpProjectIdKey -> "projectId",
+      authModeConfig.getAuthModeKey  -> "none",
+      gcpSettings.getHostKey         -> "localhost:9090",
+      KCQL_CONFIG                    -> "SELECT * FROM DEFAULT",
     )
 
   "CommonConfigDef" should "retain original properties after parsing" in {

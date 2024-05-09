@@ -40,7 +40,7 @@ object DocumentDbConfigConstants {
   val MASTER_KEY_CONFIG = s"$CONNECTOR_PREFIX.master.key"
   val MASTER_KEY_DOC    = "The connection master key"
 
-  val ERROR_POLICY_CONFIG = s"$CONNECTOR_PREFIX.${ERROR_POLICY_PROP_SUFFIX}"
+  val ERROR_POLICY_CONFIG = s"$CONNECTOR_PREFIX.$ERROR_POLICY_PROP_SUFFIX"
   val ERROR_POLICY_DOC: String =
     """Specifies the action to be taken if an error occurs while inserting the data
       |There are two available options:
@@ -50,7 +50,7 @@ object DocumentDbConfigConstants {
       |The error will be logged automatically""".stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
 
-  val ERROR_RETRY_INTERVAL_CONFIG  = s"$CONNECTOR_PREFIX.${RETRY_INTERVAL_PROP_SUFFIX}"
+  val ERROR_RETRY_INTERVAL_CONFIG  = s"$CONNECTOR_PREFIX.$RETRY_INTERVAL_PROP_SUFFIX"
   val ERROR_RETRY_INTERVAL_DOC     = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
 
@@ -58,16 +58,15 @@ object DocumentDbConfigConstants {
   val NBR_OF_RETRIES_DOC     = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-  val KCQL_CONFIG = s"$CONNECTOR_PREFIX.${KCQL_PROP_SUFFIX}"
-  val KCQL_DOC    = "KCQL expression describing field selection and data routing to the target DocumentDb."
+  val KCQL_CONFIG = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
 
-  val CONSISTENCY_CONFIG = s"$CONNECTOR_PREFIX.${CONSISTENCY_LEVEL_PROP_SUFFIX}"
+  val CONSISTENCY_CONFIG = s"$CONNECTOR_PREFIX.$CONSISTENCY_LEVEL_PROP_SUFFIX"
   val CONSISTENCY_DOC =
     "Determines the write visibility. There are four possible values: Strong,BoundedStaleness,Session or Eventual"
   val CONSISTENCY_DISPLAY = "Writes consistency"
   val CONSISTENCY_DEFAULT = "Session"
 
-  val CREATE_DATABASE_CONFIG = s"$CONNECTOR_PREFIX.${DATABASE_PROP_SUFFIX}.create"
+  val CREATE_DATABASE_CONFIG = s"$CONNECTOR_PREFIX.$DATABASE_PROP_SUFFIX.create"
   val CREATE_DATABASE_DOC =
     "If set to true it will create the database if it doesn't exist. If this is set to default(false) an exception will be raised."
   val CREATE_DATABASE_DISPLAY = "Auto-create database"

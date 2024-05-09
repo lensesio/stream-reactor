@@ -66,12 +66,12 @@ trait GCPProxyContainerTest
 
   lazy val defaultProps: Map[String, String] =
     Map(
-      gcpSettings.getGcpProjectId   -> "projectId",
-      authModeConfig.getAuthModeKey -> "none",
-      gcpSettings.getHost           -> container.getEndpointUrl(),
-      "name"                        -> "gcpSinkTaskTest",
-      TASK_INDEX                    -> "1:1",
-      AVOID_RESUMABLE_UPLOAD        -> "true",
+      gcpSettings.getGcpProjectIdKey -> "projectId",
+      authModeConfig.getAuthModeKey  -> "none",
+      gcpSettings.getHostKey         -> container.getEndpointUrl(),
+      "name"                         -> "gcpSinkTaskTest",
+      TASK_INDEX                     -> "1:1",
+      AVOID_RESUMABLE_UPLOAD         -> "true",
     )
 
   val localRoot: File = Files.createTempDirectory("blah").toFile

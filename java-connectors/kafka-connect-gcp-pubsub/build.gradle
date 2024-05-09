@@ -1,0 +1,29 @@
+project(":kafka-connect-gcp-pubsub") {
+
+    test {
+        maxParallelForks = 1
+    }
+
+    dependencies {
+        implementation project(':kafka-connect-query-language')
+        implementation project(':kafka-connect-common')
+        implementation project(':kafka-connect-gcp-common')
+
+        //gcp
+        implementation platform(group: 'com.google.cloud', name: 'libraries-bom', version: project(':kafka-connect-gcp-common').ext.gcpCloudVersion)
+
+        implementation 'com.google.cloud:google-cloud-pubsub'
+        implementation 'io.grpc:grpc-core'
+        implementation 'io.grpc:grpc-netty-shaded'
+        implementation 'io.grpc:grpc-stub'
+        implementation 'io.grpc:grpc-protobuf-lite'
+
+        implementation 'com.google.protobuf:protobuf-java'
+        implementation 'com.google.api.grpc:proto-google-common-protos'
+
+        implementation 'io.perfmark:perfmark-api:0.27.0'
+
+        implementation(group: 'com.github.ben-manes.caffeine', name: 'caffeine', version: caffeineVersion)
+
+    }
+}
