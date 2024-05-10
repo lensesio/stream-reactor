@@ -45,8 +45,11 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class AwsS3StorageInterface(connectorTaskId: ConnectorTaskId, s3Client: S3Client, batchDelete: Boolean)
-    extends StorageInterface[S3FileMetadata]
+class AwsS3StorageInterface(
+  connectorTaskId: ConnectorTaskId,
+  s3Client:        S3Client,
+  batchDelete:     Boolean,
+) extends StorageInterface[S3FileMetadata]
     with LazyLogging {
 
   override def list(
@@ -66,14 +69,26 @@ class AwsS3StorageInterface(connectorTaskId: ConnectorTaskId, s3Client: S3Client
       lastFile.foreach(lf => builder.startAfter(lf.file))
 
       val listObjectsV2Response = s3Client.listObjectsV2(builder.build())
+      val objects = listObjectsV2Response
+        .contents()
+        .asScala
+        .filterNot { o =>
+          val filteredOut = o.storageClass() == ObjectStorageClass.GLACIER ||
+            o.storageClass() == ObjectStorageClass.DEEP_ARCHIVE ||
+            o.storageClass() == ObjectStorageClass.GLACIER_IR
+          if (filteredOut) {
+            logger.info(
+              s"[${connectorTaskId.show}] Skipping object ${o.key()} with storage class [${o.storageClass()}].",
+            )
+          }
+          filteredOut
+        }
+        .map(o => S3FileMetadata(o.key(), o.lastModified()))
+
       processAsKey(
         bucket,
         prefix,
-        listObjectsV2Response
-          .contents()
-          .asScala
-          .map(o => S3FileMetadata(o.key(), o.lastModified()))
-          .toSeq,
+        objects.toSeq,
       )
 
     }.toEither.leftMap {
