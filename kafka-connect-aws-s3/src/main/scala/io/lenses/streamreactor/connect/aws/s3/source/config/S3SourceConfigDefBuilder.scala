@@ -21,7 +21,7 @@ import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceCon
 
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-case class S3SourceConfigDefBuilder(props: Map[String, String])
+case class S3SourceConfigDefBuilder(props: Map[String, AnyRef])
     extends CloudSourceConfigDefBuilder(S3ConfigSettings.CONNECTOR_PREFIX, S3SourceConfigDef.config, props)
     with DeleteModeSettings {
 

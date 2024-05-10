@@ -17,10 +17,11 @@ package io.lenses.streamreactor.connect.cloud.common.sink
 
 import cats.implicits.toBifunctorOps
 import cats.implicits.toShow
+import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig
 import io.lenses.streamreactor.common.errors.ErrorHandler
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
-import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
+import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
 import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
@@ -48,7 +49,16 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 
-abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig, CT](
+/**
+  * @param connectorPrefix
+  * @param sinkAsciiArtResource
+  * @param manifest
+  * @tparam MD file metadata type
+  * @tparam C cloud sink config subtype
+  * @tparam CC connection configuration type
+  * @tparam CT client type
+  */
+abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <: ConnectionConfig, CT](
   connectorPrefix:      String,
   sinkAsciiArtResource: String,
   manifest:             JarManifest,
@@ -60,7 +70,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig, CT](
   private var writerManager:    WriterManager[MD] = _
   implicit var connectorTaskId: ConnectorTaskId   = _
 
-  override def version(): String = manifest.version()
+  override def version(): String = manifest.getVersion()
 
   override def start(fallbackProps: util.Map[String, String]): Unit = {
 
@@ -247,7 +257,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig, CT](
     writerManager = null
   }
 
-  def createClient(config: C): Either[Throwable, CT]
+  def createClient(config: CC): Either[Throwable, CT]
 
   def createStorageInterface(connectorTaskId: ConnectorTaskId, config: C, cloudClient: CT): StorageInterface[MD]
 
@@ -256,7 +266,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig, CT](
   private def createWriterMan(props: Map[String, String]): Either[Throwable, WriterManager[MD]] =
     for {
       config          <- convertPropsToConfig(connectorTaskId, props)
-      s3Client        <- createClient(config)
+      s3Client        <- createClient(config.connectionConfig)
       storageInterface = createStorageInterface(connectorTaskId, config, s3Client)
       _               <- setRetryInterval(config)
       writerManager   <- Try(writerManagerCreator.from(config)(connectorTaskId, storageInterface)).toEither
@@ -265,15 +275,15 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig, CT](
 
   private def initializeFromConfig(config: C): Either[Throwable, Unit] =
     Try(initialize(
-      config.connectionConfig.connectorRetryConfig.numberOfRetries,
-      config.connectionConfig.errorPolicy,
+      config.connectorRetryConfig.getRetryLimit,
+      config.errorPolicy,
     )).toEither
 
   private def setRetryInterval(config: C): Either[Throwable, Unit] =
     Try {
       //if error policy is retry set retry interval
-      config.connectionConfig.errorPolicy match {
-        case RetryErrorPolicy() => context.timeout(config.connectionConfig.connectorRetryConfig.errorRetryInterval)
+      config.errorPolicy match {
+        case RetryErrorPolicy() => context.timeout(config.connectorRetryConfig.getRetryIntervalMillis)
         case _                  =>
       }
     }.toEither

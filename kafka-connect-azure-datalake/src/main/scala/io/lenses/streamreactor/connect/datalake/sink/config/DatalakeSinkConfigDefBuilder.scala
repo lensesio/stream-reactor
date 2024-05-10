@@ -22,11 +22,11 @@ import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings
 
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-case class DatalakeSinkConfigDefBuilder(props: Map[String, String])
+case class DatalakeSinkConfigDefBuilder(props: Map[String, AnyRef])
     extends BaseConfig(AzureConfigSettings.CONNECTOR_PREFIX, DatalakeSinkConfigDef.config, props)
     with CloudSinkConfigDefBuilder
     with ErrorPolicySettings
-    with NumberRetriesSettings
+    with RetryConfigSettings
     with AuthModeSettings {
 
   def getParsedValues: Map[String, _] = values().asScala.toMap

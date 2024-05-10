@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
+import io.lenses.streamreactor.common.config.base.RetryConfig
+import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MAX_INDEX_FILES
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConnectionConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
@@ -31,7 +33,7 @@ object S3SinkConfig extends PropsToConfigConverter[S3SinkConfig] {
 
   override def fromProps(
     connectorTaskId: ConnectorTaskId,
-    props:           Map[String, String],
+    props:           Map[String, AnyRef],
   )(
     implicit
     cloudLocationValidator: CloudLocationValidator,
@@ -59,14 +61,18 @@ object S3SinkConfig extends PropsToConfigConverter[S3SinkConfig] {
       offsetSeekerOptions,
       s3ConfigDefBuilder.getCompressionCodec(),
       s3ConfigDefBuilder.batchDelete(),
+      errorPolicy          = s3ConfigDefBuilder.getErrorPolicyOrDefault,
+      connectorRetryConfig = s3ConfigDefBuilder.getRetryConfig,
     )
 
 }
 
 case class S3SinkConfig(
-  connectionConfig:    S3ConnectionConfig,
-  bucketOptions:       Seq[CloudSinkBucketOptions] = Seq.empty,
-  offsetSeekerOptions: OffsetSeekerOptions,
-  compressionCodec:    CompressionCodec,
-  batchDelete:         Boolean,
-) extends CloudSinkConfig
+  connectionConfig:     S3ConnectionConfig,
+  bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
+  offsetSeekerOptions:  OffsetSeekerOptions,
+  compressionCodec:     CompressionCodec,
+  batchDelete:          Boolean,
+  errorPolicy:          ErrorPolicy,
+  connectorRetryConfig: RetryConfig,
+) extends CloudSinkConfig[S3ConnectionConfig]

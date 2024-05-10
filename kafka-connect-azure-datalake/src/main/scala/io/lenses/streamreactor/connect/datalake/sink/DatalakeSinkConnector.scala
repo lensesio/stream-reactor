@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.datalake.sink
 
-import io.lenses.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings
 import io.lenses.streamreactor.connect.datalake.sink.config.DatalakeSinkConfigDef
 import io.lenses.streamreactor.connect.cloud.common.config.TaskDistributor
@@ -26,12 +26,9 @@ import org.apache.kafka.connect.sink.SinkConnector
 
 import java.util
 
-class DatalakeSinkConnector extends SinkConnector with LazyLogging {
+class DatalakeSinkConnector extends SinkConnector with LazyLogging with JarManifestProvided {
 
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   private val props: util.Map[String, String] = new util.HashMap[String, String]()
-
-  override def version(): String = manifest.version()
 
   override def taskClass(): Class[_ <: Task] = classOf[DatalakeSinkTask]
 

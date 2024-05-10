@@ -20,17 +20,22 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingS
 
 trait FileNamer {
   def fileName(
-    topicPartitionOffset: TopicPartitionOffset,
+    topicPartitionOffset:    TopicPartitionOffset,
+    earliestRecordTimestamp: Long,
+    latestRecordTimestamp:   Long,
   ): String
 }
+
 class OffsetFileNamer(
   offsetPaddingStrategy: PaddingStrategy,
   extension:             String,
 ) extends FileNamer {
   def fileName(
-    topicPartitionOffset: TopicPartitionOffset,
+    topicPartitionOffset:    TopicPartitionOffset,
+    earliestRecordTimestamp: Long,
+    latestRecordTimestamp:   Long,
   ): String =
-    s"${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}.$extension"
+    s"${offsetPaddingStrategy.padString(topicPartitionOffset.offset.value.toString)}_${earliestRecordTimestamp}_$latestRecordTimestamp.$extension"
 }
 class TopicPartitionOffsetFileNamer(
   partitionPaddingStrategy: PaddingStrategy,
@@ -38,7 +43,9 @@ class TopicPartitionOffsetFileNamer(
   extension:                String,
 ) extends FileNamer {
   def fileName(
-    topicPartitionOffset: TopicPartitionOffset,
+    topicPartitionOffset:    TopicPartitionOffset,
+    earliestRecordTimestamp: Long,
+    latestRecordTimestamp:   Long,
   ): String =
     s"${topicPartitionOffset.topic.value}(${partitionPaddingStrategy.padString(
       topicPartitionOffset.partition.toString,

@@ -17,6 +17,9 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxOptionId
+import io.lenses.streamreactor.common.config.base.RetryConfig
+import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.errors.ErrorPolicyEnum
 import io.lenses.streamreactor.connect.aws.s3.config._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
@@ -48,8 +51,9 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.LeftPadP
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.NoOpPaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.FileNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.UsersSchemaDecimal
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.Decimal
@@ -60,6 +64,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.nio.ByteBuffer
+import java.time.Instant
 
 class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerTest {
 
@@ -73,7 +78,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
   private implicit val cloudLocationValidator: CloudLocationValidator = S3LocationValidator
   private val bucketAndPrefix = CloudLocation(BucketName, PathPrefix.some)
-  private def avroConfig = S3SinkConfig(
+  private def avroConfig(fileNamer: FileNamer) = S3SinkConfig(
     S3ConnectionConfig(
       None,
       Some(s3Container.identity.identity),
@@ -89,10 +94,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         keyNamer = new CloudKeyNamer(
           AvroFormatSelection,
           defaultPartitionSelection(Values),
-          new OffsetFileNamer(
-            identity[String],
-            AvroFormatSelection.extension,
-          ),
+          fileNamer,
           new PaddingService(Map[String, PaddingStrategy](
             "partition" -> NoOpPaddingStrategy,
             "offset"    -> LeftPadPaddingStrategy(12, 0),
@@ -102,24 +104,66 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         dataStorage      = DataStorageSettings.disabled,
       ),
     ),
-    offsetSeekerOptions = OffsetSeekerOptions(5),
-    compressionCodec    = compressionCodec,
-    batchDelete         = true,
+    offsetSeekerOptions  = OffsetSeekerOptions(5),
+    compressionCodec     = compressionCodec,
+    batchDelete          = true,
+    errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
+    connectorRetryConfig = new RetryConfig(1, 1L),
   )
 
   "avro sink" should "write 2 records to avro format in s3" in {
-    val sink = writerManagerCreator.from(avroConfig)
+    val sink = writerManagerCreator.from(avroConfig(new OffsetFileNamer(
+      identity[String],
+      AvroFormatSelection.extension,
+    )))
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         val writeRes = sink.write(
           TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)),
-          MessageDetail(NullSinkData(None),
-                        StructSinkData(struct),
-                        Map.empty[String, SinkData],
-                        None,
-                        Topic(TopicName),
-                        1,
-                        Offset((index + 1).toLong),
+          MessageDetail(
+            NullSinkData(None),
+            StructSinkData(struct),
+            Map.empty[String, SinkData],
+            Some(Instant.ofEpochMilli(index.toLong + 101)),
+            Topic(TopicName),
+            1,
+            Offset((index + 1).toLong),
+          ),
+        )
+        writeRes.isRight should be(true)
+    }
+
+    sink.close()
+
+    val keys = listBucketPath(BucketName, "streamReactorBackups/myTopic/1/")
+    keys.size should be(1)
+
+    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_101_102.avro")
+    val genericRecords: List[GenericRecord] = avroFormatReader.read(byteArray)
+    genericRecords.size should be(2)
+
+    genericRecords(0).get("name").toString should be("sam")
+    genericRecords(1).get("name").toString should be("laura")
+
+  }
+
+  "avro sink" should "write multiple files and keeping the earliest timestamp" in {
+    val sink = writerManagerCreator.from(avroConfig(new OffsetFileNamer(
+      identity[String],
+      AvroFormatSelection.extension,
+    )))
+    firstUsers.zip(List(0 -> 100, 1 -> 99, 2 -> 101, 3 -> 102)).foreach {
+      case (struct: Struct, (index: Int, timestamp: Int)) =>
+        val writeRes = sink.write(
+          TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)),
+          MessageDetail(
+            NullSinkData(None),
+            StructSinkData(struct),
+            Map.empty[String, SinkData],
+            Some(Instant.ofEpochMilli(timestamp.toLong)),
+            Topic(TopicName),
+            1,
+            Offset((index + 1).toLong),
           ),
         )
         writeRes.isRight should be(true)
@@ -129,7 +173,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2.avro")
+    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_99_100.avro")
     val genericRecords: List[GenericRecord] = avroFormatReader.read(byteArray)
     genericRecords.size should be(2)
 
@@ -139,7 +183,10 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
   }
 
   "avro sink" should "write BigDecimal" in {
-    val sink = writerManagerCreator.from(avroConfig)
+    val sink = writerManagerCreator.from(avroConfig(new OffsetFileNamer(
+      identity[String],
+      AvroFormatSelection.extension,
+    )))
     val usersWithDecimal1 =
       new Struct(UsersSchemaDecimal)
         .put("name", "sam")
@@ -154,7 +201,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         NullSinkData(None),
         StructSinkData(usersWithDecimal1),
         Map.empty,
-        None,
+        Some(Instant.ofEpochMilli(10L)),
         Topic(TopicName),
         1,
         Offset(1L),
@@ -178,7 +225,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         NullSinkData(None),
         StructSinkData(usersWithDecimal2),
         Map.empty,
-        None,
+        Some(Instant.ofEpochMilli(10L)),
         Topic(TopicName),
         1,
         Offset(2L),
@@ -189,7 +236,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2.avro")
+    val byteArray = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_10_10.avro")
     val genericRecords: List[GenericRecord] = avroFormatReader.read(byteArray)
     genericRecords.size should be(2)
 
@@ -215,28 +262,33 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       new Struct(secondSchema).put("name", "coco").put("designation", null).put("salary", 395.44),
     )
 
-    val sink = writerManagerCreator.from(avroConfig)
+    val sink = writerManagerCreator.from(avroConfig(new OffsetFileNamer(
+      identity[String],
+      AvroFormatSelection.extension,
+    )))
     firstUsers.concat(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
         sink.write(
           TopicPartitionOffset(Topic(TopicName), 1, Offset((index + 1).toLong)),
-          MessageDetail(NullSinkData(None),
-                        StructSinkData(user),
-                        Map.empty[String, SinkData],
-                        None,
-                        Topic(TopicName),
-                        1,
-                        Offset((index + 1).toLong),
+          MessageDetail(
+            NullSinkData(None),
+            StructSinkData(user),
+            Map.empty[String, SinkData],
+            Some(Instant.ofEpochMilli(index.toLong)),
+            Topic(TopicName),
+            1,
+            Offset((index + 1).toLong),
           ),
         )
     }
     sink.close()
 
-    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
+    val keys = listBucketPath(BucketName, "streamReactorBackups/myTopic/1/")
+    keys.size should be(3)
 
     // records 1 and 2
     val genericRecords1: List[GenericRecord] = avroFormatReader.read(
-      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2.avro"),
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2_0_1.avro"),
     )
     genericRecords1.size should be(2)
     genericRecords1(0).get("name").toString should be("sam")
@@ -244,14 +296,14 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
 
     // record 3 only - next schema is different so ending the file
     val genericRecords2: List[GenericRecord] = avroFormatReader.read(
-      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/3.avro"),
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/3_2_2.avro"),
     )
     genericRecords2.size should be(1)
     genericRecords2(0).get("name").toString should be("tom")
 
     // record 3 only - next schema is different so ending the file
     val genericRecords3: List[GenericRecord] = avroFormatReader.read(
-      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/5.avro"),
+      remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/5_3_4.avro"),
     )
     genericRecords3.size should be(2)
     genericRecords3(0).get("name").toString should be("bobo")

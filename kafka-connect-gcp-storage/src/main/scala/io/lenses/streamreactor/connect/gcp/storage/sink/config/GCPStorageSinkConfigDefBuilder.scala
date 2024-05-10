@@ -17,18 +17,18 @@ package io.lenses.streamreactor.connect.gcp.storage.sink.config
 
 import io.lenses.streamreactor.common.config.base.traits._
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfigDefBuilder
-import io.lenses.streamreactor.connect.gcp.storage.config.AuthModeSettings
+import io.lenses.streamreactor.connect.gcp.storage.config.GCPSettings
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings
 import io.lenses.streamreactor.connect.gcp.storage.config.UploadSettings
 
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-case class GCPStorageSinkConfigDefBuilder(props: Map[String, String])
+case class GCPStorageSinkConfigDefBuilder(props: Map[String, AnyRef])
     extends BaseConfig(GCPConfigSettings.CONNECTOR_PREFIX, GCPStorageSinkConfigDef.config, props)
     with CloudSinkConfigDefBuilder
     with ErrorPolicySettings
-    with NumberRetriesSettings
-    with AuthModeSettings
+    with RetryConfigSettings
+    with GCPSettings
     with UploadSettings {
 
   def getParsedValues: Map[String, _] = values().asScala.toMap

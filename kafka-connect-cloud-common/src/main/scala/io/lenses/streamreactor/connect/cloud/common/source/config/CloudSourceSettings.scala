@@ -17,7 +17,6 @@ package io.lenses.streamreactor.connect.cloud.common.source.config
 
 import io.lenses.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse
-import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse.getLong
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions.ExcludeIndexes
@@ -48,7 +47,7 @@ trait CloudSourceSettings extends BaseSettings with CloudSourceSettingsKeys {
     PartitionSearcherOptions(
       recurseLevels = getInt(SOURCE_PARTITION_SEARCH_RECURSE_LEVELS),
       continuous    = getBoolean(SOURCE_PARTITION_SEARCH_MODE),
-      interval = getLong(props, SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS).getOrElse(
+      interval = ConfigParse.getLong(props, SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS).getOrElse(
         SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DEFAULT,
       ).millis,
       wildcardExcludes = ExcludeIndexes,

@@ -45,3 +45,4 @@ bin/
 ### Lenses-specific ###
 release/
 gradle-modules.txt
+**/src/main/gen/*

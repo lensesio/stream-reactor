@@ -22,11 +22,11 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkConfigD
 
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-case class S3SinkConfigDefBuilder(props: Map[String, String])
+case class S3SinkConfigDefBuilder(props: Map[String, AnyRef])
     extends BaseConfig(S3ConfigSettings.CONNECTOR_PREFIX, S3SinkConfigDef.config, props)
     with CloudSinkConfigDefBuilder
     with ErrorPolicySettings
-    with NumberRetriesSettings
+    with RetryConfigSettings
     with DeleteModeSettings {
 
   def getParsedValues: Map[String, _] = values().asScala.toMap

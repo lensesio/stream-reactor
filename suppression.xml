@@ -103,4 +103,13 @@
         <packageUrl regex="true">^pkg:maven/org\.threeten/threetenbp@.*$</packageUrl>
         <vulnerabilityName>CVE-2024-23082</vulnerabilityName>
     </suppress>
+
+    <!-- Azure False Positive: https://github.com/jeremylong/DependencyCheck/issues/6100 -->
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-azure-datalake-assembly-6.4-SNAPSHOT.jar (shaded: com.azure:azure-xml:1.0.0)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure\-xml@.*$</packageUrl>
+        <cve>CVE-2023-36052</cve>
+    </suppress>
 </suppressions>

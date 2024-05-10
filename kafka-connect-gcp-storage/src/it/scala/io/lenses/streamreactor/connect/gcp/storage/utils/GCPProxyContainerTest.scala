@@ -7,11 +7,12 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.TaskIndexKey
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudPlatformEmulatorSuite
+import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode
+import io.lenses.streamreactor.connect.gcp.common.config.AuthModeSettings
+import io.lenses.streamreactor.connect.gcp.common.config.GCPSettings
 import io.lenses.streamreactor.connect.gcp.storage.auth.GCPStorageClientCreator
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings._
-import io.lenses.streamreactor.connect.gcp.storage.config.AuthMode
-import io.lenses.streamreactor.connect.gcp.storage.config.AuthModeSettingsConfigKeys
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.UploadConfigKeys
 import io.lenses.streamreactor.connect.gcp.storage.sink.GCPStorageSinkTask
 import io.lenses.streamreactor.connect.gcp.storage.sink.config.GCPStorageSinkConfig
@@ -30,13 +31,16 @@ trait GCPProxyContainerTest
       GCPStorageFileMetadata,
       GCPStorageStorageInterface,
       GCPStorageSinkConfig,
+      GCPConnectionConfig,
       Storage,
       GCPStorageSinkTask,
     ]
     with TaskIndexKey
-    with AuthModeSettingsConfigKeys
     with UploadConfigKeys
     with LazyLogging {
+
+  private val gcpSettings    = new GCPSettings(javaConnectorPrefix)
+  private val authModeConfig = new AuthModeSettings(javaConnectorPrefix)
 
   implicit val connectorTaskId: ConnectorTaskId = ConnectorTaskId("unit-tests", 1, 1)
 
@@ -49,12 +53,11 @@ trait GCPProxyContainerTest
 
   override def createClient(): Either[Throwable, Storage] = {
 
-    val gcpConfig: GCPConnectionConfig = GCPConnectionConfig(
-      projectId      = Some("test"),
-      quotaProjectId = Option.empty,
-      authMode       = AuthMode.None,
-      host           = Some(container.getEndpointUrl()),
-    )
+    val gcpConfig: GCPConnectionConfig = GCPConnectionConfig.builder()
+      .projectId("test")
+      .authMode(new NoAuthMode())
+      .host(container.getEndpointUrl())
+      .build()
 
     GCPStorageClientCreator.make(gcpConfig)
   }
@@ -63,12 +66,12 @@ trait GCPProxyContainerTest
 
   lazy val defaultProps: Map[String, String] =
     Map(
-      GCP_PROJECT_ID         -> "projectId",
-      AUTH_MODE              -> "none",
-      HOST                   -> container.getEndpointUrl(),
-      "name"                 -> "gcpSinkTaskTest",
-      TASK_INDEX             -> "1:1",
-      AVOID_RESUMABLE_UPLOAD -> "true",
+      gcpSettings.getGcpProjectId   -> "projectId",
+      authModeConfig.getAuthModeKey -> "none",
+      gcpSettings.getHost           -> container.getEndpointUrl(),
+      "name"                        -> "gcpSinkTaskTest",
+      TASK_INDEX                    -> "1:1",
+      AVOID_RESUMABLE_UPLOAD        -> "true",
     )
 
   val localRoot: File = Files.createTempDirectory("blah").toFile

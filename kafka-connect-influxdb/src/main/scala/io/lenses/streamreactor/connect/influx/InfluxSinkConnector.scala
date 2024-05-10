@@ -15,17 +15,16 @@
  */
 package io.lenses.streamreactor.connect.influx
 
+import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.common.config.Helpers
-import io.lenses.streamreactor.common.utils.JarManifest
-
-import java.util
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import io.lenses.streamreactor.connect.influx.config.InfluxConfig
 import io.lenses.streamreactor.connect.influx.config.InfluxConfigConstants
-import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
+import java.util
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
@@ -35,10 +34,9 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
   *
   * Sets up InfluxSinkTask and configurations for the tasks.
   */
-class InfluxSinkConnector extends SinkConnector with StrictLogging {
+class InfluxSinkConnector extends SinkConnector with StrictLogging with JarManifestProvided {
   private var configProps: Option[util.Map[String, String]] = None
   private val configDef = InfluxConfig.config
-  private val manifest  = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SinkTask class to use
@@ -68,8 +66,6 @@ class InfluxSinkConnector extends SinkConnector with StrictLogging {
   }
 
   override def stop(): Unit = {}
-
-  override def version(): String = manifest.version()
 
   override def config(): ConfigDef = configDef
 }

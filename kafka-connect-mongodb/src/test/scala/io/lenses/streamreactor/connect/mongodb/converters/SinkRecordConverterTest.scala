@@ -111,9 +111,9 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
         set.foreach { entry =>
           entry.getValue match {
             case _:   String         => // OK
-            case _:   java.util.Date => println(s"ERROR: entry is $entry"); fail()
+            case _:   java.util.Date => fail("Input is a java Date")
             case doc: Document       => check(doc.entrySet().asScala.toSet)
-            case _ => println(s"UNKNOWN TYPE ERROR: entry is $entry"); fail()
+            case _ => fail(s"UNKNOWN TYPE ERROR: entry is $entry")
           }
         }
       check(map)
@@ -142,14 +142,13 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
       def check(set: Set[JavaMap.Entry[String, AnyRef]], parents: List[String] = Nil): Unit =
         set.foreach { entry =>
           val fullPath = parents :+ entry.getKey() mkString "."
-          println(s"fullPath = $fullPath")
           entry.getValue match {
             case _: String =>
               expectedDates.contains(fullPath) shouldBe false
             case _: java.util.Date =>
               expectedDates.get(fullPath) shouldBe Some(entry.getValue)
             case doc: Document => check(doc.entrySet().asScala.toSet, parents :+ entry.getKey)
-            case _ => { println(s"UNKNOWN TYPE ERROR: entry is $entry; parents: $parents"); fail() }
+            case _ => fail(s"UNKNOWN TYPE ERROR: entry is $entry; parents: $parents")
           }
         }
       check(map)
@@ -157,7 +156,6 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
 
     // convert ints as epoch timestamps if requested
     "add java.util.Date datetime values for Int fields when jsonDateTimeFields are specified" in {
-      println(s"jsonInt = $jsonInt")
 
       implicit val settings = MongoSettings(
         MongoConfig(baseConfig ++
@@ -180,7 +178,7 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
             case doc: Document =>
               check(doc.entrySet().asScala.toSet, parents :+ entry.getKey)
             case other =>
-              println(s"UNKNOWN TYPE ERROR: other is $other; entry is $entry; parents: $parents"); fail()
+              fail(s"UNKNOWN TYPE ERROR: other is $other; entry is $entry; parents: $parents")
           }
         }
       check(map)
@@ -213,7 +211,7 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
             case _:   String   => // OK
             case _:   Date     => fail()
             case doc: Document => check(doc.entrySet().asScala.toSet, parents :+ entry.getKey)
-            case _ => println(s"UNKNOWN TYPE ERROR: entry is $entry; parents: $parents"); fail()
+            case _ => fail(s"UNKNOWN TYPE ERROR: entry is $entry; parents: $parents")
           }
         }
       check(map)
@@ -268,7 +266,7 @@ class SinkRecordConverterTest extends AnyWordSpec with Matchers {
             case doc: Document => {
               check(doc.entrySet().asScala.toSet, parents :+ entry.getKey)
             }
-            case _ => println(s"UNKNOWN TYPE ERROR: entry is $entry; parents: $parents"); fail()
+            case _ => fail(s"UNKNOWN TYPE ERROR: entry is $entry; parents: $parents")
           }
         }
       check(map)

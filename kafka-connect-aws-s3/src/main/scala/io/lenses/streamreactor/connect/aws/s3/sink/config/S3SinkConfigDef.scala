@@ -27,7 +27,7 @@ import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
 
 object S3SinkConfigDef
-    extends CommonConfigDef
+    extends S3CommonConfigDef
     with FlushConfigKeys
     with LocalStagingAreaConfigKeys
     with PaddingStrategyConfigKeys {

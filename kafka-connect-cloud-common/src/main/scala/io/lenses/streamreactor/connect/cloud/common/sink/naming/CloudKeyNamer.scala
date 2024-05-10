@@ -78,7 +78,7 @@ class CloudKeyNamer(
   private def prefix(bucketAndPrefix: CloudLocation): String =
     bucketAndPrefix.prefix.map(addTrailingSlash).getOrElse(DefaultPrefix)
 
-  override def stagingFile(
+  override def staging(
     stagingDirectory: File,
     bucketAndPrefix:  CloudLocation,
     topicPartition:   TopicPartition,
@@ -112,14 +112,16 @@ class CloudKeyNamer(
   private def partitionValuePrefix(partition: PartitionField): String =
     if (partitionSelection.partitionDisplay == KeysAndValues) s"${partition.name()}=" else ""
 
-  override def finalFilename(
-    bucketAndPrefix:      CloudLocation,
-    topicPartitionOffset: TopicPartitionOffset,
-    partitionValues:      Map[PartitionField, String],
+  override def value(
+    bucketAndPrefix:         CloudLocation,
+    topicPartitionOffset:    TopicPartitionOffset,
+    partitionValues:         Map[PartitionField, String],
+    earliestRecordTimestamp: Long,
+    latestRecordTimestamp:   Long,
   ): Either[FatalCloudSinkError, CloudLocation] =
     Try(
       bucketAndPrefix.withPath(
-        s"${prefix(bucketAndPrefix)}${buildPartitionPrefix(partitionValues)}/${fileNamer.fileName(topicPartitionOffset)}",
+        s"${prefix(bucketAndPrefix)}${buildPartitionPrefix(partitionValues)}/${fileNamer.fileName(topicPartitionOffset, earliestRecordTimestamp, latestRecordTimestamp)}",
       ),
     ).toEither.left.map(ex => FatalCloudSinkError(ex.getMessage, topicPartitionOffset.toTopicPartition))
 

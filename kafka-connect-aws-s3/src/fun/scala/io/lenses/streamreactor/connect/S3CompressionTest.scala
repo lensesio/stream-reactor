@@ -101,13 +101,12 @@ class S3CompressionTest
               val order  = Order(1, "OP-DAX-P-20150201-95.7", 94.2, 100, UUID.randomUUID().toString)
               val record = order.toRecord
 
-              producer.send(new ProducerRecord[String, GenericRecord](topic, record)).get
+              producer.send(new ProducerRecord[String, GenericRecord](topic, null, 0L, null, record)).get
               producer.flush()
 
               eventually {
                 val files =
                   s3Client.listObjectsV2(ListObjectsV2Request.builder().bucket(bucketName).prefix(prefix).build())
-                logger.debug("files: {}", files)
                 assert(files.contents().size() == 1)
                 val firstFormatFile = files.contents().asScala.head
                 // avoid temporary files
@@ -117,7 +116,7 @@ class S3CompressionTest
             }
         }.asserting {
           file =>
-            file.key() should be(s"$prefix/$topic/0/000000000000.$format")
+            file.key() should be(s"$prefix/$topic/0/000000000000_0_0.$format")
         }
       }
   }

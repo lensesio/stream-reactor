@@ -64,13 +64,16 @@ class S3SinkTaskParquetEnvelopeTest
 
   "S3SinkTask" should "write to avro format" in {
 
-    val task = new S3SinkTask()
-
     val props = (defaultProps + (
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `PARQUET`  PROPERTIES('store.envelope'=true,'padding.length.partition'='12', 'padding.length.offset'='12', '${FlushCount.entryName}'=3)",
     )).asJava
+    testScenario(props, "streamReactorBackups/myTopic/000000000001/000000000003_10001_10003.parquet")
+  }
 
+  private def testScenario(props: java.util.Map[String, String], expectedFile: String) = {
+    val task = new S3SinkTask()
     task.start(props)
+
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     val struct1 = new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43)
     val struct2 = new Struct(schema).put("name", "laura").put("title", "ms").put("salary", 429.06)
@@ -109,7 +112,7 @@ class S3SinkTaskParquetEnvelopeTest
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(1)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000003.parquet")
+    val bytes = remoteFileAsBytes(BucketName, expectedFile)
 
     val genericRecords = parquetFormatReader.read(bytes)
     genericRecords.size should be(3)

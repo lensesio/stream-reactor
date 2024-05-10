@@ -7,12 +7,11 @@ import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
 import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.EitherValues
-import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import java.io.File
-import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
 import scala.xml.XML
@@ -53,40 +52,36 @@ class S3SourceTaskXmlReaderTest
 
     task.start(props)
 
-    var sourceRecords: Seq[SourceRecord] = List.empty
     try {
-      eventually {
-        do {
-          sourceRecords = sourceRecords ++ task.poll().asScala
-        } while (sourceRecords.size != 20000)
-        val sourceRecordsMopUp = task.poll()
-        sourceRecordsMopUp should be(empty)
-      }
+      val sourceRecords      = SourceRecordsLoop.loop(task, 10.seconds.toMillis, 20000).value
+      val sourceRecordsMopUp = task.poll()
+      sourceRecordsMopUp should be(empty)
+
+      val firstEmployee = Employee.fromSourceRecord(sourceRecords.head)
+      firstEmployee.value should be(
+        Employee(
+          "1",
+          "3-1991",
+          "B1",
+          "Fairly Paid",
+          "Skydiving Instructor Extraordinaire",
+        ),
+      )
+
+      val lastEmployee = Employee.fromSourceRecord(sourceRecords.last)
+      lastEmployee.value should be(
+        Employee(
+          "20,000",
+          "1-2011",
+          "C1",
+          "Massively Underpaid",
+          "Skydiving Instructor for Schools",
+        ),
+      )
     } finally {
       task.stop()
     }
 
-    val firstEmployee = Employee.fromSourceRecord(sourceRecords.head)
-    firstEmployee.value should be(
-      Employee(
-        "1",
-        "3-1991",
-        "B1",
-        "Fairly Paid",
-        "Skydiving Instructor Extraordinaire",
-      ),
-    )
-
-    val lastEmployee = Employee.fromSourceRecord(sourceRecords.last)
-    lastEmployee.value should be(
-      Employee(
-        "20,000",
-        "1-2011",
-        "C1",
-        "Massively Underpaid",
-        "Skydiving Instructor for Schools",
-      ),
-    )
   }
 
   case class Employee(number: String, startMonth: String, bracket: String, bracketDescription: String, category: String)

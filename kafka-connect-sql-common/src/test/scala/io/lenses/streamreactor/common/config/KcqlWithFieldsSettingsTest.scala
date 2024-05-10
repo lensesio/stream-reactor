@@ -19,6 +19,7 @@ import org.apache.kafka.common.config.types.Password
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.lang
 import java.util
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
@@ -35,6 +36,7 @@ class KcqlWithFieldsSettingsTest extends AnyWordSpec with Matchers {
     override def getBoolean(key:  String): java.lang.Boolean = false
     override def getPassword(key: String): Password          = null
     override def getList(key:     String): util.List[String] = List.empty[String].asJava
+    override def getLong(key:     String): lang.Long         = null
   }
 
   def testUpsertKeys(

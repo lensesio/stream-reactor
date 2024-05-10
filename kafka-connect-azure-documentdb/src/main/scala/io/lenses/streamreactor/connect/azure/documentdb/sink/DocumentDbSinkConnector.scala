@@ -16,7 +16,6 @@
 package io.lenses.streamreactor.connect.azure.documentdb.sink
 
 import io.lenses.streamreactor.common.config.Helpers
-import io.lenses.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.azure.documentdb.DocumentClientProvider
 import io.lenses.streamreactor.connect.azure.documentdb.config.DocumentDbConfig
 import io.lenses.streamreactor.connect.azure.documentdb.config.DocumentDbConfigConstants
@@ -25,6 +24,7 @@ import io.lenses.streamreactor.connect.azure.documentdb.config.DocumentDbSinkSet
 import java.util
 import com.microsoft.azure.documentdb._
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.connector.Task
@@ -47,9 +47,9 @@ import scala.util.Try
   */
 class DocumentDbSinkConnector private[sink] (builder: DocumentDbSinkSettings => DocumentClient)
     extends SinkConnector
-    with StrictLogging {
+    with StrictLogging
+    with JarManifestProvided {
   private var configProps: util.Map[String, String] = _
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   def this() = this(DocumentClientProvider.get)
 
@@ -117,8 +117,6 @@ class DocumentDbSinkConnector private[sink] (builder: DocumentDbSinkSettings => 
   }
 
   override def stop(): Unit = {}
-
-  override def version(): String = manifest.version()
 
   override def config(): ConfigDef = DocumentDbConfig.config
 

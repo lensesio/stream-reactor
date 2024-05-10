@@ -17,12 +17,10 @@ package io.lenses.streamreactor.connect.aws.s3.source.config
 
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config._
-import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.DeprecationConfigDefProcessor
-import io.lenses.streamreactor.connect.cloud.common.config.CloudConfigDef
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
 import org.apache.kafka.common.config.ConfigDef
 
-object S3SourceConfigDef extends CommonConfigDef with CloudSourceSettingsKeys {
+object S3SourceConfigDef extends S3CommonConfigDef with CloudSourceSettingsKeys {
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
@@ -34,5 +32,3 @@ object S3SourceConfigDef extends CommonConfigDef with CloudSourceSettingsKeys {
     addSourcePartitionExtractorSettings(settings)
   }
 }
-
-class S3SourceConfigDef() extends CloudConfigDef(CONNECTOR_PREFIX, new DeprecationConfigDefProcessor()) {}

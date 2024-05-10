@@ -32,7 +32,7 @@ object S3SourceConfig extends PropsToConfigConverter[S3SourceConfig] {
 
   override def fromProps(
     connectorTaskId: ConnectorTaskId,
-    props:           Map[String, String],
+    props:           Map[String, AnyRef],
   )(
     implicit
     cloudLocationValidator: CloudLocationValidator,

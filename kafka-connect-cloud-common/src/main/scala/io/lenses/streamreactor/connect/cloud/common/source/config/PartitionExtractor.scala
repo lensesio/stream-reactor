@@ -16,7 +16,6 @@
 package io.lenses.streamreactor.connect.cloud.common.source.config
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.cloud.common.config.Format
 
 /**
   * For a source, can extract the original partition so that the message can be returned to the original partition.
@@ -35,7 +34,7 @@ object PartitionExtractor extends LazyLogging {
           logger.info("No regex provided for regex mode, defaulting to NoOp mode")
           Option.empty[PartitionExtractor]
         }(rex => Some(new RegexPartitionExtractor(rex)))
-      case "hierarchical" => Some(new HierarchicalPartitionExtractor())
+      case "hierarchical" => Some(HierarchicalPartitionExtractor)
       case _              => Option.empty[PartitionExtractor]
     }
 }
@@ -49,7 +48,18 @@ class RegexPartitionExtractor(
     Option(rc.findAllIn(remotePath).group(1)).flatMap(_.toIntOption)
 }
 
-class HierarchicalPartitionExtractor()
-    extends RegexPartitionExtractor(
-      s"(?i)^(?:.*)\\/([0-9]*)\\/(?:[0-9]*)[.](?:${Format.values.map(_.entryName).mkString("|")})$$",
-    ) {}
+object HierarchicalPartitionExtractor extends PartitionExtractor {
+  override def extract(input: String): Option[Int] = {
+    // Find the index of the last '/'
+    val lastSlashIndex = input.lastIndexOf('/')
+
+    // Find the index of the second to last '/'
+    val secondLastSlashIndex = input.substring(0, lastSlashIndex).lastIndexOf('/')
+    if (secondLastSlashIndex == -1)
+      None
+    else {
+      val substring = input.substring(secondLastSlashIndex + 1, lastSlashIndex)
+      Some(substring.toInt)
+    }
+  }
+}

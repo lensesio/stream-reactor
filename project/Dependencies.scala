@@ -21,7 +21,7 @@ object Dependencies {
 
   // scala versions
   val scalaOrganization = "org.scala-lang"
-  val scalaVersion      = "2.13.13"
+  val scalaVersion      = "2.13.14"
   val supportedScalaVersions: Seq[String] = List(Dependencies.scalaVersion)
 
   val commonResolvers: Seq[MavenRepository] = Resolver.sonatypeOssRepos("public") ++
@@ -39,6 +39,9 @@ object Dependencies {
     val scalatestVersion               = "3.2.18"
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.18.0"
+
+    val junitJupiterVersion = "5.10.2"
+    val assertjCoreVersion  = "3.25.3"
 
     val kafkaVersion:     String = "3.7.0"
     val confluentVersion: String = "7.6.1"
@@ -61,6 +64,8 @@ object Dependencies {
     // build plugins version
     val betterMonadicForVersion = "0.3.1"
 
+    val lombokVersion = "1.18.32"
+
     val logbackVersion      = "1.5.6"
     val scalaLoggingVersion = "3.9.5"
 
@@ -70,16 +75,17 @@ object Dependencies {
     val jerseyCommonVersion = "3.1.6"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.25.36"
+    val awsSdkVersion  = "2.25.48"
 
-    val azureDataLakeVersion = "12.18.3"
-    val azureIdentityVersion = "1.11.4"
-    val azureCoreVersion     = "1.47.0"
-    val gcpStorageVersion    = "2.37.0"
+    val azureDataLakeVersion = "12.18.4"
+    val azureIdentityVersion = "1.12.1"
+    val azureCoreVersion     = "1.49.0"
+    val gcpCloudVersion      = "2.37.0"
 
-    val jacksonVersion      = "2.17.0"
+    val jacksonVersion      = "2.17.1"
     val json4sVersion       = "4.0.7"
     val mockitoScalaVersion = "1.17.31"
+    val mockitoJavaVersion  = "5.2.0"
     val openCsvVersion      = "5.9"
     val jsonSmartVersion    = "2.5.1"
 
@@ -94,7 +100,7 @@ object Dependencies {
 
     val azureDocumentDbVersion     = "2.6.5"
     val testcontainersScalaVersion = "0.41.3"
-    val testcontainersVersion      = "1.19.7"
+    val testcontainersVersion      = "1.19.8"
 
     val influxVersion = "7.0.0"
 
@@ -106,7 +112,7 @@ object Dependencies {
     val mqttVersion = "1.2.5"
 
     val commonsNetVersion      = "3.10.0"
-    val commonsCodecVersion    = "1.16.1"
+    val commonsCodecVersion    = "1.17.0"
     val commonsCompressVersion = "1.26.1"
     val commonsConfigVersion   = "2.10.1"
     val commonsIOVersion       = "2.16.1"
@@ -140,7 +146,7 @@ object Dependencies {
 
     object Elastic7Versions extends ElasticVersions {
       override val elastic4sVersion:     String = "7.17.4"
-      override val elasticSearchVersion: String = "7.17.20"
+      override val elasticSearchVersion: String = "7.17.21"
       override val jnaVersion:           String = "5.14.0"
     }
 
@@ -171,8 +177,13 @@ object Dependencies {
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
   val scalatestPlusScalaCheck =
     "org.scalatestplus" %% "scalatestplus-scalacheck" % scalatestPlusScalaCheckVersion
-  val scalaCheck      = "org.scalacheck" %% "scalacheck"    % scalaCheckVersion
-  val `mockito-scala` = "org.mockito"    %% "mockito-scala" % mockitoScalaVersion
+  val scalaCheck     = "org.scalacheck" %% "scalacheck"     % scalaCheckVersion
+  val `mockitoScala` = "org.mockito"    %% "mockito-scala"  % mockitoScalaVersion
+  val `mockitoJava`  = "org.mockito"     % "mockito-inline" % mockitoJavaVersion
+
+  val `junitJupiter`       = "org.junit.jupiter" % "junit-jupiter-api"    % junitJupiterVersion
+  val `junitJupiterParams` = "org.junit.jupiter" % "junit-jupiter-params" % junitJupiterVersion
+  val `assertjCore`        = "org.assertj"       % "assertj-core"         % assertjCoreVersion
 
   val catsEffectScalatest = "org.typelevel" %% "cats-effect-testing-scalatest" % `cats-effect-testing`
 
@@ -258,6 +269,8 @@ object Dependencies {
 
   lazy val calciteLinq4J = "org.apache.calcite" % "calcite-linq4j" % calciteVersion
 
+  lazy val lombok = "org.projectlombok" % "lombok" % lombokVersion
+
   lazy val s3Sdk  = "software.amazon.awssdk" % "s3"  % awsSdkVersion
   lazy val stsSdk = "software.amazon.awssdk" % "sts" % awsSdkVersion
 
@@ -265,7 +278,9 @@ object Dependencies {
   lazy val azureIdentity:    ModuleID = "com.azure" % "azure-identity"              % azureIdentityVersion
   lazy val azureCore:        ModuleID = "com.azure" % "azure-core"                  % azureCoreVersion
 
-  lazy val gcpStorageSdk = "com.google.cloud" % "google-cloud-storage" % gcpStorageVersion
+  lazy val gcpCloudCoreSdk = "com.google.cloud" % "google-cloud-core"      % gcpCloudVersion
+  lazy val gcpCloudHttp    = "com.google.cloud" % "google-cloud-core-http" % gcpCloudVersion
+  lazy val gcpStorageSdk   = "com.google.cloud" % "google-cloud-storage"   % gcpCloudVersion
 
   lazy val json4sNative  = "org.json4s" %% "json4s-native"  % json4sVersion
   lazy val json4sJackson = "org.json4s" %% "json4s-jackson" % json4sVersion
@@ -401,7 +416,7 @@ trait Dependencies {
     catsEffectScalatest,
     scalatestPlusScalaCheck,
     scalaCheck,
-    `mockito-scala`,
+    `mockitoScala`,
     `wiremock`,
     jerseyCommon,
     avro4s,
@@ -437,6 +452,9 @@ trait Dependencies {
     confluentJsonSchemaSerializer,
   ) ++ enumeratum ++ circe
 
+  val javaCommonDeps:     Seq[ModuleID] = Seq(lombok, kafkaConnectJson, kafkaClients)
+  val javaCommonTestDeps: Seq[ModuleID] = Seq(junitJupiter, junitJupiterParams, assertjCore, `mockitoJava`, logback)
+
   //Specific modules dependencies
 
   val kafkaConnectCloudCommonDeps: Seq[ModuleID] = Seq(
@@ -467,6 +485,13 @@ trait Dependencies {
     azureDataLakeSdk,
     azureIdentity,
     azureCore,
+  )
+
+  val kafkaConnectGcpCommonDeps: Seq[ModuleID] = Seq(
+    lombok,
+    kafkaClients,
+    gcpCloudCoreSdk,
+    gcpCloudHttp,
   )
 
   val kafkaConnectGcpStorageDeps: Seq[ModuleID] = Seq(

@@ -16,8 +16,7 @@
 package io.lenses.streamreactor.connect.cassandra.source
 
 import io.lenses.streamreactor.common.queues.QueueHelpers
-import io.lenses.streamreactor.common.utils.AsciiArtPrinter.printAsciiHeader
-import io.lenses.streamreactor.common.utils.JarManifest
+import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
@@ -27,6 +26,7 @@ import io.lenses.streamreactor.connect.cassandra.config.CassandraConfigSource
 import io.lenses.streamreactor.connect.cassandra.config.CassandraSettings
 import io.lenses.streamreactor.connect.cassandra.config.CassandraSourceSetting
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.common.utils.JarManifestProvided
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask
@@ -44,7 +44,7 @@ import scala.util.Try
   * stream-reactor
   */
 
-class CassandraSourceTask extends SourceTask with StrictLogging {
+class CassandraSourceTask extends SourceTask with StrictLogging with JarManifestProvided {
   private val queues      = mutable.Map.empty[String, LinkedBlockingQueue[SourceRecord]]
   private val readers     = mutable.Map.empty[String, CassandraTableReader]
   private val stopControl = new Object()
@@ -56,7 +56,6 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
   private var tracker:      Long                          = 0
   private var pollInterval: Long                          = CassandraConfigConstants.DEFAULT_POLL_INTERVAL
   private var name:         String                        = ""
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Starts the Cassandra source, parsing the options and setting up the reader.
@@ -199,13 +198,6 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
       c.cluster.close()
     }
   }
-
-  /**
-    * Gets the version of this Source.
-    *
-    * @return
-    */
-  override def version: String = manifest.version()
 
   /**
     * Check the queue size of a table.

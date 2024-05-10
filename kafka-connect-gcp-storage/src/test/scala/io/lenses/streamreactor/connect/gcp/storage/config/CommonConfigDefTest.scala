@@ -16,9 +16,9 @@
 package io.lenses.streamreactor.connect.gcp.storage.config
 
 import cats.implicits.catsSyntaxOptionId
+import io.lenses.streamreactor.connect.gcp.common.config.AuthModeSettings
+import io.lenses.streamreactor.connect.gcp.common.config.GCPSettings
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.CONNECTOR_PREFIX
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.GCP_PROJECT_ID
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.HOST
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.KCQL_CONFIG
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
@@ -27,12 +27,10 @@ import org.scalatest.matchers.should.Matchers
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 
-class CommonConfigDefTest
-    extends AnyFlatSpec
-    with Matchers
-    with EitherValues
-    with AuthModeSettingsConfigKeys
-    with UploadConfigKeys {
+class CommonConfigDefTest extends AnyFlatSpec with Matchers with EitherValues with UploadConfigKeys {
+
+  private val authModeConfig = new AuthModeSettings(javaConnectorPrefix)
+  private val gcpSettings    = new GCPSettings(javaConnectorPrefix)
 
   private val commonConfigDef = new CommonConfigDef {
     override def connectorPrefix: String = CONNECTOR_PREFIX
@@ -40,15 +38,15 @@ class CommonConfigDefTest
 
   private val DefaultProps: Map[String, String] =
     Map(
-      GCP_PROJECT_ID -> "projectId",
-      AUTH_MODE      -> "none",
-      HOST           -> "localhost:9090",
-      KCQL_CONFIG    -> "SELECT * FROM DEFAULT",
+      gcpSettings.getGcpProjectId   -> "projectId",
+      authModeConfig.getAuthModeKey -> "none",
+      gcpSettings.getHost           -> "localhost:9090",
+      KCQL_CONFIG                   -> "SELECT * FROM DEFAULT",
     )
 
   "CommonConfigDef" should "retain original properties after parsing" in {
     val resultMap = commonConfigDef.config.parse(DefaultProps.asJava).asScala
-    resultMap should have size 15
+    resultMap should have size 16
     DefaultProps.foreach {
       case (k, v) =>
         withClue("Unexpected property: " + k) {

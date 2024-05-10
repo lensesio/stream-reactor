@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,10 +32,11 @@ class KafkaByteBlockingQueuedProducerTest {
   private static final String CLIENT_ID = "clientId";
   private static Consumer consumer = mock(Consumer.class);
 
-  KafkaByteBlockingQueuedProducer testObj = new KafkaByteBlockingQueuedProducer(
-      mock(TopicPartitionOffsetProvider.class), mock(BlockingQueue.class),
-      consumer, KeyValueTypes.DEFAULT_TYPES,
-      CLIENT_ID, Sets.newSet("topic"), false);
+  KafkaByteBlockingQueuedProducer testObj =
+      new KafkaByteBlockingQueuedProducer(
+          mock(TopicPartitionOffsetProvider.class), mock(BlockingQueue.class),
+          consumer, KeyValueTypes.DEFAULT_TYPES,
+          CLIENT_ID, Sets.newSet("topic"), false);
 
   @Test
   void closeShouldBeDelegatedToKafkaConsumer() {

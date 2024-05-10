@@ -29,10 +29,12 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaAndValue
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.util
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
@@ -82,15 +84,21 @@ class S3SinkTaskAvroEnvelopeTest
     record
   }
 
-  "S3SinkTask" should "write to avro format" in {
+  "S3SinkTask" should "write to avro format using V1 format" in {
 
+    testWritingAvro(
+      (
+        defaultProps +
+          ("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS AVRO PROPERTIES('store.envelope'=true, 'padding.length.partition'='12', 'padding.length.offset'='12', '${FlushCount.entryName}'=3)")
+      ).asJava,
+      "streamReactorBackups/myTopic/000000000001/000000000003_10001_10003.avro",
+    )
+  }
+
+  private def testWritingAvro(props: util.Map[String, String], expected: String) = {
     val task = new S3SinkTask()
-
-    val props = (
-      defaultProps +
-        ("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS AVRO PROPERTIES('store.envelope'=true, 'padding.length.partition'='12', 'padding.length.offset'='12', '${FlushCount.entryName}'=3)")
-    ).asJava
-
+    val ctx  = mock[SinkTaskContext]
+    task.initialize(ctx)
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     val struct1 = new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43)
@@ -130,7 +138,7 @@ class S3SinkTaskAvroEnvelopeTest
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000001/").size should be(1)
 
-    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000001/000000000003.avro")
+    val bytes = remoteFileAsBytes(BucketName, expected)
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(3)
@@ -265,7 +273,7 @@ class S3SinkTaskAvroEnvelopeTest
 
     val genericRecords1 =
       avroFormatReader.read(remoteFileAsBytes(BucketName,
-                                              "streamReactorBackups/myTopic/000000000001/000000000002.avro",
+                                              "streamReactorBackups/myTopic/000000000001/000000000002_10001_10002.avro",
       ))
     genericRecords1.size should be(2)
 
@@ -323,7 +331,7 @@ class S3SinkTaskAvroEnvelopeTest
 
     val genericRecords2 =
       avroFormatReader.read(remoteFileAsBytes(BucketName,
-                                              "streamReactorBackups/myTopic/000000000001/000000000003.avro",
+                                              "streamReactorBackups/myTopic/000000000001/000000000003_10003_10003.avro",
       ))
     genericRecords2.size should be(1)
 

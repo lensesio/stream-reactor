@@ -1,6 +1,6 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import cats.implicits.catsSyntaxEitherId
+import cats.implicits.toBifunctorOps
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
@@ -11,24 +11,21 @@ import org.apache.avro.file.CodecFactory
 import org.apache.avro.file.DataFileWriter
 import org.apache.avro.generic.GenericDatumWriter
 import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.EitherValues
-import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import java.time.Instant
-import scala.jdk.CollectionConverters.IterableHasAsScala
-import scala.jdk.CollectionConverters.ListHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsJava
-import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.concurrent.duration.DurationInt
+import scala.jdk.CollectionConverters._
 
 class S3SourceAvroWithValueAsOptionalArrayEnvelopeTest
     extends S3ProxyContainerTest
     with AnyFlatSpecLike
     with Matchers
     with EitherValues
-    with CloudSourceSettingsKeys {
+    with CloudSourceSettingsKeys
+    with TempFileHelper {
 
   def DefaultProps: Map[String, String] = defaultProps + (
     SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
@@ -79,8 +76,7 @@ class S3SourceAvroWithValueAsOptionalArrayEnvelopeTest
     metadata.put("offset", 0L)
     envelope.put("metadata", metadata)
 
-    val file = new java.io.File("00001.avro")
-    try {
+    withFile("00001.avro") { file =>
       val outputStream = new java.io.BufferedOutputStream(new java.io.FileOutputStream(file))
       val writer: GenericDatumWriter[Any] = new GenericDatumWriter[Any](EnvelopeSchema)
       val fileWriter: DataFileWriter[Any] =
@@ -91,10 +87,7 @@ class S3SourceAvroWithValueAsOptionalArrayEnvelopeTest
       fileWriter.close()
 
       storageInterface.uploadFile(UploadableFile(file), BucketName, s"$MyPrefix/avro/0")
-      ().asRight
-    } finally {
-      file.delete()
-      ()
+        .leftMap(e => new UploadException(e))
     }
 
   }
@@ -111,42 +104,36 @@ class S3SourceAvroWithValueAsOptionalArrayEnvelopeTest
 
     task.start(props)
 
-    var sourceRecords: Seq[SourceRecord] = List.empty
     try {
-      eventually {
+      val sourceRecords = SourceRecordsLoop.loop(task, 10.seconds.toMillis, 1).value
 
-        do {
-          sourceRecords = sourceRecords ++ task.poll().asScala
-        } while (sourceRecords.size != 1)
-        task.poll() should be(empty)
+      task.poll() should be(empty)
+      //assert the record matches the envelope
+      val sourceRecord = sourceRecords.head
+      sourceRecord.keySchema().`type`() should be(Schema.Type.BYTES)
+      sourceRecord.key() shouldBe null
 
-      }
+      sourceRecord.valueSchema().`type`() should be(Schema.Type.BYTES)
+      val value: Array[Byte] = sourceRecord.value().asInstanceOf[Array[Byte]]
+      value shouldBe null
+
+      sourceRecord.headers().asScala.map(h => h.key() -> h.value()).toMap should be(Map("header1" -> "value1",
+                                                                                        "header2" -> 123456789L,
+      ))
+
+      sourceRecord.sourcePartition().asScala shouldBe Map("container" -> BucketName, "prefix" -> s"$MyPrefix/avro/")
+      val sourceOffsetMap = sourceRecord.sourceOffset().asScala
+      sourceOffsetMap("path") shouldBe s"$MyPrefix/avro/0"
+      sourceOffsetMap("line") shouldBe "0"
+      sourceOffsetMap("ts").toString.toLong < Instant.now().toEpochMilli shouldBe true
+
+      sourceRecord.topic() shouldBe TopicName
+      sourceRecord.kafkaPartition() shouldBe 3
+      sourceRecord.timestamp() shouldBe 1234567890L
     } finally {
       task.stop()
     }
 
-    //assert the record matches the envelope
-    val sourceRecord = sourceRecords.head
-    sourceRecord.keySchema().`type`() should be(Schema.Type.BYTES)
-    sourceRecord.key() shouldBe null
-
-    sourceRecord.valueSchema().`type`() should be(Schema.Type.BYTES)
-    val value: Array[Byte] = sourceRecord.value().asInstanceOf[Array[Byte]]
-    value shouldBe null
-
-    sourceRecord.headers().asScala.map(h => h.key() -> h.value()).toMap should be(Map("header1" -> "value1",
-                                                                                      "header2" -> 123456789L,
-    ))
-
-    sourceRecord.sourcePartition().asScala shouldBe Map("container" -> BucketName, "prefix" -> s"$MyPrefix/avro/")
-    val sourceOffsetMap = sourceRecord.sourceOffset().asScala
-    sourceOffsetMap("path") shouldBe s"$MyPrefix/avro/0"
-    sourceOffsetMap("line") shouldBe "0"
-    sourceOffsetMap("ts").toString.toLong < Instant.now().toEpochMilli shouldBe true
-
-    sourceRecord.topic() shouldBe TopicName
-    sourceRecord.kafkaPartition() shouldBe 3
-    sourceRecord.timestamp() shouldBe 1234567890L
   }
 }
 
@@ -155,7 +142,8 @@ class S3SourceAvroWithValueAsOptionalArrayMixValuesEnvelopeTest
     with AnyFlatSpecLike
     with Matchers
     with EitherValues
-    with CloudSourceSettingsKeys {
+    with CloudSourceSettingsKeys
+    with TempFileHelper {
 
   def DefaultProps: Map[String, String] = defaultProps + (
     SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
@@ -207,8 +195,7 @@ class S3SourceAvroWithValueAsOptionalArrayMixValuesEnvelopeTest
     metadata.put("offset", 0L)
     envelope.put("metadata", metadata)
 
-    val file = new java.io.File("00001.avro")
-    try {
+    withFile("00001.avro") { file =>
       val outputStream = new java.io.BufferedOutputStream(new java.io.FileOutputStream(file))
       val writer: GenericDatumWriter[Any] = new GenericDatumWriter[Any](EnvelopeSchema)
       val fileWriter: DataFileWriter[Any] =
@@ -219,10 +206,7 @@ class S3SourceAvroWithValueAsOptionalArrayMixValuesEnvelopeTest
       fileWriter.close()
 
       storageInterface.uploadFile(UploadableFile(file), BucketName, s"$MyPrefix/avro/0")
-      ().asRight
-    } finally {
-      file.delete()
-      ()
+        .leftMap(e => new UploadException(e))
     }
 
   }
@@ -239,39 +223,32 @@ class S3SourceAvroWithValueAsOptionalArrayMixValuesEnvelopeTest
 
     task.start(props)
 
-    var sourceRecords: Seq[SourceRecord] = List.empty
     try {
-      eventually {
-        do {
-          sourceRecords = sourceRecords ++ task.poll().asScala
-        } while (sourceRecords.size != 1)
-        task.poll() should be(empty)
-      }
+      val sourceRecords = SourceRecordsLoop.loop(task, 10.seconds.toMillis, 1).value
+      task.poll() should be(empty)
+      val sourceRecord = sourceRecords.head
+      sourceRecord.keySchema().`type`() should be(Schema.Type.BYTES)
+      sourceRecord.key() shouldBe null
+
+      sourceRecord.valueSchema().`type`() should be(Schema.Type.BYTES)
+      val value: Array[Byte] = sourceRecord.value().asInstanceOf[Array[Byte]]
+      value shouldBe "value".getBytes()
+
+      sourceRecord.headers().asScala.map(h => h.key() -> h.value()).toMap should be(Map("header1" -> "value1",
+                                                                                        "header2" -> 123456789L,
+      ))
+
+      sourceRecord.sourcePartition().asScala shouldBe Map("container" -> BucketName, "prefix" -> s"$MyPrefix/avro/")
+      val sourceOffsetMap = sourceRecord.sourceOffset().asScala
+      sourceOffsetMap("path") shouldBe s"$MyPrefix/avro/0"
+      sourceOffsetMap("line") shouldBe "0"
+      sourceOffsetMap("ts").toString.toLong < Instant.now().toEpochMilli shouldBe true
+
+      sourceRecord.topic() shouldBe TopicName
+      sourceRecord.kafkaPartition() shouldBe 3
+      sourceRecord.timestamp() shouldBe 1234567890L
     } finally {
       task.stop()
     }
-
-    //assert the record matches the envelope
-    val sourceRecord = sourceRecords.head
-    sourceRecord.keySchema().`type`() should be(Schema.Type.BYTES)
-    sourceRecord.key() shouldBe null
-
-    sourceRecord.valueSchema().`type`() should be(Schema.Type.BYTES)
-    val value: Array[Byte] = sourceRecord.value().asInstanceOf[Array[Byte]]
-    value shouldBe "value".getBytes()
-
-    sourceRecord.headers().asScala.map(h => h.key() -> h.value()).toMap should be(Map("header1" -> "value1",
-                                                                                      "header2" -> 123456789L,
-    ))
-
-    sourceRecord.sourcePartition().asScala shouldBe Map("container" -> BucketName, "prefix" -> s"$MyPrefix/avro/")
-    val sourceOffsetMap = sourceRecord.sourceOffset().asScala
-    sourceOffsetMap("path") shouldBe s"$MyPrefix/avro/0"
-    sourceOffsetMap("line") shouldBe "0"
-    sourceOffsetMap("ts").toString.toLong < Instant.now().toEpochMilli shouldBe true
-
-    sourceRecord.topic() shouldBe TopicName
-    sourceRecord.kafkaPartition() shouldBe 3
-    sourceRecord.timestamp() shouldBe 1234567890L
   }
 }

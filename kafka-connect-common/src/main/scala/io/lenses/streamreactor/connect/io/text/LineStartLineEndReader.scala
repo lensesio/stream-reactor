@@ -24,11 +24,19 @@ import java.io.InputStreamReader
   * end is found. The start and end lines are included in the record.
   * If the file ends and there is no end, the record is ignored
   *
-  * @param input
-  * @param start
-  * @param end
+  * @param input the input stream
+  * @param start the record is considered to start when a line matching start is found
+  * @param end the record is considered complete when a line matching end is found
+  * @param trim if true, the record is trimmed
+  * @param lastEndLineMissing if true, the record is considered complete when end of file is reached
   */
-class LineStartLineEndReader(input: InputStream, start: String, end: String, trim: Boolean = false) extends LineReader {
+class LineStartLineEndReader(
+  input:              InputStream,
+  start:              String,
+  end:                String,
+  trim:               Boolean = false,
+  lastEndLineMissing: Boolean = false,
+) extends LineReader {
   private val br = new BufferedReader(new InputStreamReader(input))
 
   //Returns the next record or None if there are no more
@@ -60,10 +68,19 @@ class LineStartLineEndReader(input: InputStream, start: String, end: String, tri
       builder.append(line)
       line = br.readLine()
     }
-    Option(line).map { _ =>
-      builder.append(System.lineSeparator())
-      builder.append(end)
-      builder.toString()
+    Option(line) match {
+      case Some(_) =>
+        builder.append(System.lineSeparator())
+        builder.append(end)
+        Some(builder.toString())
+      case None =>
+        if (lastEndLineMissing) {
+          builder.append(System.lineSeparator())
+          builder.append(end)
+          Some(builder.toString())
+        } else {
+          None
+        }
     }
   }
 }

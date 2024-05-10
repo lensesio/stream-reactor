@@ -100,7 +100,20 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
           PropsKeyEnum.ReadEndLine.entryName   -> "",
         ),
       ),
-    ) should be(Some(StartEndLineReadTextMode("SSM", "", false)))
+    ) should be(Some(StartEndLineReadTextMode("SSM", "", false, false)))
+  }
+
+  "ReadTextMode" should "set the end of line missing" in {
+    ReadTextMode(
+      readProps(
+        Map(
+          PropsKeyEnum.ReadTextMode.entryName           -> ReadTextModeEnum.StartEndLine.entryName,
+          PropsKeyEnum.ReadStartLine.entryName          -> "SSM",
+          PropsKeyEnum.ReadEndLine.entryName            -> "",
+          PropsKeyEnum.ReadLastEndLineMissing.entryName -> "true",
+        ),
+      ),
+    ) should be(Some(StartEndLineReadTextMode("SSM", "", false, true)))
   }
 
   "ReadTextMode" should "return start and end line when configured with trim enabled" in {
@@ -113,7 +126,7 @@ class ReadTextModeTestFormatSelection extends AnyFlatSpec with Matchers {
           PropsKeyEnum.ReadTrimLine.entryName  -> "true",
         ),
       ),
-    ) should be(Some(StartEndLineReadTextMode("SSM", "", true)))
+    ) should be(Some(StartEndLineReadTextMode("SSM", "", true, false)))
   }
 
   "ReadTextMode" should "return none when no start or end line is configured" in {

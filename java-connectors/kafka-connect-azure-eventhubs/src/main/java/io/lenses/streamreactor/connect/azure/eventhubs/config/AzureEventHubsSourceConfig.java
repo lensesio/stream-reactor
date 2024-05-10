@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,57 +35,57 @@ public class AzureEventHubsSourceConfig extends BaseConfig implements ConnectorP
 
   public static final String CONNECTION_GROUP = "Connection";
 
-  private static final UnaryOperator<String> CONFIG_NAME_PREFIX_APPENDER = name ->
-      AzureEventHubsConfigConstants.CONNECTOR_WITH_CONSUMER_PREFIX + name;
+  private static final UnaryOperator<String> CONFIG_NAME_PREFIX_APPENDER =
+      name -> AzureEventHubsConfigConstants.CONNECTOR_WITH_CONSUMER_PREFIX + name;
 
   private static final Set<String> EXCLUDED_CONSUMER_PROPERTIES =
       Set.of(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
           ConsumerConfig.GROUP_ID_CONFIG, ConsumerConfig.CLIENT_ID_CONFIG, ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG);
-
 
   @Getter
   static ConfigDef configDefinition;
 
   static {
     ConfigDef kafkaConsumerConfigToExpose = getKafkaConsumerConfigToExpose();
-    configDefinition = new ConfigDef(kafkaConsumerConfigToExpose)
-        .define(AzureEventHubsConfigConstants.CONNECTOR_NAME,
-            Type.STRING,
-            AzureEventHubsConfigConstants.CONNECTOR_NAME_DEFAULT,
-            Importance.HIGH,
-            AzureEventHubsConfigConstants.CONNECTOR_NAME_DOC,
-            CONNECTION_GROUP,
-            1,
-            ConfigDef.Width.LONG,
-            AzureEventHubsConfigConstants.CONNECTOR_NAME
-        ).define(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT,
-            Type.INT,
-            AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT_DEFAULT,
-            Importance.MEDIUM,
-            AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT_DOC,
-            CONNECTION_GROUP,
-            3,
-            ConfigDef.Width.LONG,
-            AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT
-        )
-        .define(AzureEventHubsConfigConstants.CONSUMER_OFFSET,
-            Type.STRING,
-            AzureEventHubsConfigConstants.CONSUMER_OFFSET_DEFAULT,
-            Importance.MEDIUM,
-            AzureEventHubsConfigConstants.CONSUMER_OFFSET_DOC,
-            CONNECTION_GROUP,
-            4,
-            ConfigDef.Width.LONG,
-            AzureEventHubsConfigConstants.CONSUMER_OFFSET
-        ).define(AzureEventHubsConfigConstants.KCQL_CONFIG,
-            Type.STRING,
-            Importance.HIGH,
-            AzureEventHubsConfigConstants.KCQL_DOC,
-            "Mappings",
-            1,
-            ConfigDef.Width.LONG,
-            AzureEventHubsConfigConstants.KCQL_CONFIG
-        );
+    configDefinition =
+        new ConfigDef(kafkaConsumerConfigToExpose)
+            .define(AzureEventHubsConfigConstants.CONNECTOR_NAME,
+                Type.STRING,
+                AzureEventHubsConfigConstants.CONNECTOR_NAME_DEFAULT,
+                Importance.HIGH,
+                AzureEventHubsConfigConstants.CONNECTOR_NAME_DOC,
+                CONNECTION_GROUP,
+                1,
+                ConfigDef.Width.LONG,
+                AzureEventHubsConfigConstants.CONNECTOR_NAME
+            ).define(AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT,
+                Type.INT,
+                AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT_DEFAULT,
+                Importance.MEDIUM,
+                AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT_DOC,
+                CONNECTION_GROUP,
+                3,
+                ConfigDef.Width.LONG,
+                AzureEventHubsConfigConstants.CONSUMER_CLOSE_TIMEOUT
+            )
+            .define(AzureEventHubsConfigConstants.CONSUMER_OFFSET,
+                Type.STRING,
+                AzureEventHubsConfigConstants.CONSUMER_OFFSET_DEFAULT,
+                Importance.MEDIUM,
+                AzureEventHubsConfigConstants.CONSUMER_OFFSET_DOC,
+                CONNECTION_GROUP,
+                4,
+                ConfigDef.Width.LONG,
+                AzureEventHubsConfigConstants.CONSUMER_OFFSET
+            ).define(AzureEventHubsConfigConstants.KCQL_CONFIG,
+                Type.STRING,
+                Importance.HIGH,
+                AzureEventHubsConfigConstants.KCQL_DOC,
+                "Mappings",
+                1,
+                ConfigDef.Width.LONG,
+                AzureEventHubsConfigConstants.KCQL_CONFIG
+            );
   }
 
   public AzureEventHubsSourceConfig(Map<?, ?> properties) {

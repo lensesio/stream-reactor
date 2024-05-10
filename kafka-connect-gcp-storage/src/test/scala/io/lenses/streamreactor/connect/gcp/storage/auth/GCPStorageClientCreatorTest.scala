@@ -15,13 +15,15 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.auth
 
-import cats.implicits.catsSyntaxOptionId
 import com.google.cloud.TransportOptions
 import com.google.cloud.http.HttpTransportOptions
-import io.lenses.streamreactor.connect.cloud.common.config.RetryConfig
-import io.lenses.streamreactor.connect.gcp.storage.config.AuthMode
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConnectionConfig
-import io.lenses.streamreactor.connect.gcp.storage.config.HttpTimeoutConfig
+import io.lenses.streamreactor.common.config.base.RetryConfig
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.CredentialsAuthMode
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.DefaultAuthMode
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.FileAuthMode
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode
+import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
+import io.lenses.streamreactor.connect.gcp.common.auth.HttpTimeoutConfig
 import org.apache.commons.io.IOUtils
 import org.apache.kafka.common.config.types.Password
 import org.scalatest.EitherValues
@@ -36,15 +38,14 @@ class GCPStorageClientCreatorTest extends AnyFunSuite with Matchers with EitherV
 
   private val jsonCredsUrl: URL = getClass.getResource("/test-gcp-credentials.json")
 
-  private val defaultConfig = GCPConnectionConfig(
-    host           = Some("custom-host"),
-    projectId      = Some("project-id"),
-    quotaProjectId = Some("quota-project-id"),
-    authMode       = AuthMode.None,
-  )
+  private val defaultConfigBuilder = GCPConnectionConfig.builder()
+    .host("custom-host")
+    .projectId("project-id")
+    .quotaProjectId("quota-project-id")
+    .authMode(new NoAuthMode());
 
   test("should provide specified base options") {
-    val config = defaultConfig.copy(authMode = AuthMode.None)
+    val config = defaultConfigBuilder.build()
 
     val storageEither = GCPStorageClientCreator.make(config)
 
@@ -55,7 +56,7 @@ class GCPStorageClientCreatorTest extends AnyFunSuite with Matchers with EitherV
   }
 
   test("should handle AuthMode.None") {
-    val config = defaultConfig.copy(authMode = AuthMode.None)
+    val config = defaultConfigBuilder.build()
 
     GCPStorageClientCreator.make(config).value.getOptions.getCredentials.getClass.getSimpleName should be(
       "NoCredentials",
@@ -63,7 +64,7 @@ class GCPStorageClientCreatorTest extends AnyFunSuite with Matchers with EitherV
   }
 
   test("should handle AuthMode.Default") {
-    val config = defaultConfig.copy(authMode = AuthMode.Default)
+    val config = defaultConfigBuilder.authMode(new DefaultAuthMode()).build()
 
     // we probably don't have GCP credentials configured so we would expect this to fail.
     GCPStorageClientCreator.make(config).swap.value.getMessage should startWith(
@@ -73,7 +74,7 @@ class GCPStorageClientCreatorTest extends AnyFunSuite with Matchers with EitherV
 
   test("should handle AuthMode.Credentials") {
     val testCreds = IOUtils.toString(jsonCredsUrl, Charset.defaultCharset())
-    val config    = defaultConfig.copy(authMode = AuthMode.Credentials(new Password(testCreds)))
+    val config    = defaultConfigBuilder.authMode(new CredentialsAuthMode(new Password(testCreds))).build()
 
     val storageEither = GCPStorageClientCreator.make(config)
 
@@ -83,7 +84,7 @@ class GCPStorageClientCreatorTest extends AnyFunSuite with Matchers with EitherV
 
   test("should handle AuthMode.File") {
     val filePath = jsonCredsUrl.getPath
-    val config   = defaultConfig.copy(authMode = AuthMode.File(filePath))
+    val config   = defaultConfigBuilder.authMode(new FileAuthMode(filePath)).build()
 
     val storageEither = GCPStorageClientCreator.make(config)
 
@@ -93,9 +94,8 @@ class GCPStorageClientCreatorTest extends AnyFunSuite with Matchers with EitherV
 
   test("should handle http retry config") {
 
-    val config = defaultConfig.copy(
-      httpRetryConfig = RetryConfig(100, 500),
-    )
+    val config = defaultConfigBuilder
+      .httpRetryConfig(new RetryConfig(100, 500)).build()
 
     val retrySettings = GCPStorageClientCreator.make(config).value.getOptions.getRetrySettings
     retrySettings.getMaxAttempts should be(100)
@@ -105,7 +105,7 @@ class GCPStorageClientCreatorTest extends AnyFunSuite with Matchers with EitherV
 
   test("should use http by default") {
 
-    val config = defaultConfig
+    val config = defaultConfigBuilder.build()
 
     val transportOpts: TransportOptions = GCPStorageClientCreator.make(config).value.getOptions.getTransportOptions
     transportOpts match {
@@ -116,9 +116,9 @@ class GCPStorageClientCreatorTest extends AnyFunSuite with Matchers with EitherV
 
   test("should handle http timeout config") {
 
-    val config = defaultConfig.copy(
-      timeouts = HttpTimeoutConfig(250L.some, 800L.some),
-    )
+    val config = defaultConfigBuilder.timeouts(
+      new HttpTimeoutConfig(250L, 800L),
+    ).build()
 
     val transportOpts: TransportOptions = GCPStorageClientCreator.make(config).value.getOptions.getTransportOptions
     transportOpts match {

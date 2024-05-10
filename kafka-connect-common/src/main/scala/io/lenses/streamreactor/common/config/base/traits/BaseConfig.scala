@@ -20,7 +20,7 @@ import org.apache.kafka.common.config.ConfigDef
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-abstract class BaseConfig(connectorPrefixStr: String, confDef: ConfigDef, props: Map[String, String])
+abstract class BaseConfig(connectorPrefixStr: String, confDef: ConfigDef, props: Map[String, AnyRef])
     extends AbstractConfig(confDef, props.asJava) {
   val connectorPrefix: String = connectorPrefixStr
 }

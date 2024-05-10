@@ -16,10 +16,9 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import cats.implicits.catsSyntaxOptionId
-import io.lenses.streamreactor.common.errors.ThrowErrorPolicy
+import io.lenses.streamreactor.common.config.base.RetryConfig
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3ConsumerGroupsSinkConfig
-import io.lenses.streamreactor.connect.cloud.common.config.RetryConfig
 import io.lenses.streamreactor.connect.cloud.common.consumers.CloudObjectKey
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -41,16 +40,14 @@ class S3ConsumerGroupsSinkConfigTest extends AnyFunSuite with Matchers {
         value should be(
           S3ConsumerGroupsSinkConfig(
             CloudObjectKey("bucket", "a/b/c".some),
-            S3ConnectionConfig(
+            new S3ConnectionConfig(
               Some("eu-west-1"),
               Some("access"),
               Some("secret"),
               AuthMode.Credentials,
               Some("endpoint"),
               false,
-              ThrowErrorPolicy(),
-              RetryConfig(20, 60000),
-              RetryConfig(5, 50),
+              new RetryConfig(5, 50),
               HttpTimeoutConfig(Some(60000), Some(60000)),
               None,
             ),
@@ -82,9 +79,7 @@ class S3ConsumerGroupsSinkConfigTest extends AnyFunSuite with Matchers {
               AuthMode.Credentials,
               Some("endpoint"),
               false,
-              ThrowErrorPolicy(),
-              RetryConfig(20, 60000),
-              RetryConfig(5, 50),
+              new RetryConfig(5, 50),
               HttpTimeoutConfig(Some(60000), Some(60000)),
               None,
             ),

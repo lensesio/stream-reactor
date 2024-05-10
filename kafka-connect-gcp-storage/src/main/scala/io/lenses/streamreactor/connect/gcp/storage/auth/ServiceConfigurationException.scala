@@ -13,5 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.cloud.common.config
-case class RetryConfig(numberOfRetries: Int, errorRetryInterval: Long)
+package io.lenses.streamreactor.connect.gcp.storage.auth
+
+import org.apache.kafka.common.config.ConfigException
+
+class ServiceConfigurationException(message: String) extends ConfigException(message) {}

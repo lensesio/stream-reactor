@@ -7,11 +7,14 @@ import sbt.*
 import sbt.Project.projectToLocalProject
 
 import java.io.File
+import scala.sys.process._
 
 ThisBuild / scalaVersion := Dependencies.scalaVersion
 
 lazy val subProjects: Seq[Project] = Seq(
   `query-language`,
+  `java-common`,
+  `gcp-common`,
   common,
   `sql-common`,
   `cloud-common`,
@@ -58,6 +61,34 @@ lazy val `query-language` = (project in file("java-connectors/kafka-connect-quer
   .configureTests(baseTestDeps)
   .configureAntlr()
 
+lazy val `java-common` = (project in file("java-connectors/kafka-connect-common"))
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-java-common",
+        description := "Common components from java",
+        libraryDependencies ++= javaCommonDeps,
+        publish / skip := true,
+      ),
+  )
+  .configureAssembly(false)
+  .configureTests(javaCommonTestDeps)
+
+lazy val `gcp-common` = (project in file("java-connectors/kafka-connect-gcp-common"))
+  .dependsOn(`java-common`)
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-gcp-common",
+        description := "GCP Commons Module",
+        libraryDependencies ++= kafkaConnectGcpCommonDeps,
+        publish / skip := true,
+      ),
+  )
+  .configureAssembly(true)
+  .configureTests(javaCommonTestDeps)
+  .configureAntlr()
+
 lazy val `sql-common` = (project in file("kafka-connect-sql-common"))
   .dependsOn(`query-language`)
   .dependsOn(`common`)
@@ -75,6 +106,7 @@ lazy val `sql-common` = (project in file("kafka-connect-sql-common"))
 
 lazy val common = (project in file("kafka-connect-common"))
   .dependsOn(`query-language`)
+  .dependsOn(`java-common`)
   .settings(
     settings ++
       Seq(
@@ -155,6 +187,7 @@ lazy val `azure-datalake` = (project in file("kafka-connect-azure-datalake"))
 
 lazy val `gcp-storage` = (project in file("kafka-connect-gcp-storage"))
   .dependsOn(common)
+  .dependsOn(`gcp-common`)
   .dependsOn(`cloud-common` % "compile->compile;test->test;it->it")
   .dependsOn(`test-common` % "test->compile")
   .settings(
@@ -442,10 +475,25 @@ addCommandAlias(
   "validateAll",
   "headerCheck;test:headerCheck;it:headerCheck;fun:headerCheck;scalafmtCheckAll;test-common/scalafmtCheck;test-common/headerCheck",
 )
+
+lazy val gradleSpotlessApply = taskKey[Unit]("Run 'gradlew spotlessApply' via external process")
+gradleSpotlessApply := {
+  // Specify the desired working directory for the external process
+  val targetDirectory = baseDirectory.value / "java-connectors"
+
+  // Execute 'gradle spotlessApply' in the specified directory
+  val exitCode = Process("gradlew spotlessApply", targetDirectory).!
+
+  if (exitCode != 0) {
+    throw new RuntimeException("gradlew spotlessApply command failed")
+  }
+}
+
 addCommandAlias(
   "formatAll",
-  "headerCreateAll;scalafmtAll;scalafmtSbt;test-common/scalafmt;test-common/headerCreateAll",
+  ";headerCreateAll;scalafmtAll;scalafmtSbt;test-common/scalafmt;test-common/headerCreateAll;gradleSpotlessApply",
 )
+
 addCommandAlias("fullTest", ";test;it:test;fun:test")
 addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")
 
@@ -459,7 +507,8 @@ val generateDepCheckModulesList = taskKey[Seq[File]]("generateDepCheckModulesLis
 Compile / generateModulesList :=
   new FileWriter(subProjects).generate((Compile / resourceManaged).value / "modules.txt")
 Compile / generateDepCheckModulesList :=
-  new FileWriter(subProjects.tail).generate((Compile / resourceManaged).value / "depcheck-modules.txt")
+  new FileWriter(subProjects.filter(sp => !sp.base.asPath.startsWith("java-connectors/")))
+    .generate((Compile / resourceManaged).value / "depcheck-modules.txt")
 Compile / generateItModulesList :=
   new FileWriter(
     subProjects.filter(p => p.containsDir("src/it")),

@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -46,40 +46,41 @@ class BlockingQueueProducerProviderTest {
   void setup() {
     logWatcher = new ListAppender<>();
     logWatcher.start();
-    ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(BlockingQueueProducerProvider.class)).addAppender(logWatcher);
+    ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(BlockingQueueProducerProvider.class)).addAppender(
+        logWatcher);
   }
 
   @AfterEach
   void teardown() {
-    ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(BlockingQueueProducerProvider.class)).detachAndStopAllAppenders();
+    ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(BlockingQueueProducerProvider.class))
+        .detachAndStopAllAppenders();
   }
 
   @Test
-  void whenConstructorInvokedWithoutOffsetParameterThenConfigExceptionIsThrown(){
+  void whenConstructorInvokedWithoutOffsetParameterThenConfigExceptionIsThrown() {
     //given
     AzureEventHubsSourceConfig azureConfigMock = mock(AzureEventHubsSourceConfig.class);
     TopicPartitionOffsetProvider mockedOffsetProvider = mock(TopicPartitionOffsetProvider.class);
 
-
     //when
-    BlockingQueueProducerProvider testObj = new BlockingQueueProducerProvider(
-        mockedOffsetProvider);
+    BlockingQueueProducerProvider testObj =
+        new BlockingQueueProducerProvider(
+            mockedOffsetProvider);
     ConfigException configException;
-    try(MockedConstruction<KafkaConsumer> ignored = Mockito.mockConstruction(KafkaConsumer.class)){
+    try (MockedConstruction<KafkaConsumer> ignored = Mockito.mockConstruction(KafkaConsumer.class)) {
       configException = assertThrows(ConfigException.class, () -> {
         testObj.createProducer(azureConfigMock, new ArrayBlockingQueue<>(1),
             new HashMap<>());
       });
     }
 
-
     //then
     assertEquals("Invalid value null for configuration connect.eventhubs.source.default.offset: "
-            + "allowed values are: earliest/latest", configException.getMessage());
+        + "allowed values are: earliest/latest", configException.getMessage());
   }
 
   @Test
-  void whenConstructorInvokedWithParametersThenMockKafkaConsumerShouldBeCreatedAndLogged(){
+  void whenConstructorInvokedWithParametersThenMockKafkaConsumerShouldBeCreatedAndLogged() {
     //given
     String earliestOffset = "earliest";
     TopicPartitionOffsetProvider mockedOffsetProvider = mock(TopicPartitionOffsetProvider.class);
@@ -91,12 +92,14 @@ class BlockingQueueProducerProviderTest {
         .thenReturn("insert into output select * from input");
 
     //when
-    BlockingQueueProducerProvider testObj = new BlockingQueueProducerProvider(
-        mockedOffsetProvider);
+    BlockingQueueProducerProvider testObj =
+        new BlockingQueueProducerProvider(
+            mockedOffsetProvider);
     KafkaByteBlockingQueuedProducer consumer;
-    try(MockedConstruction<KafkaConsumer> ignored = Mockito.mockConstruction(KafkaConsumer.class)){
-      consumer = testObj.createProducer(azureConfigMock, new ArrayBlockingQueue<>(1),
-          new HashMap<>());
+    try (MockedConstruction<KafkaConsumer> ignored = Mockito.mockConstruction(KafkaConsumer.class)) {
+      consumer =
+          testObj.createProducer(azureConfigMock, new ArrayBlockingQueue<>(1),
+              new HashMap<>());
     }
 
     //then

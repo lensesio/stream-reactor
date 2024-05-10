@@ -234,5 +234,58 @@ class LineStartLineEndReaderTest extends AnyFunSuite with Matchers {
         |x""".stripMargin,
     )
   }
+
+  test("when lastEndLineMissing=true, return the record if the end line is missing") {
+    val reader = new LineStartLineEndReader(createInputStream(
+                                              """
+                                                |start
+                                                |a
+                                                |b
+                                                |c
+                                                |
+                                                |start
+                                                |x""".stripMargin,
+                                            ),
+                                            "start",
+                                            "",
+                                            trim               = true,
+                                            lastEndLineMissing = true,
+    )
+    reader.next() shouldBe Some(
+      """start
+        |a
+        |b
+        |c""".stripMargin,
+    )
+    reader.next() shouldBe Some(
+      """start
+        |x""".stripMargin,
+    )
+  }
+
+  test("when lastEndLineMissing=true, return the record if the end line is missing all file is a message") {
+    val reader = new LineStartLineEndReader(createInputStream(
+                                              """
+                                                |start
+                                                |a
+                                                |b
+                                                |c
+                                                |start
+                                                |x""".stripMargin,
+                                            ),
+                                            "start",
+                                            "",
+                                            trim               = true,
+                                            lastEndLineMissing = true,
+    )
+    reader.next() shouldBe Some(
+      """start
+        |a
+        |b
+        |c
+        |start
+        |x""".stripMargin,
+    )
+  }
   private def createInputStream(data: String): InputStream = new ByteArrayInputStream(data.getBytes)
 }

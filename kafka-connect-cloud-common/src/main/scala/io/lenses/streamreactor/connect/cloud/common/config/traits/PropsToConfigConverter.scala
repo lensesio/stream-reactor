@@ -42,7 +42,7 @@ trait PropsToConfigConverter[C <: CloudConfig] {
     */
   def fromProps(
     connectorTaskId: ConnectorTaskId,
-    props:           Map[String, String],
+    props:           Map[String, AnyRef],
   )(
     implicit
     cloudLocationValidator: CloudLocationValidator,

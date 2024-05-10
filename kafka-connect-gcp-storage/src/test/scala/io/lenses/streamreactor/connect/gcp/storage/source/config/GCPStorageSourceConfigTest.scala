@@ -17,15 +17,20 @@ package io.lenses.streamreactor.connect.gcp.storage.source.config
 
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.CredentialsAuthMode
 import io.lenses.streamreactor.connect.gcp.storage.model.location.GCPStorageLocationValidator
 import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.common.config.types.Password
 import org.scalatest.EitherValues
+import org.scalatest.OptionValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
 
-class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues {
+import scala.jdk.OptionConverters.RichOptional
 
-  val taskId = ConnectorTaskId("name", 1, 1)
+class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues with OptionValues {
+
+  private val taskId = ConnectorTaskId("name", 1, 1)
   implicit val validator: CloudLocationValidator = GCPStorageLocationValidator
   test("fromProps should reject configuration when no kcql string is provided") {
     val props  = Map[String, String]()
@@ -71,12 +76,25 @@ class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues {
   }
 
   test("apply should return Right with GCPStorageSourceConfig when valid properties are provided") {
+    val password = new Password("password")
+    val props = Map[String, AnyRef](
+      "connect.gcpstorage.kcql"            -> "select * from myBucket.azure insert into myTopic",
+      "connect.gcpstorage.gcp.auth.mode"   -> "credentials",
+      "connect.gcpstorage.gcp.credentials" -> password,
+    )
+    val storageConfig = GCPStorageSourceConfig.fromProps(taskId, props)
+    storageConfig.value.connectionConfig.getAuthMode.toScala.value should be(new CredentialsAuthMode(password))
+  }
+
+  test("apply should return Left with ConnectException when password property is missed") {
     val props = Map[String, String](
       "connect.gcpstorage.kcql"          -> "select * from myBucket.azure insert into myTopic",
       "connect.gcpstorage.gcp.auth.mode" -> "credentials",
     )
-    val result = GCPStorageSourceConfig.fromProps(taskId, props)
-    result.isRight shouldBe true
+    val ex = GCPStorageSourceConfig.fromProps(taskId, props).left.value
+    ex should be(a[ConfigException])
+    ex.getMessage should be("No `connect.gcpstorage.gcp.credentials` specified in configuration")
+
   }
 
   private def assertEitherException(
@@ -87,6 +105,7 @@ class GCPStorageSourceConfigTest extends AnyFunSuite with EitherValues {
     result.left.value match {
       case ex if expectedExceptionClass == ex.getClass.getName =>
         ex.getMessage should be(expectedMessage)
-      case ex => fail(s"Unexpected exception, was a ${ex.getClass.getName}")
+      case ex =>
+        fail(s"Unexpected exception, was a ${ex.getClass.getName} with stacky ${ex.printStackTrace()}")
     }
 }

@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.gcp.storage.sink
 
 import com.google.cloud.storage.Storage
 import io.lenses.streamreactor.connect.cloud.common.sink.CoreSinkTaskTestCases
+import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.sink.config.GCPStorageSinkConfig
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageFileMetadata
 import io.lenses.streamreactor.connect.gcp.storage.storage.GCPStorageStorageInterface
@@ -28,6 +29,7 @@ class GCPStorageSinkTaskTest
       GCPStorageFileMetadata,
       GCPStorageStorageInterface,
       GCPStorageSinkConfig,
+      GCPConnectionConfig,
       Storage,
       GCPStorageSinkTask,
     ](
