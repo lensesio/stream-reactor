@@ -476,16 +476,16 @@ addCommandAlias(
   "headerCheck;test:headerCheck;it:headerCheck;fun:headerCheck;scalafmtCheckAll;test-common/scalafmtCheck;test-common/headerCheck",
 )
 
-lazy val gradleSpotlessApply = taskKey[Unit]("Run 'gradle spotlessApply' via external process")
+lazy val gradleSpotlessApply = taskKey[Unit]("Run 'gradlew spotlessApply' via external process")
 gradleSpotlessApply := {
   // Specify the desired working directory for the external process
   val targetDirectory = baseDirectory.value / "java-connectors"
 
   // Execute 'gradle spotlessApply' in the specified directory
-  val exitCode = Process("gradle spotlessApply", targetDirectory).!
+  val exitCode = Process("gradlew spotlessApply", targetDirectory).!
 
   if (exitCode != 0) {
-    throw new RuntimeException("gradle spotlessApply command failed")
+    throw new RuntimeException("gradlew spotlessApply command failed")
   }
 }
 
