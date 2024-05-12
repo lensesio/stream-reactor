@@ -72,17 +72,7 @@ class AwsS3StorageInterface(
       val objects = listObjectsV2Response
         .contents()
         .asScala
-        .filterNot { o =>
-          val filteredOut = o.storageClass() == ObjectStorageClass.GLACIER ||
-            o.storageClass() == ObjectStorageClass.DEEP_ARCHIVE ||
-            o.storageClass() == ObjectStorageClass.GLACIER_IR
-          if (filteredOut) {
-            logger.info(
-              s"[${connectorTaskId.show}] Skipping object ${o.key()} with storage class [${o.storageClass()}].",
-            )
-          }
-          filteredOut
-        }
+        .filterNot(AwsS3StorageFilter.filterOut)
         .map(o => S3FileMetadata(o.key(), o.lastModified()))
 
       processAsKey(
@@ -128,9 +118,11 @@ class AwsS3StorageInterface(
       processFn(
         bucket,
         prefix,
-        pagReq.iterator().asScala.flatMap(_.contents().asScala.toSeq.map(o =>
-          S3FileMetadata(o.key(), o.lastModified()),
-        )).toSeq,
+        pagReq.iterator().asScala.flatMap(
+          _.contents().asScala.filterNot(AwsS3StorageFilter.filterOut).toSeq.map(o =>
+            S3FileMetadata(o.key(), o.lastModified()),
+          ),
+        ).toSeq,
       )
     }.toEither.leftMap {
       ex: Throwable => FileListError(ex, bucket, prefix)
