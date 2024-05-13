@@ -84,7 +84,7 @@ class S3SinkTaskAvroEnvelopeTest
     record
   }
 
-  /*"S3SinkTask" should "write to avro format" in {
+  "S3SinkTask" should "write to avro format" in {
 
     testWritingAvro(
       (
@@ -93,7 +93,7 @@ class S3SinkTaskAvroEnvelopeTest
       ).asJava,
       "streamReactorBackups/myTopic/000000000001/000000000003_10001_10003.avro",
     )
-  }*/
+  }
 
   "S3SinkTask" should "write envelope when * is used as KCQL source" in {
 
