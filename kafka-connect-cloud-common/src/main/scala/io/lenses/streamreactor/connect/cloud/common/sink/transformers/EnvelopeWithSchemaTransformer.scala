@@ -32,13 +32,7 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
   */
 case class EnvelopeWithSchemaTransformer(topic: Topic, settings: DataStorageSettings) extends Transformer {
   def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] =
-    if (message.topic != topic) {
-      Left(
-        new RuntimeException(
-          s"Invalid state reached. Envelope transformer topic [${topic.value}] does not match incoming message topic [${message.topic.value}].",
-        ),
-      )
-    } else if (settings.hasEnvelope) {
+    if (settings.hasEnvelope) {
       envelope(message, settings).asRight
     } else {
       message.asRight

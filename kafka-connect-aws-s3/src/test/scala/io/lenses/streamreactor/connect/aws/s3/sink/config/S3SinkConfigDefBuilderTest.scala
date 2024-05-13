@@ -229,6 +229,23 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     }
   }
 
+  "S3SinkConfigDefBuilder" should "support selecting from *" in {
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from `*` STOREAS `JSON`  PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${FlushCount.entryName}'=1)",
+    )
+
+    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
+      case Left(value) => fail(value.toString)
+      case Right(value) =>
+        value.map(_.dataStorage) should be(List(DataStorageSettings(envelope = true,
+                                                                    key      = true,
+                                                                    value    = true,
+                                                                    metadata = true,
+                                                                    headers  = true,
+        )))
+    }
+  }
+
   "S3SinkConfigDefBuilder" should "error when old BYTES settings used" in {
     val props = Map(
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES_VALUEONLY` PROPERTIES('${FlushCount.entryName}'=1)",

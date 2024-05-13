@@ -15,24 +15,14 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.transformers
 
-import cats.implicits.catsSyntaxEitherId
-import cats.implicits.catsSyntaxOptionId
-import cats.implicits.toTraverseOps
+import cats.implicits.{catsSyntaxEitherId, catsSyntaxOptionId, toTraverseOps}
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.ArraySinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.{ArraySinkData, MessageDetail, SinkData, StructSinkData}
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.SchemaAndValue
-import org.apache.kafka.connect.data.SchemaBuilder
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.{Schema, SchemaAndValue, SchemaBuilder, Struct}
 
 import java.nio.ByteBuffer
-import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsScala, SeqHasAsJava}
 
 /**
   * When JSON converter is used the Connect framework does not provide the schema  for payloads like Array[?] of Map[String, ?].
@@ -41,27 +31,19 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
   */
 class AddConnectSchemaTransformer(topic: Topic, settings: DataStorageSettings) extends Transformer {
   override def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] =
-    if (topic != message.topic) {
-      Left(
-        new RuntimeException(
-          s"Invalid state reached. Schema enrichment transformer topic [${topic.value}] does not match incoming message topic [${message.topic.value}].",
-        ),
-      )
-    } else {
-      if (settings.hasEnvelope && (settings.key || settings.value)) {
-        for {
-          key <- if (settings.key) AddConnectSchemaTransformer.qualifyWithSchema(message.key) else message.key.asRight
-          value <- if (settings.value) AddConnectSchemaTransformer.qualifyWithSchema(message.value)
-          else message.value.asRight
-        } yield {
-          if ((key eq message.key) && (value eq message.value)) message
-          else
-            message.copy(key = key, value = value)
-        }
-
-      } else {
-        message.asRight
+    if (settings.hasEnvelope && (settings.key || settings.value)) {
+      for {
+        key <- if (settings.key) AddConnectSchemaTransformer.qualifyWithSchema(message.key) else message.key.asRight
+        value <- if (settings.value) AddConnectSchemaTransformer.qualifyWithSchema(message.value)
+        else message.value.asRight
+      } yield {
+        if ((key eq message.key) && (value eq message.value)) message
+        else
+          message.copy(key = key, value = value)
       }
+
+    } else {
+      message.asRight
     }
 
 }
