@@ -25,8 +25,10 @@ import software.amazon.awssdk.services.s3.model.S3Object
   */
 object AwsS3StorageFilter {
 
-  def filterOut(o: S3Object) =
-    o.storageClass() == ObjectStorageClass.GLACIER ||
-      o.storageClass() == ObjectStorageClass.DEEP_ARCHIVE ||
-      o.storageClass() == ObjectStorageClass.GLACIER_IR
+  private val archiveStorageClasses = Set(
+    ObjectStorageClass.GLACIER,
+    ObjectStorageClass.DEEP_ARCHIVE,
+    ObjectStorageClass.GLACIER_IR,
+  )
+  def filterOut(o: S3Object): Boolean = archiveStorageClasses.contains(o.storageClass)
 }
