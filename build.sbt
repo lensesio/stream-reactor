@@ -481,8 +481,8 @@ gradleSpotlessApply := {
   // Specify the desired working directory for the external process
   val targetDirectory = baseDirectory.value / "java-connectors"
 
-  // Execute 'gradle spotlessApply' in the specified directory
-  val exitCode = Process("gradlew spotlessApply", targetDirectory).!
+  // Execute './gradle spotlessApply' in the specified directory
+  val exitCode = Process("./gradlew spotlessApply", targetDirectory).!
 
   if (exitCode != 0) {
     throw new RuntimeException("gradlew spotlessApply command failed")
