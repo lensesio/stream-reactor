@@ -32,7 +32,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
   */
 case class SchemalessEnvelopeTransformer(topic: Topic, settings: DataStorageSettings) extends Transformer {
   def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] =
-      if (settings.hasEnvelope) {
+    if (settings.hasEnvelope) {
       SchemalessEnvelopeTransformer.envelope(message, settings).asRight
     } else {
       message.asRight

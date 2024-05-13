@@ -15,14 +15,24 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.transformers
 
-import cats.implicits.{catsSyntaxEitherId, catsSyntaxOptionId, toTraverseOps}
+import cats.implicits.catsSyntaxEitherId
+import cats.implicits.catsSyntaxOptionId
+import cats.implicits.toTraverseOps
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.{ArraySinkData, MessageDetail, SinkData, StructSinkData}
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.ArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
-import org.apache.kafka.connect.data.{Schema, SchemaAndValue, SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaAndValue
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 
 import java.nio.ByteBuffer
-import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsScala, SeqHasAsJava}
+import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 /**
   * When JSON converter is used the Connect framework does not provide the schema  for payloads like Array[?] of Map[String, ?].
