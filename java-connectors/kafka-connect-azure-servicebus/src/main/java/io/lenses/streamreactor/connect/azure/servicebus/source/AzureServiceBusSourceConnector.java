@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,6 +28,9 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.source.SourceConnector;
 
+/**
+ * Implementation of {@link SourceConnector} for Microsoft Azure EventHubs.
+ */
 @Slf4j
 public class AzureServiceBusSourceConnector extends SourceConnector {
 
@@ -53,7 +56,6 @@ public class AzureServiceBusSourceConnector extends SourceConnector {
 
   @Override
   public List<Map<String, String>> taskConfigs(int maxTasks) {
-    //TODO: think if it makes sense here (probably not) for topics and queues
     log.info("Setting task configurations for {} workers.", maxTasks);
     List<Map<String, String>> taskConfigs = new ArrayList<>(maxTasks);
 

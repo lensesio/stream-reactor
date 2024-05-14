@@ -8,7 +8,7 @@ plugins {
 allprojects {
 
     group = "io.lenses.streamreactor"
-    version = "7.0.1-SNAPSHOT"
+    version = "7.2.1-SNAPSHOT"
     description = "stream-reactor"
 
     apply plugin: 'java'
@@ -23,7 +23,7 @@ allprojects {
 
     ext {
         //DEPENDENCY VERSIONS
-        lombokVersion = '1.18.30'
+        lombokVersion = '1.18.32'
         kafkaVersion = '3.7.0'
         logbackVersion = '1.4.14'
         jUnitVersion = '5.9.1'

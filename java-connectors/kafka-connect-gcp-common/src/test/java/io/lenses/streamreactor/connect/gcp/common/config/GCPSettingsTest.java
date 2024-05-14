@@ -15,18 +15,16 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.common.config.source.MapConfigSource;
-import lombok.val;
+import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import java.util.Map;
-import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class GCPSettingsTest {
 
@@ -44,13 +42,13 @@ class GCPSettingsTest {
   @ParameterizedTest(name = "{0}")
   @MethodSource("provideRetryConfigData")
   void testHttpRetryConfig(String testName, Object retries, Object interval, RetryConfig expected) {
-    val configMap =
+    final var configMap =
         new MapConfigSource(
             Map.of(
                 "connect.gcpstorage.http.max.retries", retries,
                 "connect.gcpstorage.http.retry.interval", interval));
 
-    val optionalRetryConfig = gcpSettings.parseFromConfig(configMap).getHttpRetryConfig();
+    final var optionalRetryConfig = gcpSettings.parseFromConfig(configMap).getHttpRetryConfig();
     assertThat(optionalRetryConfig)
         .isPresent()
         .contains(expected);
