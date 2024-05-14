@@ -43,7 +43,7 @@ case class TopicsTransformers(transformers: Map[Topic, Transformer]) extends Tra
   def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] =
     transformers.get(message.topic)
     //check to see if there is a `*`
-      .orElse(transformers.get(Topic("*")))
+      .orElse(transformers.get(Topic.All))
       .fold(message.asRight[RuntimeException])(_.transform(message))
 }
 
