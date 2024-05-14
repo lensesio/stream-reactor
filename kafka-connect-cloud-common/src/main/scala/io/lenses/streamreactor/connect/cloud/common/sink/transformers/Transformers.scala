@@ -38,19 +38,13 @@ case class SequenceTransformer(transformers: Transformer*) extends Transformer {
 
 }
 
-case class TopicsTransformers(transformers: Map[Topic, Transformer]) extends Transformer with StrictLogging {
-  def get(topic: Topic): Option[Transformer] = transformers.get(topic)
-  def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] = {
-    logger.info(
-      s"""
-         |***Transformers map: ${transformers.keySet.mkString(",")}
-         |""".stripMargin,
-    )
+case class TopicsTransformers(transformers: Map[Topic, Transformer]) extends Transformer {
+  def get(topic:         Topic): Option[Transformer] = transformers.get(topic)
+  def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] =
     transformers.get(message.topic)
     //check to see if there is a `*`
       .orElse(transformers.get(Topic("*")))
       .fold(message.asRight[RuntimeException])(_.transform(message))
-  }
 }
 
 object TopicsTransformers extends StrictLogging {
