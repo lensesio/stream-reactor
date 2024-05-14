@@ -84,8 +84,8 @@ class AzureServiceBusSourceConnectorTest {
 
     //then
     assertThat(taskConfigs).hasSize(2);
-    assertThat(taskConfigs.getFirst()).isEqualTo(validProperties);
-    assertThat(taskConfigs.getLast()).isEqualTo(validProperties);
+    assertThat(taskConfigs.get(0)).isEqualTo(validProperties);
+    assertThat(taskConfigs.get(1)).isEqualTo(validProperties);
   }
 
   @Test
