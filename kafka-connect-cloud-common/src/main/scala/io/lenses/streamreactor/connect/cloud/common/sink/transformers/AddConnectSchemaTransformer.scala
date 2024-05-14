@@ -41,19 +41,27 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
   */
 class AddConnectSchemaTransformer(topic: Topic, settings: DataStorageSettings) extends Transformer {
   override def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] =
-    if (settings.hasEnvelope && (settings.key || settings.value)) {
-      for {
-        key <- if (settings.key) AddConnectSchemaTransformer.qualifyWithSchema(message.key) else message.key.asRight
-        value <- if (settings.value) AddConnectSchemaTransformer.qualifyWithSchema(message.value)
-        else message.value.asRight
-      } yield {
-        if ((key eq message.key) && (value eq message.value)) message
-        else
-          message.copy(key = key, value = value)
-      }
-
+    if (topic != message.topic && topic != Topic.All) {
+      Left(
+        new RuntimeException(
+          s"Invalid state reached. Schema enrichment transformer topic [${topic.value}] does not match incoming message topic [${message.topic.value}].",
+        ),
+      )
     } else {
-      message.asRight
+      if (settings.hasEnvelope && (settings.key || settings.value)) {
+        for {
+          key <- if (settings.key) AddConnectSchemaTransformer.qualifyWithSchema(message.key) else message.key.asRight
+          value <- if (settings.value) AddConnectSchemaTransformer.qualifyWithSchema(message.value)
+          else message.value.asRight
+        } yield {
+          if ((key eq message.key) && (value eq message.value)) message
+          else
+            message.copy(key = key, value = value)
+        }
+
+      } else {
+        message.asRight
+      }
     }
 
 }
