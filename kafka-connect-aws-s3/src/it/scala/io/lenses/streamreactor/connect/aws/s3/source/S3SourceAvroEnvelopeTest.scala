@@ -7,7 +7,6 @@ import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
 import org.apache.avro.SchemaBuilder
 import org.apache.avro.file.CodecFactory
-//import org.apache.avro.file.CodecFactory
 import org.apache.avro.file.DataFileWriter
 import org.apache.avro.generic.GenericDatumWriter
 import org.scalatest.EitherValues

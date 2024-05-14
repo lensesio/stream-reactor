@@ -41,7 +41,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
   */
 class AddConnectSchemaTransformer(topic: Topic, settings: DataStorageSettings) extends Transformer {
   override def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] =
-    if (topic != message.topic) {
+    if (topic != message.topic && topic != Topic.All) {
       Left(
         new RuntimeException(
           s"Invalid state reached. Schema enrichment transformer topic [${topic.value}] does not match incoming message topic [${message.topic.value}].",
