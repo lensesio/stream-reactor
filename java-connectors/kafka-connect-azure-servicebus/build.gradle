@@ -10,8 +10,8 @@ project(':kafka-connect-azure-servicebus') {
         implementation project(':kafka-connect-query-language')
 
         // Azure Service Bus dependencies
-        implementation group: 'com.azure', name: 'azure-core', version: '1.48.0'
-        implementation group: 'com.azure', name: 'azure-messaging-servicebus', version: '7.16.0'
+        implementation group: 'com.azure', name: 'azure-core', version: '1.49.0'
+        implementation group: 'com.azure', name: 'azure-messaging-servicebus', version: '7.17.0'
 
 
     }
