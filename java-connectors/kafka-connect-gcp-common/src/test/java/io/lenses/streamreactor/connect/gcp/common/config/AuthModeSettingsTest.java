@@ -27,6 +27,7 @@ import io.lenses.streamreactor.connect.gcp.common.auth.mode.DefaultAuthMode;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.FileAuthMode;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode;
 import java.util.Map;
+import lombok.val;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.types.Password;
@@ -40,7 +41,7 @@ class AuthModeSettingsTest {
 
   @BeforeEach
   public void setUp() {
-    final var connectorPrefix = new ConnectorPrefix(CONNECTOR_PREFIX);
+    val connectorPrefix = new ConnectorPrefix(CONNECTOR_PREFIX);
     authModeSettings = new AuthModeSettings(connectorPrefix);
   }
 
@@ -53,8 +54,8 @@ class AuthModeSettingsTest {
 
   @Test
   void testWithAuthModeSettings() {
-    final var configDef = new ConfigDef();
-    final var result = authModeSettings.withSettings(configDef);
+    val configDef = new ConfigDef();
+    val result = authModeSettings.withSettings(configDef);
 
     assertNotNull(result);
     assertTrue(result.configKeys().containsKey(authModeSettings.getAuthModeKey()));
@@ -64,7 +65,7 @@ class AuthModeSettingsTest {
 
   @Test
   void testParseFromConfig_CredentialsAuthMode() {
-    final var configMap =
+    val configMap =
         new MapConfigSource(
             Map.of(
                 authModeSettings.getAuthModeKey(),
@@ -72,7 +73,7 @@ class AuthModeSettingsTest {
                 authModeSettings.getCredentialsKey(),
                 new Password("password")));
 
-    final var authMode = authModeSettings.parseFromConfig(configMap);
+    val authMode = authModeSettings.parseFromConfig(configMap);
 
     assertNotNull(authMode);
     assertTrue(authMode instanceof CredentialsAuthMode);
@@ -80,12 +81,12 @@ class AuthModeSettingsTest {
 
   @Test
   void testParseFromConfig_FileAuthMode() {
-    final var configMap =
+    val configMap =
         new MapConfigSource(
             Map.of(
                 authModeSettings.getAuthModeKey(), "file",
                 authModeSettings.getFileKey(), "\"path/to/file\""));
-    final var authMode = authModeSettings.parseFromConfig(configMap);
+    val authMode = authModeSettings.parseFromConfig(configMap);
 
     assertNotNull(authMode);
     assertTrue(authMode instanceof FileAuthMode);
@@ -94,8 +95,8 @@ class AuthModeSettingsTest {
   @Test
   void testParseFromConfig_NoneAuthMode() {
 
-    final var configMap = new MapConfigSource(Map.of(authModeSettings.getAuthModeKey(), "none"));
-    final var authMode = authModeSettings.parseFromConfig(configMap);
+    val configMap = new MapConfigSource(Map.of(authModeSettings.getAuthModeKey(), "none"));
+    val authMode = authModeSettings.parseFromConfig(configMap);
 
     assertNotNull(authMode);
     assertTrue(authMode instanceof NoAuthMode);
@@ -104,9 +105,9 @@ class AuthModeSettingsTest {
   @Test
   void testParseFromConfig_DefaultAuthMode() {
 
-    final var configMap = new MapConfigSource(Map.of(authModeSettings.getAuthModeKey(), "default"));
+    val configMap = new MapConfigSource(Map.of(authModeSettings.getAuthModeKey(), "default"));
 
-    final var authMode = authModeSettings.parseFromConfig(configMap);
+    val authMode = authModeSettings.parseFromConfig(configMap);
 
     assertNotNull(authMode);
     assertTrue(authMode instanceof DefaultAuthMode);
@@ -115,7 +116,7 @@ class AuthModeSettingsTest {
   @Test
   void testParseFromConfig_UnsupportedAuthMode() {
 
-    final var configMap = new MapConfigSource(Map.of(authModeSettings.getAuthModeKey(), "invalid"));
+    val configMap = new MapConfigSource(Map.of(authModeSettings.getAuthModeKey(), "invalid"));
 
     assertThrows(ConfigException.class, () -> authModeSettings.parseFromConfig(configMap));
   }

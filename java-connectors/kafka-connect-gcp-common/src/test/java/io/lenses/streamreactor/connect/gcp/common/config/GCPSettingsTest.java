@@ -22,6 +22,7 @@ import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.common.config.source.MapConfigSource;
 import java.util.Map;
 import java.util.stream.Stream;
+import lombok.val;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -42,13 +43,13 @@ class GCPSettingsTest {
   @ParameterizedTest(name = "{0}")
   @MethodSource("provideRetryConfigData")
   void testHttpRetryConfig(String testName, Object retries, Object interval, RetryConfig expected) {
-    final var configMap =
+    val configMap =
         new MapConfigSource(
             Map.of(
                 "connect.gcpstorage.http.max.retries", retries,
                 "connect.gcpstorage.http.retry.interval", interval));
 
-    final var optionalRetryConfig = gcpSettings.parseFromConfig(configMap).getHttpRetryConfig();
+    val optionalRetryConfig = gcpSettings.parseFromConfig(configMap).getHttpRetryConfig();
     assertThat(optionalRetryConfig)
         .isPresent()
         .contains(expected);

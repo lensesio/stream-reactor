@@ -31,6 +31,7 @@ import com.google.cloud.http.HttpTransportOptions;
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode;
 import java.io.IOException;
+import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -47,9 +48,9 @@ class GCPServiceBuilderConfigurerTest {
 
   @Test
   void testConfigure_withHostAndProjectIdConfigured() throws IOException {
-    final var config = configBuilder.host("example.com").projectId("test-project").build();
+    val config = configBuilder.host("example.com").projectId("test-project").build();
 
-    final var builder = createMockBuilder();
+    val builder = createMockBuilder();
 
     GCPServiceBuilderConfigurer.configure(config, builder);
 
@@ -60,9 +61,9 @@ class GCPServiceBuilderConfigurerTest {
   void testConfigure_withRetrySettingsConfigured() throws IOException {
     RetryConfig retryConfig = RetryConfig.builder().retryIntervalMillis(1000).retryLimit(3).build();
 
-    final var config = configBuilder.httpRetryConfig(retryConfig).build();
+    val config = configBuilder.httpRetryConfig(retryConfig).build();
 
-    final var builder = createMockBuilder();
+    val builder = createMockBuilder();
 
     GCPServiceBuilderConfigurer.configure(config, builder);
 
@@ -71,15 +72,15 @@ class GCPServiceBuilderConfigurerTest {
 
   @Test
   void testConfigure_withTransportOptionsConfigured() throws IOException {
-    final var timeoutConfig =
+    val timeoutConfig =
         HttpTimeoutConfig.builder()
             .socketTimeoutMillis(5000L)
             .connectionTimeoutMillis(3000L)
             .build();
 
-    final var config = configBuilder.timeouts(timeoutConfig).build();
+    val config = configBuilder.timeouts(timeoutConfig).build();
 
-    final var builder = createMockBuilder();
+    val builder = createMockBuilder();
 
     GCPServiceBuilderConfigurer.configure(config, builder);
 
@@ -88,9 +89,9 @@ class GCPServiceBuilderConfigurerTest {
 
   @Test
   void testConfigure_withEmptyConfig() throws IOException {
-    final var builder = createMockBuilder();
+    val builder = createMockBuilder();
 
-    final var config = configBuilder.build();
+    val config = configBuilder.build();
 
     GCPServiceBuilderConfigurer.configure(config, builder);
 
