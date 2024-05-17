@@ -77,7 +77,7 @@ object Dependencies {
     val calciteVersion = "1.34.0"
     val awsSdkVersion  = "2.25.52"
 
-    val azureDataLakeVersion = "12.18.4"
+    val azureDataLakeVersion = "12.19.0"
     val azureIdentityVersion = "1.12.1"
     val azureCoreVersion     = "1.49.0"
     val gcpCloudVersion      = "2.37.0"
