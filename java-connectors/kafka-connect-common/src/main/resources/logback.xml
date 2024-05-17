@@ -24,5 +24,4 @@
     <root level="INFO">
         <appender-ref ref="stdout"/>
     </root>
-    <logger name="io.lenses.streamreactor.connect.gcp.pubsub" level="DEBUG"/>
 </configuration>

@@ -41,7 +41,7 @@ public class PubSubSubscriberManager {
       List<PubSubSubscription> subscriptionConfigs,
       SubscriberCreator subscriberCreator
   ) {
-    log.info("Starting PubSubSubscriberManager");
+    log.info("Starting PubSubSubscriberManager for {} subscriptions", subscriptionConfigs.size());
     subscribers =
         subscriptionConfigs
             .parallelStream()
@@ -51,14 +51,14 @@ public class PubSubSubscriberManager {
   }
 
   public List<PubSubMessageData> poll() {
-    log.info("Polling messages from PubSub");
+    log.trace("Polling messages from all partitions");
     val subs =
         subscribers
             .values()
             .parallelStream()
             .flatMap(pubSubSubscriber -> pubSubSubscriber.getMessages().stream())
             .collect(Collectors.toList());
-    log.info("Polled {} messages from PubSub", subs.size());
+    log.debug("Polled {} messages from all partitions", subs.size());
     return subs;
   }
 
@@ -66,7 +66,7 @@ public class PubSubSubscriberManager {
       SourcePartition sourcePartition,
       SourceOffset sourceOffset
   ) {
-    log.info("Committing record for partition {} with offset {}", sourcePartition, sourceOffset);
+    log.trace("Committing record for partition {} with offset {}", sourcePartition, sourceOffset);
     subscribers
         .get(sourcePartition.getSubscriptionId())
         .acknowledge(sourceOffset.getMessageId());

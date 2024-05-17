@@ -19,6 +19,7 @@ import java.util.Map;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.ToString;
 
 /**
  * SourcePartition holds the location from which the message was sourced within GCP PubSub, for use reporting back
@@ -26,6 +27,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
+@ToString
 public class SourcePartition {
 
   private static final String KEY_PROJECT_ID = "project.id";

@@ -58,7 +58,7 @@ public class PubSubSubscriber {
       String projectId,
       PubSubSubscription subscription
   ) {
-    log.info("Starting PubSubSubscriber");
+    log.info("Starting PubSubSubscriber for subscription {}", subscription.getSubscriptionId());
     targetTopicName = subscription.getTargetKafkaTopic();
     batchSize = subscription.getBatchSize();
     messageQueue = new ConcurrentLinkedQueue<>();
@@ -81,7 +81,6 @@ public class PubSubSubscriber {
   }
 
   public void startAsync() {
-    log.info("Start Subscriber");
     gcpSubscriber.startAsync();
   }
 
@@ -93,7 +92,6 @@ public class PubSubSubscriber {
   }
 
   public List<PubSubMessageData> getMessages() {
-    log.info("GetMessages");
     return IntStream.range(0, batchSize)
         .mapToObj(i -> messageQueue.poll())
         .filter(Objects::nonNull)
@@ -107,7 +105,7 @@ public class PubSubSubscriber {
   }
 
   public void acknowledge(String messageId) {
-    log.info("Sending acknowledgement for {}}", messageId);
+    log.trace("Sending acknowledgement for {}}", messageId);
     Optional
         .ofNullable(ackCache.getIfPresent(messageId))
         .ifPresent(e -> {
@@ -117,7 +115,6 @@ public class PubSubSubscriber {
   }
 
   public void stopAsync() {
-    log.info("Stopping Subscriber");
     gcpSubscriber.stopAsync();
   }
 

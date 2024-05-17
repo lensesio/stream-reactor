@@ -19,6 +19,7 @@ import java.util.Map;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.ToString;
 
 /**
  * SourceOffset holds the message id from the PubSub message, to allow kafka connect to track the offset of the message,
@@ -26,6 +27,7 @@ import lombok.Getter;
  */
 @AllArgsConstructor
 @Getter
+@ToString
 public class SourceOffset {
 
   private static final String KEY_MESSAGE_ID = "message.id";

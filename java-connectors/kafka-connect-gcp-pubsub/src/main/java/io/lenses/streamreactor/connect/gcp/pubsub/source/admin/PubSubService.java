@@ -70,9 +70,8 @@ public class PubSubService {
   }
 
   public String topicNameFor(final String subscriptionId) {
-    log.info("Requesting subscription details for projectId: {}, subscriptionId: {}", projectId, subscriptionId);
     val subscription = subscriptionAdminClient.getSubscription(createSubscriptionName(subscriptionId));
-    log.info("Found subscription details for subscriptionId: {}", subscription.getTopic());
+    log.info("Found topic details {} for subscriptionId {}", subscription.getTopic(), subscriptionId);
     return subscription.getTopic();
   }
 
