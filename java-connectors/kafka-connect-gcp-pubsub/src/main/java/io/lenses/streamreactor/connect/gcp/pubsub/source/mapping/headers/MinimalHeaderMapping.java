@@ -15,13 +15,9 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.headers;
 
-import com.google.protobuf.Timestamp;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessageData;
-import lombok.val;
-
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
+
+import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessageData;
 
 /**
  * MinimalHeaderMapping is responsible for mapping minimal headers from PubSubMessageData to Kafka Connect headers.
@@ -29,18 +25,11 @@ import java.util.Map;
  */
 public class MinimalHeaderMapping implements HeaderMapping {
 
-  private static final DateTimeFormatter ISO_INSTANT_FORMATTER = DateTimeFormatter.ISO_INSTANT;
-
   @Override
   public Map<String, String> getHeaders(final PubSubMessageData source) {
     return Map.of(
-        "PublishDate", timestampToIsoDate(source.getMessage().getPublishTime()),
         "PublishTimestamp", String.valueOf(source.getMessage().getPublishTime().getSeconds())
     );
   }
 
-  public static String timestampToIsoDate(final Timestamp timestamp) {
-    val instant = Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos());
-    return ISO_INSTANT_FORMATTER.format(instant);
-  }
 }

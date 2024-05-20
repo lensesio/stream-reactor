@@ -66,7 +66,6 @@ class MinimalAndMessageAttributesHeaderMappingTest {
     assertEquals(
         ImmutableMap.builder()
             .put("PublishTimestamp", String.valueOf(PUBLISH_TIME_INSTANT.getEpochSecond()))
-            .put("PublishDate", PUBLISH_TIME)
             .putAll(HEADERS_MAP).build(),
         result);
   }
