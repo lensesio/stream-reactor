@@ -35,7 +35,7 @@ public class MinimalHeaderMapping implements HeaderMapping {
   public Map<String, String> getHeaders(final PubSubMessageData source) {
     return Map.of(
         "PublishDate", timestampToIsoDate(source.getMessage().getPublishTime()),
-         "PublishTimestamp", String.valueOf(source.getMessage().getPublishTime().getSeconds())
+        "PublishTimestamp", String.valueOf(source.getMessage().getPublishTime().getSeconds())
     );
   }
 
