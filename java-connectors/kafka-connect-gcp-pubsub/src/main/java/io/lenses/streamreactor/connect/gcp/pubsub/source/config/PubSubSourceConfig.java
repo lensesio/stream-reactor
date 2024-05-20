@@ -22,8 +22,7 @@ import org.apache.kafka.common.config.ConfigException;
 
 import java.util.List;
 
-import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter.KCQL_PROP_KEY_BATCH_SIZE;
-import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter.KCQL_PROP_KEY_CACHE_TTL;
+import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter.*;
 
 /**
  * SourceConfigSettings holds the configuration for the PubSub connector.
@@ -40,7 +39,8 @@ public class PubSubSourceConfig {
   public void validateKcql() {
     try {
       getKcqlSettings()
-          .forEach(k -> k.validateKcqlProperties(KCQL_PROP_KEY_BATCH_SIZE, KCQL_PROP_KEY_CACHE_TTL));
+          .forEach(k -> k.validateKcqlProperties(KCQL_PROP_KEY_BATCH_SIZE, KCQL_PROP_KEY_CACHE_TTL,
+              KCQL_PROP_KEY_QUEUE_MAX));
     } catch (IllegalArgumentException e) {
       throw new ConfigException("Invalid KCQL properties", e);
     }

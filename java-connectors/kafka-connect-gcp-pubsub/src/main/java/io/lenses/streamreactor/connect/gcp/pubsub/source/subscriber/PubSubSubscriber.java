@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -41,7 +40,7 @@ import lombok.val;
 @Slf4j
 public class PubSubSubscriber {
 
-  private final Queue<PubsubMessage> messageQueue;
+  private final LooselyBoundedQueue<PubsubMessage> messageQueue;
 
   private final SourcePartition sourcePartition;
 
@@ -61,7 +60,7 @@ public class PubSubSubscriber {
     log.info("Starting PubSubSubscriber for subscription {}", subscription.getSubscriptionId());
     targetTopicName = subscription.getTargetKafkaTopic();
     batchSize = subscription.getBatchSize();
-    messageQueue = new ConcurrentLinkedQueue<>();
+    messageQueue = new LooselyBoundedQueue<>(new ConcurrentLinkedQueue<>(), subscription.getQueueMaxEntries());
     ackCache =
         Caffeine
             .newBuilder()
@@ -86,8 +85,15 @@ public class PubSubSubscriber {
 
   private MessageReceiver createMessageReceiver() {
     return (PubsubMessage message, AckReplyConsumer consumer) -> {
-      messageQueue.add(message);
-      ackCache.put(message.getMessageId(), consumer);
+      if (messageQueue.hasSpareCapacity(1)) {
+        log.info("Spare capacity");
+        messageQueue.add(message);
+        ackCache.put(message.getMessageId(), consumer);
+      } else {
+        log.info("Message rejected from GCP as queue is full");
+        // if the queue is full, let Google know we haven't received it and it will be sent again in the near future
+        consumer.nack();
+      }
     };
   }
 

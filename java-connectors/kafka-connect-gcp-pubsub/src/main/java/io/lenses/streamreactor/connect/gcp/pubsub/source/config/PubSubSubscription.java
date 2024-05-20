@@ -36,4 +36,6 @@ public class PubSubSubscription {
 
   private final Long cacheExpire;
 
+  private final Integer queueMaxEntries;
+
 }

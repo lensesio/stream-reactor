@@ -15,12 +15,12 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source.configdef;
 
-import io.lenses.streamreactor.connect.gcp.pubsub.source.admin.PubSubService;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.config.PubSubSubscription;
 import org.apache.kafka.common.config.ConfigException;
 
 import io.lenses.kcql.Kcql;
 import io.lenses.streamreactor.common.config.base.intf.KcqlConverter;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.admin.PubSubService;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.config.PubSubSubscription;
 import lombok.val;
 
 /**
@@ -30,11 +30,14 @@ import lombok.val;
 public class PubSubKcqlConverter extends KcqlConverter<PubSubSubscription> {
 
   public static final int DEFAULT_BATCH_SIZE = 1000;
+  public static final long DEFAULT_CACHE_TTL_MILLIS = 3600L * 1000L;
+  public static final int DEFAULT_CACHE_MAX = 10000;
 
   // 1 hour
-  public static final long DEFAULT_CACHE_TTL_MILLIS = 3600L * 1000L;
   public static final String KCQL_PROP_KEY_BATCH_SIZE = "batch.size";
   public static final String KCQL_PROP_KEY_CACHE_TTL = "cache.ttl";
+  public static final String KCQL_PROP_KEY_QUEUE_MAX = "queue.max";
+
   private final PubSubService pubSubService;
 
   public PubSubKcqlConverter(PubSubService pubSubService) {
@@ -43,7 +46,7 @@ public class PubSubKcqlConverter extends KcqlConverter<PubSubSubscription> {
 
   public PubSubSubscription convert(Kcql source) throws ConfigException {
     try {
-      source.validateKcqlProperties(KCQL_PROP_KEY_BATCH_SIZE, KCQL_PROP_KEY_CACHE_TTL);
+      source.validateKcqlProperties(KCQL_PROP_KEY_BATCH_SIZE, KCQL_PROP_KEY_CACHE_TTL, KCQL_PROP_KEY_QUEUE_MAX);
     } catch (IllegalArgumentException e) {
       throw new ConfigException("Invalid KCQL properties", e);
     }
@@ -56,6 +59,8 @@ public class PubSubKcqlConverter extends KcqlConverter<PubSubSubscription> {
             DEFAULT_BATCH_SIZE))
         .cacheExpire(source.extractOptionalProperty(KCQL_PROP_KEY_CACHE_TTL).map(Long::parseLong).orElse(
             DEFAULT_CACHE_TTL_MILLIS))
+        .queueMaxEntries(source.extractOptionalProperty(KCQL_PROP_KEY_QUEUE_MAX).map(Integer::parseInt).orElse(
+            DEFAULT_CACHE_MAX))
         .build();
   }
 }
