@@ -25,11 +25,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import lombok.val;
 
 @ExtendWith(MockitoExtension.class)
-class PubSubConfigDefTest {
+class PubSubConfigSettingsTest {
+
+  private static final PubSubConfigSettings PUB_SUB_CONFIG_SETTINGS = new PubSubConfigSettings();
 
   @Test
   void configDefShouldContainGcpSettings() {
-    val projectIdConfigSetting = PubSubConfigDef.getConfigDef().configKeys().get("connect.pubsub.gcp.project.id");
+    val projectIdConfigSetting =
+        PUB_SUB_CONFIG_SETTINGS.getConfigDef().configKeys().get("connect.pubsub.gcp.project.id");
     assertEquals("", projectIdConfigSetting.defaultValue);
     assertEquals(ConfigDef.Type.STRING, projectIdConfigSetting.type);
     assertEquals(ConfigDef.Importance.HIGH, projectIdConfigSetting.importance);
@@ -38,7 +41,7 @@ class PubSubConfigDefTest {
 
   @Test
   void configDefShouldContainKcqlSettings() {
-    val kcqlConfigSetting = PubSubConfigDef.getConfigDef().configKeys().get("connect.pubsub.kcql");
+    val kcqlConfigSetting = PUB_SUB_CONFIG_SETTINGS.getConfigDef().configKeys().get("connect.pubsub.kcql");
     assertEquals(ConfigDef.Type.STRING, kcqlConfigSetting.type);
     assertEquals(ConfigDef.Importance.HIGH, kcqlConfigSetting.importance);
     assertEquals("Contains the Kafka Connect Query Language describing the flow from the source to the target system.",

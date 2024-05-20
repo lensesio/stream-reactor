@@ -20,13 +20,15 @@ import static io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHead
 import java.util.List;
 import java.util.Map;
 
+import lombok.val;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
+import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceConnector;
 
 import io.lenses.streamreactor.common.util.JarManifest;
 import io.lenses.streamreactor.common.util.TasksSplitter;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubConfigDef;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubConfigSettings;
 
 /**
  * GCPPubSubSourceConnector is a source connector for Google Cloud Pub/Sub.
@@ -36,13 +38,25 @@ public class GCPPubSubSourceConnector extends SourceConnector {
 
   private Map<String, String> props;
 
+  private final PubSubConfigSettings configDef = new PubSubConfigSettings();
+
   private final JarManifest jarManifest =
       new JarManifest(getClass().getProtectionDomain().getCodeSource().getLocation());
 
   @Override
   public void start(Map<String, String> props) {
-    this.props = props;
     printAsciiHeader(jarManifest, "/gcp-pubsub-source-ascii.txt");
+    this.props = validateProps(props);
+  }
+
+  private Map<String, String> validateProps(Map<String, String> props) {
+    try {
+      val pubSubConfigDef = new PubSubConfigSettings();
+      pubSubConfigDef.parse(props);
+      return props;
+    } catch (Exception e) {
+      throw new ConnectException("Invalid connector properties configuration: " + e.getMessage(), e);
+    }
   }
 
   @Override
@@ -55,7 +69,7 @@ public class GCPPubSubSourceConnector extends SourceConnector {
     return TasksSplitter.splitByKcqlStatements(
         maxTasks,
         props,
-        PubSubConfigDef.getKcqlSettings()
+        PubSubConfigSettings.getKcqlSettings()
     );
   }
 
@@ -66,7 +80,7 @@ public class GCPPubSubSourceConnector extends SourceConnector {
 
   @Override
   public ConfigDef config() {
-    return PubSubConfigDef.getConfigDef();
+    return configDef.getConfigDef();
   }
 
   @Override

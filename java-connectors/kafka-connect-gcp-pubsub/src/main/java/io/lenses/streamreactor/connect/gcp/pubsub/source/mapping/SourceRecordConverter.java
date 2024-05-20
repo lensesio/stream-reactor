@@ -38,26 +38,26 @@ public class SourceRecordConverter extends Converter<PubSubMessageData, SourceRe
         source.getSourcePartition().toMap(),
         source.getSourceOffset().toMap(),
         source.getTargetTopicName(),
-        generateKeySchema(),
-        generateKey(source),
-        generateValueSchema(),
-        generateValue(source)
+        getKeySchema(),
+        getKey(source),
+        getValueSchema(),
+        getValue(source)
     );
   }
 
-  private Object generateValue(final PubSubMessageData source) {
+  private Object getValue(final PubSubMessageData source) {
     return mappingConfig.getValueMapper().getValue(source);
   }
 
-  private Schema generateValueSchema() {
+  private Schema getValueSchema() {
     return mappingConfig.getValueMapper().getSchema();
   }
 
-  private Object generateKey(final PubSubMessageData source) {
+  private Object getKey(final PubSubMessageData source) {
     return mappingConfig.getKeyMapper().getKey(source);
   }
 
-  private Schema generateKeySchema() {
+  private Schema getKeySchema() {
     return mappingConfig.getKeyMapper().getSchema();
   }
 

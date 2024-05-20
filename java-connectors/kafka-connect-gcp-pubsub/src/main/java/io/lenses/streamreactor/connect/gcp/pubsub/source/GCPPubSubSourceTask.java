@@ -24,15 +24,13 @@ import io.lenses.streamreactor.common.util.MapUtils;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.config.PubSubConfig;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.*;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 
-import io.lenses.streamreactor.common.config.source.ConfigWrapperSource;
 import io.lenses.streamreactor.common.util.JarManifest;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.admin.PubSubService;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubConfigDef;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubConfigSettings;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.SourceRecordConverter;
 import lombok.val;
@@ -46,6 +44,8 @@ public class GCPPubSubSourceTask extends SourceTask {
 
   private final JarManifest jarManifest =
       new JarManifest(getClass().getProtectionDomain().getCodeSource().getLocation());
+
+  private final PubSubConfigSettings pubSubConfigSettings = new PubSubConfigSettings();
 
   private PubSubSubscriberManager pubSubSubscriberManager;
 
@@ -61,10 +61,10 @@ public class GCPPubSubSourceTask extends SourceTask {
 
   @Override
   public void start(Map<String, String> props) {
-    val configSource = new ConfigWrapperSource(new AbstractConfig(PubSubConfigDef.getConfigDef(), props));
-    val kcqls = PubSubConfigDef.getKcqlSettings().parseFromConfig(configSource);
-    val pubSubConfig = PubSubConfigDef.getGcpSettings().parseFromConfig(configSource);
-    val pubSubService = createPubSubService(pubSubConfig);
+    val sourceConfigSettings = pubSubConfigSettings.parse(props);
+    val pubSubService = createPubSubService(sourceConfigSettings.getGcpSettings());
+    val pubSubConfig = sourceConfigSettings.getGcpSettings();
+    val kcqls = sourceConfigSettings.getKcqlSettings();
     val kcqlConverter = new PubSubKcqlConverter(pubSubService);
     val subscriptionConfigs = kcqlConverter.convertAll(kcqls);
     converter = new SourceRecordConverter(pubSubConfig.getMappingConfig());

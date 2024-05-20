@@ -80,4 +80,13 @@ class ListSplitterTest {
     Executable executable = () -> ListSplitter.splitList(list, 0);
     assertThrows(IllegalArgumentException.class, executable);
   }
+
+  @Test
+  void testListSmallerThanMaxNShouldProvideMaxNResults() {
+    List<List<Integer>> result = ListSplitter.splitList(Collections.singletonList(1), 100);
+    assertEquals(1, result.size());
+    for (List<Integer> sublist : result) {
+      assertEquals(1, sublist.size());
+    }
+  }
 }
