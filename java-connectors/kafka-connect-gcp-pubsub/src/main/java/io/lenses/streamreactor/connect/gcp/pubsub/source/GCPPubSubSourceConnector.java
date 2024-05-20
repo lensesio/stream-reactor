@@ -20,7 +20,6 @@ import static io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHead
 import java.util.List;
 import java.util.Map;
 
-import lombok.val;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.errors.ConnectException;
@@ -29,6 +28,7 @@ import org.apache.kafka.connect.source.SourceConnector;
 import io.lenses.streamreactor.common.util.JarManifest;
 import io.lenses.streamreactor.common.util.TasksSplitter;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubConfigSettings;
+import lombok.val;
 
 /**
  * GCPPubSubSourceConnector is a source connector for Google Cloud Pub/Sub.
@@ -38,7 +38,7 @@ public class GCPPubSubSourceConnector extends SourceConnector {
 
   private Map<String, String> props;
 
-  private final PubSubConfigSettings configDef = new PubSubConfigSettings();
+  private final PubSubConfigSettings pubSubConfigSettings = new PubSubConfigSettings();
 
   private final JarManifest jarManifest =
       new JarManifest(getClass().getProtectionDomain().getCodeSource().getLocation());
@@ -52,7 +52,8 @@ public class GCPPubSubSourceConnector extends SourceConnector {
   private Map<String, String> validateProps(Map<String, String> props) {
     try {
       val pubSubConfigDef = new PubSubConfigSettings();
-      pubSubConfigDef.parse(props);
+      val pubSubSourceConfig = pubSubConfigDef.parse(props);
+      pubSubSourceConfig.validateKcql();
       return props;
     } catch (Exception e) {
       throw new ConnectException("Invalid connector properties configuration: " + e.getMessage(), e);
@@ -80,7 +81,7 @@ public class GCPPubSubSourceConnector extends SourceConnector {
 
   @Override
   public ConfigDef config() {
-    return configDef.getConfigDef();
+    return pubSubConfigSettings.getConfigDef();
   }
 
   @Override

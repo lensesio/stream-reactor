@@ -18,8 +18,12 @@ package io.lenses.streamreactor.connect.gcp.pubsub.source.config;
 import io.lenses.kcql.Kcql;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.apache.kafka.common.config.ConfigException;
 
 import java.util.List;
+
+import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter.KCQL_PROP_KEY_BATCH_SIZE;
+import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter.KCQL_PROP_KEY_CACHE_TTL;
 
 /**
  * SourceConfigSettings holds the configuration for the PubSub connector.
@@ -33,4 +37,12 @@ public class PubSubSourceConfig {
 
   private final List<Kcql> kcqlSettings;
 
+  public void validateKcql() {
+    try {
+      getKcqlSettings()
+          .forEach(k -> k.validateKcqlProperties(KCQL_PROP_KEY_BATCH_SIZE, KCQL_PROP_KEY_CACHE_TTL));
+    } catch (IllegalArgumentException e) {
+      throw new ConfigException("Invalid KCQL properties", e);
+    }
+  }
 }

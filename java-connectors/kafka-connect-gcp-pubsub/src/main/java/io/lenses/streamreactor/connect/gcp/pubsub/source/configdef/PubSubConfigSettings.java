@@ -49,9 +49,7 @@ public class PubSubConfigSettings implements ConfigSettings<PubSubSourceConfig> 
 
   public PubSubConfigSettings() {
     configDef = new ConfigDef();
-
-    // side-effects
-    settings.forEach(s -> s.withSettings(configDef));
+    withSettings(configDef);
   }
 
   public PubSubSourceConfig parse(Map<String, String> props) {
