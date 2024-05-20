@@ -60,6 +60,7 @@ class MinimalHeaderMappingTest {
 
     Map<String, String> result = minimalHeaderMapping.getHeaders(pubSubMessageData);
 
-    assertEquals(ImmutableMap.builder().put("PublishTime", PUBLISH_TIME).build(), result);
+    assertEquals(ImmutableMap.builder().put("PublishTimestamp", String.valueOf(PUBLISH_TIME_INSTANT.getEpochSecond()))
+            .put("PublishDate", PUBLISH_TIME).build(), result);
   }
 }

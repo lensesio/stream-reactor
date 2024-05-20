@@ -57,12 +57,17 @@ class MinimalAndMessageAttributesHeaderMappingTest {
   @Test
   void testGetHeaders() {
     when(pubsubMessage.getPublishTime()).thenReturn(Timestamp.newBuilder().setSeconds(PUBLISH_TIME_INSTANT
-        .getEpochSecond()).build());
+            .getEpochSecond()).build());
     when(pubsubMessage.getAttributesMap()).thenReturn(HEADERS_MAP);
     when(pubSubMessageData.getMessage()).thenReturn(pubsubMessage);
 
     Map<String, String> result = minimalAndMessageAttributesHeaderMapping.getHeaders(pubSubMessageData);
 
-    assertEquals(ImmutableMap.builder().put("PublishTime", PUBLISH_TIME).putAll(HEADERS_MAP).build(), result);
+    assertEquals(
+            ImmutableMap.builder()
+                    .put("PublishTimestamp", String.valueOf(PUBLISH_TIME_INSTANT.getEpochSecond()))
+                    .put("PublishDate", PUBLISH_TIME)
+                    .putAll(HEADERS_MAP).build(),
+            result);
   }
 }
