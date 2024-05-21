@@ -21,16 +21,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
+import com.azure.messaging.servicebus.ServiceBusReceiverAsyncClient;
 import io.lenses.kcql.Kcql;
 import io.lenses.streamreactor.connect.azure.servicebus.util.ServiceBusKcqlProperties;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
-import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.Test;
 
 class ServiceBusReceiverFacadeTest {
 
-  private final BlockingQueue<SourceRecord> mockedQueue = mock(BlockingQueue.class);
+  private final BlockingQueue<ServiceBusMessageHolder> mockedQueue = mock(BlockingQueue.class);
   private final String connectionString =
       "Endpoint=sb://TESTENDPOINT.servicebus.windows.net/;"
           + "SharedAccessKeyName=EXAMPLE_NAME;SharedAccessKey=EXAMPLE_KEY";
@@ -46,8 +48,11 @@ class ServiceBusReceiverFacadeTest {
     Kcql kcql = mock(Kcql.class);
     when(kcql.getSource()).thenReturn(inputBusName);
     when(kcql.getProperties()).thenReturn(propertiesMap);
+    String receiverId1 = UUID.randomUUID().toString();
 
-    ServiceBusReceiverFacade testObj = new ServiceBusReceiverFacade(kcql, mockedQueue, connectionString);
+    ServiceBusReceiverFacade testObj =
+        new ServiceBusReceiverFacade(kcql, mockedQueue,
+            connectionString, receiverId1);
 
     //when
     String receiverId = testObj.getReceiverId();
@@ -56,7 +61,7 @@ class ServiceBusReceiverFacadeTest {
     verify(kcql).getProperties();
     verify(kcql).getSource();
     verify(propertiesMap).get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName());
-    assertThat(receiverId).startsWith(ServiceBusReceiverFacade.class.getSimpleName());
+    assertThat(receiverId).isEqualTo(receiverId1);
   }
 
   @Test
@@ -73,7 +78,11 @@ class ServiceBusReceiverFacadeTest {
     when(kcql.getSource()).thenReturn(inputBusName);
     when(kcql.getProperties()).thenReturn(propertiesMap);
 
-    ServiceBusReceiverFacade testObj = new ServiceBusReceiverFacade(kcql, mockedQueue, connectionString);
+    String receiverId1 = UUID.randomUUID().toString();
+
+    ServiceBusReceiverFacade testObj =
+        new ServiceBusReceiverFacade(kcql, mockedQueue,
+            connectionString, receiverId1);
 
     //when
     String receiverId = testObj.getReceiverId();
@@ -83,7 +92,7 @@ class ServiceBusReceiverFacadeTest {
     verify(kcql).getSource();
     verify(propertiesMap).get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName());
     verify(propertiesMap).get(ServiceBusKcqlProperties.SUBSCRIPTION_NAME.getPropertyName());
-    assertThat(receiverId).startsWith(ServiceBusReceiverFacade.class.getSimpleName());
+    assertThat(receiverId).isEqualTo(receiverId1);
   }
 
   @Test
@@ -94,7 +103,24 @@ class ServiceBusReceiverFacadeTest {
 
     //when
     assertThrows(IllegalArgumentException.class, () -> new ServiceBusReceiverFacade(kcql, mockedQueue,
-        badFormatConnectionString)
+        badFormatConnectionString, UUID.randomUUID().toString())
     );
+  }
+
+  @Test
+  void completeShouldCallRecieverComplete() {
+    //given
+    Kcql kcql = mock(Kcql.class);
+    String receiverId1 = UUID.randomUUID().toString();
+    ServiceBusReceiverAsyncClient receiverAsyncClient = mock(ServiceBusReceiverAsyncClient.class);
+    ServiceBusReceivedMessage mockedMessage = mock(ServiceBusReceivedMessage.class);
+
+    //when
+    ServiceBusReceiverFacade serviceBusReceiverFacade =
+        new ServiceBusReceiverFacade(kcql, mockedQueue, connectionString, receiverId1, receiverAsyncClient);
+    serviceBusReceiverFacade.complete(mockedMessage);
+
+    //then
+    verify(receiverAsyncClient).complete(mockedMessage);
   }
 }

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 import org.apache.kafka.connect.storage.OffsetStorageReader;
@@ -54,7 +55,7 @@ public class AzureServiceBusSourceTask extends SourceTask {
             context -> ofNullable(context.offsetStorageReader())).orElseThrow();
     AzureServiceBusSourceConfig azureServiceBusSourceConfig = new AzureServiceBusSourceConfig(props);
 
-    ArrayBlockingQueue<SourceRecord> recordsQueue =
+    ArrayBlockingQueue<ServiceBusMessageHolder> recordsQueue =
         new ArrayBlockingQueue<>(RECORDS_QUEUE_DEFAULT_SIZE);
 
     TaskToReceiverBridge serviceBusReceiverBridge =
@@ -72,6 +73,11 @@ public class AzureServiceBusSourceTask extends SourceTask {
     List<SourceRecord> poll =
         taskToReceiverBridge.poll();
     return poll.isEmpty() ? null : poll;
+  }
+
+  @Override
+  public void commitRecord(SourceRecord committedRecord, RecordMetadata metadata) {
+    taskToReceiverBridge.commitRecordInServiceBus(committedRecord);
   }
 
   @Override

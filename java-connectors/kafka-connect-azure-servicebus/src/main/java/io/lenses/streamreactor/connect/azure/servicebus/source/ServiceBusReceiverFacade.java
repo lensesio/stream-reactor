@@ -26,7 +26,6 @@ import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartiti
 import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider.AzureServiceBusPartitionKey;
 import io.lenses.streamreactor.connect.azure.servicebus.util.ServiceBusKcqlProperties;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -45,30 +44,41 @@ public class ServiceBusReceiverFacade {
   private static final String QUEUE_TYPE = "QUEUE";
   private static final int FIVE_SECONDS_TIMEOUT = 5;
   private final Kcql kcql;
-  private final BlockingQueue<SourceRecord> recordsQueue;
+  private final BlockingQueue<ServiceBusMessageHolder> recordsQueue;
   private final String connectionString;
   @Getter
   private final String receiverId;
   private Disposable subscription;
-  private AutoCloseable receiver;
+  private ServiceBusReceiverAsyncClient receiver;
 
   /**
    * Creates a Facade between {@link ServiceBusReceiverAsyncClient} (that fetches records from Azure Service Bus) and
    * {@link TaskToReceiverBridge} that holds the facades.
-   * 
+   *
    * @param kcql             KCQL query for particular mapping
    * @param recordsQueue     {@link java.util.concurrent.BlockingQueue} implementation that holds records
    *                         from Service Bus
    * @param connectionString Connection String
+   * @param receiverId       Receiver ID
    */
-  public ServiceBusReceiverFacade(Kcql kcql, BlockingQueue<SourceRecord> recordsQueue,
-      String connectionString) {
+  public ServiceBusReceiverFacade(Kcql kcql, BlockingQueue<ServiceBusMessageHolder> recordsQueue,
+      String connectionString, String receiverId) {
     this.kcql = kcql;
     this.recordsQueue = recordsQueue;
     this.connectionString = connectionString;
-    this.receiverId = getClass().getSimpleName() + UUID.randomUUID();
+    this.receiverId = receiverId;
 
     instantiateReceiverFromKcql();
+  }
+
+  ServiceBusReceiverFacade(Kcql kcql, BlockingQueue<ServiceBusMessageHolder> recordsQueue,
+      String connectionString, String receiverId, ServiceBusReceiverAsyncClient receiver) {
+    this.kcql = kcql;
+    this.recordsQueue = recordsQueue;
+    this.connectionString = connectionString;
+    this.receiverId = receiverId;
+    this.receiver = receiver;
+
   }
 
   private void instantiateReceiverFromKcql() {
@@ -91,14 +101,13 @@ public class ServiceBusReceiverFacade {
       serviceBusReceiverClientBuilder.queueName(inputBus);
     }
 
-    ServiceBusReceiverAsyncClient receiverClient = serviceBusReceiverClientBuilder.buildAsyncClient();
+    receiver = serviceBusReceiverClientBuilder.buildAsyncClient();
 
-    receiver = receiverClient;
     subscription =
-        receiverClient.receiveMessages()
-            .subscribe(onSuccessfulMessage(receiverId, recordsQueue, inputBus, outputTopic),
-                onError(receiverId),
-                onComplete(receiverId));
+        receiver.receiveMessages()
+            .doOnNext(onSuccessfulMessage(receiverId, recordsQueue, inputBus, outputTopic))
+            .doOnError(onError(receiverId))
+            .subscribe();
   }
 
   /**
@@ -113,16 +122,16 @@ public class ServiceBusReceiverFacade {
     }
   }
 
-  private static Runnable onComplete(String receiverId) {
-    return () -> log.info("{} - Receiving complete.", receiverId);
-  }
-
   private static Consumer<Throwable> onError(String receiverId) {
     return error -> log.warn("{} - Error occurred while receiving message: ", receiverId, error);
   }
 
+  void complete(ServiceBusReceivedMessage serviceBusMessage) {
+    receiver.complete(serviceBusMessage);
+  }
+
   private static Consumer<ServiceBusReceivedMessage> onSuccessfulMessage(
-      String receiverId, BlockingQueue<SourceRecord> recordsQueue,
+      String receiverId, BlockingQueue<ServiceBusMessageHolder> recordsQueue,
       String inputBus, String outputTopic) {
     return message -> {
       long sequenceNumber = message.getSequenceNumber();
@@ -133,16 +142,15 @@ public class ServiceBusReceiverFacade {
 
       try {
         SourceRecord sourceRecord = mapSingleServiceBusMessage(message, outputTopic, partitionKey, offsetMarker);
+        ServiceBusMessageHolder serviceBusMessageHolder =
+            new ServiceBusMessageHolder(message, sourceRecord, receiverId);
         boolean offer = false;
         while (!offer) {
-          offer = recordsQueue.offer(sourceRecord, FIVE_SECONDS_TIMEOUT, TimeUnit.SECONDS);
-          log.info("Sent: {}", sourceRecord);
+          offer = recordsQueue.offer(serviceBusMessageHolder, FIVE_SECONDS_TIMEOUT, TimeUnit.SECONDS);
         }
       } catch (InterruptedException e) {
         log.info("{} has been interrupted on offering", receiverId);
       }
-      log.info("{} - Sequence #: {}. Contents: {}", receiverId, sequenceNumber, message
-          .getBody());
     };
   }
 
