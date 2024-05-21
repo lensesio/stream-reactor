@@ -28,7 +28,7 @@ import lombok.ToString;
 @Getter
 @AllArgsConstructor
 @ToString
-public class SourcePartition {
+public class PubSubSourcePartition {
 
   private static final String KEY_PROJECT_ID = "project.id";
   private static final String KEY_TOPIC_ID = "topic.id";
@@ -38,8 +38,8 @@ public class SourcePartition {
   private String topicId;
   private String subscriptionId;
 
-  public static SourcePartition fromMap(Map<String, String> sourceLocation) {
-    return new SourcePartition(
+  public static PubSubSourcePartition fromMap(Map<String, String> sourceLocation) {
+    return new PubSubSourcePartition(
         sourceLocation.get(KEY_PROJECT_ID),
         sourceLocation.get(KEY_TOPIC_ID),
         sourceLocation.get(KEY_SUBSCRIPTION_ID)

@@ -19,17 +19,11 @@ import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessag
 import org.apache.kafka.connect.data.Schema;
 
 /**
- * MessageValueMapping is responsible for mapping the value from PubSubMessageData to Kafka Connect value.
+ * ValueMapping is responsible for mapping the value from PubSubMessageData to Kafka Connect value.
  */
-public class MessageValueMapping implements ValueMapping {
+public interface ValueMapper {
 
-  @Override
-  public Object getValue(final PubSubMessageData source) {
-    return source.getMessage().getData().toByteArray();
-  }
+  Object mapValue(final PubSubMessageData source);
 
-  @Override
-  public Schema getSchema() {
-    return Schema.BYTES_SCHEMA;
-  }
+  Schema getSchema();
 }

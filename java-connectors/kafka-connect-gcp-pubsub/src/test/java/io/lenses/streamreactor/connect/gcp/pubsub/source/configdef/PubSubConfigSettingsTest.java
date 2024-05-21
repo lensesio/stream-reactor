@@ -44,7 +44,8 @@ class PubSubConfigSettingsTest {
     val kcqlConfigSetting = PUB_SUB_CONFIG_SETTINGS.getConfigDef().configKeys().get("connect.pubsub.kcql");
     assertEquals(ConfigDef.Type.STRING, kcqlConfigSetting.type);
     assertEquals(ConfigDef.Importance.HIGH, kcqlConfigSetting.importance);
-    assertEquals("Contains the Kafka Connect Query Language describing the flow from the source to the target system.",
+    assertEquals(
+        "Contains the Kafka Connect Query Language describing data mappings from the source to the target system.",
         kcqlConfigSetting.documentation);
   }
 

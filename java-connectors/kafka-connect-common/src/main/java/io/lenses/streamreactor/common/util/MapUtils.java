@@ -15,24 +15,47 @@
  */
 package io.lenses.streamreactor.common.util;
 
-import lombok.experimental.UtilityClass;
-
 import java.util.Map;
 
-@UtilityClass
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+/**
+ * Utility class for map operations.
+ */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class MapUtils {
 
+  /**
+   * Casts a map to a specified key and value type.
+   *
+   * @param map             the map to cast
+   * @param targetKeyType   the class of the key type
+   * @param targetValueType the class of the value type
+   * @param <K>             the target key type
+   * @param <V>             the target value type
+   * @return the casted map
+   * @throws IllegalArgumentException if the map contains keys or values of incorrect types
+   */
   @SuppressWarnings("unchecked")
   public static <K, V> Map<K, V> castMap(Map<?, ?> map, Class<K> targetKeyType, Class<V> targetValueType) {
     for (Map.Entry<?, ?> entry : map.entrySet()) {
-      if (!(isInstance(entry.getKey(), targetKeyType)) || !(isInstance(entry.getValue(), targetValueType))) {
+      if (!isAssignable(entry.getKey(), targetKeyType) || !isAssignable(entry.getValue(), targetValueType)) {
         throw new IllegalArgumentException("Map contains invalid key or value type");
       }
     }
     return (Map<K, V>) map;
   }
 
-  private static <T> boolean isInstance(Object obj, Class<T> type) {
-    return obj == null || type.isInstance(obj);
+  /**
+   * Checks if an object is assignable to a specified type, allowing for null values.
+   *
+   * @param obj  the object to check
+   * @param type the target type
+   * @param <T>  the target type
+   * @return true if the object is null or assignable to the type, false otherwise
+   */
+  private static <T> boolean isAssignable(Object obj, Class<T> type) {
+    return obj == null || type.isAssignableFrom(obj.getClass());
   }
 }

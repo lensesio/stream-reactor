@@ -15,13 +15,17 @@
  */
 package io.lenses.streamreactor.common.util;
 
-import lombok.experimental.UtilityClass;
-
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-@UtilityClass
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+/**
+ * Utility class for List splitting.
+ */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ListSplitter {
 
   /**

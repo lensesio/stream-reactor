@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -42,7 +41,7 @@ public class PubSubSubscriber {
 
   private final LooselyBoundedQueue<PubsubMessage> messageQueue;
 
-  private final SourcePartition sourcePartition;
+  private final PubSubSourcePartition sourcePartition;
 
   private final Cache<String, AckReplyConsumer> ackCache;
 
@@ -60,7 +59,7 @@ public class PubSubSubscriber {
     log.info("Starting PubSubSubscriber for subscription {}", subscription.getSubscriptionId());
     targetTopicName = subscription.getTargetKafkaTopic();
     batchSize = subscription.getBatchSize();
-    messageQueue = new LooselyBoundedQueue<>(new ConcurrentLinkedQueue<>(), subscription.getQueueMaxEntries());
+    messageQueue = new LooselyBoundedQueue<>(subscription.getQueueMaxEntries());
     ackCache =
         Caffeine
             .newBuilder()
@@ -71,7 +70,7 @@ public class PubSubSubscriber {
 
     gcpSubscriber = pubSubService.createSubscriber(subscription.getSubscriptionId(), receiver);
     sourcePartition =
-        new SourcePartition(
+        new PubSubSourcePartition(
             projectId,
             subscription.getSourceTopicId(),
             subscription.getSubscriptionId()
@@ -103,7 +102,7 @@ public class PubSubSubscriber {
         .filter(Objects::nonNull)
         .map(psm -> new PubSubMessageData(
             sourcePartition,
-            new SourceOffset(psm.getMessageId()),
+            new PubSubSourceOffset(psm.getMessageId()),
             psm,
             targetTopicName
         ))

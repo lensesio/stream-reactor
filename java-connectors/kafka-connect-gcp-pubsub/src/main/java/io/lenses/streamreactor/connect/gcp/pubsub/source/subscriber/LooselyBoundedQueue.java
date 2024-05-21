@@ -15,104 +15,67 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber;
 
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 /**
- * A LooselyBoundedQueue is a wrapper around a standard {@link Queue} implementation
- * that introduces a maximum size limit. However, unlike a strictly bounded queue,
- * it does not fail the {@link #add(Object)} or {@link #addAll(Collection)} operations
- * when this limit is exceeded. Instead, it logs a debug message when the queue size
- * exceeds the specified maximum size.
+ * LooselyBoundedQueue is an extension of {@link ConcurrentLinkedQueue} that introduces a maximum size limit.
+ * Unlike a strictly bounded queue, it does not fail the {@link #add(Object)} or {@link #addAll(Collection)} operations
+ * when this limit is exceeded. Instead, it logs a debug message when the queue size exceeds the specified maximum size.
  *
- * <p>This class is designed to be used in multi-threaded environments where it is
- * more important to avoid the failure of add operations than to strictly enforce
- * a queue size limit. In such scenarios, failing the connector due to queue overflow
- * is undesirable as it can lead to disruptions in the data processing pipeline.
- * Hence, this loosely bounded approach allows for some flexibility by permitting
- * the queue size to exceed the maximum limit while still providing an indication
- * (through logging) that the limit has been breached.</p>
+ * <p>This class is designed to be used in multi-threaded environments where it is more important to avoid the failure
+ * of add operations than to strictly enforce a queue size limit. In such scenarios, failing the connector due to queue
+ * overflow is undesirable as it can lead to disruptions in the data processing pipeline. Hence, this loosely bounded
+ * approach allows for some flexibility by permitting the queue size to exceed the maximum limit while still providing
+ * an indication (through logging) that the limit has been breached.</p>
  *
  * @param <X> the type of elements held in this queue
  */
 @Slf4j
-public class LooselyBoundedQueue<X> implements Queue<X> {
+public class LooselyBoundedQueue<X> extends ConcurrentLinkedQueue<X> {
 
-  private final Queue<X> queue;
   private final int maxSize;
 
   /**
-   * Constructs a new LooselyBoundedQueue with the specified backing queue and maximum size.
+   * Constructs a new LooselyBoundedQueue with the specified maximum size.
    *
-   * @param queue   the backing queue
    * @param maxSize the maximum size of the queue
    */
-  public LooselyBoundedQueue(Queue<X> queue, int maxSize) {
-    this.queue = queue;
+  public LooselyBoundedQueue(int maxSize) {
     this.maxSize = maxSize;
   }
 
-  @Override
-  public int size() {
-    return queue.size();
-  }
-
-  @Override
-  public boolean isEmpty() {
-    return queue.isEmpty();
-  }
-
-  @Override
-  public boolean contains(Object o) {
-    return queue.contains(o);
-  }
-
-  @Override
-  public Iterator<X> iterator() {
-    return queue.iterator();
-  }
-
-  @Override
-  public Object[] toArray() {
-    return queue.toArray();
-  }
-
-  @Override
-  public <T> T[] toArray(T[] a) {
-    return queue.toArray(a);
-  }
-
-  @Override
-  public boolean add(X x) {
-    logIfNoSpareCapacity(1);
-    return queue.add(x);
-  }
-
-  @Override
-  public boolean addAll(Collection<? extends X> c) {
-    logIfNoSpareCapacity(c.size());
-    return queue.addAll(c);
-  }
-
-  @Override
-  public boolean remove(Object o) {
-    return queue.remove(o);
-  }
-
-  @Override
-  public boolean containsAll(Collection<?> c) {
-    return queue.containsAll(c);
-  }
-
+  /**
+   * Checks if there is space available in the queue for the specified number of elements.
+   *
+   * @param count the number of elements proposed to be added to the queue
+   * @return true if there is spare capacity for these elements, false otherwise
+   */
   public boolean hasSpareCapacity(int count) {
     val newSize = getNewSize(count);
     return (newSize <= maxSize);
   }
 
+  @Override
+  public boolean add(X x) {
+    logIfNoSpareCapacity(1);
+    return super.add(x);
+  }
+
+  @Override
+  public boolean addAll(Collection<? extends X> c) {
+    logIfNoSpareCapacity(c.size());
+    return super.addAll(c);
+  }
+
+  /**
+   * Logs a debug message if adding the specified number of elements would exceed the queue's maximum size.
+   *
+   * @param numberOfElements the number of elements to be added
+   */
   private void logIfNoSpareCapacity(int numberOfElements) {
     final var newSize = getNewSize(numberOfElements);
     if (newSize > maxSize) {
@@ -120,48 +83,14 @@ public class LooselyBoundedQueue<X> implements Queue<X> {
     }
   }
 
+  /**
+   * Calculates the new size of the queue if the specified number of elements were added.
+   *
+   * @param numberOfElements the number of elements to be added
+   * @return the new size of the queue
+   */
   private int getNewSize(int numberOfElements) {
-    return queue.size() + numberOfElements;
-  }
-
-  @Override
-  public boolean removeAll(Collection<?> c) {
-    return queue.removeAll(c);
-  }
-
-  @Override
-  public boolean retainAll(Collection<?> c) {
-    return queue.retainAll(c);
-  }
-
-  @Override
-  public void clear() {
-    queue.clear();
-  }
-
-  @Override
-  public boolean offer(X x) {
-    return queue.offer(x);
-  }
-
-  @Override
-  public X remove() {
-    return queue.remove();
-  }
-
-  @Override
-  public X poll() {
-    return queue.poll();
-  }
-
-  @Override
-  public X element() {
-    return queue.element();
-  }
-
-  @Override
-  public X peek() {
-    return queue.peek();
+    return super.size() + numberOfElements;
   }
 
 }

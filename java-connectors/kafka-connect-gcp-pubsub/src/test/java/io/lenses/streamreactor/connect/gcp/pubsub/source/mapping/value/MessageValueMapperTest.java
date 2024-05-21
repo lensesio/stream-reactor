@@ -25,19 +25,19 @@ import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
 
 import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessageData;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.SourceOffset;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.SourcePartition;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubSourceOffset;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubSourcePartition;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class MessageValueMappingTest {
+class MessageValueMapperTest {
 
   @Mock
-  SourcePartition sourcePartition;
+  PubSubSourcePartition sourcePartition;
   @Mock
-  SourceOffset sourceOffset;
+  PubSubSourceOffset sourceOffset;
 
   @Test
   void testGetValue() {
@@ -54,15 +54,15 @@ class MessageValueMappingTest {
             "notRelevantToThisTest"
         );
 
-    MessageValueMapping messageValueMapping = new MessageValueMapping();
-    byte[] result = (byte[]) messageValueMapping.getValue(pubSubMessageData);
+    MessageValueMapper messageValueMapping = new MessageValueMapper();
+    byte[] result = (byte[]) messageValueMapping.mapValue(pubSubMessageData);
 
     assertArrayEquals(testMessageData.getBytes(), result);
   }
 
   @Test
   void testGetSchema() {
-    MessageValueMapping messageValueMapping = new MessageValueMapping();
+    MessageValueMapper messageValueMapping = new MessageValueMapper();
     Schema result = messageValueMapping.getSchema();
 
     assertEquals(Schema.BYTES_SCHEMA, result);

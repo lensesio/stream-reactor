@@ -46,7 +46,7 @@ public class SourceRecordConverter extends Converter<PubSubMessageData, SourceRe
   }
 
   private Object getValue(final PubSubMessageData source) {
-    return mappingConfig.getValueMapper().getValue(source);
+    return mappingConfig.getValueMapper().mapValue(source);
   }
 
   private Schema getValueSchema() {
@@ -54,7 +54,7 @@ public class SourceRecordConverter extends Converter<PubSubMessageData, SourceRe
   }
 
   private Object getKey(final PubSubMessageData source) {
-    return mappingConfig.getKeyMapper().getKey(source);
+    return mappingConfig.getKeyMapper().mapKey(source);
   }
 
   private Schema getKeySchema() {

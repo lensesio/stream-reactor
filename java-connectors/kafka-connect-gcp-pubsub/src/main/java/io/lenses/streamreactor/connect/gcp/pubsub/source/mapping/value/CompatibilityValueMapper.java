@@ -30,7 +30,7 @@ import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessag
  * CompatibilityValueMapping is responsible for mapping the value from PubSubMessageData to Kafka Connect value. This is
  * for a mode that aims to enable compatibility with another connector in the market.
  */
-public class CompatibilityValueMapping implements ValueMapping {
+public class CompatibilityValueMapper implements ValueMapper {
 
   private static final String STRUCT_KEY_MESSAGE_DATA = "MessageData";
   private static final String STRUCT_KEY_ATTRIBUTE_MAP = "AttributeMap";
@@ -44,7 +44,7 @@ public class CompatibilityValueMapping implements ValueMapping {
   private final Gson gson = new Gson();
 
   @Override
-  public Object getValue(final PubSubMessageData source) {
+  public Object mapValue(final PubSubMessageData source) {
 
     return new Struct(SCHEMA)
         .put(STRUCT_KEY_MESSAGE_DATA, new String(source.getMessage().getData().toByteArray()))

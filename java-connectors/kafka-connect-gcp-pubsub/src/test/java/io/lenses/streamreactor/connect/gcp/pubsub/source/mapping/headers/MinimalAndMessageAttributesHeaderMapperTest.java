@@ -21,23 +21,25 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.protobuf.Timestamp;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.protobuf.Timestamp;
 import com.google.pubsub.v1.PubsubMessage;
 
 import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessageData;
 
 @ExtendWith(MockitoExtension.class)
-class MinimalHeaderMappingTest {
+class MinimalAndMessageAttributesHeaderMapperTest {
 
   private static final String PUBLISH_TIME = "1955-11-12T10:04:00Z";
   private static final Instant PUBLISH_TIME_INSTANT = Instant.parse(PUBLISH_TIME);
+
+  private static final Map<String, String> HEADERS_MAP = Map.of("attr1", "value1", "attr2", "value2");
 
   @Mock
   private PubSubMessageData pubSubMessageData;
@@ -45,22 +47,26 @@ class MinimalHeaderMappingTest {
   @Mock
   private PubsubMessage pubsubMessage;
 
-  private MinimalHeaderMapping minimalHeaderMapping;
+  private MinimalAndMessageAttributesHeaderMapper minimalAndMessageAttributesHeaderMapping;
 
   @BeforeEach
   void setup() {
-    minimalHeaderMapping = new MinimalHeaderMapping();
+    minimalAndMessageAttributesHeaderMapping = new MinimalAndMessageAttributesHeaderMapper();
   }
 
   @Test
   void testGetHeaders() {
     when(pubsubMessage.getPublishTime()).thenReturn(Timestamp.newBuilder().setSeconds(PUBLISH_TIME_INSTANT
         .getEpochSecond()).build());
+    when(pubsubMessage.getAttributesMap()).thenReturn(HEADERS_MAP);
     when(pubSubMessageData.getMessage()).thenReturn(pubsubMessage);
 
-    Map<String, String> result = minimalHeaderMapping.getHeaders(pubSubMessageData);
+    Map<String, String> result = minimalAndMessageAttributesHeaderMapping.mapHeaders(pubSubMessageData);
 
-    assertEquals(ImmutableMap.builder().put("PublishTimestamp", String.valueOf(PUBLISH_TIME_INSTANT.getEpochSecond()))
-        .build(), result);
+    assertEquals(
+        ImmutableMap.builder()
+            .put("PublishTimestamp", String.valueOf(PUBLISH_TIME_INSTANT.getEpochSecond()))
+            .putAll(HEADERS_MAP).build(),
+        result);
   }
 }

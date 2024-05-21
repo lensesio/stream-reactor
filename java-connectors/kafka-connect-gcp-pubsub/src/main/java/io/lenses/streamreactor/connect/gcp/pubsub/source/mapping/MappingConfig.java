@@ -15,15 +15,15 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source.mapping;
 
-import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.headers.HeaderMapping;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.headers.MinimalAndMessageAttributesHeaderMapping;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.headers.MinimalHeaderMapping;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.key.CompatibilityKeyMapping;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.key.KeyMapping;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.key.MessageIdKeyMapping;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.value.CompatibilityValueMapping;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.value.MessageValueMapping;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.value.ValueMapping;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.headers.HeaderMapper;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.headers.MinimalAndMessageAttributesHeaderMapper;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.headers.MinimalHeaderMapper;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.key.CompatibilityKeyMapper;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.key.KeyMapper;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.key.MessageIdKeyMapper;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.value.CompatibilityValueMapper;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.value.MessageValueMapper;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.value.ValueMapper;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -38,11 +38,11 @@ public class MappingConfig {
 
   public static final String OUTPUT_MODE_DEFAULT = "DEFAULT";
   public static final String OUTPUT_MODE_COMPATIBILITY = "COMPATIBILITY";
-  private KeyMapping keyMapper;
+  private KeyMapper keyMapper;
 
-  private ValueMapping valueMapper;
+  private ValueMapper valueMapper;
 
-  private HeaderMapping headerMapper;
+  private HeaderMapper headerMapper;
 
   public static MappingConfig fromOutputMode(String outputMode) {
     switch (outputMode.toUpperCase()) {
@@ -56,16 +56,16 @@ public class MappingConfig {
 
   public static final MappingConfig DEFAULT_MAPPING_CONFIG =
       new MappingConfig(
-          new MessageIdKeyMapping(),
-          new MessageValueMapping(),
-          new MinimalAndMessageAttributesHeaderMapping()
+          new MessageIdKeyMapper(),
+          new MessageValueMapper(),
+          new MinimalAndMessageAttributesHeaderMapper()
       );
 
   public static final MappingConfig COMPATIBILITY_MAPPING_CONFIG =
       new MappingConfig(
-          new CompatibilityKeyMapping(),
-          new CompatibilityValueMapping(),
-          new MinimalHeaderMapping()
+          new CompatibilityKeyMapper(),
+          new CompatibilityValueMapper(),
+          new MinimalHeaderMapper()
       );
 
 }

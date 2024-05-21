@@ -51,9 +51,6 @@ public class GCPPubSubSourceTask extends SourceTask {
 
   private SourceRecordConverter converter;
 
-  public GCPPubSubSourceTask() {
-  }
-
   @Override
   public String version() {
     return jarManifest.getVersion();
@@ -101,8 +98,9 @@ public class GCPPubSubSourceTask extends SourceTask {
   @Override
   public void commitRecord(SourceRecord sourceRecord, RecordMetadata metadata) {
     val sourcePartition =
-        SourcePartition.fromMap(MapUtils.castMap(sourceRecord.sourcePartition(), String.class, String.class));
-    val sourceOffset = SourceOffset.fromMap(MapUtils.castMap(sourceRecord.sourceOffset(), String.class, String.class));
+        PubSubSourcePartition.fromMap(MapUtils.castMap(sourceRecord.sourcePartition(), String.class, String.class));
+    val sourceOffset =
+        PubSubSourceOffset.fromMap(MapUtils.castMap(sourceRecord.sourceOffset(), String.class, String.class));
     pubSubSubscriberManager.commitRecord(sourcePartition, sourceOffset);
   }
 }

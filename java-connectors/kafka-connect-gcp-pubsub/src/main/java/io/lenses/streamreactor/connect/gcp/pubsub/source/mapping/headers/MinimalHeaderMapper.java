@@ -23,10 +23,10 @@ import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessag
  * MinimalHeaderMapping is responsible for mapping minimal headers from PubSubMessageData to Kafka Connect headers.
  * The minimal headers include only the most essential information from the PubSubMessageData.
  */
-public class MinimalHeaderMapping implements HeaderMapping {
+public class MinimalHeaderMapper implements HeaderMapper {
 
   @Override
-  public Map<String, String> getHeaders(final PubSubMessageData source) {
+  public Map<String, String> mapHeaders(final PubSubMessageData source) {
     return Map.of(
         "PublishTimestamp", String.valueOf(source.getMessage().getPublishTime().getSeconds())
     );

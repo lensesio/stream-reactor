@@ -13,17 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.key;
+package io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.headers;
 
 import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessageData;
-import org.apache.kafka.connect.data.Schema;
+
+import java.util.Map;
 
 /**
- * KeyMapping is responsible for mapping the key from PubSubMessageData to Kafka Connect key.
+ * HeaderMapping is an interface for mapping headers in the PubSubMessageData to Kafka Connect headers.
+ * Implementations of this interface should define how this mapping is done.
  */
-public interface KeyMapping {
+public interface HeaderMapper {
 
-  Object getKey(PubSubMessageData source);
+  Map<String, String> mapHeaders(final PubSubMessageData source);
 
-  Schema getSchema();
 }

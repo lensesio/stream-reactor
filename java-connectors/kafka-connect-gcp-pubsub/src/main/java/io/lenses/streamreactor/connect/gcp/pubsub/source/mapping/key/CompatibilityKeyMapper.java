@@ -25,7 +25,7 @@ import org.apache.kafka.connect.data.Struct;
  * The key is composed of the project id, topic id, subscription id and message id. The aim is to maintain compatibility
  * with another connector in the market.
  */
-public class CompatibilityKeyMapping implements KeyMapping {
+public class CompatibilityKeyMapper implements KeyMapper {
 
   private static final String STRUCT_KEY_PROJECT_ID = "ProjectId";
   private static final String STRUCT_KEY_TOPIC_ID = "TopicId";
@@ -42,7 +42,7 @@ public class CompatibilityKeyMapping implements KeyMapping {
           .build();
 
   @Override
-  public Object getKey(final PubSubMessageData source) {
+  public Object mapKey(final PubSubMessageData source) {
     return new Struct(SCHEMA)
         .put(STRUCT_KEY_PROJECT_ID, source.getSourcePartition().getProjectId())
         .put(STRUCT_KEY_TOPIC_ID, source.getSourcePartition().getTopicId())

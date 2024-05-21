@@ -28,13 +28,13 @@ import lombok.ToString;
 @AllArgsConstructor
 @Getter
 @ToString
-public class SourceOffset {
+public class PubSubSourceOffset {
 
   private static final String KEY_MESSAGE_ID = "message.id";
   private String messageId;
 
-  public static SourceOffset fromMap(Map<String, String> sourceLocation) {
-    return new SourceOffset(sourceLocation.get(KEY_MESSAGE_ID));
+  public static PubSubSourceOffset fromMap(Map<String, String> sourceLocation) {
+    return new PubSubSourceOffset(sourceLocation.get(KEY_MESSAGE_ID));
   }
 
   public Map<String, String> toMap() {

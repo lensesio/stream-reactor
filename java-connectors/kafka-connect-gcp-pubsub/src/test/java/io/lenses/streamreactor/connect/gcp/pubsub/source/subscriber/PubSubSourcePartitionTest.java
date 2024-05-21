@@ -21,7 +21,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-class SourcePartitionTest {
+class PubSubSourcePartitionTest {
 
   @Test
   void testFromMap() {
@@ -31,7 +31,7 @@ class SourcePartitionTest {
             "topic.id", "topicId1",
             "subscription.id", "subscriptionId1"
         );
-    SourcePartition sourcePartition = SourcePartition.fromMap(sourceLocation);
+    PubSubSourcePartition sourcePartition = PubSubSourcePartition.fromMap(sourceLocation);
 
     assertEquals("projectId1", sourcePartition.getProjectId());
     assertEquals("topicId1", sourcePartition.getTopicId());
@@ -40,7 +40,7 @@ class SourcePartitionTest {
 
   @Test
   void testToMap() {
-    SourcePartition sourcePartition = new SourcePartition("projectId1", "topicId1", "subscriptionId1");
+    PubSubSourcePartition sourcePartition = new PubSubSourcePartition("projectId1", "topicId1", "subscriptionId1");
     Map<String, String> result = sourcePartition.toMap();
 
     assertEquals(Map.of(

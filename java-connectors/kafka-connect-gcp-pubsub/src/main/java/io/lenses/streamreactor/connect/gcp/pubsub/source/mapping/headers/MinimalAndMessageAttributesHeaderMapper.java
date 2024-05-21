@@ -26,13 +26,13 @@ import java.util.Map;
  * PubSubMessageData to Kafka Connect headers.
  * It extends the functionality of MinimalHeaderMapping by adding message attributes to the headers.
  */
-public class MinimalAndMessageAttributesHeaderMapping implements HeaderMapping {
+public class MinimalAndMessageAttributesHeaderMapper implements HeaderMapper {
 
-  private final MinimalHeaderMapping minimalHeaderMapping = new MinimalHeaderMapping();
+  private final MinimalHeaderMapper minimalHeaderMapping = new MinimalHeaderMapper();
 
   @Override
-  public Map<String, String> getHeaders(final PubSubMessageData source) {
-    val miniMap = minimalHeaderMapping.getHeaders(source);
+  public Map<String, String> mapHeaders(final PubSubMessageData source) {
+    val miniMap = minimalHeaderMapping.mapHeaders(source);
     val headMap = source.getMessage().getAttributesMap();
     return ImmutableMap.<String, String>builder()
         .putAll(miniMap)

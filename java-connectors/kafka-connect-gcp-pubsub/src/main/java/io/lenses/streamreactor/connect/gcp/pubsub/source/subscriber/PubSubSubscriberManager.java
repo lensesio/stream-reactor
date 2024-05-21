@@ -63,8 +63,8 @@ public class PubSubSubscriberManager {
   }
 
   public void commitRecord(
-      SourcePartition sourcePartition,
-      SourceOffset sourceOffset
+      PubSubSourcePartition sourcePartition,
+      PubSubSourceOffset sourceOffset
   ) {
     log.trace("Committing record for partition {} with offset {}", sourcePartition, sourceOffset);
     subscribers

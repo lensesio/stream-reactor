@@ -30,10 +30,10 @@ import lombok.val;
 public class PubSubKcqlConverter extends KcqlConverter<PubSubSubscription> {
 
   public static final int DEFAULT_BATCH_SIZE = 1000;
+  // 1 hour
   public static final long DEFAULT_CACHE_TTL_MILLIS = 3600L * 1000L;
   public static final int DEFAULT_CACHE_MAX = 10000;
 
-  // 1 hour
   public static final String KCQL_PROP_KEY_BATCH_SIZE = "batch.size";
   public static final String KCQL_PROP_KEY_CACHE_TTL = "cache.ttl";
   public static final String KCQL_PROP_KEY_QUEUE_MAX = "queue.max";

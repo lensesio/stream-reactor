@@ -24,13 +24,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.lenses.streamreactor.common.config.base.KcqlSettings;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.val;
-import lombok.experimental.UtilityClass;
 
 /**
  * Utility class for splitting tasks based on KCQL statements.
  */
-@UtilityClass
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class TasksSplitter {
 
   /**

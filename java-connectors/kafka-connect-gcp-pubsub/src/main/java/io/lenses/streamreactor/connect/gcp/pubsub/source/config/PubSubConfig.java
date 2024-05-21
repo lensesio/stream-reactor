@@ -20,7 +20,6 @@ import java.util.Optional;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.AuthMode;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.MappingConfig;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 
 /**

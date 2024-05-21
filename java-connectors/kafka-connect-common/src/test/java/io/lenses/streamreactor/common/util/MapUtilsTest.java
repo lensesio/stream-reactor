@@ -70,4 +70,68 @@ class MapUtilsTest {
     });
   }
 
+  @Test
+  void testCastMap_WithNullValues_ShouldHandleGracefully() {
+    Map<Object, Object> rawMap = new HashMap<>();
+    rawMap.put("key1", "value1");
+    rawMap.put("key2", null); // Null value
+
+    Map<String, String> typedMap = MapUtils.castMap(rawMap, String.class, String.class);
+
+    assertEquals("value1", typedMap.get("key1"));
+    assertNull(typedMap.get("key2"));
+  }
+
+  @Test
+  void testCastMap_SuperclassTypeCompatibility_ShouldPass() {
+    Map<Object, Object> rawMap = new HashMap<>();
+    rawMap.put("key1", "value1");
+    rawMap.put("key2", "value2");
+
+    // Cast to Map<CharSequence, CharSequence> since String implements CharSequence
+    Map<CharSequence, CharSequence> typedMap = MapUtils.castMap(rawMap, CharSequence.class, CharSequence.class);
+
+    assertEquals("value1", typedMap.get("key1"));
+    assertEquals("value2", typedMap.get("key2"));
+  }
+
+  @Test
+  void testCastMap_InterfaceTypeCompatibility_ShouldPass() {
+    Map<Object, Object> rawMap = new HashMap<>();
+    rawMap.put("key1", "value1");
+    rawMap.put("key2", "value2");
+
+    // Cast to Map<Object, Object> since String is an Object
+    Map<Object, Object> typedMap = MapUtils.castMap(rawMap, Object.class, Object.class);
+
+    assertEquals("value1", typedMap.get("key1"));
+    assertEquals("value2", typedMap.get("key2"));
+  }
+
+  @Test
+  void testCastMap_StringToObject_ShouldPass() {
+    Map<Object, Object> rawMap = new HashMap<>();
+    rawMap.put("key1", "value1");
+    rawMap.put("key2", "value2");
+
+    // Cast to Map<Object, Object> since String is an Object
+    Map<Object, Object> typedMap = MapUtils.castMap(rawMap, Object.class, Object.class);
+
+    assertEquals("value1", typedMap.get("key1"));
+    assertEquals("value2", typedMap.get("key2"));
+  }
+
+  @Test
+  void testCastMap_StringToCharSequence_ShouldPass() {
+    Map<Object, Object> rawMap = new HashMap<>();
+    rawMap.put("key1", "value1");
+    rawMap.put("key2", "value2");
+
+    // Cast to Map<CharSequence, CharSequence> since String implements CharSequence
+    Map<CharSequence, CharSequence> typedMap = MapUtils.castMap(rawMap, CharSequence.class, CharSequence.class);
+
+    assertEquals("value1", typedMap.get("key1"));
+    assertEquals("value2", typedMap.get("key2"));
+  }
+
 }

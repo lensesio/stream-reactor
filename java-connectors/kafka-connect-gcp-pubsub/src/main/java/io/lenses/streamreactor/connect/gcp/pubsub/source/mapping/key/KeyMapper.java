@@ -19,17 +19,11 @@ import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessag
 import org.apache.kafka.connect.data.Schema;
 
 /**
- * MessageIdKeyMapping is responsible for mapping the key from PubSubMessageData to Kafka Connect key.
+ * KeyMapping is responsible for mapping the key from PubSubMessageData to Kafka Connect key.
  */
-public class MessageIdKeyMapping implements KeyMapping {
+public interface KeyMapper {
 
-  @Override
-  public Object getKey(final PubSubMessageData source) {
-    return source.getSourceOffset().getMessageId();
-  }
+  Object mapKey(PubSubMessageData source);
 
-  @Override
-  public Schema getSchema() {
-    return Schema.STRING_SCHEMA;
-  }
+  Schema getSchema();
 }

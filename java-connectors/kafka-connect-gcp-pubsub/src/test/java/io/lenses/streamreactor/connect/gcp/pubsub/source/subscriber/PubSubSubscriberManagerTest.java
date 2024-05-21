@@ -135,12 +135,12 @@ class PubSubSubscriberManagerTest {
     return subscription;
   }
 
-  private SourcePartition sourcePartition(String id) {
-    return new SourcePartition(PROJECT_ID, TOPIC_ID, SUBSCRIPTION_ID_PREFIX + id);
+  private PubSubSourcePartition sourcePartition(String id) {
+    return new PubSubSourcePartition(PROJECT_ID, TOPIC_ID, SUBSCRIPTION_ID_PREFIX + id);
   }
 
-  private SourceOffset sourceOffset(String id) {
-    return new SourceOffset(MESSAGE_ID_PREFIX + id);
+  private PubSubSourceOffset sourceOffset(String id) {
+    return new PubSubSourceOffset(MESSAGE_ID_PREFIX + id);
   }
 
 }

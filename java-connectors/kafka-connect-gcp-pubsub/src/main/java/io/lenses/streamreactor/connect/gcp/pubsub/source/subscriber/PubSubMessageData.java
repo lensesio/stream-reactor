@@ -28,9 +28,9 @@ import lombok.Getter;
 @Getter
 public class PubSubMessageData {
 
-  private SourcePartition sourcePartition;
+  private PubSubSourcePartition sourcePartition;
 
-  private SourceOffset sourceOffset;
+  private PubSubSourceOffset sourceOffset;
 
   private PubsubMessage message;
 

@@ -29,8 +29,8 @@ import com.google.protobuf.Timestamp;
 import com.google.pubsub.v1.PubsubMessage;
 
 import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessageData;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.SourceOffset;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.SourcePartition;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubSourceOffset;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubSourcePartition;
 import lombok.val;
 
 class SourceRecordConverterTest {
@@ -61,8 +61,8 @@ class SourceRecordConverterTest {
 
   private static PubSubMessageData setUpDataForCompatibilityMode() throws UnsupportedEncodingException {
     return new PubSubMessageData(
-        new SourcePartition("projectId1", "topicId1", "subscriptionId1"),
-        new SourceOffset("messageId1"),
+        new PubSubSourcePartition("projectId1", "topicId1", "subscriptionId1"),
+        new PubSubSourceOffset("messageId1"),
         PubsubMessage.newBuilder()
             .setMessageId("messageId")
             .setData(

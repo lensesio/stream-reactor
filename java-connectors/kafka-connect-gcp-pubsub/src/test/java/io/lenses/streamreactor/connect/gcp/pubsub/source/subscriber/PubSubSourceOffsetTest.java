@@ -21,19 +21,19 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-class SourceOffsetTest {
+class PubSubSourceOffsetTest {
 
   @Test
   void testFromMap() {
     Map<String, String> sourceLocation = Map.of("message.id", "messageId1");
-    SourceOffset sourceOffset = SourceOffset.fromMap(sourceLocation);
+    PubSubSourceOffset sourceOffset = PubSubSourceOffset.fromMap(sourceLocation);
 
     assertEquals("messageId1", sourceOffset.getMessageId());
   }
 
   @Test
   void testToMap() {
-    SourceOffset sourceOffset = new SourceOffset("messageId1");
+    PubSubSourceOffset sourceOffset = new PubSubSourceOffset("messageId1");
     Map<String, String> result = sourceOffset.toMap();
 
     assertEquals(Map.of("message.id", "messageId1"), result);
