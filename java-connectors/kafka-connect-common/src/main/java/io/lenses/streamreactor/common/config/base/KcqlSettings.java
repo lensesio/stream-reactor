@@ -29,7 +29,7 @@ import lombok.val;
 public class KcqlSettings implements ConfigSettings<List<Kcql>> {
 
   private final String KCQL_DOC =
-      "Contains the Kafka Connect Query Language describing the flow from the source to the target system.";
+      "Contains the Kafka Connect Query Language describing data mappings from the source to the target system.";
 
   @Getter
   private final String kcqlSettingsKey;
