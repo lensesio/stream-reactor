@@ -127,7 +127,7 @@ object Dependencies {
 
     val mongoDbVersion = "3.12.14"
 
-    val jedisVersion = "5.1.2"
+    val jedisVersion = "5.1.3"
     val gsonVersion  = "2.10.1"
 
     val nimbusJoseJwtVersion        = "9.37.3"
