@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -77,6 +78,7 @@ class TaskToReceiverBridgeTest {
     //given
     int arrayBlockingQueueCapacity = 10;
     String receiverId1 = "RECEIVER1";
+    String messageIdTemplate = "MSGID%s";
     ExecutorService executorService = mock(ExecutorService.class);
     ServiceBusReceiverFacade receiver1 = mock(ServiceBusReceiverFacade.class);
     List<SourceRecord> allSourceRecords = new ArrayList<>(arrayBlockingQueueCapacity);
@@ -86,8 +88,11 @@ class TaskToReceiverBridgeTest {
 
     for (int i = 0; i < arrayBlockingQueueCapacity; i++) {
       ServiceBusMessageHolder mockedRecord = mock(ServiceBusMessageHolder.class);
+      ServiceBusReceivedMessage busReceivedMessage = mock(ServiceBusReceivedMessage.class);
       SourceRecord sourceRecord = mock(SourceRecord.class);
       when(mockedRecord.getTranslatedRecord()).thenReturn(sourceRecord);
+      when(mockedRecord.getOriginalRecord()).thenReturn(busReceivedMessage);
+      when(busReceivedMessage.getMessageId()).thenReturn(String.format(messageIdTemplate, i));
       allSourceRecords.add(sourceRecord);
       sourceRecordBlockingQueue.put(mockedRecord);
     }
@@ -97,8 +102,29 @@ class TaskToReceiverBridgeTest {
     List<SourceRecord> polled = testObj.poll();
 
     //then
-    verify(executorService).submit(any(Runnable.class));
     assertThat(polled).hasSize(arrayBlockingQueueCapacity);
     assertThat(polled).containsExactlyElementsOf(allSourceRecords);
+  }
+
+  @Test
+  void commitMessageInServiceBusShouldCallExecutorService() {
+    //given
+    int arrayBlockingQueueCapacity = 10;
+    String receiverId1 = "RECEIVER1";
+    String messageKey = "MESSAGE_KEY";
+    ExecutorService executorService = mock(ExecutorService.class);
+    ServiceBusReceiverFacade receiver1 = mock(ServiceBusReceiverFacade.class);
+    BlockingQueue<ServiceBusMessageHolder> sourceRecordBlockingQueue =
+        new ArrayBlockingQueue<>(arrayBlockingQueueCapacity);
+    Map<String, ServiceBusReceiverFacade> receivers = Map.of(receiverId1, receiver1);
+    SourceRecord sourceRecord = mock(SourceRecord.class);
+    when(sourceRecord.key()).thenReturn(messageKey);
+
+    //when
+    testObj = new TaskToReceiverBridge(sourceRecordBlockingQueue, offsetReader, receivers, executorService);
+    testObj.commitRecordInServiceBus(sourceRecord);
+
+    //then
+    verify(executorService).submit(any(Runnable.class));
   }
 }
