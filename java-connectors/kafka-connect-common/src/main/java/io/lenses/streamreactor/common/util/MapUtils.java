@@ -39,11 +39,11 @@ public class MapUtils {
    */
   @SuppressWarnings("unchecked")
   public static <K, V> Map<K, V> castMap(Map<?, ?> map, Class<K> targetKeyType, Class<V> targetValueType) {
-    for (Map.Entry<?, ?> entry : map.entrySet()) {
-      if (!isAssignable(entry.getKey(), targetKeyType) || !isAssignable(entry.getValue(), targetValueType)) {
+    map.forEach((key, value) -> {
+      if (!isAssignable(key, targetKeyType) || !isAssignable(value, targetValueType)) {
         throw new IllegalArgumentException("Map contains invalid key or value type");
       }
-    }
+    });
     return (Map<K, V>) map;
   }
 
