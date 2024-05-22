@@ -24,6 +24,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Parsing support for Kafka Connect Query Language.
@@ -246,6 +247,14 @@ public class Kcql {
 
   public Iterator<String> getPartitionBy() {
     return partitionBy.iterator();
+  }
+
+  public Set<String> getPartitionByAsSet() {
+    Iterator<String> partitionByIter = getPartitionBy();
+    return Stream.generate(() -> null)
+        .takeWhile(x -> partitionByIter.hasNext())
+        .map(n -> partitionByIter.next())
+        .collect(Collectors.toSet());
   }
 
   public List<Tag> getTags() {

@@ -17,6 +17,7 @@ package io.lenses.kcql;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class Field {
 
@@ -34,10 +35,10 @@ public class Field {
   }
 
   public Field(String name, String alias, FieldType fieldType, List<String> parents) {
-    if (name == null || name.trim().length() == 0) {
+    if (name == null || name.trim().isEmpty()) {
       throw new IllegalArgumentException(String.format("field is not valid:<%s>", String.valueOf(name)));
     }
-    if (alias == null || alias.trim().length() == 0) {
+    if (alias == null || alias.trim().isEmpty()) {
       throw new IllegalArgumentException(String.format("alias is not valid:<%s>", String.valueOf(alias)));
     }
     this.name = name;
@@ -75,6 +76,33 @@ public class Field {
     sb.append(".");
     sb.append(name);
     return sb.toString();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
+
+    Field field = (Field) o;
+
+    if (!Objects.equals(name, field.name))
+      return false;
+    if (!Objects.equals(alias, field.alias))
+      return false;
+    if (fieldType != field.fieldType)
+      return false;
+    return Objects.equals(parentFields, field.parentFields);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = name != null ? name.hashCode() : 0;
+    result = 31 * result + (alias != null ? alias.hashCode() : 0);
+    result = 31 * result + (fieldType != null ? fieldType.hashCode() : 0);
+    result = 31 * result + (parentFields != null ? parentFields.hashCode() : 0);
+    return result;
   }
 
   public static Field from(String name, List<String> parents) {
