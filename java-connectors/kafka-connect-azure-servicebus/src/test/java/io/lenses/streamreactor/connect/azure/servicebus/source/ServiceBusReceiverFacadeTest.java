@@ -118,7 +118,6 @@ class ServiceBusReceiverFacadeTest {
     verify(receiverAsyncClient).complete(mockedMessage);
   }
 
-
   private static Kcql mockKcql(Map<String, String> propertiesMap) {
     String inputBusName = "INPUT";
     Kcql kcql = mock(Kcql.class);

@@ -128,7 +128,7 @@ class TaskToReceiverBridgeTest {
     verify(executorService).submit(any(Runnable.class));
   }
 
-  private ServiceBusReceiverFacade mockReceiver(String receiverId){
+  private ServiceBusReceiverFacade mockReceiver(String receiverId) {
     ServiceBusReceiverFacade receiverFacade = mock(ServiceBusReceiverFacade.class);
     when(receiverFacade.getReceiverId()).thenReturn(receiverId);
 

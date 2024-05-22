@@ -56,8 +56,9 @@ class KcqlConfigBusMapperTest {
       fullKcql.append(" ").append(createNecessaryPropertiesPart()).append(";");
     }
     //when
-    List<Kcql> kcqls = KcqlConfigBusMapper.mapKcqlsFromConfig(
-        fullKcql.toString());
+    List<Kcql> kcqls =
+        KcqlConfigBusMapper.mapKcqlsFromConfig(
+            fullKcql.toString());
 
     //then
     for (int i = 0; i < numberOfMappings; i++) {

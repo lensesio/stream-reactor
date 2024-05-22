@@ -51,8 +51,9 @@ public class AzureServiceBusSourceTask extends SourceTask {
 
   @Override
   public void start(Map<String, String> props) {
-    int recordsQueueDefaultSize = new AzureServiceBusSourceConfig(props)
-        .getInt(AzureServiceBusConfigConstants.TASK_RECORDS_QUEUE_SIZE);
+    int recordsQueueDefaultSize =
+        new AzureServiceBusSourceConfig(props)
+            .getInt(AzureServiceBusConfigConstants.TASK_RECORDS_QUEUE_SIZE);
     String connectionString = props.get(AzureServiceBusConfigConstants.CONNECTION_STRING);
     List<Kcql> kcqls =
         KcqlConfigBusMapper.mapKcqlsFromConfig(props.get(AzureServiceBusConfigConstants.KCQL_CONFIG));
@@ -60,7 +61,6 @@ public class AzureServiceBusSourceTask extends SourceTask {
     OffsetStorageReader offsetStorageReader =
         ofNullable(this.context).flatMap(
             context -> ofNullable(context.offsetStorageReader())).orElseThrow();
-    
 
     ArrayBlockingQueue<ServiceBusMessageHolder> recordsQueue =
         new ArrayBlockingQueue<>(recordsQueueDefaultSize);
