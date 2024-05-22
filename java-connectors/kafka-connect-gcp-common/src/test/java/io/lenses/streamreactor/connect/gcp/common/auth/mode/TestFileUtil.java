@@ -17,14 +17,17 @@ package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.io.ByteStreams;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import lombok.experimental.UtilityClass;
 
-@UtilityClass
+import com.google.common.io.ByteStreams;
+
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class TestFileUtil {
 
   static String streamToString(InputStream inputStream) throws Exception {

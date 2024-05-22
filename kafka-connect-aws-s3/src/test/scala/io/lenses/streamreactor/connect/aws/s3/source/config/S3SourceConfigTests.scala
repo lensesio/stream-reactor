@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.source.config
 
+import io.lenses.streamreactor.common.config.base.KcqlSettings
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
@@ -32,6 +33,8 @@ class S3SourceConfigTests extends AnyFunSuite with Matchers with TaskIndexKey wi
 
   implicit val taskId:    ConnectorTaskId        = ConnectorTaskId("test", 1, 1)
   implicit val validator: CloudLocationValidator = S3LocationValidator
+
+  val KCQL_CONFIG = new KcqlSettings(javaConnectorPrefix).getKcqlSettingsKey
 
   test("default recursive levels is 0") {
     S3SourceConfig.fromProps(

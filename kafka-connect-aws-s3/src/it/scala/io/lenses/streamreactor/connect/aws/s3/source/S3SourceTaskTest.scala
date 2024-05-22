@@ -3,7 +3,7 @@ package io.lenses.streamreactor.connect.aws.s3.source
 import cats.effect.unsafe.implicits.global
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import io.lenses.streamreactor.common.config.base.KcqlSettings
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.source.S3SourceTaskTest.formats
 import io.lenses.streamreactor.connect.aws.s3.storage.AwsS3DirectoryLister
@@ -56,6 +56,7 @@ class S3SourceTaskTest
   def bucketSetup:                     BucketSetup            = bucketSetupOpt.getOrElse(throw new IllegalStateException("Not initialised"))
   override def cleanUp():              Unit                   = ()
   private val filesLimit = 1000
+  val KCQL_CONFIG        = new KcqlSettings(javaConnectorPrefix).getKcqlSettingsKey
 
   def DefaultProps: Map[String, String] = defaultProps ++
     Seq(

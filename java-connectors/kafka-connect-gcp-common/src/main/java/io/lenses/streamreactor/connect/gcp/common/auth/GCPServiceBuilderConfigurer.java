@@ -24,6 +24,9 @@ import io.lenses.streamreactor.common.config.base.RetryConfig;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Supplier;
+
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.apache.kafka.common.config.ConfigException;
@@ -32,7 +35,7 @@ import org.threeten.bp.Duration;
 /**
  * Utility class for configuring generic GCP service clients using a {@link GCPConnectionConfig}.
  */
-@UtilityClass
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class GCPServiceBuilderConfigurer {
 
   /**
@@ -97,7 +100,7 @@ public class GCPServiceBuilderConfigurer {
         .build();
   }
 
-  private Supplier<ConfigException> createConfigException(String message) {
+  private static Supplier<ConfigException> createConfigException(String message) {
     return () -> new ConfigException(message);
   }
 }

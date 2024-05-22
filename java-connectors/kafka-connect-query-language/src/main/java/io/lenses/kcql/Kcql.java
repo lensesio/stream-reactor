@@ -32,6 +32,7 @@ public class Kcql {
 
   public static final String TIMESTAMP = "sys_time()";
   private static final String MSG_ILLEGAL_FIELD_ALIAS = "Illegal fieldAlias.";
+  public static final String KCQL_MULTI_STATEMENT_SEPARATOR = ";";
   private String query;
   private boolean autoCreate;
   private boolean autoEvolve;
@@ -202,6 +203,27 @@ public class Kcql {
     return properties;
   }
 
+  // TODO: Jira LC-203 improvements
+  public void validateKcqlProperties(String... allowedKeys) {
+
+    Set<String> unexpectedKeys =
+        properties.keySet().stream().filter(k -> !Arrays.stream(allowedKeys).collect(Collectors.toUnmodifiableSet())
+            .contains(k)).collect(Collectors.toUnmodifiableSet());
+    if (!unexpectedKeys.isEmpty()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Unexpected properties found: `%s`. Please check the documentation to find the properties you really need.",
+              String.join(", ", unexpectedKeys)
+          )
+      );
+    }
+  }
+
+  // TODO: Jira LC-203 improvements
+  public Optional<String> extractOptionalProperty(String key) {
+    return Optional.ofNullable(properties.get(key));
+  }
+
   public FormatType getFormatType() {
     return formatType;
   }
@@ -305,7 +327,8 @@ public class Kcql {
    * @return
    */
   public static List<Kcql> parseMultiple(final String kcqlStatements) {
-    return Arrays.stream(kcqlStatements.split(";")).map(Kcql::parse).collect(Collectors.toList());
+    return Arrays.stream(kcqlStatements.split(KCQL_MULTI_STATEMENT_SEPARATOR)).map(Kcql::parse).collect(Collectors
+        .toList());
   }
 
   public static Kcql parse(final String syntax) {
