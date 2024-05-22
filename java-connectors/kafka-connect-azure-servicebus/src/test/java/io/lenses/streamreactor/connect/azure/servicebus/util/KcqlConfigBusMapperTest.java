@@ -15,8 +15,12 @@
  */
 package io.lenses.streamreactor.connect.azure.servicebus.util;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.from;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.lenses.kcql.Kcql;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -49,19 +53,18 @@ class KcqlConfigBusMapperTest {
       inputs.add(i, newInput);
       outputs.add(i, newOutput);
       fullKcql.append(String.format(kcqlTemplate, newOutput, newInput));
-      fullKcql.append(" " + createNecessaryPropertiesPart() + ";");
+      fullKcql.append(" ").append(createNecessaryPropertiesPart()).append(";");
     }
     //when
-    Map<String, String> inputToOutputsFromConfig =
-        KcqlConfigBusMapper.mapInputToOutputsFromConfig(
-            fullKcql.toString());
+    List<Kcql> kcqls = KcqlConfigBusMapper.mapKcqlsFromConfig(
+        fullKcql.toString());
 
     //then
-    for (String input : inputToOutputsFromConfig.keySet()) {
-      int indexOfInput = inputs.indexOf(input);
-      assertNotEquals(-1, indexOfInput);
-      assertEquals(inputs.get(indexOfInput), input);
-      assertEquals(outputs.get(indexOfInput), inputToOutputsFromConfig.get(input));
+    for (int i = 0; i < numberOfMappings; i++) {
+      Kcql kcql = kcqls.get(i);
+      assertThat(kcql)
+          .returns(inputs.get(i), from(v -> v.getSource()))
+          .returns(outputs.get(i), from(v -> v.getTarget()));
     }
   }
 
@@ -197,7 +200,7 @@ class KcqlConfigBusMapperTest {
       String expectedMessage) {
     ConfigException configException =
         assertThrows(ConfigException.class,
-            () -> KcqlConfigBusMapper.mapInputToOutputsFromConfig(illegalKcql));
+            () -> KcqlConfigBusMapper.mapKcqlsFromConfig(illegalKcql));
     assertEquals(expectedMessage, configException.getMessage());
   }
 }

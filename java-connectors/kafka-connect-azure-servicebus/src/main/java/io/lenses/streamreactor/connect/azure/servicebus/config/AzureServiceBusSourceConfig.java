@@ -22,6 +22,7 @@ import lombok.Getter;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
+import org.apache.kafka.common.config.ConfigDef.Width;
 
 /**
  * Service Bus Connector Configuration class.
@@ -46,6 +47,15 @@ public class AzureServiceBusSourceConfig extends BaseConfig implements Connector
                 1,
                 ConfigDef.Width.LONG,
                 AzureServiceBusConfigConstants.CONNECTOR_NAME
+            ).define(AzureServiceBusConfigConstants.TASK_RECORDS_QUEUE_SIZE,
+                Type.INT,
+                AzureServiceBusConfigConstants.TASK_RECORDS_QUEUE_SIZE_DEFAULT,
+                Importance.MEDIUM,
+                AzureServiceBusConfigConstants.TASK_RECORDS_QUEUE_SIZE_DOC,
+                BASE_GROUP,
+                2,
+                Width.SHORT,
+                AzureServiceBusConfigConstants.TASK_RECORDS_QUEUE_SIZE
             ).define(AzureServiceBusConfigConstants.CONNECTION_STRING,
                 Type.STRING,
                 Importance.HIGH,

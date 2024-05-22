@@ -22,13 +22,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.storage.OffsetStorageReader;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,7 +36,8 @@ import org.junit.jupiter.api.Test;
 
 class TaskToReceiverBridgeTest {
 
-  Map<String, String> properties = new HashMap<>();
+  private static final String RECEIVER_ID_1 = "RECEIVER1";
+  private static final String RECEIVER_ID_2 = "RECEIVER2";
   ArrayBlockingQueue<ServiceBusMessageHolder> blockingQueue;
   OffsetStorageReader offsetReader;
 
@@ -52,16 +53,13 @@ class TaskToReceiverBridgeTest {
   void closeReceiversShouldCloseAllReceivers() {
     //given
     ExecutorService executorService = mock(ExecutorService.class);
-    String receiverId1 = "RECEIVER1";
-    String receiverId2 = "RECEIVER2";
-    ServiceBusReceiverFacade receiver1 = mock(ServiceBusReceiverFacade.class);
-    ServiceBusReceiverFacade receiver2 = mock(ServiceBusReceiverFacade.class);
-    when(receiver1.getReceiverId()).thenReturn(receiverId1);
-    when(receiver2.getReceiverId()).thenReturn(receiverId2);
+
+    ServiceBusReceiverFacade receiver1 = mockReceiver(RECEIVER_ID_1);
+    ServiceBusReceiverFacade receiver2 = mockReceiver(RECEIVER_ID_2);
     Map<String, ServiceBusReceiverFacade> receivers =
         Map.of(
-            receiverId1, receiver1,
-            receiverId2, receiver2
+            RECEIVER_ID_1, receiver1,
+            RECEIVER_ID_2, receiver2
         );
 
     //when
@@ -77,46 +75,48 @@ class TaskToReceiverBridgeTest {
   void pollShouldDrainAllMessagesFromQueue() throws InterruptedException {
     //given
     int arrayBlockingQueueCapacity = 10;
-    String receiverId1 = "RECEIVER1";
     String messageIdTemplate = "MSGID%s";
     ExecutorService executorService = mock(ExecutorService.class);
-    ServiceBusReceiverFacade receiver1 = mock(ServiceBusReceiverFacade.class);
-    List<SourceRecord> allSourceRecords = new ArrayList<>(arrayBlockingQueueCapacity);
+    ServiceBusReceiverFacade receiver1 = mockReceiver(RECEIVER_ID_1);
     BlockingQueue<ServiceBusMessageHolder> sourceRecordBlockingQueue =
         new ArrayBlockingQueue<>(arrayBlockingQueueCapacity);
-    Map<String, ServiceBusReceiverFacade> receivers = Map.of(receiverId1, receiver1);
+    Map<String, ServiceBusReceiverFacade> receivers = Map.of(RECEIVER_ID_1, receiver1);
 
-    for (int i = 0; i < arrayBlockingQueueCapacity; i++) {
-      ServiceBusMessageHolder mockedRecord = mock(ServiceBusMessageHolder.class);
-      ServiceBusReceivedMessage busReceivedMessage = mock(ServiceBusReceivedMessage.class);
+    List<SourceRecord> allSourceRecords = IntStream.range(0, arrayBlockingQueueCapacity).mapToObj(i -> {
       SourceRecord sourceRecord = mock(SourceRecord.class);
+
+      ServiceBusReceivedMessage busReceivedMessage = mock(ServiceBusReceivedMessage.class);
+      when(busReceivedMessage.getMessageId()).thenReturn(String.format(messageIdTemplate, i));
+
+      ServiceBusMessageHolder mockedRecord = mock(ServiceBusMessageHolder.class);
       when(mockedRecord.getTranslatedRecord()).thenReturn(sourceRecord);
       when(mockedRecord.getOriginalRecord()).thenReturn(busReceivedMessage);
-      when(busReceivedMessage.getMessageId()).thenReturn(String.format(messageIdTemplate, i));
-      allSourceRecords.add(sourceRecord);
-      sourceRecordBlockingQueue.put(mockedRecord);
-    }
+      try {
+        sourceRecordBlockingQueue.put(mockedRecord);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+      return sourceRecord;
+    }).collect(Collectors.toList());
 
     //when
     testObj = new TaskToReceiverBridge(sourceRecordBlockingQueue, offsetReader, receivers, executorService);
     List<SourceRecord> polled = testObj.poll();
 
     //then
-    assertThat(polled).hasSize(arrayBlockingQueueCapacity);
-    assertThat(polled).containsExactlyElementsOf(allSourceRecords);
+    assertThat(polled).hasSize(arrayBlockingQueueCapacity).containsExactlyElementsOf(allSourceRecords);
   }
 
   @Test
   void commitMessageInServiceBusShouldCallExecutorService() {
     //given
     int arrayBlockingQueueCapacity = 10;
-    String receiverId1 = "RECEIVER1";
     String messageKey = "MESSAGE_KEY";
     ExecutorService executorService = mock(ExecutorService.class);
-    ServiceBusReceiverFacade receiver1 = mock(ServiceBusReceiverFacade.class);
+    ServiceBusReceiverFacade receiver1 = mockReceiver(RECEIVER_ID_1);
     BlockingQueue<ServiceBusMessageHolder> sourceRecordBlockingQueue =
         new ArrayBlockingQueue<>(arrayBlockingQueueCapacity);
-    Map<String, ServiceBusReceiverFacade> receivers = Map.of(receiverId1, receiver1);
+    Map<String, ServiceBusReceiverFacade> receivers = Map.of(RECEIVER_ID_1, receiver1);
     SourceRecord sourceRecord = mock(SourceRecord.class);
     when(sourceRecord.key()).thenReturn(messageKey);
 
@@ -126,5 +126,12 @@ class TaskToReceiverBridgeTest {
 
     //then
     verify(executorService).submit(any(Runnable.class));
+  }
+
+  private ServiceBusReceiverFacade mockReceiver(String receiverId){
+    ServiceBusReceiverFacade receiverFacade = mock(ServiceBusReceiverFacade.class);
+    when(receiverFacade.getReceiverId()).thenReturn(receiverId);
+
+    return receiverFacade;
   }
 }

@@ -17,8 +17,11 @@ package io.lenses.streamreactor.connect.azure.servicebus.source;
 
 import static java.util.Optional.ofNullable;
 
+import io.lenses.kcql.Kcql;
 import io.lenses.streamreactor.common.util.JarManifest;
+import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfigConstants;
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusSourceConfig;
+import io.lenses.streamreactor.connect.azure.servicebus.util.KcqlConfigBusMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -34,8 +37,6 @@ import org.apache.kafka.connect.storage.OffsetStorageReader;
 @Slf4j
 public class AzureServiceBusSourceTask extends SourceTask {
 
-  private static final int RECORDS_QUEUE_DEFAULT_SIZE = 20;
-
   private final JarManifest jarManifest;
   private TaskToReceiverBridge taskToReceiverBridge;
 
@@ -50,16 +51,22 @@ public class AzureServiceBusSourceTask extends SourceTask {
 
   @Override
   public void start(Map<String, String> props) {
+    int recordsQueueDefaultSize = new AzureServiceBusSourceConfig(props)
+        .getInt(AzureServiceBusConfigConstants.TASK_RECORDS_QUEUE_SIZE);
+    String connectionString = props.get(AzureServiceBusConfigConstants.CONNECTION_STRING);
+    List<Kcql> kcqls =
+        KcqlConfigBusMapper.mapKcqlsFromConfig(props.get(AzureServiceBusConfigConstants.KCQL_CONFIG));
+
     OffsetStorageReader offsetStorageReader =
         ofNullable(this.context).flatMap(
             context -> ofNullable(context.offsetStorageReader())).orElseThrow();
-    AzureServiceBusSourceConfig azureServiceBusSourceConfig = new AzureServiceBusSourceConfig(props);
+    
 
     ArrayBlockingQueue<ServiceBusMessageHolder> recordsQueue =
-        new ArrayBlockingQueue<>(RECORDS_QUEUE_DEFAULT_SIZE);
+        new ArrayBlockingQueue<>(recordsQueueDefaultSize);
 
     TaskToReceiverBridge serviceBusReceiverBridge =
-        new TaskToReceiverBridge(props, recordsQueue, offsetStorageReader);
+        new TaskToReceiverBridge(connectionString, kcqls, recordsQueue, offsetStorageReader);
 
     initialize(serviceBusReceiverBridge);
   }

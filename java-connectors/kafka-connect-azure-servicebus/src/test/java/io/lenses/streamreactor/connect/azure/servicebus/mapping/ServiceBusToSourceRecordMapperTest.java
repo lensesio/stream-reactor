@@ -22,9 +22,9 @@ import static org.mockito.Mockito.when;
 
 import com.azure.core.util.BinaryData;
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
+import io.lenses.streamreactor.connect.azure.servicebus.source.AzureServiceBusSourceConnector;
 import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider.AzureServiceBusOffsetMarker;
 import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider.AzureServiceBusPartitionKey;
-import io.lenses.streamreactor.connect.azure.servicebus.source.AzureServiceBusSourceConnector;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;

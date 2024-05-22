@@ -44,10 +44,7 @@ class ServiceBusReceiverFacadeTest {
     Map<String, String> propertiesMap = mock(Map.class);
     when(propertiesMap.get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName())).thenReturn(queueType);
 
-    String inputBusName = "INPUT";
-    Kcql kcql = mock(Kcql.class);
-    when(kcql.getSource()).thenReturn(inputBusName);
-    when(kcql.getProperties()).thenReturn(propertiesMap);
+    Kcql kcql = mockKcql(propertiesMap);
     String receiverId1 = UUID.randomUUID().toString();
 
     ServiceBusReceiverFacade testObj =
@@ -73,10 +70,7 @@ class ServiceBusReceiverFacadeTest {
     when(propertiesMap.get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName())).thenReturn(topicType);
     when(propertiesMap.get(ServiceBusKcqlProperties.SUBSCRIPTION_NAME.getPropertyName())).thenReturn(subscriptionName);
 
-    String inputBusName = "INPUT";
-    Kcql kcql = mock(Kcql.class);
-    when(kcql.getSource()).thenReturn(inputBusName);
-    when(kcql.getProperties()).thenReturn(propertiesMap);
+    Kcql kcql = mockKcql(propertiesMap);
 
     String receiverId1 = UUID.randomUUID().toString();
 
@@ -122,5 +116,14 @@ class ServiceBusReceiverFacadeTest {
 
     //then
     verify(receiverAsyncClient).complete(mockedMessage);
+  }
+
+
+  private static Kcql mockKcql(Map<String, String> propertiesMap) {
+    String inputBusName = "INPUT";
+    Kcql kcql = mock(Kcql.class);
+    when(kcql.getSource()).thenReturn(inputBusName);
+    when(kcql.getProperties()).thenReturn(propertiesMap);
+    return kcql;
   }
 }

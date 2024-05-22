@@ -55,9 +55,9 @@ public class KcqlConfigBusMapper {
    * topic names in input and output as well as if mappings contain necessary KCQL properties.
    * 
    * @param kcqlString string to parse
-   * @return map of input to output topic names
+   * @return list of KCQLs if parsed properly
    */
-  public static Map<String, String> mapInputToOutputsFromConfig(String kcqlString) {
+  public static List<Kcql> mapKcqlsFromConfig(String kcqlString) {
     List<Kcql> kcqls = Kcql.parseMultiple(kcqlString);
     Map<String, String> inputToOutputTopics = new HashMap<>(kcqls.size());
 
@@ -93,7 +93,7 @@ public class KcqlConfigBusMapper {
       inputToOutputTopics.put(inputTopic, outputTopic);
     }
 
-    return inputToOutputTopics;
+    return kcqls;
   }
 
   private static void checkForValidPropertyValues(Map<String, String> properties) {

@@ -35,4 +35,8 @@ public class AzureServiceBusConfigConstants {
   public static final String KCQL_DOC =
       "KCQL expression describing field selection and data routing to the target.";
 
+  public static final String TASK_RECORDS_QUEUE_SIZE = "task.records.queue.size";
+  public static final String TASK_RECORDS_QUEUE_SIZE_DOC = "Task's records queue size.";
+  public static final int TASK_RECORDS_QUEUE_SIZE_DEFAULT = 20;
+
 }

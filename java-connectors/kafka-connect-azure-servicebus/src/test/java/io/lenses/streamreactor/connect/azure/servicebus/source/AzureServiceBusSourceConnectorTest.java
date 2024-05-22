@@ -22,7 +22,6 @@ import static org.mockito.Mockito.when;
 import io.lenses.streamreactor.common.util.JarManifest;
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfigConstants;
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusSourceConfig;
-import io.lenses.streamreactor.connect.azure.servicebus.util.ServiceBusKcqlProperties;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +38,7 @@ class AzureServiceBusSourceConnectorTest {
   private static final String EMPTY_STRING = "";
   private static final String JARMANIFEST_VERSION = "1.2.3";
   private static final String JARMANIFEST_STRING = "some JarManifest String";
+  private static final String VALID_KCQL = "INSERT INTO A SELECT * FROM B PROPERTIES('servicebus.type'='QUEUE');";
   private AzureServiceBusSourceConnector testObj;
   private JarManifest jarManifest;
 
@@ -110,27 +110,12 @@ class AzureServiceBusSourceConnectorTest {
   }
 
   private Map<String, String> buildValidProperties() {
-    String simpleKcql = buildKcqlWithNecessaryProperties();
     HashMap<String, String> propertyMap = new HashMap<>();
 
     propertyMap.put(AzureServiceBusConfigConstants.CONNECTOR_NAME, CONFIG_CONNECTOR_NAME);
     propertyMap.put(AzureServiceBusConfigConstants.CONNECTION_STRING, EMPTY_STRING);
-    propertyMap.put(AzureServiceBusConfigConstants.KCQL_CONFIG, simpleKcql);
+    propertyMap.put(AzureServiceBusConfigConstants.KCQL_CONFIG, VALID_KCQL);
 
     return propertyMap;
-  }
-
-  private String buildKcqlWithNecessaryProperties() {
-    final StringBuilder kcqlBuilder = new StringBuilder("INSERT INTO output SELECT * FROM input ");
-    kcqlBuilder.append("PROPERTIES(");
-
-    for (ServiceBusKcqlProperties property : ServiceBusKcqlProperties.values()) {
-      kcqlBuilder.append("'" + property.getPropertyName() + "'='" + property.getPropertyName() + "',");
-    }
-
-    //delete comma after last property, close properties
-    kcqlBuilder.deleteCharAt(kcqlBuilder.lastIndexOf(",")).append(")");
-
-    return kcqlBuilder.toString();
   }
 }

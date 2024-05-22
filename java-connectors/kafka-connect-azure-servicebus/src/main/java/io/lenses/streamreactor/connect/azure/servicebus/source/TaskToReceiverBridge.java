@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.azure.servicebus.source;
 
 import io.lenses.kcql.Kcql;
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfigConstants;
+import io.lenses.streamreactor.connect.azure.servicebus.util.KcqlConfigBusMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +57,26 @@ public class TaskToReceiverBridge {
     this.recordsQueue = recordsQueue;
     this.offsetProvider = new ServiceBusPartitionOffsetProvider(offsetStorageReader);
     String connectionString = properties.get(AzureServiceBusConfigConstants.CONNECTION_STRING);
-    List<Kcql> kcqls = Kcql.parseMultiple(properties.get(AzureServiceBusConfigConstants.KCQL_CONFIG));
+    List<Kcql> kcqls =
+        KcqlConfigBusMapper.mapKcqlsFromConfig(properties.get(AzureServiceBusConfigConstants.KCQL_CONFIG));
+    sentMessagesExecutors = Executors.newFixedThreadPool(kcqls.size() * 2);
+    recordsToCommitMap = new ConcurrentHashMap<>(INITIAL_RECORDS_TO_COMMIT_SIZE);
+
+    initiateReceivers(recordsQueue, kcqls, connectionString);
+  }
+
+  /**
+   * Creates Bridge between Receivers and Connector's Task for Azure Service Bus.
+   *
+   * @param connectionString    Service Bus connection string
+   * @param kcqls               list of KCQLs to initiate Receivers for.
+   * @param recordsQueue        records queue used to store received messages.
+   * @param offsetStorageReader offset storage reader from Task.
+   */
+  public TaskToReceiverBridge(String connectionString, List<Kcql> kcqls,
+      BlockingQueue<ServiceBusMessageHolder> recordsQueue, OffsetStorageReader offsetStorageReader) {
+    this.recordsQueue = recordsQueue;
+    this.offsetProvider = new ServiceBusPartitionOffsetProvider(offsetStorageReader);
     sentMessagesExecutors = Executors.newFixedThreadPool(kcqls.size() * 2);
     recordsToCommitMap = new ConcurrentHashMap<>(INITIAL_RECORDS_TO_COMMIT_SIZE);
 

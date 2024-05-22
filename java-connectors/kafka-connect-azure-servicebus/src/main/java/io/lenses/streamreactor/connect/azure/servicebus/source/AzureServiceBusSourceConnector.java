@@ -18,7 +18,9 @@ package io.lenses.streamreactor.connect.azure.servicebus.source;
 import static io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader;
 
 import io.lenses.streamreactor.common.util.JarManifest;
+import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfigConstants;
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusSourceConfig;
+import io.lenses.streamreactor.connect.azure.servicebus.util.KcqlConfigBusMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +49,7 @@ public class AzureServiceBusSourceConnector extends SourceConnector {
 
   private void parseAndValidateConfigs(Map<String, String> props) {
     new AzureServiceBusSourceConfig(props);
+    KcqlConfigBusMapper.mapKcqlsFromConfig(props.get(AzureServiceBusConfigConstants.KCQL_CONFIG));
   }
 
   @Override

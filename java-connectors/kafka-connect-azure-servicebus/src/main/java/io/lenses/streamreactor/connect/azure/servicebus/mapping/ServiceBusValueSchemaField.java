@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.azure.servicebus.mapping;
 
-import java.util.ArrayList;
 import java.util.List;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -25,9 +24,7 @@ import org.apache.kafka.connect.data.Schema;
  */
 public class ServiceBusValueSchemaField {
 
-  private static int NUMBER_OF_FIELDS = 17;
-  private static final List<Field> ALL_FIELDS;
-
+  private static final int NUMBER_OF_FIELDS = 17;
   public static final Field DELIVERY_COUNT =
       new Field(SchemaFieldConstants.DELIVERY_COUNT, 0, Schema.INT64_SCHEMA);
   public static final Field ENQUEUED_TIME_UTC =
@@ -63,26 +60,25 @@ public class ServiceBusValueSchemaField {
   public static final Field GET_TO =
       new Field(SchemaFieldConstants.GET_TO, 16, Schema.OPTIONAL_STRING_SCHEMA);
 
-  static {
-    ALL_FIELDS = new ArrayList<>(NUMBER_OF_FIELDS);
-    ALL_FIELDS.add(DELIVERY_COUNT);
-    ALL_FIELDS.add(ENQUEUED_TIME_UTC);
-    ALL_FIELDS.add(CONTENT_TYPE);
-    ALL_FIELDS.add(LABEL);
-    ALL_FIELDS.add(CORRELATION_ID);
-    ALL_FIELDS.add(MESSAGE_PROPERTIES);
-    ALL_FIELDS.add(PARTITION_KEY);
-    ALL_FIELDS.add(REPLY_TO);
-    ALL_FIELDS.add(REPLY_TO_SESSION_ID);
-    ALL_FIELDS.add(DEAD_LETTER_SOURCE);
-    ALL_FIELDS.add(TIME_TO_LIVE);
-    ALL_FIELDS.add(LOCKED_UNTIL_UTC);
-    ALL_FIELDS.add(SEQUENCE_NUMBER);
-    ALL_FIELDS.add(SESSION_ID);
-    ALL_FIELDS.add(LOCK_TOKEN);
-    ALL_FIELDS.add(MESSAGE_BODY);
-    ALL_FIELDS.add(GET_TO);
-  }
+  private static final List<Field> ALL_FIELDS =
+      List.of(
+          DELIVERY_COUNT,
+          ENQUEUED_TIME_UTC,
+          CONTENT_TYPE,
+          LABEL,
+          CORRELATION_ID,
+          MESSAGE_PROPERTIES,
+          PARTITION_KEY,
+          REPLY_TO,
+          REPLY_TO_SESSION_ID,
+          DEAD_LETTER_SOURCE,
+          TIME_TO_LIVE,
+          LOCKED_UNTIL_UTC,
+          SEQUENCE_NUMBER,
+          SESSION_ID,
+          LOCK_TOKEN,
+          MESSAGE_BODY,
+          GET_TO);
 
   private ServiceBusValueSchemaField() {
   }

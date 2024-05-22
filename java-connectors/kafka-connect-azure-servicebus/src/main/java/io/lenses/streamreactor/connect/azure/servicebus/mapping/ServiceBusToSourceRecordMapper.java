@@ -38,7 +38,6 @@ import java.util.Map;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.source.SourceRecord;
 
 /**
@@ -70,30 +69,30 @@ public class ServiceBusToSourceRecordMapper {
   public static SourceRecord mapSingleServiceBusMessage(ServiceBusReceivedMessage serviceBusMessage, String outputTopic,
       Map<String, String> partitionKey, Map<String, Object> offsetMap) {
     String key = serviceBusMessage.getMessageId();
-    Struct valueObject = new Struct(VALUE_SCHEMA);
 
-    mapValuesFromServiceBusMessage(valueObject, serviceBusMessage);
-    return new AzureServiceBusSourceRecord(partitionKey, offsetMap, outputTopic, null, Schema.STRING_SCHEMA, key,
-        VALUE_SCHEMA, valueObject, serviceBusMessage.getEnqueuedTime().toEpochSecond(), new ConnectHeaders());
+    Struct valueObject = createStructFromServiceBusMessage(serviceBusMessage);
+    return new AzureServiceBusSourceRecord(partitionKey, offsetMap, outputTopic, key,
+        VALUE_SCHEMA, valueObject, serviceBusMessage.getEnqueuedTime().toEpochSecond());
   }
 
-  private static void mapValuesFromServiceBusMessage(Struct targetObject, ServiceBusReceivedMessage serviceBusMessage) {
-    targetObject.put(DELIVERY_COUNT, serviceBusMessage.getDeliveryCount());
-    targetObject.put(ENQUEUED_TIME_UTC, serviceBusMessage.getEnqueuedTime().toEpochSecond());
-    targetObject.put(CONTENT_TYPE, serviceBusMessage.getContentType());
-    targetObject.put(LABEL, AzureServiceBusSourceConnector.class.getSimpleName());
-    targetObject.put(CORRELATION_ID, serviceBusMessage.getCorrelationId());
-    targetObject.put(PARTITION_KEY, serviceBusMessage.getPartitionKey());
-    targetObject.put(REPLY_TO, serviceBusMessage.getReplyTo());
-    targetObject.put(REPLY_TO_SESSION_ID, serviceBusMessage.getReplyToSessionId());
-    targetObject.put(DEAD_LETTER_SOURCE, serviceBusMessage.getDeadLetterSource());
-    targetObject.put(TIME_TO_LIVE, serviceBusMessage.getTimeToLive().toMillis());
-    targetObject.put(LOCKED_UNTIL_UTC, serviceBusMessage.getLockedUntil().toEpochSecond());
-    targetObject.put(SEQUENCE_NUMBER, serviceBusMessage.getSequenceNumber());
-    targetObject.put(SESSION_ID, serviceBusMessage.getSessionId());
-    targetObject.put(LOCK_TOKEN, serviceBusMessage.getLockToken());
-    targetObject.put(MESSAGE_BODY, serviceBusMessage.getBody().toBytes());
-    targetObject.put(GET_TO, serviceBusMessage.getTo());
+  private static Struct createStructFromServiceBusMessage(final ServiceBusReceivedMessage serviceBusMessage) {
+    return new Struct(VALUE_SCHEMA)
+        .put(DELIVERY_COUNT, serviceBusMessage.getDeliveryCount())
+        .put(ENQUEUED_TIME_UTC, serviceBusMessage.getEnqueuedTime().toEpochSecond())
+        .put(CONTENT_TYPE, serviceBusMessage.getContentType())
+        .put(LABEL, AzureServiceBusSourceConnector.class.getSimpleName())
+        .put(CORRELATION_ID, serviceBusMessage.getCorrelationId())
+        .put(PARTITION_KEY, serviceBusMessage.getPartitionKey())
+        .put(REPLY_TO, serviceBusMessage.getReplyTo())
+        .put(REPLY_TO_SESSION_ID, serviceBusMessage.getReplyToSessionId())
+        .put(DEAD_LETTER_SOURCE, serviceBusMessage.getDeadLetterSource())
+        .put(TIME_TO_LIVE, serviceBusMessage.getTimeToLive().toMillis())
+        .put(LOCKED_UNTIL_UTC, serviceBusMessage.getLockedUntil().toEpochSecond())
+        .put(SEQUENCE_NUMBER, serviceBusMessage.getSequenceNumber())
+        .put(SESSION_ID, serviceBusMessage.getSessionId())
+        .put(LOCK_TOKEN, serviceBusMessage.getLockToken())
+        .put(MESSAGE_BODY, serviceBusMessage.getBody().toBytes())
+        .put(GET_TO, serviceBusMessage.getTo());
   }
 
 }

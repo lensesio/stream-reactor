@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.azure.servicebus.mapping;
 import java.util.Map;
 import lombok.ToString;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.header.Header;
+import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.source.SourceRecord;
 
 /**
@@ -28,8 +28,8 @@ import org.apache.kafka.connect.source.SourceRecord;
 public class AzureServiceBusSourceRecord extends SourceRecord {
 
   public AzureServiceBusSourceRecord(Map<String, ?> sourcePartition, Map<String, ?> sourceOffset,
-      String topic, Integer partition, Schema keySchema, Object key,
-      Schema valueSchema, Object value, Long timestamp, Iterable<Header> headers) {
-    super(sourcePartition, sourceOffset, topic, partition, keySchema, key, valueSchema, value, timestamp, headers);
+      String topic, Object key, Schema valueSchema, Object value, Long timestamp) {
+    super(sourcePartition, sourceOffset, topic, null,
+        Schema.STRING_SCHEMA, key, valueSchema, value, timestamp, new ConnectHeaders());
   }
 }
