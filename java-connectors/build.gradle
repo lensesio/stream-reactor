@@ -94,6 +94,8 @@ allprojects {
     }
 
     shadowJar {
+        def artifactVersion = (gitTag == null || gitTag.isBlank()) ?
+                project.version : gitTag
 
         manifest {
             attributes("StreamReactor-Version": project.version,
@@ -107,7 +109,7 @@ allprojects {
             )
         }
         configurations = [project.configurations.compileClasspath]
-        //archiveBaseName = "${project.name}-${project.version}-${kafkaVersion}-all"
+        archiveFileName = "${project.name}-${artifactVersion}-all.jar"
         zip64 true
 
         mergeServiceFiles {
