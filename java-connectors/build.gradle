@@ -94,11 +94,10 @@ allprojects {
     }
 
     shadowJar {
-        def artifactVersion = (gitTag == null || gitTag.isBlank()) ?
-                project.version : gitTag
+        def artifactVersion = gitTag?.trim() ? gitTag : project.version
 
         manifest {
-            attributes("StreamReactor-Version": project.version,
+            attributes("StreamReactor-Version": artifactVersion,
                     "Kafka-Version": kafkaVersion,
                     "Created-By": "Lenses",
                     "Created-At": new Date().format("YYYYMMDDHHmm"),
