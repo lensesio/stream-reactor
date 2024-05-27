@@ -1,5 +1,6 @@
 .gradle
 build/
+target/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
@@ -45,4 +46,4 @@ bin/
 ### Lenses-specific ###
 release/
 gradle-modules.txt
-**/src/main/gen/*
+gradle-test-modules.txt
