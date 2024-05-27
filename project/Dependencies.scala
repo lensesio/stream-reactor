@@ -41,7 +41,7 @@ object Dependencies {
     val scalaCheckVersion              = "1.18.0"
 
     val junitJupiterVersion = "5.10.2"
-    val assertjCoreVersion  = "3.25.3"
+    val assertjCoreVersion  = "3.26.0"
 
     val kafkaVersion:     String = "3.7.0"
     val confluentVersion: String = "7.6.1"
