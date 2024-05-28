@@ -15,8 +15,6 @@
  */
 package io.lenses.streamreactor.connect.azure.servicebus.source;
 
-import static java.util.Optional.ofNullable;
-
 import io.lenses.kcql.Kcql;
 import io.lenses.streamreactor.common.util.JarManifest;
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfigConstants;
@@ -29,7 +27,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
-import org.apache.kafka.connect.storage.OffsetStorageReader;
 
 /**
  * Implementation of {@link SourceTask} for Microsoft Azure EventHubs.
@@ -51,22 +48,18 @@ public class AzureServiceBusSourceTask extends SourceTask {
 
   @Override
   public void start(Map<String, String> props) {
-    int recordsQueueDefaultSize =
+    int recordsQueueSize =
         new AzureServiceBusSourceConfig(props)
             .getInt(AzureServiceBusConfigConstants.TASK_RECORDS_QUEUE_SIZE);
     String connectionString = props.get(AzureServiceBusConfigConstants.CONNECTION_STRING);
     List<Kcql> kcqls =
         KcqlConfigBusMapper.mapKcqlsFromConfig(props.get(AzureServiceBusConfigConstants.KCQL_CONFIG));
 
-    OffsetStorageReader offsetStorageReader =
-        ofNullable(this.context).flatMap(
-            context -> ofNullable(context.offsetStorageReader())).orElseThrow();
-
     ArrayBlockingQueue<ServiceBusMessageHolder> recordsQueue =
-        new ArrayBlockingQueue<>(recordsQueueDefaultSize);
+        new ArrayBlockingQueue<>(recordsQueueSize);
 
     TaskToReceiverBridge serviceBusReceiverBridge =
-        new TaskToReceiverBridge(connectionString, kcqls, recordsQueue, offsetStorageReader);
+        new TaskToReceiverBridge(connectionString, kcqls, recordsQueue);
 
     initialize(serviceBusReceiverBridge);
   }

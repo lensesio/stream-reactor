@@ -15,9 +15,11 @@
  */
 package io.lenses.streamreactor.common.config.source;
 
+import java.util.Map;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.types.Password;
 
 /**
@@ -26,6 +28,10 @@ import org.apache.kafka.common.config.types.Password;
  */
 @AllArgsConstructor
 public class ConfigWrapperSource implements ConfigSource {
+
+  public static ConfigWrapperSource fromConfigDef(ConfigDef configDef, Map<String, String> props) {
+    return new ConfigWrapperSource(new AbstractConfig(configDef, props));
+  }
 
   private final AbstractConfig abstractConfig;
 

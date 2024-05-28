@@ -149,7 +149,7 @@ public class ServiceBusReceiverFacade {
           offer = recordsQueue.offer(serviceBusMessageHolder, FIVE_SECONDS_TIMEOUT, TimeUnit.SECONDS);
         }
       } catch (InterruptedException e) {
-        log.info("{} has been interrupted on offering", receiverId);
+        log.warn("{} has been interrupted on offering", receiverId);
       }
     };
   }

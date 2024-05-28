@@ -65,14 +65,6 @@ public final class ServiceBusPartitionOffsetProvider {
       this.put(BUS_KEY, topic);
       this.put(PARTITION_KEY, partition);
     }
-
-    public String getTopic() {
-      return get(BUS_KEY);
-    }
-
-    public Integer getPartition() {
-      return Integer.valueOf(get(PARTITION_KEY));
-    }
   }
 
   /**

@@ -29,6 +29,7 @@ allprojects {
         jUnitVersion = '5.9.1'
         mockitoJupiterVersion = '5.10.0'
         apacheToConfluentVersionAxis = ["2.8.1": "6.2.2", "3.3.0": "7.3.1"]
+        caffeineVersion = '3.1.8'
 
         //Other Manifest Info
         mainClassName = ''
@@ -62,7 +63,8 @@ allprojects {
 
         //tests
         testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoJupiterVersion
-        testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: mockitoJupiterVersion
+        testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: mockitoJupiterVersion
+        testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: jUnitVersion
         testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.25.3'
 
     }
@@ -92,9 +94,10 @@ allprojects {
     }
 
     shadowJar {
+        def artifactVersion = gitTag?.trim() ? gitTag : project.version
 
         manifest {
-            attributes("StreamReactor-Version": project.version,
+            attributes("StreamReactor-Version": artifactVersion,
                     "Kafka-Version": kafkaVersion,
                     "Created-By": "Lenses",
                     "Created-At": new Date().format("YYYYMMDDHHmm"),
@@ -105,7 +108,7 @@ allprojects {
             )
         }
         configurations = [project.configurations.compileClasspath]
-        //archiveBaseName = "${project.name}-${project.version}-${kafkaVersion}-all"
+        archiveFileName = "${project.name}-${artifactVersion}-all.jar"
         zip64 true
 
         mergeServiceFiles {
@@ -166,6 +169,21 @@ task prepareRelease(dependsOn: [collectFatJar]) {
     dependsOn subprojects.collectFatJar
 }
 
+task testModuleList() {
+    def nonTestModules = ["java-reactor"]
+
+    def modulesFile = new File("gradle-test-modules.txt")
+    modulesFile.delete()
+    modulesFile.createNewFile()
+
+    def modulesBuilder = new StringBuilder("[")
+    allprojects.name.stream()
+            .filter {moduleName -> !nonTestModules.contains(moduleName)}
+            .forEach {moduleName -> modulesBuilder.append("\"" + moduleName + "\",") }
+    modulesBuilder.deleteCharAt(modulesBuilder.lastIndexOf(",")).append("]")
+    modulesFile.append(modulesBuilder)
+}
+
 task releaseModuleList() {
     def nonReleaseModules = ["java-reactor", "kafka-connect-cloud-common",
                             "kafka-connect-common", "kafka-connect-query-language"]
@@ -180,4 +198,9 @@ task releaseModuleList() {
             .forEach {moduleName -> modulesBuilder.append("\"" + moduleName + "\",") }
     modulesBuilder.deleteCharAt(modulesBuilder.lastIndexOf(",")).append("]")
     modulesFile.append(modulesBuilder)
+}
+
+task prepareModuleList() {
+    dependsOn testModuleList
+    dependsOn releaseModuleList
 }

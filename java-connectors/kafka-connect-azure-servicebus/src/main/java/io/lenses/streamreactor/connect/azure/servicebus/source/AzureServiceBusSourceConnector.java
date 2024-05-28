@@ -21,10 +21,10 @@ import io.lenses.streamreactor.common.util.JarManifest;
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfigConstants;
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusSourceConfig;
 import io.lenses.streamreactor.connect.azure.servicebus.util.KcqlConfigBusMapper;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.IntStream;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
@@ -60,10 +60,10 @@ public class AzureServiceBusSourceConnector extends SourceConnector {
   @Override
   public List<Map<String, String>> taskConfigs(int maxTasks) {
     log.info("Setting task configurations for {} workers.", maxTasks);
-    List<Map<String, String>> taskConfigs = new ArrayList<>(maxTasks);
 
-    IntStream.range(0, maxTasks).forEach(task -> taskConfigs.add(configProperties));
-    return taskConfigs;
+    return Stream.generate(() -> Map.copyOf(configProperties))
+        .limit(maxTasks)
+        .collect(Collectors.toList());
   }
 
   @Override
