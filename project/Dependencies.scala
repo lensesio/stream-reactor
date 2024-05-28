@@ -41,7 +41,7 @@ object Dependencies {
     val scalaCheckVersion              = "1.18.0"
 
     val junitJupiterVersion = "5.10.2"
-    val assertjCoreVersion  = "3.25.3"
+    val assertjCoreVersion  = "3.26.0"
 
     val kafkaVersion:     String = "3.7.0"
     val confluentVersion: String = "7.6.1"
@@ -69,15 +69,15 @@ object Dependencies {
     val logbackVersion      = "1.5.6"
     val scalaLoggingVersion = "3.9.5"
 
-    val wiremockVersion = "3.5.4"
+    val wiremockVersion = "3.6.0"
     val parquetVersion  = "1.13.1"
 
-    val jerseyCommonVersion = "3.1.6"
+    val jerseyCommonVersion = "3.1.7"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.25.50"
+    val awsSdkVersion  = "2.25.60"
 
-    val azureDataLakeVersion = "12.18.4"
+    val azureDataLakeVersion = "12.19.0"
     val azureIdentityVersion = "1.12.1"
     val azureCoreVersion     = "1.49.0"
     val gcpCloudVersion      = "2.37.0"
@@ -93,7 +93,7 @@ object Dependencies {
     val lz4Version = "1.8.0"
 
     val bouncyCastleVersion = "1.78.1"
-    val nettyVersion        = "4.1.109.Final"
+    val nettyVersion        = "4.1.110.Final"
 
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
@@ -102,7 +102,7 @@ object Dependencies {
     val testcontainersScalaVersion = "0.41.3"
     val testcontainersVersion      = "1.19.8"
 
-    val influxVersion = "7.0.0"
+    val influxVersion = "7.1.0"
 
     val jmsApiVersion         = "3.1.0"
     val activeMqVersion       = "6.1.2"
@@ -113,7 +113,7 @@ object Dependencies {
 
     val commonsNetVersion      = "3.10.0"
     val commonsCodecVersion    = "1.17.0"
-    val commonsCompressVersion = "1.26.1"
+    val commonsCompressVersion = "1.26.2"
     val commonsConfigVersion   = "2.10.1"
     val commonsIOVersion       = "2.16.1"
     val commonsHttpVersion     = "4.5.14"
@@ -127,8 +127,8 @@ object Dependencies {
 
     val mongoDbVersion = "3.12.14"
 
-    val jedisVersion = "5.1.2"
-    val gsonVersion  = "2.10.1"
+    val jedisVersion = "5.1.3"
+    val gsonVersion  = "2.11.0"
 
     val nimbusJoseJwtVersion        = "9.37.3"
     val hadoopVersion               = "3.4.0"

@@ -3,4 +3,5 @@ include 'kafka-connect-common',
 'kafka-connect-azure-eventhubs',
 'kafka-connect-azure-servicebus',
 'kafka-connect-query-language',
-'kafka-connect-gcp-common'
+'kafka-connect-gcp-common',
+'kafka-connect-gcp-pubsub'

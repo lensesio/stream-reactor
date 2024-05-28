@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.cloud.common.sink.transformers
 
 import cats.implicits.catsSyntaxEitherId
+import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.JsonFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.ParquetFormatSelection
@@ -40,19 +41,21 @@ case class SequenceTransformer(transformers: Transformer*) extends Transformer {
 case class TopicsTransformers(transformers: Map[Topic, Transformer]) extends Transformer {
   def get(topic:         Topic): Option[Transformer] = transformers.get(topic)
   def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] =
-    transformers.get(message.topic).fold(message.asRight[RuntimeException])(_.transform(message))
+    transformers.get(message.topic)
+    //check to see if there is a `*`
+      .orElse(transformers.get(Topic.All))
+      .fold(message.asRight[RuntimeException])(_.transform(message))
 }
 
-object TopicsTransformers {
+object TopicsTransformers extends StrictLogging {
   def from(bucketOptions: Seq[WithTransformableDataStorage]): TopicsTransformers = {
-
     val transformersMap =
       bucketOptions
-        .filter(_.sourceTopic.nonEmpty)
         .foldLeft(Map.empty[Topic, Transformer]) {
           case (map, bo) =>
             if (bo.dataStorage.hasEnvelope) {
-              val topic = Topic(bo.sourceTopic.get)
+              //replace empty with `*`. This is because CloudSinkBucketOptions moves `*` to empty
+              val topic = Topic(bo.sourceTopic.getOrElse("*"))
               bo.formatSelection match {
                 case JsonFormatSelection =>
                   val transformer = SequenceTransformer(SchemalessEnvelopeTransformer(topic, bo.dataStorage))

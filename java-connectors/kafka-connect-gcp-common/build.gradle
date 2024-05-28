@@ -5,7 +5,7 @@ project(":kafka-connect-gcp-common") {
     }
 
     ext {
-        gcpCloudVersion = "2.37.0"
+        gcpCloudVersion = "26.38.0"
     }
 
     dependencies {
@@ -16,7 +16,9 @@ project(":kafka-connect-gcp-common") {
         api group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
 
         //gcp
-        implementation group: 'com.google.cloud', name: 'google-cloud-core', version: gcpCloudVersion
-        implementation group: 'com.google.cloud', name: 'google-cloud-core-http', version: gcpCloudVersion
+        implementation platform(group: 'com.google.cloud', name: 'libraries-bom', version: gcpCloudVersion)
+
+        implementation 'com.google.cloud:google-cloud-core'
+        implementation 'com.google.cloud:google-cloud-core-http'
     }
 }

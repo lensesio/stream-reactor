@@ -4,6 +4,9 @@ project(":kafka-connect-common") {
     }
 
     dependencies {
+
+        implementation project(":kafka-connect-query-language")
+
         //apache kafka
         api group: 'org.apache.kafka', name: 'connect-json', version: kafkaVersion
         api group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
