@@ -41,7 +41,7 @@ object Dependencies {
     val scalaCheckVersion              = "1.18.0"
 
     val junitJupiterVersion = "5.10.2"
-    val assertjCoreVersion  = "3.25.3"
+    val assertjCoreVersion  = "3.26.0"
 
     val kafkaVersion:     String = "3.7.0"
     val confluentVersion: String = "7.6.1"
@@ -72,10 +72,10 @@ object Dependencies {
     val wiremockVersion = "3.6.0"
     val parquetVersion  = "1.13.1"
 
-    val jerseyCommonVersion = "3.1.6"
+    val jerseyCommonVersion = "3.1.7"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.25.58"
+    val awsSdkVersion  = "2.25.60"
 
     val azureDataLakeVersion = "12.19.0"
     val azureIdentityVersion = "1.12.1"
@@ -113,7 +113,7 @@ object Dependencies {
 
     val commonsNetVersion      = "3.10.0"
     val commonsCodecVersion    = "1.17.0"
-    val commonsCompressVersion = "1.26.1"
+    val commonsCompressVersion = "1.26.2"
     val commonsConfigVersion   = "2.10.1"
     val commonsIOVersion       = "2.16.1"
     val commonsHttpVersion     = "4.5.14"
