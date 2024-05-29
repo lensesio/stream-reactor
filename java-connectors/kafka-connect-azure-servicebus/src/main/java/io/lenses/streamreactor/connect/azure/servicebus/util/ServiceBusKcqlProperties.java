@@ -47,7 +47,7 @@ public enum ServiceBusKcqlProperties {
         .collect(Collectors.toList());
   }
 
-  private class PropertiesConstants {
+  private static class PropertiesConstants {
 
     private static final String SERVICE_BUS_TYPE_PROP = "servicebus.type";
     private static final String SERVICE_BUS_TYPE_DESC = "ServiceBus Type: QUEUE/TOPIC";

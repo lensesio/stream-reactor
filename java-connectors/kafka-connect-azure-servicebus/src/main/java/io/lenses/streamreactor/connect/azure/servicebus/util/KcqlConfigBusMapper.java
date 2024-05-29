@@ -22,11 +22,14 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.apache.kafka.common.config.ConfigException;
 
 /**
  * Class that represents methods around KCQL topic handling.
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class KcqlConfigBusMapper {
 
   private static final String AZURE_NAME_REGEX = "^[A-Za-z0-9]$|^[A-Za-z0-9][\\w-\\.\\/\\~]*[A-Za-z0-9]$";

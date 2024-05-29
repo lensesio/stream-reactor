@@ -77,8 +77,5 @@ public final class ServiceBusPartitionOffsetProvider {
       put(MESSAGE_ID_KEY, offset);
     }
 
-    public Long getOffsetValue() {
-      return (Long) get(MESSAGE_ID_KEY);
-    }
   }
 }

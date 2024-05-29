@@ -16,10 +16,13 @@
 package io.lenses.streamreactor.connect.azure.servicebus.config;
 
 import io.lenses.streamreactor.connect.azure.servicebus.source.AzureServiceBusSourceConnector;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
  * Class to indicate String constants used in Service Bus Connectors Config.
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AzureServiceBusConfigConstants {
 
   private static final String DOT = ".";

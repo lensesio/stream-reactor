@@ -64,8 +64,8 @@ class KcqlConfigBusMapperTest {
     for (int i = 0; i < numberOfMappings; i++) {
       Kcql kcql = kcqls.get(i);
       assertThat(kcql)
-          .returns(inputs.get(i), from(v -> v.getSource()))
-          .returns(outputs.get(i), from(v -> v.getTarget()));
+          .returns(inputs.get(i), from(Kcql::getSource))
+          .returns(outputs.get(i), from(Kcql::getTarget));
     }
   }
 

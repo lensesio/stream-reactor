@@ -105,13 +105,12 @@ class ServiceBusReceiverFacadeTest {
   void completeShouldCallRecieverComplete() {
     //given
     Kcql kcql = mock(Kcql.class);
-    String receiverId1 = SOME_RECEIVER_ID;
     ServiceBusReceiverAsyncClient receiverAsyncClient = mock(ServiceBusReceiverAsyncClient.class);
     ServiceBusReceivedMessage mockedMessage = mock(ServiceBusReceivedMessage.class);
 
     //when
     ServiceBusReceiverFacade serviceBusReceiverFacade =
-        new ServiceBusReceiverFacade(kcql, mockedQueue, CONNECTION_STRING, receiverId1, receiverAsyncClient);
+        new ServiceBusReceiverFacade(kcql, mockedQueue, CONNECTION_STRING, SOME_RECEIVER_ID, receiverAsyncClient);
     serviceBusReceiverFacade.complete(mockedMessage);
 
     //then
