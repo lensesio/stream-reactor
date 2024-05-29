@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.common.util;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Collections;
@@ -27,52 +28,51 @@ import org.junit.jupiter.api.function.Executable;
 
 class ListSplitterTest {
 
-  private final List<Integer> list = IntStream.range(1, 11).boxed().collect(Collectors.toList());
+  private final List<Integer> list = IntStream.rangeClosed(1, 10).boxed().collect(Collectors.toList());
 
   @Test
   void testSplitListIntoEqualParts() {
     List<List<Integer>> result = ListSplitter.splitList(list, 5);
-    assertEquals(5, result.size());
-    for (List<Integer> sublist : result) {
-      assertEquals(2, sublist.size());
-    }
+    assertThat(result)
+        .hasSize(5)
+        .allMatch(sublist -> sublist.size() == 2);
   }
 
   @Test
   void testSplitListWithRemainder() {
     List<List<Integer>> result = ListSplitter.splitList(list, 3);
-    assertEquals(3, result.size());
-    assertEquals(4, result.get(0).size());
-    assertEquals(3, result.get(1).size());
-    assertEquals(3, result.get(2).size());
+    assertThat(result)
+        .hasSize(3)
+        .containsAll(List.of(
+            List.of(1, 2, 3, 4),
+            List.of(5, 6, 7),
+            List.of(8, 9, 10)
+        )
+        );
   }
 
   @Test
   void testSplitListSinglePart() {
     List<List<Integer>> result = ListSplitter.splitList(list, 1);
-    assertEquals(1, result.size());
-    assertEquals(10, result.get(0).size());
+    assertThat(result)
+        .hasSize(1)
+        .containsExactly(list);
   }
 
   @Test
   void testSplitListMorePartsThanElements() {
     List<List<Integer>> result = ListSplitter.splitList(list, 12);
-    assertEquals(12, result.size());
-    int nonEmptyLists = (int) result.stream().filter(sublist -> !sublist.isEmpty()).count();
-    assertEquals(10, nonEmptyLists);
-    for (List<Integer> sublist : result) {
-      assertTrue(sublist.size() <= 1);
-    }
+    assertThat(result)
+        .hasSize(10)
+        .doesNotContain(Collections.emptyList())
+        .allMatch(sublist -> sublist.size() == 1);
   }
 
   @Test
   void testSplitEmptyList() {
     List<Integer> emptyList = Collections.emptyList();
     List<List<Integer>> result = ListSplitter.splitList(emptyList, 3);
-    assertEquals(3, result.size());
-    for (List<Integer> sublist : result) {
-      assertTrue(sublist.isEmpty());
-    }
+    assertThat(result).isEmpty();
   }
 
   @Test
@@ -84,9 +84,6 @@ class ListSplitterTest {
   @Test
   void testListSmallerThanMaxNShouldProvideMaxNResults() {
     List<List<Integer>> result = ListSplitter.splitList(Collections.singletonList(1), 100);
-    assertEquals(1, result.size());
-    for (List<Integer> sublist : result) {
-      assertEquals(1, sublist.size());
-    }
+    assertThat(result).hasSize(1).allMatch(l -> l.size() == 1);
   }
 }
