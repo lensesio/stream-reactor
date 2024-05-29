@@ -46,7 +46,7 @@ public class AzureEventHubsSourceTask extends SourceTask {
   private BlockingQueueProducerProvider blockingQueueProducerProvider;
 
   public AzureEventHubsSourceTask() {
-    jarManifest = new JarManifest(getClass().getProtectionDomain().getCodeSource().getLocation());
+    jarManifest = JarManifest.produceFromClass(getClass());
   }
 
   public AzureEventHubsSourceTask(JarManifest jarManifest) {

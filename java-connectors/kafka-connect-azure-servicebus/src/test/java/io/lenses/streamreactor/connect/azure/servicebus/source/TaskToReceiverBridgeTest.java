@@ -49,8 +49,8 @@ class TaskToReceiverBridgeTest {
     //given
     ExecutorService executorService = mock(ExecutorService.class);
 
-    ServiceBusReceiverFacade receiver1 = mockReceiver();
-    ServiceBusReceiverFacade receiver2 = mockReceiver();
+    ServiceBusReceiverFacade receiver1 = mock(ServiceBusReceiverFacade.class);
+    ServiceBusReceiverFacade receiver2 = mock(ServiceBusReceiverFacade.class);
     Map<String, ServiceBusReceiverFacade> receivers =
         Map.of(
             RECEIVER_ID_1, receiver1,
@@ -67,7 +67,7 @@ class TaskToReceiverBridgeTest {
   }
 
   @Test
-  void pollShouldDrainAllMessagesFromQueue() throws InterruptedException {
+  void pollShouldDrainAllMessagesFromQueue() {
     //given
     int arrayBlockingQueueCapacity = 10;
     String messageIdTemplate = "MSGID%s";
@@ -75,7 +75,7 @@ class TaskToReceiverBridgeTest {
         new ArrayBlockingQueue<>(arrayBlockingQueueCapacity);
 
     ExecutorService executorService = mock(ExecutorService.class);
-    ServiceBusReceiverFacade receiver1 = mockReceiver();
+    ServiceBusReceiverFacade receiver1 = mock(ServiceBusReceiverFacade.class);
 
     Map<String, ServiceBusReceiverFacade> receivers = Map.of(RECEIVER_ID_1, receiver1);
 
@@ -98,7 +98,7 @@ class TaskToReceiverBridgeTest {
     int arrayBlockingQueueCapacity = 10;
     String messageKey = "MESSAGE_KEY";
     ExecutorService executorService = mock(ExecutorService.class);
-    ServiceBusReceiverFacade receiver1 = mockReceiver();
+    ServiceBusReceiverFacade receiver1 = mock(ServiceBusReceiverFacade.class);
     BlockingQueue<ServiceBusMessageHolder> sourceRecordBlockingQueue =
         new ArrayBlockingQueue<>(arrayBlockingQueueCapacity);
     Map<String, ServiceBusReceiverFacade> receivers = Map.of(RECEIVER_ID_1, receiver1);
@@ -111,12 +111,6 @@ class TaskToReceiverBridgeTest {
 
     //then
     verify(executorService).submit(any(Runnable.class));
-  }
-
-  private ServiceBusReceiverFacade mockReceiver() {
-    ServiceBusReceiverFacade receiverFacade = mock(ServiceBusReceiverFacade.class);
-
-    return receiverFacade;
   }
 
   private static SourceRecord createMockedSourceRecord(String format,

@@ -23,6 +23,7 @@ import io.lenses.streamreactor.connect.azure.servicebus.util.KcqlConfigBusMapper
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -38,7 +39,7 @@ public class AzureServiceBusSourceTask extends SourceTask {
   private TaskToReceiverBridge taskToReceiverBridge;
 
   public AzureServiceBusSourceTask() {
-    this.jarManifest = new JarManifest(getClass().getProtectionDomain().getCodeSource().getLocation());
+    this.jarManifest = JarManifest.produceFromClass(getClass());
   }
 
   @Override
@@ -55,17 +56,20 @@ public class AzureServiceBusSourceTask extends SourceTask {
     List<Kcql> kcqls =
         KcqlConfigBusMapper.mapKcqlsFromConfig(props.get(AzureServiceBusConfigConstants.KCQL_CONFIG));
 
-    ArrayBlockingQueue<ServiceBusMessageHolder> recordsQueue =
+    final ArrayBlockingQueue<ServiceBusMessageHolder> recordsQueue =
         new ArrayBlockingQueue<>(recordsQueueSize);
 
+    final Map<String, ServiceBusReceiverFacade> receiversMap =
+        ServiceBusReceiverFacadeInitializer.initializeReceiverFacades(recordsQueue, kcqls, connectionString);
+
     TaskToReceiverBridge serviceBusReceiverBridge =
-        new TaskToReceiverBridge(connectionString, kcqls, recordsQueue);
+        new TaskToReceiverBridge(recordsQueue, receiversMap, Executors.newFixedThreadPool(kcqls.size() * 2));
 
     initialize(serviceBusReceiverBridge);
   }
 
-  void initialize(TaskToReceiverBridge serviceBusReceiverFacade) {
-    taskToReceiverBridge = serviceBusReceiverFacade;
+  void initialize(TaskToReceiverBridge taskToReceiverBridge) {
+    this.taskToReceiverBridge = taskToReceiverBridge;
   }
 
   @Override

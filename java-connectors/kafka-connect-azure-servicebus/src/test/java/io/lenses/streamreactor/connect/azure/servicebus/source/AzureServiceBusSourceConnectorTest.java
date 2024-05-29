@@ -16,13 +16,13 @@
 package io.lenses.streamreactor.connect.azure.servicebus.source;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.lenses.streamreactor.common.util.JarManifest;
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfigConstants;
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusSourceConfig;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.config.ConfigDef;
@@ -69,7 +69,7 @@ class AzureServiceBusSourceConnectorTest {
     Class<? extends Task> taskClass = testObj.taskClass();
 
     //then
-    AzureServiceBusSourceTask.class.equals(taskClass);
+    assertEquals(AzureServiceBusSourceTask.class, taskClass);
   }
 
   @Test
@@ -94,7 +94,7 @@ class AzureServiceBusSourceConnectorTest {
     ConfigDef configDef = testObj.config();
 
     //then
-    AzureServiceBusSourceConfig.getConfigDefinition().equals(configDef);
+    assertEquals(AzureServiceBusSourceConfig.getConfigDefinition(), configDef);
   }
 
   @Test
@@ -110,12 +110,10 @@ class AzureServiceBusSourceConnectorTest {
   }
 
   private Map<String, String> buildValidProperties() {
-    HashMap<String, String> propertyMap = new HashMap<>();
-
-    propertyMap.put(AzureServiceBusConfigConstants.CONNECTOR_NAME, CONFIG_CONNECTOR_NAME);
-    propertyMap.put(AzureServiceBusConfigConstants.CONNECTION_STRING, EMPTY_STRING);
-    propertyMap.put(AzureServiceBusConfigConstants.KCQL_CONFIG, VALID_KCQL);
-
-    return propertyMap;
+    return Map.of(
+        AzureServiceBusConfigConstants.CONNECTOR_NAME, CONFIG_CONNECTOR_NAME,
+        AzureServiceBusConfigConstants.CONNECTION_STRING, EMPTY_STRING,
+        AzureServiceBusConfigConstants.KCQL_CONFIG, VALID_KCQL
+    );
   }
 }

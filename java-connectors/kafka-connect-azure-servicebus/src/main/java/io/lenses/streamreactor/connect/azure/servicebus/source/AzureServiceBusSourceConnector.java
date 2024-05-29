@@ -24,7 +24,7 @@ import io.lenses.streamreactor.connect.azure.servicebus.util.KcqlConfigBusMapper
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
@@ -37,7 +37,7 @@ import org.apache.kafka.connect.source.SourceConnector;
 public class AzureServiceBusSourceConnector extends SourceConnector {
 
   private final JarManifest jarManifest =
-      new JarManifest(getClass().getProtectionDomain().getCodeSource().getLocation());
+      JarManifest.produceFromClass(getClass());
   private Map<String, String> configProperties;
 
   @Override
@@ -60,9 +60,10 @@ public class AzureServiceBusSourceConnector extends SourceConnector {
   @Override
   public List<Map<String, String>> taskConfigs(int maxTasks) {
     log.info("Setting task configurations for {} workers.", maxTasks);
+    Map<String, String> immutableProps = Map.copyOf(configProperties);
 
-    return Stream.generate(() -> Map.copyOf(configProperties))
-        .limit(maxTasks)
+    return IntStream.range(0, maxTasks)
+        .mapToObj(i -> immutableProps)
         .collect(Collectors.toList());
   }
 

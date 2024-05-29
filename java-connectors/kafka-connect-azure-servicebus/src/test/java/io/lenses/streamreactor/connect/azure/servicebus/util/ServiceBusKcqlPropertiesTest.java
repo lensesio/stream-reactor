@@ -28,8 +28,7 @@ class ServiceBusKcqlPropertiesTest {
     List<ServiceBusKcqlProperties> necessaryProperties = ServiceBusKcqlProperties.getNecessaryProperties();
 
     //then
-    assertThat(necessaryProperties).hasSize(1);
     assertThat(necessaryProperties)
-        .contains(ServiceBusKcqlProperties.SERVICE_BUS_TYPE);
+        .containsOnly(ServiceBusKcqlProperties.SERVICE_BUS_TYPE);
   }
 }

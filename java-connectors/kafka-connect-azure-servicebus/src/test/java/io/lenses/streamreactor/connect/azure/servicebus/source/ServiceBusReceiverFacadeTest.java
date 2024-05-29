@@ -26,16 +26,16 @@ import com.azure.messaging.servicebus.ServiceBusReceiverAsyncClient;
 import io.lenses.kcql.Kcql;
 import io.lenses.streamreactor.connect.azure.servicebus.util.ServiceBusKcqlProperties;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import org.junit.jupiter.api.Test;
 
 class ServiceBusReceiverFacadeTest {
 
-  private final BlockingQueue<ServiceBusMessageHolder> mockedQueue = mock(BlockingQueue.class);
-  private final String connectionString =
+  private static final String CONNECTION_STRING =
       "Endpoint=sb://TESTENDPOINT.servicebus.windows.net/;"
           + "SharedAccessKeyName=EXAMPLE_NAME;SharedAccessKey=EXAMPLE_KEY";
+  private static final String SOME_RECEIVER_ID = "REC-IEVER-ID";
+  private final BlockingQueue<ServiceBusMessageHolder> mockedQueue = mock(BlockingQueue.class);
 
   @Test
   void checkReceiverInitializationAndReceiverIdForQueue() {
@@ -45,11 +45,11 @@ class ServiceBusReceiverFacadeTest {
     when(propertiesMap.get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName())).thenReturn(queueType);
 
     Kcql kcql = mockKcql(propertiesMap);
-    String receiverId1 = UUID.randomUUID().toString();
+    String receiverId1 = SOME_RECEIVER_ID;
 
     ServiceBusReceiverFacade testObj =
         new ServiceBusReceiverFacade(kcql, mockedQueue,
-            connectionString, receiverId1);
+            CONNECTION_STRING, receiverId1);
 
     //when
     String receiverId = testObj.getReceiverId();
@@ -72,11 +72,11 @@ class ServiceBusReceiverFacadeTest {
 
     Kcql kcql = mockKcql(propertiesMap);
 
-    String receiverId1 = UUID.randomUUID().toString();
+    String receiverId1 = SOME_RECEIVER_ID;
 
     ServiceBusReceiverFacade testObj =
         new ServiceBusReceiverFacade(kcql, mockedQueue,
-            connectionString, receiverId1);
+            CONNECTION_STRING, receiverId1);
 
     //when
     String receiverId = testObj.getReceiverId();
@@ -97,7 +97,7 @@ class ServiceBusReceiverFacadeTest {
 
     //when
     assertThrows(IllegalArgumentException.class, () -> new ServiceBusReceiverFacade(kcql, mockedQueue,
-        badFormatConnectionString, UUID.randomUUID().toString())
+        badFormatConnectionString, SOME_RECEIVER_ID)
     );
   }
 
@@ -105,13 +105,13 @@ class ServiceBusReceiverFacadeTest {
   void completeShouldCallRecieverComplete() {
     //given
     Kcql kcql = mock(Kcql.class);
-    String receiverId1 = UUID.randomUUID().toString();
+    String receiverId1 = SOME_RECEIVER_ID;
     ServiceBusReceiverAsyncClient receiverAsyncClient = mock(ServiceBusReceiverAsyncClient.class);
     ServiceBusReceivedMessage mockedMessage = mock(ServiceBusReceivedMessage.class);
 
     //when
     ServiceBusReceiverFacade serviceBusReceiverFacade =
-        new ServiceBusReceiverFacade(kcql, mockedQueue, connectionString, receiverId1, receiverAsyncClient);
+        new ServiceBusReceiverFacade(kcql, mockedQueue, CONNECTION_STRING, receiverId1, receiverAsyncClient);
     serviceBusReceiverFacade.complete(mockedMessage);
 
     //then

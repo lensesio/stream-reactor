@@ -38,7 +38,7 @@ import org.apache.kafka.connect.source.SourceConnector;
 public class AzureEventHubsSourceConnector extends SourceConnector {
 
   private final JarManifest jarManifest =
-      new JarManifest(getClass().getProtectionDomain().getCodeSource().getLocation());
+      JarManifest.produceFromClass(getClass());
   private Map<String, String> configProperties;
 
   @Override

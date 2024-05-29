@@ -62,38 +62,52 @@ public class KcqlConfigBusMapper {
     Map<String, String> inputToOutputTopics = new HashMap<>(kcqls.size());
 
     for (Kcql kcql : kcqls) {
-      String inputTopic = kcql.getSource();
-      String outputTopic = kcql.getTarget();
+      validateTopicNames(kcql);
+      validateTopicMappings(inputToOutputTopics, kcql);
+      validateKcqlProperties(kcql);
 
-      if (!azureNameMatchesAgainstRegex(inputTopic, MAX_BUS_NAME_LENGTH)) {
-        throw new ConfigException(String.format(TOPIC_NAME_ERROR_MESSAGE, "Input", inputTopic));
-      }
-      if (!azureNameMatchesAgainstRegex(outputTopic, MAX_BUS_NAME_LENGTH)) {
-        throw new ConfigException(String.format(TOPIC_NAME_ERROR_MESSAGE, "Output", outputTopic));
-      }
-      if (inputToOutputTopics.containsKey(inputTopic)) {
-        throw new ConfigException(String.format("Input %s cannot be mapped twice.", inputTopic));
-      }
-      if (inputToOutputTopics.containsValue(outputTopic)) {
-        throw new ConfigException(String.format("Output %s cannot be mapped twice.", outputTopic));
-      }
-
-      List<ServiceBusKcqlProperties> notSatisfiedProperties = checkForNecessaryKcqlProperties(kcql);
-      if (!notSatisfiedProperties.isEmpty()) {
-        String missingPropertiesError =
-            notSatisfiedProperties.stream()
-                .map(ServiceBusKcqlProperties::getPropertyName)
-                .collect(Collectors.joining(","));
-        throw new ConfigException(
-            String.format("Following non-optional properties missing in KCQL: %s", missingPropertiesError));
-      }
-
-      checkForValidPropertyValues(kcql.getProperties());
-
-      inputToOutputTopics.put(inputTopic, outputTopic);
+      inputToOutputTopics.put(kcql.getSource(), kcql.getTarget());
     }
 
     return kcqls;
+  }
+
+  private static void validateTopicNames(Kcql kcql) {
+    String inputTopic = kcql.getSource();
+    String outputTopic = kcql.getTarget();
+
+    if (!azureNameMatchesAgainstRegex(inputTopic, MAX_BUS_NAME_LENGTH)) {
+      throw new ConfigException(String.format(TOPIC_NAME_ERROR_MESSAGE, "Input", inputTopic));
+    }
+    if (!azureNameMatchesAgainstRegex(outputTopic, MAX_BUS_NAME_LENGTH)) {
+      throw new ConfigException(String.format(TOPIC_NAME_ERROR_MESSAGE, "Output", outputTopic));
+    }
+  }
+
+  public static void validateTopicMappings(Map<String, String> inputToOutputTopics, Kcql kcql) {
+    String inputTopic = kcql.getSource();
+    String outputTopic = kcql.getTarget();
+
+    if (inputToOutputTopics.containsKey(inputTopic)) {
+      throw new ConfigException(String.format("Input '%s' cannot be mapped twice.", inputTopic));
+    }
+    if (inputToOutputTopics.containsValue(outputTopic)) {
+      throw new ConfigException(String.format("Output '%s' cannot be mapped twice.", outputTopic));
+    }
+  }
+
+  public static void validateKcqlProperties(Kcql kcql) {
+    List<ServiceBusKcqlProperties> notSatisfiedProperties = checkForNecessaryKcqlProperties(kcql);
+    if (!notSatisfiedProperties.isEmpty()) {
+      String missingPropertiesError =
+          notSatisfiedProperties.stream()
+              .map(ServiceBusKcqlProperties::getPropertyName)
+              .collect(Collectors.joining(","));
+      throw new ConfigException(String.format("Following non-optional properties are missing in KCQL: %s",
+          missingPropertiesError));
+    }
+
+    checkForValidPropertyValues(kcql.getProperties());
   }
 
   private static void checkForValidPropertyValues(Map<String, String> properties) {

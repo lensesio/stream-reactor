@@ -15,15 +15,12 @@
  */
 package io.lenses.streamreactor.connect.azure.servicebus.source;
 
-import io.lenses.kcql.Kcql;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,27 +33,10 @@ import org.apache.kafka.connect.source.SourceRecord;
 public class TaskToReceiverBridge {
 
   private static final int INITIAL_RECORDS_TO_COMMIT_SIZE = 500;
-  private static final String FACADE_CLASS_SIMPLE_NAME = ServiceBusReceiverFacade.class.getSimpleName();
   private final BlockingQueue<ServiceBusMessageHolder> recordsQueue;
   private final ExecutorService sentMessagesExecutors;
-  private Map<String, ServiceBusReceiverFacade> receivers;
+  private final Map<String, ServiceBusReceiverFacade> receivers;
   private final Map<String, ServiceBusMessageHolder> recordsToCommitMap;
-
-  /**
-   * Creates Bridge between Receivers and Connector's Task for Azure Service Bus.
-   *
-   * @param connectionString Service Bus connection string
-   * @param kcqls            list of KCQLs to initiate Receivers for.
-   * @param recordsQueue     records queue used to store received messages.
-   */
-  public TaskToReceiverBridge(String connectionString, List<Kcql> kcqls,
-      BlockingQueue<ServiceBusMessageHolder> recordsQueue) {
-    this.recordsQueue = recordsQueue;
-    sentMessagesExecutors = Executors.newFixedThreadPool(kcqls.size() * 2);
-    recordsToCommitMap = new ConcurrentHashMap<>(INITIAL_RECORDS_TO_COMMIT_SIZE);
-
-    initiateReceivers(recordsQueue, kcqls, connectionString);
-  }
 
   /**
    * Creates Bridge between Receivers and Connector's Task for Azure Service Bus.
@@ -72,16 +52,6 @@ public class TaskToReceiverBridge {
     this.sentMessagesExecutors = sentMessagesExecutors;
     this.receivers = receivers;
     recordsToCommitMap = new ConcurrentHashMap<>(INITIAL_RECORDS_TO_COMMIT_SIZE);
-  }
-
-  private void initiateReceivers(BlockingQueue<ServiceBusMessageHolder> recordsQueue,
-      List<Kcql> kcqls, String connectionString) {
-    receivers = new ConcurrentHashMap<>(kcqls.size());
-
-    kcqls.forEach(kcql -> {
-      String receiverId = FACADE_CLASS_SIMPLE_NAME + UUID.randomUUID();
-      receivers.put(receiverId, new ServiceBusReceiverFacade(kcql, recordsQueue, connectionString, receiverId));
-    });
   }
 
   /**

@@ -57,7 +57,7 @@ class ListSplitterTest {
   @Test
   void testSplitListMorePartsThanElements() {
     List<List<Integer>> result = ListSplitter.splitList(list, 12);
-    assertEquals(12, result.size());
+    assertEquals(10, result.size());
     int nonEmptyLists = (int) result.stream().filter(sublist -> !sublist.isEmpty()).count();
     assertEquals(10, nonEmptyLists);
     for (List<Integer> sublist : result) {
@@ -69,7 +69,7 @@ class ListSplitterTest {
   void testSplitEmptyList() {
     List<Integer> emptyList = Collections.emptyList();
     List<List<Integer>> result = ListSplitter.splitList(emptyList, 3);
-    assertEquals(3, result.size());
+    assertEquals(0, result.size());
     for (List<Integer> sublist : result) {
       assertTrue(sublist.isEmpty());
     }

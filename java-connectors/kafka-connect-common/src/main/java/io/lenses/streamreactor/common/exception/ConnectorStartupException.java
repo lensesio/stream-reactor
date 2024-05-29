@@ -23,4 +23,8 @@ public class ConnectorStartupException extends RuntimeException {
   public ConnectorStartupException(Throwable cause) {
     super(cause);
   }
+
+  public ConnectorStartupException(String message) {
+    super(message);
+  }
 }

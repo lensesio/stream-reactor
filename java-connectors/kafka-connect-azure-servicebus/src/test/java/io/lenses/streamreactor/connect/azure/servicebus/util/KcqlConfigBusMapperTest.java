@@ -105,7 +105,7 @@ class KcqlConfigBusMapperTest {
         "INSERT INTO 'OUTPUT' SELECT * FROM INPUT "
             + "PROPERTIES ('servicebus.type'='TOPIC');";
     String typeMissingMessage =
-        "Following non-optional properties missing in KCQL: servicebus.type";
+        "Following non-optional properties are missing in KCQL: servicebus.type";
     String badTypeMessage =
         "Property servicebus.type contains invalid value. Valid values are: TOPIC or QUEUE";
     String subscriptionMissingMessage =
@@ -151,7 +151,7 @@ class KcqlConfigBusMapperTest {
     String sameInputKcql =
         "INSERT INTO OUTPUT2 SELECT * FROM INPUT1 "
             + createNecessaryPropertiesPart() + ";";
-    String outputErrorMessage = "Input INPUT1 cannot be mapped twice.";
+    String outputErrorMessage = "Input 'INPUT1' cannot be mapped twice.";
 
     //when
     mapInputToOutputAssertingExceptionWithSpecificMessage(oneInputKcql + sameInputKcql,
@@ -167,7 +167,7 @@ class KcqlConfigBusMapperTest {
     String anotherInputToSameOutputKcql =
         "INSERT INTO OUTPUT1 SELECT * FROM INPUT2 "
             + createNecessaryPropertiesPart() + ";";
-    String outputErrorMessage = "Output OUTPUT1 cannot be mapped twice.";
+    String outputErrorMessage = "Output 'OUTPUT1' cannot be mapped twice.";
 
     //when
     mapInputToOutputAssertingExceptionWithSpecificMessage(

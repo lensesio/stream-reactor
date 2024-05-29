@@ -56,8 +56,7 @@ class ServiceBusPartitionOffsetProviderTest {
 
     //then
     verify(offsetStorageReader).offset(any(AzureServiceBusPartitionKey.class));
-    assertThat(offset).isNotNull();
-    assertThat(offset.isEmpty()).isTrue();
+    assertThat(offset).isEmpty();
   }
 
   @Test
@@ -76,8 +75,6 @@ class ServiceBusPartitionOffsetProviderTest {
 
     //then
     verify(offsetStorageReader).offset(any(AzureServiceBusPartitionKey.class));
-    assertThat(offset).isNotNull();
-    assertThat(offset.isEmpty()).isFalse();
-    assertThat(offset.get().getOffsetValue()).isEqualTo(exampleOffset);
+    assertThat(offset).contains(new AzureServiceBusOffsetMarker(exampleOffset));
   }
 }
