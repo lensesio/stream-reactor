@@ -1,7 +1,7 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import cats.implicits._
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import io.lenses.streamreactor.common.config.base.KcqlSettings
 import io.lenses.streamreactor.connect.aws.s3.source.S3SourceTaskTest.formats
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceSettingsKeys
@@ -27,6 +27,8 @@ class S3SourceTaskBucketRootTest
   def DefaultProps: Map[String, String] = defaultProps + (
     SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS -> "1000",
   )
+
+  val KCQL_CONFIG = new KcqlSettings(javaConnectorPrefix).getKcqlSettingsKey
 
   private val TopicName = "myTopic"
 

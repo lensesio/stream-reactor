@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.azure.documentdb.config
 
 import com.microsoft.azure.documentdb.ConsistencyLevel
 import io.lenses.streamreactor.common.config.KcqlWithFieldsSettings
+import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix
 import io.lenses.streamreactor.common.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
@@ -88,16 +89,6 @@ object DocumentDbConfig {
       DocumentDbConfigConstants.PROXY_HOST_DISPLAY,
     )
     .define(
-      DocumentDbConfigConstants.KCQL_CONFIG,
-      Type.STRING,
-      Importance.HIGH,
-      DocumentDbConfigConstants.KCQL_DOC,
-      "Mappings",
-      1,
-      ConfigDef.Width.LONG,
-      DocumentDbConfigConstants.KCQL_CONFIG,
-    )
-    .define(
       DocumentDbConfigConstants.ERROR_POLICY_CONFIG,
       Type.STRING,
       DocumentDbConfigConstants.ERROR_POLICY_DEFAULT,
@@ -141,6 +132,9 @@ object DocumentDbConfig {
       ConfigDef.Width.MEDIUM,
       DocumentDbConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY,
     )
+  new io.lenses.streamreactor.common.config.base.KcqlSettings(new ConnectorPrefix(
+    DocumentDbConfigConstants.CONNECTOR_PREFIX,
+  )).withSettings(config)
 }
 
 case class DocumentDbConfig(props: Map[String, String])

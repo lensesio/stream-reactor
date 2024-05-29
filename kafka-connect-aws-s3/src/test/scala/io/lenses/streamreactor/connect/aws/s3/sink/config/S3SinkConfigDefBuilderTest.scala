@@ -77,10 +77,9 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS CSV PROPERTIES('${FlushCount.entryName}'=1)",
     )
 
-    CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
-      case Left(value)  => fail(value.toString)
-      case Right(value) => value.map(_.dataStorage) should be(List(DataStorageSettings.Default))
-    }
+    CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).value.map(_.dataStorage) should be(
+      List(DataStorageSettings.Default),
+    )
   }
 
   "S3SinkConfigDefBuilder" should "default all fields to true when envelope is set" in {
@@ -88,10 +87,9 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `JSON` PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true,'${FlushCount.entryName}'=1)",
     )
 
-    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
-      case Left(value)  => fail(value.toString)
-      case Right(value) => value.map(_.dataStorage) should be(List(DataStorageSettings.enabled))
-    }
+    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).value.map(_.dataStorage) should be(
+      List(DataStorageSettings.enabled),
+    )
   }
 
   "S3SinkConfigDefBuilder" should "enable Value and Key only" in {
@@ -99,11 +97,10 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into mybucket:myprefix select * from $TopicName PARTITIONBY _key STOREAS `PARQUET` PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false,'${FlushCount.entryName}'=1,'${PartitionIncludeKeys.entryName}'=false)",
     )
 
-    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
-      case Left(value) => fail(value.toString)
-      case Right(value) =>
-        value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false)))
-    }
+    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).value.map(_.dataStorage) should be(
+      List(DataStorageSettings(true, true, true, false, false)),
+    )
+
   }
 
   "S3SinkConfigDefBuilder" should "data storage for each SQL statement" in {
@@ -124,13 +121,9 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
            |""".stripMargin,
     )
 
-    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
-      case Left(value) => fail(value.toString)
-      case Right(value) =>
-        value.map(_.dataStorage) should be(List(DataStorageSettings(true, true, true, false, false),
-                                                DataStorageSettings(true, true, true, false, true),
-        ))
-    }
+    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).value.map(_.dataStorage) should be(
+      List(DataStorageSettings(true, true, true, false, false), DataStorageSettings(true, true, true, false, true)),
+    )
 
   }
   "S3SinkConfigDefBuilder" should "respect default flush settings" in {
@@ -200,16 +193,9 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`   PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false, '${FlushCount.entryName}'=1)",
     )
 
-    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
-      case Left(value) => fail(value.toString)
-      case Right(value) =>
-        value.map(_.dataStorage) should be(List(DataStorageSettings(envelope = true,
-                                                                    key      = true,
-                                                                    value    = true,
-                                                                    metadata = false,
-                                                                    headers  = false,
-        )))
-    }
+    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).value.map(_.dataStorage) should be(
+      List(DataStorageSettings(envelope = true, key = true, value = true, metadata = false, headers = false)),
+    )
   }
 
   "S3SinkConfigDefBuilder" should "return false on escape new lines" in {
@@ -217,16 +203,19 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
       "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON`  PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${DataStorageSettings.StoreKeyKey}'=true, '${DataStorageSettings.StoreValueKey}'=true, '${DataStorageSettings.StoreMetadataKey}'=false, '${DataStorageSettings.StoreHeadersKey}'=false, '${FlushCount.entryName}'=1)",
     )
 
-    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)) match {
-      case Left(value) => fail(value.toString)
-      case Right(value) =>
-        value.map(_.dataStorage) should be(List(DataStorageSettings(envelope = true,
-                                                                    key      = true,
-                                                                    value    = true,
-                                                                    metadata = false,
-                                                                    headers  = false,
-        )))
-    }
+    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).value.map(_.dataStorage) should be(
+      List(DataStorageSettings(envelope = true, key = true, value = true, metadata = false, headers = false)),
+    )
+  }
+
+  "S3SinkConfigDefBuilder" should "support selecting from *" in {
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from `*` STOREAS `JSON`  PROPERTIES('${DataStorageSettings.StoreEnvelopeKey}'=true, '${FlushCount.entryName}'=1)",
+    )
+
+    config.CloudSinkBucketOptions(connectorTaskId, S3SinkConfigDefBuilder(props)).value.map(_.dataStorage) should be(
+      List(DataStorageSettings(envelope = true, key = true, value = true, metadata = true, headers = true)),
+    )
   }
 
   "S3SinkConfigDefBuilder" should "error when old BYTES settings used" in {

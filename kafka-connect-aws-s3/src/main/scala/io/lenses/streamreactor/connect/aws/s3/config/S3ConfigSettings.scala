@@ -28,10 +28,6 @@ object S3ConfigSettings {
   val CUSTOM_ENDPOINT:             String = s"$CONNECTOR_PREFIX.custom.endpoint"
   val ENABLE_VIRTUAL_HOST_BUCKETS: String = s"$CONNECTOR_PREFIX.vhost.bucket"
 
-  val KCQL_CONFIG = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
-  val KCQL_DOC =
-    "Contains the Kafka Connect Query Language describing the flow from Apache Kafka topics to Apache Hive tables."
-
   val HTTP_ERROR_RETRY_INTERVAL = s"$CONNECTOR_PREFIX.http.$RETRY_INTERVAL_PROP_SUFFIX"
   val HTTP_ERROR_RETRY_INTERVAL_DOC =
     "If greater than zero, used to determine the delay after which to retry the http request in milliseconds.  Based on an exponential backoff algorithm."

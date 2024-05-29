@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.datalake.config
 
+import io.lenses.streamreactor.common.config.base.KcqlSettings
 import io.lenses.streamreactor.connect.cloud.common.config.CompressionCodecConfigKeys
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings._
 import org.apache.kafka.common.config.ConfigDef
@@ -32,7 +33,6 @@ trait CommonConfigDef extends CompressionCodecConfigKeys with AuthModeSettingsCo
         Importance.LOW,
         "Azure endpoint",
       )
-      .define(KCQL_CONFIG, Type.STRING, Importance.HIGH, KCQL_DOC)
       .define(
         ERROR_POLICY,
         Type.STRING,
@@ -107,5 +107,6 @@ trait CommonConfigDef extends CompressionCodecConfigKeys with AuthModeSettingsCo
       )
 
     withAuthModeSettings(cD)
+    new KcqlSettings(javaConnectorPrefix).withSettings(config)
   }
 }

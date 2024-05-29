@@ -32,7 +32,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
   */
 case class SchemalessEnvelopeTransformer(topic: Topic, settings: DataStorageSettings) extends Transformer {
   def transform(message: MessageDetail): Either[RuntimeException, MessageDetail] =
-    if (message.topic != topic) {
+    if (message.topic != topic && topic != Topic.All) {
       Left(
         new RuntimeException(
           s"Invalid state reached. Envelope transformer topic [${topic.value}] does not match incoming message topic [${message.topic.value}].",

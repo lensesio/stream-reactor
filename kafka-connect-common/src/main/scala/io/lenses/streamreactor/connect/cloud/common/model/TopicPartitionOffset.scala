@@ -22,6 +22,12 @@ case class Topic(value: String) extends AnyVal {
     TopicPartition(this, partition)
 }
 
+object Topic {
+
+  val All: Topic = Topic("*")
+
+}
+
 object Offset {
 
   implicit def orderingByOffsetValue[A <: Offset]: Ordering[A] =

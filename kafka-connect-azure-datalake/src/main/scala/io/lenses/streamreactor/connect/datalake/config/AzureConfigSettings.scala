@@ -22,10 +22,6 @@ object AzureConfigSettings {
   val CONNECTOR_PREFIX = "connect.datalake"
   val ENDPOINT: String = s"$CONNECTOR_PREFIX.endpoint"
 
-  val KCQL_CONFIG = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
-  val KCQL_DOC =
-    "Contains the Kafka Connect Query Language describing the flow from Apache Kafka topics to Apache Hive tables."
-
   val ERROR_POLICY = s"$CONNECTOR_PREFIX.$ERROR_POLICY_PROP_SUFFIX"
   val ERROR_POLICY_DOC: String =
     """
