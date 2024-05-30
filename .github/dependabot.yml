@@ -12,10 +12,10 @@ updates:
       - "stheppi"
       - "davidsloan"
       - "GoMati-MU"
-  - package-ecosystem: "sbt"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    reviewers:
-      - "stheppi"
-      - "davidsloan"
+  #- package-ecosystem: "sbt"
+  #  directory: "/"
+  #  schedule:
+  #    interval: "weekly"
+  #  reviewers:
+  #    - "stheppi"
+  #    - "davidsloan"
