@@ -111,7 +111,7 @@ object Dependencies {
 
     val mqttVersion = "1.2.5"
 
-    val commonsNetVersion      = "3.10.0"
+    val commonsNetVersion      = "3.11.0"
     val commonsCodecVersion    = "1.17.0"
     val commonsCompressVersion = "1.26.2"
     val commonsConfigVersion   = "2.10.1"
