@@ -214,6 +214,7 @@ jobs:
       matrix:
         module: ${{fromJSON(needs.initiate.outputs.dep_check_matrix)}}
     steps:
+      - uses: actions/checkout@v4
       - name: Restore assembly
         uses: actions/cache/restore@v4
         with:
@@ -231,7 +232,7 @@ jobs:
           format: 'HTML'
           args: >-
               --failOnCVSS 5
-              --suppression https://raw.githubusercontent.com/${{ github.event.pull_request.head.repo.owner.login || github.event.repository.owner.login }}/${{ github.event.repository.name }}/${{ steps.branch_name.outputs.tag }}${{ steps.branch_name.outputs.current_branch }}/suppression.xml
+              --suppression suppression.xml
       - name: Upload Test results
         uses: actions/upload-artifact@master
         with:

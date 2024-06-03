@@ -15,6 +15,8 @@
  */
 package io.lenses.kcql;
 
+import java.util.Objects;
+
 public class Tag {
 
   private final String key;
@@ -49,5 +51,29 @@ public class Tag {
     DEFAULT,
     ALIAS,
     CONSTANT
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
+
+    Tag tag = (Tag) o;
+
+    if (!Objects.equals(key, tag.key))
+      return false;
+    if (!Objects.equals(value, tag.value))
+      return false;
+    return type == tag.type;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = key != null ? key.hashCode() : 0;
+    result = 31 * result + (value != null ? value.hashCode() : 0);
+    result = 31 * result + (type != null ? type.hashCode() : 0);
+    return result;
   }
 }

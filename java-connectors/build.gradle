@@ -169,6 +169,21 @@ task prepareRelease(dependsOn: [collectFatJar]) {
     dependsOn subprojects.collectFatJar
 }
 
+task testModuleList() {
+    def nonTestModules = ["java-reactor"]
+
+    def modulesFile = new File("gradle-test-modules.txt")
+    modulesFile.delete()
+    modulesFile.createNewFile()
+
+    def modulesBuilder = new StringBuilder("[")
+    allprojects.name.stream()
+            .filter {moduleName -> !nonTestModules.contains(moduleName)}
+            .forEach {moduleName -> modulesBuilder.append("\"" + moduleName + "\",") }
+    modulesBuilder.deleteCharAt(modulesBuilder.lastIndexOf(",")).append("]")
+    modulesFile.append(modulesBuilder)
+}
+
 task releaseModuleList() {
     def nonReleaseModules = ["java-reactor", "kafka-connect-cloud-common",
                             "kafka-connect-common", "kafka-connect-query-language"]
@@ -183,4 +198,9 @@ task releaseModuleList() {
             .forEach {moduleName -> modulesBuilder.append("\"" + moduleName + "\",") }
     modulesBuilder.deleteCharAt(modulesBuilder.lastIndexOf(",")).append("]")
     modulesFile.append(modulesBuilder)
+}
+
+task prepareModuleList() {
+    dependsOn testModuleList
+    dependsOn releaseModuleList
 }

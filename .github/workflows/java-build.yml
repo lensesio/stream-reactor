@@ -10,6 +10,9 @@ on:
       java_modules:
         description: "Stream reactor collection of java modules"
         value: ${{ jobs.initiate-java-modules.outputs.java_matrix }}
+      java_test_modules:
+        description: "Stream reactor collection of java modules for test"
+        value: ${{ jobs.initiate-java-modules.outputs.java_test_matrix }}
 
 jobs:
 
@@ -18,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       java_matrix: ${{ steps.java-mods.outputs.java-matrix }}
+      java_test_matrix: ${{ steps.java-mods.outputs.java-test-matrix }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -27,20 +31,21 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
       - name: Generate modules lists
-        run: cd 'java-connectors' && ./gradlew releaseModuleList
+        run: cd 'java-connectors' && ./gradlew prepareModuleList
         env:
           JVM_OPTS: -Xmx512m
       - name: Read java modules lists
         id: java-mods
         run: |
           echo "java-matrix=$(cat ./java-connectors/gradle-modules.txt)" >> $GITHUB_OUTPUT
+          echo "java-test-matrix=$(cat ./java-connectors/gradle-test-modules.txt)" >> $GITHUB_OUTPUT
 
   test:
     needs:
       - initiate-java-modules
     strategy:
       matrix:
-        module: ${{fromJSON(needs.initiate-java-modules.outputs.java_matrix)}}
+        module: ${{fromJSON(needs.initiate-java-modules.outputs.java_test_matrix)}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -111,6 +116,7 @@ jobs:
       matrix:
         module: ${{fromJSON(needs.initiate-java-modules.outputs.java_matrix)}}
     steps:
+      - uses: actions/checkout@v4
       - name: Restore assembly
         uses: actions/cache/restore@v4
         with:
@@ -121,6 +127,7 @@ jobs:
       - name: Get branch names.
         id: branch_name
         uses: tj-actions/branch-names@v8
+
       - name: JAR Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
@@ -129,7 +136,7 @@ jobs:
           format: 'HTML'
           args: >-
             --failOnCVSS 5
-            --suppression https://raw.githubusercontent.com/${{ github.event.pull_request.head.repo.owner.login || github.event.repository.owner.login }}/${{github.event.repository.name}}/${{ steps.branch_name.outputs.tag }}${{ steps.branch_name.outputs.current_branch }}/suppression.xml
+            --suppression suppression.xml
 
       - name: Upload Test results
         uses: actions/upload-artifact@master
