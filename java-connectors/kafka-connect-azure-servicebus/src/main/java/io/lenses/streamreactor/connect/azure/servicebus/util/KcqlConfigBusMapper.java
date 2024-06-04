@@ -72,7 +72,7 @@ public class KcqlConfigBusMapper {
       inputToOutputTopics.put(kcql.getSource(), kcql.getTarget());
     }
 
-    return kcqls;
+    return List.copyOf(kcqls);
   }
 
   private static void validateTopicNames(Kcql kcql) {
@@ -87,7 +87,7 @@ public class KcqlConfigBusMapper {
     }
   }
 
-  public static void validateTopicMappings(Map<String, String> inputToOutputTopics, Kcql kcql) {
+  private static void validateTopicMappings(Map<String, String> inputToOutputTopics, Kcql kcql) {
     String inputTopic = kcql.getSource();
     String outputTopic = kcql.getTarget();
 
@@ -99,7 +99,7 @@ public class KcqlConfigBusMapper {
     }
   }
 
-  public static void validateKcqlProperties(Kcql kcql) {
+  private static void validateKcqlProperties(Kcql kcql) {
     List<ServiceBusKcqlProperties> notSatisfiedProperties = checkForNecessaryKcqlProperties(kcql);
     if (!notSatisfiedProperties.isEmpty()) {
       String missingPropertiesError =
