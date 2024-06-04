@@ -15,16 +15,19 @@
  */
 package io.lenses.streamreactor.connect.azure.servicebus.util;
 
-import io.lenses.kcql.Kcql;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import java.util.stream.Stream;
+
 import org.apache.kafka.common.config.ConfigException;
+
+import io.lenses.kcql.Kcql;
+import lombok.*;
 
 /**
  * Class that represents methods around KCQL topic handling.
@@ -53,6 +56,14 @@ public class KcqlConfigBusMapper {
   private static final List<ServiceBusKcqlProperties> NECESSARY_PROPERTIES =
       ServiceBusKcqlProperties.getNecessaryProperties();
 
+  @Getter
+  @AllArgsConstructor
+  private static class TopicValidationError {
+
+    String errorMessage;
+
+  }
+
   /**
    * This method parses KCQL statements and fetches input and output topics checking against regex for invalid
    * topic names in input and output as well as if mappings contain necessary KCQL properties.
@@ -61,71 +72,98 @@ public class KcqlConfigBusMapper {
    * @return list of KCQLs if parsed properly
    */
   public static List<Kcql> mapKcqlsFromConfig(String kcqlString) {
+
     List<Kcql> kcqls = Kcql.parseMultiple(kcqlString);
-    Map<String, String> inputToOutputTopics = new HashMap<>(kcqls.size());
 
-    for (Kcql kcql : kcqls) {
-      validateTopicNames(kcql);
-      validateTopicMappings(inputToOutputTopics, kcql);
-      validateKcqlProperties(kcql);
+    val inputTopics = kcqls.stream().map(Kcql::getSource).collect(Collectors.toList());
+    val outputTopics = kcqls.stream().map(Kcql::getTarget).collect(Collectors.toList());
 
-      inputToOutputTopics.put(kcql.getSource(), kcql.getTarget());
+    val allErrors =
+        Stream.of(
+            validateTopicMappings(inputTopics, "Input"),
+            validateTopicMappings(outputTopics, "Output"),
+            validateTopicName(inputTopics, "Input"),
+            validateTopicName(outputTopics, "Output"),
+            kcqls.stream().flatMap(KcqlConfigBusMapper::validateKcqlProperties)
+        ).flatMap(Function.identity())
+            .map(TopicValidationError::getErrorMessage)
+            .collect(Collectors.toUnmodifiableSet());
+
+    if (!allErrors.isEmpty()) {
+      throw new ConfigException("The following errors occurred during validation: ", String.join(";\n ", allErrors));
     }
 
     return List.copyOf(kcqls);
   }
 
-  private static void validateTopicNames(Kcql kcql) {
-    String inputTopic = kcql.getSource();
-    String outputTopic = kcql.getTarget();
+  private static Stream<TopicValidationError> validateTopicName(List<String> topicNames, String description) {
+    return topicNames.stream()
+        .filter(topicName -> !azureNameMatchesAgainstRegex(topicName, MAX_BUS_NAME_LENGTH))
+        .map(topicName -> new TopicValidationError(String.format(TOPIC_NAME_ERROR_MESSAGE, description, topicName)));
 
-    if (!azureNameMatchesAgainstRegex(inputTopic, MAX_BUS_NAME_LENGTH)) {
-      throw new ConfigException(String.format(TOPIC_NAME_ERROR_MESSAGE, "Input", inputTopic));
-    }
-    if (!azureNameMatchesAgainstRegex(outputTopic, MAX_BUS_NAME_LENGTH)) {
-      throw new ConfigException(String.format(TOPIC_NAME_ERROR_MESSAGE, "Output", outputTopic));
-    }
   }
 
-  private static void validateTopicMappings(Map<String, String> inputToOutputTopics, Kcql kcql) {
-    String inputTopic = kcql.getSource();
-    String outputTopic = kcql.getTarget();
-
-    if (inputToOutputTopics.containsKey(inputTopic)) {
-      throw new ConfigException(String.format("Input '%s' cannot be mapped twice.", inputTopic));
-    }
-    if (inputToOutputTopics.containsValue(outputTopic)) {
-      throw new ConfigException(String.format("Output '%s' cannot be mapped twice.", outputTopic));
-    }
+  private static Stream<String> detectDuplicateTopicMappings(List<String> topics) {
+    return topics.stream()
+        .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+        .entrySet().stream()
+        .filter(entry -> entry.getValue() > 1)
+        .map(Map.Entry::getKey);
   }
 
-  private static void validateKcqlProperties(Kcql kcql) {
-    List<ServiceBusKcqlProperties> notSatisfiedProperties = checkForNecessaryKcqlProperties(kcql);
-    if (!notSatisfiedProperties.isEmpty()) {
-      String missingPropertiesError =
-          notSatisfiedProperties.stream()
-              .map(ServiceBusKcqlProperties::getPropertyName)
-              .collect(Collectors.joining(","));
-      throw new ConfigException(String.format("Following non-optional properties are missing in KCQL: %s",
-          missingPropertiesError));
-    }
-
-    checkForValidPropertyValues(kcql.getProperties());
+  private static Stream<TopicValidationError> validateTopicMappings(List<String> topics, String description) {
+    return detectDuplicateTopicMappings(topics)
+        .map(
+            dupe -> new TopicValidationError(String.format("%s '%s' cannot be mapped twice.", description, dupe))
+        );
   }
 
-  private static void checkForValidPropertyValues(Map<String, String> properties) {
-    String serviceBusType = properties.get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName()).toUpperCase();
-    if (!BUS_TYPE_PATTERN.matcher(serviceBusType).matches()) {
-      throw new ConfigException(
-          String.format(BUS_TYPE_ERROR_MESSAGE, ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName()));
-    }
+  private static Stream<TopicValidationError> validateKcqlProperties(Kcql kcql) {
+    return Stream.concat(
+        validateNecessaryKcqlProperties(kcql),
+        checkForValidPropertyValues(kcql.getProperties())
+    );
+  }
 
-    if (!QUEUE_BUS_TYPE.equalsIgnoreCase(serviceBusType)) { // if not a queue, check for necessary topic subscription
-      String subscriptionName = properties.get(ServiceBusKcqlProperties.SUBSCRIPTION_NAME.getPropertyName());
-      if (subscriptionName == null || !azureNameMatchesAgainstRegex(subscriptionName, MAX_SUBSCRIPTION_LENGTH)) {
-        throw new ConfigException(String.format(SUBSCRIPTION_NAME_ERROR_MESSAGE, subscriptionName));
+  private static Stream<TopicValidationError> validateNecessaryKcqlProperties(Kcql kcql) {
+    return Optional.ofNullable(checkForNecessaryKcqlProperties(kcql))
+        .filter(notSatisfiedProperties -> !notSatisfiedProperties.isEmpty())
+        .map(notSatisfiedProperties -> notSatisfiedProperties.stream()
+            .map(ServiceBusKcqlProperties::getPropertyName)
+            .collect(Collectors.joining(",")))
+        .map(missingPropertiesError -> new TopicValidationError(
+            String.format("Following non-optional properties are missing in KCQL: %s", missingPropertiesError)
+        )).stream();
+  }
+
+  public static Stream<TopicValidationError> checkForValidPropertyValues(Map<String, String> properties) {
+
+    Optional<String> serviceBusType =
+        Optional.ofNullable(properties.get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName())).map(
+            String::toUpperCase);
+
+    return serviceBusType.map(sbt -> {
+
+      Stream.Builder<TopicValidationError> errorStreamBuilder = Stream.builder();
+      if (!BUS_TYPE_PATTERN.matcher(sbt).matches()) {
+        errorStreamBuilder.add(new TopicValidationError(
+            String.format(BUS_TYPE_ERROR_MESSAGE, ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName())));
       }
+      if (!QUEUE_BUS_TYPE.equalsIgnoreCase(sbt)) { // if not a queue, check for necessary topic subscription
+        Optional<String> subscriptionName =
+            Optional.ofNullable(properties.get(ServiceBusKcqlProperties.SUBSCRIPTION_NAME.getPropertyName()));
+        if (subscriptionName.isEmpty() || subscriptionName.stream().filter(e -> azureNameMatchesAgainstRegex(e,
+            MAX_SUBSCRIPTION_LENGTH)).collect(Collectors.toSet()).isEmpty()) {
+          errorStreamBuilder.add(new TopicValidationError(String.format(SUBSCRIPTION_NAME_ERROR_MESSAGE,
+              subscriptionName.orElse(null))));
+        }
+      }
+      return errorStreamBuilder.build();
+
     }
+
+    ).orElse(Stream.empty());
+
   }
 
   private static List<ServiceBusKcqlProperties> checkForNecessaryKcqlProperties(Kcql kcql) {

@@ -202,6 +202,6 @@ class KcqlConfigBusMapperTest {
     ConfigException configException =
         assertThrows(ConfigException.class,
             () -> KcqlConfigBusMapper.mapKcqlsFromConfig(illegalKcql));
-    assertEquals(expectedMessage, configException.getMessage());
+    assertThat(configException.getMessage()).contains(expectedMessage);
   }
 }
