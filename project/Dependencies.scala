@@ -374,7 +374,7 @@ object Dependencies {
       .exclude("com.fasterxml.jackson.core", "jackson-annotations")
 
   lazy val nimbusJoseJwt = hiveExcludes("com.nimbusds" % "nimbus-jose-jwt" % nimbusJoseJwtVersion)
-  lazy val airCompressor = "io.airlift" % "aircompressor" % "0.24"
+  lazy val airCompressor = "io.airlift" % "aircompressor" % "0.27"
 
   // testcontainers module only
   lazy val festAssert = "org.easytesting" % "fest-assert" % "1.4"
@@ -471,6 +471,7 @@ trait Dependencies {
     jacksonDatabind,
     jacksonModuleScala,
     jacksonDataformatCbor,
+    airCompressor,
   )
 
   val kafkaConnectS3Deps: Seq[ModuleID] = Seq(
