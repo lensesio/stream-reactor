@@ -374,6 +374,7 @@ object Dependencies {
       .exclude("com.fasterxml.jackson.core", "jackson-annotations")
 
   lazy val nimbusJoseJwt = hiveExcludes("com.nimbusds" % "nimbus-jose-jwt" % nimbusJoseJwtVersion)
+  lazy val airCompressor = "io.airlift" % "aircompressor" % "0.27"
 
   // testcontainers module only
   lazy val festAssert = "org.easytesting" % "fest-assert" % "1.4"
