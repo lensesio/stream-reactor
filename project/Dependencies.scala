@@ -471,6 +471,7 @@ trait Dependencies {
     jacksonDatabind,
     jacksonModuleScala,
     jacksonDataformatCbor,
+    airCompressor,
   )
 
   val kafkaConnectS3Deps: Seq[ModuleID] = Seq(
