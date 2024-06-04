@@ -21,4 +21,8 @@ public class StringUtils {
     return str == null || str.trim().isEmpty();
   }
 
+  public static String getSystemsNewLineChar() {
+    return System.getProperty("line.separator");
+  }
+
 }

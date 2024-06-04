@@ -50,7 +50,7 @@ public class JarManifest {
   private static final String PRODUCE_FROM_CLASS_EXCEPTION_MESSAGE =
       "Unable to produce JarManifest from Class object, try manual approach.";
   private static final String UNKNOWN = "unknown";
-  private static final String NEW_LINE = System.getProperty("line.separator");
+  private static final String NEW_LINE = StringUtils.getSystemsNewLineChar();
   private static final String SEMICOLON = ":";
   private Map<String, String> jarAttributes = new HashMap<>();
 

@@ -17,7 +17,6 @@ package io.lenses.streamreactor.connect.azure.servicebus.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.from;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.lenses.kcql.Kcql;

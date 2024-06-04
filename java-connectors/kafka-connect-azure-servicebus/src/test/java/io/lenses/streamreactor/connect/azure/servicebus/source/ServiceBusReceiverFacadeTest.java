@@ -45,11 +45,10 @@ class ServiceBusReceiverFacadeTest {
     when(propertiesMap.get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName())).thenReturn(queueType);
 
     Kcql kcql = mockKcql(propertiesMap);
-    String receiverId1 = SOME_RECEIVER_ID;
 
     ServiceBusReceiverFacade testObj =
         new ServiceBusReceiverFacade(kcql, mockedQueue,
-            CONNECTION_STRING, receiverId1);
+            CONNECTION_STRING, SOME_RECEIVER_ID);
 
     //when
     String receiverId = testObj.getReceiverId();
@@ -58,7 +57,7 @@ class ServiceBusReceiverFacadeTest {
     verify(kcql).getProperties();
     verify(kcql).getSource();
     verify(propertiesMap).get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName());
-    assertThat(receiverId).isEqualTo(receiverId1);
+    assertThat(receiverId).isEqualTo(SOME_RECEIVER_ID);
   }
 
   @Test
@@ -72,11 +71,9 @@ class ServiceBusReceiverFacadeTest {
 
     Kcql kcql = mockKcql(propertiesMap);
 
-    String receiverId1 = SOME_RECEIVER_ID;
-
     ServiceBusReceiverFacade testObj =
         new ServiceBusReceiverFacade(kcql, mockedQueue,
-            CONNECTION_STRING, receiverId1);
+            CONNECTION_STRING, SOME_RECEIVER_ID);
 
     //when
     String receiverId = testObj.getReceiverId();
@@ -86,7 +83,7 @@ class ServiceBusReceiverFacadeTest {
     verify(kcql).getSource();
     verify(propertiesMap).get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName());
     verify(propertiesMap).get(ServiceBusKcqlProperties.SUBSCRIPTION_NAME.getPropertyName());
-    assertThat(receiverId).isEqualTo(receiverId1);
+    assertThat(receiverId).isEqualTo(SOME_RECEIVER_ID);
   }
 
   @Test
