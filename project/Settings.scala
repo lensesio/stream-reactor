@@ -6,16 +6,13 @@ import Dependencies.googleProtobufJava
 import Dependencies.hadoopCommon
 import Dependencies.hadoopMapReduceClientCore
 import Dependencies.jsonSmart
-import Dependencies.nettyCodecSocks
-import Dependencies.nettyHandlerProxy
 import Dependencies.nimbusJoseJwt
 import Dependencies.woodstoxCore
+import Dependencies.zstd
 import com.eed3si9n.jarjarabrams.ShadeRule
 import com.simplytyped.Antlr4Plugin
 import com.simplytyped.Antlr4Plugin.autoImport.Antlr4
-import com.simplytyped.Antlr4Plugin.autoImport.antlr4GenVisitor
 import com.simplytyped.Antlr4Plugin.autoImport.antlr4PackageName
-import com.simplytyped.Antlr4Plugin.autoImport.antlr4TreatWarningsAsErrors
 import com.simplytyped.Antlr4Plugin.autoImport.antlr4Version
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.*
 import sbt.Keys.*
@@ -30,8 +27,6 @@ import sbtassembly.PathList
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.Year
-import java.util.Calendar
-import scala.collection.Seq
 import scala.sys.process.*
 
 object Settings extends Dependencies {
@@ -212,6 +207,7 @@ object Settings extends Dependencies {
             woodstoxCore,
             jsonSmart,
             nimbusJoseJwt,
+            zstd,
           ) ++ nettyDepOverrides ++ avroOverrides,
         ),
       )

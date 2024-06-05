@@ -35,6 +35,7 @@ import io.lenses.streamreactor.connect.cloud.common.formats.reader.parquet.Parqu
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.parquet.SeekableByteArrayInputStream
 import org.apache.avro.generic.GenericRecord
 import org.apache.parquet.avro.AvroParquetReader
+import org.apache.parquet.conf.PlainParquetConfiguration
 import org.apache.parquet.hadoop.ParquetReader
 
 class ParquetFormatReader extends Using {
@@ -44,7 +45,7 @@ class ParquetFormatReader extends Using {
         val inputFile = new ParquetInputFile(inputStream)
 
         using(AvroParquetReader
-          .builder[GenericRecord](inputFile)
+          .builder[GenericRecord](inputFile, new PlainParquetConfiguration())
           .build()) {
           avroParquetReader =>
             accListFromReader(avroParquetReader, Vector())

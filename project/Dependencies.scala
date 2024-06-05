@@ -70,7 +70,7 @@ object Dependencies {
     val scalaLoggingVersion = "3.9.5"
 
     val wiremockVersion = "3.6.0"
-    val parquetVersion  = "1.13.1"
+    val parquetVersion  = "1.14.0"
 
     val jerseyCommonVersion = "3.1.7"
 
@@ -374,7 +374,8 @@ object Dependencies {
       .exclude("com.fasterxml.jackson.core", "jackson-annotations")
 
   lazy val nimbusJoseJwt = hiveExcludes("com.nimbusds" % "nimbus-jose-jwt" % nimbusJoseJwtVersion)
-  lazy val airCompressor = "io.airlift" % "aircompressor" % "0.27"
+  lazy val airCompressor = "io.airlift"       % "aircompressor" % "0.27"
+  lazy val zstd          = "com.github.luben" % "zstd-jni"      % "1.5.6-2"
 
   // testcontainers module only
   lazy val festAssert = "org.easytesting" % "fest-assert" % "1.4"
