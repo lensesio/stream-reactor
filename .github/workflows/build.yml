@@ -268,3 +268,11 @@ jobs:
         with:
           name: assembly-${{ matrix.module }}-${{ github.run_id }}
           path: ~/**/target/libs/*.jar
+
+  final-job:
+    name: (Scala) Final Stage
+    runs-on: ubuntu-latest
+    needs: upload-assembly
+    steps:
+      - name: Final Status Check
+        run: echo "All matrix jobs have completed successfully."

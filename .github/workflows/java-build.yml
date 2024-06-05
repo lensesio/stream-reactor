@@ -143,3 +143,11 @@ jobs:
         with:
           name: ${{matrix.module}}-depcheck-results
           path: ${{github.workspace}}/reports
+
+  final-job:
+    name: (Java) Final Stage
+    runs-on: ubuntu-latest
+    needs: jar-dependency-check
+    steps:
+      - name: Final Status Check
+        run: echo "All matrix jobs have completed successfully."
