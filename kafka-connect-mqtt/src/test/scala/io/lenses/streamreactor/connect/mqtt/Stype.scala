@@ -17,8 +17,7 @@ package io.lenses.streamreactor.connect.mqtt
 
 import java.util.Collections
 
-/**
-  * Created by stepi on 06/12/16.
+/** Created by stepi on 06/12/16.
   */
 object Stype {
   def apply() =

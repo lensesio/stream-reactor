@@ -17,8 +17,7 @@ package io.lenses.streamreactor.connect.io.text
 
 import java.io.InputStream
 
-/**
-  * Read the input stream and uses a sequence number to identify the line. A line returned by the reader
+/** Read the input stream and uses a sequence number to identify the line. A line returned by the reader
   * can correspond to multiple lines in the underlying input. Consider this example input stream content
   *
   * {{{
@@ -75,8 +74,7 @@ class SequenceBasedLineReader(input: InputStream) extends LineReader {
     ReadResult(Option(line), sb.toString())
   }
 
-  /**
-    * Read to first sequence number and return the line.
+  /** Read to first sequence number and return the line.
     */
   private def readUntilFirstIndexOrNone(): Option[String] = {
     var line = br.readLine()

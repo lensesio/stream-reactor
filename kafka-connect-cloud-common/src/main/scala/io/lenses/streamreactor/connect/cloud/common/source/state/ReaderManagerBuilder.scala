@@ -28,8 +28,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import org.apache.kafka.connect.errors.ConnectException
 
-/**
-  * Responsible for creating an instance of {{{ReaderManager}}} for a given path.
+/** Responsible for creating an instance of {{{ReaderManager}}} for a given path.
   */
 object ReaderManagerBuilder {
   def apply[M <: FileMetadata](

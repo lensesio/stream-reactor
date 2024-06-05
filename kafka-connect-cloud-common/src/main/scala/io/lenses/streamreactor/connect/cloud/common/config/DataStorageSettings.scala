@@ -24,8 +24,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnu
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 import org.apache.kafka.common.config.ConfigException
 
-/**
-  * Flags for enabling/disabling storage of various fields in a Kafka message.
+/** Flags for enabling/disabling storage of various fields in a Kafka message.
   *
   * @param envelope - If enabled it stores the envelope of the Kafka message
   * @param key - If enabled it stores the keys of the Kafka message
@@ -79,27 +78,27 @@ object DataStorageSettings {
       metadata <- properties.getBooleanOrDefault(PropsKeyEnum.StoreEnvelopeMetadata, DefaultFieldsValue)
       headers  <- properties.getBooleanOrDefault(PropsKeyEnum.StoreEnvelopeHeaders, DefaultFieldsValue)
       value    <- properties.getBooleanOrDefault(PropsKeyEnum.StoreEnvelopeValue, DefaultFieldsValue)
-      result <- if (!envelope) {
-        //if no envelope default
-        Default.asRight[ConfigException]
-      } else {
-        val setting = DataStorageSettings(
-          envelope = envelope,
-          key      = key,
-          value    = value,
-          metadata = metadata,
-          headers  = headers,
-        )
+      result <-
+        if (!envelope) {
+          //if no envelope default
+          Default.asRight[ConfigException]
+        } else {
+          val setting = DataStorageSettings(
+            envelope = envelope,
+            key      = key,
+            value    = value,
+            metadata = metadata,
+            headers  = headers,
+          )
 
-        (
-          validateEnvelopeIsTrueAndAtLeastOneField(setting),
-          validateEnvelopeIsTrueAndAllFieldsSpecified(envelope, properties),
-        ).mapN((_, _) => setting).leftMap(errors => new ConfigException(errors.toList.mkString(", "))).toEither
-      }
+          (
+            validateEnvelopeIsTrueAndAtLeastOneField(setting),
+            validateEnvelopeIsTrueAndAllFieldsSpecified(envelope, properties),
+          ).mapN((_, _) => setting).leftMap(errors => new ConfigException(errors.toList.mkString(", "))).toEither
+        }
     } yield result
 
-  /**
-    * Validates that the envelope is true and at least one field is true
+  /** Validates that the envelope is true and at least one field is true
     *
     * @param setting The setting to validate
     * @return An error if the envelope is true and all the fields are false, otherwise unit
@@ -113,8 +112,7 @@ object DataStorageSettings {
       }
     } else ().validNel
 
-  /**
-    * Validates that if the envelope is set to true then all the fields are missing or all fields are specified.
+  /** Validates that if the envelope is set to true then all the fields are missing or all fields are specified.
     * This is meant to drive explicit configuration of the fields, and avoid selective fields configuration.
     * @param properties The properties to validate
     * @return An error if the envelope is true and not all fields are specified, otherwise unit

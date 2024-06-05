@@ -26,8 +26,7 @@ class ParquetSeekableInputStream(is: InputStream, recreateStreamF: () => InputSt
     extends SeekableInputStream
     with LazyLogging {
 
-  /**
-    * The InceptionDelegatingInputStream delegates to a DelegatingInputStream for the read operations (so as to avoid
+  /** The InceptionDelegatingInputStream delegates to a DelegatingInputStream for the read operations (so as to avoid
     * duplication of all the read code, and it delegates to the outer class for the position and seeking operations.
     *
     * This is obviously a massive workaround for the design of the library we are using as we cannot supply a HTTP input

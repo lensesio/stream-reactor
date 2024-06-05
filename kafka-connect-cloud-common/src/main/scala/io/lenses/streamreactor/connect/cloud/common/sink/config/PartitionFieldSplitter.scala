@@ -15,13 +15,11 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.config
 
-/**
-  * A utility for splitting a string into parts while respecting backticks.
+/** A utility for splitting a string into parts while respecting backticks.
   */
 object PartitionFieldSplitter {
 
-  /**
-    * Splits an input string into parts while respecting backticks.
+  /** Splits an input string into parts while respecting backticks.
     * Backticks are treated as complete strings and not subject to splitting.
     *
     * @param input The input string to split.

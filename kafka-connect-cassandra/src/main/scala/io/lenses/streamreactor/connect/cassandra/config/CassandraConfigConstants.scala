@@ -26,13 +26,11 @@ import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.RETRY_I
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.THREAD_POLL_PROP_SUFFIX
 import io.lenses.streamreactor.common.config.base.const.TraitConfigConst.USERNAME_SUFFIX
 
-/**
-  * Created by andrew@datamountaineer.com on 25/04/16.
+/** Created by andrew@datamountaineer.com on 25/04/16.
   * stream-reactor
   */
 
-/**
-  * Holds the constants used in the config.
+/** Holds the constants used in the config.
   */
 
 object CassandraConfigConstants {

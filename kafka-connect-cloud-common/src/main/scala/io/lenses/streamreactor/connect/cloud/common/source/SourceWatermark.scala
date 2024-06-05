@@ -27,8 +27,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 
 object SourceWatermark {
 
-  /**
-    * Builds the source partition information from the CloudLocation
+  /** Builds the source partition information from the CloudLocation
     * @param root The CloudLocation
     * @return A map of partition information
     */
@@ -38,8 +37,7 @@ object SourceWatermark {
       PrefixKey    -> root.prefixOrDefault(),
     ).asJava
 
-  /**
-    * Builds the source offset information from the CloudLocation
+  /** Builds the source offset information from the CloudLocation
     * @param bucketAndPath The CloudLocation
     * @param offset The offset
     * @param lastModified The last modified time of the file processed

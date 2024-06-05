@@ -20,8 +20,7 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import scala.annotation.tailrec
 
-/**
-  * Reads records from an input stream. A record is identified as the data contained between the prefix and suffix.
+/** Reads records from an input stream. A record is identified as the data contained between the prefix and suffix.
   * The prefix and suffix are included in the line.
   * @param input
   * @param prefix

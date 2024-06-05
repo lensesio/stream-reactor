@@ -49,8 +49,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
 
-/**
-  * @param connectorPrefix
+/** @param connectorPrefix
   * @param sinkAsciiArtResource
   * @param manifest
   * @tparam MD file metadata type
@@ -235,8 +234,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
 
   }
 
-  /**
-    * Whenever close is called, the topics and partitions assigned to this task
+  /** Whenever close is called, the topics and partitions assigned to this task
     * may be changing, eg, in a re-balance. Therefore, we must commit our open files
     * for those (topic,partitions) to ensure no records are lost.
     */

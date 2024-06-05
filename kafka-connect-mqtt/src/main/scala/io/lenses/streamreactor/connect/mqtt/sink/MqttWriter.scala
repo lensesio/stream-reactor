@@ -34,8 +34,7 @@ import scala.annotation.nowarn
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Try
 
-/**
-  * Created by andrew@datamountaineer.com on 27/08/2017.
+/** Created by andrew@datamountaineer.com on 27/08/2017.
   * stream-reactor
   */
 
@@ -93,12 +92,13 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings, convertersMap: 
                     }
 
                     val converter = convertersMap.getOrElse(k.getSource, null)
-                    val value = if (converter == null) {
-                      transformed.toString.getBytes()
-                    } else {
-                      val converted_record = converter.convert(mqttTarget, r)
-                      converted_record.value().asInstanceOf[Array[Byte]]
-                    }
+                    val value =
+                      if (converter == null) {
+                        transformed.toString.getBytes()
+                      } else {
+                        val converted_record = converter.convert(mqttTarget, r)
+                        converted_record.value().asInstanceOf[Array[Byte]]
+                      }
 
                     (mqttTarget, value)
                 }.map(

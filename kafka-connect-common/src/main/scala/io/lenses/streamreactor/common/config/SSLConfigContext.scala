@@ -29,16 +29,14 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.TrustManager
 
-/**
-  * Created by andrew@datamountaineer.com on 14/04/16.
+/** Created by andrew@datamountaineer.com on 14/04/16.
   * stream-reactor
   */
 object SSLConfigContext {
   def apply(config: SSLConfig): SSLContext =
     getSSLContext(config)
 
-  /**
-    * Get a SSL Connect for a given set of credentials
+  /** Get a SSL Connect for a given set of credentials
     *
     * @param config An SSLConfig containing key and truststore credentials
     * @return a SSLContext
@@ -47,11 +45,12 @@ object SSLConfigContext {
     val useClientCertAuth = config.useClientCert
 
     //is client certification authentication set
-    val keyManagers: Array[KeyManager] = if (useClientCertAuth) {
-      getKeyManagers(config)
-    } else {
-      Array[KeyManager]()
-    }
+    val keyManagers: Array[KeyManager] =
+      if (useClientCertAuth) {
+        getKeyManagers(config)
+      } else {
+        Array[KeyManager]()
+      }
 
     val ctx: SSLContext = SSLContext.getInstance("SSL")
     val trustManagers = getTrustManagers(config)
@@ -59,8 +58,7 @@ object SSLConfigContext {
     ctx
   }
 
-  /**
-    * Get an array of Trust Managers
+  /** Get an array of Trust Managers
     *
     * @param config An SSLConfig containing key and truststore credentials
     * @return An Array of TrustManagers
@@ -74,8 +72,7 @@ object SSLConfigContext {
     tmf.getTrustManagers
   }
 
-  /**
-    * Get an array of Key Managers
+  /** Get an array of Key Managers
     *
     * @param config An SSLConfig containing key and truststore credentials
     * @return An Array of KeyManagers
@@ -93,8 +90,7 @@ object SSLConfigContext {
 
 }
 
-/**
-  * Class for holding key and truststore settings
+/** Class for holding key and truststore settings
   */
 case class SSLConfig(
   trustStorePath: String,
