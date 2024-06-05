@@ -40,8 +40,7 @@ public class GCPPubSubSourceConnector extends SourceConnector {
 
   private final PubSubConfigSettings pubSubConfigSettings = new PubSubConfigSettings();
 
-  private final JarManifest jarManifest =
-      new JarManifest(getClass().getProtectionDomain().getCodeSource().getLocation());
+  private final JarManifest jarManifest = JarManifest.produceFromClass(getClass());
 
   @Override
   public void start(Map<String, String> props) {

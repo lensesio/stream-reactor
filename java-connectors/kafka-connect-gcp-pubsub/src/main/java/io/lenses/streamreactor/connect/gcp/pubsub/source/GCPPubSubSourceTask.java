@@ -42,8 +42,7 @@ import lombok.val;
  */
 public class GCPPubSubSourceTask extends SourceTask {
 
-  private final JarManifest jarManifest =
-      new JarManifest(getClass().getProtectionDomain().getCodeSource().getLocation());
+  private final JarManifest jarManifest = JarManifest.produceFromClass(getClass());
 
   private final PubSubConfigSettings pubSubConfigSettings = new PubSubConfigSettings();
 

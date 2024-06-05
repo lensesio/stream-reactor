@@ -13,18 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.common.exception;
+package io.lenses.streamreactor.common.util;
 
-/**
- * Exception to indicate there's something wrong during Connector's startup.
- */
-public class ConnectorStartupException extends RuntimeException {
+public class StringUtils {
 
-  public ConnectorStartupException(Throwable cause) {
-    super(cause);
+  public static boolean isBlank(String str) {
+    return str == null || str.trim().isEmpty();
   }
 
-  public ConnectorStartupException(String message) {
-    super(message);
+  public static String getSystemsNewLineChar() {
+    return System.getProperty("line.separator");
   }
+
 }

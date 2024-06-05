@@ -13,18 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.common.exception;
+package io.lenses.streamreactor.connect.azure.servicebus.util;
 
-/**
- * Exception to indicate there's something wrong during Connector's startup.
- */
-public class ConnectorStartupException extends RuntimeException {
+import static org.assertj.core.api.Assertions.assertThat;
 
-  public ConnectorStartupException(Throwable cause) {
-    super(cause);
-  }
+import java.util.List;
+import org.junit.jupiter.api.Test;
 
-  public ConnectorStartupException(String message) {
-    super(message);
+class ServiceBusKcqlPropertiesTest {
+
+  @Test
+  void getNecessaryProperties() {
+    //when
+    List<ServiceBusKcqlProperties> necessaryProperties = ServiceBusKcqlProperties.getNecessaryProperties();
+
+    //then
+    assertThat(necessaryProperties)
+        .containsOnly(ServiceBusKcqlProperties.SERVICE_BUS_TYPE);
   }
 }

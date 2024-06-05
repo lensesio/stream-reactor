@@ -92,4 +92,16 @@ class JarManifestTest {
     //then
     assertThat(testObj.getVersion()).isEqualTo(EMPTY_STRING);
   }
+
+  @Test
+  void produceFromClassShouldProduceJarManifestIfLocationAccessible() {
+    //given
+
+    //when
+    testObj = JarManifest.produceFromClass(getClass());
+
+    //then
+    assertThat(testObj.getVersion()).isEqualTo(EMPTY_STRING);
+
+  }
 }

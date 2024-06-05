@@ -13,29 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.azure.eventhubs.source;
+package io.lenses.streamreactor.connect.azure.servicebus.source;
 
 import static io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader;
 
 import io.lenses.streamreactor.common.util.JarManifest;
-import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
-import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
-import io.lenses.streamreactor.connect.azure.eventhubs.util.KcqlConfigTopicMapper;
-import java.util.ArrayList;
+import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfigConstants;
+import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusSourceConfig;
+import io.lenses.streamreactor.connect.azure.servicebus.util.KcqlConfigBusMapper;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
-import org.apache.kafka.connect.source.ExactlyOnceSupport;
 import org.apache.kafka.connect.source.SourceConnector;
 
 /**
  * Implementation of {@link SourceConnector} for Microsoft Azure EventHubs.
  */
 @Slf4j
-public class AzureEventHubsSourceConnector extends SourceConnector {
+public class AzureServiceBusSourceConnector extends SourceConnector {
 
   private final JarManifest jarManifest =
       JarManifest.produceFromClass(getClass());
@@ -43,28 +42,29 @@ public class AzureEventHubsSourceConnector extends SourceConnector {
 
   @Override
   public void start(Map<String, String> props) {
-    configProperties = props;
     parseAndValidateConfigs(props);
-    printAsciiHeader(jarManifest, "/azure-eventhubs-ascii.txt");
+    configProperties = props;
+    printAsciiHeader(jarManifest, "/azure-servicebus-ascii.txt");
+  }
+
+  private void parseAndValidateConfigs(Map<String, String> props) {
+    new AzureServiceBusSourceConfig(props);
+    KcqlConfigBusMapper.mapKcqlsFromConfig(props.get(AzureServiceBusConfigConstants.KCQL_CONFIG));
   }
 
   @Override
   public Class<? extends Task> taskClass() {
-    return AzureEventHubsSourceTask.class;
+    return AzureServiceBusSourceTask.class;
   }
 
   @Override
   public List<Map<String, String>> taskConfigs(int maxTasks) {
     log.info("Setting task configurations for {} workers.", maxTasks);
-    List<Map<String, String>> taskConfigs = new ArrayList<>(maxTasks);
+    Map<String, String> immutableProps = Map.copyOf(configProperties);
 
-    IntStream.range(0, maxTasks).forEach(task -> taskConfigs.add(configProperties));
-    return taskConfigs;
-  }
-
-  @Override
-  public ExactlyOnceSupport exactlyOnceSupport(Map<String, String> connectorConfig) {
-    return ExactlyOnceSupport.SUPPORTED;
+    return IntStream.range(0, maxTasks)
+        .mapToObj(i -> immutableProps)
+        .collect(Collectors.toList());
   }
 
   @Override
@@ -74,17 +74,11 @@ public class AzureEventHubsSourceConnector extends SourceConnector {
 
   @Override
   public ConfigDef config() {
-    return AzureEventHubsSourceConfig.getConfigDefinition();
+    return AzureServiceBusSourceConfig.getConfigDefinition();
   }
 
   @Override
   public String version() {
     return jarManifest.getVersion();
-  }
-
-  private static void parseAndValidateConfigs(Map<String, String> props) {
-    AzureEventHubsSourceConfig azureEventHubsSourceConfig = new AzureEventHubsSourceConfig(props);
-    String kcqlMappings = azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG);
-    KcqlConfigTopicMapper.mapInputToOutputsFromConfig(kcqlMappings);
   }
 }

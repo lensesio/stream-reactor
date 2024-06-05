@@ -112,4 +112,12 @@
         <packageUrl regex="true">^pkg:maven/com\.azure/azure\-xml@.*$</packageUrl>
         <cve>CVE-2023-36052</cve>
     </suppress>
+    <!-- Azure False Positive: https://github.com/jeremylong/DependencyCheck/issues/6100 -->
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-azure-servicebus-7.2.1-SNAPSHOT-all.jar (shaded: com.azure:azure-xml:1.0.0)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure\-core\-amqp@.*$</packageUrl>
+        <cve>CVE-2023-36052</cve>
+    </suppress>
 </suppressions>

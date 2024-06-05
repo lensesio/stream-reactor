@@ -29,6 +29,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.security.CodeSource;
+import java.security.ProtectionDomain;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,16 +40,36 @@ import java.util.Optional;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
+import lombok.Getter;
 
 /**
  * Class that reads JAR Manifest files so we can easily get some of the properties from it.
  */
 public class JarManifest {
 
+  private static final String PRODUCE_FROM_CLASS_EXCEPTION_MESSAGE =
+      "Unable to produce JarManifest from Class object, try manual approach.";
   private static final String UNKNOWN = "unknown";
-  private static final String NEW_LINE = System.getProperty("line.separator");
+  private static final String NEW_LINE = StringUtils.getSystemsNewLineChar();
   private static final String SEMICOLON = ":";
   private Map<String, String> jarAttributes = new HashMap<>();
+
+  /**
+   * Tries to produce JarManifest from Class object then delegates to constructor if successful or throws
+   * {@link ConnectorStartupException} if needed to be done manually.
+   *
+   * @param clazz class to make JarManifest for.
+   * @return JarManifest for this class
+   */
+  public static JarManifest produceFromClass(Class<?> clazz) {
+    URL url =
+        ofNullable(clazz.getProtectionDomain())
+            .map(ProtectionDomain::getCodeSource)
+            .map(CodeSource::getLocation)
+            .orElseThrow(() -> new ConnectorStartupException(PRODUCE_FROM_CLASS_EXCEPTION_MESSAGE));
+
+    return new JarManifest(url);
+  }
 
   /**
    * Creates JarManifest.
@@ -117,6 +139,7 @@ public class JarManifest {
   /**
    * Enum that represents StreamReactor's important parameters from Manifest file.
    */
+  @Getter
   public enum ManifestAttributes {
 
     REACTOR_VER("StreamReactor-Version"),
@@ -130,10 +153,6 @@ public class JarManifest {
 
     ManifestAttributes(String attributeName) {
       this.attributeName = attributeName;
-    }
-
-    public String getAttributeName() {
-      return attributeName;
     }
   }
 }
