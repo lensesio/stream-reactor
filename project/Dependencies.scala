@@ -75,12 +75,12 @@ object Dependencies {
     val jerseyCommonVersion = "3.1.7"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.25.60"
+    val awsSdkVersion  = "2.25.65"
 
     val azureDataLakeVersion = "12.19.0"
     val azureIdentityVersion = "1.12.1"
     val azureCoreVersion     = "1.49.0"
-    val gcpCloudVersion      = "2.37.0"
+    val gcpCloudVersion      = "2.39.0"
 
     val jacksonVersion      = "2.17.1"
     val json4sVersion       = "4.0.7"
@@ -111,7 +111,7 @@ object Dependencies {
 
     val mqttVersion = "1.2.5"
 
-    val commonsNetVersion      = "3.10.0"
+    val commonsNetVersion      = "3.11.0"
     val commonsCodecVersion    = "1.17.0"
     val commonsCompressVersion = "1.26.2"
     val commonsConfigVersion   = "2.10.1"
