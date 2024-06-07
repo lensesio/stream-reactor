@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.http.sink.client
-
 import cats.effect.IO
+import cats.implicits.none
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
 import org.http4s._
@@ -30,13 +30,36 @@ class HttpRequestSender(
   client:         Client[IO],
 ) extends LazyLogging {
 
-  private def buildHeaders(headers: Seq[(String, String)]): IO[Headers] =
-    IO {
-      Headers(headers.map {
-        case (name, value) =>
-          Header.ToRaw.rawToRaw(new Header.Raw(CIString(name), value))
-      }: _*)
+  private case class HeaderInfo(contentType: Option[`Content-Type`], headers: Headers)
+
+  private def buildHeaders(headers: Seq[(String, String)]): Either[Throwable, HeaderInfo] = {
+
+    val (contentTypeHeaders, otherHeaders) = headers
+      .partition(_._1.equalsIgnoreCase("Content-Type"))
+
+    for {
+      contentTypeSingle <- Either.cond(
+        contentTypeHeaders.size <= 1,
+        contentTypeHeaders.headOption.map {
+          case (_, ct) => ct
+        },
+        new IllegalArgumentException("Excessive content types"),
+      )
+      contentTypeParsed: Option[`Content-Type`] <- contentTypeSingle.map(`Content-Type`.parse) match {
+        case Some(Left(ex)) => Left(ex)
+        case Some(Right(r: `Content-Type`)) => Right(Some(r))
+        case None => Right(none)
+      }
+    } yield {
+      HeaderInfo(
+        contentTypeParsed,
+        Headers(otherHeaders.map {
+          case (name, value) =>
+            Header.ToRaw.rawToRaw(new Header.Raw(CIString(name), value))
+        }: _*),
+      )
     }
+  }
 
   def sendHttpRequest(
     processedTemplate: ProcessedTemplate,
@@ -47,20 +70,22 @@ class HttpRequestSender(
       uri <- IO.pure(Uri.unsafeFromString(processedTemplate.endpoint))
       _   <- IO.delay(logger.debug(s"[$sinkName] sending a http request to url $uri"))
 
-      clientHeaders: Headers <- buildHeaders(tpl.headers)
+      clientHeaders: HeaderInfo <- IO.fromEither(buildHeaders(tpl.headers))
 
       request <- IO {
         Request[IO](
           method  = method,
           uri     = uri,
-          headers = clientHeaders,
-        ).withContentType(`Content-Type`(MediaType.application.xml)).withEntity(processedTemplate.content)
+          headers = clientHeaders.headers,
+        )
+          .withEntity(processedTemplate.content)
       }
+      requestWithContentType = clientHeaders.contentType.fold(request)(request.withContentType)
       // Add authentication if present
       authenticatedRequest <- IO {
-        authentication.fold(request) {
+        authentication.fold(requestWithContentType) {
           case BasicAuthentication(username, password) =>
-            request.putHeaders(Authorization(BasicCredentials(username, password)))
+            requestWithContentType.putHeaders(Authorization(BasicCredentials(username, password)))
         }
       }
       _ <- IO.delay(logger.debug(s"[$sinkName] Auth: $authenticatedRequest"))

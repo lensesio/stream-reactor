@@ -77,13 +77,17 @@ class HttpRequestSenderIT
         val processedTemplate = ProcessedTemplate(
           s"${wireMockServer.baseUrl()}$expectedUrl",
           "mycontent",
-          Seq("X-Awesome-Header" -> "stream-reactor"),
+          Seq(
+            "X-Awesome-Header" -> "stream-reactor",
+            "Content-Type"     -> "application/xml",
+          ),
         )
         requestSender.sendHttpRequest(processedTemplate).asserting {
           response =>
             WireMock.verify(
               putRequestedFor(urlEqualTo(expectedUrl))
                 .withHeader("X-Awesome-Header", equalTo("stream-reactor"))
+                .withHeader("Content-Type", equalTo("application/xml"))
                 .withRequestBody(new EqualToPattern("mycontent")),
             )
             response should be(())
