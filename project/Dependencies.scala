@@ -75,11 +75,11 @@ object Dependencies {
     val jerseyCommonVersion = "3.1.7"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.25.65"
+    val awsSdkVersion  = "2.25.70"
 
-    val azureDataLakeVersion = "12.19.0"
-    val azureIdentityVersion = "1.12.1"
-    val azureCoreVersion     = "1.49.0"
+    val azureDataLakeVersion = "12.19.1"
+    val azureIdentityVersion = "1.12.2"
+    val azureCoreVersion     = "1.49.1"
     val gcpCloudVersion      = "2.39.0"
 
     val jacksonVersion      = "2.17.1"
@@ -93,7 +93,7 @@ object Dependencies {
     val lz4Version = "1.8.0"
 
     val bouncyCastleVersion = "1.78.1"
-    val nettyVersion        = "4.1.110.Final"
+    val nettyVersion        = "4.1.111.Final"
 
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
@@ -111,14 +111,14 @@ object Dependencies {
 
     val mqttVersion = "1.2.5"
 
-    val commonsNetVersion      = "3.11.0"
+    val commonsNetVersion      = "3.11.1"
     val commonsCodecVersion    = "1.17.0"
     val commonsCompressVersion = "1.26.2"
-    val commonsConfigVersion   = "2.10.1"
+    val commonsConfigVersion   = "2.11.0"
     val commonsIOVersion       = "2.16.1"
     val commonsHttpVersion     = "4.5.14"
     val commonsLang3Version    = "3.14.0"
-    val jschVersion            = "0.2.17"
+    val jschVersion            = "0.2.18"
 
     val minaVersion           = "2.2.3"
     val betterFilesVersion    = "3.9.2"
