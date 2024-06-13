@@ -66,7 +66,6 @@ allprojects {
         testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: mockitoJupiterVersion
         testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: jUnitVersion
         testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.26.0'
-
     }
 
     test {
@@ -82,13 +81,13 @@ allprojects {
     jar {
         manifest {
             attributes("StreamReactor-Version": project.version,
-                    "Kafka-Version": kafkaVersion,
-                    "Created-By": "Lenses",
-                    "Created-At": new Date().format("YYYYMMDDHHmm"),
-                    "Git-Repo": gitRepo,
-                    "Git-Commit-Hash": gitCommitHash,
-                    "Git-Tag": gitTag,
-                    "StreamReactor-Docs": "https://docs.lenses.io/connectors/"
+            "Kafka-Version": kafkaVersion,
+            "Created-By": "Lenses",
+            "Created-At": new Date().format("YYYYMMDDHHmm"),
+            "Git-Repo": gitRepo,
+            "Git-Commit-Hash": gitCommitHash,
+            "Git-Tag": gitTag,
+            "StreamReactor-Docs": "https://docs.lenses.io/connectors/"
             )
         }
     }
@@ -98,16 +97,18 @@ allprojects {
 
         manifest {
             attributes("StreamReactor-Version": artifactVersion,
-                    "Kafka-Version": kafkaVersion,
-                    "Created-By": "Lenses",
-                    "Created-At": new Date().format("YYYYMMDDHHmm"),
-                    "Git-Repo": gitRepo,
-                    "Git-Commit-Hash": gitCommitHash,
-                    "Git-Tag": gitTag,
-                    "StreamReactor-Docs": "https://docs.lenses.io/connectors/"
+            "Kafka-Version": kafkaVersion,
+            "Created-By": "Lenses",
+            "Created-At": new Date().format("YYYYMMDDHHmm"),
+            "Git-Repo": gitRepo,
+            "Git-Commit-Hash": gitCommitHash,
+            "Git-Tag": gitTag,
+            "StreamReactor-Docs": "https://docs.lenses.io/connectors/"
             )
         }
-        configurations = [project.configurations.compileClasspath]
+        configurations = [
+            project.configurations.compileClasspath
+        ]
         archiveFileName = "${project.name}-${artifactVersion}-all.jar"
         zip64 true
 
@@ -121,17 +122,17 @@ allprojects {
         relocate('org.antlr', 'lshaded.antlr')
 
         dependencies {
-//            // UNCOMMENT BELOW IF NEED CLEAN JAR
-//            exclude(dependency {
-//                it.moduleGroup != 'io.lenses.streamreactor'
-//            })
-//        exclude(dependency('org.apache.logging.log4j:log4j-core:2.11.1'))
-//        exclude(dependency("org.apache.avro:.*"))
-//        exclude(dependency("org.apache.kafka:.*"))
-//        exclude(dependency("io.confluent:.*"))
-//        exclude(dependency("org.apache.kafka:.*"))
-//        exclude(dependency("org.apache.zookeeper:.*"))
-//        exclude(dependency("com.google.guava:guava:28.1-android"))
+            //            // UNCOMMENT BELOW IF NEED CLEAN JAR
+            //            exclude(dependency {
+            //                it.moduleGroup != 'io.lenses.streamreactor'
+            //            })
+            //        exclude(dependency('org.apache.logging.log4j:log4j-core:2.11.1'))
+            //        exclude(dependency("org.apache.avro:.*"))
+            //        exclude(dependency("org.apache.kafka:.*"))
+            //        exclude(dependency("io.confluent:.*"))
+            //        exclude(dependency("org.apache.kafka:.*"))
+            //        exclude(dependency("org.apache.zookeeper:.*"))
+            //        exclude(dependency("com.google.guava:guava:28.1-android"))
         }
 
 
@@ -139,12 +140,20 @@ allprojects {
 
             format 'misc', {
                 // define the files to apply `misc` to
-                target '*.gradle', '.gitattributes', '.gitignore'
+                target '.gitattributes', '.gitignore'
 
                 // define the steps to apply to those files
                 trimTrailingWhitespace()
                 indentWithSpaces() // or spaces. Takes an integer argument if you don't like 4
                 endWithNewline()
+            }
+            groovyGradle {
+                target '**/*.gradle'
+                importOrder()
+                trimTrailingWhitespace()
+                removeSemicolons()
+                greclipse()
+                indentWithSpaces(4)
             }
             java {
                 targetExclude '**/io/lenses/kcql/antlr4/**/*.java'
@@ -163,7 +172,6 @@ allprojects {
                 bumpThisNumberIfACustomStepChanges(1)
             }
         }
-
     }
     //compileJava.dependsOn("checkLicenses")
 
@@ -188,15 +196,19 @@ task testModuleList() {
 
     def modulesBuilder = new StringBuilder("[")
     allprojects.name.stream()
-            .filter {moduleName -> !nonTestModules.contains(moduleName)}
-            .forEach {moduleName -> modulesBuilder.append("\"" + moduleName + "\",") }
+            .filter { moduleName -> !nonTestModules.contains(moduleName) }
+            .forEach { moduleName -> modulesBuilder.append("\"" + moduleName + "\",") }
     modulesBuilder.deleteCharAt(modulesBuilder.lastIndexOf(",")).append("]")
     modulesFile.append(modulesBuilder)
 }
 
 task releaseModuleList() {
-    def nonReleaseModules = ["java-reactor", "kafka-connect-cloud-common",
-                            "kafka-connect-common", "kafka-connect-query-language"]
+    def nonReleaseModules = [
+        "java-reactor",
+        "kafka-connect-cloud-common",
+        "kafka-connect-common",
+        "kafka-connect-query-language"
+    ]
 
     def modulesFile = new File("gradle-modules.txt")
     modulesFile.delete()
@@ -204,8 +216,8 @@ task releaseModuleList() {
 
     def modulesBuilder = new StringBuilder("[")
     allprojects.name.stream()
-            .filter {moduleName -> !nonReleaseModules.contains(moduleName)}
-            .forEach {moduleName -> modulesBuilder.append("\"" + moduleName + "\",") }
+            .filter { moduleName -> !nonReleaseModules.contains(moduleName) }
+            .forEach { moduleName -> modulesBuilder.append("\"" + moduleName + "\",") }
     modulesBuilder.deleteCharAt(modulesBuilder.lastIndexOf(",")).append("]")
     modulesFile.append(modulesBuilder)
 }

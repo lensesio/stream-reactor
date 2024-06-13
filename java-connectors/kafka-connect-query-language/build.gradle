@@ -20,7 +20,10 @@ project(":kafka-connect-query-language") {
     }
 
     generateGrammarSource {
-        arguments += ["-package", "io.lenses.kcql.antlr4"]
+        arguments += [
+            "-package",
+            "io.lenses.kcql.antlr4"
+        ]
         outputDirectory = new File("${project.projectDir}/build/generated/antlr/main/java/io/lenses/kcql/antlr4")
     }
 
