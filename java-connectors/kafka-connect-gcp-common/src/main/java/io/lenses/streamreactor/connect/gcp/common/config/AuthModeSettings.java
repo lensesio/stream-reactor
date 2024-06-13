@@ -15,15 +15,20 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.config;
 
-import io.lenses.streamreactor.common.config.base.ConfigSettings;
-import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
-import io.lenses.streamreactor.common.config.source.ConfigSource;
-import io.lenses.streamreactor.connect.gcp.common.auth.mode.*;
-import lombok.Getter;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigException;
+
+import io.lenses.streamreactor.common.config.base.ConfigSettings;
+import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
+import io.lenses.streamreactor.common.config.source.ConfigSource;
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.AuthMode;
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.CredentialsAuthMode;
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.DefaultAuthMode;
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.FileAuthMode;
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode;
+import lombok.Getter;
 
 /**
  * Configuration settings for specifying authentication mode and related credentials for GCP connectors.

@@ -15,8 +15,9 @@
  */
 package io.lenses.streamreactor.common.config.base;
 
-import io.lenses.streamreactor.common.config.source.ConfigSource;
 import org.apache.kafka.common.config.ConfigDef;
+
+import io.lenses.streamreactor.common.config.source.ConfigSource;
 
 /**
  * Defines operations to manage settings and parse configurations into objects.

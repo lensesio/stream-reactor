@@ -17,18 +17,20 @@ package io.lenses.streamreactor.connect.azure.servicebus.source;
 
 import static io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader;
 
-import io.lenses.streamreactor.common.util.JarManifest;
-import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfigConstants;
-import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusSourceConfig;
-import io.lenses.streamreactor.connect.azure.servicebus.util.KcqlConfigBusMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import lombok.extern.slf4j.Slf4j;
+
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.source.SourceConnector;
+
+import io.lenses.streamreactor.common.util.JarManifest;
+import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfigConstants;
+import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusSourceConfig;
+import io.lenses.streamreactor.connect.azure.servicebus.util.KcqlConfigBusMapper;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Implementation of {@link SourceConnector} for Microsoft Azure EventHubs.

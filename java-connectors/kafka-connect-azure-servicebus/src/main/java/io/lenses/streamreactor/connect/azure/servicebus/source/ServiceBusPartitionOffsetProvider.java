@@ -17,9 +17,11 @@ package io.lenses.streamreactor.connect.azure.servicebus.source;
 
 import java.util.HashMap;
 import java.util.Optional;
+
+import org.apache.kafka.connect.storage.OffsetStorageReader;
+
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.connect.storage.OffsetStorageReader;
 
 /**
  * This class represents an abstraction over OffsetStorageReader that can be freely called by Azure

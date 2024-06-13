@@ -17,9 +17,10 @@ package io.lenses.streamreactor.common.util;
 
 import static java.util.Optional.ofNullable;
 
-import io.lenses.streamreactor.common.exception.InputStreamExtractionException;
 import java.io.InputStream;
 import java.util.Optional;
+
+import io.lenses.streamreactor.common.exception.InputStreamExtractionException;
 import lombok.extern.slf4j.Slf4j;
 
 /**

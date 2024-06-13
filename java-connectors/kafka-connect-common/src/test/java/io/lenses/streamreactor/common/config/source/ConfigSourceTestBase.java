@@ -15,9 +15,12 @@
  */
 package io.lenses.streamreactor.common.config.source;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
+
 import org.apache.kafka.common.config.types.Password;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

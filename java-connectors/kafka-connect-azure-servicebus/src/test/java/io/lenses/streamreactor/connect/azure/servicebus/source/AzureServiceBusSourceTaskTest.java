@@ -17,12 +17,15 @@ package io.lenses.streamreactor.connect.azure.servicebus.source;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+
 import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

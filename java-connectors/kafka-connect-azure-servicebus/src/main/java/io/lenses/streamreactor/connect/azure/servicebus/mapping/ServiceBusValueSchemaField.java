@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.azure.servicebus.mapping;
 
 import java.util.List;
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 

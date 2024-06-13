@@ -20,19 +20,21 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Map;
+
+import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.common.config.types.Password;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.common.config.source.MapConfigSource;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.CredentialsAuthMode;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.DefaultAuthMode;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.FileAuthMode;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode;
-import java.util.Map;
 import lombok.val;
-import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.common.config.types.Password;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 class AuthModeSettingsTest {
 

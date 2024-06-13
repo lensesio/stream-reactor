@@ -17,13 +17,13 @@ package io.lenses.streamreactor.common.config.base;
 
 import java.util.List;
 
-import lombok.Getter;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 
 import io.lenses.kcql.Kcql;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.common.config.source.ConfigSource;
+import lombok.Getter;
 import lombok.val;
 
 @Getter

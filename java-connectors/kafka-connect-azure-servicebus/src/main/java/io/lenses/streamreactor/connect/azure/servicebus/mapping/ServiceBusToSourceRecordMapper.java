@@ -32,13 +32,16 @@ import static io.lenses.streamreactor.connect.azure.servicebus.mapping.ServiceBu
 import static io.lenses.streamreactor.connect.azure.servicebus.mapping.ServiceBusValueSchemaField.SESSION_ID;
 import static io.lenses.streamreactor.connect.azure.servicebus.mapping.ServiceBusValueSchemaField.TIME_TO_LIVE;
 
-import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
-import io.lenses.streamreactor.connect.azure.servicebus.source.AzureServiceBusSourceConnector;
 import java.util.Map;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
+
+import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
+
+import io.lenses.streamreactor.connect.azure.servicebus.source.AzureServiceBusSourceConnector;
 
 /**
  * Class that maps {@link ServiceBusReceivedMessage} to Kafka Connect {@link SourceRecord}.

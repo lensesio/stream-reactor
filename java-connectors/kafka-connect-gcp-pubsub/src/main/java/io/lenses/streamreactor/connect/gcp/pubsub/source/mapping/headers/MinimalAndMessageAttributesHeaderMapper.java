@@ -15,11 +15,12 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.headers;
 
+import java.util.Map;
+
 import com.google.common.collect.ImmutableMap;
+
 import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessageData;
 import lombok.val;
-
-import java.util.Map;
 
 /**
  * MinimalAndMessageAttributesHeaderMapping is responsible for mapping minimal headers and message attributes from

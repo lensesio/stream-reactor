@@ -17,8 +17,10 @@ package io.lenses.streamreactor.common.config.source;
 
 import java.util.Map;
 import java.util.Optional;
-import lombok.AllArgsConstructor;
+
 import org.apache.kafka.common.config.types.Password;
+
+import lombok.AllArgsConstructor;
 
 /**
  * A wrapper for Kafka Connect properties that provides methods to retrieve property values from a Map..
