@@ -15,10 +15,12 @@
  */
 package io.lenses.streamreactor.connect.azure.eventhubs.source;
 
-import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+
+import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 
 /**
  * Interface of a class to produce BlockingQueueProducers.

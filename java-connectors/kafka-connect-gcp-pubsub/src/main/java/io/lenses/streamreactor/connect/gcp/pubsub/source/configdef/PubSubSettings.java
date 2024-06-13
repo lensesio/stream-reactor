@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source.configdef;
 
+import static io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.MappingConfig.OUTPUT_MODE_DEFAULT;
+
 import org.apache.kafka.common.config.ConfigDef;
 
 import io.lenses.streamreactor.common.config.base.ConfigSettings;
@@ -25,8 +27,6 @@ import io.lenses.streamreactor.connect.gcp.pubsub.source.config.PubSubConfig;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.MappingConfig;
 import lombok.Getter;
 import lombok.val;
-
-import static io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.MappingConfig.OUTPUT_MODE_DEFAULT;
 
 /**
  * PubSubSettings is responsible for configuration settings for connecting to Google Cloud Platform (GCP) services.

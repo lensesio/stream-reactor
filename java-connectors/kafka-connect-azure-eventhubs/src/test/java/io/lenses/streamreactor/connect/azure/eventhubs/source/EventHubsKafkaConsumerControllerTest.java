@@ -21,8 +21,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType;
-import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -32,12 +30,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.stream.Collectors;
+
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.Test;
+
+import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType;
+import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
 
 class EventHubsKafkaConsumerControllerTest {
 

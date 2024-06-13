@@ -17,15 +17,17 @@ package io.lenses.streamreactor.connect.gcp.common.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.lenses.streamreactor.common.config.base.RetryConfig;
-import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
-import io.lenses.streamreactor.common.config.source.MapConfigSource;
 import java.util.Map;
 import java.util.stream.Stream;
-import lombok.val;
+
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import io.lenses.streamreactor.common.config.base.RetryConfig;
+import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
+import io.lenses.streamreactor.common.config.source.MapConfigSource;
+import lombok.val;
 
 class GCPSettingsTest {
 

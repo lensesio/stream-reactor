@@ -15,10 +15,12 @@
  */
 package io.lenses.streamreactor.connect.azure.servicebus.source;
 
+import org.apache.kafka.connect.source.SourceRecord;
+
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.apache.kafka.connect.source.SourceRecord;
 
 /**
  * Class to hold mapping between original ServiceBus Message and its translated version, as well as information on

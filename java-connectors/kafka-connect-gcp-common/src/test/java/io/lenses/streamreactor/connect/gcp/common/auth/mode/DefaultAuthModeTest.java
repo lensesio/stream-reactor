@@ -16,12 +16,16 @@
 package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
-import com.google.auth.oauth2.GoogleCredentials;
-import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+
+import com.google.auth.oauth2.GoogleCredentials;
+
+import lombok.val;
 
 class DefaultAuthModeTest {
 

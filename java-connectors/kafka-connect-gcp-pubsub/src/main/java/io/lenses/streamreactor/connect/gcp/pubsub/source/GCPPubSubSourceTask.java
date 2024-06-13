@@ -20,19 +20,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import io.lenses.streamreactor.common.util.MapUtils;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.config.PubSubConfig;
-import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.*;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 
 import io.lenses.streamreactor.common.util.JarManifest;
+import io.lenses.streamreactor.common.util.MapUtils;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.admin.PubSubService;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.config.PubSubConfig;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubConfigSettings;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.SourceRecordConverter;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubSourceOffset;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubSourcePartition;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubSubscriber;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubSubscriberManager;
 import lombok.val;
 
 /**

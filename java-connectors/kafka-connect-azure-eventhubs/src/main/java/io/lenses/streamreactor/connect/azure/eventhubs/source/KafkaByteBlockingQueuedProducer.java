@@ -15,17 +15,19 @@
  */
 package io.lenses.streamreactor.connect.azure.eventhubs.source;
 
-import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
+
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+
+import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Abstraction over Kafka {@link Consumer} class that wraps the Consumer into a thread and allows

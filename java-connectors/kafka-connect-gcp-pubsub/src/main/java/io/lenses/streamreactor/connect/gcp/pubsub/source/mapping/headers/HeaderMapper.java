@@ -15,9 +15,9 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.headers;
 
-import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessageData;
-
 import java.util.Map;
+
+import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessageData;
 
 /**
  * HeaderMapping is an interface for mapping headers in the PubSubMessageData to Kafka Connect headers.

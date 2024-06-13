@@ -21,7 +21,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 
-import com.google.pubsub.v1.SubscriptionName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +31,7 @@ import com.google.cloud.pubsub.v1.MessageReceiver;
 import com.google.cloud.pubsub.v1.SubscriptionAdminClient;
 import com.google.pubsub.v1.ProjectSubscriptionName;
 import com.google.pubsub.v1.Subscription;
+import com.google.pubsub.v1.SubscriptionName;
 
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.AuthMode;
 import lombok.val;

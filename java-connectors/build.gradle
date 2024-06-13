@@ -147,10 +147,20 @@ allprojects {
                 endWithNewline()
             }
             java {
+                targetExclude '**/io/lenses/kcql/antlr4/**/*.java'
                 toggleOffOn()
                 // optional: you can specify a specific version and/or config file
                 eclipse('4.30').configFile("${rootDir}/config/Lenses_eclipse.xml")
                 licenseHeaderFile(rootProject.file("HEADER.txt"))
+
+                // courtesy of diffplug/spotless#240
+                // https://github.com/diffplug/spotless/issues/240#issuecomment-385206606
+                custom 'noWildcardImports', {
+                    if (it.contains('.*;\n')) {
+                        throw new Error('No wildcard imports allowed')
+                    }
+                }
+                bumpThisNumberIfACustomStepChanges(1)
             }
         }
 

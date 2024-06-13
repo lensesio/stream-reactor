@@ -22,9 +22,11 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
+
+import org.apache.kafka.connect.source.SourceRecord;
+
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.connect.source.SourceRecord;
 
 /**
  * Bridge between Receivers and Connector's Task for Azure Service Bus.

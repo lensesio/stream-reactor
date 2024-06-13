@@ -15,21 +15,24 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source.configdef;
 
-import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter.*;
+import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter.DEFAULT_BATCH_SIZE;
+import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter.DEFAULT_CACHE_TTL_MILLIS;
+import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter.KCQL_PROP_KEY_BATCH_SIZE;
+import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter.KCQL_PROP_KEY_CACHE_TTL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
+
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import io.lenses.kcql.Kcql;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.admin.PubSubService;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.config.PubSubSubscription;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 class PubSubKcqlConverterTest {

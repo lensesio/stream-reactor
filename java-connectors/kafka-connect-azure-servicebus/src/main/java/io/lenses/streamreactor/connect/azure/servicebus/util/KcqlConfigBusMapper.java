@@ -29,7 +29,9 @@ import java.util.stream.Stream;
 import org.apache.kafka.common.config.ConfigException;
 
 import io.lenses.kcql.Kcql;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.val;
 
 /**
  * Class that represents methods around KCQL topic handling.

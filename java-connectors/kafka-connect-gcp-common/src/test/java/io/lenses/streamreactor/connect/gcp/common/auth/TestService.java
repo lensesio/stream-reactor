@@ -15,12 +15,13 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth;
 
+import java.util.Set;
+
 import com.google.cloud.BaseService;
 import com.google.cloud.ServiceDefaults;
 import com.google.cloud.ServiceFactory;
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.spi.ServiceRpcFactory;
-import java.util.Set;
 
 class TestService extends BaseService<TestSvcServiceOptions> {
 

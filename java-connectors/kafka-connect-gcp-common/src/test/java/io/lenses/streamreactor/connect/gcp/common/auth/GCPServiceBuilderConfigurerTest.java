@@ -24,18 +24,21 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import com.google.api.gax.retrying.RetrySettings;
-import com.google.cloud.NoCredentials;
-import com.google.cloud.ServiceOptions;
-import com.google.cloud.http.HttpTransportOptions;
-import io.lenses.streamreactor.common.config.base.RetryConfig;
-import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode;
 import java.io.IOException;
-import lombok.val;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.threeten.bp.Duration;
+
+import com.google.api.gax.retrying.RetrySettings;
+import com.google.cloud.NoCredentials;
+import com.google.cloud.ServiceOptions;
+import com.google.cloud.http.HttpTransportOptions;
+
+import io.lenses.streamreactor.common.config.base.RetryConfig;
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode;
+import lombok.val;
 
 class GCPServiceBuilderConfigurerTest {
 
