@@ -20,19 +20,22 @@ import static org.assertj.core.api.Assertions.from;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.azure.core.util.BinaryData;
-import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
-import io.lenses.streamreactor.connect.azure.servicebus.source.AzureServiceBusSourceConnector;
-import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider.AzureServiceBusOffsetMarker;
-import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider.AzureServiceBusPartitionKey;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
+import com.azure.core.util.BinaryData;
+import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
+
+import io.lenses.streamreactor.connect.azure.servicebus.source.AzureServiceBusSourceConnector;
+import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider.AzureServiceBusOffsetMarker;
+import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider.AzureServiceBusPartitionKey;
 
 class ServiceBusToSourceRecordMapperTest {
 

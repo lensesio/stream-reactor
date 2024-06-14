@@ -16,7 +16,9 @@
 package io.lenses.streamreactor.connect.gcp.common.config;
 
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigException;
 
+import cyclops.control.Either;
 import io.lenses.streamreactor.common.config.base.ConfigSettings;
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
@@ -128,25 +130,30 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
     return authModeSettings.withSettings(conf);
   }
 
-  public GCPConnectionConfig parseFromConfig(ConfigSource configSource) {
-    val builder =
-        GCPConnectionConfig.builder().authMode(authModeSettings.parseFromConfig(configSource));
-    configSource.getString(gcpProjectIdKey).ifPresent(builder::projectId);
-    configSource.getString(gcpQuotaProjectIdKey).ifPresent(builder::quotaProjectId);
-    configSource.getString(hostKey).ifPresent(builder::host);
+  public Either<ConfigException, GCPConnectionConfig> parseFromConfig(ConfigSource configSource) {
+    return authModeSettings
+        .parseFromConfig(configSource)
+        .map(authMode -> {
+          val builder =
+              GCPConnectionConfig.builder().authMode(authMode);
+          configSource.getString(gcpProjectIdKey).ifPresent(builder::projectId);
+          configSource.getString(gcpQuotaProjectIdKey).ifPresent(builder::quotaProjectId);
+          configSource.getString(hostKey).ifPresent(builder::host);
 
-    val retryConfig =
-        new RetryConfig(
-            configSource.getInt(httpNbrOfRetriesKey).orElse(HTTP_NUMBER_OF_RETIRES_DEFAULT),
-            configSource.getLong(httpErrorRetryIntervalKey).orElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT));
+          val retryConfig =
+              new RetryConfig(
+                  configSource.getInt(httpNbrOfRetriesKey).orElse(HTTP_NUMBER_OF_RETIRES_DEFAULT),
+                  configSource.getLong(httpErrorRetryIntervalKey).orElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT));
 
-    val timeoutConfig =
-        new HttpTimeoutConfig(
-            configSource.getLong(httpSocketTimeoutKey).orElse(null),
-            configSource.getLong(httpConnectionTimeoutKey).orElse(null));
+          val timeoutConfig =
+              new HttpTimeoutConfig(
+                  configSource.getLong(httpSocketTimeoutKey).orElse(null),
+                  configSource.getLong(httpConnectionTimeoutKey).orElse(null));
 
-    builder.httpRetryConfig(retryConfig);
-    builder.timeouts(timeoutConfig);
-    return builder.build();
+          builder.httpRetryConfig(retryConfig);
+          builder.timeouts(timeoutConfig);
+          return builder.build();
+        });
+
   }
 }

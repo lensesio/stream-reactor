@@ -21,14 +21,16 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.connector.Task;
-import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceConnector;
 
+import cyclops.control.Either;
+import io.lenses.kcql.Kcql;
 import io.lenses.streamreactor.common.util.JarManifest;
 import io.lenses.streamreactor.common.util.TasksSplitter;
+import io.lenses.streamreactor.connect.gcp.pubsub.source.config.PubSubSourceConfig;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubConfigSettings;
-import lombok.val;
 
 /**
  * GCPPubSubSourceConnector is a source connector for Google Cloud Pub/Sub.
@@ -45,18 +47,20 @@ public class GCPPubSubSourceConnector extends SourceConnector {
   @Override
   public void start(Map<String, String> props) {
     printAsciiHeader(jarManifest, "/gcp-pubsub-source-ascii.txt");
-    this.props = validateProps(props);
+    this.props =
+        validateProps(props)
+            .fold(
+                error -> {
+                  throw error;
+                },
+                kcqls -> props
+            );
   }
 
-  private Map<String, String> validateProps(Map<String, String> props) {
-    try {
-      val pubSubConfigDef = new PubSubConfigSettings();
-      val pubSubSourceConfig = pubSubConfigDef.parse(props);
-      pubSubSourceConfig.validateKcql();
-      return props;
-    } catch (Exception e) {
-      throw new ConnectException("Invalid connector properties configuration: " + e.getMessage(), e);
-    }
+  private Either<ConfigException, List<Kcql>> validateProps(Map<String, String> props) {
+    return pubSubConfigSettings
+        .parse(props)
+        .flatMap(PubSubSourceConfig::validateKcql);
   }
 
   @Override

@@ -15,8 +15,11 @@
  */
 package io.lenses.streamreactor.common.config.base;
 
-import io.lenses.streamreactor.common.config.source.ConfigSource;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigException;
+
+import cyclops.control.Either;
+import io.lenses.streamreactor.common.config.source.ConfigSource;
 
 /**
  * Defines operations to manage settings and parse configurations into objects.
@@ -39,5 +42,5 @@ public interface ConfigSettings<M> {
    * @param configSource the {@code ConfigSource} containing configuration settings
    * @return an object of type {@code M} materialized from the given {@code ConfigSource}
    */
-  M parseFromConfig(ConfigSource configSource);
+  Either<ConfigException, M> parseFromConfig(ConfigSource configSource);
 }

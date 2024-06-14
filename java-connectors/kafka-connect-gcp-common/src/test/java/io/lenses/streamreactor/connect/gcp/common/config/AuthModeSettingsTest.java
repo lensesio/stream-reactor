@@ -15,10 +15,19 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.config;
 
+import static io.lenses.streamreactor.test.utils.EitherValues.assertLeft;
+import static io.lenses.streamreactor.test.utils.EitherValues.assertRight;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Map;
+
+import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.common.config.types.Password;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.common.config.source.MapConfigSource;
@@ -26,13 +35,7 @@ import io.lenses.streamreactor.connect.gcp.common.auth.mode.CredentialsAuthMode;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.DefaultAuthMode;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.FileAuthMode;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode;
-import java.util.Map;
 import lombok.val;
-import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.common.config.types.Password;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 class AuthModeSettingsTest {
 
@@ -75,8 +78,7 @@ class AuthModeSettingsTest {
 
     val authMode = authModeSettings.parseFromConfig(configMap);
 
-    assertNotNull(authMode);
-    assertTrue(authMode instanceof CredentialsAuthMode);
+    assertRight(authMode).isNotNull().isInstanceOf(CredentialsAuthMode.class);
   }
 
   @Test
@@ -88,8 +90,8 @@ class AuthModeSettingsTest {
                 authModeSettings.getFileKey(), "\"path/to/file\""));
     val authMode = authModeSettings.parseFromConfig(configMap);
 
-    assertNotNull(authMode);
-    assertTrue(authMode instanceof FileAuthMode);
+    assertRight(authMode).isNotNull().isInstanceOf(FileAuthMode.class);
+
   }
 
   @Test
@@ -98,8 +100,7 @@ class AuthModeSettingsTest {
     val configMap = new MapConfigSource(Map.of(authModeSettings.getAuthModeKey(), "none"));
     val authMode = authModeSettings.parseFromConfig(configMap);
 
-    assertNotNull(authMode);
-    assertTrue(authMode instanceof NoAuthMode);
+    assertRight(authMode).isNotNull().isInstanceOf(NoAuthMode.class);
   }
 
   @Test
@@ -109,8 +110,7 @@ class AuthModeSettingsTest {
 
     val authMode = authModeSettings.parseFromConfig(configMap);
 
-    assertNotNull(authMode);
-    assertTrue(authMode instanceof DefaultAuthMode);
+    assertRight(authMode).isNotNull().isInstanceOf(DefaultAuthMode.class);
   }
 
   @Test
@@ -118,6 +118,6 @@ class AuthModeSettingsTest {
 
     val configMap = new MapConfigSource(Map.of(authModeSettings.getAuthModeKey(), "invalid"));
 
-    assertThrows(ConfigException.class, () -> authModeSettings.parseFromConfig(configMap));
+    assertLeft(authModeSettings.parseFromConfig(configMap)).isNotNull().isInstanceOf(ConfigException.class);
   }
 }

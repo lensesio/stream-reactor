@@ -15,8 +15,6 @@
  */
 package io.lenses.streamreactor.common.config.source;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import java.util.Map;
 
 class MapConfigSourceTest extends ConfigSourceTestBase {

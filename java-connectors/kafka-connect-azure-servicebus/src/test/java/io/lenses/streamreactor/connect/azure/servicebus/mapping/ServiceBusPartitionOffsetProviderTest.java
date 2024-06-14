@@ -21,14 +21,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider;
-import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider.AzureServiceBusOffsetMarker;
-import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider.AzureServiceBusPartitionKey;
 import java.util.Map;
 import java.util.Optional;
+
 import org.apache.kafka.connect.storage.OffsetStorageReader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider;
+import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider.AzureServiceBusOffsetMarker;
+import io.lenses.streamreactor.connect.azure.servicebus.source.ServiceBusPartitionOffsetProvider.AzureServiceBusPartitionKey;
 
 class ServiceBusPartitionOffsetProviderTest {
 

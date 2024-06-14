@@ -16,10 +16,12 @@
 package io.lenses.streamreactor.connect.azure.servicebus.mapping;
 
 import java.util.Map;
-import lombok.ToString;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.source.SourceRecord;
+
+import lombok.ToString;
 
 /**
  * Implementation of {@link SourceRecord} for Microsoft Azure EventHubs.

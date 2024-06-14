@@ -15,8 +15,12 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source.configdef;
 
-import org.apache.kafka.common.config.ConfigDef;
+import static io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.MappingConfig.OUTPUT_MODE_DEFAULT;
 
+import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigException;
+
+import cyclops.control.Either;
 import io.lenses.streamreactor.common.config.base.ConfigSettings;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.common.config.source.ConfigSource;
@@ -25,8 +29,6 @@ import io.lenses.streamreactor.connect.gcp.pubsub.source.config.PubSubConfig;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.MappingConfig;
 import lombok.Getter;
 import lombok.val;
-
-import static io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.MappingConfig.OUTPUT_MODE_DEFAULT;
 
 /**
  * PubSubSettings is responsible for configuration settings for connecting to Google Cloud Platform (GCP) services.
@@ -79,10 +81,14 @@ public class PubSubSettings implements ConfigSettings<PubSubConfig> {
     return authModeSettings.withSettings(conf);
   }
 
-  public PubSubConfig parseFromConfig(ConfigSource configSource) {
-    return new PubSubConfig(
-        configSource.getString(gcpProjectIdKey).orElse(null),
-        authModeSettings.parseFromConfig(configSource),
-        MappingConfig.fromOutputMode(configSource.getString(outputModeKey).orElse(OUTPUT_MODE_DEFAULT)));
+  public Either<ConfigException, PubSubConfig> parseFromConfig(ConfigSource configSource) {
+    return authModeSettings.parseFromConfig(configSource)
+        .map(
+            authMode -> new PubSubConfig(
+                configSource.getString(gcpProjectIdKey).orElse(null),
+                authMode,
+                MappingConfig.fromOutputMode(configSource.getString(outputModeKey).orElse(OUTPUT_MODE_DEFAULT))
+            ));
+
   }
 }

@@ -24,6 +24,8 @@ project(":kafka-connect-gcp-pubsub") {
         implementation 'io.perfmark:perfmark-api:0.27.0'
 
         implementation(group: 'com.github.ben-manes.caffeine', name: 'caffeine', version: caffeineVersion)
+        implementation group: 'com.oath.cyclops', name: 'cyclops', version: cyclopsVersion
 
+        testImplementation(project(path: ':test-utils', configuration: 'testArtifacts'))
     }
 }

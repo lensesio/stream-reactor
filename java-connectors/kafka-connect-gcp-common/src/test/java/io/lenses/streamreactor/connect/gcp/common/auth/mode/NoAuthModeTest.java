@@ -17,9 +17,11 @@ package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.google.cloud.NoCredentials;
-import lombok.val;
 import org.junit.jupiter.api.Test;
+
+import com.google.cloud.NoCredentials;
+
+import lombok.val;
 
 class NoAuthModeTest {
 

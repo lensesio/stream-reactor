@@ -15,13 +15,13 @@
  */
 package io.lenses.streamreactor.connect.azure.servicebus.source;
 
-import io.lenses.kcql.Kcql;
-
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
+
+import io.lenses.kcql.Kcql;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
