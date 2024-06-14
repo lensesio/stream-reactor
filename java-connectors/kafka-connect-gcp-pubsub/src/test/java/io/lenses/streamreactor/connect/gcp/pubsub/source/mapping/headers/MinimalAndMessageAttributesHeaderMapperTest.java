@@ -21,14 +21,14 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.protobuf.Timestamp;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.protobuf.Timestamp;
 import com.google.pubsub.v1.PubsubMessage;
 
 import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessageData;

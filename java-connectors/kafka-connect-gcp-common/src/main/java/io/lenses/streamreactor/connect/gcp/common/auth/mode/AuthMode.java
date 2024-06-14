@@ -15,8 +15,9 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
-import com.google.auth.Credentials;
 import java.io.IOException;
+
+import com.google.auth.Credentials;
 
 /**
  * Interface representing different authentication modes for GCP connectors.

@@ -15,16 +15,16 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth;
 
+import static io.lenses.streamreactor.connect.gcp.common.config.GCPSettings.HTTP_ERROR_RETRY_INTERVAL_DEFAULT;
+import static io.lenses.streamreactor.connect.gcp.common.config.GCPSettings.HTTP_NUMBER_OF_RETIRES_DEFAULT;
+
+import java.util.Optional;
+
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.common.config.base.intf.ConnectionConfig;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.AuthMode;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.util.Optional;
-
-import static io.lenses.streamreactor.connect.gcp.common.config.GCPSettings.HTTP_ERROR_RETRY_INTERVAL_DEFAULT;
-import static io.lenses.streamreactor.connect.gcp.common.config.GCPSettings.HTTP_NUMBER_OF_RETIRES_DEFAULT;
 
 @Builder
 @Getter

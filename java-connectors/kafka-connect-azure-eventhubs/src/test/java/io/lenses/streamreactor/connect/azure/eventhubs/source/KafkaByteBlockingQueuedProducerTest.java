@@ -19,13 +19,15 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.BlockingQueue;
+
 import org.apache.kafka.clients.consumer.Consumer;
 import org.junit.jupiter.api.Test;
 import org.mockito.internal.util.collections.Sets;
+
+import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
 
 class KafkaByteBlockingQueuedProducerTest {
 

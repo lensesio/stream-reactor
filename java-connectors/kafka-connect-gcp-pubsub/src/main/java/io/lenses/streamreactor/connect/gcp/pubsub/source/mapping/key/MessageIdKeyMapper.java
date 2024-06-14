@@ -15,8 +15,9 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.key;
 
-import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessageData;
 import org.apache.kafka.connect.data.Schema;
+
+import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessageData;
 
 /**
  * MessageIdKeyMapping is responsible for mapping the key from PubSubMessageData to Kafka Connect key.

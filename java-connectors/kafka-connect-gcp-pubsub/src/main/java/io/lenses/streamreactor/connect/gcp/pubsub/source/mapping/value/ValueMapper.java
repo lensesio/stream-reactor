@@ -15,8 +15,9 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source.mapping.value;
 
-import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessageData;
 import org.apache.kafka.connect.data.Schema;
+
+import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessageData;
 
 /**
  * ValueMapping is responsible for mapping the value from PubSubMessageData to Kafka Connect value.

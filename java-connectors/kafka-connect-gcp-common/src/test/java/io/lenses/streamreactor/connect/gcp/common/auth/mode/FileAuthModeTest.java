@@ -18,9 +18,11 @@ package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 import static io.lenses.streamreactor.connect.gcp.common.auth.mode.TestFileUtil.absolutePathForResource;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.google.auth.oauth2.ServiceAccountCredentials;
-import lombok.val;
 import org.junit.jupiter.api.Test;
+
+import com.google.auth.oauth2.ServiceAccountCredentials;
+
+import lombok.val;
 
 class FileAuthModeTest {
 

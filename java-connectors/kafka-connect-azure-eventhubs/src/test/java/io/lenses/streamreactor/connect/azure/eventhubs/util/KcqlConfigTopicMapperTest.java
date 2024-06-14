@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
 

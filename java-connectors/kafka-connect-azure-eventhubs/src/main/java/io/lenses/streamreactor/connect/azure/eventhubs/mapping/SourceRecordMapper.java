@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.azure.eventhubs.mapping;
 
 import java.util.Map;
+
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.connect.data.Schema;

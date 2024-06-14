@@ -30,8 +30,8 @@ import com.google.pubsub.v1.PubsubMessage;
 
 import io.lenses.streamreactor.connect.gcp.pubsub.source.admin.PubSubService;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.config.PubSubSubscription;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Subscriber is responsible for receiving messages from GCP PubSub and storing them in a queue for processing.

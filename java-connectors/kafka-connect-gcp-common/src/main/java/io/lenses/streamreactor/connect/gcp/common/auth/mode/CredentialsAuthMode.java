@@ -15,14 +15,17 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
-import com.google.auth.Credentials;
-import com.google.auth.oauth2.GoogleCredentials;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+
+import org.apache.kafka.common.config.types.Password;
+
+import com.google.auth.Credentials;
+import com.google.auth.oauth2.GoogleCredentials;
+
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import org.apache.kafka.common.config.types.Password;
 
 /**
  * Authentication mode using credentials from a string in configuration.

@@ -15,9 +15,11 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
+import java.io.IOException;
+
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
-import java.io.IOException;
+
 import lombok.EqualsAndHashCode;
 
 /**
