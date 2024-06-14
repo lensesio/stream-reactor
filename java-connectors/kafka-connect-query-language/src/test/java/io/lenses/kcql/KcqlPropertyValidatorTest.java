@@ -15,19 +15,15 @@
  */
 package io.lenses.kcql;
 
-import static io.streamreactor.test.utils.EitherValues.assertLeft;
-import static io.streamreactor.test.utils.EitherValues.assertRight;
+import static io.lenses.streamreactor.test.utils.EitherValues.assertLeft;
+import static io.lenses.streamreactor.test.utils.EitherValues.assertRight;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
 
-import java.util.function.Predicate;
-import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.Test;
 
 class KcqlPropertyValidatorTest {

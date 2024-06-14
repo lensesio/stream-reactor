@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source.configdef;
 
-import static io.streamreactor.test.utils.EitherValues.assertRight;
+import static io.lenses.streamreactor.test.utils.EitherValues.assertRight;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;

@@ -27,7 +27,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.common.config.source.MapConfigSource;
-import io.streamreactor.test.utils.EitherValues;
+import io.lenses.streamreactor.test.utils.EitherValues;
 import lombok.val;
 
 class GCPSettingsTest {

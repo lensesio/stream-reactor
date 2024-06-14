@@ -15,8 +15,8 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.config;
 
-import static io.streamreactor.test.utils.EitherValues.assertLeft;
-import static io.streamreactor.test.utils.EitherValues.assertRight;
+import static io.lenses.streamreactor.test.utils.EitherValues.assertLeft;
+import static io.lenses.streamreactor.test.utils.EitherValues.assertRight;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
