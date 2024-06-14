@@ -15,14 +15,19 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source.config;
 
-import io.lenses.kcql.Kcql;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import org.apache.kafka.common.config.ConfigException;
+import static io.lenses.streamreactor.common.util.EitherUtils.combineErrors;
+import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter.KCQL_PROP_KEY_BATCH_SIZE;
+import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter.KCQL_PROP_KEY_CACHE_TTL;
+import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter.KCQL_PROP_KEY_QUEUE_MAX;
 
 import java.util.List;
 
-import static io.lenses.streamreactor.connect.gcp.pubsub.source.configdef.PubSubKcqlConverter.*;
+import org.apache.kafka.common.config.ConfigException;
+
+import cyclops.control.Either;
+import io.lenses.kcql.Kcql;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
  * SourceConfigSettings holds the configuration for the PubSub connector.
@@ -36,13 +41,16 @@ public class PubSubSourceConfig {
 
   private final List<Kcql> kcqlSettings;
 
-  public void validateKcql() {
-    try {
-      getKcqlSettings()
-          .forEach(k -> k.validateKcqlProperties(KCQL_PROP_KEY_BATCH_SIZE, KCQL_PROP_KEY_CACHE_TTL,
-              KCQL_PROP_KEY_QUEUE_MAX));
-    } catch (IllegalArgumentException e) {
-      throw new ConfigException("Invalid KCQL properties", e);
-    }
+  public Either<ConfigException, List<Kcql>> validateKcql() {
+    return combineErrors(
+        kcqlSettings
+            .stream()
+            .map(k -> k.validateKcqlProperties(
+                KCQL_PROP_KEY_BATCH_SIZE,
+                KCQL_PROP_KEY_CACHE_TTL,
+                KCQL_PROP_KEY_QUEUE_MAX
+            )
+            )
+    );
   }
 }

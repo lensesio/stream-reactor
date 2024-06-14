@@ -15,14 +15,16 @@
  */
 package io.lenses.streamreactor.connect.azure.servicebus.config;
 
-import io.lenses.streamreactor.common.config.base.BaseConfig;
-import io.lenses.streamreactor.common.config.base.intf.ConnectorPrefixed;
 import java.util.Map;
-import lombok.Getter;
+
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.Width;
+
+import io.lenses.streamreactor.common.config.base.BaseConfig;
+import io.lenses.streamreactor.common.config.base.intf.ConnectorPrefixed;
+import lombok.Getter;
 
 /**
  * Service Bus Connector Configuration class.

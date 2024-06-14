@@ -15,7 +15,12 @@
  */
 package io.lenses.kcql;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static io.lenses.streamreactor.test.utils.EitherValues.assertLeft;
+import static io.lenses.streamreactor.test.utils.EitherValues.assertRight;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
 
@@ -30,14 +35,16 @@ class KcqlPropertyValidatorTest {
 
   @Test
   void testValidateKcqlProperties_withAllowedKeys() {
-    assertDoesNotThrow(() -> kcqlWithProperties.validateKcqlProperties("key1", "key2", "key3"));
+    assertRight(kcqlWithProperties.validateKcqlProperties("key1", "key2", "key3"))
+        .isNotNull();
   }
 
   @Test
   void testValidateKcqlProperties_withUnexpectedKeys() {
-    IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () -> kcqlWithProperties.validateKcqlProperties("key1", "key2"));
-    assertTrue(exception.getMessage().contains("Unexpected properties found: `key3`"));
+    assertLeft(kcqlWithProperties.validateKcqlProperties("key1", "key2"))
+        .isNotNull()
+        .isInstanceOf(IllegalArgumentException.class)
+        .satisfies(ex -> assertThat(ex.getMessage()).contains("Unexpected properties found: `key3`"));
   }
 
   @Test
@@ -55,7 +62,8 @@ class KcqlPropertyValidatorTest {
 
   @Test
   void testValidateKcqlProperties_withNoProperties() {
-    assertDoesNotThrow(() -> kcqlNoProperties.validateKcqlProperties("key1", "key2", "key3"));
+    assertRight(kcqlNoProperties.validateKcqlProperties("key1", "key2", "key3"))
+        .isNotNull();
   }
 
 }

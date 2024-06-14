@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.common.config.source;
 
 import java.util.Optional;
+
 import org.apache.kafka.common.config.types.Password;
 
 /**

@@ -19,7 +19,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigException;
 
+import cyclops.control.Either;
 import io.lenses.streamreactor.common.config.base.ConfigSettings;
 import io.lenses.streamreactor.common.config.base.KcqlSettings;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
@@ -52,16 +54,15 @@ public class PubSubConfigSettings implements ConfigSettings<PubSubSourceConfig> 
     withSettings(configDef);
   }
 
-  public PubSubSourceConfig parse(Map<String, String> props) {
-    return parseFromConfig(ConfigWrapperSource.fromConfigDef(getConfigDef(), props));
+  public Either<ConfigException, PubSubSourceConfig> parse(Map<String, String> props) {
+    return ConfigWrapperSource.fromConfigDef(getConfigDef(), props).flatMap(this::parseFromConfig);
   }
 
   @Override
-  public PubSubSourceConfig parseFromConfig(ConfigSource configSource) {
-    return new PubSubSourceConfig(
-        gcpSettings.parseFromConfig(configSource),
-        kcqlSettings.parseFromConfig(configSource)
-    );
+  public Either<ConfigException, PubSubSourceConfig> parseFromConfig(ConfigSource configSource) {
+    return gcpSettings.parseFromConfig(configSource)
+        .flatMap(gcp -> kcqlSettings.parseFromConfig(configSource)
+            .map(kcql -> new PubSubSourceConfig(gcp, kcql)));
   }
 
   @Override

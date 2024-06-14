@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.gcp.common.auth.mode;
 
 import com.google.auth.Credentials;
 import com.google.cloud.NoCredentials;
+
 import lombok.EqualsAndHashCode;
 
 /**

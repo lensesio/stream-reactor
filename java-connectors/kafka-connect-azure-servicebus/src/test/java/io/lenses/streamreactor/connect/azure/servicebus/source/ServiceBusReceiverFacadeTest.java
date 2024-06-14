@@ -21,13 +21,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
-import com.azure.messaging.servicebus.ServiceBusReceiverAsyncClient;
-import io.lenses.kcql.Kcql;
-import io.lenses.streamreactor.connect.azure.servicebus.util.ServiceBusKcqlProperties;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+
 import org.junit.jupiter.api.Test;
+
+import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
+import com.azure.messaging.servicebus.ServiceBusReceiverAsyncClient;
+
+import io.lenses.kcql.Kcql;
+import io.lenses.streamreactor.connect.azure.servicebus.util.ServiceBusKcqlProperties;
 
 class ServiceBusReceiverFacadeTest {
 

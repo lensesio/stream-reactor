@@ -21,12 +21,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.lenses.streamreactor.common.util.JarManifest.ManifestAttributes;
 import java.io.IOException;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+
 import org.junit.jupiter.api.Test;
+
+import io.lenses.streamreactor.common.util.JarManifest.ManifestAttributes;
 
 class JarManifestTest {
 

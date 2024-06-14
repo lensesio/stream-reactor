@@ -17,10 +17,15 @@ package io.lenses.streamreactor.common.config.source;
 
 import java.util.Map;
 import java.util.Optional;
-import lombok.AllArgsConstructor;
+
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.types.Password;
+
+import cyclops.control.Either;
+import cyclops.control.Try;
+import lombok.AllArgsConstructor;
 
 /**
  * A wrapper for Kafka Connect properties stored in the `AbstractConfig` that provides methods to retrieve property
@@ -29,8 +34,10 @@ import org.apache.kafka.common.config.types.Password;
 @AllArgsConstructor
 public class ConfigWrapperSource implements ConfigSource {
 
-  public static ConfigWrapperSource fromConfigDef(ConfigDef configDef, Map<String, String> props) {
-    return new ConfigWrapperSource(new AbstractConfig(configDef, props));
+  public static Either<ConfigException, ConfigWrapperSource> fromConfigDef(ConfigDef configDef,
+      Map<String, String> props) {
+    return Try.withCatch(() -> new AbstractConfig(configDef, props), ConfigException.class).toEither().map(
+        ConfigWrapperSource::new);
   }
 
   private final AbstractConfig abstractConfig;

@@ -21,8 +21,8 @@ import java.util.stream.Collectors;
 
 import io.lenses.streamreactor.connect.gcp.pubsub.source.admin.PubSubService;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.config.PubSubSubscription;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * SubscriberManager is responsible for managing the subscribers and polling messages from GCP PubSub.

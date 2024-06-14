@@ -26,19 +26,21 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
-import io.lenses.streamreactor.common.util.JarManifest;
-import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
-import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
+
 import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import io.lenses.streamreactor.common.util.JarManifest;
+import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
+import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
 
 class AzureEventHubsSourceTaskTest {
 

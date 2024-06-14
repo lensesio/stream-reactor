@@ -17,10 +17,17 @@ project(":kafka-connect-query-language") {
     dependencies {
         antlr group: 'org.antlr', name: 'antlr4', version: antlrVersion
         implementation group: 'org.antlr', name: 'antlr4-runtime', version: antlrVersion
+
+        implementation group: 'com.oath.cyclops', name: 'cyclops', version: cyclopsVersion
+
+        testImplementation(project(path: ':test-utils', configuration: 'testArtifacts'))
     }
 
     generateGrammarSource {
-        arguments += ["-package", "io.lenses.kcql.antlr4"]
+        arguments += [
+            "-package",
+            "io.lenses.kcql.antlr4"
+        ]
         outputDirectory = new File("${project.projectDir}/build/generated/antlr/main/java/io/lenses/kcql/antlr4")
     }
 

@@ -1,4 +1,5 @@
 import Dependencies.Versions
+import Dependencies.`cyclops`
 import Dependencies.globalExcludeDeps
 import Dependencies.gson
 import Settings.*
@@ -7,11 +8,12 @@ import sbt.*
 import sbt.Project.projectToLocalProject
 
 import java.io.File
-import scala.sys.process._
+import scala.sys.process.*
 
 ThisBuild / scalaVersion := Dependencies.scalaVersion
 
 lazy val subProjects: Seq[Project] = Seq(
+  `test-utils`,
   `query-language`,
   `java-common`,
   `gcp-common`,
@@ -47,18 +49,32 @@ lazy val root = (project in file("."))
   )
   .disablePlugins(AssemblyPlugin, HeaderPlugin)
 
+lazy val `test-utils` = (project in file("java-connectors/test-utils"))
+  .settings(
+    settings ++
+      Seq(
+        name := "test-utils",
+        description := "Java utils for connector testing",
+        libraryDependencies ++= javaCommonDeps,
+        publish / skip := true,
+      ),
+  )
+  .configureAssembly(false)
+  .configureTests(javaCommonTestDeps)
+
 lazy val `query-language` = (project in file("java-connectors/kafka-connect-query-language"))
+  .dependsOn(`test-utils` % "test->test")
   .settings(
     settings ++
       Seq(
         name := "kafka-connect-query-language",
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= Seq(),
+        libraryDependencies ++= Seq(cyclops),
         publish / skip := true,
       ),
   )
   .configureAssembly(true)
-  .configureTests(baseTestDeps ++ javaCommonTestDeps)
+  .configureTests(javaCommonTestDeps)
   .configureAntlr()
 
 lazy val `java-common` = (project in file("java-connectors/kafka-connect-common"))
@@ -77,6 +93,7 @@ lazy val `java-common` = (project in file("java-connectors/kafka-connect-common"
 
 lazy val `gcp-common` = (project in file("java-connectors/kafka-connect-gcp-common"))
   .dependsOn(`java-common`)
+  .dependsOn(`test-utils` % "test->test")
   .settings(
     settings ++
       Seq(

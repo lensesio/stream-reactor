@@ -1,0 +1,24 @@
+project(":test-utils") {
+
+    test {
+        maxParallelForks = 1
+    }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+
+    configurations {
+        testArtifacts
+    }
+
+    tasks.register('testJar', Jar) {
+        archiveClassifier.set('tests')
+        from sourceSets.test.output
+    }
+
+    artifacts {
+        testArtifacts testJar
+    }
+}

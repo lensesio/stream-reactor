@@ -15,18 +15,20 @@
  */
 package io.lenses.streamreactor.connect.azure.eventhubs.source;
 
-import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
-import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
-import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
-import lombok.extern.slf4j.Slf4j;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.config.ConfigException;
+
+import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
+import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
+import io.lenses.streamreactor.connect.azure.eventhubs.config.SourceDataType.KeyValueTypes;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Provider for BlockingQueuedKafkaConsumers.

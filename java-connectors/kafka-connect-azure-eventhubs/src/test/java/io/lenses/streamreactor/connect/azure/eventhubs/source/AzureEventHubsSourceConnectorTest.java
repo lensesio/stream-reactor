@@ -19,17 +19,19 @@ import static org.apache.kafka.connect.source.ExactlyOnceSupport.SUPPORTED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.lenses.streamreactor.common.util.JarManifest;
-import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.kafka.connect.source.ExactlyOnceSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
+
+import io.lenses.streamreactor.common.util.JarManifest;
+import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
 
 class AzureEventHubsSourceConnectorTest {
 

@@ -15,15 +15,21 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.config;
 
-import io.lenses.streamreactor.common.config.base.ConfigSettings;
-import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
-import io.lenses.streamreactor.common.config.source.ConfigSource;
-import io.lenses.streamreactor.connect.gcp.common.auth.mode.*;
-import lombok.Getter;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigException;
+
+import cyclops.control.Either;
+import io.lenses.streamreactor.common.config.base.ConfigSettings;
+import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
+import io.lenses.streamreactor.common.config.source.ConfigSource;
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.AuthMode;
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.CredentialsAuthMode;
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.DefaultAuthMode;
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.FileAuthMode;
+import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode;
+import lombok.Getter;
 
 /**
  * Configuration settings for specifying authentication mode and related credentials for GCP connectors.
@@ -107,7 +113,7 @@ public class AuthModeSettings implements ConfigSettings<AuthMode> {
    * @throws ConfigException If an invalid or unsupported authentication mode is specified.
    */
   @Override
-  public AuthMode parseFromConfig(ConfigSource configSource) {
+  public Either<ConfigException, AuthMode> parseFromConfig(ConfigSource configSource) {
     return configSource
         .getString(getAuthModeKey())
         .map(
@@ -118,35 +124,61 @@ public class AuthModeSettings implements ConfigSettings<AuthMode> {
                 case PROP_KEY_FILE:
                   return createFileAuthMode(configSource);
                 case PROP_KEY_NONE:
-                  return new NoAuthMode();
+                  return createNoAuthMode();
                 case PROP_KEY_DEFAULT:
-                  return new DefaultAuthMode();
+                  return createDefaultAuthMode();
                 case EMPTY_STRING:
                 default:
-                  throw new ConfigException(
-                      String.format("Unsupported auth mode `%s`", authModeString));
+                  return createUnsupportedAuthModeException(authModeString);
               }
             })
-        .orElse(new DefaultAuthMode());
+        .orElse(createDefaultAuthMode());
   }
 
-  private FileAuthMode createFileAuthMode(ConfigSource configSource) {
+  private static Either<ConfigException, AuthMode> createUnsupportedAuthModeException(String authModeString) {
+    return Either.left(
+        new ConfigException(
+            String.format("Unsupported auth mode `%s`", authModeString)));
+  }
+
+  private static Either<ConfigException, AuthMode> createDefaultAuthMode() {
+    return Either.right(new DefaultAuthMode());
+  }
+
+  private static Either<ConfigException, AuthMode> createNoAuthMode() {
+    return Either.right(new NoAuthMode());
+  }
+
+  private Either<ConfigException, AuthMode> createFileAuthMode(ConfigSource configSource) {
     return configSource
         .getString(getFileKey())
         .filter(file -> !(file.isEmpty()))
         .map(FileAuthMode::new)
-        .orElseThrow(
-            () -> new ConfigException(
-                String.format("No `%s` specified in configuration", getFileKey())));
+        .map(Either::<ConfigException, AuthMode>right)
+        .orElseGet(
+            () -> Either.left(
+                new ConfigException(
+                    String.format("No `%s` specified in configuration", getFileKey())
+                )
+            )
+        );
   }
 
-  private CredentialsAuthMode createCredentialsAuthMode(ConfigSource configAdaptor) {
+  private Either<ConfigException, AuthMode> createCredentialsAuthMode(ConfigSource configAdaptor) {
     return configAdaptor
         .getPassword(getCredentialsKey())
         .filter(password -> !(password.value().isEmpty()))
-        .map(CredentialsAuthMode::new)
-        .orElseThrow(
-            () -> new ConfigException(
-                String.format("No `%s` specified in configuration", getCredentialsKey())));
+        .map(
+            e -> Either
+                .<ConfigException, AuthMode>right(new CredentialsAuthMode(e))
+        )
+        .orElseGet(
+            () -> Either.left(
+                new ConfigException(
+                    String.format("No `%s` specified in configuration", getCredentialsKey())
+                )
+            )
+        );
+
   }
 }
