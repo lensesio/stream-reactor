@@ -15,12 +15,13 @@
  */
 package io.lenses.streamreactor.common.util;
 
-import io.lenses.streamreactor.common.exception.InputStreamExtractionException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+
+import io.lenses.streamreactor.common.exception.InputStreamExtractionException;
 import lombok.extern.slf4j.Slf4j;
 
 /**

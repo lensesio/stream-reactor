@@ -15,16 +15,18 @@
  */
 package io.lenses.streamreactor.connect.azure.eventhubs.config;
 
-import io.lenses.streamreactor.common.config.base.BaseConfig;
-import io.lenses.streamreactor.common.config.base.intf.ConnectorPrefixed;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
-import lombok.Getter;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
+
+import io.lenses.streamreactor.common.config.base.BaseConfig;
+import io.lenses.streamreactor.common.config.base.intf.ConnectorPrefixed;
+import lombok.Getter;
 
 /**
  * Class represents Config Definition for AzureEventHubsSourceConnector. It additionally adds

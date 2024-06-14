@@ -20,6 +20,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.apache.kafka.connect.data.Schema;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
@@ -27,9 +30,6 @@ import com.google.pubsub.v1.PubsubMessage;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubMessageData;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubSourceOffset;
 import io.lenses.streamreactor.connect.gcp.pubsub.source.subscriber.PubSubSourcePartition;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class MessageValueMapperTest {

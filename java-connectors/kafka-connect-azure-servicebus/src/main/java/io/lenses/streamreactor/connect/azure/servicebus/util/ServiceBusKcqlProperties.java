@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.azure.servicebus.util;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
 import lombok.Getter;
 
 /**

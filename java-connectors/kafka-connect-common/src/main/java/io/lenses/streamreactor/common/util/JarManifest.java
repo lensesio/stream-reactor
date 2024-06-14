@@ -24,7 +24,6 @@ import static io.lenses.streamreactor.common.util.JarManifest.ManifestAttributes
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 
-import io.lenses.streamreactor.common.exception.ConnectorStartupException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -40,6 +39,8 @@ import java.util.Optional;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
+
+import io.lenses.streamreactor.common.exception.ConnectorStartupException;
 import lombok.Getter;
 
 /**

@@ -15,22 +15,23 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth;
 
+import java.io.IOException;
+import java.util.Optional;
+import java.util.function.Supplier;
+
+import org.apache.kafka.common.config.ConfigException;
+import org.threeten.bp.Duration;
+
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.Service;
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.TransportOptions;
 import com.google.cloud.http.HttpTransportOptions;
-import io.lenses.streamreactor.common.config.base.RetryConfig;
-import java.io.IOException;
-import java.util.Optional;
-import java.util.function.Supplier;
 
+import io.lenses.streamreactor.common.config.base.RetryConfig;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import lombok.experimental.UtilityClass;
 import lombok.val;
-import org.apache.kafka.common.config.ConfigException;
-import org.threeten.bp.Duration;
 
 /**
  * Utility class for configuring generic GCP service clients using a {@link GCPConnectionConfig}.

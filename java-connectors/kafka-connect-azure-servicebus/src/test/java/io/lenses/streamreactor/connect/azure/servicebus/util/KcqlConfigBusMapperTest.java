@@ -19,12 +19,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.from;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.lenses.kcql.Kcql;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
+
+import io.lenses.kcql.Kcql;
 
 class KcqlConfigBusMapperTest {
 

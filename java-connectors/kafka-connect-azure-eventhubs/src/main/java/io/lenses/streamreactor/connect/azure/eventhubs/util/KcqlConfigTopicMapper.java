@@ -15,14 +15,16 @@
  */
 package io.lenses.streamreactor.connect.azure.eventhubs.util;
 
-import io.lenses.kcql.Kcql;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.apache.kafka.common.config.ConfigException;
+
+import io.lenses.kcql.Kcql;
 
 /**
  * Class that represents methods around KCQL topic handling.

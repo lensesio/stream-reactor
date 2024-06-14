@@ -17,13 +17,15 @@ package io.lenses.streamreactor.common.config.base;
 
 import java.util.List;
 
-import lombok.Getter;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 
+import cyclops.control.Either;
+import cyclops.control.Try;
 import io.lenses.kcql.Kcql;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.common.config.source.ConfigSource;
+import lombok.Getter;
 import lombok.val;
 
 @Getter
@@ -50,8 +52,9 @@ public class KcqlSettings implements ConfigSettings<List<Kcql>> {
   }
 
   @Override
-  public List<Kcql> parseFromConfig(ConfigSource configSource) {
-    return Kcql.parseMultiple(getKCQLString(configSource));
+  public Either<ConfigException, List<Kcql>> parseFromConfig(ConfigSource configSource) {
+    return Try.withCatch(() -> Kcql.parseMultiple(getKCQLString(configSource))).toEither()
+        .mapLeft(ex -> new ConfigException(ex.getMessage()));
   }
 
   private String getKCQLString(ConfigSource configSource) {

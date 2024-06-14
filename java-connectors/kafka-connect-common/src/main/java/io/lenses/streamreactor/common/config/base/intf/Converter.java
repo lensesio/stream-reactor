@@ -15,10 +15,10 @@
  */
 package io.lenses.streamreactor.common.config.base.intf;
 
-import org.apache.kafka.common.config.ConfigException;
-
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.apache.kafka.common.config.ConfigException;
 
 /**
  * Picks out the settings required from KCQL

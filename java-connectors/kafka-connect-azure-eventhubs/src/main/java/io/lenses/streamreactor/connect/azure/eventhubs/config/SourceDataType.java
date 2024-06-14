@@ -19,11 +19,13 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Schema;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 
 /**
  * Class to indicate what kind of data is being received from Kafka Consumer.

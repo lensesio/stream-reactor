@@ -15,16 +15,30 @@
  */
 package io.lenses.kcql;
 
-import io.lenses.kcql.antlr4.ConnectorLexer;
-import io.lenses.kcql.antlr4.ConnectorParser;
-import io.lenses.kcql.antlr4.ConnectorParserBaseListener;
-import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.tree.TerminalNode;
-
-import java.util.*;
+import cyclops.control.Either;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.tree.TerminalNode;
+
+import io.lenses.kcql.antlr4.ConnectorLexer;
+import io.lenses.kcql.antlr4.ConnectorParser;
+import io.lenses.kcql.antlr4.ConnectorParserBaseListener;
 
 /**
  * Parsing support for Kafka Connect Query Language.
@@ -205,19 +219,19 @@ public class Kcql {
   }
 
   // TODO: Jira LC-203 improvements
-  public void validateKcqlProperties(String... allowedKeys) {
+  // TODO: return Either
+  public Either<IllegalArgumentException, Kcql> validateKcqlProperties(String... allowedKeys) {
 
     Set<String> unexpectedKeys =
         properties.keySet().stream().filter(k -> !Arrays.stream(allowedKeys).collect(Collectors.toUnmodifiableSet())
             .contains(k)).collect(Collectors.toUnmodifiableSet());
-    if (!unexpectedKeys.isEmpty()) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Unexpected properties found: `%s`. Please check the documentation to find the properties you really need.",
-              String.join(", ", unexpectedKeys)
-          )
-      );
-    }
+
+    return unexpectedKeys.isEmpty() ? Either.right(this) : Either.left(new IllegalArgumentException(
+        String.format(
+            "Unexpected properties found: `%s`. Please check the documentation to find the properties you really need.",
+            String.join(", ", unexpectedKeys)
+        )
+    ));
   }
 
   // TODO: Jira LC-203 improvements

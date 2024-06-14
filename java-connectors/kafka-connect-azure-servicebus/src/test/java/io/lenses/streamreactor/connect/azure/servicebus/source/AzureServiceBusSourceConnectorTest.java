@@ -20,17 +20,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.lenses.streamreactor.common.util.JarManifest;
-import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfigConstants;
-import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusSourceConfig;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
+
+import io.lenses.streamreactor.common.util.JarManifest;
+import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfigConstants;
+import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusSourceConfig;
 
 class AzureServiceBusSourceConnectorTest {
 

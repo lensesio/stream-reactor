@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.common.config.base;
 
 import java.util.Map;
+
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 

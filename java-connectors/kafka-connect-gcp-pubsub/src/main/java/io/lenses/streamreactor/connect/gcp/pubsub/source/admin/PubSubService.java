@@ -23,11 +23,11 @@ import com.google.cloud.pubsub.v1.Subscriber;
 import com.google.cloud.pubsub.v1.SubscriptionAdminClient;
 import com.google.cloud.pubsub.v1.SubscriptionAdminSettings;
 import com.google.pubsub.v1.ProjectSubscriptionName;
-
 import com.google.pubsub.v1.SubscriptionName;
+
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.AuthMode;
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * PubSubService manages the remote PubSub resources and provides methods to create a subscriber and look up topic name.

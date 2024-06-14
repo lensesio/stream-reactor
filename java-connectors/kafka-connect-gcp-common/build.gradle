@@ -10,6 +10,7 @@ project(":kafka-connect-gcp-common") {
 
     dependencies {
         implementation project(':kafka-connect-common')
+        testImplementation(project(path: ':test-utils', configuration: 'testArtifacts'))
 
         //apache kafka
         api group: 'org.apache.kafka', name: 'connect-json', version: kafkaVersion

@@ -17,16 +17,18 @@ package io.lenses.streamreactor.connect.gcp.storage.config
 
 import io.lenses.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.common.config.source.ConfigSource
+import io.lenses.streamreactor.common.utils.CyclopsToScalaEither
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.common.config.{ GCPSettings => JavaGCPSettings }
-
-import scala.util.Try
+import org.apache.kafka.common.config.ConfigException
 
 trait GCPSettings extends BaseSettings {
 
   private val javaGcpSettings = new JavaGCPSettings(javaConnectorPrefix)
 
   def getGcpConnectionSettings(config: ConfigSource): Either[Throwable, GCPConnectionConfig] =
-    Try(javaGcpSettings.parseFromConfig(config)).toEither
+    CyclopsToScalaEither.convertToScalaEither[ConfigException, GCPConnectionConfig](
+      javaGcpSettings.parseFromConfig(config),
+    );
 
 }
