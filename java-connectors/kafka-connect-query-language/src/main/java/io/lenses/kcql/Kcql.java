@@ -15,6 +15,7 @@
  */
 package io.lenses.kcql;
 
+import cyclops.control.Either;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -218,19 +219,19 @@ public class Kcql {
   }
 
   // TODO: Jira LC-203 improvements
-  public void validateKcqlProperties(String... allowedKeys) {
+  // TODO: return Either
+  public Either<IllegalArgumentException, Kcql> validateKcqlProperties(String... allowedKeys) {
 
     Set<String> unexpectedKeys =
         properties.keySet().stream().filter(k -> !Arrays.stream(allowedKeys).collect(Collectors.toUnmodifiableSet())
             .contains(k)).collect(Collectors.toUnmodifiableSet());
-    if (!unexpectedKeys.isEmpty()) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Unexpected properties found: `%s`. Please check the documentation to find the properties you really need.",
-              String.join(", ", unexpectedKeys)
-          )
-      );
-    }
+
+    return unexpectedKeys.isEmpty() ? Either.right(this) : Either.left(new IllegalArgumentException(
+        String.format(
+            "Unexpected properties found: `%s`. Please check the documentation to find the properties you really need.",
+            String.join(", ", unexpectedKeys)
+        )
+    ));
   }
 
   // TODO: Jira LC-203 improvements

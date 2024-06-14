@@ -20,8 +20,11 @@ import java.util.Optional;
 
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.types.Password;
 
+import cyclops.control.Either;
+import cyclops.control.Try;
 import lombok.AllArgsConstructor;
 
 /**
@@ -31,8 +34,10 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class ConfigWrapperSource implements ConfigSource {
 
-  public static ConfigWrapperSource fromConfigDef(ConfigDef configDef, Map<String, String> props) {
-    return new ConfigWrapperSource(new AbstractConfig(configDef, props));
+  public static Either<ConfigException, ConfigWrapperSource> fromConfigDef(ConfigDef configDef,
+      Map<String, String> props) {
+    return Try.withCatch(() -> new AbstractConfig(configDef, props), ConfigException.class).toEither().map(
+        ConfigWrapperSource::new);
   }
 
   private final AbstractConfig abstractConfig;

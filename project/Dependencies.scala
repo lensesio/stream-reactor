@@ -43,6 +43,8 @@ object Dependencies {
     val junitJupiterVersion = "5.10.2"
     val assertjCoreVersion  = "3.26.0"
 
+    val cyclopsVersion = "10.4.1"
+
     val kafkaVersion:     String = "3.7.0"
     val confluentVersion: String = "7.6.1"
 
@@ -184,6 +186,8 @@ object Dependencies {
   val `junitJupiter`       = "org.junit.jupiter" % "junit-jupiter-api"    % junitJupiterVersion
   val `junitJupiterParams` = "org.junit.jupiter" % "junit-jupiter-params" % junitJupiterVersion
   val `assertjCore`        = "org.assertj"       % "assertj-core"         % assertjCoreVersion
+
+  val `cyclops` = "com.oath.cyclops" % "cyclops" % cyclopsVersion
 
   val catsEffectScalatest = "org.typelevel" %% "cats-effect-testing-scalatest" % `cats-effect-testing`
 
@@ -453,7 +457,7 @@ trait Dependencies {
     confluentJsonSchemaSerializer,
   ) ++ enumeratum ++ circe
 
-  val javaCommonDeps:     Seq[ModuleID] = Seq(lombok, kafkaConnectJson, kafkaClients)
+  val javaCommonDeps:     Seq[ModuleID] = Seq(lombok, kafkaConnectJson, kafkaClients, cyclops)
   val javaCommonTestDeps: Seq[ModuleID] = Seq(junitJupiter, junitJupiterParams, assertjCore, `mockitoJava`, logback)
 
   //Specific modules dependencies
@@ -490,6 +494,7 @@ trait Dependencies {
   )
 
   val kafkaConnectGcpCommonDeps: Seq[ModuleID] = Seq(
+    cyclops,
     lombok,
     kafkaClients,
     gcpCloudCoreSdk,
@@ -497,6 +502,7 @@ trait Dependencies {
   )
 
   val kafkaConnectGcpStorageDeps: Seq[ModuleID] = Seq(
+    cyclops,
     gcpStorageSdk,
   )
 

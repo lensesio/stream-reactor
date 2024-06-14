@@ -27,6 +27,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.common.config.source.MapConfigSource;
+import io.streamreactor.test.utils.EitherValues;
 import lombok.val;
 
 class GCPSettingsTest {
@@ -51,7 +52,7 @@ class GCPSettingsTest {
                 "connect.gcpstorage.http.max.retries", retries,
                 "connect.gcpstorage.http.retry.interval", interval));
 
-    val optionalRetryConfig = gcpSettings.parseFromConfig(configMap).getHttpRetryConfig();
+    val optionalRetryConfig = EitherValues.getRight(gcpSettings.parseFromConfig(configMap)).getHttpRetryConfig();
     assertThat(optionalRetryConfig)
         .isPresent()
         .contains(expected);

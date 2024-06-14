@@ -60,19 +60,29 @@ public class GCPPubSubSourceTask extends SourceTask {
 
   @Override
   public void start(Map<String, String> props) {
-    val sourceConfigSettings = pubSubConfigSettings.parse(props);
-    val pubSubService = createPubSubService(sourceConfigSettings.getGcpSettings());
-    val pubSubConfig = sourceConfigSettings.getGcpSettings();
-    val kcqls = sourceConfigSettings.getKcqlSettings();
-    val kcqlConverter = new PubSubKcqlConverter(pubSubService);
-    val subscriptionConfigs = kcqlConverter.convertAll(kcqls);
-    converter = new SourceRecordConverter(pubSubConfig.getMappingConfig());
-    pubSubSubscriberManager =
-        new PubSubSubscriberManager(
-            pubSubService,
-            pubSubConfig.getProjectId(),
-            subscriptionConfigs,
-            PubSubSubscriber::new);
+    pubSubConfigSettings
+        .parse(props)
+        .mapLeft(
+            e -> {
+              throw e;
+            }
+        )
+        .forEach(
+            sourceConfigSettings -> {
+              val pubSubService = createPubSubService(sourceConfigSettings.getGcpSettings());
+              val pubSubConfig = sourceConfigSettings.getGcpSettings();
+              val kcqls = sourceConfigSettings.getKcqlSettings();
+              val kcqlConverter = new PubSubKcqlConverter(pubSubService);
+              val subscriptionConfigs = kcqlConverter.convertAll(kcqls);
+              converter = new SourceRecordConverter(pubSubConfig.getMappingConfig());
+              pubSubSubscriberManager =
+                  new PubSubSubscriberManager(
+                      pubSubService,
+                      pubSubConfig.getProjectId(),
+                      subscriptionConfigs,
+                      PubSubSubscriber::new);
+            }
+        );
   }
 
   private static PubSubService createPubSubService(PubSubConfig pubSubConfig) {

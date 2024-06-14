@@ -30,6 +30,7 @@ allprojects {
         mockitoJupiterVersion = '5.10.0'
         apacheToConfluentVersionAxis = ["2.8.1": "6.2.2", "3.3.0": "7.3.1"]
         caffeineVersion = '3.1.8'
+        cyclopsVersion = '10.4.1'
 
         //Other Manifest Info
         mainClassName = ''
@@ -60,6 +61,9 @@ allprojects {
         testCompileOnly group: 'org.projectlombok', name: 'lombok', version: lombokVersion
         annotationProcessor group: 'org.projectlombok', name: 'lombok', version: lombokVersion
         testAnnotationProcessor group: 'org.projectlombok', name: 'lombok', version: lombokVersion
+
+        // functional java
+        implementation group: 'com.oath.cyclops', name: 'cyclops', version: cyclopsVersion
 
         //tests
         testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoJupiterVersion
@@ -205,6 +209,7 @@ task testModuleList() {
 task releaseModuleList() {
     def nonReleaseModules = [
         "java-reactor",
+        "test-utils",
         "kafka-connect-cloud-common",
         "kafka-connect-common",
         "kafka-connect-query-language"

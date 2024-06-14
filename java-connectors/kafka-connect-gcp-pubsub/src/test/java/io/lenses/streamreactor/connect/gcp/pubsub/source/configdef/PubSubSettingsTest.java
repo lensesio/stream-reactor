@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source.configdef;
 
+import static io.streamreactor.test.utils.EitherValues.assertRight;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
@@ -55,7 +56,7 @@ class PubSubSettingsTest {
 
     val pubSubConfig = new PubSubSettings(connectorPrefix).parseFromConfig(configSource);
 
-    assertEquals(TEST_PROJECT_ID, pubSubConfig.getProjectId());
+    assertRight(pubSubConfig).hasFieldOrPropertyWithValue("projectId", TEST_PROJECT_ID);
   }
 
 }
