@@ -103,7 +103,7 @@ object Dependencies {
     val jsonPathVersion        = "2.9.0"
 
     val azureDocumentDbVersion     = "2.6.5"
-    val testcontainersScalaVersion = "0.41.3"
+    val testcontainersScalaVersion = "0.41.4"
     val testcontainersVersion      = "1.19.8"
 
     val influxVersion = "7.1.0"
