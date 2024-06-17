@@ -31,13 +31,27 @@ public class MinimalAndMessageAttributesHeaderMapper implements HeaderMapper {
 
   private final MinimalHeaderMapper minimalHeaderMapping = new MinimalHeaderMapper();
 
+  private static final String HEADER_PROJECT_ID = "GCPProjectId";
+  private static final String HEADER_TOPIC_ID = "PubSubTopicId";
+  private static final String HEADER_SUBSCRIPTION_ID = "PubSubSubscriptionId";
+
   @Override
   public Map<String, String> mapHeaders(final PubSubMessageData source) {
     val miniMap = minimalHeaderMapping.mapHeaders(source);
+    val extraMap = mapExtra(source);
     val headMap = source.getMessage().getAttributesMap();
     return ImmutableMap.<String, String>builder()
         .putAll(miniMap)
+        .putAll(extraMap)
         .putAll(headMap)
         .build();
+  }
+
+  private Map<String, String> mapExtra(PubSubMessageData source) {
+    return Map.of(
+        HEADER_PROJECT_ID, source.getSourcePartition().getProjectId(),
+        HEADER_TOPIC_ID, source.getSourcePartition().getTopicId(),
+        HEADER_SUBSCRIPTION_ID, source.getSourcePartition().getSubscriptionId()
+    );
   }
 }

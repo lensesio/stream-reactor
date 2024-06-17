@@ -24,6 +24,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -41,7 +42,7 @@ class MinimalAndMessageAttributesHeaderMapperTest {
 
   private static final Map<String, String> HEADERS_MAP = Map.of("attr1", "value1", "attr2", "value2");
 
-  @Mock
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private PubSubMessageData pubSubMessageData;
 
   @Mock
@@ -55,18 +56,27 @@ class MinimalAndMessageAttributesHeaderMapperTest {
   }
 
   @Test
-  void testGetHeaders() {
+  void testMapHeaders() {
+
     when(pubsubMessage.getPublishTime()).thenReturn(Timestamp.newBuilder().setSeconds(PUBLISH_TIME_INSTANT
         .getEpochSecond()).build());
     when(pubsubMessage.getAttributesMap()).thenReturn(HEADERS_MAP);
     when(pubSubMessageData.getMessage()).thenReturn(pubsubMessage);
+    when(pubSubMessageData.getSourcePartition().getProjectId()).thenReturn("test-project");
+    when(pubSubMessageData.getSourcePartition().getTopicId()).thenReturn("test-topic");
+    when(pubSubMessageData.getSourcePartition().getSubscriptionId()).thenReturn("test-subscription");
 
     Map<String, String> result = minimalAndMessageAttributesHeaderMapping.mapHeaders(pubSubMessageData);
 
     assertEquals(
         ImmutableMap.builder()
             .put("PublishTimestamp", String.valueOf(PUBLISH_TIME_INSTANT.getEpochSecond()))
-            .putAll(HEADERS_MAP).build(),
+            .putAll(HEADERS_MAP)
+            .put("GCPProjectId", "test-project") // Include expected values from mapExtra
+            .put("PubSubTopicId", "test-topic")
+            .put("PubSubSubscriptionId", "test-subscription")
+            .build(),
         result);
   }
+
 }
