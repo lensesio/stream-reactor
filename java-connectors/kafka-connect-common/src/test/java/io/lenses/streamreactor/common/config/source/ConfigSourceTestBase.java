@@ -31,6 +31,8 @@ abstract class ConfigSourceTestBase {
   protected static final Password PASSWORD_VALUE = new Password("secret");
   protected static final String USERNAME_KEY = "username";
   protected static final String USERNAME_VALUE = "user123";
+  protected static final String NULL_KEY = "valueNull";
+  protected static final String NULL_VALUE = null;
   private ConfigSource configSource;
 
   @BeforeEach
@@ -66,6 +68,13 @@ abstract class ConfigSourceTestBase {
   @Test
   void testGetPassword_nonExistingKey_shouldReturnEmpty() {
     Optional<Password> password = configSource.getPassword("invalidKey");
+
+    assertFalse(password.isPresent());
+  }
+
+  @Test
+  void testGetString_nonExistingValue_shouldReturnEmpty() {
+    Optional<String> password = configSource.getString(NULL_KEY);
 
     assertFalse(password.isPresent());
   }

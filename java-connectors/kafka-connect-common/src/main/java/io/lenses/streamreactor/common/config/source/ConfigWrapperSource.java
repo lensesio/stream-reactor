@@ -44,7 +44,7 @@ public class ConfigWrapperSource implements ConfigSource {
 
   @Override
   public Optional<String> getString(String key) {
-    return Optional.ofNullable(abstractConfig.getString(key));
+    return Optional.ofNullable(abstractConfig.getString(key)).filter(s -> !s.isEmpty());
   }
 
   @Override

@@ -32,7 +32,7 @@ public class MapConfigSource implements ConfigSource {
 
   @Override
   public Optional<String> getString(String key) {
-    return Optional.ofNullable((String) wrapped.get(key));
+    return Optional.ofNullable((String) wrapped.get(key)).filter(s -> !s.isEmpty());
   }
 
   @Override
