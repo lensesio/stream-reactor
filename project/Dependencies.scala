@@ -84,7 +84,7 @@ object Dependencies {
     val azureCoreVersion                  = "1.49.1"
     val msal4jVersion                     = "1.16.0"
     val msal4jPersistenceExtensionVersion = "1.3.0"
-    val gcpCloudVersion                   = "2.40.0"
+    val gcpCloudVersion                   = "2.40.1"
 
     val jacksonVersion      = "2.17.1"
     val json4sVersion       = "4.0.7"
