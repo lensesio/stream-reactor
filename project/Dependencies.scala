@@ -66,7 +66,7 @@ object Dependencies {
     // build plugins version
     val betterMonadicForVersion = "0.3.1"
 
-    val lombokVersion = "1.18.32"
+    val lombokVersion = "1.18.34"
 
     val logbackVersion      = "1.5.6"
     val scalaLoggingVersion = "3.9.5"
