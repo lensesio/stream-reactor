@@ -19,6 +19,7 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.ArraySinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.BooleanSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.ByteArraySinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.ByteSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.DateSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.DecimalSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.DoubleSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FloatSinkData
@@ -30,8 +31,13 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.ShortSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.StringSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.TimeSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.TimestampSinkData
+import org.apache.kafka.connect.data.Date
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.Time
+import org.apache.kafka.connect.data.Timestamp
 import org.apache.kafka.connect.errors.ConnectException
 
 import java.nio.ByteBuffer
@@ -61,6 +67,15 @@ object ValueToSinkDataConverter {
       DecimalSinkData.from(decimal.bigDecimal, schema.orElse(Some(DecimalSinkData.schemaFor(decimal.bigDecimal))))
     case decimal: java.math.BigDecimal =>
       DecimalSinkData.from(decimal, schema.orElse(Some(DecimalSinkData.schemaFor(decimal))))
+    case date: java.util.Date =>
+      schema match {
+        case Some(Date.SCHEMA)      => DateSinkData(date)
+        case Some(Time.SCHEMA)      => TimeSinkData(date)
+        case Some(Timestamp.SCHEMA) => TimestampSinkData(date)
+        case other => throw new ConnectException(
+            s"java.util.Date found but without a schema to identify type, or with unexpected schema: ${other.orNull}",
+          )
+      }
     case null     => NullSinkData(schema)
     case otherVal => throw new ConnectException(s"Unsupported record $otherVal:${otherVal.getClass.getCanonicalName}")
   }
