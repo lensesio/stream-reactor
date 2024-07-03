@@ -15,10 +15,14 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.formats.writer
 
+import cats.implicits.catsSyntaxOptionId
+import org.apache.kafka.connect.data.Date
 import org.apache.kafka.connect.data.Decimal
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.Time
+import org.apache.kafka.connect.data.Timestamp
 
 sealed trait SinkData {
   def schema(): Option[Schema]
@@ -87,4 +91,16 @@ case class ByteArraySinkData(value: Array[Byte], schema: Option[Schema] = None) 
 
 case class NullSinkData(schema: Option[Schema] = None) extends SinkData {
   override def value: Any = null
+}
+
+case class DateSinkData(value: java.util.Date) extends SinkData {
+  override def schema(): Option[Schema] = Date.SCHEMA.some
+}
+
+case class TimestampSinkData(value: java.util.Date) extends SinkData {
+  override def schema(): Option[Schema] = Timestamp.SCHEMA.some;
+}
+
+case class TimeSinkData(value: java.util.Date) extends SinkData {
+  override def schema(): Option[Schema] = Time.SCHEMA.some;
 }
