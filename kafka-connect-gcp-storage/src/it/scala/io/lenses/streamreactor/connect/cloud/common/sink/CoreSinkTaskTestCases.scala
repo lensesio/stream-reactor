@@ -45,6 +45,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.lang
 import java.util
+import java.util.Date
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -1547,6 +1548,50 @@ abstract class CoreSinkTaskTestCases[
     checkArray(recordsMap.getOrElse(new Utf8("klingons"), fail("can't find in map")), "joe")
     checkArray(recordsMap.getOrElse(new Utf8("cylons"), fail("can't find in map")), "merv", "marv")
 
+  }
+
+  unitUnderTest should "process dates to avro format" in {
+
+    val record = new Date()
+
+    val kafkaPartitionedRecords = List(
+      new SinkRecord(TopicName,
+                     0,
+                     null,
+                     null,
+                     org.apache.kafka.connect.data.Timestamp.SCHEMA,
+                     record,
+                     0,
+                     0,
+                     TimestampType.CREATE_TIME,
+      ),
+    )
+
+    val topicPartitionsToManage = Seq(
+      new TopicPartition(TopicName, 0),
+    ).asJava
+
+    val task = createSinkTask()
+
+    val props = (defaultProps ++
+      Map(
+        s"$prefix.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` PROPERTIES('${FlushCount.entryName}'=1,'padding.length.partition'='12', 'padding.length.offset'='12')",
+      )).asJava
+
+    task.start(props)
+
+    task.open(topicPartitionsToManage)
+    task.put(kafkaPartitionedRecords.asJava)
+    task.close(topicPartitionsToManage)
+    task.stop()
+
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/000000000000/").size should be(1)
+
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/000000000000/000000000000_0_0.avro")
+
+    val genericRecords = avroFormatReader.read(bytes)
+    genericRecords.size should be(1)
+    genericRecords.head.asInstanceOf[Long] should be(record.getTime)
   }
 
   val addressSchema: Schema = SchemaBuilder.struct()
