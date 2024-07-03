@@ -36,7 +36,7 @@ object Dependencies {
 
   object Versions {
     // libraries versions
-    val scalatestVersion               = "3.2.18"
+    val scalatestVersion               = "3.2.19"
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.18.0"
 
@@ -72,7 +72,7 @@ object Dependencies {
     val scalaLoggingVersion = "3.9.5"
 
     val wiremockVersion = "3.8.0"
-    val parquetVersion  = "1.14.0"
+    val parquetVersion  = "1.14.1"
 
     val jerseyCommonVersion = "3.1.7"
 
@@ -85,6 +85,7 @@ object Dependencies {
     val msal4jVersion                     = "1.16.0"
     val msal4jPersistenceExtensionVersion = "1.3.0"
     val gcpCloudVersion                   = "2.40.0"
+    val gcpCloudStorageVersion            = "2.40.1"
 
     val jacksonVersion      = "2.17.1"
     val json4sVersion       = "4.0.7"
@@ -103,7 +104,7 @@ object Dependencies {
     val jsonPathVersion        = "2.9.0"
 
     val azureDocumentDbVersion     = "2.6.5"
-    val testcontainersScalaVersion = "0.41.3"
+    val testcontainersScalaVersion = "0.41.4"
     val testcontainersVersion      = "1.19.8"
 
     val influxVersion = "7.1.0"
@@ -151,7 +152,7 @@ object Dependencies {
 
     object Elastic7Versions extends ElasticVersions {
       override val elastic4sVersion:     String = "7.17.4"
-      override val elasticSearchVersion: String = "7.17.21"
+      override val elasticSearchVersion: String = "7.17.22"
       override val jnaVersion:           String = "5.14.0"
     }
 
@@ -291,7 +292,7 @@ object Dependencies {
 
   lazy val gcpCloudCoreSdk = "com.google.cloud" % "google-cloud-core"      % gcpCloudVersion
   lazy val gcpCloudHttp    = "com.google.cloud" % "google-cloud-core-http" % gcpCloudVersion
-  lazy val gcpStorageSdk   = "com.google.cloud" % "google-cloud-storage"   % gcpCloudVersion
+  lazy val gcpStorageSdk   = "com.google.cloud" % "google-cloud-storage"   % gcpCloudStorageVersion
 
   lazy val json4sNative  = "org.json4s" %% "json4s-native"  % json4sVersion
   lazy val json4sJackson = "org.json4s" %% "json4s-jackson" % json4sVersion
