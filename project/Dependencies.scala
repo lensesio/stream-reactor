@@ -79,10 +79,12 @@ object Dependencies {
     val calciteVersion = "1.34.0"
     val awsSdkVersion  = "2.25.70"
 
-    val azureDataLakeVersion = "12.19.1"
-    val azureIdentityVersion = "1.13.0"
-    val azureCoreVersion     = "1.49.1"
-    val gcpCloudVersion      = "2.39.0"
+    val azureDataLakeVersion              = "12.19.1"
+    val azureIdentityVersion              = "1.13.0"
+    val azureCoreVersion                  = "1.49.1"
+    val msal4jVersion                     = "1.16.0"
+    val msal4jPersistenceExtensionVersion = "1.3.0"
+    val gcpCloudVersion                   = "2.40.0"
 
     val jacksonVersion      = "2.17.1"
     val json4sVersion       = "4.0.7"
@@ -282,6 +284,10 @@ object Dependencies {
   lazy val azureDataLakeSdk: ModuleID = "com.azure" % "azure-storage-file-datalake" % azureDataLakeVersion
   lazy val azureIdentity:    ModuleID = "com.azure" % "azure-identity"              % azureIdentityVersion
   lazy val azureCore:        ModuleID = "com.azure" % "azure-core"                  % azureCoreVersion
+  lazy val msal4j: ModuleID =
+    "com.microsoft.azure" % "msal4j" % msal4jVersion
+  lazy val msal4jPersistenceExtension: ModuleID =
+    "com.microsoft.azure" % "msal4j-persistence-extension" % msal4jPersistenceExtensionVersion
 
   lazy val gcpCloudCoreSdk = "com.google.cloud" % "google-cloud-core"      % gcpCloudVersion
   lazy val gcpCloudHttp    = "com.google.cloud" % "google-cloud-core-http" % gcpCloudVersion

@@ -7,6 +7,8 @@ import Dependencies.googleProtobufJava
 import Dependencies.hadoopCommon
 import Dependencies.hadoopMapReduceClientCore
 import Dependencies.jsonSmart
+import Dependencies.msal4j
+import Dependencies.msal4jPersistenceExtension
 import Dependencies.nimbusJoseJwt
 import Dependencies.woodstoxCore
 import Dependencies.zstd
@@ -210,6 +212,8 @@ object Settings extends Dependencies {
             nimbusJoseJwt,
             zstd,
             classGraph,
+            msal4j,
+            msal4jPersistenceExtension,
           ) ++ nettyDepOverrides ++ avroOverrides,
         ),
       )
