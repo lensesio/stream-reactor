@@ -84,7 +84,8 @@ object Dependencies {
     val azureCoreVersion                  = "1.49.1"
     val msal4jVersion                     = "1.16.0"
     val msal4jPersistenceExtensionVersion = "1.3.0"
-    val gcpCloudVersion                   = "2.40.1"
+    val gcpCloudVersion                   = "2.40.0"
+    val gcpCloudStorageVersion            = "2.40.1"
 
     val jacksonVersion      = "2.17.1"
     val json4sVersion       = "4.0.7"
@@ -291,7 +292,7 @@ object Dependencies {
 
   lazy val gcpCloudCoreSdk = "com.google.cloud" % "google-cloud-core"      % gcpCloudVersion
   lazy val gcpCloudHttp    = "com.google.cloud" % "google-cloud-core-http" % gcpCloudVersion
-  lazy val gcpStorageSdk   = "com.google.cloud" % "google-cloud-storage"   % gcpCloudVersion
+  lazy val gcpStorageSdk   = "com.google.cloud" % "google-cloud-storage"   % gcpCloudStorageVersion
 
   lazy val json4sNative  = "org.json4s" %% "json4s-native"  % json4sVersion
   lazy val json4sJackson = "org.json4s" %% "json4s-jackson" % json4sVersion
