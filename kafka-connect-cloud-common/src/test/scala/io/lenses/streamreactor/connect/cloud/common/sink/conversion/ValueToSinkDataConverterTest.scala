@@ -15,13 +15,11 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.conversion
 
+import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.cloud.common.formats.writer._
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.SchemaBuilder
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.apache.kafka.connect.data.Decimal
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 
@@ -94,6 +92,42 @@ class ValueToSinkDataConverterTest extends AnyFlatSpec with Matchers {
         schema.parameters().get(Decimal.SCALE_FIELD) shouldBe "3"
         v shouldBe Decimal.fromLogical(schema, decimal)
       case _ => fail("Expected DecimalSinkData")
+    }
+  }
+
+  "convert" should "convert a Date" in {
+    val date      = new java.util.Date()
+    val schema    = Date.SCHEMA
+    val converted = ValueToSinkDataConverter(date, schema.some)
+    converted match {
+      case DateSinkData(dateValue) =>
+        dateValue should be(date)
+        converted.schema() should contain(schema)
+      case _ => fail("Didn't contain date")
+    }
+  }
+
+  "convert" should "convert a Time" in {
+    val date      = new java.util.Date()
+    val schema    = Time.SCHEMA
+    val converted = ValueToSinkDataConverter(date, schema.some)
+    converted match {
+      case TimeSinkData(dateValue) =>
+        dateValue should be(date)
+        converted.schema() should contain(schema)
+      case _ => fail("Didn't contain time")
+    }
+  }
+
+  "convert" should "convert a TimeStamp" in {
+    val date      = new java.util.Date()
+    val schema    = Timestamp.SCHEMA
+    val converted = ValueToSinkDataConverter(date, schema.some)
+    converted match {
+      case TimestampSinkData(dateValue) =>
+        dateValue should be(date)
+        converted.schema() should contain(schema)
+      case _ => fail("Didn't contain timestamp")
     }
   }
 }
