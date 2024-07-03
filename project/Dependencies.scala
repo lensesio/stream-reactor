@@ -132,7 +132,7 @@ object Dependencies {
     val jedisVersion = "5.1.3"
     val gsonVersion  = "2.11.0"
 
-    val classGraphVersion = "4.8.174"
+    val classGraphVersion           = "4.8.174"
     val nimbusJoseJwtVersion        = "9.37.3"
     val hadoopVersion               = "3.4.0"
     val hadoopShadedProtobufVersion = "1.2.0"
@@ -378,10 +378,10 @@ object Dependencies {
       .excludeAll(ExclusionRule(organization = "com.nibusds"))
       .exclude("com.fasterxml.jackson.core", "jackson-annotations")
 
-  lazy val classGraph = "io.github.classgraph" % "classgraph" % classGraphVersion
+  lazy val classGraph    = "io.github.classgraph" % "classgraph"    % classGraphVersion
   lazy val nimbusJoseJwt = hiveExcludes("com.nimbusds" % "nimbus-jose-jwt" % nimbusJoseJwtVersion)
-  lazy val airCompressor = "io.airlift"       % "aircompressor" % "0.27"
-  lazy val zstd          = "com.github.luben" % "zstd-jni"      % "1.5.6-2"
+  lazy val airCompressor = "io.airlift"           % "aircompressor" % "0.27"
+  lazy val zstd          = "com.github.luben"     % "zstd-jni"      % "1.5.6-2"
 
   // testcontainers module only
   lazy val festAssert = "org.easytesting" % "fest-assert" % "1.4"
