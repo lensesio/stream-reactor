@@ -120,4 +120,29 @@
         <packageUrl regex="true">^pkg:maven/com\.azure/azure\-core\-amqp@.*$</packageUrl>
         <cve>CVE-2023-36052</cve>
     </suppress>
+
+    <!-- The following three rules are due to what appears to be an Azure False Positive.
+     As described on https://github.com/advisories/GHSA-m5vv-6r4h-3vj9 ,
+     the version numbers we are packaging are higher than the affected versions. -->
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-azure-datalake-assembly-7.3-SNAPSHOT.jar (shaded: com.azure:azure-identity:1.13.0)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure-identity@.*$</packageUrl>
+        <cve>CVE-2024-35255</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-azure-datalake-assembly-7.3-SNAPSHOT.jar (shaded: com.microsoft.azure:msal4j-persistence-extension:1.3.0)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.microsoft\.azure/msal4j-persistence-extension@.*$</packageUrl>
+        <cpe>cpe:/a:microsoft:authentication_library</cpe>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: kafka-connect-azure-datalake-assembly-7.3-SNAPSHOT.jar (shaded: com.microsoft.azure:msal4j:1.16.0)
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.microsoft\.azure/msal4j@.*$</packageUrl>
+        <cve>CVE-2024-35255</cve>
+    </suppress>
 </suppressions>

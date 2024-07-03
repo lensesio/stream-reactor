@@ -19,11 +19,14 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.ArraySinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.ByteArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.DateSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MapSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.PrimitiveSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.TimeSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.TimestampSinkData
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.json.JsonConverter
@@ -44,9 +47,12 @@ object ToJsonDataConverter {
         json.getBytes()
       case ArraySinkData(array, schema) =>
         converter.fromConnectData(topic.value, schema.orNull, array)
-      case ByteArraySinkData(_, _) => throw new IllegalStateException("Cannot currently write byte array as json")
-      case NullSinkData(schema)    => converter.fromConnectData(topic.value, schema.orNull, null)
-      case other                   => throw new IllegalStateException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
+      case dsd @ DateSinkData(value)       => converter.fromConnectData(topic.value, dsd.schema().orNull, value)
+      case tsd @ TimeSinkData(value)       => converter.fromConnectData(topic.value, tsd.schema().orNull, value)
+      case tssd @ TimestampSinkData(value) => converter.fromConnectData(topic.value, tssd.schema().orNull, value)
+      case ByteArraySinkData(_, _)         => throw new IllegalStateException("Cannot currently write byte array as json")
+      case NullSinkData(schema)            => converter.fromConnectData(topic.value, schema.orNull, null)
+      case other                           => throw new IllegalStateException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
     }
 
   def convert(data: SinkData): Any = data match {
