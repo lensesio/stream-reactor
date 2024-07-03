@@ -40,12 +40,12 @@ object Dependencies {
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.18.0"
 
-    val junitJupiterVersion = "5.10.2"
+    val junitJupiterVersion = "5.10.3"
     val assertjCoreVersion  = "3.26.0"
 
     val cyclopsVersion = "10.4.1"
 
-    val kafkaVersion:     String = "3.7.0"
+    val kafkaVersion:     String = "3.7.1"
     val confluentVersion: String = "7.6.1"
 
     val enumeratumVersion = "1.7.3"
@@ -66,12 +66,12 @@ object Dependencies {
     // build plugins version
     val betterMonadicForVersion = "0.3.1"
 
-    val lombokVersion = "1.18.32"
+    val lombokVersion = "1.18.34"
 
     val logbackVersion      = "1.5.6"
     val scalaLoggingVersion = "3.9.5"
 
-    val wiremockVersion = "3.6.0"
+    val wiremockVersion = "3.8.0"
     val parquetVersion  = "1.14.0"
 
     val jerseyCommonVersion = "3.1.7"
@@ -79,14 +79,16 @@ object Dependencies {
     val calciteVersion = "1.34.0"
     val awsSdkVersion  = "2.25.70"
 
-    val azureDataLakeVersion = "12.19.1"
-    val azureIdentityVersion = "1.12.2"
-    val azureCoreVersion     = "1.49.1"
-    val gcpCloudVersion      = "2.39.0"
+    val azureDataLakeVersion              = "12.19.1"
+    val azureIdentityVersion              = "1.13.0"
+    val azureCoreVersion                  = "1.49.1"
+    val msal4jVersion                     = "1.16.0"
+    val msal4jPersistenceExtensionVersion = "1.3.0"
+    val gcpCloudVersion                   = "2.40.0"
 
     val jacksonVersion      = "2.17.1"
     val json4sVersion       = "4.0.7"
-    val mockitoScalaVersion = "1.17.31"
+    val mockitoScalaVersion = "1.17.37"
     val mockitoJavaVersion  = "5.2.0"
     val openCsvVersion      = "5.9"
     val jsonSmartVersion    = "2.5.1"
@@ -132,6 +134,7 @@ object Dependencies {
     val jedisVersion = "5.1.3"
     val gsonVersion  = "2.11.0"
 
+    val classGraphVersion           = "4.8.174"
     val nimbusJoseJwtVersion        = "9.37.3"
     val hadoopVersion               = "3.4.0"
     val hadoopShadedProtobufVersion = "1.2.0"
@@ -281,6 +284,10 @@ object Dependencies {
   lazy val azureDataLakeSdk: ModuleID = "com.azure" % "azure-storage-file-datalake" % azureDataLakeVersion
   lazy val azureIdentity:    ModuleID = "com.azure" % "azure-identity"              % azureIdentityVersion
   lazy val azureCore:        ModuleID = "com.azure" % "azure-core"                  % azureCoreVersion
+  lazy val msal4j: ModuleID =
+    "com.microsoft.azure" % "msal4j" % msal4jVersion
+  lazy val msal4jPersistenceExtension: ModuleID =
+    "com.microsoft.azure" % "msal4j-persistence-extension" % msal4jPersistenceExtensionVersion
 
   lazy val gcpCloudCoreSdk = "com.google.cloud" % "google-cloud-core"      % gcpCloudVersion
   lazy val gcpCloudHttp    = "com.google.cloud" % "google-cloud-core-http" % gcpCloudVersion
@@ -377,9 +384,10 @@ object Dependencies {
       .excludeAll(ExclusionRule(organization = "com.nibusds"))
       .exclude("com.fasterxml.jackson.core", "jackson-annotations")
 
+  lazy val classGraph    = "io.github.classgraph" % "classgraph"    % classGraphVersion
   lazy val nimbusJoseJwt = hiveExcludes("com.nimbusds" % "nimbus-jose-jwt" % nimbusJoseJwtVersion)
-  lazy val airCompressor = "io.airlift"       % "aircompressor" % "0.27"
-  lazy val zstd          = "com.github.luben" % "zstd-jni"      % "1.5.6-2"
+  lazy val airCompressor = "io.airlift"           % "aircompressor" % "0.27"
+  lazy val zstd          = "com.github.luben"     % "zstd-jni"      % "1.5.6-2"
 
   // testcontainers module only
   lazy val festAssert = "org.easytesting" % "fest-assert" % "1.4"
