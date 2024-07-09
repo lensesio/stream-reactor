@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import io.lenses.streamreactor.common.util.EitherUtils
 import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
@@ -39,7 +40,7 @@ class S3SinkTask
     ](
       S3ConfigSettings.CONNECTOR_PREFIX,
       "/aws-s3-sink-ascii.txt",
-      new JarManifest(S3SinkTask.getClass.getProtectionDomain.getCodeSource.getLocation),
+      EitherUtils.unpackOrThrow(JarManifest.produceFromClass(S3SinkTask.getClass)),
     ) {
 
   val writerManagerCreator = new WriterManagerCreator[S3FileMetadata, S3SinkConfig]()

@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.datalake.sink
 
 import com.azure.storage.file.datalake.DataLakeServiceClient
+import io.lenses.streamreactor.common.util.EitherUtils
 import io.lenses.streamreactor.common.util.JarManifest
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.sink.CloudSinkTask
@@ -37,7 +38,7 @@ class DatalakeSinkTask
     ](
       AzureConfigSettings.CONNECTOR_PREFIX,
       "/datalake-sink-ascii.txt",
-      new JarManifest(DatalakeSinkTask.getClass.getProtectionDomain.getCodeSource.getLocation),
+      EitherUtils.unpackOrThrow(JarManifest.produceFromClass(DatalakeSinkTask.getClass)),
     ) {
 
   override def createClient(config: AzureConnectionConfig): Either[Throwable, DataLakeServiceClient] =

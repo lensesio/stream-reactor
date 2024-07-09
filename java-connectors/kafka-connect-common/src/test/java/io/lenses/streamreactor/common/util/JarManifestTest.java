@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.common.util;
 
+import static io.lenses.streamreactor.test.utils.EitherValues.getRight;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -26,6 +27,7 @@ import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
+import lombok.val;
 import org.junit.jupiter.api.Test;
 
 import io.lenses.streamreactor.common.util.JarManifest.ManifestAttributes;
@@ -34,8 +36,6 @@ class JarManifestTest {
 
   private static final String UNKNOWN = "unknown";
   private static final String EMPTY_STRING = "";
-
-  JarManifest testObj;
 
   @Test
   void getVersionShouldReturnStreamReactorVersionIfIncludedInManifest() throws IOException {
@@ -49,7 +49,7 @@ class JarManifestTest {
     when(manifest.getMainAttributes()).thenReturn(attributes);
     when(attributes.getValue(ManifestAttributes.REACTOR_VER.getAttributeName())).thenReturn(STREAM_REACTOR_VERSION);
 
-    testObj = new JarManifest(jarFile);
+    val testObj = getRight(JarManifest.fromJarFile(jarFile));
 
     // when
     String streamReactorVersion = testObj.getVersion();
@@ -72,7 +72,7 @@ class JarManifestTest {
     when(manifest.getMainAttributes()).thenReturn(attributes);
     when(attributes.getValue(ManifestAttributes.REACTOR_VER.getAttributeName())).thenReturn(null);
 
-    testObj = new JarManifest(jarFile);
+    val testObj = getRight(JarManifest.fromJarFile(jarFile));
 
     // when
     String streamReactorVersion = testObj.getVersion();
@@ -89,7 +89,7 @@ class JarManifestTest {
     //given
 
     //when
-    testObj = new JarManifest(getClass().getProtectionDomain().getCodeSource().getLocation());
+    val testObj = JarManifest.fromUrl(getClass().getProtectionDomain().getCodeSource().getLocation());
 
     //then
     assertThat(testObj.getVersion()).isEqualTo(EMPTY_STRING);
@@ -100,7 +100,7 @@ class JarManifestTest {
     //given
 
     //when
-    testObj = JarManifest.produceFromClass(getClass());
+    val testObj = getRight(JarManifest.produceFromClass(getClass()));
 
     //then
     assertThat(testObj.getVersion()).isEqualTo(EMPTY_STRING);

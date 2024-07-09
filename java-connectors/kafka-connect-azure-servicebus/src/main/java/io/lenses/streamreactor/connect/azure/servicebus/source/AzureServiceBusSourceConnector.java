@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.azure.servicebus.source;
 
 import static io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader;
+import static io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow;
 
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,10 @@ import lombok.extern.slf4j.Slf4j;
 public class AzureServiceBusSourceConnector extends SourceConnector {
 
   private final JarManifest jarManifest =
-      JarManifest.produceFromClass(getClass());
+      unpackOrThrow(JarManifest
+          .produceFromClass(getClass())
+      );
+
   private Map<String, String> configProperties;
 
   @Override

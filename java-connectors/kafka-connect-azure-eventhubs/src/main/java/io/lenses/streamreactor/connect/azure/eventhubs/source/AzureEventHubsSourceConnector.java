@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.azure.eventhubs.source;
 
 import static io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader;
+import static io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +41,9 @@ import lombok.extern.slf4j.Slf4j;
 public class AzureEventHubsSourceConnector extends SourceConnector {
 
   private final JarManifest jarManifest =
-      JarManifest.produceFromClass(getClass());
+      unpackOrThrow(JarManifest
+          .produceFromClass(getClass()));
+
   private Map<String, String> configProperties;
 
   @Override

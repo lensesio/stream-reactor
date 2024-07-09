@@ -15,11 +15,12 @@
  */
 package io.lenses.streamreactor.common.utils
 
+import io.lenses.streamreactor.common.util.EitherUtils
 import io.lenses.streamreactor.common.util.JarManifest
 
 trait JarManifestProvided {
 
-  lazy val manifest: JarManifest = new JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  lazy val manifest: JarManifest = EitherUtils.unpackOrThrow(JarManifest.produceFromClass(getClass))
 
   def version(): String = manifest.getVersion()
 

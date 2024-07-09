@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.gcp.pubsub.source;
 
 import static io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader;
+import static io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow;
 
 import java.util.List;
 import java.util.Map;
@@ -42,7 +43,10 @@ public class GCPPubSubSourceConnector extends SourceConnector {
 
   private final PubSubConfigSettings pubSubConfigSettings = new PubSubConfigSettings();
 
-  private final JarManifest jarManifest = JarManifest.produceFromClass(getClass());
+  private final JarManifest jarManifest =
+      unpackOrThrow(JarManifest
+          .produceFromClass(getClass())
+      );
 
   @Override
   public void start(Map<String, String> props) {

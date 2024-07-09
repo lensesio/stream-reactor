@@ -78,6 +78,7 @@ lazy val `query-language` = (project in file("java-connectors/kafka-connect-quer
   .configureAntlr()
 
 lazy val `java-common` = (project in file("java-connectors/kafka-connect-common"))
+  .dependsOn(`test-utils` % "test->test")
   .dependsOn(`query-language`)
   .settings(
     settings ++

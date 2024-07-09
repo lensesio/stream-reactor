@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.azure.servicebus.source;
 
+import static io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -41,7 +43,7 @@ public class AzureServiceBusSourceTask extends SourceTask {
   private TaskToReceiverBridge taskToReceiverBridge;
 
   public AzureServiceBusSourceTask() {
-    this.jarManifest = JarManifest.produceFromClass(getClass());
+    this.jarManifest = unpackOrThrow(JarManifest.produceFromClass(getClass()));
   }
 
   @Override

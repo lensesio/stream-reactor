@@ -15,20 +15,17 @@
  */
 package io.lenses.streamreactor.common.exception;
 
-/**
- * Exception to indicate there's something wrong during Connector's startup.
- */
-public class ConnectorStartupException extends StreamReactorException {
+public class StreamReactorException extends RuntimeException {
 
-  public ConnectorStartupException(String message, Throwable cause) {
+  public StreamReactorException(String message) {
+    super(message);
+  }
+
+  public StreamReactorException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public ConnectorStartupException(Throwable cause) {
+  public StreamReactorException(Throwable cause) {
     super(cause);
-  }
-
-  public ConnectorStartupException(String message) {
-    super(message);
   }
 }
