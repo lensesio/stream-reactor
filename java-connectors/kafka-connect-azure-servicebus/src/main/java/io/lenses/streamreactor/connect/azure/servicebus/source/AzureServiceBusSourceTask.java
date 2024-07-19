@@ -17,21 +17,20 @@ package io.lenses.streamreactor.connect.azure.servicebus.source;
 
 import static io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.Executors;
-
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.connect.source.SourceRecord;
-import org.apache.kafka.connect.source.SourceTask;
-
 import io.lenses.kcql.Kcql;
 import io.lenses.streamreactor.common.util.JarManifest;
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfigConstants;
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusSourceConfig;
 import io.lenses.streamreactor.connect.azure.servicebus.util.KcqlConfigBusMapper;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.connect.source.SourceRecord;
+import org.apache.kafka.connect.source.SourceTask;
 
 /**
  * Implementation of {@link SourceTask} for Microsoft Azure EventHubs.
@@ -58,7 +57,10 @@ public class AzureServiceBusSourceTask extends SourceTask {
             .getInt(AzureServiceBusConfigConstants.TASK_RECORDS_QUEUE_SIZE);
     String connectionString = props.get(AzureServiceBusConfigConstants.CONNECTION_STRING);
     List<Kcql> kcqls =
-        KcqlConfigBusMapper.mapKcqlsFromConfig(props.get(AzureServiceBusConfigConstants.KCQL_CONFIG));
+        KcqlConfigBusMapper.mapKcqlsFromConfig(props.get(AzureServiceBusConfigConstants.KCQL_CONFIG), true)
+            .fold(ex -> {
+              throw ex;
+            }, Function.identity());
 
     final ArrayBlockingQueue<ServiceBusMessageHolder> recordsQueue =
         new ArrayBlockingQueue<>(recordsQueueSize);

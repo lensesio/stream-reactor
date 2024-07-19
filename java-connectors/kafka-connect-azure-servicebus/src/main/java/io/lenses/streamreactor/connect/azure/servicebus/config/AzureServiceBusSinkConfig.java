@@ -15,21 +15,19 @@
  */
 package io.lenses.streamreactor.connect.azure.servicebus.config;
 
+import io.lenses.streamreactor.common.config.base.BaseConfig;
+import io.lenses.streamreactor.common.config.base.intf.ConnectorPrefixed;
 import java.util.Map;
-
+import lombok.Getter;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.Width;
 
-import io.lenses.streamreactor.common.config.base.BaseConfig;
-import io.lenses.streamreactor.common.config.base.intf.ConnectorPrefixed;
-import lombok.Getter;
-
 /**
  * Service Bus Connector Configuration class.
  */
-public class AzureServiceBusSourceConfig extends BaseConfig implements ConnectorPrefixed {
+public class AzureServiceBusSinkConfig extends BaseConfig implements ConnectorPrefixed {
 
   @Getter
   private static final ConfigDef configDefinition;
@@ -42,42 +40,51 @@ public class AzureServiceBusSourceConfig extends BaseConfig implements Connector
         new ConfigDef()
             .define(AzureServiceBusConfigConstants.CONNECTOR_NAME,
                 Type.STRING,
-                AzureServiceBusConfigConstants.SOURCE_CONNECTOR_NAME_DEFAULT,
+                AzureServiceBusConfigConstants.SINK_CONNECTOR_NAME_DEFAULT,
                 Importance.HIGH,
                 AzureServiceBusConfigConstants.CONNECTOR_NAME_DOC,
                 BASE_GROUP,
                 1,
-                ConfigDef.Width.LONG,
+                Width.LONG,
                 AzureServiceBusConfigConstants.CONNECTOR_NAME
-            ).define(AzureServiceBusConfigConstants.TASK_RECORDS_QUEUE_SIZE,
-                Type.INT,
-                AzureServiceBusConfigConstants.TASK_RECORDS_QUEUE_SIZE_DEFAULT,
-                Importance.MEDIUM,
-                AzureServiceBusConfigConstants.TASK_RECORDS_QUEUE_SIZE_DOC,
-                BASE_GROUP,
-                2,
-                Width.SHORT,
-                AzureServiceBusConfigConstants.TASK_RECORDS_QUEUE_SIZE
             ).define(AzureServiceBusConfigConstants.CONNECTION_STRING,
                 Type.STRING,
                 Importance.HIGH,
                 AzureServiceBusConfigConstants.CONNECTION_STRING_DOC,
                 CONNECTION_GROUP,
                 2,
-                ConfigDef.Width.LONG,
+                Width.LONG,
                 AzureServiceBusConfigConstants.CONNECTION_STRING
+            ).define(AzureServiceBusConfigConstants.MAX_NUMBER_OF_RETRIES,
+                Type.INT,
+                AzureServiceBusConfigConstants.MAX_NUMBER_OF_RETRIES_DEFAULT,
+                Importance.HIGH,
+                AzureServiceBusConfigConstants.MAX_NUMBER_OF_RETRIES_DOC,
+                CONNECTION_GROUP,
+                3,
+                Width.SHORT,
+                AzureServiceBusConfigConstants.MAX_NUMBER_OF_RETRIES
+            ).define(AzureServiceBusConfigConstants.TIMEOUT_BETWEEN_RETRIES,
+                Type.INT,
+                AzureServiceBusConfigConstants.TIMEOUT_BETWEEN_RETRIES_DEFAULT,
+                Importance.HIGH,
+                AzureServiceBusConfigConstants.TIMEOUT_BETWEEN_RETRIES_DOC,
+                CONNECTION_GROUP,
+                4,
+                Width.SHORT,
+                AzureServiceBusConfigConstants.TIMEOUT_BETWEEN_RETRIES
             ).define(AzureServiceBusConfigConstants.KCQL_CONFIG,
                 Type.STRING,
                 Importance.HIGH,
                 AzureServiceBusConfigConstants.KCQL_DOC,
                 "Mappings",
                 1,
-                ConfigDef.Width.LONG,
+                Width.LONG,
                 AzureServiceBusConfigConstants.KCQL_CONFIG
             );
   }
 
-  public AzureServiceBusSourceConfig(Map<?, ?> properties) {
+  public AzureServiceBusSinkConfig(Map<?, ?> properties) {
     super(AzureServiceBusConfigConstants.CONNECTOR_PREFIX, getConfigDefinition(), properties);
   }
 

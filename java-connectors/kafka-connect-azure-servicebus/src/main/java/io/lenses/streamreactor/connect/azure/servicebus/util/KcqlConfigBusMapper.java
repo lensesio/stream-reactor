@@ -17,6 +17,9 @@ package io.lenses.streamreactor.connect.azure.servicebus.util;
 
 import static io.lenses.streamreactor.common.util.StringUtils.getSystemsNewLineChar;
 
+import cyclops.control.Either;
+import io.lenses.kcql.Kcql;
+import io.lenses.streamreactor.common.exception.ConnectorStartupException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,10 +28,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import org.apache.kafka.common.config.ConfigException;
-
-import io.lenses.kcql.Kcql;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.val;
@@ -39,7 +38,7 @@ import lombok.val;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class KcqlConfigBusMapper {
 
-  private static final String AZURE_NAME_REGEX = "^[A-Za-z0-9]$|^[A-Za-z0-9][\\w-\\.\\/\\~]*[A-Za-z0-9]$";
+  private static final String AZURE_NAME_REGEX = "^[A-Za-z0-9]$|^[A-Za-z0-9][\\w-./~]*[A-Za-z0-9]$";
   private static final String BUS_TYPE_REGEX = "^TOPIC$|^QUEUE$";
   private static final String QUEUE_BUS_TYPE = "QUEUE";
   private static final String ERROR_DELIMITER = ";" + getSystemsNewLineChar();
@@ -62,13 +61,15 @@ public class KcqlConfigBusMapper {
       ServiceBusKcqlProperties.getNecessaryProperties();
 
   /**
-   * This method parses KCQL statements and fetches input and output topics checking against regex for invalid
-   * topic names in input and output as well as if mappings contain necessary KCQL properties.
+   * This method parses KCQL statements and fetches input and output topics checking against regex for invalid topic
+   * names in input and output as well as if mappings contain necessary KCQL properties.
    *
-   * @param kcqlString string to parse
+   * @param kcqlString      string to parse
+   * @param sourceConnector boolean flag to indicate whether this is mapping for source or sink connector
    * @return list of KCQLs if parsed properly
    */
-  public static List<Kcql> mapKcqlsFromConfig(String kcqlString) {
+  public static Either<ConnectorStartupException, List<Kcql>> mapKcqlsFromConfig(String kcqlString,
+      boolean sourceConnector) {
 
     List<Kcql> kcqls = Kcql.parseMultiple(kcqlString);
 
@@ -81,16 +82,17 @@ public class KcqlConfigBusMapper {
             validateTopicMappings(outputTopics, "Output"),
             validateTopicName(inputTopics, "Input"),
             validateTopicName(outputTopics, "Output"),
-            kcqls.stream().flatMap(KcqlConfigBusMapper::validateKcqlProperties)
+            kcqls.stream().flatMap(kcql -> validateKcqlProperties(kcql, sourceConnector))
         ).flatMap(Function.identity())
             .collect(Collectors.toUnmodifiableSet());
 
     if (!allErrors.isEmpty()) {
-      throw new ConfigException("The following errors occurred during validation: ", String.join(ERROR_DELIMITER,
-          allErrors));
+      return Either.left(new ConnectorStartupException(
+          String.format("The following errors occurred during validation: %s", String.join(ERROR_DELIMITER,
+              allErrors))));
     }
 
-    return List.copyOf(kcqls);
+    return Either.right(List.copyOf(kcqls));
   }
 
   private static Stream<String> validateTopicName(List<String> topicNames, String description) {
@@ -115,10 +117,10 @@ public class KcqlConfigBusMapper {
         );
   }
 
-  private static Stream<String> validateKcqlProperties(Kcql kcql) {
+  private static Stream<String> validateKcqlProperties(Kcql kcql, boolean sourceConnector) {
     return Stream.concat(
         validateNecessaryKcqlProperties(kcql),
-        checkForValidPropertyValues(kcql.getProperties())
+        checkForValidPropertyValues(kcql.getProperties(), sourceConnector)
     );
   }
 
@@ -128,12 +130,18 @@ public class KcqlConfigBusMapper {
         .map(notSatisfiedProperties -> notSatisfiedProperties.stream()
             .map(ServiceBusKcqlProperties::getPropertyName)
             .collect(Collectors.joining(",")))
-        .map(missingPropertiesError -> new String(
-            String.format("Following non-optional properties are missing in KCQL: %s", missingPropertiesError)
-        )).stream();
+        .map(missingPropertiesError -> String.format("Following non-optional properties are missing in KCQL: %s",
+            missingPropertiesError)).stream();
   }
 
-  public static Stream<String> checkForValidPropertyValues(Map<String, String> properties) {
+  /**
+   * Method that checks for validity of values of necessary properties from PROPERTY section.
+   * 
+   * @param properties      properties map
+   * @param sourceConnector boolean flag signifying if this is sink/source connector
+   * @return possible errors
+   */
+  public static Stream<String> checkForValidPropertyValues(Map<String, String> properties, boolean sourceConnector) {
 
     Optional<String> serviceBusType =
         Optional.ofNullable(properties.get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName())).map(
@@ -146,7 +154,8 @@ public class KcqlConfigBusMapper {
         errorStreamBuilder.add(
             String.format(BUS_TYPE_ERROR_MESSAGE, ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName()));
       }
-      if (!QUEUE_BUS_TYPE.equalsIgnoreCase(sbt)) { // if not a queue, check for necessary topic subscription
+      if (sourceConnector && !QUEUE_BUS_TYPE.equalsIgnoreCase(sbt)) {
+        // if not a queue, check for necessary topic subscription
         Optional<String> subscriptionName =
             Optional.ofNullable(properties.get(ServiceBusKcqlProperties.SUBSCRIPTION_NAME.getPropertyName()));
         if (subscriptionName.isEmpty() || subscriptionName.stream().filter(e -> azureNameMatchesAgainstRegex(e,
@@ -163,6 +172,12 @@ public class KcqlConfigBusMapper {
 
   }
 
+  /**
+   * Method that checks for necessary fields in PROPERTIES section of KCQL.
+   * 
+   * @param kcql
+   * @return
+   */
   private static List<ServiceBusKcqlProperties> findUndefiniedNecessaryKcqlProperties(Kcql kcql) {
     Map<String, String> kcqlProperties = kcql.getProperties();
     return NECESSARY_PROPERTIES.stream()

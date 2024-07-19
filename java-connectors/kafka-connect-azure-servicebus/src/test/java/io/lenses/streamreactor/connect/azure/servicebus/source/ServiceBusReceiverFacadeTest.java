@@ -21,6 +21,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.lenses.streamreactor.connect.azure.servicebus.util.ServiceBusType;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
@@ -92,8 +94,12 @@ class ServiceBusReceiverFacadeTest {
   @Test
   void shouldGetIllegalArgumentExceptionOnCreationWithBadlyFormattedConnectionString() {
     //given
-    Kcql kcql = mock(Kcql.class);
     String badFormatConnectionString = "connectionString";
+    Map<String, String> properties = new HashMap<>();
+    properties.put(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName(), ServiceBusType.TOPIC.name());
+
+    Kcql kcql = mock(Kcql.class);
+    when(kcql.getProperties()).thenReturn(properties);
 
     //when
     assertThrows(IllegalArgumentException.class, () -> new ServiceBusReceiverFacade(kcql, mockedQueue,

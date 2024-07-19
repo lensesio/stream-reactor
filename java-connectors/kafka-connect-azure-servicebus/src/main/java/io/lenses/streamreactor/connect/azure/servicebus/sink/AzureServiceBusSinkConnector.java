@@ -13,57 +13,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.azure.servicebus.source;
+package io.lenses.streamreactor.connect.azure.servicebus.sink;
 
 import static io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader;
 import static io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.connect.connector.Task;
-import org.apache.kafka.connect.source.SourceConnector;
-
 import io.lenses.streamreactor.common.util.JarManifest;
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfigConstants;
-import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusSourceConfig;
+import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusSinkConfig;
 import io.lenses.streamreactor.connect.azure.servicebus.util.KcqlConfigBusMapper;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.connect.connector.Task;
+import org.apache.kafka.connect.sink.SinkConnector;
 
 /**
- * Implementation of {@link SourceConnector} for Microsoft Azure EventHubs.
+ * Sink Connector for Azure Service Bus.
  */
 @Slf4j
-public class AzureServiceBusSourceConnector extends SourceConnector {
+public class AzureServiceBusSinkConnector extends SinkConnector {
 
   private final JarManifest jarManifest =
       unpackOrThrow(JarManifest
           .produceFromClass(getClass())
       );
-
   private Map<String, String> configProperties;
 
   @Override
   public void start(Map<String, String> props) {
     parseAndValidateConfigs(props);
     configProperties = props;
-    printAsciiHeader(jarManifest, "/azure-source-ascii.txt");
+    printAsciiHeader(jarManifest, "/azure-servicebus-ascii.txt");
   }
 
   private void parseAndValidateConfigs(Map<String, String> props) {
-    new AzureServiceBusSourceConfig(props);
-    KcqlConfigBusMapper.mapKcqlsFromConfig(props.get(AzureServiceBusConfigConstants.KCQL_CONFIG), true)
-        .mapLeft(ex -> {
+    KcqlConfigBusMapper.mapKcqlsFromConfig(props.get(AzureServiceBusConfigConstants.KCQL_CONFIG), false)
+        .fold(ex -> {
           throw ex;
-        });
+        }, Function.identity());
   }
 
   @Override
   public Class<? extends Task> taskClass() {
-    return AzureServiceBusSourceTask.class;
+    return AzureServiceBusSinkTask.class;
   }
 
   @Override
@@ -83,7 +80,7 @@ public class AzureServiceBusSourceConnector extends SourceConnector {
 
   @Override
   public ConfigDef config() {
-    return AzureServiceBusSourceConfig.getConfigDefinition();
+    return AzureServiceBusSinkConfig.getConfigDefinition();
   }
 
   @Override
