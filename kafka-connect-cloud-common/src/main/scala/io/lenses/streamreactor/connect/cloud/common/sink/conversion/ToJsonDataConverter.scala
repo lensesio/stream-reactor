@@ -41,7 +41,12 @@ object ToJsonDataConverter {
     data match {
       case data: PrimitiveSinkData => converter.fromConnectData(topic.value, data.schema().orNull, data.safeValue)
       case StructSinkData(structVal) => converter.fromConnectData(topic.value, data.schema().orNull, structVal)
-      case MapSinkData(map, schema)  => converter.fromConnectData(topic.value, schema.orNull, map)
+      case MapSinkData(map, schema)  =>
+        //In case of building a Map with Struct Jackson won't know how to serialise it
+        if (hasStructValues(map)) {
+          converter.fromConnectData(topic.value, schema.orNull, map)
+        } else jacksonJson.writeValueAsString(map).getBytes()
+
       case ArraySinkData(array, _) if isPojo(array) =>
         val json = jacksonJson.writeValueAsString(array)
         json.getBytes()
@@ -60,6 +65,12 @@ object ToJsonDataConverter {
     case ByteArraySinkData(bArray, _) => ByteBuffer.wrap(bArray)
     case data                         => data.value
   }
+
+  private def hasStructValues(map: java.util.Map[_, _]) =
+    map.values().asScala.exists {
+      case _: Struct => true
+      case _ => false
+    }
 
   /**
     * This is a workaround to help some of the customers who use Kafka Connect SMT ignoring the best practices

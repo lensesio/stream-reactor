@@ -29,12 +29,14 @@ import org.scalatest.matchers.should.Matchers
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.GZIP
-
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
+
 import java.io.ByteArrayInputStream
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.TextStreamReader
 
+import java.text.SimpleDateFormat
 import java.time.Instant
+import java.util.TimeZone
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
@@ -279,6 +281,39 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     val treeLine1 = new ObjectMapper().readTree(lines(0))
     treeLine1.get("bees").textValue() should be("sting when scared")
     treeLine1.get("wasps").textValue() should be("sting for fun")
+  }
+
+  "convert" should "write map to json containing java.util.date" in {
+
+    val outputStream     = new CloudByteArrayOutputStream()
+    val jsonFormatWriter = new JsonFormatWriter(outputStream)
+
+    val dateFormat = new SimpleDateFormat("yyyy-MM-dd")
+    dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
+    val date = dateFormat.parse("2024-07-01")
+    jsonFormatWriter.write(
+      MessageDetail(
+        NullSinkData(None),
+        MapSinkData(
+          Map(
+            "bees"  -> "sting when scared",
+            "wasps" -> "sting for fun",
+            "date"  -> date,
+          ).asJava,
+        ),
+        Map.empty,
+        Some(Instant.now()),
+        topic,
+        0,
+        Offset(0),
+      ),
+    )
+
+    val lines     = outputStream.toString().split(System.lineSeparator())
+    val treeLine1 = new ObjectMapper().readTree(lines(0))
+    treeLine1.get("bees").textValue() should be("sting when scared")
+    treeLine1.get("wasps").textValue() should be("sting for fun")
+    treeLine1.get("date").numberValue().longValue() should be(1719792000000L)
   }
 
   "convert" should "write maps containing nulls as null in json" in {
