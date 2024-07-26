@@ -107,6 +107,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
     batchDelete          = true,
     errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
     connectorRetryConfig = new RetryConfig(1, 1L),
+    logMetrics           = false,
   )
 
   "parquet sink" should "write 2 records to parquet format in s3" in {

@@ -69,4 +69,8 @@ object AzureConfigSettings {
   val POOL_MAX_CONNECTIONS_DOC = "Max connections in pool.  -1: Use default according to underlying client."
   val POOL_MAX_CONNECTIONS_DEFAULT: Int = -1
 
+  val LOG_METRICS_CONFIG: String = s"$CONNECTOR_PREFIX.log.metrics"
+  val LOG_METRICS_DOC: String =
+    "If true, the connector will log metrics to the logger.  This is useful for debugging and performance tuning."
+
 }

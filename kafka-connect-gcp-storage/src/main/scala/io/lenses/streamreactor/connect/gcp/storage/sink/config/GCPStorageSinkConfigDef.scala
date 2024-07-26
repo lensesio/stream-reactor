@@ -20,6 +20,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.CONNECTOR_PREFIX
+import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.LOG_METRICS_CONFIG
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES_DEFAULT
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES_DOC
@@ -56,6 +57,13 @@ object GCPStorageSinkConfigDef
         2,
         ConfigDef.Width.LONG,
         SEEK_MAX_INDEX_FILES,
+      )
+      .define(
+        LOG_METRICS_CONFIG,
+        Type.BOOLEAN,
+        false,
+        Importance.LOW,
+        "Log metrics",
       )
     addLocalStagingAreaToConfigDef(configDef)
     addPaddingToConfigDef(configDef)

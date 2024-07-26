@@ -53,6 +53,17 @@ object DatalakeSinkConfigDef
         ConfigDef.Width.LONG,
         SEEK_MAX_INDEX_FILES,
       )
+      .define(
+        LOG_METRICS_CONFIG,
+        Type.BOOLEAN,
+        false,
+        Importance.LOW,
+        LOG_METRICS_DOC,
+        "Log Metrics",
+        3,
+        ConfigDef.Width.LONG,
+        LOG_METRICS_CONFIG,
+      )
     addLocalStagingAreaToConfigDef(configDef)
     addPaddingToConfigDef(configDef)
   }

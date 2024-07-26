@@ -26,6 +26,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
+import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.LOG_METRICS_CONFIG
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES
 
 object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig] {
@@ -53,6 +54,7 @@ object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig]
       offsetSeekerOptions = OffsetSeekerOptions(
         gcpConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
       )
+      logMetrics = gcpConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
     } yield GCPStorageSinkConfig(
       gcpConnectionSettings,
       sinkBucketOptions,
@@ -61,6 +63,7 @@ object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig]
       avoidResumableUpload = gcpConfigDefBuilder.isAvoidResumableUpload,
       errorPolicy          = gcpConfigDefBuilder.getErrorPolicyOrDefault,
       connectorRetryConfig = gcpConfigDefBuilder.getRetryConfig,
+      logMetrics           = logMetrics,
     )
   }
 
@@ -74,4 +77,5 @@ case class GCPStorageSinkConfig(
   avoidResumableUpload: Boolean,
   connectorRetryConfig: RetryConfig,
   errorPolicy:          ErrorPolicy,
+  logMetrics:           Boolean,
 ) extends CloudSinkConfig[GCPConnectionConfig]

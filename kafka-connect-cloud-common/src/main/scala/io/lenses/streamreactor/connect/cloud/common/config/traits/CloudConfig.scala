@@ -67,6 +67,8 @@ trait CloudSinkConfig[CC] extends CloudConfig {
   def connectorRetryConfig: RetryConfig
 
   def errorPolicy: ErrorPolicy
+
+  def logMetrics: Boolean
 }
 
 /**

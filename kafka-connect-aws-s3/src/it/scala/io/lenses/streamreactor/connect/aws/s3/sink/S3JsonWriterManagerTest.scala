@@ -110,6 +110,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       batchDelete          = true,
       errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
       connectorRetryConfig = new RetryConfig(1, 1L),
+      logMetrics           = false,
     )
 
     val sink   = writerManagerCreator.from(config)
@@ -173,6 +174,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       batchDelete          = true,
       errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
       connectorRetryConfig = new RetryConfig(1, 1L),
+      logMetrics           = false,
     )
 
     val sink = writerManagerCreator.from(config)
@@ -240,6 +242,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       batchDelete          = true,
       errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
       connectorRetryConfig = new RetryConfig(1, 1L),
+      logMetrics           = false,
     )
 
     val sink = writerManagerCreator.from(config)
@@ -313,6 +316,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       batchDelete          = true,
       errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
       connectorRetryConfig = new RetryConfig(1, 1L),
+      logMetrics           = false,
     )
 
     val sink   = writerManagerCreator.from(config)

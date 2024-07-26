@@ -43,6 +43,7 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
     compressionCodec:     CompressionCodec,
     connectorRetryConfig: RetryConfig,
     errorPolicy:          NoopErrorPolicy,
+    logMetrics:           Boolean = false,
   ) extends CloudSinkConfig[FakeConnectionConfig]
 
   case class FakeFileMetadata(file: String, lastModified: Instant) extends FileMetadata

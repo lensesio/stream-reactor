@@ -109,6 +109,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     batchDelete          = true,
     errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
     connectorRetryConfig = new RetryConfig(1, 1L),
+    logMetrics           = false,
   )
 
   "avro sink" should "write 2 records to avro format in s3" in {

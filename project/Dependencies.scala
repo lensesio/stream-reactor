@@ -71,6 +71,7 @@ object Dependencies {
     val logbackVersion      = "1.5.6"
     val scalaLoggingVersion = "3.9.5"
 
+    val dnsJavaVersion  = "3.6.0"
     val wiremockVersion = "3.8.0"
     val parquetVersion  = "1.14.1"
 
@@ -246,6 +247,7 @@ object Dependencies {
   lazy val parquetAvro:   ModuleID = "org.apache.parquet" % "parquet-avro"   % parquetVersion
   lazy val parquetHadoop: ModuleID = "org.apache.parquet" % "parquet-hadoop" % parquetVersion
 
+  lazy val dnsJava: ModuleID = "dnsjava" % "dnsjava" % dnsJavaVersion
   lazy val hadoopCommon: ModuleID = hiveExcludes("org.apache.hadoop" % "hadoop-common" % hadoopVersion)
     .excludeAll(ExclusionRule(organization = "javax.servlet"))
     .excludeAll(ExclusionRule(organization = "javax.servlet.jsp"))
@@ -475,6 +477,7 @@ trait Dependencies {
     parquetAvro,
     parquetHadoop,
     hadoopCommon,
+    dnsJava,
     hadoopMapReduce,
     hadoopMapReduceClient,
     hadoopMapReduceClientCore,

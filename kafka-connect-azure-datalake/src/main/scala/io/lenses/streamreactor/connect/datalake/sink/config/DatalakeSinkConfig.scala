@@ -25,6 +25,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
 import io.lenses.streamreactor.connect.datalake.config.AzureConnectionConfig
+import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings.LOG_METRICS_CONFIG
 import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings.SEEK_MAX_INDEX_FILES
 
 object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
@@ -51,6 +52,7 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
       offsetSeekerOptions = OffsetSeekerOptions(
         s3ConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
       )
+      logMetrics = s3ConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
     } yield DatalakeSinkConfig(
       AzureConnectionConfig(s3ConfigDefBuilder.getParsedValues, authMode),
       sinkBucketOptions,
@@ -58,6 +60,7 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
       s3ConfigDefBuilder.getCompressionCodec(),
       s3ConfigDefBuilder.getErrorPolicyOrDefault,
       s3ConfigDefBuilder.getRetryConfig,
+      logMetrics,
     )
 
 }
@@ -69,4 +72,5 @@ case class DatalakeSinkConfig(
   compressionCodec:     CompressionCodec,
   errorPolicy:          ErrorPolicy,
   connectorRetryConfig: RetryConfig,
+  logMetrics:           Boolean,
 ) extends CloudSinkConfig[AzureConnectionConfig]

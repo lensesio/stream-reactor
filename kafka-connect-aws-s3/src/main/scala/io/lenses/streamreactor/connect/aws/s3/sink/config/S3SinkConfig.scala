@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink.config
 
 import io.lenses.streamreactor.common.config.base.RetryConfig
 import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.LOG_METRICS_CONFIG
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.SEEK_MAX_INDEX_FILES
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConnectionConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
@@ -55,6 +56,7 @@ object S3SinkConfig extends PropsToConfigConverter[S3SinkConfig] {
       offsetSeekerOptions = OffsetSeekerOptions(
         s3ConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
       )
+      logMetrics = s3ConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
     } yield S3SinkConfig(
       S3ConnectionConfig(s3ConfigDefBuilder.getParsedValues),
       sinkBucketOptions,
@@ -63,6 +65,7 @@ object S3SinkConfig extends PropsToConfigConverter[S3SinkConfig] {
       s3ConfigDefBuilder.batchDelete(),
       errorPolicy          = s3ConfigDefBuilder.getErrorPolicyOrDefault,
       connectorRetryConfig = s3ConfigDefBuilder.getRetryConfig,
+      logMetrics           = logMetrics,
     )
 
 }
@@ -75,4 +78,5 @@ case class S3SinkConfig(
   batchDelete:          Boolean,
   errorPolicy:          ErrorPolicy,
   connectorRetryConfig: RetryConfig,
+  logMetrics:           Boolean,
 ) extends CloudSinkConfig[S3ConnectionConfig]

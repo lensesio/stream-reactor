@@ -63,4 +63,9 @@ object S3ConfigSettings {
   val S3_BUCKET_CONFIG: String = s"$CONNECTOR_PREFIX.location"
   val S3_BUCKET_DOC: String =
     "Specify the S3 bucket, and optionally, a prefix, where Kafka consumer group offsets will be stored."
+
+  val LOG_METRICS_CONFIG: String = s"$CONNECTOR_PREFIX.log.metrics"
+  val LOG_METRICS_DOC: String =
+    "If true, the connector will log metrics to the logger.  This is useful for debugging and performance tuning."
+
 }
