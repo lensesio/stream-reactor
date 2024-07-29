@@ -26,8 +26,7 @@ import scala.util.Try
 
 object ElasticWriter {
 
-  /**
-    * Construct a JSONWriter.
+  /** Construct a JSONWriter.
     *
     * @param config An elasticSinkConfig to extract settings from.
     * @return An ElasticJsonWriter to write records from Kafka to ElasticSearch.

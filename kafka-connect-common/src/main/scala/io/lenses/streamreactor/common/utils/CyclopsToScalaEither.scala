@@ -19,16 +19,14 @@ import cyclops.control.{ Either => CyclopsEither }
 
 import scala.util.{ Either => ScalaEither }
 
-/**
-  * Utility object for converting Cyclops Either to Scala Either.
+/** Utility object for converting Cyclops Either to Scala Either.
   *
   * This object provides a method to convert an instance of Cyclops Either to a Scala Either.
   * If the Cyclops Either does not contain a valid value, an InvalidEitherException is thrown.
   */
 object CyclopsToScalaEither {
 
-  /**
-    * Exception thrown when the Cyclops Either is invalid.
+  /** Exception thrown when the Cyclops Either is invalid.
     *
     * This exception is used to indicate that an invalid state was encountered
     * during the conversion of Cyclops Either to Scala Either.  It is not
@@ -41,8 +39,7 @@ object CyclopsToScalaEither {
     */
   class InvalidEitherException() extends RuntimeException
 
-  /**
-    * Converts a Cyclops Either to a Scala Either.
+  /** Converts a Cyclops Either to a Scala Either.
     *
     * This method converts an instance of Cyclops Either to a Scala Either. If the Cyclops Either
     * is a Right value, it is converted to a Scala Right. If the Cyclops Either is a Left value,

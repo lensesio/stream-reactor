@@ -15,8 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cassandra.utils
 
-/**
-  * Created by andrew@datamountaineer.com on 29/04/16.
+/** Created by andrew@datamountaineer.com on 29/04/16.
   * stream-reactor
   */
 
@@ -31,8 +30,7 @@ import scala.concurrent.Promise
 
 object CassandraResultSetWrapper {
 
-  /**
-    * Converts a `ResultSetFuture` into a Scala `Future[ResultSet]`
+  /** Converts a `ResultSetFuture` into a Scala `Future[ResultSet]`
     *
     * @param f ResultSetFuture to convert
     * @return Converted Future

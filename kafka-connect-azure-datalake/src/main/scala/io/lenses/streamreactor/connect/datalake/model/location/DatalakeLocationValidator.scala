@@ -19,8 +19,7 @@ import cats.data.Validated
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 
-/**
-  * This is a best-efforts validator for Datalake Container names.  It won't validate DNS, ownership etc but it will allow the sink to fail fast in case validation fails on the broad rules.
+/** This is a best-efforts validator for Datalake Container names.  It won't validate DNS, ownership etc but it will allow the sink to fail fast in case validation fails on the broad rules.
   */
 object DatalakeLocationValidator extends CloudLocationValidator {
 
@@ -33,8 +32,7 @@ object DatalakeLocationValidator extends CloudLocationValidator {
       } yield location,
     )
 
-  /**
-    * From  [[https://learn.microsoft.com/en-us/rest/api/storageservices/naming-and-referencing-containers--blobs--and-metadata Microsoft Datalake Docs]]
+  /** From  [[https://learn.microsoft.com/en-us/rest/api/storageservices/naming-and-referencing-containers--blobs--and-metadata Microsoft Datalake Docs]]
     * A container name must be a valid DNS name, conforming to the following naming rules:
     * <ul>
     *   <li>Container names must start or end with a letter or number, and can contain only letters, numbers, and the hyphen/minus (-) character.</li>

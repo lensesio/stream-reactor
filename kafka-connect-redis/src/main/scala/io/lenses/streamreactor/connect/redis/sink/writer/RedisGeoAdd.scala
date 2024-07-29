@@ -76,7 +76,8 @@ class RedisGeoAdd(sinkSettings: RedisSinkSettings, jedis: Jedis)
   // Insert a batch of sink records
   def insert(records: Map[String, Seq[SinkRecord]]): Unit =
     records.foreach {
-      case (topic, sinkRecords: Seq[SinkRecord]) => {
+      case (topic, sinkRecords: Seq[SinkRecord]) =>
+        {
           val topicSettings: Set[RedisKCQLSetting] = sinkSettings.kcqlSettings.filter(_.kcqlConfig.getSource == topic)
           if (topicSettings.isEmpty)
             logger.warn(s"No KCQL statement set for [$topic]")

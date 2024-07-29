@@ -27,8 +27,7 @@ import org.apache.kafka.connect.source.SourceRecord
 import java.time.Instant
 import scala.annotation.nowarn
 
-/**
-  * It expects the envelope payload to be a string with the following structure:
+/** It expects the envelope payload to be a string with the following structure:
   *
   * {{{
   *  {

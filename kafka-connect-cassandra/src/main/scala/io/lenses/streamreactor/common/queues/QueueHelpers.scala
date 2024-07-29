@@ -20,13 +20,11 @@ import com.typesafe.scalalogging.StrictLogging
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
 
-/**
-  * Created by r on 3/1/16.
+/** Created by r on 3/1/16.
   */
 object QueueHelpers extends StrictLogging {
 
-  /**
-    * Drain the queue
+  /** Drain the queue
     *
     * @param queue     The queue to drain
     * @param batchSize Batch size to take
