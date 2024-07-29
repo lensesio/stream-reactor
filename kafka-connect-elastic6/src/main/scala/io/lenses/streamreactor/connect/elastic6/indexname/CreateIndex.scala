@@ -17,8 +17,7 @@ package io.lenses.streamreactor.connect.elastic6.indexname
 
 import io.lenses.kcql.Kcql
 
-/**
-  * Creates the index for the given KCQL configuration.
+/** Creates the index for the given KCQL configuration.
   */
 object CreateIndex {
   def getIndexName(kcql: Kcql): String =

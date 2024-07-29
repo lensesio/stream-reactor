@@ -34,7 +34,8 @@ object ComplexTypeExtractor extends LazyLogging {
       case s: Struct         => StructExtractor.extractPathFromStruct(s, fieldName)
       case m: util.Map[_, _] => MapExtractor.extractPathFromMap(m, fieldName, schema)
       case a: util.List[_]   => ArrayExtractor.extractPathFromArray(a, fieldName, schema)
-      case other => logger.error("Unexpected type in Map Extractor: " + other)
+      case other =>
+        logger.error("Unexpected type in Map Extractor: " + other)
         ExtractorError(ExtractorErrorType.UnexpectedType).asLeft[String]
     }
 }

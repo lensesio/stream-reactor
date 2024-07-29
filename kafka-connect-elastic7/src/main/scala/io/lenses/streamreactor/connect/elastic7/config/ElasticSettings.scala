@@ -18,8 +18,7 @@ package io.lenses.streamreactor.connect.elastic7.config
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.errors.ErrorPolicy
 
-/**
-  * Created by andrew@datamountaineer.com on 13/05/16.
+/** Created by andrew@datamountaineer.com on 13/05/16.
   * stream-reactor-maven
   */
 case class ElasticSettings(

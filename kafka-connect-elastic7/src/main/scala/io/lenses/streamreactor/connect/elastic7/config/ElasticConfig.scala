@@ -193,8 +193,7 @@ object ElasticConfig {
     )
 }
 
-/**
-  * <h1>ElasticSinkConfig</h1>
+/** <h1>ElasticSinkConfig</h1>
   *
   * Holds config, extends AbstractConfig.
   */

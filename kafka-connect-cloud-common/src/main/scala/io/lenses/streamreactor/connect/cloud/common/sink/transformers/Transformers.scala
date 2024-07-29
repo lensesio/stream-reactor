@@ -24,8 +24,7 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.sink.config.WithTransformableDataStorage
 
-/**
-  * Applies a sequence of transformations to a message.
+/** Applies a sequence of transformations to a message.
   *
   * @param transformers A sequence of transformations to apply.
   */

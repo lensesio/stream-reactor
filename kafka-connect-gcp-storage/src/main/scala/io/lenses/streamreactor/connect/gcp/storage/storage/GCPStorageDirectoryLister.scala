@@ -29,8 +29,7 @@ class GCPStorageDirectoryLister(connectorTaskId: ConnectorTaskId, storage: Stora
     extends LazyLogging
     with DirectoryLister {
 
-  /**
-    * Finds directories within the specified cloud location with optional recursion.
+  /** Finds directories within the specified cloud location with optional recursion.
     *
     * This method searches for directories within the given cloud location (bucket and prefix) up to a certain recursion level.
     * Directories matching the specified criteria (limits, exclusions) are returned as a set of strings.
@@ -50,8 +49,7 @@ class GCPStorageDirectoryLister(connectorTaskId: ConnectorTaskId, storage: Stora
     wildcardExcludes: Set[String],
   ): IO[Set[String]] = {
 
-    /**
-      * Recursively lists subdirectories within the specified cloud location prefix up to a certain recursion level.
+    /** Recursively lists subdirectories within the specified cloud location prefix up to a certain recursion level.
       *
       * This method iterates through the subdirectories of the given prefix within a cloud location, up to the specified recursion level.
       * It filters the results based on ownership, exclusions, and wildcard patterns.
@@ -104,8 +102,7 @@ class GCPStorageDirectoryLister(connectorTaskId: ConnectorTaskId, storage: Stora
     }
   }
 
-  /**
-    * Ensures that the given string ends with a trailing slash ("/").
+  /** Ensures that the given string ends with a trailing slash ("/").
     *
     * If the input string is empty or already ends with a slash, the same string is returned.
     * Otherwise, a slash is appended to the end of the string.

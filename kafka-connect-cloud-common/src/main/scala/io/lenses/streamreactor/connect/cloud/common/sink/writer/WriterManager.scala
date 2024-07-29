@@ -45,8 +45,7 @@ import scala.util.Try
 
 case class MapKey(topicPartition: TopicPartition, partitionValues: immutable.Map[PartitionField, String])
 
-/**
-  * Manages the lifecycle of [[Writer]] instances.
+/** Manages the lifecycle of [[Writer]] instances.
   *
   * A given sink may be writing to multiple locations (partitions), and therefore
   * it is convenient to extract this to another class.
@@ -167,15 +166,16 @@ class WriterManager[SM <: FileMetadata](
     for {
       writer    <- writer(topicPartitionOffset.toTopicPartition, messageDetail)
       shouldSkip = writer.shouldSkip(topicPartitionOffset.offset)
-      resultIfNotSkipped <- if (!shouldSkip) {
-        transformerF(messageDetail).leftMap(ex =>
-          new FatalCloudSinkError(ex.getMessage, ex.some, topicPartitionOffset.toTopicPartition),
-        ).flatMap { transformed =>
-          writeAndCommit(topicPartitionOffset, transformed, writer)
+      resultIfNotSkipped <-
+        if (!shouldSkip) {
+          transformerF(messageDetail).leftMap(ex =>
+            new FatalCloudSinkError(ex.getMessage, ex.some, topicPartitionOffset.toTopicPartition),
+          ).flatMap { transformed =>
+            writeAndCommit(topicPartitionOffset, transformed, writer)
+          }
+        } else {
+          ().asRight
         }
-      } else {
-        ().asRight
-      }
     } yield resultIfNotSkipped
   }
 
@@ -210,8 +210,7 @@ class WriterManager[SM <: FileMetadata](
   ): Either[SinkError, immutable.Map[PartitionField, String]] =
     keyNamer.processPartitionValues(messageDetail, topicPartition)
 
-  /**
-    * Returns a writer that can write records for a particular topic and partition.
+  /** Returns a writer that can write records for a particular topic and partition.
     * The writer will create a file inside the given directory if there is no open writer.
     */
   private def writer(topicPartition: TopicPartition, messageDetail: MessageDetail): Either[SinkError, Writer[SM]] =

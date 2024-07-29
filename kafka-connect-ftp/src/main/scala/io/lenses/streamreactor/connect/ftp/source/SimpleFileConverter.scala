@@ -22,8 +22,7 @@ import org.apache.kafka.connect.storage.OffsetStorageReader
 import java.util
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-/**
-  * Simple file converter. Writes the complete file into a single record
+/** Simple file converter. Writes the complete file into a single record
   * including the file attributes.
   */
 class SimpleFileConverter(props: util.Map[String, String], offsetStorageReader: OffsetStorageReader)
