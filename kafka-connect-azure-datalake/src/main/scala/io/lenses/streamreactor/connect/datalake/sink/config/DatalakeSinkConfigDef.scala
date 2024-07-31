@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.datalake.sink.config
 
 import io.lenses.streamreactor.connect.cloud.common.config.CloudConfigDef
+import io.lenses.streamreactor.connect.cloud.common.config.IndexConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
@@ -29,7 +30,8 @@ object DatalakeSinkConfigDef
     extends CommonConfigDef
     with FlushConfigKeys
     with LocalStagingAreaConfigKeys
-    with PaddingStrategyConfigKeys {
+    with PaddingStrategyConfigKeys
+    with IndexConfigKeys {
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
@@ -41,17 +43,6 @@ object DatalakeSinkConfigDef
         false,
         Importance.LOW,
         "Disable flush on reaching count",
-      )
-      .define(
-        SEEK_MAX_INDEX_FILES,
-        Type.INT,
-        SEEK_MAX_INDEX_FILES_DEFAULT,
-        Importance.LOW,
-        SEEK_MAX_INDEX_FILES_DOC,
-        "Sink Seek",
-        2,
-        ConfigDef.Width.LONG,
-        SEEK_MAX_INDEX_FILES,
       )
       .define(
         LOG_METRICS_CONFIG,
@@ -66,6 +57,7 @@ object DatalakeSinkConfigDef
       )
     addLocalStagingAreaToConfigDef(configDef)
     addPaddingToConfigDef(configDef)
+    addIndexSettingsToConfigDef(configDef)
   }
 
 }

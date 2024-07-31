@@ -23,7 +23,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 
 import scala.util.Try
 
-object IndexFilenames {
+class IndexFilenames(directoryFileName: String) {
 
   /**
     * Generate the filename for the index file.
@@ -35,7 +35,7 @@ object IndexFilenames {
     * Generate the directory of the index for a given topic and partition
     */
   def indexForTopicPartition(topic: String, partition: Int)(implicit connectorTaskId: ConnectorTaskId): String =
-    f".indexes/${connectorTaskId.name}/$topic/$partition%05d/"
+    f"$directoryFileName/${connectorTaskId.name}/$topic/$partition%05d/"
 
   /**
     * Parses the filename of the index file, converting it to a TopicPartitionOffset
@@ -49,7 +49,7 @@ object IndexFilenames {
   ): Either[Throwable, Option[TopicPartitionOffset]] =
     maybeIndex.map(index =>
       for {
-        offset <- IndexFilenames.offsetFromIndex(index)
+        offset <- offsetFromIndex(index)
       } yield topicPartition.withOffset(offset),
     ).sequence
 

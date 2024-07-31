@@ -24,10 +24,9 @@ import io.lenses.streamreactor.connect.cloud.common.config.traits.PropsToConfigC
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
-import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
+import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.LOG_METRICS_CONFIG
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES
 
 object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig] {
 
@@ -51,14 +50,12 @@ object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig]
     for {
       gcpConnectionSettings <- gcpConfigDefBuilder.getGcpConnectionSettings(configSource)
       sinkBucketOptions     <- CloudSinkBucketOptions(connectorTaskId, gcpConfigDefBuilder)
-      offsetSeekerOptions = OffsetSeekerOptions(
-        gcpConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
-      )
-      logMetrics = gcpConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
+      indexOptions           = gcpConfigDefBuilder.getIndexSettings
+      logMetrics             = gcpConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
     } yield GCPStorageSinkConfig(
       gcpConnectionSettings,
       sinkBucketOptions,
-      offsetSeekerOptions,
+      indexOptions,
       gcpConfigDefBuilder.getCompressionCodec(),
       avoidResumableUpload = gcpConfigDefBuilder.isAvoidResumableUpload,
       errorPolicy          = gcpConfigDefBuilder.getErrorPolicyOrDefault,
@@ -72,7 +69,7 @@ object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig]
 case class GCPStorageSinkConfig(
   connectionConfig:     GCPConnectionConfig,
   bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
-  offsetSeekerOptions:  OffsetSeekerOptions,
+  indexOptions:         IndexOptions,
   compressionCodec:     CompressionCodec,
   avoidResumableUpload: Boolean,
   connectorRetryConfig: RetryConfig,

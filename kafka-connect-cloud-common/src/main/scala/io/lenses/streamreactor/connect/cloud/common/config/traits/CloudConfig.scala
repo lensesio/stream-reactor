@@ -19,7 +19,7 @@ import io.lenses.streamreactor.common.config.base.RetryConfig
 import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
-import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
+import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
@@ -55,7 +55,7 @@ trait CloudSinkConfig[CC] extends CloudConfig {
     *
     * @return The offset seeker options for the cloud sink.
     */
-  def offsetSeekerOptions: OffsetSeekerOptions
+  def indexOptions: IndexOptions
 
   /**
     * Retrieves the compression codec for the cloud sink.

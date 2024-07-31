@@ -34,6 +34,11 @@ trait CloudSourceSettingsKeys extends WithConnectorPrefix {
   private val SOURCE_PARTITION_SEARCH_MODE_DOC: String =
     "If set to true, it will be continuously search for new partitions. Otherwise it is a one-off operation. Defaults to true."
 
+  val PARTITION_SEARCH_INDEX_EXCLUDES: String = s"$connectorPrefix.source.partition.search.excludes"
+  private val PARTITION_SEARCH_INDEX_EXCLUDES_DOC: String =
+    "Comma-separated list of directory prefixes to exclude from the partition search"
+  private val PARTITION_SEARCH_INDEX_EXCLUDES_DEFAULT: String = ".indexes"
+
   def addSourceOrderingSettings(configDef: ConfigDef): ConfigDef =
     configDef
       .define(
@@ -81,6 +86,17 @@ trait CloudSourceSettingsKeys extends WithConnectorPrefix {
         5,
         ConfigDef.Width.MEDIUM,
         SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS,
+      )
+      .define(
+        PARTITION_SEARCH_INDEX_EXCLUDES,
+        Type.STRING,
+        PARTITION_SEARCH_INDEX_EXCLUDES_DEFAULT,
+        Importance.LOW,
+        PARTITION_SEARCH_INDEX_EXCLUDES_DOC,
+        "Source",
+        6,
+        ConfigDef.Width.LONG,
+        PARTITION_SEARCH_INDEX_EXCLUDES,
       )
 
   val SOURCE_PARTITION_EXTRACTOR_TYPE = s"$connectorPrefix.source.partition.extractor.type"
