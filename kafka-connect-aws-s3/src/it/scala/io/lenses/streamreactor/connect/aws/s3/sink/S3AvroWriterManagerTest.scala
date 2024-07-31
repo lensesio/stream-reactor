@@ -108,7 +108,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     compressionCodec     = compressionCodec,
     batchDelete          = true,
     errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
-    connectorRetryConfig = new RetryConfig(1, 1L),
+    connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
     logMetrics           = false,
   )
 

@@ -60,7 +60,7 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
       indexOptions         = IndexOptions(maxIndexFiles = 10, ".indexes"),
       compressionCodec     = CompressionCodecName.ZSTD.toCodec(),
       errorPolicy          = NoopErrorPolicy(),
-      connectorRetryConfig = new RetryConfig(1, 1L),
+      connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
     )
 
     val writerManagerCreator = new WriterManagerCreator[FakeFileMetadata, FakeCloudSinkConfig]()

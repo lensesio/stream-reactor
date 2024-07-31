@@ -34,7 +34,7 @@ public interface ConfigSource {
   Optional<String> getString(String key);
 
   /**
-   * Retrieves a String property value associated with the given key.
+   * Retrieves an Int property value associated with the given key.
    *
    * @param key the property key
    * @return an {@link Optional} containing the property value if present, otherwise empty
@@ -42,12 +42,20 @@ public interface ConfigSource {
   Optional<Integer> getInt(String key);
 
   /**
-   * Retrieves a String property value associated with the given key.
+   * Retrieves a Long property value associated with the given key.
    *
    * @param key the property key
    * @return an {@link Optional} containing the property value if present, otherwise empty
    */
   Optional<Long> getLong(String key);
+
+  /**
+   * Retrieves a Double property value associated with the given key.
+   *
+   * @param key the property key
+   * @return an {@link Optional} containing the property value if present, otherwise empty
+   */
+  Optional<Double> getDouble(String key);
 
   /**
    * Retrieves a Password property value associated with the given key.

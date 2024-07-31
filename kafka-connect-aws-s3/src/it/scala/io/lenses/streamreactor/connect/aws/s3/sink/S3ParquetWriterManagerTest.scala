@@ -106,7 +106,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
     compressionCodec,
     batchDelete          = true,
     errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
-    connectorRetryConfig = new RetryConfig(1, 1L),
+    connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
     logMetrics           = false,
   )
 

@@ -94,12 +94,17 @@ class GCPStorageClientCreatorTest extends AnyFunSuite with Matchers with EitherV
 
   test("should handle http retry config") {
 
+    val retryDelayMultiplier = 1.0
+    val retryIntervalMillis  = 500L
+    val retryLimit           = 100
+
     val config = defaultConfigBuilder
-      .httpRetryConfig(new RetryConfig(100, 500)).build()
+      .httpRetryConfig(new RetryConfig(retryLimit, retryIntervalMillis, retryDelayMultiplier)).build()
 
     val retrySettings = GCPStorageClientCreator.make(config).value.getOptions.getRetrySettings
-    retrySettings.getMaxAttempts should be(100)
-    retrySettings.getInitialRetryDelay should be(Duration.ofMillis(500))
+    retrySettings.getMaxAttempts should be(retryLimit)
+    retrySettings.getRetryDelayMultiplier should be(retryDelayMultiplier)
+    retrySettings.getInitialRetryDelay should be(Duration.ofMillis(retryIntervalMillis))
 
   }
 

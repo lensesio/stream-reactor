@@ -109,7 +109,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       compressionCodec,
       batchDelete          = true,
       errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig = new RetryConfig(1, 1L),
+      connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
       logMetrics           = false,
     )
 
@@ -173,7 +173,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       compressionCodec,
       batchDelete          = true,
       errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig = new RetryConfig(1, 1L),
+      connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
       logMetrics           = false,
     )
 
@@ -241,7 +241,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       compressionCodec,
       batchDelete          = true,
       errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig = new RetryConfig(1, 1L),
+      connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
       logMetrics           = false,
     )
 
@@ -315,7 +315,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       compressionCodec,
       batchDelete          = true,
       errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
-      connectorRetryConfig = new RetryConfig(1, 1L),
+      connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
       logMetrics           = false,
     )
 

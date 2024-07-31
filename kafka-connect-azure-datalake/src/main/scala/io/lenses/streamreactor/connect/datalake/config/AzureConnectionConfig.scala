@@ -27,10 +27,10 @@ object AzureConnectionConfig {
   def apply(props: Map[String, _], authMode: AuthMode): AzureConnectionConfig = AzureConnectionConfig(
     authMode,
     getString(props, ENDPOINT),
-    new RetryConfig(
-      getInt(props, HTTP_NBR_OF_RETRIES).getOrElse(HTTP_NBR_OF_RETIRES_DEFAULT),
-      getLong(props, HTTP_ERROR_RETRY_INTERVAL).getOrElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
-    ),
+    RetryConfig.builder()
+      .retryIntervalMillis(getLong(props, HTTP_ERROR_RETRY_INTERVAL).getOrElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT))
+      .retryLimit(getInt(props, HTTP_NBR_OF_RETRIES).getOrElse(HTTP_NBR_OF_RETIRES_DEFAULT))
+      .build(),
     HttpTimeoutConfig(
       getLong(props, HTTP_SOCKET_TIMEOUT),
       getLong(props, HTTP_CONNECTION_TIMEOUT),
@@ -52,9 +52,12 @@ object ConnectionPoolConfig {
 }
 
 case class AzureConnectionConfig(
-  authMode:             AuthMode,
-  endpoint:             Option[String]               = None,
-  httpRetryConfig:      RetryConfig                  = new RetryConfig(HTTP_NBR_OF_RETIRES_DEFAULT, HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
+  authMode: AuthMode,
+  endpoint: Option[String] = None,
+  httpRetryConfig: RetryConfig = RetryConfig.builder()
+    .retryLimit(HTTP_NBR_OF_RETIRES_DEFAULT)
+    .retryIntervalMillis(HTTP_ERROR_RETRY_INTERVAL_DEFAULT)
+    .build(),
   timeouts:             HttpTimeoutConfig            = HttpTimeoutConfig(None, None),
   connectionPoolConfig: Option[ConnectionPoolConfig] = Option.empty,
 ) extends ConnectionConfig
