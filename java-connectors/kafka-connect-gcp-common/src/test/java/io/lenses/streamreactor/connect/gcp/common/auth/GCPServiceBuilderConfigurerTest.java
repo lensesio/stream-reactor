@@ -116,9 +116,9 @@ class GCPServiceBuilderConfigurerTest {
     verify(builder, times(1))
         .setRetrySettings(
             RetrySettings.newBuilder()
-                .setInitialRetryDelay(Duration.ofMillis(50))
-                .setMaxRetryDelay(Duration.ofMillis(250))
-                .setMaxAttempts(5)
+                .setInitialRetryDelay(Duration.ofMillis(500))
+                .setMaxRetryDelay(Duration.ofMillis(2500))
+                .setMaxAttempts(36)
                 .setRetryDelayMultiplier(3.0)
                 .build());
     verify(builder, times(1)).setCredentials(NoCredentials.getInstance());
