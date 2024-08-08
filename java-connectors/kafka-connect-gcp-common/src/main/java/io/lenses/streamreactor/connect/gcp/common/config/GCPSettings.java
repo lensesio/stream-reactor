@@ -47,8 +47,9 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
   private final String httpSocketTimeoutKey;
   private final String httpConnectionTimeoutKey;
 
-  public static final Long HTTP_ERROR_RETRY_INTERVAL_DEFAULT = 50L;
-  public static final Integer HTTP_NUMBER_OF_RETIRES_DEFAULT = 5;
+  //The default values for the GCP HTTP timeout is 3 minutes
+  public static final Long HTTP_ERROR_RETRY_INTERVAL_DEFAULT = 500L;
+  public static final Integer HTTP_NUMBER_OF_RETIRES_DEFAULT = 36;
   public static final Double HTTP_BACKOFF_RETRY_MULTIPLIER_DEFAULT = 3.0;
   public static final Long HTTP_SOCKET_TIMEOUT_DEFAULT = 60000L;
   public static final Long HTTP_CONNECTION_TIMEOUT_DEFAULT = 60000L;
