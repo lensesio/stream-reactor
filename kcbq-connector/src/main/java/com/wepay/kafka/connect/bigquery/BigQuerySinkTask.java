@@ -168,7 +168,12 @@ public class BigQuerySinkTask extends SinkTask {
     }
 
     try {
+      int currentQueueSize = executor.getQueue().size();
+      long awaitStartTime = System.currentTimeMillis();
       executor.awaitCurrentTasks();
+      long awaitEndTime = System.currentTimeMillis();
+      logger.info(
+          "Took {}ms to flush queuesize {} !", (awaitEndTime - awaitStartTime), currentQueueSize);
     } catch (InterruptedException err) {
       throw new ConnectException("Interrupted while waiting for write tasks to complete.", err);
     }
