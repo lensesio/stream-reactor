@@ -58,10 +58,10 @@ object Dependencies {
     val catsEffectVersion     = "3.5.4"
     val `cats-effect-testing` = "1.5.0"
 
-    val antlr4Version: String = "4.13.1"
+    val antlr4Version: String = "4.13.2"
 
     val circeVersion              = "0.15.0-M1"
-    val circeGenericExtrasVersion = "0.14.3"
+    val circeGenericExtrasVersion = "0.14.4"
 
     // build plugins version
     val betterMonadicForVersion = "0.3.1"
@@ -72,10 +72,10 @@ object Dependencies {
     val scalaLoggingVersion = "3.9.5"
 
     val dnsJavaVersion  = "3.6.0"
-    val wiremockVersion = "3.8.0"
+    val wiremockVersion = "3.9.1"
     val parquetVersion  = "1.14.1"
 
-    val jerseyCommonVersion = "3.1.7"
+    val jerseyCommonVersion = "3.1.8"
 
     val calciteVersion = "1.34.0"
     val awsSdkVersion  = "2.25.70"
@@ -106,7 +106,7 @@ object Dependencies {
 
     val azureDocumentDbVersion     = "2.6.5"
     val testcontainersScalaVersion = "0.41.4"
-    val testcontainersVersion      = "1.19.8"
+    val testcontainersVersion      = "1.20.1"
 
     val influxVersion = "7.1.0"
 
@@ -133,7 +133,7 @@ object Dependencies {
 
     val mongoDbVersion = "3.12.14"
 
-    val jedisVersion = "5.1.3"
+    val jedisVersion = "5.1.4"
     val gsonVersion  = "2.11.0"
 
     val classGraphVersion           = "4.8.174"
@@ -153,7 +153,7 @@ object Dependencies {
 
     object Elastic7Versions extends ElasticVersions {
       override val elastic4sVersion:     String = "7.17.4"
-      override val elasticSearchVersion: String = "7.17.22"
+      override val elasticSearchVersion: String = "7.17.23"
       override val jnaVersion:           String = "5.14.0"
     }
 
