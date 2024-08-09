@@ -41,14 +41,14 @@ object Dependencies {
     val scalaCheckVersion              = "1.18.0"
 
     val junitJupiterVersion = "5.10.3"
-    val assertjCoreVersion  = "3.26.0"
+    val assertjCoreVersion  = "3.26.3"
 
     val cyclopsVersion = "10.4.1"
 
     val kafkaVersion:     String = "3.7.1"
     val confluentVersion: String = "7.6.1"
 
-    val enumeratumVersion = "1.7.3"
+    val enumeratumVersion = "1.7.4"
 
     val http4sVersion    = "1.0.0-M32"
     val http4sJdkVersion = "1.0.0-M1"
@@ -88,7 +88,7 @@ object Dependencies {
     val gcpCloudVersion                   = "2.40.0"
     val gcpCloudStorageVersion            = "2.40.1"
 
-    val jacksonVersion      = "2.17.1"
+    val jacksonVersion      = "2.17.2"
     val json4sVersion       = "4.0.7"
     val mockitoScalaVersion = "1.17.37"
     val mockitoJavaVersion  = "5.2.0"
@@ -118,12 +118,12 @@ object Dependencies {
     val mqttVersion = "1.2.5"
 
     val commonsNetVersion      = "3.11.1"
-    val commonsCodecVersion    = "1.17.0"
+    val commonsCodecVersion    = "1.17.1"
     val commonsCompressVersion = "1.26.2"
     val commonsConfigVersion   = "2.11.0"
     val commonsIOVersion       = "2.16.1"
     val commonsHttpVersion     = "4.5.14"
-    val commonsLang3Version    = "3.14.0"
+    val commonsLang3Version    = "3.15.0"
     val jschVersion            = "0.2.18"
 
     val minaVersion           = "2.2.3"
