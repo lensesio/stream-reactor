@@ -16,13 +16,12 @@
 package io.lenses.streamreactor.connect.gcp.storage.sink.config
 
 import io.lenses.streamreactor.connect.cloud.common.config.CloudConfigDef
+import io.lenses.streamreactor.connect.cloud.common.config.IndexConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.FlushConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingAreaConfigKeys
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategyConfigKeys
 import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.CONNECTOR_PREFIX
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES_DEFAULT
-import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.SEEK_MAX_INDEX_FILES_DOC
+import io.lenses.streamreactor.connect.gcp.storage.config.GCPConfigSettings.LOG_METRICS_CONFIG
 import io.lenses.streamreactor.connect.gcp.storage.config._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
@@ -33,7 +32,8 @@ object GCPStorageSinkConfigDef
     with FlushConfigKeys
     with LocalStagingAreaConfigKeys
     with PaddingStrategyConfigKeys
-    with UploadConfigKeys {
+    with UploadConfigKeys
+    with IndexConfigKeys {
 
   override def connectorPrefix: String = CONNECTOR_PREFIX
 
@@ -47,19 +47,16 @@ object GCPStorageSinkConfigDef
         "Disable flush on reaching count",
       )
       .define(
-        SEEK_MAX_INDEX_FILES,
-        Type.INT,
-        SEEK_MAX_INDEX_FILES_DEFAULT,
+        LOG_METRICS_CONFIG,
+        Type.BOOLEAN,
+        false,
         Importance.LOW,
-        SEEK_MAX_INDEX_FILES_DOC,
-        "Sink Seek",
-        2,
-        ConfigDef.Width.LONG,
-        SEEK_MAX_INDEX_FILES,
+        "Log metrics",
       )
     addLocalStagingAreaToConfigDef(configDef)
     addPaddingToConfigDef(configDef)
     addUploadSettingsToConfigDef(configDef)
+    addIndexSettingsToConfigDef(configDef)
   }
 
 }

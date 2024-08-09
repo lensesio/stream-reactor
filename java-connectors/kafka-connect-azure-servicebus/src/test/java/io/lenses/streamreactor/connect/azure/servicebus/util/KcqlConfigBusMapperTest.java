@@ -17,16 +17,15 @@ package io.lenses.streamreactor.connect.azure.servicebus.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.from;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import cyclops.control.Either;
+import io.lenses.kcql.Kcql;
+import io.lenses.streamreactor.common.exception.ConnectorStartupException;
+import io.lenses.streamreactor.test.utils.EitherValues;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
-
-import io.lenses.kcql.Kcql;
 
 class KcqlConfigBusMapperTest {
 
@@ -58,8 +57,8 @@ class KcqlConfigBusMapperTest {
     }
     //when
     List<Kcql> kcqls =
-        KcqlConfigBusMapper.mapKcqlsFromConfig(
-            fullKcql.toString());
+        EitherValues.getRight(KcqlConfigBusMapper.mapKcqlsFromConfig(
+            fullKcql.toString(), true));
 
     //then
     for (int i = 0; i < numberOfMappings; i++) {
@@ -89,9 +88,9 @@ class KcqlConfigBusMapperTest {
             + "dots and has to start with number or letter with max size of 160";
 
     //when
-    mapInputToOutputAssertingExceptionWithSpecificMessage(illegalInputKcql, inputErrorMessage);
+    mapInputToOutputAssertingExceptionWithSpecificMessage(illegalInputKcql, inputErrorMessage, true);
 
-    mapInputToOutputAssertingExceptionWithSpecificMessage(illegalOutputKcql, outputErrorMessage);
+    mapInputToOutputAssertingExceptionWithSpecificMessage(illegalOutputKcql, outputErrorMessage, true);
   }
 
   @Test
@@ -115,11 +114,11 @@ class KcqlConfigBusMapperTest {
             + "and has to start with number or letter with max size of 50";
 
     //when
-    mapInputToOutputAssertingExceptionWithSpecificMessage(kcqlWithoutBusTypeParameter, typeMissingMessage);
-    mapInputToOutputAssertingExceptionWithSpecificMessage(kcqlWithBadBusTypeParameter, badTypeMessage);
+    mapInputToOutputAssertingExceptionWithSpecificMessage(kcqlWithoutBusTypeParameter, typeMissingMessage, true);
+    mapInputToOutputAssertingExceptionWithSpecificMessage(kcqlWithBadBusTypeParameter, badTypeMessage, true);
 
     mapInputToOutputAssertingExceptionWithSpecificMessage(kcqlOfTypeTopicWithoutSubscription,
-        subscriptionMissingMessage);
+        subscriptionMissingMessage, true);
   }
 
   @Test
@@ -138,9 +137,10 @@ class KcqlConfigBusMapperTest {
             + "numbers and hyphens, underscores and dots and has to start with number or letter with max size of 50";
 
     //when
-    mapInputToOutputAssertingExceptionWithSpecificMessage(kcqlWithoutCorrectType, busTypeError);
+    mapInputToOutputAssertingExceptionWithSpecificMessage(kcqlWithoutCorrectType, busTypeError, true);
 
-    mapInputToOutputAssertingExceptionWithSpecificMessage(kcqlWithoutCorrectSubscriptionName, subscriptionNameError);
+    mapInputToOutputAssertingExceptionWithSpecificMessage(kcqlWithoutCorrectSubscriptionName, subscriptionNameError,
+        true);
   }
 
   @Test
@@ -156,7 +156,7 @@ class KcqlConfigBusMapperTest {
 
     //when
     mapInputToOutputAssertingExceptionWithSpecificMessage(oneInputKcql + sameInputKcql,
-        outputErrorMessage);
+        outputErrorMessage, true);
   }
 
   @Test
@@ -173,7 +173,7 @@ class KcqlConfigBusMapperTest {
     //when
     mapInputToOutputAssertingExceptionWithSpecificMessage(
         oneInputKcql + anotherInputToSameOutputKcql,
-        outputErrorMessage);
+        outputErrorMessage, true);
   }
 
   private String createPropertiesPart(Map<ServiceBusKcqlProperties, String> propertiesToAddWithValues) {
@@ -198,11 +198,43 @@ class KcqlConfigBusMapperTest {
     return createPropertiesPart(necessaryPropertiesWithValues);
   }
 
+  @Test
+  void mapInputToOutputsFromConfigShouldntAllowWithoutNecessaryPropertiesForSinkConnector() {
+    //given
+    String typeMissingMessage =
+        "Following non-optional properties are missing in KCQL: servicebus.type";
+    String badTypeMessage =
+        "Property servicebus.type contains invalid value. Valid values are: TOPIC or QUEUE";
+    String kcqlWithoutBusTypeParameter =
+        "INSERT INTO OUTPUT SELECT * FROM 'INPUT';";
+    String kcqlWithBadBusTypeParameter =
+        "INSERT INTO OUTPUT SELECT * FROM 'INPUT' "
+            + "PROPERTIES ('servicebus.type'='WRONG');";
+
+    //when
+    mapInputToOutputAssertingExceptionWithSpecificMessage(kcqlWithoutBusTypeParameter, typeMissingMessage, false);
+    mapInputToOutputAssertingExceptionWithSpecificMessage(kcqlWithBadBusTypeParameter, badTypeMessage, false);
+  }
+
+  @Test
+  void mapInputToOutputsFromConfigShouldntCheckForTopicSubscriptionForSinkConnector() {
+    //given
+    String kcqlOfTypeTopicWithoutSubscription =
+        "INSERT INTO 'OUTPUT' SELECT * FROM INPUT "
+            + "PROPERTIES ('servicebus.type'='TOPIC');";
+
+    //when
+    Either<ConnectorStartupException, List<Kcql>> listEither =
+        KcqlConfigBusMapper.mapKcqlsFromConfig(kcqlOfTypeTopicWithoutSubscription, false);
+
+    //then
+    assertThat(listEither.isLeft()).isFalse();
+  }
+
   private static void mapInputToOutputAssertingExceptionWithSpecificMessage(String illegalKcql,
-      String expectedMessage) {
-    ConfigException configException =
-        assertThrows(ConfigException.class,
-            () -> KcqlConfigBusMapper.mapKcqlsFromConfig(illegalKcql));
+      String expectedMessage, boolean sourceConnector) {
+    ConnectorStartupException configException =
+        EitherValues.getLeft(KcqlConfigBusMapper.mapKcqlsFromConfig(illegalKcql, sourceConnector));
     assertThat(configException.getMessage()).contains(expectedMessage);
   }
 }

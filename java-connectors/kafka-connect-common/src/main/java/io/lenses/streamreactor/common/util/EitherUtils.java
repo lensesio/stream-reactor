@@ -15,17 +15,64 @@
  */
 package io.lenses.streamreactor.common.util;
 
-import cyclops.control.Either;
+import static java.util.function.Function.identity;
+
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.connect.errors.ConnectException;
+
+import cyclops.control.Either;
+import io.lenses.streamreactor.common.exception.StreamReactorException;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.kafka.common.config.ConfigException;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class EitherUtils {
+
+  /**
+   * Unpacks an Either, returning the right value or throwing an exception if it is a left value.
+   *
+   * @param either The Either to unpack
+   * @param <L>    The type of the left value (error)
+   * @param <R>    The type of the right value (success)
+   * @return The right value if present
+   * @throws RuntimeException if the Either contains a left value
+   */
+  public static <L extends StreamReactorException, R> R unpackOrThrow(Either<L, R> either) throws KafkaException {
+    return unpackOrThrow(
+        either,
+        ConnectException::new
+    );
+  }
+
+  /**
+   * Unpacks an Either, returning the right value or throwing an exception if it is a left value.
+   *
+   * @param either            The Either to unpack
+   * @param exceptionSupplier A function that takes a left value (of type L) and returns an exception (of type O)
+   * @param <L>               The type of the left value (error), which must extend StreamReactorException
+   * @param <R>               The type of the right value (success)
+   * @param <O>               The type of the exception to be thrown, which must extend ConnectException
+   * @return The right value if present
+   * @throws O if the Either contains a left value
+   */
+  public static <L extends StreamReactorException, R, O extends KafkaException> R unpackOrThrow(
+      Either<L, R> either,
+      Function<L, O> exceptionSupplier
+  ) throws O {
+    return either.fold(
+        throwable -> {
+          throw exceptionSupplier.apply(throwable);
+        },
+        identity()
+    );
+  }
 
   public static <X extends Throwable, Y> Either<ConfigException, List<Y>> combineErrors(
       Stream<Either<X, Y>> eithers

@@ -46,11 +46,6 @@ object S3ConfigSettings {
   val HTTP_CONNECTION_TIMEOUT_DOC     = "Connection timeout (ms)"
   val HTTP_CONNECTION_TIMEOUT_DEFAULT = 60000
 
-  val SEEK_MAX_INDEX_FILES = s"$CONNECTOR_PREFIX.seek.max.files"
-  val SEEK_MAX_INDEX_FILES_DOC =
-    s"Maximum index files to allow per topic/partition.  Advisable to not raise this: if a large number of files build up this means there is a problem with file deletion."
-  val SEEK_MAX_INDEX_FILES_DEFAULT = 5
-
   val POOL_MAX_CONNECTIONS     = s"$CONNECTOR_PREFIX.pool.max.connections"
   val POOL_MAX_CONNECTIONS_DOC = "Max connections in pool.  -1: Use default according to underlying client."
   val POOL_MAX_CONNECTIONS_DEFAULT: Int = -1
@@ -63,4 +58,9 @@ object S3ConfigSettings {
   val S3_BUCKET_CONFIG: String = s"$CONNECTOR_PREFIX.location"
   val S3_BUCKET_DOC: String =
     "Specify the S3 bucket, and optionally, a prefix, where Kafka consumer group offsets will be stored."
+
+  val LOG_METRICS_CONFIG: String = s"$CONNECTOR_PREFIX.log.metrics"
+  val LOG_METRICS_DOC: String =
+    "If true, the connector will log metrics to the logger.  This is useful for debugging and performance tuning."
+
 }

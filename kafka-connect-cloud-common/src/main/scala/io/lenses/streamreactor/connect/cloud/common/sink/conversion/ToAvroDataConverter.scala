@@ -18,17 +18,24 @@ package io.lenses.streamreactor.connect.cloud.common.sink.conversion
 import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.ArraySinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.ByteArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.DateSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MapSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.PrimitiveSinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.TimeSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.TimestampSinkData
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
 
 import java.nio.ByteBuffer
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import java.util
+import java.util.Date
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.IterableHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -51,9 +58,15 @@ object ToAvroDataConverter {
       case ArraySinkData(array, _)     => convert(array)
       case ByteArraySinkData(array, _) => ByteBuffer.wrap(array)
       case primitive: PrimitiveSinkData => primitive.value
-      case _:         NullSinkData      => null
+      case DateSinkData(value)      => convertDateToDaysFromEpoch(value)
+      case TimeSinkData(value)      => value.getTime
+      case TimestampSinkData(value) => value.toInstant.toEpochMilli
+      case _: NullSinkData => null
       case other => throw new IllegalArgumentException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
     }
+
+  private def convertDateToDaysFromEpoch[A <: Any](value: Date) =
+    ChronoUnit.DAYS.between(LocalDate.ofEpochDay(0), LocalDate.ofInstant(value.toInstant, ZoneId.systemDefault()))
 
   private def convertArray(list: java.util.List[_]) = list.asScala.map(convert).asJava
   private def convert(value:     Any): Any =

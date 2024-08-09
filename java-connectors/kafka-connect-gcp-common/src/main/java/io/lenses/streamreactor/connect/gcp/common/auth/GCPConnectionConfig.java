@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.gcp.common.auth;
 
+import static io.lenses.streamreactor.connect.gcp.common.config.GCPSettings.HTTP_BACKOFF_RETRY_MULTIPLIER_DEFAULT;
 import static io.lenses.streamreactor.connect.gcp.common.config.GCPSettings.HTTP_ERROR_RETRY_INTERVAL_DEFAULT;
 import static io.lenses.streamreactor.connect.gcp.common.config.GCPSettings.HTTP_NUMBER_OF_RETIRES_DEFAULT;
 
@@ -40,6 +41,7 @@ public class GCPConnectionConfig implements ConnectionConfig {
       RetryConfig.builder()
           .retryLimit(HTTP_NUMBER_OF_RETIRES_DEFAULT)
           .retryIntervalMillis(HTTP_ERROR_RETRY_INTERVAL_DEFAULT)
+          .retryDelayMultiplier(HTTP_BACKOFF_RETRY_MULTIPLIER_DEFAULT)
           .build();
 
   @Builder.Default

@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.azure.eventhubs.source;
 
+import static io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow;
 import static java.util.Optional.ofNullable;
 
 import java.time.Duration;
@@ -48,7 +49,10 @@ public class AzureEventHubsSourceTask extends SourceTask {
   private BlockingQueueProducerProvider blockingQueueProducerProvider;
 
   public AzureEventHubsSourceTask() {
-    jarManifest = JarManifest.produceFromClass(getClass());
+    jarManifest =
+        unpackOrThrow(JarManifest
+            .produceFromClass(getClass())
+        );
   }
 
   public AzureEventHubsSourceTask(JarManifest jarManifest) {

@@ -42,7 +42,7 @@ public class AzureServiceBusSourceConfig extends BaseConfig implements Connector
         new ConfigDef()
             .define(AzureServiceBusConfigConstants.CONNECTOR_NAME,
                 Type.STRING,
-                AzureServiceBusConfigConstants.CONNECTOR_NAME_DEFAULT,
+                AzureServiceBusConfigConstants.SOURCE_CONNECTOR_NAME_DEFAULT,
                 Importance.HIGH,
                 AzureServiceBusConfigConstants.CONNECTOR_NAME_DOC,
                 BASE_GROUP,

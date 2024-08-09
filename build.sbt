@@ -6,6 +6,7 @@ import Settings.*
 import sbt.Keys.libraryDependencies
 import sbt.*
 import sbt.Project.projectToLocalProject
+import sbt.Project.projectToRef
 
 import java.io.File
 import scala.sys.process.*
@@ -78,6 +79,7 @@ lazy val `query-language` = (project in file("java-connectors/kafka-connect-quer
   .configureAntlr()
 
 lazy val `java-common` = (project in file("java-connectors/kafka-connect-common"))
+  .dependsOn(`test-utils` % "test->test")
   .dependsOn(`query-language`)
   .settings(
     settings ++
@@ -521,6 +523,7 @@ val generateModulesList         = taskKey[Seq[File]]("generateModulesList")
 val generateItModulesList       = taskKey[Seq[File]]("generateItModulesList")
 val generateFunModulesList      = taskKey[Seq[File]]("generateFunModulesList")
 val generateDepCheckModulesList = taskKey[Seq[File]]("generateDepCheckModulesList")
+val generatePublishModulesList  = taskKey[Seq[File]]("generatePublishModulesList")
 
 Compile / generateModulesList :=
   new FileWriter(subProjects).generate((Compile / resourceManaged).value / "modules.txt")
@@ -536,8 +539,18 @@ Compile / generateFunModulesList :=
     subProjects.filter(p => p.containsDir("src/fun")),
   ).generate((Compile / resourceManaged).value / "fun-modules.txt")
 
+Compile / generatePublishModulesList := {
+
+  val nonPublishableModulesFragments = Set("common", "utils", "query-language", "test")
+  val publishableModules = subProjects
+    .filterNot(project => nonPublishableModulesFragments.exists(ignore => project.id.contains(ignore)))
+
+  val outputFile = (Compile / resourceManaged).value / "publish-modules.txt"
+  new FileWriter(publishableModules).generate(outputFile)
+}
 Compile / resourceGenerators += (Compile / generateModulesList)
 Compile / resourceGenerators += (Compile / generateItModulesList)
 Compile / resourceGenerators += (Compile / generateFunModulesList)
+Compile / resourceGenerators += (Compile / generatePublishModulesList)
 
 conflictManager := ConflictManager.strict

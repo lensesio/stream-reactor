@@ -10,6 +10,7 @@ project(":kafka-connect-common") {
         //apache kafka
         api group: 'org.apache.kafka', name: 'connect-json', version: kafkaVersion
         api group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
+        testImplementation(project(path: ':test-utils', configuration: 'testArtifacts'))
 
         //confluent - may be needed soon
         //        implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version: apacheToConfluentVersionAxis.get(kafkaVersion)

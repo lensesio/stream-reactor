@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: ${{fromJSON(needs.build.outputs.dep_check_modules)}}
+        module: ${{fromJSON(needs.build.outputs.publish_modules)}}
     steps:
       - uses: actions/checkout@v4
       - name: Restore assembly
@@ -114,7 +114,7 @@ jobs:
       # If any matrix job fails, the job will be marked as failure
       fail-fast: false
       matrix:
-        module: ${{fromJSON(needs.build.outputs.modules)}}
+        module: ${{fromJSON(needs.build.outputs.publish_modules)}}
     env:
       DRAFT_RELEASE: '${{ needs.validate-tag.outputs.draft_release }}'
       TAG: ${{ needs.validate-tag.outputs.tag }}

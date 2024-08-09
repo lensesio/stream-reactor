@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.azure.servicebus.source;
 
 import static io.lenses.streamreactor.connect.azure.servicebus.mapping.ServiceBusToSourceRecordMapper.mapSingleServiceBusMessage;
 
+import io.lenses.streamreactor.connect.azure.servicebus.util.ServiceBusType;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -43,8 +44,6 @@ import reactor.core.Disposable;
 @Slf4j
 public class ServiceBusReceiverFacade {
 
-  private static final String TOPIC_TYPE = "TOPIC";
-  private static final String QUEUE_TYPE = "QUEUE";
   private static final int FIVE_SECONDS_TIMEOUT = 5;
   private final Kcql kcql;
   private final BlockingQueue<ServiceBusMessageHolder> recordsQueue;
@@ -87,7 +86,8 @@ public class ServiceBusReceiverFacade {
   private void instantiateReceiverFromKcql() {
     Map<String, String> kcqlProperties = kcql.getProperties();
     String subscriptionName = kcqlProperties.get(ServiceBusKcqlProperties.SUBSCRIPTION_NAME.getPropertyName());
-    String busType = kcqlProperties.get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName());
+    ServiceBusType busType =
+        ServiceBusType.fromString(kcqlProperties.get(ServiceBusKcqlProperties.SERVICE_BUS_TYPE.getPropertyName()));
 
     ServiceBusReceiverClientBuilder serviceBusReceiverClientBuilder =
         new ServiceBusClientBuilder()
@@ -97,10 +97,10 @@ public class ServiceBusReceiverFacade {
     String outputTopic = kcql.getTarget();
     String inputBus = kcql.getSource();
 
-    if (TOPIC_TYPE.equalsIgnoreCase(busType)) {
+    if (ServiceBusType.TOPIC.equals(busType)) {
       serviceBusReceiverClientBuilder.topicName(inputBus);
       serviceBusReceiverClientBuilder.subscriptionName(subscriptionName);
-    } else if (QUEUE_TYPE.equalsIgnoreCase(busType)) {
+    } else if (ServiceBusType.QUEUE.equals(busType)) {
       serviceBusReceiverClientBuilder.queueName(inputBus);
     }
 

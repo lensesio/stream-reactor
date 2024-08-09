@@ -18,8 +18,6 @@ package io.lenses.streamreactor.connect.cloud.common.sink.commit
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.Logger
 
-import scala.util.Try
-
 /**
   * The [[CommitPolicy]] is responsible for determining when
   * a sink partition (a single file) should be flushed (closed on disk, and moved to be visible).
@@ -38,16 +36,14 @@ case class CommitPolicy(logger: Logger, conditions: CommitPolicyCondition*) {
     * @return true if the partition should be flushed, false otherwise
     */
   def shouldFlush(context: CommitContext): Boolean = {
-
-    val debugEnabled: Boolean = Try(logger.underlying.isDebugEnabled).getOrElse(false)
-    val res = conditions.map(_.eval(context, debugEnabled))
+    val res = conditions.map(_.eval(context, true))
     val flush = res.exists {
       case ConditionCommitResult(true, _) => true
       case _                              => false
     }
 
-    if (debugEnabled) {
-      logger.debug(context.generateLogLine(flush, res))
+    if (flush) {
+      logger.info(context.generateLogLine(flush, res))
     }
     flush
   }

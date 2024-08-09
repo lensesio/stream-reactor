@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.gcp.pubsub.source;
 
+import static io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +47,7 @@ import lombok.val;
  */
 public class GCPPubSubSourceTask extends SourceTask {
 
-  private final JarManifest jarManifest = JarManifest.produceFromClass(getClass());
+  private final JarManifest jarManifest = unpackOrThrow(JarManifest.produceFromClass(getClass()));
 
   private final PubSubConfigSettings pubSubConfigSettings = new PubSubConfigSettings();
 
