@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.config
 
-case class OffsetSeekerOptions(
-  maxIndexFiles: Int,
+case class IndexOptions(
+  maxIndexFiles:        Int,
+  indexesDirectoryName: String,
 )

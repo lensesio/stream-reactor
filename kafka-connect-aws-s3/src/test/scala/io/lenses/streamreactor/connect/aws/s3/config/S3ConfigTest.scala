@@ -25,10 +25,10 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
 
   val retryValuesMap = Table[String, Any, Any, RetryConfig](
     ("testName", "retries", "interval", "result"),
-    ("noret-noint", 0, 0, new RetryConfig(0, 0)),
-    ("ret-and-int", 1, 2, new RetryConfig(1, 2)),
-    ("noret-noint-strings", "0", "0", new RetryConfig(0, 0)),
-    ("ret-and-int-strings", "1", "2", new RetryConfig(1, 2)),
+    ("noret-noint", 0, 0, new RetryConfig(0, 0, 0.0)),
+    ("ret-and-int", 1, 2, new RetryConfig(1, 2, 0.0)),
+    ("noret-noint-strings", "0", "0", new RetryConfig(0, 0, 0.0)),
+    ("ret-and-int-strings", "1", "2", new RetryConfig(1, 2, 0.0)),
   )
 
   "S3Config" should "set http retry config" in {

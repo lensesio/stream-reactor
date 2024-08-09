@@ -53,7 +53,7 @@ class S3CommonConfigDefTest extends AnyFlatSpec with Matchers with EitherValues 
   }
   "CommonConfigDef" should "parse original properties" in {
     val resultMap = commonConfigDef.config.parse(DefaultProps.asJava).asScala
-    resultMap should have size 18
+    resultMap should have size 19
     DeprecatedProps.filterNot { case (k, _) => k == KCQL_CONFIG }.foreach {
       case (k, _) => resultMap.get(k) should be(None)
     }

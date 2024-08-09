@@ -25,13 +25,13 @@ import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.IndexFilenames
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.IndexFilenames.indexToOffset
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerErrors.corruptStorageState
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerErrors.fileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage._
 
 class IndexManager[SM <: FileMetadata](
-  maxIndexes: Int,
+  maxIndexes:     Int,
+  indexFilenames: IndexFilenames,
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
@@ -46,7 +46,7 @@ class IndexManager[SM <: FileMetadata](
     */
   def clean(bucket: String, mostRecentIndexFile: String, topicPartition: TopicPartition): Either[SinkError, Int] = {
     val indexFileLocation =
-      IndexFilenames.indexForTopicPartition(
+      indexFilenames.indexForTopicPartition(
         topicPartition.topic.value,
         topicPartition.partition,
       )
@@ -102,7 +102,7 @@ class IndexManager[SM <: FileMetadata](
     topicPartitionOffset: TopicPartitionOffset,
   ): Either[SinkError, String] = {
 
-    val indexPath = IndexFilenames.indexFilename(
+    val indexPath = indexFilenames.indexFilename(
       topicPartitionOffset.topic.value,
       topicPartitionOffset.partition,
       topicPartitionOffset.offset.value,
@@ -137,7 +137,7 @@ class IndexManager[SM <: FileMetadata](
     topicPartition: TopicPartition,
     bucket:         String,
   ): Either[SinkError, Option[TopicPartitionOffset]] = {
-    val indexLocation = IndexFilenames.indexForTopicPartition(topicPartition.topic.value, topicPartition.partition)
+    val indexLocation = indexFilenames.indexForTopicPartition(topicPartition.topic.value, topicPartition.partition)
     storageInterface.listKeysRecursive(
       bucket,
       indexLocation.some,
@@ -169,7 +169,7 @@ class IndexManager[SM <: FileMetadata](
       validIndex     <- scanIndexes(bucket, indexes)
       indexesToDelete = indexes.filterNot(validIndex.contains)
       _              <- storageInterface.deleteFiles(bucket, indexesToDelete)
-      offset         <- indexToOffset(topicPartition, validIndex).leftMap(FileNameParseError(_, s"$validIndex"))
+      offset         <- indexFilenames.indexToOffset(topicPartition, validIndex).leftMap(FileNameParseError(_, s"$validIndex"))
     } yield {
       logger.info("[{}] Seeked offset {} for TP {}", connectorTaskId.show, offset, topicPartition)
       offset

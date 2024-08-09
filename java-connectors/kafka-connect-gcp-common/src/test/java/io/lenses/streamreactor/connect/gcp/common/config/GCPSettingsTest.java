@@ -36,20 +36,24 @@ class GCPSettingsTest {
   private static final GCPSettings gcpSettings = new GCPSettings(connectorPrefix);
 
   private static Stream<Arguments> provideRetryConfigData() {
+    double defaultMultiplier = 1.0;
     return Stream.of(
-        Arguments.of("no values", 0, 0L, new RetryConfig(0, 0L)),
-        Arguments.of("retry limit only", 10, 0L, new RetryConfig(10, 0L)),
-        Arguments.of("interval only", 0, 20L, new RetryConfig(0, 20L)),
-        Arguments.of("retry limit and interval", 30, 40L, new RetryConfig(30, 40L)));
+        Arguments.of("no values", 0, 0L, defaultMultiplier, new RetryConfig(0, 0L, defaultMultiplier)),
+        Arguments.of("retry limit only", 10, 0L, defaultMultiplier, new RetryConfig(10, 0L, defaultMultiplier)),
+        Arguments.of("interval only", 0, 20L, defaultMultiplier, new RetryConfig(0, 20L, defaultMultiplier)),
+        Arguments.of("retry limit and interval", 30, 40L, defaultMultiplier, new RetryConfig(30, 40L,
+            defaultMultiplier)),
+        Arguments.of("limit, interval and multiplier", 30, 40L, 10.0, new RetryConfig(30, 40L, 10.0)));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("provideRetryConfigData")
-  void testHttpRetryConfig(String testName, Object retries, Object interval, RetryConfig expected) {
+  void testHttpRetryConfig(String testName, Object retries, Object interval, Double multiplier, RetryConfig expected) {
     val configMap =
         new MapConfigSource(
             Map.of(
                 "connect.gcpstorage.http.max.retries", retries,
+                "connect.gcpstorage.http.retry.timeout.multiplier", multiplier,
                 "connect.gcpstorage.http.retry.interval", interval));
 
     val optionalRetryConfig = EitherValues.getRight(gcpSettings.parseFromConfig(configMap)).getHttpRetryConfig();

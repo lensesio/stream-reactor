@@ -23,9 +23,9 @@ import io.lenses.streamreactor.connect.cloud.common.config.traits.PropsToConfigC
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
-import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
+import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 import io.lenses.streamreactor.connect.datalake.config.AzureConnectionConfig
-import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings.SEEK_MAX_INDEX_FILES
+import io.lenses.streamreactor.connect.datalake.config.AzureConfigSettings.LOG_METRICS_CONFIG
 
 object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
 
@@ -48,16 +48,16 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
     for {
       authMode          <- s3ConfigDefBuilder.getAuthMode
       sinkBucketOptions <- CloudSinkBucketOptions(connectorTaskId, s3ConfigDefBuilder)
-      offsetSeekerOptions = OffsetSeekerOptions(
-        s3ConfigDefBuilder.getInt(SEEK_MAX_INDEX_FILES),
-      )
+      indexOptions       = s3ConfigDefBuilder.getIndexSettings
+      logMetrics         = s3ConfigDefBuilder.getBoolean(LOG_METRICS_CONFIG)
     } yield DatalakeSinkConfig(
       AzureConnectionConfig(s3ConfigDefBuilder.getParsedValues, authMode),
       sinkBucketOptions,
-      offsetSeekerOptions,
+      indexOptions,
       s3ConfigDefBuilder.getCompressionCodec(),
       s3ConfigDefBuilder.getErrorPolicyOrDefault,
       s3ConfigDefBuilder.getRetryConfig,
+      logMetrics,
     )
 
 }
@@ -65,8 +65,9 @@ object DatalakeSinkConfig extends PropsToConfigConverter[DatalakeSinkConfig] {
 case class DatalakeSinkConfig(
   connectionConfig:     AzureConnectionConfig,
   bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
-  offsetSeekerOptions:  OffsetSeekerOptions,
+  indexOptions:         IndexOptions,
   compressionCodec:     CompressionCodec,
   errorPolicy:          ErrorPolicy,
   connectorRetryConfig: RetryConfig,
+  logMetrics:           Boolean,
 ) extends CloudSinkConfig[AzureConnectionConfig]

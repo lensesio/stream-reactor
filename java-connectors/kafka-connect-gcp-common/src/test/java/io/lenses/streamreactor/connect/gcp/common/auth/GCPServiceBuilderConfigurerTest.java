@@ -24,6 +24,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.google.cloud.ServiceOptions.Builder;
 import java.io.IOException;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -62,7 +63,17 @@ class GCPServiceBuilderConfigurerTest {
 
   @Test
   void testConfigure_withRetrySettingsConfigured() throws IOException {
-    RetryConfig retryConfig = RetryConfig.builder().retryIntervalMillis(1000).retryLimit(3).build();
+    int retryIntervalMillis = 1000;
+    int maxRetryIntervalMillis = 5 * retryIntervalMillis;
+    int retryLimit = 3;
+    double retryDelayMultiplier = 1.5;
+
+    RetryConfig retryConfig =
+        RetryConfig.builder()
+            .retryIntervalMillis(retryIntervalMillis)
+            .retryLimit(retryLimit)
+            .retryDelayMultiplier(retryDelayMultiplier)
+            .build();
 
     val config = configBuilder.httpRetryConfig(retryConfig).build();
 
@@ -70,7 +81,8 @@ class GCPServiceBuilderConfigurerTest {
 
     GCPServiceBuilderConfigurer.configure(config, builder);
 
-    assertRetrySettingsConfigured(builder, 1000, 5000, 3);
+    assertRetrySettingsConfigured(builder, retryIntervalMillis,
+        maxRetryIntervalMillis, retryLimit, retryDelayMultiplier);
   }
 
   @Test
@@ -104,9 +116,10 @@ class GCPServiceBuilderConfigurerTest {
     verify(builder, times(1))
         .setRetrySettings(
             RetrySettings.newBuilder()
-                .setInitialRetryDelay(Duration.ofMillis(50))
-                .setMaxRetryDelay(Duration.ofMillis(250))
-                .setMaxAttempts(5)
+                .setInitialRetryDelay(Duration.ofMillis(500))
+                .setMaxRetryDelay(Duration.ofMillis(2500))
+                .setMaxAttempts(36)
+                .setRetryDelayMultiplier(3.0)
                 .build());
     verify(builder, times(1)).setCredentials(NoCredentials.getInstance());
     verify(builder, never()).setTransportOptions(any());
@@ -123,19 +136,21 @@ class GCPServiceBuilderConfigurerTest {
   }
 
   private void assertRetrySettingsConfigured(
-      ServiceOptions.Builder<?, ?, ?> builder,
+      Builder<?, ?, ?> builder,
       long expectedInitialRetryDelay,
       long expectedMaxRetryDelay,
-      int expectedMaxAttempts) {
+      int expectedMaxAttempts,
+      double retryDelayMultiplier) {
     ArgumentCaptor<RetrySettings> retrySettingsCaptor =
         ArgumentCaptor.forClass(RetrySettings.class);
     verify(builder).setRetrySettings(retrySettingsCaptor.capture());
 
     RetrySettings capturedRetrySettings = retrySettingsCaptor.getValue();
     assertNotNull(capturedRetrySettings);
-    assertEquals(1000, capturedRetrySettings.getInitialRetryDelay().toMillis());
-    assertEquals(5000, capturedRetrySettings.getMaxRetryDelay().toMillis());
-    assertEquals(3, capturedRetrySettings.getMaxAttempts());
+    assertEquals(expectedInitialRetryDelay, capturedRetrySettings.getInitialRetryDelay().toMillis());
+    assertEquals(expectedMaxRetryDelay, capturedRetrySettings.getMaxRetryDelay().toMillis());
+    assertEquals(expectedMaxAttempts, capturedRetrySettings.getMaxAttempts());
+    assertEquals(retryDelayMultiplier, capturedRetrySettings.getRetryDelayMultiplier());
   }
 
   private void assertTransportOptionsConfigured(
@@ -148,7 +163,7 @@ class GCPServiceBuilderConfigurerTest {
 
     HttpTransportOptions capturedTransportOptions = transportOptionsCaptor.getValue();
     assertNotNull(capturedTransportOptions);
-    assertEquals(5000, capturedTransportOptions.getReadTimeout());
-    assertEquals(3000, capturedTransportOptions.getConnectTimeout());
+    assertEquals(expectedReadTimeout, capturedTransportOptions.getReadTimeout());
+    assertEquals(expectedConnectTimeout, capturedTransportOptions.getConnectTimeout());
   }
 }

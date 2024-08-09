@@ -138,6 +138,13 @@ trait S3CommonConfigDef
         Importance.LOW,
         DELETE_MODE_DOC,
       )
+      .define(
+        LOG_METRICS_CONFIG,
+        Type.BOOLEAN,
+        false,
+        Importance.LOW,
+        LOG_METRICS_DOC,
+      )
     withConnectorRetryConfig(config)
     withErrorPolicyConfig(config)
     new KcqlSettings(javaConnectorPrefix).withSettings(config)

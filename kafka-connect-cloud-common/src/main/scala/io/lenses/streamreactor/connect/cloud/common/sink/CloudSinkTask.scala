@@ -22,9 +22,9 @@ import io.lenses.streamreactor.common.errors.ErrorHandler
 import io.lenses.streamreactor.common.errors.RetryErrorPolicy
 import io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader
 import io.lenses.streamreactor.common.util.JarManifest
+import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
-import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfig
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
@@ -37,6 +37,7 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
 import io.lenses.streamreactor.connect.cloud.common.utils.MapUtils
 import io.lenses.streamreactor.connect.cloud.common.utils.TimestampUtils
+import io.lenses.streamreactor.metrics.Metrics
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{ TopicPartition => KafkaTopicPartition }
 import org.apache.kafka.connect.errors.ConnectException
@@ -67,6 +68,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
 
   private val writerManagerCreator = new WriterManagerCreator[MD, C]()
 
+  private var logMetrics = false
   private var writerManager:    WriterManager[MD] = _
   implicit var connectorTaskId: ConnectorTaskId   = _
 
@@ -130,53 +132,57 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
         }
     }
 
-  override def put(records: util.Collection[SinkRecord]): Unit = {
+  override def put(records: util.Collection[SinkRecord]): Unit =
+    Metrics.withTimer {
+      handleTry {
+        Try {
 
-    val _ = handleTry {
-      Try {
+          logger.debug(
+            s"[${connectorTaskId.show}] put records=${records.size()} stats=${buildLogForRecords(records.asScala)
+              .toList.sortBy(_._1).map { case (k, v) => s"$k=$v" }.mkString(";")}",
+          )
 
-        logger.debug(
-          s"[${connectorTaskId.show}] put records=${records.size()} stats=${buildLogForRecords(records.asScala)
-            .toList.sortBy(_._1).map { case (k, v) => s"$k=$v" }.mkString(";")}",
-        )
+          // a failure in recommitPending will prevent the processing of further records
+          handleErrors(writerManager.recommitPending())
 
-        // a failure in recommitPending will prevent the processing of further records
-        handleErrors(writerManager.recommitPending())
+          records.asScala.foreach {
+            record =>
+              val topicPartitionOffset =
+                Topic(record.topic).withPartition(record.kafkaPartition.intValue).withOffset(Offset(record.kafkaOffset))
 
-        records.asScala.foreach {
-          record =>
-            val topicPartitionOffset =
-              Topic(record.topic).withPartition(record.kafkaPartition.intValue).withOffset(Offset(record.kafkaOffset))
-
-            val key = Option(record.key()) match {
-              case Some(k) => ValueToSinkDataConverter(k, Option(record.keySchema()))
-              case None    => NullSinkData(Option(record.keySchema()))
-            }
-            val msgDetails = MessageDetail(
-              key     = key,
-              value   = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
-              headers = HeaderToStringConverter(record),
-              TimestampUtils.parseTime(Option(record.timestamp()).map(_.toLong))(_ =>
-                logger.debug(
-                  s"Record timestamp is invalid ${record.timestamp()}",
+              val key = Option(record.key()) match {
+                case Some(k) => ValueToSinkDataConverter(k, Option(record.keySchema()))
+                case None    => NullSinkData(Option(record.keySchema()))
+              }
+              val msgDetails = MessageDetail(
+                key     = key,
+                value   = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
+                headers = HeaderToStringConverter(record),
+                TimestampUtils.parseTime(Option(record.timestamp()).map(_.toLong))(_ =>
+                  logger.debug(
+                    s"Record timestamp is invalid ${record.timestamp()}",
+                  ),
                 ),
-              ),
-              Topic(record.topic()),
-              record.kafkaPartition(),
-              Offset(record.kafkaOffset()),
-            )
-            handleErrors {
-              writerManager.write(topicPartitionOffset, msgDetails)
-            }
-        }
+                Topic(record.topic()),
+                record.kafkaPartition(),
+                Offset(record.kafkaOffset()),
+              )
+              handleErrors {
+                writerManager.write(topicPartitionOffset, msgDetails)
+              }
+          }
 
-        if (records.isEmpty) {
-          handleErrors(writerManager.commitAllWritersIfFlushRequired())
+          if (records.isEmpty) {
+            handleErrors(writerManager.commitAllWritersIfFlushRequired())
+          }
         }
       }
+      ()
+    } { e =>
+      if (logMetrics) {
+        logger.info(s"[${connectorTaskId.show}] put records=${records.size()} took $e ms")
+      }
     }
-
-  }
 
   override def preCommit(
     currentOffsets: util.Map[KafkaTopicPartition, OffsetAndMetadata],
@@ -271,7 +277,10 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
       _               <- setRetryInterval(config)
       writerManager   <- Try(writerManagerCreator.from(config)(connectorTaskId, storageInterface)).toEither
       _               <- initializeFromConfig(config)
-    } yield writerManager
+    } yield {
+      logMetrics = config.logMetrics
+      writerManager
+    }
 
   private def initializeFromConfig(config: C): Either[Throwable, Unit] =
     Try(initialize(
