@@ -154,10 +154,10 @@ class S3SinkConfigTest extends AnyFunSuite with Matchers with LazyLogging {
 
   val retryValuesMap = Table[String, Any, Any, RetryConfig](
     ("testName", "retries", "interval", "result"),
-    ("noret-noint", 0, 0L, new RetryConfig(0, 0L)),
-    ("ret-and-int", 1, 2L, new RetryConfig(1, 2L)),
-    ("noret-noint-strings", "0", "0", new RetryConfig(0, 0L)),
-    ("ret-and-int-strings", "1", "2", new RetryConfig(1, 2L)),
+    ("noret-noint", 0, 0L, new RetryConfig(0, 0L, 0.0)),
+    ("ret-and-int", 1, 2L, new RetryConfig(1, 2L, 0.0)),
+    ("noret-noint-strings", "0", "0", new RetryConfig(0, 0L, 0.0)),
+    ("ret-and-int-strings", "1", "2", new RetryConfig(1, 2L, 0.0)),
   )
 
   test("should set retry config") {

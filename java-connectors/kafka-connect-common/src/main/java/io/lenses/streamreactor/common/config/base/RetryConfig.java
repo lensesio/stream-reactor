@@ -45,4 +45,12 @@ public class RetryConfig {
    * measured in milliseconds.
    */
   private long retryIntervalMillis;
+
+  /**
+   * Delay Multiplier when Retrying
+   * This value controls the change in delay before the next retry or poll.
+   * The retry delay of the previous call is multiplied by the RetryDelayMultiplier
+   * to calculate the retry delay for the next call.
+   */
+  private double retryDelayMultiplier;
 }

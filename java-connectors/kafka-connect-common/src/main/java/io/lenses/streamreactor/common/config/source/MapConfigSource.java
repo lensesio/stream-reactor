@@ -46,6 +46,11 @@ public class MapConfigSource implements ConfigSource {
   }
 
   @Override
+  public Optional<Double> getDouble(String key) {
+    return Optional.ofNullable((Double) wrapped.get(key));
+  }
+
+  @Override
   public Optional<Password> getPassword(String key) {
     return Optional.ofNullable((Password) wrapped.get(key));
   }

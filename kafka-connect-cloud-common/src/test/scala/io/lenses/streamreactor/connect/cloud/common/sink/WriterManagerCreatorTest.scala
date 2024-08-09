@@ -23,7 +23,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfi
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
-import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
+import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
@@ -39,7 +39,7 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
   case class FakeCloudSinkConfig(
     connectionConfig:     FakeConnectionConfig,
     bucketOptions:        Seq[CloudSinkBucketOptions],
-    offsetSeekerOptions:  OffsetSeekerOptions,
+    indexOptions:         IndexOptions,
     compressionCodec:     CompressionCodec,
     connectorRetryConfig: RetryConfig,
     errorPolicy:          NoopErrorPolicy,
@@ -57,10 +57,10 @@ class WriterManagerCreatorTest extends AnyFunSuite with Matchers with MockitoSug
     val config = FakeCloudSinkConfig(
       connectionConfig     = FakeConnectionConfig(),
       bucketOptions        = Seq.empty,
-      offsetSeekerOptions  = OffsetSeekerOptions(maxIndexFiles = 10),
+      indexOptions         = IndexOptions(maxIndexFiles = 10, ".indexes"),
       compressionCodec     = CompressionCodecName.ZSTD.toCodec(),
       errorPolicy          = NoopErrorPolicy(),
-      connectorRetryConfig = new RetryConfig(1, 1L),
+      connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
     )
 
     val writerManagerCreator = new WriterManagerCreator[FakeFileMetadata, FakeCloudSinkConfig]()

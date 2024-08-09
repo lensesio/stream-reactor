@@ -28,8 +28,9 @@ import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionField
-import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.IndexFilenames
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.transformers.TopicsTransformers
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
@@ -119,7 +120,10 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
           case None => FatalCloudSinkError("Can't find format choice in config", topicPartition).asLeft
         }
 
-    val indexManager = new IndexManager(config.offsetSeekerOptions.maxIndexFiles)
+    val indexManager = new IndexManager(
+      config.indexOptions.maxIndexFiles,
+      new IndexFilenames(config.indexOptions.indexesDirectoryName),
+    )
 
     val transformers = TopicsTransformers.from(config.bucketOptions)
     new WriterManager(
