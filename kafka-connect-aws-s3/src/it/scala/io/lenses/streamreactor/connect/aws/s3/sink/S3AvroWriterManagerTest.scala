@@ -44,7 +44,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
 import io.lenses.streamreactor.connect.cloud.common.sink.config.CloudSinkBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.LocalStagingArea
-import io.lenses.streamreactor.connect.cloud.common.sink.config.OffsetSeekerOptions
+import io.lenses.streamreactor.connect.cloud.common.sink.config.IndexOptions
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionDisplay.Values
 import io.lenses.streamreactor.connect.cloud.common.sink.config.PartitionSelection.defaultPartitionSelection
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.LeftPadPaddingStrategy
@@ -104,11 +104,11 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         dataStorage      = DataStorageSettings.disabled,
       ),
     ),
-    offsetSeekerOptions  = OffsetSeekerOptions(5),
+    indexOptions         = IndexOptions(5, ".indexes"),
     compressionCodec     = compressionCodec,
     batchDelete          = true,
     errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
-    connectorRetryConfig = new RetryConfig(1, 1L),
+    connectorRetryConfig = new RetryConfig(1, 1L, 1.0),
     logMetrics           = false,
   )
 

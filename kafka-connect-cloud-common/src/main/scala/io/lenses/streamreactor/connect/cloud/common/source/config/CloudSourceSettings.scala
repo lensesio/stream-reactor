@@ -19,7 +19,6 @@ import io.lenses.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
-import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions.ExcludeIndexes
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 
@@ -28,7 +27,7 @@ import scala.util.Try
 
 trait CloudSourceSettings extends BaseSettings with CloudSourceSettingsKeys {
 
-  def extractOrderingType[M <: FileMetadata] =
+  def extractOrderingType[M <: FileMetadata]: OrderingType =
     Try(getString(SOURCE_ORDERING_TYPE)).toOption.flatMap(
       OrderingType.withNameInsensitiveOption,
     ).getOrElse(OrderingType.AlphaNumeric)
@@ -50,7 +49,7 @@ trait CloudSourceSettings extends BaseSettings with CloudSourceSettingsKeys {
       interval = ConfigParse.getLong(props, SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS).getOrElse(
         SOURCE_PARTITION_SEARCH_INTERVAL_MILLIS_DEFAULT,
       ).millis,
-      wildcardExcludes = ExcludeIndexes,
+      wildcardExcludes = getString(PARTITION_SEARCH_INDEX_EXCLUDES).split(',').toSet[String].map(_.trim),
     )
 
 }

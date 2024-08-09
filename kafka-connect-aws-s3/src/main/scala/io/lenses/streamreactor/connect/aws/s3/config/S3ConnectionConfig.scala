@@ -51,10 +51,9 @@ object S3ConnectionConfig {
     ),
     getString(props, CUSTOM_ENDPOINT),
     getBoolean(props, ENABLE_VIRTUAL_HOST_BUCKETS).getOrElse(false),
-    new RetryConfig(
-      getInt(props, HTTP_NBR_OF_RETRIES).getOrElse(HTTP_NBR_OF_RETIRES_DEFAULT),
-      getLong(props, HTTP_ERROR_RETRY_INTERVAL).getOrElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
-    ),
+    RetryConfig.builder.retryLimit(getInt(props, HTTP_NBR_OF_RETRIES).getOrElse(HTTP_NBR_OF_RETIRES_DEFAULT))
+      .retryIntervalMillis(getLong(props, HTTP_ERROR_RETRY_INTERVAL).getOrElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT))
+      .build(),
     HttpTimeoutConfig(
       getInt(props, HTTP_SOCKET_TIMEOUT),
       getLong(props, HTTP_CONNECTION_TIMEOUT),
@@ -79,9 +78,10 @@ case class S3ConnectionConfig(
   accessKey:                Option[String],
   secretKey:                Option[String],
   authMode:                 AuthMode,
-  customEndpoint:           Option[String]               = None,
-  enableVirtualHostBuckets: Boolean                      = false,
-  httpRetryConfig:          RetryConfig                  = new RetryConfig(HTTP_NBR_OF_RETIRES_DEFAULT, HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
-  timeouts:                 HttpTimeoutConfig            = HttpTimeoutConfig(None, None),
-  connectionPoolConfig:     Option[ConnectionPoolConfig] = Option.empty,
+  customEndpoint:           Option[String] = None,
+  enableVirtualHostBuckets: Boolean        = false,
+  httpRetryConfig: RetryConfig =
+    RetryConfig.builder.retryIntervalMillis(HTTP_ERROR_RETRY_INTERVAL_DEFAULT).retryLimit(HTTP_NBR_OF_RETIRES_DEFAULT).build(),
+  timeouts:             HttpTimeoutConfig            = HttpTimeoutConfig(None, None),
+  connectionPoolConfig: Option[ConnectionPoolConfig] = Option.empty,
 ) extends ConnectionConfig

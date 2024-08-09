@@ -8,12 +8,9 @@ on:
         required: true
         type: string
     outputs:
-      modules:
-        description: "Stream reactor collection of modules"
-        value: ${{ jobs.initiate.outputs.matrix }}
-      dep_check_modules:
-        description: "Modules for dependency checking"
-        value: ${{ jobs.initiate.outputs.dep_check_matrix }}
+      publish_modules:
+        description: "Modules for publishing artifacts"
+        value: ${{ jobs.initiate.outputs.publish_matrix }}
 jobs:
   initiate:
     timeout-minutes: 5
@@ -23,6 +20,7 @@ jobs:
       it_matrix: ${{ steps.read-mods.outputs.it-matrix }}
       fun_matrix: ${{ steps.read-mods.outputs.fun-matrix }}
       dep_check_matrix: ${{ steps.read-mods.outputs.dep-check-matrix }}
+      publish_matrix: ${{ steps.read-mods.outputs.publish-matrix }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17
@@ -32,7 +30,7 @@ jobs:
           distribution: 'temurin'
           cache: 'sbt'
       - name: Generate modules lists
-        run: sbt generateModulesList generateItModulesList generateFunModulesList generateDepCheckModulesList
+        run: sbt generateModulesList generateItModulesList generateFunModulesList generateDepCheckModulesList generatePublishModulesList
         env:
           JVM_OPTS: -Xmx3200m
       - name: Read modules lists
@@ -42,6 +40,7 @@ jobs:
           echo "it-matrix=$(cat ./target/scala-2.13/resource_managed/main/it-modules.txt)" >> $GITHUB_OUTPUT
           echo "fun-matrix=$(cat ./target/scala-2.13/resource_managed/main/fun-modules.txt)" >> $GITHUB_OUTPUT
           echo "dep-check-matrix=$(cat ./target/scala-2.13/resource_managed/main/depcheck-modules.txt)" >> $GITHUB_OUTPUT
+          echo "publish-matrix=$(cat ./target/scala-2.13/resource_managed/main/publish-modules.txt)" >> $GITHUB_OUTPUT
       - name: Cleanup before cache
         shell: bash
         run: |
@@ -248,7 +247,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: ${{fromJSON(needs.initiate.outputs.matrix)}}
+        module: ${{fromJSON(needs.initiate.outputs.publish_matrix)}}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 17

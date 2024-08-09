@@ -49,7 +49,7 @@ class CommonConfigDefTest extends AnyFlatSpec with Matchers with EitherValues wi
 
   "CommonConfigDef" should "retain original properties after parsing" in {
     val resultMap = commonConfigDef.config.parse(DefaultProps.asJava).asScala
-    resultMap should have size 16
+    resultMap should have size 17
     DefaultProps.foreach {
       case (k, v) =>
         withClue("Unexpected property: " + k) {

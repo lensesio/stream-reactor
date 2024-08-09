@@ -97,6 +97,7 @@ public class GCPServiceBuilderConfigurer {
     return RetrySettings.newBuilder()
         .setInitialRetryDelay(Duration.ofMillis(httpRetryConfig.getRetryIntervalMillis()))
         .setMaxRetryDelay(Duration.ofMillis(httpRetryConfig.getRetryIntervalMillis() * 5L))
+        .setRetryDelayMultiplier(httpRetryConfig.getRetryDelayMultiplier())
         .setMaxAttempts(httpRetryConfig.getRetryLimit())
         .build();
   }

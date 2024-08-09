@@ -48,6 +48,15 @@ object ConfigParse {
         case s: String => s.toLong
       }
 
+  def getDouble(props: Map[String, _], key: String): Option[Double] =
+    props.get(key)
+      .collect {
+        case i: Int    => i.toDouble
+        case l: Long   => l.toDouble
+        case d: Double => d
+        case s: String => s.toDouble
+      }
+
   def getInt(props: Map[String, _], key: String): Option[Int] =
     props.get(key)
       .collect {

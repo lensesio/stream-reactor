@@ -41,14 +41,14 @@ object Dependencies {
     val scalaCheckVersion              = "1.18.0"
 
     val junitJupiterVersion = "5.10.3"
-    val assertjCoreVersion  = "3.26.0"
+    val assertjCoreVersion  = "3.26.3"
 
     val cyclopsVersion = "10.4.1"
 
     val kafkaVersion:     String = "3.8.0"
-    val confluentVersion: String = "7.6.1"
+    val confluentVersion: String = "7.6.2"
 
-    val enumeratumVersion = "1.7.3"
+    val enumeratumVersion = "1.7.4"
 
     val http4sVersion    = "1.0.0-M32"
     val http4sJdkVersion = "1.0.0-M1"
@@ -58,10 +58,10 @@ object Dependencies {
     val catsEffectVersion     = "3.5.4"
     val `cats-effect-testing` = "1.5.0"
 
-    val antlr4Version: String = "4.13.1"
+    val antlr4Version: String = "4.13.2"
 
     val circeVersion              = "0.15.0-M1"
-    val circeGenericExtrasVersion = "0.14.3"
+    val circeGenericExtrasVersion = "0.14.4"
 
     // build plugins version
     val betterMonadicForVersion = "0.3.1"
@@ -71,24 +71,24 @@ object Dependencies {
     val logbackVersion      = "1.5.6"
     val scalaLoggingVersion = "3.9.5"
 
-    val dnsJavaVersion  = "3.6.0"
-    val wiremockVersion = "3.8.0"
+    val dnsJavaVersion  = "3.6.1"
+    val wiremockVersion = "3.9.1"
     val parquetVersion  = "1.14.1"
 
-    val jerseyCommonVersion = "3.1.7"
+    val jerseyCommonVersion = "3.1.8"
 
     val calciteVersion = "1.34.0"
     val awsSdkVersion  = "2.25.70"
 
-    val azureDataLakeVersion              = "12.19.1"
+    val azureDataLakeVersion              = "12.20.0"
     val azureIdentityVersion              = "1.13.0"
     val azureCoreVersion                  = "1.49.1"
     val msal4jVersion                     = "1.16.0"
     val msal4jPersistenceExtensionVersion = "1.3.0"
-    val gcpCloudVersion                   = "2.40.0"
+    val gcpCloudVersion                   = "2.41.0"
     val gcpCloudStorageVersion            = "2.40.1"
 
-    val jacksonVersion      = "2.17.1"
+    val jacksonVersion      = "2.17.2"
     val json4sVersion       = "4.0.7"
     val mockitoScalaVersion = "1.17.37"
     val mockitoJavaVersion  = "5.2.0"
@@ -99,31 +99,31 @@ object Dependencies {
     val lz4Version = "1.8.0"
 
     val bouncyCastleVersion = "1.78.1"
-    val nettyVersion        = "4.1.111.Final"
+    val nettyVersion        = "4.1.112.Final"
 
     val cassandraDriverVersion = "3.11.5"
     val jsonPathVersion        = "2.9.0"
 
     val azureDocumentDbVersion     = "2.6.5"
     val testcontainersScalaVersion = "0.41.4"
-    val testcontainersVersion      = "1.19.8"
+    val testcontainersVersion      = "1.20.1"
 
     val influxVersion = "7.1.0"
 
     val jmsApiVersion         = "3.1.0"
     val activeMqVersion       = "6.1.2"
     val protocVersion         = "3.11.4"
-    val googleProtobufVersion = "3.25.3"
+    val googleProtobufVersion = "3.25.4"
 
     val mqttVersion = "1.2.5"
 
     val commonsNetVersion      = "3.11.1"
-    val commonsCodecVersion    = "1.17.0"
+    val commonsCodecVersion    = "1.17.1"
     val commonsCompressVersion = "1.26.2"
     val commonsConfigVersion   = "2.11.0"
     val commonsIOVersion       = "2.16.1"
     val commonsHttpVersion     = "4.5.14"
-    val commonsLang3Version    = "3.14.0"
+    val commonsLang3Version    = "3.15.0"
     val jschVersion            = "0.2.18"
 
     val minaVersion           = "2.2.3"
@@ -133,7 +133,7 @@ object Dependencies {
 
     val mongoDbVersion = "3.12.14"
 
-    val jedisVersion = "5.1.3"
+    val jedisVersion = "5.1.4"
     val gsonVersion  = "2.11.0"
 
     val classGraphVersion           = "4.8.174"
@@ -153,7 +153,7 @@ object Dependencies {
 
     object Elastic7Versions extends ElasticVersions {
       override val elastic4sVersion:     String = "7.17.4"
-      override val elasticSearchVersion: String = "7.17.22"
+      override val elasticSearchVersion: String = "7.17.23"
       override val jnaVersion:           String = "5.14.0"
     }
 

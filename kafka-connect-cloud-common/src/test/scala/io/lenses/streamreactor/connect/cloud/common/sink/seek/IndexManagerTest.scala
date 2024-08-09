@@ -23,6 +23,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.naming.IndexFilenames
 import io.lenses.streamreactor.connect.cloud.common.storage._
 import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyString
@@ -52,7 +53,7 @@ class IndexManagerTest extends AnyFlatSpec with MockitoSugar with EitherValues w
 
   private val maxIndexes = 5
 
-  private val indexManager = new IndexManager(maxIndexes)
+  private val indexManager = new IndexManager(maxIndexes, new IndexFilenames(".indexes"))
 
   before {
     when(storageInterface.system()).thenReturn("TestaCloud")

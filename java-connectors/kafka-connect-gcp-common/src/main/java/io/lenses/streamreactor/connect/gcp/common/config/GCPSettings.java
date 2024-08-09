@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.gcp.common.config;
 
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigException;
 
 import cyclops.control.Either;
@@ -41,12 +42,15 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
   private final String gcpQuotaProjectIdKey;
   private final String hostKey;
   private final String httpErrorRetryIntervalKey;
+  private final String httpErrorRetryTimeoutMultiplier;
   private final String httpNbrOfRetriesKey;
   private final String httpSocketTimeoutKey;
   private final String httpConnectionTimeoutKey;
 
-  public static final Long HTTP_ERROR_RETRY_INTERVAL_DEFAULT = 50L;
-  public static final Integer HTTP_NUMBER_OF_RETIRES_DEFAULT = 5;
+  //The default values for the GCP HTTP timeout is 3 minutes
+  public static final Long HTTP_ERROR_RETRY_INTERVAL_DEFAULT = 500L;
+  public static final Integer HTTP_NUMBER_OF_RETIRES_DEFAULT = 36;
+  public static final Double HTTP_BACKOFF_RETRY_MULTIPLIER_DEFAULT = 3.0;
   public static final Long HTTP_SOCKET_TIMEOUT_DEFAULT = 60000L;
   public static final Long HTTP_CONNECTION_TIMEOUT_DEFAULT = 60000L;
 
@@ -62,6 +66,8 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
     gcpQuotaProjectIdKey = connectorPrefix.prefixKey("gcp.quota.project.id");
     hostKey = connectorPrefix.prefixKey("endpoint");
     httpErrorRetryIntervalKey = connectorPrefix.prefixKey("http.retry.interval");
+    httpErrorRetryTimeoutMultiplier =
+        connectorPrefix.prefixKey("http.retry.timeout.multiplier");
     httpNbrOfRetriesKey = connectorPrefix.prefixKey("http.max.retries");
     httpSocketTimeoutKey = connectorPrefix.prefixKey("http.socket.timeout");
     httpConnectionTimeoutKey = connectorPrefix.prefixKey("http.connection.timeout");
@@ -115,6 +121,16 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
                 ConfigDef.Width.LONG,
                 httpErrorRetryIntervalKey)
             .define(
+                httpErrorRetryTimeoutMultiplier,
+                Type.DOUBLE,
+                HTTP_BACKOFF_RETRY_MULTIPLIER_DEFAULT,
+                ConfigDef.Importance.MEDIUM,
+                "This controls the change in delay before the next retry or poll",
+                "Error",
+                4,
+                ConfigDef.Width.LONG,
+                httpErrorRetryTimeoutMultiplier)
+            .define(
                 httpSocketTimeoutKey,
                 ConfigDef.Type.LONG,
                 HTTP_SOCKET_TIMEOUT_DEFAULT,
@@ -143,7 +159,10 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
           val retryConfig =
               new RetryConfig(
                   configSource.getInt(httpNbrOfRetriesKey).orElse(HTTP_NUMBER_OF_RETIRES_DEFAULT),
-                  configSource.getLong(httpErrorRetryIntervalKey).orElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT));
+                  configSource.getLong(httpErrorRetryIntervalKey).orElse(HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
+                  configSource.getDouble(httpErrorRetryTimeoutMultiplier).orElse(
+                      HTTP_BACKOFF_RETRY_MULTIPLIER_DEFAULT)
+              );
 
           val timeoutConfig =
               new HttpTimeoutConfig(
