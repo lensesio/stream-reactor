@@ -78,7 +78,7 @@ object Dependencies {
     val jerseyCommonVersion = "3.1.8"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.25.70"
+    val awsSdkVersion  = "2.26.29"
 
     val azureDataLakeVersion              = "12.20.0"
     val azureIdentityVersion              = "1.13.2"
@@ -95,7 +95,7 @@ object Dependencies {
     val openCsvVersion      = "5.9"
     val jsonSmartVersion    = "2.5.1"
 
-    val xzVersion  = "1.9"
+    val xzVersion  = "1.10"
     val lz4Version = "1.8.0"
 
     val bouncyCastleVersion = "1.78.1"
