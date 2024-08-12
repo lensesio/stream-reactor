@@ -108,7 +108,7 @@ object Dependencies {
     val testcontainersScalaVersion = "0.41.4"
     val testcontainersVersion      = "1.20.1"
 
-    val influxVersion = "7.1.0"
+    val influxVersion = "7.2.0"
 
     val jmsApiVersion         = "3.1.0"
     val activeMqVersion       = "6.1.2"
