@@ -31,6 +31,7 @@ object GCPStorageSourceConfigDef extends CommonConfigDef with CloudSourceSetting
     addSourceOrderingSettings(settings)
     addSourcePartitionSearcherSettings(settings)
     addSourcePartitionExtractorSettings(settings)
+    addSourceFilteringSettings(settings)
   }
 }
 

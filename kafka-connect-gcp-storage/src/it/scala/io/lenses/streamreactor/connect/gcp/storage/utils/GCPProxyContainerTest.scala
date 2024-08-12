@@ -49,7 +49,9 @@ trait GCPProxyContainerTest
   override val prefix: String = "connect.gcpstorage"
 
   override def createStorageInterface(client: Storage): Either[Throwable, GCPStorageStorageInterface] =
-    Try(new GCPStorageStorageInterface(connectorTaskId, client, true)).toEither
+    Try(
+      new GCPStorageStorageInterface(connectorTaskId, client, true, Option.empty),
+    ).toEither
 
   override def createClient(): Either[Throwable, Storage] = {
 

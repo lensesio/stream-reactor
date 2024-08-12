@@ -1,8 +1,8 @@
 package io.lenses.streamreactor.connect.aws.s3.utils
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsS3ClientCreator
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConnectionConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.S3SinkTask
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
@@ -44,7 +44,13 @@ trait S3ProxyContainerTest
   override val prefix: String = "connect.s3"
 
   override def createStorageInterface(client: S3Client): Either[Throwable, AwsS3StorageInterface] =
-    Try(new AwsS3StorageInterface(connectorTaskId, client, true)).toEither
+    Try(
+      new AwsS3StorageInterface(connectorTaskId = connectorTaskId,
+                                s3Client        = client,
+                                batchDelete     = true,
+                                extensionFilter = Option.empty,
+      ),
+    ).toEither
 
   override def createClient(): Either[Throwable, S3Client] = {
 

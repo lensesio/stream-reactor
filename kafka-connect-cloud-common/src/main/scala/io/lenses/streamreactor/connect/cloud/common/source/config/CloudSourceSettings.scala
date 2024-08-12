@@ -19,6 +19,7 @@ import io.lenses.streamreactor.common.config.base.traits.BaseSettings
 import io.lenses.streamreactor.connect.cloud.common.config.ConfigParse
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEntry
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
+import io.lenses.streamreactor.connect.cloud.common.storage.ExtensionFilter
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 
@@ -52,4 +53,33 @@ trait CloudSourceSettings extends BaseSettings with CloudSourceSettingsKeys {
       wildcardExcludes = getString(PARTITION_SEARCH_INDEX_EXCLUDES).split(',').toSet[String].map(_.trim),
     )
 
+  /**
+    * Retrieves the extension filter for the source.
+    *
+    * The extension filter is used to include or exclude files
+    * based on their extensions when reading from the source.
+    *
+    * @return The extension filter for the source.
+    */
+  def getSourceExtensionFilter: Option[ExtensionFilter] = {
+
+    val includes = extractSetFromProperty(SOURCE_EXTENSION_INCLUDES)
+    val excludes = extractSetFromProperty(SOURCE_EXTENSION_EXCLUDES)
+    Option.when(includes.nonEmpty || excludes.nonEmpty)(new ExtensionFilter(includes.getOrElse(Set.empty),
+                                                                            excludes.getOrElse(Set.empty),
+    ))
+  }
+
+  /**
+    * Extracts the property value from the configuration and transforms it into a set of strings.
+    *
+    * Each string in the set represents a file extension. If the extension does not start with a dot, one is added.
+    *
+    * @param propertyName The name of the property to extract.
+    * @return An Option containing a set of strings if the property exists, None otherwise.
+    */
+  private def extractSetFromProperty(propertyName: String): Option[Set[String]] =
+    Option(getString(propertyName)).map(_.split(",").map(_.toLowerCase).map(s =>
+      if (s.startsWith(".")) s else s".$s",
+    ).toSet)
 }

@@ -85,7 +85,8 @@ class GCPStorageStorageInterfaceTest
 
   private val connectorTaskId: ConnectorTaskId = ConnectorTaskId("connector", 1, 1)
 
-  private val storageInterface = new GCPStorageStorageInterface(connectorTaskId, client, false)
+  private val storageInterface =
+    new GCPStorageStorageInterface(connectorTaskId, client, false, Option.empty)
 
   private val bucket = "test-bucket"
   //private val prefix = "test-prefix".some

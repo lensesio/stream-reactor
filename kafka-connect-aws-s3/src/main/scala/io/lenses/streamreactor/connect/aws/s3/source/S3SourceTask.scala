@@ -43,7 +43,11 @@ class S3SourceTask
     config:          S3SourceConfig,
     s3Client:        S3Client,
   ): AwsS3StorageInterface =
-    new AwsS3StorageInterface(connectorTaskId, s3Client, config.batchDelete)
+    new AwsS3StorageInterface(connectorTaskId = connectorTaskId,
+                              s3Client        = s3Client,
+                              batchDelete     = config.batchDelete,
+                              extensionFilter = config.extensionFilter,
+    )
 
   override def createClient(config: S3SourceConfig): Either[Throwable, S3Client] =
     AwsS3ClientCreator.make(config.connectionConfig)

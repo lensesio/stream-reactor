@@ -25,6 +25,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.source.config.CloudSourceBucketOptions
 import io.lenses.streamreactor.connect.cloud.common.source.config.PartitionSearcherOptions
+import io.lenses.streamreactor.connect.cloud.common.storage.ExtensionFilter
 
 object S3SourceConfig extends PropsToConfigConverter[S3SourceConfig] {
 
@@ -52,6 +53,7 @@ object S3SourceConfig extends PropsToConfigConverter[S3SourceConfig] {
       s3ConfigDefBuilder.getCompressionCodec(),
       s3ConfigDefBuilder.getPartitionSearcherOptions(parsedValues),
       s3ConfigDefBuilder.batchDelete(),
+      s3ConfigDefBuilder.getSourceExtensionFilter,
     )
 
   }
@@ -64,4 +66,5 @@ case class S3SourceConfig(
   compressionCodec:  CompressionCodec,
   partitionSearcher: PartitionSearcherOptions,
   batchDelete:       Boolean,
+  extensionFilter:   Option[ExtensionFilter],
 ) extends CloudSourceConfig[S3FileMetadata]

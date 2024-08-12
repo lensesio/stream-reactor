@@ -20,6 +20,7 @@ import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ObjectMetadata
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableFile
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.storage.ExtensionFilter
 import io.lenses.streamreactor.connect.cloud.common.storage.FileCreateError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage.FileListError
@@ -49,6 +50,7 @@ class AwsS3StorageInterface(
   connectorTaskId: ConnectorTaskId,
   s3Client:        S3Client,
   batchDelete:     Boolean,
+  extensionFilter: Option[ExtensionFilter],
 ) extends StorageInterface[S3FileMetadata]
     with LazyLogging {
 
@@ -74,6 +76,7 @@ class AwsS3StorageInterface(
         .asScala
         .filterNot(AwsS3StorageFilter.filterOut)
         .map(o => S3FileMetadata(o.key(), o.lastModified()))
+        .filter(md => extensionFilter.forall(_.filter(md)))
 
       processAsKey(
         bucket,
@@ -121,7 +124,7 @@ class AwsS3StorageInterface(
         pagReq.iterator().asScala.flatMap(
           _.contents().asScala.filterNot(AwsS3StorageFilter.filterOut).toSeq.map(o =>
             S3FileMetadata(o.key(), o.lastModified()),
-          ),
+          ).filter(md => extensionFilter.forall(_.filter(md))),
         ).toSeq,
       )
     }.toEither.leftMap {
