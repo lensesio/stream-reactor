@@ -46,7 +46,7 @@ object Dependencies {
     val cyclopsVersion = "10.4.1"
 
     val kafkaVersion:     String = "3.8.0"
-    val confluentVersion: String = "7.6.2"
+    val confluentVersion: String = "7.7.0"
 
     val enumeratumVersion = "1.7.4"
 
@@ -78,7 +78,7 @@ object Dependencies {
     val jerseyCommonVersion = "3.1.8"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.26.29"
+    val awsSdkVersion  = "2.26.31"
 
     val azureDataLakeVersion              = "12.20.0"
     val azureIdentityVersion              = "1.13.2"
@@ -108,10 +108,10 @@ object Dependencies {
     val testcontainersScalaVersion = "0.41.4"
     val testcontainersVersion      = "1.20.1"
 
-    val influxVersion = "7.1.0"
+    val influxVersion = "7.2.0"
 
     val jmsApiVersion         = "3.1.0"
-    val activeMqVersion       = "6.1.2"
+    val activeMqVersion       = "6.1.3"
     val protocVersion         = "3.11.4"
     val googleProtobufVersion = "3.25.4"
 
@@ -119,12 +119,12 @@ object Dependencies {
 
     val commonsNetVersion      = "3.11.1"
     val commonsCodecVersion    = "1.17.1"
-    val commonsCompressVersion = "1.26.2"
+    val commonsCompressVersion = "1.27.0"
     val commonsConfigVersion   = "2.11.0"
     val commonsIOVersion       = "2.16.1"
     val commonsHttpVersion     = "4.5.14"
-    val commonsLang3Version    = "3.15.0"
-    val jschVersion            = "0.2.18"
+    val commonsLang3Version    = "3.16.0"
+    val jschVersion            = "0.2.19"
 
     val minaVersion           = "2.2.3"
     val betterFilesVersion    = "3.9.2"
@@ -177,8 +177,8 @@ object Dependencies {
   val logback          = "ch.qos.logback"              % "logback-classic"  % logbackVersion
   lazy val logbackCore = "ch.qos.logback"              % "logback-core"     % logbackVersion
   val scalaLogging     = "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion
-  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.13"
-  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.13"
+  val log4jToSlf4j     = "org.slf4j"                   % "log4j-over-slf4j" % "2.0.16"
+  val jclToSlf4j       = "org.slf4j"                   % "jcl-over-slf4j"   % "2.0.16"
 
   // testing
   val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
@@ -389,7 +389,7 @@ object Dependencies {
 
   lazy val classGraph    = "io.github.classgraph" % "classgraph"    % classGraphVersion
   lazy val nimbusJoseJwt = hiveExcludes("com.nimbusds" % "nimbus-jose-jwt" % nimbusJoseJwtVersion)
-  lazy val airCompressor = "io.airlift"           % "aircompressor" % "0.27"
+  lazy val airCompressor = "io.airlift"           % "aircompressor" % "2.0"
   lazy val zstd          = "com.github.luben"     % "zstd-jni"      % "1.5.6-2"
 
   // testcontainers module only
