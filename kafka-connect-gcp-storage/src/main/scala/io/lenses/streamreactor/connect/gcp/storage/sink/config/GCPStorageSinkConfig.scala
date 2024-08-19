@@ -69,7 +69,7 @@ object GCPStorageSinkConfig extends PropsToConfigConverter[GCPStorageSinkConfig]
 case class GCPStorageSinkConfig(
   connectionConfig:     GCPConnectionConfig,
   bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
-  indexOptions:         IndexOptions,
+  indexOptions:         Option[IndexOptions],
   compressionCodec:     CompressionCodec,
   avoidResumableUpload: Boolean,
   connectorRetryConfig: RetryConfig,

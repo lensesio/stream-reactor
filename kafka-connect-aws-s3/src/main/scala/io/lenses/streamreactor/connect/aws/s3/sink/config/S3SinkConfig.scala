@@ -70,7 +70,7 @@ object S3SinkConfig extends PropsToConfigConverter[S3SinkConfig] {
 case class S3SinkConfig(
   connectionConfig:     S3ConnectionConfig,
   bucketOptions:        Seq[CloudSinkBucketOptions] = Seq.empty,
-  indexOptions:         IndexOptions,
+  indexOptions:         Option[IndexOptions],
   compressionCodec:     CompressionCodec,
   batchDelete:          Boolean,
   errorPolicy:          ErrorPolicy,

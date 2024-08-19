@@ -105,7 +105,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           dataStorage      = DataStorageSettings.disabled,
         ), // JsonS3Format
       ),
-      indexOptions = IndexOptions(5, ".indexes"),
+      indexOptions = IndexOptions(5, ".indexes").some,
       compressionCodec,
       batchDelete          = true,
       errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
@@ -113,7 +113,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       logMetrics           = false,
     )
 
-    val sink   = writerManagerCreator.from(config)
+    val sink   = writerManagerCreator.from(config)._2
     val topic  = Topic(TopicName)
     val offset = Offset(1)
     sink.write(
@@ -169,7 +169,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           dataStorage      = DataStorageSettings.disabled,
         ),
       ),
-      indexOptions = IndexOptions(5, ".indexes"),
+      indexOptions = IndexOptions(5, ".indexes").some,
       compressionCodec,
       batchDelete          = true,
       errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
@@ -177,7 +177,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       logMetrics           = false,
     )
 
-    val sink = writerManagerCreator.from(config)
+    val sink = writerManagerCreator.from(config)._2
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         val topic  = Topic(TopicName)
@@ -237,7 +237,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           dataStorage      = DataStorageSettings.disabled,
         ),
       ),
-      indexOptions = IndexOptions(5, ".indexes"),
+      indexOptions = IndexOptions(5, ".indexes").some,
       compressionCodec,
       batchDelete          = true,
       errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
@@ -245,7 +245,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       logMetrics           = false,
     )
 
-    val sink = writerManagerCreator.from(config)
+    val sink = writerManagerCreator.from(config)._2
 
     val topic  = Topic(TopicName)
     val offset = Offset(1L)
@@ -311,7 +311,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
           dataStorage      = DataStorageSettings.disabled,
         ),
       ),
-      indexOptions = IndexOptions(5, ".indexes"),
+      indexOptions = IndexOptions(5, ".indexes").some,
       compressionCodec,
       batchDelete          = true,
       errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
@@ -319,7 +319,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
       logMetrics           = false,
     )
 
-    val sink   = writerManagerCreator.from(config)
+    val sink   = writerManagerCreator.from(config)._2
     val topic  = Topic(TopicName)
     val offset = Offset(1)
     val listOfPojo: java.util.List[Pojo] = List(

@@ -104,7 +104,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
         dataStorage      = DataStorageSettings.disabled,
       ),
     ),
-    indexOptions         = IndexOptions(5, ".indexes"),
+    indexOptions         = IndexOptions(5, ".indexes").some,
     compressionCodec     = compressionCodec,
     batchDelete          = true,
     errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
@@ -116,7 +116,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     val sink = writerManagerCreator.from(avroConfig(new OffsetFileNamer(
       identity[String],
       AvroFormatSelection.extension,
-    )))
+    )))._2
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         val writeRes = sink.write(
@@ -152,7 +152,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     val sink = writerManagerCreator.from(avroConfig(new OffsetFileNamer(
       identity[String],
       AvroFormatSelection.extension,
-    )))
+    )))._2
     firstUsers.zip(List(0 -> 100, 1 -> 99, 2 -> 101, 3 -> 102)).foreach {
       case (struct: Struct, (index: Int, timestamp: Int)) =>
         val writeRes = sink.write(
@@ -187,7 +187,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     val sink = writerManagerCreator.from(avroConfig(new OffsetFileNamer(
       identity[String],
       AvroFormatSelection.extension,
-    )))
+    )))._2
     val usersWithDecimal1 =
       new Struct(UsersSchemaDecimal)
         .put("name", "sam")
@@ -266,7 +266,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyCont
     val sink = writerManagerCreator.from(avroConfig(new OffsetFileNamer(
       identity[String],
       AvroFormatSelection.extension,
-    )))
+    )))._2
     firstUsers.concat(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
         sink.write(

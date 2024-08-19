@@ -18,9 +18,12 @@ package io.lenses.streamreactor.connect.cloud.common.sink.seek
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
+import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.model.UploadableString
+import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
+import io.lenses.streamreactor.connect.cloud.common.sink.BatchCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.FatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.NonFatalCloudSinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
@@ -29,14 +32,21 @@ import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerErrors
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManagerErrors.fileDeleteError
 import io.lenses.streamreactor.connect.cloud.common.storage._
 
+import scala.collection.mutable
+
 class IndexManager[SM <: FileMetadata](
-  maxIndexes:     Int,
-  indexFilenames: IndexFilenames,
+  maxIndexes:        Int,
+  indexFilenames:    IndexFilenames,
+  bucketAndPrefixFn: TopicPartition => Either[SinkError, CloudLocation],
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
   storageInterface: StorageInterface[SM],
 ) extends LazyLogging {
+
+  // A mutable map that stores the latest offset for each TopicPartition that was seeked during the initialization of the Kafka Connect SinkTask.
+  // The key is the TopicPartition and the value is the corresponding Offset.
+  private val seekedOffsets = mutable.Map.empty[TopicPartition, Offset]
 
   /**
     * deletes all index files except for the one corresponding to topicPartitionOffset
@@ -160,7 +170,7 @@ class IndexManager[SM <: FileMetadata](
       }
   }
 
-  private def seekAndClean(
+  def seekAndClean(
     topicPartition: TopicPartition,
     bucket:         String,
     indexes:        Seq[String],
@@ -217,4 +227,61 @@ class IndexManager[SM <: FileMetadata](
             case _ => result
           }
       }
+
+  /**
+    * Opens the `IndexManager` for a set of `TopicPartition`s.
+    *
+    * This method is called at the start of a Kafka Connect SinkTask when it is first initialized.
+    * It seeks the filesystem to find the latest offsets for each `TopicPartition` in the provided set.
+    * The results are stored in the `seekedOffsets` map for later use.
+    *
+    * @param partitions A set of `TopicPartition`s for which to retrieve the offsets.
+    * @return Either a `SinkError` if an error occurred during the operation, or a `Map[TopicPartition, Offset]` containing the seeked offsets for each `TopicPartition`.
+    */
+  def open(partitions: Set[TopicPartition]): Either[SinkError, Map[TopicPartition, Offset]] = {
+    logger.debug(s"[{}] Received call to WriterManager.open", connectorTaskId.show)
+
+    partitions
+      .map(seekOffsetsForTopicPartition)
+      .partitionMap(identity) match {
+      case (throwables, _) if throwables.nonEmpty => BatchCloudSinkError(throwables).asLeft
+      case (_, offsets) =>
+        val seeked = offsets.flatten.map(
+          _.toTopicPartitionOffsetTuple,
+        ).toMap
+        seekedOffsets ++= seeked
+        seeked.asRight
+    }
+  }
+
+  /**
+    * Seeks the filesystem to find the latest offset for a specific `TopicPartition`.
+    *
+    * This method is used during the initialization of a Kafka Connect SinkTask to find the latest offset for a specific `TopicPartition`.
+    * The result is stored in the `seekedOffsets` map for later use.
+    *
+    * @param topicPartition The `TopicPartition` for which to retrieve the offset.
+    * @return Either a `SinkError` if an error occurred during the operation, or an `Option[TopicPartitionOffset]` containing the seeked offset for the `TopicPartition`.
+    */
+  private def seekOffsetsForTopicPartition(
+    topicPartition: TopicPartition,
+  ): Either[SinkError, Option[TopicPartitionOffset]] = {
+    logger.debug(s"[{}] seekOffsetsForTopicPartition {}", connectorTaskId.show, topicPartition)
+    for {
+      bucketAndPrefix <- bucketAndPrefixFn(topicPartition)
+      offset          <- initialSeek(topicPartition, bucketAndPrefix.bucket)
+    } yield offset
+  }
+
+  /**
+    * Retrieves the latest offset for a specific `TopicPartition` that was seeked during the initialization of the Kafka Connect SinkTask.
+    *
+    * This method is used to get the latest offset for a specific `TopicPartition` from the `seekedOffsets` map.
+    *
+    * @param topicPartition The `TopicPartition` for which to retrieve the offset.
+    * @return An `Option[Offset]` containing the seeked offset for the `TopicPartition` if it exists, or `None` if it does not.
+    */
+  def getSeekedOffsetForTopicPartition(topicPartition: TopicPartition): Option[Offset] =
+    seekedOffsets.get(topicPartition)
+
 }

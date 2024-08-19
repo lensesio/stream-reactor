@@ -29,7 +29,6 @@ import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CloudCommitContext
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
-import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.storage._
 import org.apache.kafka.connect.data.Schema
 
@@ -40,7 +39,7 @@ import scala.util.Try
 class Writer[SM <: FileMetadata](
   topicPartition:    TopicPartition,
   commitPolicy:      CommitPolicy,
-  indexManager:      IndexManager[SM],
+  writerIndexer:     WriterIndexer[SM],
   stagingFilenameFn: () => Either[SinkError, File],
   objectKeyBuilder:  ObjectKeyBuilder,
   formatWriterFn:    File => Either[SinkError, FormatWriter],
@@ -117,10 +116,10 @@ class Writer[SM <: FileMetadata](
         for {
           key  <- objectKeyBuilder.build(uncommittedOffset, earliestRecordTimestamp, latestRecordTimestamp)
           path <- key.path.toRight(NonFatalCloudSinkError("No path exists within cloud location"))
-          indexFileName <- indexManager.write(
-            key.bucket,
-            path,
-            topicPartition.withOffset(uncommittedOffset),
+          maybeIndexFileName: Option[String] <- writerIndexer.writeIndex(topicPartition,
+                                                                         key.bucket,
+                                                                         uncommittedOffset,
+                                                                         path,
           )
           _ <- storageInterface.uploadFile(UploadableFile(file), key.bucket, path)
             .recover {
@@ -130,7 +129,7 @@ class Writer[SM <: FileMetadata](
             .leftMap {
               case UploadFailedError(exception, _) => NonFatalCloudSinkError(exception.getMessage, exception.some)
             }
-          _ <- indexManager.clean(key.bucket, indexFileName, topicPartition)
+          _ <- writerIndexer.cleanIndex(topicPartition, key, maybeIndexFileName)
           stateReset <- Try {
             logger.debug(s"[{}] Writer.resetState: Resetting state $writeState", connectorTaskId.show)
             writeState = uploadState.toNoWriter

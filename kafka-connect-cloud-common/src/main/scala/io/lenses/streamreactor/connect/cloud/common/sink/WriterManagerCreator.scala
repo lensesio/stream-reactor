@@ -33,6 +33,7 @@ import io.lenses.streamreactor.connect.cloud.common.sink.naming.KeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.ObjectKeyBuilder
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.transformers.TopicsTransformers
+import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterIndexer
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
 import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
 import io.lenses.streamreactor.connect.cloud.common.storage.StorageInterface
@@ -48,7 +49,7 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
     implicit
     connectorTaskId:  ConnectorTaskId,
     storageInterface: StorageInterface[MD],
-  ): WriterManager[MD] = {
+  ): (Option[IndexManager[MD]], WriterManager[MD]) = {
 
     val bucketAndPrefixFn: TopicPartition => Either[SinkError, CloudLocation] = topicPartition => {
       bucketOptsForTopic(config, topicPartition.topic) match {
@@ -120,22 +121,28 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
           case None => FatalCloudSinkError("Can't find format choice in config", topicPartition).asLeft
         }
 
-    val indexManager = new IndexManager(
-      config.indexOptions.maxIndexFiles,
-      new IndexFilenames(config.indexOptions.indexesDirectoryName),
+    val indexManager = config.indexOptions.map(io =>
+      new IndexManager(
+        io.maxIndexFiles,
+        new IndexFilenames(io.indexesDirectoryName),
+        bucketAndPrefixFn,
+      ),
     )
+    val writerIndexer = new WriterIndexer[MD](indexManager)
 
     val transformers = TopicsTransformers.from(config.bucketOptions)
-    new WriterManager(
+    val writerManager = new WriterManager(
       commitPolicyFn,
       bucketAndPrefixFn,
       keyNamerBuilderFn,
       stagingFilenameFn,
       finalFilenameFn,
       formatWriterFn,
-      indexManager,
+      writerIndexer,
       transformers.transform,
+      indexManager.map(_.getSeekedOffsetForTopicPartition),
     )
+    (indexManager, writerManager)
   }
 
   private def bucketOptsForTopic(config: CloudSinkConfig[_], topic: Topic): Option[CloudSinkBucketOptions] =

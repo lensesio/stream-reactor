@@ -102,7 +102,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
         dataStorage      = DataStorageSettings.disabled,
       ),
     ),
-    indexOptions = IndexOptions(5, ".indexes"),
+    indexOptions = IndexOptions(5, ".indexes").some,
     compressionCodec,
     batchDelete          = true,
     errorPolicy          = ErrorPolicy(ErrorPolicyEnum.THROW),
@@ -112,7 +112,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
 
   "parquet sink" should "write 2 records to parquet format in s3" in {
 
-    val sink = writerManagerCreator.from(parquetConfig)
+    val sink = writerManagerCreator.from(parquetConfig)._2
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         val topic  = Topic(TopicName)
@@ -158,7 +158,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyC
       new Struct(secondSchema).put("name", "coco").put("designation", null).put("salary", 395.44),
     )
 
-    val sink = writerManagerCreator.from(parquetConfig)
+    val sink = writerManagerCreator.from(parquetConfig)._2
     firstUsers.concat(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
         val topic  = Topic(TopicName)

@@ -56,7 +56,7 @@ trait CloudSinkConfig[CC] extends CloudConfig {
     *
     * @return The offset seeker options for the cloud sink.
     */
-  def indexOptions: IndexOptions
+  def indexOptions: Option[IndexOptions]
 
   /**
     * Retrieves the compression codec for the cloud sink.
