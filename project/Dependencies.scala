@@ -40,7 +40,7 @@ object Dependencies {
     val scalatestPlusScalaCheckVersion = "3.1.0.0-RC2"
     val scalaCheckVersion              = "1.18.0"
 
-    val junitJupiterVersion = "5.10.3"
+    val junitJupiterVersion = "5.11.0"
     val assertjCoreVersion  = "3.26.3"
 
     val cyclopsVersion = "10.4.1"
@@ -68,7 +68,7 @@ object Dependencies {
 
     val lombokVersion = "1.18.34"
 
-    val logbackVersion      = "1.5.6"
+    val logbackVersion      = "1.5.7"
     val scalaLoggingVersion = "3.9.5"
 
     val dnsJavaVersion  = "3.6.1"
@@ -78,14 +78,14 @@ object Dependencies {
     val jerseyCommonVersion = "3.1.8"
 
     val calciteVersion = "1.34.0"
-    val awsSdkVersion  = "2.26.31"
+    val awsSdkVersion  = "2.27.5"
 
     val azureDataLakeVersion              = "12.20.0"
     val azureIdentityVersion              = "1.13.2"
     val azureCoreVersion                  = "1.51.0"
     val msal4jVersion                     = "1.16.0"
     val msal4jPersistenceExtensionVersion = "1.3.0"
-    val gcpCloudVersion                   = "2.41.0"
+    val gcpCloudVersion                   = "2.42.0"
     val gcpCloudStorageVersion            = "2.41.0"
 
     val jacksonVersion      = "2.17.2"
