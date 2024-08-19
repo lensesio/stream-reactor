@@ -18,21 +18,20 @@ package io.lenses.streamreactor.connect.azure.eventhubs.source;
 import static io.lenses.streamreactor.common.util.AsciiArtPrinter.printAsciiHeader;
 import static io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow;
 
+import io.lenses.streamreactor.common.exception.ConnectorStartupException;
+import io.lenses.streamreactor.common.util.JarManifest;
+import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
+import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
+import io.lenses.streamreactor.connect.azure.eventhubs.util.EventHubsKcqlMappingsValidator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
-
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.source.ExactlyOnceSupport;
 import org.apache.kafka.connect.source.SourceConnector;
-
-import io.lenses.streamreactor.common.util.JarManifest;
-import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
-import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
-import io.lenses.streamreactor.connect.azure.eventhubs.util.KcqlConfigTopicMapper;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Implementation of {@link SourceConnector} for Microsoft Azure EventHubs.
@@ -90,6 +89,8 @@ public class AzureEventHubsSourceConnector extends SourceConnector {
   private static void parseAndValidateConfigs(Map<String, String> props) {
     AzureEventHubsSourceConfig azureEventHubsSourceConfig = new AzureEventHubsSourceConfig(props);
     String kcqlMappings = azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG);
-    KcqlConfigTopicMapper.mapInputToOutputsFromConfig(kcqlMappings);
+    EventHubsKcqlMappingsValidator.mapInputToOutputsFromConfig(kcqlMappings).mapLeft(e -> {
+      throw new ConnectorStartupException(e);
+    });
   }
 }

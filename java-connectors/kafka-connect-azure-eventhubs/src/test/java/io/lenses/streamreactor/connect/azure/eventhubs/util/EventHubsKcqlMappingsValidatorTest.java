@@ -19,13 +19,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.from;
 
 import io.lenses.kcql.Kcql;
-import io.lenses.streamreactor.common.exception.ConnectorStartupException;
+import io.lenses.streamreactor.common.exception.StreamReactorException;
 import io.lenses.streamreactor.test.utils.EitherValues;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class KcqlConfigTopicMapperTest {
+class EventHubsKcqlMappingsValidatorTest {
 
   @Test
   void mapInputToOutputsFromConfigForMultipleKcqlStatementsShouldReturnMapOfInputToOutput() {
@@ -46,7 +46,7 @@ class KcqlConfigTopicMapperTest {
     }
     //when
     List<Kcql> kcqls =
-        EitherValues.getRight(KcqlConfigTopicMapper.mapInputToOutputsFromConfig(
+        EitherValues.getRight(EventHubsKcqlMappingsValidator.mapInputToOutputsFromConfig(
             fullKcql.toString()));
 
     //then
@@ -87,7 +87,8 @@ class KcqlConfigTopicMapperTest {
         "INSERT INTO OUTPUT1 SELECT * FROM INPUT1;";
     String sameInputKcql =
         "INSERT INTO OUTPUT2 SELECT * FROM INPUT1;";
-    String outputErrorMessage = "Input 'INPUT1' cannot be mapped twice.";
+    String outputErrorMessage =
+        "The following errors occurred during validation: Source 'INPUT1' cannot be mapped twice.";
 
     //when
     mapInputToOutputAssertingExceptionWithSpecificMessage(oneInputKcql + sameInputKcql,
@@ -101,7 +102,8 @@ class KcqlConfigTopicMapperTest {
         "INSERT INTO OUTPUT1 SELECT * FROM INPUT2;";
     String sameInputKcql =
         "INSERT INTO OUTPUT1 SELECT * FROM INPUT1;";
-    String outputErrorMessage = "Output 'OUTPUT1' cannot be mapped twice.";
+    String outputErrorMessage =
+        "The following errors occurred during validation: Target 'OUTPUT1' cannot be mapped twice.";
 
     //when
     mapInputToOutputAssertingExceptionWithSpecificMessage(oneInputKcql + sameInputKcql,
@@ -110,8 +112,8 @@ class KcqlConfigTopicMapperTest {
 
   private static void mapInputToOutputAssertingExceptionWithSpecificMessage(String illegalKcql,
       String expectedMessage) {
-    ConnectorStartupException configException =
-        EitherValues.getLeft(KcqlConfigTopicMapper.mapInputToOutputsFromConfig(illegalKcql));
+    StreamReactorException configException =
+        EitherValues.getLeft(EventHubsKcqlMappingsValidator.mapInputToOutputsFromConfig(illegalKcql));
     assertThat(configException.getMessage()).contains(expectedMessage);
   }
 

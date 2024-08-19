@@ -18,22 +18,25 @@ package io.lenses.streamreactor.connect.azure.eventhubs.source;
 import static io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow;
 import static java.util.Optional.ofNullable;
 
+import cyclops.control.Either;
+import io.lenses.kcql.Kcql;
+import io.lenses.streamreactor.common.exception.StreamReactorException;
+import io.lenses.streamreactor.common.util.EitherUtils;
+import io.lenses.streamreactor.common.util.JarManifest;
+import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
+import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
+import io.lenses.streamreactor.connect.azure.eventhubs.util.EventHubsKcqlMappingsValidator;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
-
+import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 import org.apache.kafka.connect.storage.OffsetStorageReader;
-
-import io.lenses.streamreactor.common.util.JarManifest;
-import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsConfigConstants;
-import io.lenses.streamreactor.connect.azure.eventhubs.config.AzureEventHubsSourceConfig;
-import io.lenses.streamreactor.connect.azure.eventhubs.util.KcqlConfigTopicMapper;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Implementation of {@link SourceTask} for Microsoft Azure EventHubs.
@@ -73,18 +76,19 @@ public class AzureEventHubsSourceTask extends SourceTask {
     TopicPartitionOffsetProvider topicPartitionOffsetProvider = new TopicPartitionOffsetProvider(offsetStorageReader);
 
     ArrayBlockingQueue<ConsumerRecords<byte[], byte[]>> recordsQueue =
-        new ArrayBlockingQueue<>(
-            RECORDS_QUEUE_DEFAULT_SIZE);
-    Map<String, String> inputToOutputTopics =
-        KcqlConfigTopicMapper.mapInputToOutputsFromConfig(
+        new ArrayBlockingQueue<>(RECORDS_QUEUE_DEFAULT_SIZE);
+    Either<StreamReactorException, List<Kcql>> mappedInputsOutputsEither =
+        EventHubsKcqlMappingsValidator.mapInputToOutputsFromConfig(
             azureEventHubsSourceConfig.getString(AzureEventHubsConfigConstants.KCQL_CONFIG));
+    Map<String, String> inputToOutputTopics =
+        EitherUtils.unpackOrThrow(mappedInputsOutputsEither)
+            .stream().collect(Collectors.toUnmodifiableMap(Kcql::getSource, Kcql::getTarget));
+
     blockingQueueProducerProvider = new BlockingQueueProducerProvider(topicPartitionOffsetProvider);
     KafkaByteBlockingQueuedProducer producer =
-        blockingQueueProducerProvider.createProducer(
-            azureEventHubsSourceConfig, recordsQueue, inputToOutputTopics);
+        blockingQueueProducerProvider.createProducer(azureEventHubsSourceConfig, recordsQueue, inputToOutputTopics);
     EventHubsKafkaConsumerController kafkaConsumerController =
-        new EventHubsKafkaConsumerController(
-            producer, recordsQueue, inputToOutputTopics);
+        new EventHubsKafkaConsumerController(producer, recordsQueue, inputToOutputTopics);
     initialize(kafkaConsumerController, azureEventHubsSourceConfig);
   }
 
