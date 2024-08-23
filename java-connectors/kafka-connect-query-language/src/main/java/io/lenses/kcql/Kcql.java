@@ -16,6 +16,20 @@
 package io.lenses.kcql;
 
 import cyclops.control.Either;
+import io.lenses.kcql.antlr4.ConnectorLexer;
+import io.lenses.kcql.antlr4.ConnectorParser;
+import io.lenses.kcql.antlr4.ConnectorParserBaseListener;
+import io.lenses.kcql.partitions.PartitionConfig;
+import io.lenses.kcql.partitions.PartitionParseListener;
+import io.lenses.kcql.partitions.Partitions;
+import lombok.Getter;
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.tree.TerminalNode;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -27,18 +41,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
-import org.antlr.v4.runtime.tree.TerminalNode;
-
-import io.lenses.kcql.antlr4.ConnectorLexer;
-import io.lenses.kcql.antlr4.ConnectorParser;
-import io.lenses.kcql.antlr4.ConnectorParserBaseListener;
 
 /**
  * Parsing support for Kafka Connect Query Language.
@@ -48,47 +50,77 @@ public class Kcql {
   public static final String TIMESTAMP = "sys_time()";
   private static final String MSG_ILLEGAL_FIELD_ALIAS = "Illegal fieldAlias.";
   public static final String KCQL_MULTI_STATEMENT_SEPARATOR = ";";
+  @Getter
   private String query;
+  @Getter
   private boolean autoCreate;
+  @Getter
   private boolean autoEvolve;
+  @Getter
   private WriteModeEnum writeMode;
+  @Getter
   private String source;
+  @Getter
   private String target;
+  @Getter
   private String docType;
+  @Getter
   private String indexSuffix;
+  @Getter
   private String incrementalMode;
+  @Getter
   private final List<Field> fields = new ArrayList<>();
+  @Getter
   private final List<Field> keyFields = new ArrayList<>();
+  @Getter
   private final List<Field> headerFields = new ArrayList<>();
+  @Getter
   private final List<Field> ignoredFields = new ArrayList<>();
+  @Getter
   private final List<Field> primaryKeys = new ArrayList<>();
-  private final List<String> partitionBy = new ArrayList<>();
+
+  @Getter
+  private PartitionConfig partitions = new Partitions(List.of());
+
+  @Getter
   private int limit = 0;
+  @Getter
   private int batchSize;
+  @Getter
   private String timestamp;
+  @Getter
   private String storedAs;
+  @Getter
   private final Map<String, String> storedAsParameters = new HashMap<>();
+  @Getter
   private FormatType formatType = null;
+  @Getter
   private boolean unwrapping = false;
+  @Getter
   private List<Tag> tags;
   private boolean retainStructure = false;
+  @Getter
   private String withConverter;
   private long ttl;
+  @Getter
   private String withType;
+  @Getter
   private String withJmsSelector;
+  @Getter
   private String dynamicTarget;
+  @Getter
   private List<String> withKeys = null;
   private String keyDelimiter = ".";
+  @Getter
   private TimeUnit timestampUnit = TimeUnit.MILLISECONDS;
+  @Getter
   private String pipeline;
   private String subscription;
+  @Getter
   private String withRegex;
 
+  @Getter
   private final Map<String, String> properties = new HashMap<>();
-
-  public String getQuery() {
-    return query;
-  }
 
   public void setQuery(String query) {
     this.query = query;
@@ -158,66 +190,6 @@ public class Kcql {
     return false;
   }
 
-  private void addPartitionByField(final String field) {
-    if (field == null || field.trim().length() == 0) {
-      throw new IllegalArgumentException("Invalid partition by field");
-    }
-    for (final String f : partitionBy) {
-      if (f.compareToIgnoreCase(field.trim()) == 0) {
-        throw new IllegalArgumentException(String.format("The field %s appears twice", field));
-      }
-    }
-    partitionBy.add(field.trim());
-  }
-
-  public String getSource() {
-    return source;
-  }
-
-  public String getTarget() {
-    return target;
-  }
-
-  public List<Field> getFields() {
-    return fields;
-  }
-
-  public List<Field> getKeyFields() {
-    return keyFields;
-  }
-
-  public List<Field> getHeaderFields() {
-    return headerFields;
-  }
-
-  public List<Field> getIgnoredFields() {
-    return ignoredFields;
-  }
-
-  public WriteModeEnum getWriteMode() {
-    return writeMode;
-  }
-
-  public List<Field> getPrimaryKeys() {
-    return primaryKeys;
-  }
-
-  public String getTimestamp() {
-    return this.timestamp;
-  }
-
-  public String getStoredAs() {
-    return storedAs;
-  }
-
-  public Map<String, String> getStoredAsParameters() {
-    return storedAsParameters;
-  }
-
-  public Map<String, String> getProperties() {
-    return properties;
-  }
-
   // TODO: Jira LC-203 improvements
   // TODO: return Either
   public Either<IllegalArgumentException, Kcql> validateKcqlProperties(String... allowedKeys) {
@@ -239,44 +211,12 @@ public class Kcql {
     return Optional.ofNullable(properties.get(key));
   }
 
-  public FormatType getFormatType() {
-    return formatType;
-  }
-
-  public boolean isAutoCreate() {
-    return autoCreate;
-  }
-
-  public int getLimit() {
-    return limit;
-  }
-
-  public boolean isAutoEvolve() {
-    return autoEvolve;
-  }
-
-  public int getBatchSize() {
-    return batchSize;
-  }
-
   public Iterator<String> getPartitionBy() {
-    return partitionBy.iterator();
-  }
-
-  public Set<String> getPartitionByAsSet() {
-    Iterator<String> partitionByIter = getPartitionBy();
-    return Stream.generate(() -> null)
-        .takeWhile(x -> partitionByIter.hasNext())
-        .map(n -> partitionByIter.next())
-        .collect(Collectors.toSet());
-  }
-
-  public List<Tag> getTags() {
-    return tags;
-  }
-
-  public List<String> getWithKeys() {
-    return withKeys;
+    if (partitions.getClass().equals(Partitions.class)) {
+      return ((Partitions) partitions).getPartitionBy().iterator();
+    } else {
+      throw new IllegalStateException("PartitionBy only supported for Partitions");
+    }
   }
 
   public String getKeyDelimeter() {
@@ -287,42 +227,6 @@ public class Kcql {
     return retainStructure;
   }
 
-  public boolean isUnwrapping() {
-    return unwrapping;
-  }
-
-  public String getWithType() {
-    return this.withType;
-  }
-
-  public String getIncrementalMode() {
-    return this.incrementalMode;
-  }
-
-  public String getDocType() {
-    return this.docType;
-  }
-
-  public String getIndexSuffix() {
-    return this.indexSuffix;
-  }
-
-  public String getWithConverter() {
-    return withConverter;
-  }
-
-  public String getWithJmsSelector() {
-    return withJmsSelector;
-  }
-
-  public String getPipeline() {
-    return pipeline;
-  }
-
-  public String getWithRegex() {
-    return withRegex;
-  }
-
   private void setWithRegex(String withRegex) {
     this.withRegex = withRegex;
   }
@@ -331,16 +235,12 @@ public class Kcql {
     this.dynamicTarget = dynamicTarget;
   }
 
-  public String getDynamicTarget() {
-    return dynamicTarget;
-  }
-
-  public TimeUnit getTimestampUnit() {
-    return timestampUnit;
-  }
-
   private void setTimestampUnit(TimeUnit timestampUnit) {
     this.timestampUnit = timestampUnit;
+  }
+
+  public void setPartitions(PartitionConfig partitions) {
+    this.partitions = partitions;
   }
 
   /**
@@ -381,6 +281,7 @@ public class Kcql {
     final String[] tagValue = {null};
     final String[] tagKey = {null};
 
+    parser.addParseListener(new PartitionParseListener(kcql));
     parser.addParseListener(new ConnectorParserBaseListener() {
 
       @Override
@@ -507,11 +408,6 @@ public class Kcql {
       @Override
       public void exitInc_mode(ConnectorParser.Inc_modeContext ctx) {
         kcql.incrementalMode = ctx.getText();
-      }
-
-      @Override
-      public void exitPartition_name(ConnectorParser.Partition_nameContext ctx) {
-        kcql.addPartitionByField(ctx.getText());
       }
 
       @Override

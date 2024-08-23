@@ -130,7 +130,7 @@ partition_list
    ;
 
 partitionby
-   : PARTITIONBY partition_list
+   : NOPARTITION | PARTITIONBY partition_list
    ;
 
 timestamp_clause

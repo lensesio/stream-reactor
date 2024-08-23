@@ -15,12 +15,7 @@
  */
 package io.lenses.kcql;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
@@ -28,7 +23,12 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  *
@@ -366,69 +366,6 @@ class KcqlTest {
     assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
 
     assertTrue(kcql.isAutoEvolve());
-  }
-
-  @Test
-  void handlerPartitionByWhenAllFieldsAreIncluded() {
-    String topic = "TOPIC_A";
-    String table = "TABLE_A";
-    String syntax =
-        String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 PARTITIONBY col1,col2  ", table, topic);
-    Kcql kcql = Kcql.parse(syntax);
-
-    assertThat(kcql.getPartitionByAsSet()).containsExactlyInAnyOrder("col1", "col2");
-
-  }
-
-  @Test
-  void handlerPartitionByFromHeader() {
-    String topic = "TOPIC_A";
-    String table = "TABLE_A";
-    String syntax =
-        String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 PARTITIONBY _header.col1,_header.col2  ",
-            table, topic);
-    Kcql kcql = Kcql.parse(syntax);
-
-    assertThat(kcql.getPartitionByAsSet()).containsExactlyInAnyOrder("_header.col1", "_header.col2");
-  }
-
-  @Test
-  void partitionByShouldAllowQuotingGroupsOfFields() {
-    String topic = "TOPIC_A";
-    String table = "TABLE_A";
-    String syntax =
-        String.format(
-            "UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 PARTITIONBY _header.cost.centre.id,_header.`cost.centre.id`  ",
-            topic, table);
-    Kcql kcql = Kcql.parse(syntax);
-
-    assertThat(kcql.getPartitionByAsSet()).hasSize(2).containsExactlyInAnyOrder("_header.cost.centre.id",
-        "_header.`cost.centre.id`");
-  }
-
-  @Test
-  void handlerPartitionByWhenSpecificFieldsAreIncluded() {
-    String topic = "TOPIC_A";
-    String table = "TABLE_A";
-    String syntax =
-        String.format("UPSERT INTO %s SELECT col1, col2, col3 FROM %s IGNORE col1, 1col2 PARTITIONBY col1,col2  ",
-            table, topic);
-    Kcql kcql = Kcql.parse(syntax);
-
-    assertThat(kcql.getPartitionByAsSet()).containsExactlyInAnyOrder("col1", "col2");
-  }
-
-  @Test
-  void handlerPartitionByWhenSpecificFieldsAreIncludedAndAliasingIsPresent() {
-    String topic = "TOPIC_A";
-    String table = "TABLE_A";
-    String syntax =
-        String.format(
-            "UPSERT INTO %s SELECT col1, col2 as colABC, col3 FROM %s IGNORE col1, 1col2 PARTITIONBY col1,colABC ",
-            table, topic);
-    Kcql kcql = Kcql.parse(syntax);
-
-    assertThat(kcql.getPartitionByAsSet()).containsExactlyInAnyOrder("col1", "colABC");
   }
 
   @Test

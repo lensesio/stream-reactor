@@ -53,6 +53,10 @@ PARTITIONBY
    : 'partitionby' | 'PARTITIONBY'
    ;
 
+NOPARTITION
+   : 'nopartition' | 'NOPARTITION'
+   ;
+
 TIMESTAMP
     : 'withtimestamp' | 'WITHTIMESTAMP'
     ;
