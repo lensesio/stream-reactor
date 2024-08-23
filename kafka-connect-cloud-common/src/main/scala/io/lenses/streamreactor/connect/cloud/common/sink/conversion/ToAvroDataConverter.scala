@@ -16,16 +16,9 @@
 package io.lenses.streamreactor.connect.cloud.common.sink.conversion
 
 import io.confluent.connect.avro.AvroData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.ArraySinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.ByteArraySinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.DateSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.MapSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.PrimitiveSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.TimeSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.TimestampSinkData
+import io.confluent.connect.avro.AvroDataConfig
+import io.confluent.connect.schema.AbstractDataConfig
+import io.lenses.streamreactor.connect.cloud.common.formats.writer._
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }
@@ -44,7 +37,13 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 
 object ToAvroDataConverter {
 
-  private val avroDataConverter = new AvroData(100)
+  private val avroDataConfig = new AvroDataConfig(
+    Map(
+      AvroDataConfig.ENHANCED_AVRO_SCHEMA_SUPPORT_CONFIG -> "true",
+      AbstractDataConfig.SCHEMAS_CACHE_SIZE_CONFIG       -> "100",
+    ).asJava,
+  )
+  private val avroDataConverter = new AvroData(avroDataConfig)
 
   def convertSchema(connectSchema: Option[ConnectSchema]): Schema = connectSchema
     .fold(throw new IllegalArgumentException("Schema-less data is not supported for Avro/Parquet"))(
