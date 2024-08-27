@@ -16,8 +16,11 @@
 package io.lenses.streamreactor.connect.cloud.common.sink.conversion
 
 import io.confluent.connect.avro.AvroData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.{DateSinkData, TimeSinkData, TimestampSinkData}
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.TimeUtils.{dateWithTimeFieldsOnly, daysSinceEpoch}
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.DateSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.TimeSinkData
+import io.lenses.streamreactor.connect.cloud.common.formats.writer.TimestampSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.TimeUtils.dateWithTimeFieldsOnly
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.TimeUtils.daysSinceEpoch
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 
@@ -54,7 +57,10 @@ class ToAvroDataConverterTest extends AnyFunSuiteLike with Matchers {
     val connectSchema = avroData.toConnectSchema(avroSchema)
 
     val avroSchemaBack = ToAvroDataConverter.convertSchema(Some(connectSchema))
-    avroSchemaBack.getField("tenant_cd").schema().getTypes.get(1).getEnumSymbols.asScala.toSet shouldBe Set("one", "two", "three")
+    avroSchemaBack.getField("tenant_cd").schema().getTypes.get(1).getEnumSymbols.asScala.toSet shouldBe Set("one",
+                                                                                                            "two",
+                                                                                                            "three",
+    )
   }
 
   private def checkValueAndSchema(converted: Any, expectedValue: Long): Any =

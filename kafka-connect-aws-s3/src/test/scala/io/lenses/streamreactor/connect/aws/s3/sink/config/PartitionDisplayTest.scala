@@ -46,12 +46,12 @@ class PartitionDisplayTest extends AnyFlatSpec with MockitoSugar with Matchers w
                                                          PartitionIncludeKeys.entryName -> includeKeys.toString,
                                                        ),
       )
-    PartitionDisplay(kcql, keyValueProp(true), Values) should be(KeysAndValues)
-    PartitionDisplay(kcql, keyValueProp(false), Values) should be(Values)
+    PartitionDisplay(keyValueProp(true), Values) should be(KeysAndValues)
+    PartitionDisplay(keyValueProp(false), Values) should be(Values)
   }
 
   "apply" should "default to specified default when no partitioner specified in kcql" in {
-    PartitionDisplay(kcql, emptyProps, KeysAndValues) should be(KeysAndValues)
-    PartitionDisplay(kcql, emptyProps, Values) should be(Values)
+    PartitionDisplay(emptyProps, KeysAndValues) should be(KeysAndValues)
+    PartitionDisplay(emptyProps, Values) should be(Values)
   }
 }

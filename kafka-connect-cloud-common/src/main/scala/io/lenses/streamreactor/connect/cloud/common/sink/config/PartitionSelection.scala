@@ -20,8 +20,15 @@ import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnt
 import io.lenses.streamreactor.connect.cloud.common.config.kcqlprops.PropsKeyEnum
 import PartitionDisplay.KeysAndValues
 import PartitionDisplay.Values
+import cats.implicits.catsSyntaxEitherId
+import io.lenses.kcql.partitions.NoPartitions
+import io.lenses.kcql.partitions.Partitions
 import io.lenses.streamreactor.connect.config.kcqlprops.KcqlProperties
 
+/**
+  * The `PartitionSpecifier` object is used to specify the type of partitioning to be applied.
+  * It provides different options for partitioning such as by Key, Value, Header, Topic, Partition, and Date.
+  */
 case class PartitionSelection(
   isCustom:         Boolean,
   partitions:       Seq[PartitionField],
@@ -37,20 +44,30 @@ object PartitionSelection {
   def apply(
     kcql:  Kcql,
     props: KcqlProperties[PropsKeyEntry, PropsKeyEnum.type],
-  ): PartitionSelection = {
-    val fields: Seq[PartitionField] = PartitionField(kcql)
-    if (fields.isEmpty) {
-      defaultPartitionSelection(
-        PartitionDisplay(kcql, props, Values),
-      )
-    } else {
-      PartitionSelection(
-        isCustom = true,
-        fields,
-        PartitionDisplay(kcql, props, KeysAndValues),
-      )
+  ): Either[Throwable, PartitionSelection] =
+    kcql.getPartitions match {
+      case _: NoPartitions =>
+        PartitionSelection(
+          isCustom = true,
+          Seq.empty,
+          PartitionDisplay(props, Values),
+        ).asRight
+      case partitions: Partitions =>
+        for {
+          fields: Seq[PartitionField] <- PartitionField(partitions)
+        } yield {
+          fields match {
+            case partitions if partitions.nonEmpty => PartitionSelection(
+                isCustom = true,
+                partitions,
+                PartitionDisplay(props, KeysAndValues),
+              )
+            case _ =>
+              defaultPartitionSelection(
+                PartitionDisplay(props, Values),
+              )
+          }
+        }
     }
-
-  }
 
 }
