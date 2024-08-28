@@ -22,6 +22,8 @@ import io.lenses.kcql.antlr4.ConnectorParserBaseListener;
 import io.lenses.kcql.partitions.PartitionConfig;
 import io.lenses.kcql.partitions.PartitionParseListener;
 import io.lenses.kcql.partitions.Partitions;
+import io.lenses.kcql.targettype.TargetType;
+import io.lenses.kcql.targettype.TargetTypeParser;
 import lombok.Getter;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
@@ -672,5 +674,10 @@ public class Kcql {
       value = value.substring(1, value.length() - 1);
     }
     return value;
+  }
+
+  public Either<IllegalArgumentException, TargetType> getTargetType() {
+    return TargetTypeParser.parse(target)
+        .mapLeft(IllegalArgumentException::new);
   }
 }

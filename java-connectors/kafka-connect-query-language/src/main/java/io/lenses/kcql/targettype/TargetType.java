@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,11 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.elastic7
+package io.lenses.kcql.targettype;
 
-package object indexname {
+import cyclops.control.Option;
+import lombok.Data;
 
-  implicit class StringToOption(text: String) {
-    def toOption: Option[String] = Option.when(text.nonEmpty)(text)
-  }
+/**
+ * The TargetType interface represents a type of target that can be parsed from a string.
+ * Implementations of this interface define specific types of targets.
+ */
+public interface TargetType {
+
 }
