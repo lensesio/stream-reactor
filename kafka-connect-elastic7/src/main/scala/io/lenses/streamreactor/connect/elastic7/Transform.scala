@@ -15,14 +15,14 @@
  */
 package io.lenses.streamreactor.connect.elastic7
 
-import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.JsonNode
+import com.typesafe.scalalogging.StrictLogging
 import io.lenses.connect.sql.StructSql._
 import io.lenses.json.sql.JacksonJson
 import io.lenses.json.sql.JsonSql._
 import io.lenses.sql.Field
-import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.connect.json.SimpleJsonConverter
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 
@@ -34,18 +34,11 @@ import scala.util.Try
 private object Transform extends StrictLogging {
   lazy val simpleJsonConverter = new SimpleJsonConverter()
 
-  def apply(
-    fields:        Seq[Field],
-    schema:        Schema,
-    value:         Any,
-    withStructure: Boolean,
-  ): JsonNode = {
+  def apply(fields: Seq[Field], schema: Schema, value: Any, withStructure: Boolean): JsonNode = {
     def raiseException(msg: String, t: Throwable) = throw new IllegalArgumentException(msg, t)
 
     if (value == null) {
-      if (schema == null || !schema.isOptional) {
-        raiseException("Null value is not allowed.", null)
-      } else null
+      null
     } else {
       if (schema != null) {
         schema.`type`() match {
