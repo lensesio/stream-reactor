@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.cloud.common.formats.writer
 
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData
 
 import java.time.Instant
 

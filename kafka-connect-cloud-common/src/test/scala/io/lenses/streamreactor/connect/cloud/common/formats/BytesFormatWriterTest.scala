@@ -18,13 +18,13 @@ package io.lenses.streamreactor.connect.cloud.common.formats
 import io.lenses.streamreactor.connect.cloud.common.stream.CloudByteArrayOutputStream
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.ByteArraySinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.BytesFormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ByteArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 import org.apache.commons.io.IOUtils
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec

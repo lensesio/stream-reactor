@@ -15,14 +15,14 @@
  */
 package io.lenses.streamreactor.connect.elastic6
 
+import cats.implicits.toBifunctorOps
+import com.sksamuel.elastic4s.bulk.BulkRequest
+import com.sksamuel.elastic4s.http._
+import com.sksamuel.elastic4s.http.bulk.BulkResponse
+import com.typesafe.scalalogging.StrictLogging
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.connect.elastic6.config.ElasticSettings
-import io.lenses.streamreactor.connect.elastic6.indexname.CreateIndex.getIndexName
-import com.sksamuel.elastic4s.bulk.BulkRequest
-import com.sksamuel.elastic4s.http.bulk.BulkResponse
-import com.sksamuel.elastic4s.http._
-import com.sksamuel.elastic4s.mappings.MappingDefinition
-import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.connect.elastic6.indexname.CreateIndex.getIndexNameForAutoCreate
 import org.apache.http.auth.AuthScope
 import org.apache.http.auth.UsernamePasswordCredentials
 import org.apache.http.impl.client.BasicCredentialsProvider
@@ -71,12 +71,11 @@ class HttpKElasticClient(client: ElasticClient) extends KElasticClient {
   override def index(kcql: Kcql): Unit = {
     require(kcql.isAutoCreate, s"Auto-creating indexes hasn't been enabled for target:${kcql.getTarget}")
 
-    val indexName = getIndexName(kcql)
-    client.execute {
-      Option(kcql.getDocType) match {
-        case None               => createIndex(indexName)
-        case Some(documentType) => createIndex(indexName).mappings(MappingDefinition(documentType))
-      }
+    getIndexNameForAutoCreate(kcql).leftMap(throw _).map {
+      indexName: String =>
+        client.execute {
+          createIndex(indexName)
+        }
     }
     ()
   }

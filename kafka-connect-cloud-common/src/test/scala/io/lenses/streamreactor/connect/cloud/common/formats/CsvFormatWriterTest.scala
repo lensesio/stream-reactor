@@ -18,9 +18,9 @@ package io.lenses.streamreactor.connect.cloud.common.formats
 import com.opencsv.CSVReader
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.CsvFormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.extractors.ExtractorError
 import io.lenses.streamreactor.connect.cloud.common.sink.extractors.ExtractorErrorType.UnexpectedType
 import io.lenses.streamreactor.connect.cloud.common.stream.CloudByteArrayOutputStream

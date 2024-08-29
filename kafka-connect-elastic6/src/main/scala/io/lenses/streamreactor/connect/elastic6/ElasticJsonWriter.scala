@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.elastic6
 
+import cats.implicits.toBifunctorOps
+
 import java.util
 import io.lenses.kcql.Kcql
 import io.lenses.kcql.WriteModeEnum
@@ -106,12 +108,12 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
 
         //we might have multiple inserts from the same Kafka Message
         kcqls.flatMap { kcql =>
-          val i            = CreateIndex.getIndexName(kcql)
-          val documentType = Option(kcql.getDocType).getOrElse(i)
-          val kcqlValue    = kcqlMap.get(kcql)
+          val kcqlValue = kcqlMap.get(kcql)
           sinkRecords.grouped(settings.batchSize)
             .map { batch =>
               val indexes = batch.map { r =>
+                val i            = CreateIndex.getIndexName(kcql, r).leftMap(throw _).merge
+                val documentType = Option(kcql.getDocType).getOrElse(i)
                 val (json, pks) = if (kcqlValue.primaryKeysPath.isEmpty) {
                   (Transform(
                      kcqlValue.fields,

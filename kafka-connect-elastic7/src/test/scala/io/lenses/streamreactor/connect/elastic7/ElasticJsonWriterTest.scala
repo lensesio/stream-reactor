@@ -20,6 +20,8 @@ import com.sksamuel.elastic4s.requests.delete.DeleteByIdRequest
 import com.sksamuel.elastic4s.requests.indexes.IndexRequest
 import io.lenses.kcql.Kcql
 import io.lenses.kcql.WriteModeEnum
+import io.lenses.kcql.targettype.StaticTargetType
+import io.lenses.kcql.targettype.TargetType
 import io.lenses.streamreactor.common.errors.NoopErrorPolicy
 import io.lenses.streamreactor.connect.elastic7.config.ElasticConfigConstants.BEHAVIOR_ON_NULL_VALUES_PROPERTY
 import io.lenses.streamreactor.connect.elastic7.config.ElasticSettings
@@ -50,10 +52,10 @@ class ElasticJsonWriterTest extends TestBase with MockitoSugar {
     val kElasticClient = mock[KElasticClient]
 
     val sourceTopic = "SOURCE"
-    val targetShard = "SHARD"
+    val targetShard = cyclops.control.Either.right[IllegalArgumentException, TargetType](new StaticTargetType("SHARD"))
     val kcql        = mock[Kcql]
     when(kcql.getSource).thenReturn(sourceTopic)
-    when(kcql.getTarget).thenReturn(targetShard)
+    when(kcql.getTargetType).thenReturn(targetShard)
     when(kcql.getProperties).thenReturn(emptyMap)
     when(kcql.getWriteMode).thenReturn(WriteModeEnum.INSERT)
     when(kcql.getFields).thenReturn(emptyList())

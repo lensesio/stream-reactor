@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.elastic7
 
+import cats.implicits.toBifunctorOps
+
 import com.fasterxml.jackson.databind.JsonNode
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.Index
@@ -129,11 +131,11 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
 
         //we might have multiple inserts from the same Kafka Message
         kcqls.flatMap { kcql =>
-          val i         = CreateIndex.getIndexName(kcql)
           val kcqlValue = kcqlMap.get(kcql)
           sinkRecords.grouped(settings.batchSize)
             .map { batch =>
               val indexes = batch.flatMap { r =>
+                val i = CreateIndex.getIndexName(kcql, r).leftMap(throw _).merge
                 val (json, pks) = if (kcqlValue.primaryKeysPath.isEmpty) {
                   (Transform(kcqlValue.fields, r.valueSchema(), r.value(), kcql.hasRetainStructure), Seq.empty)
                 } else {

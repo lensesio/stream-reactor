@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.cloud.common.formats.writer
 import LineSeparatorUtil.LineSeparatorBytes
 import io.lenses.streamreactor.connect.cloud.common.formats.FormatWriterException
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.PrimitiveSinkData
 import io.lenses.streamreactor.connect.cloud.common.stream.CloudOutputStream
 
 import scala.util.Failure
