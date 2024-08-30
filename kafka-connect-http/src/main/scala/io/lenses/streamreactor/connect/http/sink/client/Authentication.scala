@@ -15,25 +15,33 @@
  */
 package io.lenses.streamreactor.connect.http.sink.client
 
-import io.circe.generic.extras.Configuration
-import io.circe.generic.extras.semiauto._
-import io.circe.Decoder
-import io.circe.Encoder
+import cats.implicits.catsSyntaxEitherId
 
 sealed trait Authentication
 
-object Authentication {
-  implicit val customConfig: Configuration = Configuration.default.withDiscriminator("type")
-
-  implicit val decoder: Decoder[Authentication] = deriveConfiguredDecoder[Authentication]
-  implicit val encoder: Encoder[Authentication] = deriveConfiguredEncoder[Authentication]
+object NoAuthentication extends Authentication
+case class BasicAuthentication(username: String, password: String) extends Authentication
+object BasicAuthentication {
+  def from(configs: Map[String, String], keys: AuthenticationKeys): Either[Throwable, Authentication] =
+    for {
+      username <- configs.get(keys.userNameKey).toRight(
+        new IllegalArgumentException(s"Basic authentication requires ${keys.userNameKey} to be set"),
+      )
+      password <- configs.get(keys.passwordKey).toRight(
+        new IllegalArgumentException(s"Basic authentication requires ${keys.passwordKey} to be set"),
+      )
+    } yield BasicAuthentication(username, password)
 }
 
-case class BasicAuthentication(username: String, password: String) extends Authentication
+case class AuthenticationKeys(userNameKey: String, passwordKey: String, authTypeKey: String)
 
-object BasicAuthentication {
-  implicit val customConfig: Configuration = Configuration.default.withDiscriminator("type")
+object Authentication {
 
-  implicit val decoder: Decoder[BasicAuthentication] = deriveConfiguredDecoder
-  implicit val encoder: Encoder[BasicAuthentication] = deriveConfiguredEncoder
+  def from(configs: Map[String, String], keys: AuthenticationKeys): Either[Throwable, Authentication] =
+    configs.get(keys.authTypeKey).map(_.trim.toLowerCase).map {
+      case "basic" => BasicAuthentication.from(configs, keys)
+      case "none"  => Right(NoAuthentication)
+      case other =>
+        Left(new IllegalArgumentException(s"Invalid authentication type: $other. Supported types are: basic, none"))
+    }.getOrElse(NoAuthentication.asRight)
 }

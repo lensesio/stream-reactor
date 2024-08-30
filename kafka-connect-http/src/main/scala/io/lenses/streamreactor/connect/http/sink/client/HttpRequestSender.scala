@@ -25,7 +25,7 @@ import org.http4s.headers.`Content-Type`
 import org.typelevel.ci.CIString
 class HttpRequestSender(
   sinkName:       String,
-  authentication: Option[Authentication], // ssl, basic, oauth2, proxy
+  authentication: Authentication, // ssl, basic, oauth2, proxy
   method:         Method,
   client:         Client[IO],
 ) extends LazyLogging {
@@ -83,7 +83,8 @@ class HttpRequestSender(
       requestWithContentType = clientHeaders.contentType.fold(request)(request.withContentType)
       // Add authentication if present
       authenticatedRequest <- IO {
-        authentication.fold(requestWithContentType) {
+        authentication match {
+          case NoAuthentication => requestWithContentType
           case BasicAuthentication(username, password) =>
             requestWithContentType.putHeaders(Authorization(BasicCredentials(username, password)))
         }
