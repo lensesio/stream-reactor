@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.http.sink.config
 
+import io.lenses.streamreactor.common.config.SSLConfig
+import io.lenses.streamreactor.connect.http.sink.client.oauth2.OAuth2Config
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
 import org.apache.kafka.common.config.ConfigDef.Type
@@ -138,7 +140,9 @@ object HttpSinkConfigDef {
       |The password for basic authentication.
       |""".stripMargin
 
-  val config: ConfigDef = new ConfigDef()
+  val config: ConfigDef = OAuth2Config.append(
+    new ConfigDef(),
+  )
     .withClientSslSupport()
     .define(
       HttpMethodProp,
