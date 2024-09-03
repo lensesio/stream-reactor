@@ -191,6 +191,7 @@ object ElasticConfig {
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY,
     )
+    .withClientSslSupport()
 }
 
 /**
