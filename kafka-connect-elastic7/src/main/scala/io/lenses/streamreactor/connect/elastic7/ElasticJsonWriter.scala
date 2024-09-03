@@ -148,8 +148,8 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                 }
                 val idFromPk = pks.mkString(settings.pkJoinerSeparator)
 
-                if (json == null || json.isEmpty) {
-                  (kcqlValue.behaviorOnNullValues) match {
+                if (json.isEmpty || json.get.isEmpty) {
+                  kcqlValue.behaviorOnNullValues match {
                     case NullValueBehavior.DELETE =>
                       Option.apply(deleteById(new Index(i), if (idFromPk.isEmpty) autoGenId(r) else idFromPk))
 
@@ -169,13 +169,13 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                         indexInto(new Index(i))
                           .id(if (idFromPk.isEmpty) autoGenId(r) else idFromPk)
                           .pipeline(kcql.getPipeline)
-                          .source(json.toString),
+                          .source(json.get.toString),
                       )
 
                     case WriteModeEnum.UPSERT =>
                       require(pks.nonEmpty, "Error extracting primary keys")
                       Some(updateById(new Index(i), idFromPk)
-                        .docAsUpsert(json)(IndexableJsonNode))
+                        .docAsUpsert(json.get)(IndexableJsonNode))
                   }
                 }
 

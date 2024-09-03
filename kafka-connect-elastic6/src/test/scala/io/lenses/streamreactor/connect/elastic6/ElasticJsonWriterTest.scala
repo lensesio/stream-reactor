@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.elastic7
+package io.lenses.streamreactor.connect.elastic6
 
-import com.sksamuel.elastic4s.requests.bulk.BulkRequest
-import com.sksamuel.elastic4s.requests.delete.DeleteByIdRequest
-import com.sksamuel.elastic4s.requests.indexes.IndexRequest
+import com.sksamuel.elastic4s.bulk.BulkRequest
+import com.sksamuel.elastic4s.delete.DeleteByIdRequest
+import com.sksamuel.elastic4s.indexes.IndexRequest
 import io.lenses.kcql.Kcql
 import io.lenses.kcql.WriteModeEnum
 import io.lenses.kcql.targettype.StaticTargetType
 import io.lenses.kcql.targettype.TargetType
 import io.lenses.streamreactor.common.errors.NoopErrorPolicy
-import io.lenses.streamreactor.connect.elastic7.config.ElasticConfigConstants.BEHAVIOR_ON_NULL_VALUES_PROPERTY
-import io.lenses.streamreactor.connect.elastic7.config.ElasticSettings
+import io.lenses.streamreactor.connect.elastic6.config.ElasticConfigConstants.BEHAVIOR_ON_NULL_VALUES_PROPERTY
+import io.lenses.streamreactor.connect.elastic6.config.ElasticSettings
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.ArgumentMatchers.any
@@ -162,7 +162,6 @@ class ElasticJsonWriterTest extends TestBase with MockitoSugar {
 
     exception shouldBe a[IllegalStateException]
     exception.getMessage should be(s"$sourceTopic KCQL mapping is configured to fail on null value, yet it occurred.")
-
   }
 
 }

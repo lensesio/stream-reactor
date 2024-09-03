@@ -40,13 +40,11 @@ private object TransformAndExtractPK extends StrictLogging {
     schema:           Schema,
     value:            Any,
     withStructure:    Boolean,
-  ): (JsonNode, Seq[Any]) = {
+  ): (Option[JsonNode], Seq[Any]) = {
     def raiseException(msg: String, t: Throwable) = throw new IllegalArgumentException(msg, t)
 
     if (value == null) {
-      if (schema == null || !schema.isOptional) {
-        raiseException("Null value is not allowed.", null)
-      } else null
+      (None, Seq.empty)
     } else {
       if (schema != null) {
         schema.`type`() match {
@@ -64,7 +62,7 @@ private object TransformAndExtractPK extends StrictLogging {
                 Try(json.sql(fields, !withStructure)) match {
                   case Failure(e) => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
                   case Success(jn) =>
-                    (jn, primaryKeysPaths.map(PrimaryKeyExtractor.extract(json, _)))
+                    (Option(jn), primaryKeysPaths.map(PrimaryKeyExtractor.extract(json, _)))
                 }
             }
 
@@ -74,7 +72,7 @@ private object TransformAndExtractPK extends StrictLogging {
               case Failure(e) => raiseException("Invalid json", e)
               case Success(json) =>
                 Try(json.sql(fields, !withStructure)) match {
-                  case Success(jn) => (jn, primaryKeysPaths.map(PrimaryKeyExtractor.extract(json, _)))
+                  case Success(jn) => (Option(jn), primaryKeysPaths.map(PrimaryKeyExtractor.extract(json, _)))
                   case Failure(e)  => raiseException(s"A KCQL exception occurred.${e.getMessage}", e)
                 }
             }
@@ -83,7 +81,7 @@ private object TransformAndExtractPK extends StrictLogging {
             val struct = value.asInstanceOf[Struct]
             Try(struct.sql(fields, !withStructure)) match {
               case Success(s) =>
-                (simpleJsonConverter.fromConnectData(s.schema(), s),
+                (Option(simpleJsonConverter.fromConnectData(s.schema(), s)),
                  primaryKeysPaths.map(PrimaryKeyExtractor.extract(struct, _)),
                 )
 
@@ -99,7 +97,7 @@ private object TransformAndExtractPK extends StrictLogging {
             val map = m.asInstanceOf[java.util.Map[String, Any]]
             val jsonNode: JsonNode = JacksonJson.mapper.valueToTree[JsonNode](map)
             Try(jsonNode.sql(fields, !withStructure)) match {
-              case Success(j) => (j, primaryKeysPaths.map(PrimaryKeyExtractor.extract(jsonNode, _)))
+              case Success(j) => (Option(j), primaryKeysPaths.map(PrimaryKeyExtractor.extract(jsonNode, _)))
               case Failure(e) => raiseException(s"A KCQL exception occurred.${e.getMessage}", e)
             }
           case s: String =>
@@ -107,7 +105,7 @@ private object TransformAndExtractPK extends StrictLogging {
               case Failure(e) => raiseException("Invalid json.", e)
               case Success(json) =>
                 Try(json.sql(fields, !withStructure)) match {
-                  case Success(jn) => (jn, primaryKeysPaths.map(PrimaryKeyExtractor.extract(json, _)))
+                  case Success(jn) => (Option(jn), primaryKeysPaths.map(PrimaryKeyExtractor.extract(json, _)))
                   case Failure(e)  => raiseException(s"A KCQL exception occurred.${e.getMessage}", e)
                 }
             }
@@ -118,7 +116,7 @@ private object TransformAndExtractPK extends StrictLogging {
               case Success(json) =>
                 Try(json.sql(fields, !withStructure)) match {
                   case Failure(e)  => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
-                  case Success(jn) => (jn, primaryKeysPaths.map(PrimaryKeyExtractor.extract(json, _)))
+                  case Success(jn) => (Option(jn), primaryKeysPaths.map(PrimaryKeyExtractor.extract(json, _)))
                 }
             }
           //we take it as String

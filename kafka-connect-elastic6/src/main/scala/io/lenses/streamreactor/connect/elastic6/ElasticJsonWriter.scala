@@ -27,9 +27,12 @@ import io.lenses.streamreactor.connect.elastic6.config.ElasticSettings
 import io.lenses.streamreactor.connect.elastic6.indexname.CreateIndex
 import com.fasterxml.jackson.databind.JsonNode
 import io.lenses.sql.Field
+import com.sksamuel.elastic4s.Index
 import com.sksamuel.elastic4s.Indexable
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.connect.elastic6.NullValueBehavior.NullValueBehavior
+import io.lenses.streamreactor.connect.elastic6.config.ElasticConfigConstants.BEHAVIOR_ON_NULL_VALUES_PROPERTY
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.annotation.nowarn
@@ -38,7 +41,16 @@ import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.util.Try
+
+object NullValueBehavior extends Enumeration {
+  type NullValueBehavior = Value
+  val FAIL, IGNORE, DELETE = Value
+
+  def fromString(s: String): NullValueBehavior =
+    values.find(_.toString.toUpperCase == s).getOrElse(IGNORE)
+}
 
 @nowarn
 class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
@@ -67,9 +79,17 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
           val path = Option(pk.getParentFields).map(_.asScala.toVector).getOrElse(Vector.empty)
           path :+ pk.getName
         }.toSeq,
+        NullValueBehavior.fromString(fetchNullValueBehaviorProperty(kcql)),
       ),
     )
 
+  }
+
+  private def fetchNullValueBehaviorProperty(kcql: Kcql) = {
+    val nullBehaviorKeyOption =
+      kcql.getProperties.asScala.keys.find(k => BEHAVIOR_ON_NULL_VALUES_PROPERTY.equals(k.toLowerCase))
+
+    kcql.getProperties.get(nullBehaviorKeyOption.getOrElse(() => BEHAVIOR_ON_NULL_VALUES_PROPERTY))
   }
 
   /**
@@ -111,7 +131,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
           val kcqlValue = kcqlMap.get(kcql)
           sinkRecords.grouped(settings.batchSize)
             .map { batch =>
-              val indexes = batch.map { r =>
+              val indexes = batch.flatMap { r =>
                 val i            = CreateIndex.getIndexName(kcql, r).leftMap(throw _).merge
                 val documentType = Option(kcql.getDocType).getOrElse(i)
                 val (json, pks) = if (kcqlValue.primaryKeysPath.isEmpty) {
@@ -134,18 +154,37 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                 }
                 val idFromPk = pks.mkString(settings.pkJoinerSeparator)
 
-                kcql.getWriteMode match {
-                  case WriteModeEnum.INSERT =>
-                    indexInto(i / documentType)
-                      .id(if (idFromPk.isEmpty) autoGenId(r) else idFromPk)
-                      .pipeline(kcql.getPipeline)
-                      .source(json.toString)
+                if (json.isEmpty || json.exists(_.isEmpty)) {
+                  (kcqlValue.behaviorOnNullValues) match {
+                    case NullValueBehavior.DELETE =>
+                      Some(deleteById(new Index(i), documentType, if (idFromPk.isEmpty) autoGenId(r) else idFromPk))
 
-                  case WriteModeEnum.UPSERT =>
-                    require(pks.nonEmpty, "Error extracting primary keys")
-                    update(idFromPk)
-                      .in(i / documentType)
-                      .docAsUpsert(json)(IndexableJsonNode)
+                    case NullValueBehavior.FAIL =>
+                      throw new IllegalStateException(
+                        s"$topic KCQL mapping is configured to fail on null value, yet it occurred.",
+                      )
+
+                    case NullValueBehavior.IGNORE =>
+                      return None
+                  }
+
+                } else {
+                  kcql.getWriteMode match {
+                    case WriteModeEnum.INSERT =>
+                      Some(
+                        indexInto(i / documentType)
+                          .id(if (idFromPk.isEmpty) autoGenId(r) else idFromPk)
+                          .pipeline(kcql.getPipeline)
+                          .source(json.get.toString),
+                      )
+
+                    case WriteModeEnum.UPSERT =>
+                      require(pks.nonEmpty, "Error extracting primary keys")
+                      Some(update(idFromPk)
+                        .in(i / documentType)
+                        .docAsUpsert(json.get)(IndexableJsonNode))
+                  }
+
                 }
               }
 
@@ -172,7 +211,12 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
     pks.mkString(settings.pkJoinerSeparator)
   }
 
-  private case class KcqlValues(fields: Seq[Field], ignoredFields: Seq[Field], primaryKeysPath: Seq[Vector[String]])
+  private case class KcqlValues(
+    fields:               Seq[Field],
+    ignoredFields:        Seq[Field],
+    primaryKeysPath:      Seq[Vector[String]],
+    behaviorOnNullValues: NullValueBehavior,
+  )
 
 }
 
