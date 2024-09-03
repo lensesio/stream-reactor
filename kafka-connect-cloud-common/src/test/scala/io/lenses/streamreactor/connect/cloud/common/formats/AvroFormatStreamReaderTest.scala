@@ -18,11 +18,11 @@ package io.lenses.streamreactor.connect.cloud.common.formats
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.AvroStreamReader
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.AvroFormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.stream.CloudByteArrayOutputStream
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData
 import io.lenses.streamreactor.connect.cloud.common.utils.SampleData.topic

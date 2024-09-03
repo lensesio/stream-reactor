@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.cloud.common.sink.conversion
 import io.confluent.connect.avro.AvroData
 import io.confluent.connect.avro.AvroDataConfig
 import io.confluent.connect.schema.AbstractDataConfig
-import io.lenses.streamreactor.connect.cloud.common.formats.writer._
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.data.{ Schema => ConnectSchema }

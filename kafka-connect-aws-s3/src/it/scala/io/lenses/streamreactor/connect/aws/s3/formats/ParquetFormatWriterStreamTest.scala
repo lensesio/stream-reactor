@@ -33,6 +33,10 @@ import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.L
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.LZO
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.cloud.common.model.location.FileUtils.toBufferedOutputStream
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.MapSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.stream.BuildLocalOutputStream
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.SchemaBuilder

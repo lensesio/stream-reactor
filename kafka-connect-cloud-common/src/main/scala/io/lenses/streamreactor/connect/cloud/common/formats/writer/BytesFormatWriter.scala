@@ -18,6 +18,9 @@ package io.lenses.streamreactor.connect.cloud.common.formats.writer
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.cloud.common.sink.SinkError
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ByteArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData
 import io.lenses.streamreactor.connect.cloud.common.stream.CloudOutputStream
 
 import scala.util.Try

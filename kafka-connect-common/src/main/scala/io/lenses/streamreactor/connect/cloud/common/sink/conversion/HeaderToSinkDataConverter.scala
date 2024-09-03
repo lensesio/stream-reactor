@@ -15,14 +15,19 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.conversion
 
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
-object HeaderToStringConverter {
+object HeaderToSinkDataConverter {
 
   def apply(record: SinkRecord): Map[String, SinkData] = record.headers().asScala.map(header =>
     header.key() -> ValueToSinkDataConverter(header.value(), Option(header.schema())),
   ).toMap
+
+  def apply(record: SinkRecord, headerName: String): SinkData = {
+    val header = record.headers().lastWithName(headerName)
+    ValueToSinkDataConverter(header.value(), Option(header.schema()))
+  }
+
 }

@@ -19,6 +19,13 @@ import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.formats.writer._
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ByteArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.MapSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.PrimitiveSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 import org.apache.kafka.connect.data._
 
 import scala.jdk.CollectionConverters.ListHasAsScala

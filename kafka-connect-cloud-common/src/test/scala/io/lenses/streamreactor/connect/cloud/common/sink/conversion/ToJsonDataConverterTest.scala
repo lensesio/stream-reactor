@@ -15,9 +15,6 @@
  */
 package io.lenses.streamreactor.connect.cloud.common.sink.conversion
 
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.DateSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.TimeSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.TimestampSinkData
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.TimeUtils.dateWithTimeFieldsOnly
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.TimeUtils.daysSinceEpoch

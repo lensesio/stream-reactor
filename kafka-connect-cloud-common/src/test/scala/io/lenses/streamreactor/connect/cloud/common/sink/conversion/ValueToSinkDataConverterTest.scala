@@ -16,7 +16,6 @@
 package io.lenses.streamreactor.connect.cloud.common.sink.conversion
 
 import cats.implicits.catsSyntaxOptionId
-import io.lenses.streamreactor.connect.cloud.common.formats.writer._
 import org.apache.kafka.connect.data._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

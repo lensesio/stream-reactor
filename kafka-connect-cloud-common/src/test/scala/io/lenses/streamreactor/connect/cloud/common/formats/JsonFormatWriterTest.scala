@@ -33,6 +33,11 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 
 import java.io.ByteArrayInputStream
 import io.lenses.streamreactor.connect.cloud.common.formats.reader.TextStreamReader
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.MapSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StringSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 
 import java.text.SimpleDateFormat
 import java.time.Instant

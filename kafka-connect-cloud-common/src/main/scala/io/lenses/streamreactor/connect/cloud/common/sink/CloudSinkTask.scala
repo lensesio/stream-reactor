@@ -26,11 +26,11 @@ import io.lenses.streamreactor.connect.cloud.common.config.traits.CloudSinkConfi
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskIdCreator
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
-import io.lenses.streamreactor.connect.cloud.common.sink.conversion.HeaderToStringConverter
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.HeaderToSinkDataConverter
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ValueToSinkDataConverter
 import io.lenses.streamreactor.connect.cloud.common.sink.seek.IndexManager
 import io.lenses.streamreactor.connect.cloud.common.sink.writer.WriterManager
@@ -164,7 +164,7 @@ abstract class CloudSinkTask[MD <: FileMetadata, C <: CloudSinkConfig[CC], CC <:
               val msgDetails = MessageDetail(
                 key     = key,
                 value   = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
-                headers = HeaderToStringConverter(record),
+                headers = HeaderToSinkDataConverter(record),
                 TimestampUtils.parseTime(Option(record.timestamp()).map(_.toLong))(_ =>
                   logger.debug(
                     s"Record timestamp is invalid ${record.timestamp()}",

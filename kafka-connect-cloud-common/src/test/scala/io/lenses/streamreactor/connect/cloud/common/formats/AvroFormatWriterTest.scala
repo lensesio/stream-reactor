@@ -22,6 +22,12 @@ import io.lenses.streamreactor.connect.cloud.common.formats.writer._
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodec
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ByteArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.IntSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.MapSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
 import org.apache.kafka.connect.data.Schema

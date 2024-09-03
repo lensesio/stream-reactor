@@ -28,11 +28,7 @@ import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.config.AvroFormatSelection
 import io.lenses.streamreactor.connect.cloud.common.config.DataStorageSettings
 import io.lenses.streamreactor.connect.cloud.common.config.JsonFormatSelection
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.ArraySinkData
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.NullSinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.SinkData
-import io.lenses.streamreactor.connect.cloud.common.formats.writer.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.model.CompressionCodecName.UNCOMPRESSED
 import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
@@ -50,6 +46,10 @@ import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.LeftPadP
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.NoOpPaddingStrategy
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingService
 import io.lenses.streamreactor.connect.cloud.common.sink.config.padding.PaddingStrategy
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.ArraySinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.NullSinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.SinkData
+import io.lenses.streamreactor.connect.cloud.common.sink.conversion.StructSinkData
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.CloudKeyNamer
 import io.lenses.streamreactor.connect.cloud.common.sink.naming.OffsetFileNamer
 import io.lenses.streamreactor.connect.cloud.common.utils.ITSampleSchemaAndData.firstUsers
