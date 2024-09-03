@@ -24,16 +24,10 @@ import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManagerFactory
 
-case class StoreInfo(
-                      storePath:     String,
-                      storeType:     Option[String],
-                      storePassword: Option[String] = None,
-                    )
-
 case class StoresInfo(
-                       trustStore: Option[StoreInfo] = None,
-                       keyStore:   Option[StoreInfo] = None,
-                     ) {
+  trustStore: Option[StoreInfo] = None,
+  keyStore:   Option[StoreInfo] = None,
+) {
   def toSslContext: Option[SSLContext] = {
     val maybeTrustFactory: Option[TrustManagerFactory] = trustStore.map {
       case StoreInfo(path, storeType, password) =>
@@ -72,7 +66,7 @@ case class StoresInfo(
   }
 
   private def getJksStore(path: String, storeType: Option[String], password: Option[String]) = {
-    val keyStore = KeyStore.getInstance(storeType.map(_.toUpperCase).getOrElse("JKS"))
+    val keyStore         = KeyStore.getInstance(storeType.map(_.toUpperCase).getOrElse("JKS"))
     val truststoreStream = new FileInputStream(path)
     keyStore.load(truststoreStream, password.getOrElse("").toCharArray)
     keyStore
@@ -90,7 +84,7 @@ object StoresInfo {
       storePath    <- Option(config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
       storeType     = Option(config.getString(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG))
       storePassword = Option(config.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)).map(_.value())
-    } yield StoreInfo(storePath, storeType, storePassword)
+    } yield new StoreInfo(storePath, storeType, storePassword)
 
     StoresInfo(trustStore, keyStore)
   }

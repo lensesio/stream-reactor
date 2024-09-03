@@ -437,7 +437,7 @@ trait Dependencies {
     jerseyCommon,
     avro4s,
     kafkaClients,
-  ) ++ enumeratum ++ circe ++ http4s
+  ) ++ enumeratum ++ circe ++ http4s ++ bouncyCastle
 
   //Specific modules dependencies
   val sqlCommonDeps: Seq[ModuleID] = loggingDeps ++ Seq(

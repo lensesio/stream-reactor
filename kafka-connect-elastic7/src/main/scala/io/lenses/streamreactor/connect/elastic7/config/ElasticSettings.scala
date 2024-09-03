@@ -26,14 +26,14 @@ import io.lenses.streamreactor.connect.security.StoresInfo
 case class ElasticSettings(
   kcqls:                 Seq[Kcql],
   errorPolicy:           ErrorPolicy,
-  taskRetries:           Int    = ElasticConfigConstants.NBR_OF_RETIRES_DEFAULT,
-  writeTimeout:          Int    = ElasticConfigConstants.WRITE_TIMEOUT_DEFAULT,
-  batchSize:             Int    = ElasticConfigConstants.BATCH_SIZE_DEFAULT,
-  pkJoinerSeparator:     String = ElasticConfigConstants.PK_JOINER_SEPARATOR_DEFAULT,
-  httpBasicAuthUsername: String = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
-  httpBasicAuthPassword: String = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
-  storesInfo: StoresInfo = StoresInfo()
-                          )
+  taskRetries:           Int        = ElasticConfigConstants.NBR_OF_RETIRES_DEFAULT,
+  writeTimeout:          Int        = ElasticConfigConstants.WRITE_TIMEOUT_DEFAULT,
+  batchSize:             Int        = ElasticConfigConstants.BATCH_SIZE_DEFAULT,
+  pkJoinerSeparator:     String     = ElasticConfigConstants.PK_JOINER_SEPARATOR_DEFAULT,
+  httpBasicAuthUsername: String     = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
+  httpBasicAuthPassword: String     = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
+  storesInfo:            StoresInfo = StoresInfo(),
+)
 
 object ElasticSettings {
 
@@ -48,15 +48,16 @@ object ElasticSettings {
 
     val batchSize = config.getInt(ElasticConfigConstants.BATCH_SIZE_CONFIG)
 
-    ElasticSettings(kcql,
-                    errorPolicy,
-                    retries,
-                    writeTimeout,
-                    batchSize,
-                    pkJoinerSeparator,
-                    httpBasicAuthUsername,
-                    httpBasicAuthPassword,
-                    StoresInfo(config)
+    ElasticSettings(
+      kcql,
+      errorPolicy,
+      retries,
+      writeTimeout,
+      batchSize,
+      pkJoinerSeparator,
+      httpBasicAuthUsername,
+      httpBasicAuthPassword,
+      StoresInfo(config),
     )
   }
 }
