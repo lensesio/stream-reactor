@@ -192,7 +192,8 @@ object Dependencies {
   val `junitJupiterParams` = "org.junit.jupiter" % "junit-jupiter-params" % junitJupiterVersion
   val `assertjCore`        = "org.assertj"       % "assertj-core"         % assertjCoreVersion
 
-  val `cyclops` = "com.oath.cyclops" % "cyclops" % cyclopsVersion
+  val `cyclops`     = "com.oath.cyclops" % "cyclops"      % cyclopsVersion
+  val `cyclopsPure` = "com.oath.cyclops" % "cyclops-pure" % cyclopsVersion
 
   val catsEffectScalatest = "org.typelevel" %% "cats-effect-testing-scalatest" % `cats-effect-testing`
 
@@ -468,8 +469,9 @@ trait Dependencies {
     confluentJsonSchemaSerializer,
   ) ++ enumeratum ++ circe
 
-  val javaCommonDeps:     Seq[ModuleID] = Seq(lombok, kafkaConnectJson, kafkaClients, cyclops)
-  val javaCommonTestDeps: Seq[ModuleID] = Seq(junitJupiter, junitJupiterParams, assertjCore, `mockitoJava`, logback)
+  val javaCommonDeps: Seq[ModuleID] = Seq(lombok, kafkaConnectJson, kafkaClients, cyclops, `cyclopsPure`)
+  val javaCommonTestDeps: Seq[ModuleID] =
+    Seq(junitJupiter, junitJupiterParams, assertjCore, `mockitoJava`, logback) ++ bouncyCastle
 
   //Specific modules dependencies
 

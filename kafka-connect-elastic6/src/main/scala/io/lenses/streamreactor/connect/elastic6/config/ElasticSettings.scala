@@ -15,9 +15,10 @@
  */
 package io.lenses.streamreactor.connect.elastic6.config
 
+import cyclops.control.Option.none
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.errors.ErrorPolicy
-import io.lenses.streamreactor.connect.security.StoresInfo
+import io.lenses.streamreactor.common.security.StoresInfo
 
 /**
   * Created by andrew@datamountaineer.com on 13/05/16.
@@ -32,7 +33,7 @@ case class ElasticSettings(
   pkJoinerSeparator:     String     = ElasticConfigConstants.PK_JOINER_SEPARATOR_DEFAULT,
   httpBasicAuthUsername: String     = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
   httpBasicAuthPassword: String     = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
-  storesInfo:            StoresInfo = StoresInfo(),
+  storesInfo:            StoresInfo = new StoresInfo(none(), none()),
 )
 
 object ElasticSettings {
@@ -57,7 +58,7 @@ object ElasticSettings {
       pkJoinerSeparator,
       httpBasicAuthUsername,
       httpBasicAuthPassword,
-      StoresInfo(config),
+      StoresInfo.fromConfig(config),
     )
   }
 }
