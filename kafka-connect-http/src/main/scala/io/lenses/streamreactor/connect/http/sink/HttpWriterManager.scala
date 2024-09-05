@@ -71,7 +71,7 @@ object HttpWriterManager extends StrictLogging {
     val retryPolicy = RetryPolicy.exponentialBackoff(config.retries.maxTimeoutMs.millis, config.retries.maxRetries)
 
     val retriableFn: Either[Throwable, Response[IO]] => Boolean =
-      isErrorOrStatus(_, config.retries.onStatusCodes.toSet)
+      isErrorOrRetriableStatus(_, config.retries.onStatusCodes.toSet)
 
     val retriablePolicy = RetryPolicy[IO](
       retryPolicy,
@@ -105,7 +105,10 @@ object HttpWriterManager extends StrictLogging {
 
   }
 
-  def isErrorOrStatus[F[_]](result: Either[Throwable, Response[F]], statusCodes: Set[Int]): Boolean =
+  /*
+    Returns true if parameter is a Left or if the response contains a retriable status(as per HTTP spec)
+   */
+  def isErrorOrRetriableStatus[F[_]](result: Either[Throwable, Response[F]], statusCodes: Set[Int]): Boolean =
     result match {
       case Right(resp)                     => statusCodes(resp.status.code)
       case Left(WaitQueueTimeoutException) => false

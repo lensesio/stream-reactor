@@ -27,23 +27,23 @@ class HttpWriterManagerTest extends AnyFunSuiteLike with Matchers with EitherVal
   test("isErrorOrStatus returns true if the statusCodes is matched") {
     val statusCodes = Set(408, 429)
 
-    HttpWriterManager.isErrorOrStatus(Right(Response(Status.RequestTimeout)), statusCodes) should be(true)
-    HttpWriterManager.isErrorOrStatus(Right(Response(Status.TooManyRequests)), statusCodes) should be(true)
+    HttpWriterManager.isErrorOrRetriableStatus(Right(Response(Status.RequestTimeout)), statusCodes) should be(true)
+    HttpWriterManager.isErrorOrRetriableStatus(Right(Response(Status.TooManyRequests)), statusCodes) should be(true)
   }
   test("isErrorOrStatus returns false if the statusCodes is not matched") {
     val statusCodes = Set(408, 429)
 
-    HttpWriterManager.isErrorOrStatus(Right(Response(Status.Ok)), statusCodes) should be(false)
-    HttpWriterManager.isErrorOrStatus(Right(Response(Status.Created)), statusCodes) should be(false)
+    HttpWriterManager.isErrorOrRetriableStatus(Right(Response(Status.Ok)), statusCodes) should be(false)
+    HttpWriterManager.isErrorOrRetriableStatus(Right(Response(Status.Created)), statusCodes) should be(false)
   }
   test("isErrorOrStatus returns true if the result is not a Right") {
     val statusCodes = Set(408, 429)
 
-    HttpWriterManager.isErrorOrStatus(Left(new Exception("")), statusCodes) should be(true)
+    HttpWriterManager.isErrorOrRetriableStatus(Left(new Exception("")), statusCodes) should be(true)
   }
   test("isErrorOrStatus returns false if the exception is WaitQueueTimeoutException") {
     val statusCodes = Set(408, 429)
 
-    HttpWriterManager.isErrorOrStatus(Left(WaitQueueTimeoutException), statusCodes) should be(false)
+    HttpWriterManager.isErrorOrRetriableStatus(Left(WaitQueueTimeoutException), statusCodes) should be(false)
   }
 }
