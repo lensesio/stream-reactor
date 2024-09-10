@@ -44,7 +44,7 @@ import scala.collection.immutable.Queue
 object HttpWriterManager {
 
   private val DefaultErrorThreshold   = 5
-  private val DefaultUploadSyncPeriod = 5000
+  private val DefaultUploadSyncPeriod = 100
 
   def apply(
     sinkName:  String,
