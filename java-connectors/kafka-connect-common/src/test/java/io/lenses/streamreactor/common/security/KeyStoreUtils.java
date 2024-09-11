@@ -30,6 +30,7 @@ package io.lenses.streamreactor.common.security;
  * limitations under the License.
  */
 
+import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
@@ -51,6 +52,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
+@Slf4j
 public class KeyStoreUtils {
 
   static {
@@ -89,7 +91,7 @@ public class KeyStoreUtils {
     createAndSaveKeystore(tmpDir, keyStorePassword, certificate, (RSAPrivateKey) keyPair.getPrivate());
     createAndSaveTruststore(tmpDir, trustStorePassword, certificate);
 
-    System.out.println("container -> Creating keystore at " + tmpDir);
+    log.info("container -> Creating keystore at " + tmpDir);
     return tmpDir;
   }
 
