@@ -15,10 +15,17 @@
  */
 package io.lenses.streamreactor.common.security;
 
-interface StoreInfo {
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
-  String storePath();
+@AllArgsConstructor
+@Data
+public class KeyStoreInfo {
 
-  StoreType storeType();
+  private String storePath;
+
+  private StoreType storeType;
+
+  private String storePassword;
 
 }

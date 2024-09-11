@@ -15,10 +15,18 @@
  */
 package io.lenses.streamreactor.common.security;
 
-interface StoreInfo {
+import cyclops.control.Option;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
-  String storePath();
+@AllArgsConstructor
+@Data
+public class TrustStoreInfo {
 
-  StoreType storeType();
+  private String storePath;
+
+  private StoreType storeType;
+
+  private Option<String> storePassword;
 
 }

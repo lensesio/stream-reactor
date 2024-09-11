@@ -52,6 +52,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 
+/**
+ * Utility class for creating and managing keystore and truststore files using RSA keys and X.509 certificates.
+ */
 @Slf4j
 public class KeyStoreUtils {
 
@@ -71,6 +74,15 @@ public class KeyStoreUtils {
     Security.addProvider(new BouncyCastleProvider());
   }
 
+  /**
+   * Creates a new keystore and truststore with an RSA key pair and X.509 certificate.
+   *
+   * @param commonName         the common name for the certificate
+   * @param keyStorePassword   the password for the keystore
+   * @param trustStorePassword the password for the truststore
+   * @return Path to the temporary directory where keystore and truststore are created
+   * @throws Exception if an error occurs during the creation process
+   */
   public static Path createKeystore(String commonName, String keyStorePassword, String trustStorePassword)
       throws Exception {
     Path tmpDir = Files.createTempDirectory(DIRECTORY_SECURITY);
@@ -107,6 +119,16 @@ public class KeyStoreUtils {
     return tmpDir;
   }
 
+  /**
+   * Creates and saves the keystore with the given password and certificate.
+   *
+   * @param tmpDir      the temporary directory where the keystore will be saved
+   * @param password    the password for the keystore
+   * @param certificate the certificate to store in the keystore
+   * @param privateKey  the private key to store in the keystore
+   * @return the path to the created keystore file
+   * @throws Exception if an error occurs during the keystore creation process
+   */
   private static String createAndSaveKeystore(Path tmpDir, String password, X509Certificate certificate,
       RSAPrivateKey privateKey) throws Exception {
     KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
@@ -123,6 +145,15 @@ public class KeyStoreUtils {
     return keyStorePath;
   }
 
+  /**
+   * Creates and saves the truststore with the given password and certificate.
+   *
+   * @param tmpDir      the temporary directory where the truststore will be saved
+   * @param password    the password for the truststore
+   * @param certificate the certificate to store in the truststore
+   * @return the path to the created truststore file
+   * @throws Exception if an error occurs during the truststore creation process
+   */
   private static String createAndSaveTruststore(Path tmpDir, String password, X509Certificate certificate)
       throws Exception {
     KeyStore trustStore = KeyStore.getInstance(KEYSTORE_TYPE);

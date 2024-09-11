@@ -17,6 +17,10 @@ package io.lenses.streamreactor.common.exception;
 
 public class SecuritySetupException extends StreamReactorException {
 
+  public SecuritySetupException(String message) {
+    super(message);
+  }
+
   public SecuritySetupException(String message, Throwable cause) {
     super(message, cause);
   }

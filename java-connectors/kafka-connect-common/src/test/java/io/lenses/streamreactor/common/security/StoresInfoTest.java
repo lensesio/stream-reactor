@@ -18,6 +18,7 @@ package io.lenses.streamreactor.common.security;
 import io.lenses.streamreactor.common.config.base.BaseConfig;
 import lombok.val;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.config.types.Password;
 import org.junit.jupiter.api.Test;
 
 import java.io.FileNotFoundException;
@@ -26,6 +27,7 @@ import java.nio.file.Path;
 import static cyclops.control.Either.right;
 import static cyclops.control.Option.none;
 import static cyclops.control.Option.some;
+import static io.lenses.streamreactor.test.utils.EitherValues.assertLeft;
 import static io.lenses.streamreactor.test.utils.EitherValues.assertRight;
 import static io.lenses.streamreactor.test.utils.EitherValues.getLeft;
 import static io.lenses.streamreactor.test.utils.EitherValues.getRight;
@@ -52,7 +54,7 @@ class StoresInfoTest {
 
   @Test
   void testToSslContextWithKeyStoreDefined() {
-    val storeInfo = new StoreInfo(keystoreFile, StoreType.JKS, some(password));
+    val storeInfo = new KeyStoreInfo(keystoreFile, StoreType.JKS, password);
     val storesInfo = new StoresInfo(none(), some(storeInfo));
 
     val sslContext = getRight(storesInfo.toSslContext());
@@ -62,7 +64,7 @@ class StoresInfoTest {
 
   @Test
   void testToSslContextWithTrustStoreDefined() {
-    val storeInfo = new StoreInfo(keystoreFile, StoreType.JKS, some(password));
+    val storeInfo = new TrustStoreInfo(keystoreFile, StoreType.JKS, some(password));
     val storesInfo = new StoresInfo(some(storeInfo), none());
 
     val sslContext = getRight(storesInfo.toSslContext());
@@ -72,8 +74,8 @@ class StoresInfoTest {
 
   @Test
   void testToSslContextWithBothStoresDefined() {
-    val keyStoreInfo = new StoreInfo(keystoreFile, StoreType.JKS, some(password));
-    val trustStoreInfo = new StoreInfo(truststoreFile, StoreType.JKS, some(password));
+    val keyStoreInfo = new KeyStoreInfo(keystoreFile, StoreType.JKS, password);
+    val trustStoreInfo = new TrustStoreInfo(truststoreFile, StoreType.JKS, some(password));
     val storesInfo = new StoresInfo(some(trustStoreInfo), some(keyStoreInfo));
 
     val sslContext = getRight(storesInfo.toSslContext());
@@ -83,7 +85,7 @@ class StoresInfoTest {
 
   @Test
   void testToSslContextThrowsFileNotFoundExceptionForInvalidKeyStorePath() {
-    val keyStoreInfo = new StoreInfo("/invalid/path/to/keystore", StoreType.JKS, some(password));
+    val keyStoreInfo = new KeyStoreInfo("/invalid/path/to/keystore", StoreType.JKS, password);
     val storesInfo = new StoresInfo(none(), some(keyStoreInfo));
 
     assertEquals(FileNotFoundException.class, getLeft(storesInfo.toSslContext()).getCause().getClass());
@@ -91,7 +93,7 @@ class StoresInfoTest {
 
   @Test
   void testToSslContextThrowsFileNotFoundExceptionForInvalidTrustStorePath() {
-    val trustStoreInfo = new StoreInfo("/invalid/path/to/truststore", StoreType.JKS, some(password));
+    val trustStoreInfo = new TrustStoreInfo("/invalid/path/to/truststore", StoreType.JKS, some(password));
     val storesInfo = new StoresInfo(some(trustStoreInfo), none());
 
     assertEquals(FileNotFoundException.class, getLeft(storesInfo.toSslContext()).getCause().getClass());
@@ -107,16 +109,33 @@ class StoresInfoTest {
 
     when(mockConfig.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG)).thenReturn("/path/to/keystore");
     when(mockConfig.getString(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG)).thenReturn("JKS");
-    when(mockConfig.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)).thenReturn(null);
+    when(mockConfig.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)).thenReturn(new Password(password));
 
     val storesInfo = StoresInfo.fromConfig(mockConfig);
 
     assertRight(storesInfo).isEqualTo(
         new StoresInfo(
-            some(new StoreInfo("/path/to/truststore", StoreType.JKS, none())),
-            some(new StoreInfo("/path/to/keystore", StoreType.JKS, none()))
+            some(new TrustStoreInfo("/path/to/truststore", StoreType.JKS, none())),
+            some(new KeyStoreInfo("/path/to/keystore", StoreType.JKS, password))
         )
     );
+  }
+
+  @Test
+  void testStoresInfoCreationFromBaseConfigFailsWithoutTrustStorePassword() {
+    BaseConfig mockConfig = mock(BaseConfig.class);
+    when(mockConfig.getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG)).thenReturn("/path/to/truststore");
+    when(mockConfig.getString(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG)).thenReturn("JKS");
+    when(mockConfig.getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)).thenReturn(null);
+
+    when(mockConfig.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG)).thenReturn("/path/to/keystore");
+    when(mockConfig.getString(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG)).thenReturn("JKS");
+    when(mockConfig.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)).thenReturn(null);
+
+    val storesInfo = StoresInfo.fromConfig(mockConfig);
+
+    assertLeft(storesInfo).withFailMessage(() -> " Password is required for key store");
+
   }
 
   @Test
