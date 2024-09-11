@@ -63,8 +63,8 @@ public class KeyStoreUtils {
     keyPairGen.initialize(2048);
     KeyPair keyPair = keyPairGen.generateKeyPair();
 
-    Date notBefore = new Date();
-    Date notAfter = new Date(System.currentTimeMillis() + 365L * 24 * 60 * 60 * 1000);
+    Date notBefore = new Date(Instant.now().toEpochMilli());
+    Date notAfter = new Date(Instant.now().plus(365, ChronoUnit.DAYS).toEpochMilli());
 
     SubjectPublicKeyInfo publicKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded());
 
