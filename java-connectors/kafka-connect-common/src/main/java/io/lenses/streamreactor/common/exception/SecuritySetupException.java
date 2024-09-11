@@ -13,20 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.common.security;
+package io.lenses.streamreactor.common.exception;
 
-import cyclops.control.Option;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+public class SecuritySetupException extends StreamReactorException {
 
-@AllArgsConstructor
-@Data
-class StoreInfo {
-
-  private String storePath;
-
-  private StoreType storeType;
-
-  private Option<String> storePassword;
-
+  public SecuritySetupException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

@@ -19,6 +19,7 @@ import cyclops.control.Option.none
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.errors.ErrorPolicy
 import io.lenses.streamreactor.common.security.StoresInfo
+import io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow
 
 /**
   * Created by andrew@datamountaineer.com on 13/05/16.
@@ -58,7 +59,7 @@ object ElasticSettings {
       pkJoinerSeparator,
       httpBasicAuthUsername,
       httpBasicAuthPassword,
-      StoresInfo.fromConfig(config),
+      unpackOrThrow(StoresInfo.fromConfig(config)),
     )
   }
 }

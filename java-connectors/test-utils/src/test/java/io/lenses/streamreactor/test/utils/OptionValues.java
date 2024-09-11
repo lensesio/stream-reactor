@@ -13,20 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.common.security;
+package io.lenses.streamreactor.test.utils;
 
 import cyclops.control.Option;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.val;
 
-@AllArgsConstructor
-@Data
-class StoreInfo {
+public class OptionValues {
 
-  private String storePath;
-
-  private StoreType storeType;
-
-  private Option<String> storePassword;
-
+  public static <X> X getValue(Option<X> opt) {
+    val ex = new AssertionError("Expected Some, got None");
+    return opt.orElseGet(() -> {
+      throw ex;
+    });
+  }
 }

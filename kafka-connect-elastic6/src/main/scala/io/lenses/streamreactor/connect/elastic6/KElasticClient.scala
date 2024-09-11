@@ -21,8 +21,7 @@ import com.sksamuel.elastic4s.http._
 import com.sksamuel.elastic4s.http.bulk.BulkResponse
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.kcql.Kcql
-import io.lenses.streamreactor.common.utils.CyclopsToScalaEither.convertToScalaEither
-import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToScalaOption
+import io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow
 import io.lenses.streamreactor.connect.elastic6.config.ElasticSettings
 import io.lenses.streamreactor.connect.elastic6.indexname.CreateIndex.getIndexNameForAutoCreate
 import org.apache.http.auth.AuthScope
@@ -58,11 +57,7 @@ object KElasticClient extends StrictLogging {
       (requestConfigBuilder: Builder) => requestConfigBuilder,
       (httpClientBuilder: HttpAsyncClientBuilder) => {
         maybeProvider.foreach(httpClientBuilder.setDefaultCredentialsProvider)
-        convertToScalaEither(settings.storesInfo.toSslContext)
-          .map(convertToScalaOption)
-          .leftMap(throw _)
-          .merge
-          .map(httpClientBuilder.setSSLContext)
+        unpackOrThrow(settings.storesInfo.toSslContext).map(httpClientBuilder.setSSLContext(_))
         httpClientBuilder
       },
     )
