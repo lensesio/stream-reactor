@@ -40,6 +40,7 @@ class StoresInfoTest {
 
   private static final String KEY_OR_TRUST_MANAGER_ALGORITHM = "PKIX";
   private static final String STORE_PASSWORD = "changeIt";
+  private static final String SSL_PROTOCOL_TLS = "TLS";
 
   private final Path keystoreDir = KeyStoreUtils.createKeystore("TestCommonName", STORE_PASSWORD, STORE_PASSWORD);
   private final String keystoreFile = keystoreDir.toAbsolutePath() + "/keystore.jks";
@@ -50,45 +51,45 @@ class StoresInfoTest {
 
   @Test
   void testToSslContextWithBothNone() {
-    val storesInfo = new StoresInfo(none(), none());
+    val storesInfo = new StoresInfo(none(), none(), none());
     assertEquals(right(none()), storesInfo.toSslContext());
   }
 
   @Test
   void testToSslContextWithKeyStoreDefined() {
     val storeInfo = new KeyStoreInfo(keystoreFile, StoreType.JKS, STORE_PASSWORD, none());
-    val storesInfo = new StoresInfo(none(), some(storeInfo));
+    val storesInfo = new StoresInfo(some(SSL_PROTOCOL_TLS), none(), some(storeInfo));
 
     val sslContext = getRight(storesInfo.toSslContext());
 
-    assertEquals("TLS", getValue(sslContext).getProtocol());
+    assertEquals(SSL_PROTOCOL_TLS, getValue(sslContext).getProtocol());
   }
 
   @Test
   void testToSslContextWithTrustStoreDefined() {
     val storeInfo = new TrustStoreInfo(keystoreFile, StoreType.JKS, some(STORE_PASSWORD), none());
-    val storesInfo = new StoresInfo(some(storeInfo), none());
+    val storesInfo = new StoresInfo(none(), some(storeInfo), none());
 
     val sslContext = getRight(storesInfo.toSslContext());
 
-    assertEquals("TLS", getValue(sslContext).getProtocol());
+    assertEquals(SSL_PROTOCOL_TLS, getValue(sslContext).getProtocol());
   }
 
   @Test
   void testToSslContextWithBothStoresDefined() {
     val keyStoreInfo = new KeyStoreInfo(keystoreFile, StoreType.JKS, STORE_PASSWORD, none());
     val trustStoreInfo = new TrustStoreInfo(truststoreFile, StoreType.JKS, some(STORE_PASSWORD), none());
-    val storesInfo = new StoresInfo(some(trustStoreInfo), some(keyStoreInfo));
+    val storesInfo = new StoresInfo(some(SSL_PROTOCOL_TLS), some(trustStoreInfo), some(keyStoreInfo));
 
     val sslContext = getRight(storesInfo.toSslContext());
 
-    assertEquals("TLS", getValue(sslContext).getProtocol());
+    assertEquals(SSL_PROTOCOL_TLS, getValue(sslContext).getProtocol());
   }
 
   @Test
   void testToSslContextThrowsFileNotFoundExceptionForInvalidKeyStorePath() {
     val keyStoreInfo = new KeyStoreInfo("/invalid/path/to/keystore", StoreType.JKS, STORE_PASSWORD, none());
-    val storesInfo = new StoresInfo(none(), some(keyStoreInfo));
+    val storesInfo = new StoresInfo(none(), none(), some(keyStoreInfo));
 
     assertEquals(FileNotFoundException.class, getLeft(storesInfo.toSslContext()).getCause().getClass());
   }
@@ -96,7 +97,7 @@ class StoresInfoTest {
   @Test
   void testToSslContextThrowsFileNotFoundExceptionForInvalidTrustStorePath() {
     val trustStoreInfo = new TrustStoreInfo("/invalid/path/to/truststore", StoreType.JKS, some(STORE_PASSWORD), none());
-    val storesInfo = new StoresInfo(some(trustStoreInfo), none());
+    val storesInfo = new StoresInfo(some(SSL_PROTOCOL_TLS), some(trustStoreInfo), none());
 
     assertEquals(FileNotFoundException.class, getLeft(storesInfo.toSslContext()).getCause().getClass());
 
@@ -119,6 +120,7 @@ class StoresInfoTest {
 
     assertRight(storesInfo).isEqualTo(
         new StoresInfo(
+            none(),
             some(new TrustStoreInfo("/path/to/truststore", StoreType.JKS, none(), some(
                 KEY_OR_TRUST_MANAGER_ALGORITHM))),
             some(new KeyStoreInfo("/path/to/keystore", StoreType.JKS, STORE_PASSWORD, some(
@@ -158,6 +160,7 @@ class StoresInfoTest {
     val storesInfo = StoresInfo.fromConfig(mockConfig);
     assertRight(storesInfo).isEqualTo(
         new StoresInfo(
+            none(),
             none(),
             none()
         )

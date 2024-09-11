@@ -48,6 +48,7 @@ public class StoresInfo {
 
   private static final String PROTOCOL_TLS = "TLS";
 
+  private Option<String> sslProtocol;
   private Option<TrustStoreInfo> maybeTrustStore;
   private Option<KeyStoreInfo> maybeKeyStore;
 
@@ -102,7 +103,7 @@ public class StoresInfo {
         );
 
     return maybeFailure
-        .toEither(getAndInitSslContext(maybeKeyFactory, maybeTrustFactory))
+        .toEither(getAndInitSslContext(maybeKeyFactory, maybeTrustFactory, sslProtocol))
         .swap()
         .fold(Either::left, either -> either.fold(Either::left, Either::right));
 
@@ -110,12 +111,13 @@ public class StoresInfo {
 
   private static Either<SecuritySetupException, Option<SSLContext>> getAndInitSslContext(
       Option<Try<KeyManagerFactory, SecuritySetupException>> maybeKeyFactory,
-      Option<Try<TrustManagerFactory, SecuritySetupException>> maybeTrustFactory
+      Option<Try<TrustManagerFactory, SecuritySetupException>> maybeTrustFactory,
+      Option<String> sslProtocol
   ) {
     return Try.withCatch(() -> {
       // If either factory is present, initialize SSLContext
       if (maybeKeyFactory.isPresent() || maybeTrustFactory.isPresent()) {
-        val sslContext = SSLContext.getInstance(PROTOCOL_TLS);
+        val sslContext = SSLContext.getInstance(sslProtocol.orElse(PROTOCOL_TLS));
         sslContext.init(
             maybeKeyFactory.flatMap(Try::toOption).map(KeyManagerFactory::getKeyManagers).orElse(null),
             maybeTrustFactory.flatMap(Try::toOption).map(TrustManagerFactory::getTrustManagers).orElse(null),
@@ -179,6 +181,7 @@ public class StoresInfo {
   }
 
   public static Either<SecuritySetupException, StoresInfo> fromConfig(AbstractConfig config) {
+    val sslProtocol = configToSslProtocol(config);
     val trustStore = configToTrustStoreInfo(config);
     val keyStore = configToKeyStoreInfo(config);
 
@@ -189,6 +192,7 @@ public class StoresInfo {
 
     return failures.isEmpty()
         ? Either.right(new StoresInfo(
+            sslProtocol,
             trustStore.flatMap(Either::toOption),
             keyStore.flatMap(Either::toOption)
         ))
@@ -224,6 +228,12 @@ public class StoresInfo {
             )
             .toOption()
         );
+  }
+
+  private static Option<String> configToSslProtocol(
+      AbstractConfig config
+  ) {
+    return Option.ofNullable(config.getString(SslConfigs.SSL_PROTOCOL_CONFIG));
   }
 
   private static Either<SecuritySetupException, StoreType> fromConfigOption(AbstractConfig config, String configKey) {
