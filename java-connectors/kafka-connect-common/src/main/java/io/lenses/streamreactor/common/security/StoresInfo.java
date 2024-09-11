@@ -71,7 +71,8 @@ public class StoresInfo {
             trustStore -> trustManagers(
                 trustStore.getStorePath(),
                 trustStore.getStoreType(),
-                trustStore.getStorePassword()
+                trustStore.getStorePassword(),
+                trustStore.getManagerAlgorithm()
             )
         );
 
@@ -80,7 +81,8 @@ public class StoresInfo {
             keyStore -> keyManagers(
                 keyStore.getStorePath(),
                 keyStore.getStoreType(),
-                keyStore.getStorePassword()
+                keyStore.getStorePassword(),
+                keyStore.getManagerAlgorithm()
             )
         );
 
@@ -127,13 +129,13 @@ public class StoresInfo {
   }
 
   private Try<TrustManagerFactory, SecuritySetupException> trustManagers(String path, StoreType storeType,
-      Option<String> password) {
+      Option<String> password, Option<String> algorithm) {
     return Try.narrowK(
         Do.forEach(
             TryInstances.<SecuritySetupException>monad()
         )
             .__(getJksStore(path, storeType, password))
-            .__(StoresInfo::getTrustManagerFactoryFromKeyStore)
+            .__((KeyStore keyStore) -> StoresInfo.getTrustManagerFactoryFromKeyStore(keyStore, algorithm))
             .yield(
                 (KeyStore keyStore, TrustManagerFactory trustManagerFactory) -> trustManagerFactory
             )
@@ -142,13 +144,13 @@ public class StoresInfo {
   }
 
   private Try<KeyManagerFactory, SecuritySetupException> keyManagers(String path, StoreType storeType,
-      String password) {
+      String password, Option<String> algorithm) {
     return Try.narrowK(
         Do.forEach(
             TryInstances.<SecuritySetupException>monad()
         )
             .__(getJksStore(path, storeType, Option.of(password)))
-            .__(s -> StoresInfo.getKeyManagerFactoryFromKeyStore(s, password))
+            .__((KeyStore keyStore) -> StoresInfo.getKeyManagerFactoryFromKeyStore(keyStore, password, algorithm))
             .yield(
                 (KeyStore keyStore, KeyManagerFactory trustManagerFactory) -> trustManagerFactory
             )
@@ -156,9 +158,10 @@ public class StoresInfo {
   }
 
   private static Try<TrustManagerFactory, SecuritySetupException> getTrustManagerFactoryFromKeyStore(
-      KeyStore keyStore) {
+      KeyStore keyStore, Option<String> algorithm) {
     return Try.withCatch(() -> {
-      val trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+      val trustManagerFactory =
+          TrustManagerFactory.getInstance(algorithm.orElse(TrustManagerFactory.getDefaultAlgorithm()));
       trustManagerFactory.init(keyStore);
       return trustManagerFactory;
     }, NoSuchAlgorithmException.class, KeyStoreException.class)
@@ -166,9 +169,9 @@ public class StoresInfo {
   }
 
   private static Try<KeyManagerFactory, SecuritySetupException> getKeyManagerFactoryFromKeyStore(KeyStore keyStore,
-      String password) {
+      String password, Option<String> algorithm) {
     return Try.withCatch(() -> {
-      val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+      val keyManagerFactory = KeyManagerFactory.getInstance(algorithm.orElse(KeyManagerFactory.getDefaultAlgorithm()));
       keyManagerFactory.init(keyStore, password.toCharArray());
       return keyManagerFactory;
     }, NoSuchAlgorithmException.class, KeyStoreException.class, UnrecoverableKeyException.class)
@@ -199,7 +202,8 @@ public class StoresInfo {
               val storePassword =
                   Option.ofNullable(config.getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG))
                       .map(Password::value);
-              return new TrustStoreInfo(storePath, storeType, storePassword);
+              val managerAlgorithm = Option.ofNullable(config.getString(SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG));
+              return new TrustStoreInfo(storePath, storeType, storePassword, managerAlgorithm);
             }
             ));
   }
@@ -212,7 +216,11 @@ public class StoresInfo {
             .map(storeType -> Option.ofNullable(config.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG))
                 .map(Password::value)
                 .toEither(new SecuritySetupException("Password is required for key store"))
-                .map(pw -> new KeyStoreInfo(storePath, storeType, pw))
+                .map(pw -> {
+                  val managerAlgorithm =
+                      Option.ofNullable(config.getString(SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG));
+                  return new KeyStoreInfo(storePath, storeType, pw, managerAlgorithm);
+                })
             )
             .toOption()
         );

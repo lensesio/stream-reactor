@@ -15,10 +15,13 @@
  */
 package io.lenses.streamreactor.common.security;
 
+import cyclops.control.Option;
+
 interface StoreInfo {
 
   String storePath();
 
   StoreType storeType();
 
+  Option<String> managerAlgorithm();
 }

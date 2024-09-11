@@ -29,4 +29,6 @@ public class TrustStoreInfo {
 
   private Option<String> storePassword;
 
+  private Option<String> managerAlgorithm;
+
 }

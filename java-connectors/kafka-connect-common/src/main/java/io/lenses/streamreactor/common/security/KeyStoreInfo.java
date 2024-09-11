@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.common.security;
 
+import cyclops.control.Option;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -27,5 +28,7 @@ public class KeyStoreInfo {
   private StoreType storeType;
 
   private String storePassword;
+
+  private Option<String> managerAlgorithm;
 
 }

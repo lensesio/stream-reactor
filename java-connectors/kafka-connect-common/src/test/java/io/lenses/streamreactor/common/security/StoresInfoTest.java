@@ -38,8 +38,10 @@ import static org.mockito.Mockito.when;
 
 class StoresInfoTest {
 
-  private final String password = "changeIt";
-  private final Path keystoreDir = KeyStoreUtils.createKeystore("TestCommonName", password, password);
+  private static final String KEY_OR_TRUST_MANAGER_ALGORITHM = "PKIX";
+  private static final String STORE_PASSWORD = "changeIt";
+
+  private final Path keystoreDir = KeyStoreUtils.createKeystore("TestCommonName", STORE_PASSWORD, STORE_PASSWORD);
   private final String keystoreFile = keystoreDir.toAbsolutePath() + "/keystore.jks";
   private final String truststoreFile = keystoreDir.toAbsolutePath() + "/truststore.jks";
 
@@ -54,7 +56,7 @@ class StoresInfoTest {
 
   @Test
   void testToSslContextWithKeyStoreDefined() {
-    val storeInfo = new KeyStoreInfo(keystoreFile, StoreType.JKS, password);
+    val storeInfo = new KeyStoreInfo(keystoreFile, StoreType.JKS, STORE_PASSWORD, none());
     val storesInfo = new StoresInfo(none(), some(storeInfo));
 
     val sslContext = getRight(storesInfo.toSslContext());
@@ -64,7 +66,7 @@ class StoresInfoTest {
 
   @Test
   void testToSslContextWithTrustStoreDefined() {
-    val storeInfo = new TrustStoreInfo(keystoreFile, StoreType.JKS, some(password));
+    val storeInfo = new TrustStoreInfo(keystoreFile, StoreType.JKS, some(STORE_PASSWORD), none());
     val storesInfo = new StoresInfo(some(storeInfo), none());
 
     val sslContext = getRight(storesInfo.toSslContext());
@@ -74,8 +76,8 @@ class StoresInfoTest {
 
   @Test
   void testToSslContextWithBothStoresDefined() {
-    val keyStoreInfo = new KeyStoreInfo(keystoreFile, StoreType.JKS, password);
-    val trustStoreInfo = new TrustStoreInfo(truststoreFile, StoreType.JKS, some(password));
+    val keyStoreInfo = new KeyStoreInfo(keystoreFile, StoreType.JKS, STORE_PASSWORD, none());
+    val trustStoreInfo = new TrustStoreInfo(truststoreFile, StoreType.JKS, some(STORE_PASSWORD), none());
     val storesInfo = new StoresInfo(some(trustStoreInfo), some(keyStoreInfo));
 
     val sslContext = getRight(storesInfo.toSslContext());
@@ -85,7 +87,7 @@ class StoresInfoTest {
 
   @Test
   void testToSslContextThrowsFileNotFoundExceptionForInvalidKeyStorePath() {
-    val keyStoreInfo = new KeyStoreInfo("/invalid/path/to/keystore", StoreType.JKS, password);
+    val keyStoreInfo = new KeyStoreInfo("/invalid/path/to/keystore", StoreType.JKS, STORE_PASSWORD, none());
     val storesInfo = new StoresInfo(none(), some(keyStoreInfo));
 
     assertEquals(FileNotFoundException.class, getLeft(storesInfo.toSslContext()).getCause().getClass());
@@ -93,7 +95,7 @@ class StoresInfoTest {
 
   @Test
   void testToSslContextThrowsFileNotFoundExceptionForInvalidTrustStorePath() {
-    val trustStoreInfo = new TrustStoreInfo("/invalid/path/to/truststore", StoreType.JKS, some(password));
+    val trustStoreInfo = new TrustStoreInfo("/invalid/path/to/truststore", StoreType.JKS, some(STORE_PASSWORD), none());
     val storesInfo = new StoresInfo(some(trustStoreInfo), none());
 
     assertEquals(FileNotFoundException.class, getLeft(storesInfo.toSslContext()).getCause().getClass());
@@ -106,17 +108,21 @@ class StoresInfoTest {
     when(mockConfig.getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG)).thenReturn("/path/to/truststore");
     when(mockConfig.getString(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG)).thenReturn("JKS");
     when(mockConfig.getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)).thenReturn(null);
+    when(mockConfig.getString(SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG)).thenReturn(KEY_OR_TRUST_MANAGER_ALGORITHM);
 
     when(mockConfig.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG)).thenReturn("/path/to/keystore");
     when(mockConfig.getString(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG)).thenReturn("JKS");
-    when(mockConfig.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)).thenReturn(new Password(password));
+    when(mockConfig.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)).thenReturn(new Password(STORE_PASSWORD));
+    when(mockConfig.getString(SslConfigs.SSL_KEYMANAGER_ALGORITHM_CONFIG)).thenReturn(KEY_OR_TRUST_MANAGER_ALGORITHM);
 
     val storesInfo = StoresInfo.fromConfig(mockConfig);
 
     assertRight(storesInfo).isEqualTo(
         new StoresInfo(
-            some(new TrustStoreInfo("/path/to/truststore", StoreType.JKS, none())),
-            some(new KeyStoreInfo("/path/to/keystore", StoreType.JKS, password))
+            some(new TrustStoreInfo("/path/to/truststore", StoreType.JKS, none(), some(
+                KEY_OR_TRUST_MANAGER_ALGORITHM))),
+            some(new KeyStoreInfo("/path/to/keystore", StoreType.JKS, STORE_PASSWORD, some(
+                KEY_OR_TRUST_MANAGER_ALGORITHM)))
         )
     );
   }
