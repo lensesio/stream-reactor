@@ -17,11 +17,13 @@ package io.lenses.streamreactor.common.security;
 
 import cyclops.control.Option;
 
+import java.nio.file.Path;
+
 interface StoreInfo {
 
-  String storePath();
+  Path getStorePath();
 
-  StoreType storeType();
+  StoreType getStoreType();
 
-  Option<String> managerAlgorithm();
+  Option<String> getManagerAlgorithm();
 }

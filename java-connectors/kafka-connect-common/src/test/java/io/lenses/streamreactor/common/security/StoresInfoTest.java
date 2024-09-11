@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.common.security;
 
 import io.lenses.streamreactor.common.config.base.BaseConfig;
+import io.lenses.streamreactor.common.exception.SecuritySetupException;
 import lombok.val;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.types.Password;
@@ -32,6 +33,7 @@ import static io.lenses.streamreactor.test.utils.EitherValues.assertRight;
 import static io.lenses.streamreactor.test.utils.EitherValues.getLeft;
 import static io.lenses.streamreactor.test.utils.EitherValues.getRight;
 import static io.lenses.streamreactor.test.utils.OptionValues.getValue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -43,8 +45,8 @@ class StoresInfoTest {
   private static final String SSL_PROTOCOL_TLS = "TLS";
 
   private final Path keystoreDir = KeyStoreUtils.createKeystore("TestCommonName", STORE_PASSWORD, STORE_PASSWORD);
-  private final String keystoreFile = keystoreDir.toAbsolutePath() + "/keystore.jks";
-  private final String truststoreFile = keystoreDir.toAbsolutePath() + "/truststore.jks";
+  private final Path keystoreFile = keystoreDir.resolve("keystore.jks");
+  private final Path truststoreFile = keystoreDir.resolve("truststore.jks");
 
   StoresInfoTest() throws Exception {
   }
@@ -88,7 +90,7 @@ class StoresInfoTest {
 
   @Test
   void testToSslContextThrowsFileNotFoundExceptionForInvalidKeyStorePath() {
-    val keyStoreInfo = new KeyStoreInfo("/invalid/path/to/keystore", StoreType.JKS, STORE_PASSWORD, none());
+    val keyStoreInfo = new KeyStoreInfo(Path.of("/invalid/path/to/keystore"), StoreType.JKS, STORE_PASSWORD, none());
     val storesInfo = new StoresInfo(none(), none(), some(keyStoreInfo));
 
     assertEquals(FileNotFoundException.class, getLeft(storesInfo.toSslContext()).getCause().getClass());
@@ -96,7 +98,8 @@ class StoresInfoTest {
 
   @Test
   void testToSslContextThrowsFileNotFoundExceptionForInvalidTrustStorePath() {
-    val trustStoreInfo = new TrustStoreInfo("/invalid/path/to/truststore", StoreType.JKS, some(STORE_PASSWORD), none());
+    val trustStoreInfo =
+        new TrustStoreInfo(Path.of("/invalid/path/to/truststore"), StoreType.JKS, some(STORE_PASSWORD), none());
     val storesInfo = new StoresInfo(some(SSL_PROTOCOL_TLS), some(trustStoreInfo), none());
 
     assertEquals(FileNotFoundException.class, getLeft(storesInfo.toSslContext()).getCause().getClass());
@@ -121,9 +124,9 @@ class StoresInfoTest {
     assertRight(storesInfo).isEqualTo(
         new StoresInfo(
             none(),
-            some(new TrustStoreInfo("/path/to/truststore", StoreType.JKS, none(), some(
+            some(new TrustStoreInfo(Path.of("/path/to/truststore"), StoreType.JKS, none(), some(
                 KEY_OR_TRUST_MANAGER_ALGORITHM))),
-            some(new KeyStoreInfo("/path/to/keystore", StoreType.JKS, STORE_PASSWORD, some(
+            some(new KeyStoreInfo(Path.of("/path/to/keystore"), StoreType.JKS, STORE_PASSWORD, some(
                 KEY_OR_TRUST_MANAGER_ALGORITHM)))
         )
     );
@@ -142,7 +145,9 @@ class StoresInfoTest {
 
     val storesInfo = StoresInfo.fromConfig(mockConfig);
 
-    assertLeft(storesInfo).withFailMessage(() -> " Password is required for key store");
+    assertLeft(storesInfo)
+        .isInstanceOf(SecuritySetupException.class)
+        .satisfies(ex -> assertThat(ex.getMessage()).contains("Password is required for key store"));
 
   }
 

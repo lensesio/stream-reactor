@@ -32,6 +32,7 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -52,11 +53,11 @@ public class StoresInfo {
   private Option<TrustStoreInfo> maybeTrustStore;
   private Option<KeyStoreInfo> maybeKeyStore;
 
-  private Try<KeyStore, SecuritySetupException> getJksStore(String path, StoreType storeType, Option<String> password) {
+  private Try<KeyStore, SecuritySetupException> getJksStore(Path path, StoreType storeType, Option<String> password) {
     return Try.withCatch(
         () -> {
           val keyStore = KeyStore.getInstance(storeType.toString());
-          val inputStream = new FileInputStream(path);
+          val inputStream = new FileInputStream(path.toFile());
           keyStore.load(inputStream, password.map(String::toCharArray).orElse(null));
           return keyStore;
         },
@@ -130,7 +131,7 @@ public class StoresInfo {
         .toEither();
   }
 
-  private Try<TrustManagerFactory, SecuritySetupException> trustManagers(String path, StoreType storeType,
+  private Try<TrustManagerFactory, SecuritySetupException> trustManagers(Path path, StoreType storeType,
       Option<String> password, Option<String> algorithm) {
     return Try.narrowK(
         Do.forEach(
@@ -145,7 +146,7 @@ public class StoresInfo {
 
   }
 
-  private Try<KeyManagerFactory, SecuritySetupException> keyManagers(String path, StoreType storeType,
+  private Try<KeyManagerFactory, SecuritySetupException> keyManagers(Path path, StoreType storeType,
       String password, Option<String> algorithm) {
     return Try.narrowK(
         Do.forEach(
@@ -201,6 +202,7 @@ public class StoresInfo {
 
   private static Option<Either<SecuritySetupException, TrustStoreInfo>> configToTrustStoreInfo(AbstractConfig config) {
     return Option.ofNullable(config.getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG))
+        .map(Path::of)
         .map(storePath -> fromConfigOption(config, SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG)
             .map(storeType -> {
               val storePassword =
@@ -216,6 +218,7 @@ public class StoresInfo {
       AbstractConfig config
   ) {
     return Option.ofNullable(config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
+        .map(Path::of)
         .flatMap(storePath -> fromConfigOption(config, SslConfigs.SSL_KEYSTORE_TYPE_CONFIG)
             .map(storeType -> Option.ofNullable(config.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG))
                 .map(Password::value)

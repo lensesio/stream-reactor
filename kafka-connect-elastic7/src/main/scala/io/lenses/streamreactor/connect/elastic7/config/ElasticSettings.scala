@@ -34,7 +34,7 @@ case class ElasticSettings(
   pkJoinerSeparator:     String     = ElasticConfigConstants.PK_JOINER_SEPARATOR_DEFAULT,
   httpBasicAuthUsername: String     = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
   httpBasicAuthPassword: String     = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
-  storesInfo:            StoresInfo = new StoresInfo(none(), none()),
+  storesInfo:            StoresInfo = new StoresInfo(none(), none(), none()),
 )
 
 object ElasticSettings {

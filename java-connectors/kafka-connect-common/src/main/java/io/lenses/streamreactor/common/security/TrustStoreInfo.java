@@ -19,11 +19,13 @@ import cyclops.control.Option;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.nio.file.Path;
+
 @AllArgsConstructor
 @Data
-public class TrustStoreInfo {
+public class TrustStoreInfo implements StoreInfo {
 
-  private String storePath;
+  private Path storePath;
 
   private StoreType storeType;
 
