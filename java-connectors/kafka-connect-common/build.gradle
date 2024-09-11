@@ -12,6 +12,12 @@ project(":kafka-connect-common") {
         api group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
         testImplementation(project(path: ':test-utils', configuration: 'testArtifacts'))
 
+        testImplementation group: 'org.bouncycastle', name:'bcprov-jdk18on', version: bouncyCastleVersion
+        testImplementation group: 'org.bouncycastle', name:'bcutil-jdk18on', version: bouncyCastleVersion
+        testImplementation group: 'org.bouncycastle', name:'bcpkix-jdk18on', version: bouncyCastleVersion
+        testImplementation group: 'org.bouncycastle', name:'bcpg-jdk18on', version: bouncyCastleVersion
+        testImplementation group: 'org.bouncycastle', name:'bctls-jdk18on', version: bouncyCastleVersion
+
         //confluent - may be needed soon
         //        implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version: apacheToConfluentVersionAxis.get(kafkaVersion)
         //        implementation group: 'io.confluent', name: 'kafka-connect-avro-converter', version: apacheToConfluentVersionAxis.get(kafkaVersion)

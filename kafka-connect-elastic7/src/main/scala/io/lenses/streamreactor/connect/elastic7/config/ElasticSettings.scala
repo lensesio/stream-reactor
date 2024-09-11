@@ -15,8 +15,11 @@
  */
 package io.lenses.streamreactor.connect.elastic7.config
 
+import cyclops.control.Option.none
 import io.lenses.kcql.Kcql
 import io.lenses.streamreactor.common.errors.ErrorPolicy
+import io.lenses.streamreactor.common.security.StoresInfo
+import io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow
 
 /**
   * Created by andrew@datamountaineer.com on 13/05/16.
@@ -25,12 +28,13 @@ import io.lenses.streamreactor.common.errors.ErrorPolicy
 case class ElasticSettings(
   kcqls:                 Seq[Kcql],
   errorPolicy:           ErrorPolicy,
-  taskRetries:           Int    = ElasticConfigConstants.NBR_OF_RETIRES_DEFAULT,
-  writeTimeout:          Int    = ElasticConfigConstants.WRITE_TIMEOUT_DEFAULT,
-  batchSize:             Int    = ElasticConfigConstants.BATCH_SIZE_DEFAULT,
-  pkJoinerSeparator:     String = ElasticConfigConstants.PK_JOINER_SEPARATOR_DEFAULT,
-  httpBasicAuthUsername: String = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
-  httpBasicAuthPassword: String = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
+  taskRetries:           Int        = ElasticConfigConstants.NBR_OF_RETIRES_DEFAULT,
+  writeTimeout:          Int        = ElasticConfigConstants.WRITE_TIMEOUT_DEFAULT,
+  batchSize:             Int        = ElasticConfigConstants.BATCH_SIZE_DEFAULT,
+  pkJoinerSeparator:     String     = ElasticConfigConstants.PK_JOINER_SEPARATOR_DEFAULT,
+  httpBasicAuthUsername: String     = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
+  httpBasicAuthPassword: String     = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
+  storesInfo:            StoresInfo = new StoresInfo(none(), none(), none()),
 )
 
 object ElasticSettings {
@@ -46,14 +50,16 @@ object ElasticSettings {
 
     val batchSize = config.getInt(ElasticConfigConstants.BATCH_SIZE_CONFIG)
 
-    ElasticSettings(kcql,
-                    errorPolicy,
-                    retries,
-                    writeTimeout,
-                    batchSize,
-                    pkJoinerSeparator,
-                    httpBasicAuthUsername,
-                    httpBasicAuthPassword,
+    ElasticSettings(
+      kcql,
+      errorPolicy,
+      retries,
+      writeTimeout,
+      batchSize,
+      pkJoinerSeparator,
+      httpBasicAuthUsername,
+      httpBasicAuthPassword,
+      unpackOrThrow(StoresInfo.fromConfig(config)),
     )
   }
 }
