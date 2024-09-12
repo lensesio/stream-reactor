@@ -99,7 +99,7 @@ object HttpSinkConfig {
       content   = connectConfig.getString(HttpSinkConfigDef.HttpRequestContentProp)
       headers  <- extractHeaders(connectConfig.getList(HttpSinkConfigDef.HttpRequestHeadersProp).asScala.toList)
       auth <- Authentication.from(
-        configs,
+        connectConfig,
         AuthenticationKeys(BasicAuthenticationUsernameProp, BasicAuthenticationPasswordProp, AuthenticationTypeProp),
       )
       ssl             <- CyclopsToScalaEither.convertToScalaEither(StoresInfo.fromConfig(connectConfig))

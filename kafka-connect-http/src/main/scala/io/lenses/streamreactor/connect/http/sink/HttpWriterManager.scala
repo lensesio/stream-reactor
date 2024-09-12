@@ -22,7 +22,6 @@ import cats.effect.Resource
 import cats.effect.kernel.Deferred
 import cats.effect.kernel.Outcome
 import cats.effect.kernel.Temporal
-import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
@@ -60,7 +59,7 @@ object HttpWriterManager extends StrictLogging {
   )(
     implicit
     t: Temporal[IO],
-  ): HttpWriterManager = {
+  ): IO[HttpWriterManager] = {
 
     val httpClientBuilder = HttpClient.newBuilder()
       .connectTimeout(Duration.ofMillis(config.timeout.connectionTimeoutMs.toLong))
@@ -83,30 +82,29 @@ object HttpWriterManager extends StrictLogging {
     )
 
     val clientResource: Resource[IO, Client[IO]] = JdkHttpClient[IO](httpClient)
-    // This code would need to propagate the resource up to the caller
-    clientResource.allocated.unsafeRunSync() match {
-      case (client, cResRel) =>
-        val retriableClient = Retry(retriablePolicy)(client)
-        val requestSender = new HttpRequestSender(
-          sinkName,
-          config.authentication,
-          config.method.toHttp4sMethod,
-          retriableClient,
-        )
-        val commitPolicy = config.batch.toCommitPolicy
-        new HttpWriterManager(
-          sinkName,
-          template,
-          requestSender,
-          if (commitPolicy.conditions.nonEmpty) commitPolicy else HttpCommitPolicy.Default,
-          cResRel,
-          Ref.unsafe(Map[Topic, HttpWriter]()),
-          terminate,
-          config.errorThreshold,
-          config.uploadSyncPeriod,
-        )
-    }
+    for {
+      (client, cResRel) <- clientResource.allocated
+      retriableClient    = Retry(retriablePolicy)(client)
+      httpWritersRef    <- Ref.of[IO, Map[Topic, HttpWriter]](Map.empty)
+      sender <- HttpRequestSender(
+        sinkName,
+        config.method.toHttp4sMethod,
+        retriableClient,
+        config.authentication,
+      )
+      commitPolicy = config.batch.toCommitPolicy
 
+    } yield new HttpWriterManager(
+      sinkName,
+      template,
+      sender,
+      if (commitPolicy.conditions.nonEmpty) commitPolicy else HttpCommitPolicy.Default,
+      cResRel,
+      httpWritersRef,
+      terminate,
+      config.errorThreshold,
+      config.uploadSyncPeriod,
+    )
   }
 
   /*
@@ -182,7 +180,7 @@ class HttpWriterManager(
     } yield res
   }
 
-  def start(errCallback: Throwable => Unit): IO[Unit] = {
+  def start(errCallback: Throwable => IO[Unit]): IO[Unit] = {
     import scala.concurrent.duration._
     for {
       _ <- IO(logger.info(s"[$sinkName] starting HttpWriterManager"))
@@ -201,19 +199,20 @@ class HttpWriterManager(
 
   private def handleResult(
     writersResult: List[Either[Throwable, _]],
-    errCallback:   Throwable => Unit,
-  ): IO[Unit] = IO {
-    // Handle the result of individual writer processes
-    val failures = writersResult.collect {
-      case Left(error: Throwable) => error
-    }
-    if (failures.nonEmpty) {
-      logger.error(s"[$sinkName] Some writer processes failed: $failures")
-      failures.foreach(wr => errCallback(wr))
-    } else {
-      logger.debug(s"[$sinkName] All writer processes completed successfully")
-    }
-  }
+    errCallback:   Throwable => IO[Unit],
+  ): IO[Unit] =
+    for {
+      failures <- IO(writersResult.collect {
+        case Left(error: Throwable) => error
+      })
+      _ <- if (failures.nonEmpty) {
+        logger.error(s"[$sinkName] Some writer processes failed: $failures")
+        failures.traverse(errCallback)
+      } else {
+        logger.debug(s"[$sinkName] All writer processes completed successfully")
+        IO.unit
+      }
+    } yield ()
 
   def process(): IO[List[Either[Throwable, Unit]]] = {
     logger.trace(s"[$sinkName] WriterManager.process()")

@@ -68,9 +68,8 @@ class HttpRequestSenderIT
 
     JdkHttpClient.simple[IO].use {
       client =>
-        val requestSender = new HttpRequestSender(
+        val requestSender = new NoAuthenticationHttpRequestSender(
           sinkName,
-          NoAuthentication,
           Method.PUT,
           client,
         )
@@ -107,11 +106,12 @@ class HttpRequestSenderIT
 
     JdkHttpClient.simple[IO].use {
       client =>
-        val requestSender = new HttpRequestSender(
+        val requestSender = new BasicAuthenticationHttpRequestSender(
           sinkName,
-          BasicAuthentication("myUser", "myPassword"),
           Method.POST,
           client,
+          "myUser",
+          "myPassword",
         )
         val processedTemplate = ProcessedTemplate(
           s"${wireMockServer.baseUrl()}$expectedUrl",
@@ -147,9 +147,8 @@ class HttpRequestSenderIT
       ),
     )
 
-    val requestSender = new HttpRequestSender(
+    val requestSender = new NoAuthenticationHttpRequestSender(
       sinkName,
-      NoAuthentication,
       Method.PUT,
       mockClient,
     )

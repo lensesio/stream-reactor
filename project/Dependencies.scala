@@ -227,6 +227,7 @@ object Dependencies {
   val http4sDsl       = "org.http4s" %% "http4s-dsl"             % http4sVersion
   val http4sJdkClient = "org.http4s" %% "http4s-jdk-http-client" % http4sJdkVersion
   val http4sCirce     = "org.http4s" %% "http4s-circe"           % http4sVersion
+
   val http4s: Seq[ModuleID] = Seq(http4sDsl, http4sJdkClient, http4sCirce)
 
   val bouncyProv = "org.bouncycastle" % "bcprov-jdk18on" % bouncyCastleVersion
@@ -527,7 +528,7 @@ trait Dependencies {
 
   val kafkaConnectS3FuncTestDeps: Seq[ModuleID] = baseTestDeps ++ compressionCodecDeps :+ s3Sdk
 
-  val kafkaConnectHttpDeps: Seq[ModuleID] = Seq(http4sJdkClient)
+  val kafkaConnectHttpDeps: Seq[ModuleID] = Seq(http4sJdkClient, http4sCirce)
 
   val kafkaConnectHttpTestDeps: Seq[ModuleID] = baseTestDeps
 

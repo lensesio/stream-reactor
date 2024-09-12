@@ -48,43 +48,33 @@ class HttpSinkTask extends SinkTask with LazyLogging with JarManifestProvided {
   private def sinkName = maybeSinkName.getOrElse("Lenses.io HTTP Sink")
   private val deferred: Deferred[IO, Either[Throwable, Unit]] = Deferred.unsafe[IO, Either[Throwable, Unit]]
 
-  private val errorRef: Ref[IO, List[Throwable]] = Ref.of[IO, List[Throwable]](List.empty).unsafeRunSync()
+  private val errorRef: Ref[IO, List[Throwable]] = Ref.unsafe[IO, List[Throwable]](List.empty)
 
   override def start(props: util.Map[String, String]): Unit = {
 
     printAsciiHeader(manifest, "/http-sink-ascii.txt")
 
-    val propsAsScala = props.asScala
+    val propsAsScala = props.asScala.toMap
     maybeSinkName = propsAsScala.get("name")
 
-    IO
-      .fromEither(HttpSinkConfig.from(propsAsScala.toMap))
-      .flatMap { config =>
-        val template      = RawTemplate(config.endpoint, config.content, config.headers)
-        val writerManager = HttpWriterManager(sinkName, config, template, deferred)
-        val refUpdateCallback: Throwable => Unit =
-          (err: Throwable) => {
-            {
-              for {
-                updated <- this.errorRef.getAndUpdate {
-                  lts => lts :+ err
-                }
-              } yield updated
-            }.unsafeRunSync()
-            ()
-
-          }
-        writerManager.start(refUpdateCallback)
-          .map { _ =>
-            this.maybeTemplate      = Some(template)
-            this.maybeWriterManager = Some(writerManager)
-          }
+    val refUpdateCallback: Throwable => IO[Unit] = (err: Throwable) =>
+      this.errorRef.update {
+        lts => lts :+ err
       }
-      .recoverWith {
-        case e =>
-          // errors at this point simply need to be thrown
-          IO.raiseError[Unit](new RuntimeException("Unexpected error occurred during sink start", e))
-      }.unsafeRunSync()
+
+    (for {
+      config        <- IO.fromEither(HttpSinkConfig.from(propsAsScala))
+      template       = RawTemplate(config.endpoint, config.content, config.headers)
+      writerManager <- HttpWriterManager.apply(sinkName, config, template, deferred)
+      _             <- writerManager.start(refUpdateCallback)
+    } yield {
+      this.maybeTemplate      = Some(template)
+      this.maybeWriterManager = Some(writerManager)
+    }).recoverWith {
+      case e =>
+        // errors at this point simply need to be thrown
+        IO.raiseError[Unit](new RuntimeException("Unexpected error occurred during sink start", e))
+    }.unsafeRunSync()
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
