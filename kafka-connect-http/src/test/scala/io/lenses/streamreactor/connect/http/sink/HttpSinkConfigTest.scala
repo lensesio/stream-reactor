@@ -47,7 +47,7 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
           ("Content-Type", "application/json"),
         ),
         new StoresInfo(cysome(DEFAULT_SSL_PROTOCOL_TLS), cynone(), cynone()),
-        BatchConfig(None, None, None),
+        BatchConfig(Some(1), None, None),
         ErrorThresholdDefault,
         UploadSyncPeriodDefault,
         RetriesConfig(
@@ -89,7 +89,7 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
         ("Content-Type", "application/json"),
       ),
       new StoresInfo(cysome(DEFAULT_SSL_PROTOCOL_TLS), cynone(), cynone()),
-      BatchConfig(None, None, None),
+      BatchConfig(Some(1), None, None),
       ErrorThresholdDefault,
       UploadSyncPeriodDefault,
       RetriesConfig(
