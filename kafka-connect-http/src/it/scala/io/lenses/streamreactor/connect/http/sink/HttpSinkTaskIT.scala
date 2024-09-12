@@ -1,9 +1,17 @@
 package io.lenses.streamreactor.connect.http.sink
 
 import cats.effect.testing.scalatest.AsyncIOSpec
-import cats.effect.{IO, Resource}
+import cats.effect.IO
+import cats.effect.Resource
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, containing, equalToXml, exactly, postRequestedFor, urlEqualTo, urlMatching, post => httpPost}
+import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.containing
+import com.github.tomakehurst.wiremock.client.WireMock.equalToXml
+import com.github.tomakehurst.wiremock.client.WireMock.exactly
+import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
+import com.github.tomakehurst.wiremock.client.WireMock.{ post => httpPost }
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import io.lenses.streamreactor.connect.http.sink.client.HttpMethod
 import io.lenses.streamreactor.connect.http.sink.config._
@@ -11,9 +19,11 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.concurrent.Eventually
 import org.scalatest.funsuite.AsyncFunSuite
-import org.scalatest.time.{Minute, Span}
+import org.scalatest.time.Minute
+import org.scalatest.time.Span
 
-import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
+import scala.jdk.CollectionConverters.MapHasAsJava
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
   override implicit def patienceConfig: PatienceConfig = PatienceConfig(timeout = Span(1, Minute))
@@ -34,7 +44,7 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
   def sinkTaskUsingProps(config: Map[String, String]): Resource[IO, HttpSinkTask] =
     for {
       task <- Resource.eval(IO.delay(new HttpSinkTask()))
-      _ <- Resource.make(IO.delay(task.start(config.asJava)))(_ => IO.delay(task.stop()))
+      _    <- Resource.make(IO.delay(task.start(config.asJava)))(_ => IO.delay(task.stop()))
     } yield task
 
   private val Host  = "localhost"
@@ -49,12 +59,12 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
     val path = "/awesome/endpoint"
     (for {
       server <- wireMockServer
-      config : Map[String, String] = Map(
-        HttpSinkConfigDef.HttpMethodProp -> HttpMethod.Post.toString,
-        HttpSinkConfigDef.HttpEndpointProp -> s"http://$Host:${server.port()}/awesome/endpoint",
+      config: Map[String, String] = Map(
+        HttpSinkConfigDef.HttpMethodProp         -> HttpMethod.Post.toString,
+        HttpSinkConfigDef.HttpEndpointProp       -> s"http://$Host:${server.port()}/awesome/endpoint",
         HttpSinkConfigDef.HttpRequestContentProp -> "test",
         HttpSinkConfigDef.AuthenticationTypeProp -> noAuthentication,
-        HttpSinkConfigDef.BatchCountProp -> "1",
+        HttpSinkConfigDef.BatchCountProp         -> "1",
       )
       _         = server.stubFor(httpPost(urlEqualTo(path)).willReturn(aResponse().withStatus(200)))
       sinkTask <- sinkTaskUsingProps(config)
@@ -73,13 +83,13 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
     (for {
       server <- wireMockServer
       config: Map[String, String] = Map(
-        HttpSinkConfigDef.HttpMethodProp -> HttpMethod.Post.toString,
-        HttpSinkConfigDef.HttpEndpointProp -> s"http://$Host:${server.port()}/awesome/endpoint/{{value.name}}",
+        HttpSinkConfigDef.HttpMethodProp         -> HttpMethod.Post.toString,
+        HttpSinkConfigDef.HttpEndpointProp       -> s"http://$Host:${server.port()}/awesome/endpoint/{{value.name}}",
         HttpSinkConfigDef.HttpRequestContentProp -> "{salary: {{value.salary}}}",
         HttpSinkConfigDef.AuthenticationTypeProp -> noAuthentication,
-        HttpSinkConfigDef.BatchCountProp -> "1",
+        HttpSinkConfigDef.BatchCountProp         -> "1",
       )
-      _ = server.stubFor(httpPost(urlMatching(path)).willReturn(aResponse().withStatus(200)))
+      _         = server.stubFor(httpPost(urlMatching(path)).willReturn(aResponse().withStatus(200)))
       sinkTask <- sinkTaskUsingProps(config)
       _ = sinkTask.put(
         users.zipWithIndex.map {
@@ -111,13 +121,13 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
     (for {
       server <- wireMockServer
       config: Map[String, String] = Map(
-        HttpSinkConfigDef.HttpMethodProp -> HttpMethod.Post.toString,
-        HttpSinkConfigDef.HttpEndpointProp -> s"http://$Host:${server.port()}/awesome/endpoint/{{value.name}}",
+        HttpSinkConfigDef.HttpMethodProp         -> HttpMethod.Post.toString,
+        HttpSinkConfigDef.HttpEndpointProp       -> s"http://$Host:${server.port()}/awesome/endpoint/{{value.name}}",
         HttpSinkConfigDef.HttpRequestContentProp -> "{salary: {{value.salary}}}",
         HttpSinkConfigDef.AuthenticationTypeProp -> noAuthentication,
-        HttpSinkConfigDef.BatchCountProp -> "1",
+        HttpSinkConfigDef.BatchCountProp         -> "1",
       )
-      _ = server.stubFor(httpPost(urlEqualTo(path)).willReturn(aResponse().withStatus(200)))
+      _     = server.stubFor(httpPost(urlEqualTo(path)).willReturn(aResponse().withStatus(200)))
       task <- sinkTaskUsingProps(config)
       _ = task.put(
         users.zipWithIndex.map {
@@ -155,7 +165,7 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
     (for {
       server <- wireMockServer
       config: Map[String, String] = Map(
-        HttpSinkConfigDef.HttpMethodProp -> HttpMethod.Post.toString,
+        HttpSinkConfigDef.HttpMethodProp   -> HttpMethod.Post.toString,
         HttpSinkConfigDef.HttpEndpointProp -> s"http://$Host:${server.port()}/awesome/endpoint/{{value.name}}",
         HttpSinkConfigDef.HttpRequestContentProp ->
           s"""
@@ -165,7 +175,7 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
              |   {{/message}}
              | </salaries>""".stripMargin,
         HttpSinkConfigDef.AuthenticationTypeProp -> noAuthentication,
-        HttpSinkConfigDef.BatchCountProp -> "7",
+        HttpSinkConfigDef.BatchCountProp         -> "7",
       )
       _     = server.stubFor(httpPost(urlMatching(path)).willReturn(aResponse().withStatus(200)))
       task <- sinkTaskUsingProps(config)
@@ -193,13 +203,13 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
     (for {
       server <- wireMockServer
       config: Map[String, String] = Map(
-        HttpSinkConfigDef.HttpMethodProp -> HttpMethod.Post.toString,
+        HttpSinkConfigDef.HttpMethodProp   -> HttpMethod.Post.toString,
         HttpSinkConfigDef.HttpEndpointProp -> s"http://$Host:${server.port()}/awesome/endpoint",
         HttpSinkConfigDef.HttpRequestContentProp ->
           s"""
              | Ultimately not important for this test""".stripMargin,
         HttpSinkConfigDef.AuthenticationTypeProp -> noAuthentication,
-        HttpSinkConfigDef.BatchCountProp -> "1",
+        HttpSinkConfigDef.BatchCountProp         -> "1",
       )
       task <- sinkTaskUsingProps(config)
       _     = server.stubFor(httpPost(urlMatching(path)).willReturn(aResponse().withStatus(404)))

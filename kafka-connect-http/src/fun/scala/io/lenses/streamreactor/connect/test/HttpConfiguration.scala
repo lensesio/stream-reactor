@@ -18,15 +18,15 @@ trait HttpConfiguration extends LazyLogging {
   ): ConnectorConfiguration = {
     val configMap: Map[String, ConfigValue[_]] = converters.view.mapValues(new ConfigValue[String](_)).toMap ++
       Map(
-        "connector.class" -> ConfigValue("io.lenses.streamreactor.connect.http.sink.HttpSinkConnector"),
-        "tasks.max"       -> ConfigValue(1),
-        "topics"          -> ConfigValue(topicName),
-        HttpSinkConfigDef.HttpMethodProp -> ConfigValue(HttpMethod.withNameInsensitive(httpMethod).toString),
-        HttpSinkConfigDef.HttpEndpointProp -> ConfigValue(endpointUrl),
+        "connector.class"                        -> ConfigValue("io.lenses.streamreactor.connect.http.sink.HttpSinkConnector"),
+        "tasks.max"                              -> ConfigValue(1),
+        "topics"                                 -> ConfigValue(topicName),
+        HttpSinkConfigDef.HttpMethodProp         -> ConfigValue(HttpMethod.withNameInsensitive(httpMethod).toString),
+        HttpSinkConfigDef.HttpEndpointProp       -> ConfigValue(endpointUrl),
         HttpSinkConfigDef.HttpRequestContentProp -> ConfigValue(contentTemplate),
         HttpSinkConfigDef.HttpRequestHeadersProp -> ConfigValue(headerTemplates.mkString(",")),
         HttpSinkConfigDef.AuthenticationTypeProp -> ConfigValue("none"), //NoAuthentication
-        HttpSinkConfigDef.BatchCountProp -> ConfigValue(1),
+        HttpSinkConfigDef.BatchCountProp         -> ConfigValue(1),
       )
     debugLogConnectorConfig(configMap)
     ConnectorConfiguration(

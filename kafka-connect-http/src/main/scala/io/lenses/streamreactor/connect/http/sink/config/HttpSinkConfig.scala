@@ -17,7 +17,8 @@ package io.lenses.streamreactor.connect.http.sink.config
 
 import cats.implicits.toBifunctorOps
 import cats.implicits.toTraverseOps
-import io.lenses.streamreactor.common.config.SSLConfig
+import io.lenses.streamreactor.common.security.StoresInfo
+import io.lenses.streamreactor.common.utils.CyclopsToScalaEither
 import io.lenses.streamreactor.connect.cloud.common.sink.commit._
 import io.lenses.streamreactor.connect.http.sink.client.Authentication
 import io.lenses.streamreactor.connect.http.sink.client.AuthenticationKeys
@@ -25,7 +26,6 @@ import io.lenses.streamreactor.connect.http.sink.client.HttpMethod
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.AuthenticationTypeProp
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.BasicAuthenticationPasswordProp
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.BasicAuthenticationUsernameProp
-import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.ConnectorPrefix
 import org.apache.kafka.common.config.AbstractConfig
 
 import java.net.MalformedURLException
@@ -76,7 +76,7 @@ case class HttpSinkConfig(
   content:          String,
   authentication:   Authentication,
   headers:          List[(String, String)],
-  ssl:              Option[SSLConfig],
+  ssl:              StoresInfo,
   batch:            BatchConfig,
   errorThreshold:   Int,
   uploadSyncPeriod: Int,
@@ -102,7 +102,7 @@ object HttpSinkConfig {
         configs,
         AuthenticationKeys(BasicAuthenticationUsernameProp, BasicAuthenticationPasswordProp, AuthenticationTypeProp),
       )
-      ssl             <- SSLConfig.from(connectConfig, ConnectorPrefix)
+      ssl             <- CyclopsToScalaEither.convertToScalaEither(StoresInfo.fromConfig(connectConfig))
       batch            = BatchConfig.from(connectConfig)
       errorThreshold   = connectConfig.getInt(HttpSinkConfigDef.ErrorThresholdProp)
       uploadSyncPeriod = connectConfig.getInt(HttpSinkConfigDef.UploadSyncPeriodProp)

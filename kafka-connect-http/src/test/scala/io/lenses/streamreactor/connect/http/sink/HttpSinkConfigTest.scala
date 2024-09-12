@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.http.sink
-import cats.implicits.none
+import io.lenses.streamreactor.common.security.StoresInfo
 import io.lenses.streamreactor.connect.http.sink.client.HttpMethod.Put
 import io.lenses.streamreactor.connect.http.sink.client.BasicAuthentication
 import io.lenses.streamreactor.connect.http.sink.client.NoAuthentication
@@ -24,9 +24,11 @@ import io.lenses.streamreactor.connect.http.sink.config._
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
-
+import cyclops.control.Option.{ none => cynone }
+import cyclops.control.Option.{ some => cysome }
 class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues {
 
+  val DEFAULT_SSL_PROTOCOL_TLS = "TLSv1.3"
   test("should read minimal config") {
     HttpSinkConfig.from(
       Map(
@@ -44,7 +46,7 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
         List(
           ("Content-Type", "application/json"),
         ),
-        none,
+        new StoresInfo(cysome(DEFAULT_SSL_PROTOCOL_TLS), cynone(), cynone()),
         BatchConfig(None, None, None),
         ErrorThresholdDefault,
         UploadSyncPeriodDefault,
@@ -86,7 +88,7 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
       List(
         ("Content-Type", "application/json"),
       ),
-      none,
+      new StoresInfo(cysome(DEFAULT_SSL_PROTOCOL_TLS), cynone(), cynone()),
       BatchConfig(None, None, None),
       ErrorThresholdDefault,
       UploadSyncPeriodDefault,

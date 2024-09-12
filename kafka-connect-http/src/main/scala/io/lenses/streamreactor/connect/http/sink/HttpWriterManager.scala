@@ -27,7 +27,8 @@ import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
 import com.typesafe.scalalogging.StrictLogging
-import io.lenses.streamreactor.common.config.SSLConfigContext
+import io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow
+import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToScalaOption
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
@@ -63,8 +64,11 @@ object HttpWriterManager extends StrictLogging {
 
     val httpClientBuilder = HttpClient.newBuilder()
       .connectTimeout(Duration.ofMillis(config.timeout.connectionTimeoutMs.toLong))
-    val builderAfterSSL = config.ssl.fold(httpClientBuilder)(ssl => httpClientBuilder.sslContext(SSLConfigContext(ssl)))
-    val httpClient      = builderAfterSSL.build()
+
+    val builderAfterSSL =
+      convertToScalaOption(unpackOrThrow(config.ssl.toSslContext)).fold(httpClientBuilder)(httpClientBuilder.sslContext)
+
+    val httpClient = builderAfterSSL.build()
     logger.info(
       s"[$sinkName] Setting up http client with maxTimeout: ${config.retries.maxTimeoutMs.millis}, retries: ${config.retries.maxRetries}",
     )
