@@ -196,14 +196,3 @@ class SSLConfigTest extends AnyFunSuiteLike with Matchers with EitherValues {
   }
 }
 
-/*
-case class SSLConfig(
-  trustStorePath: String,
-  trustStorePass: String,
-  keyStorePath:   Option[String],
-  keyStorePass:   Option[String],
-  useClientCert:  Boolean = false,
-  keyStoreType:   String  = "JKS",
-  trustStoreType: String  = "JKS",
-)
- */
