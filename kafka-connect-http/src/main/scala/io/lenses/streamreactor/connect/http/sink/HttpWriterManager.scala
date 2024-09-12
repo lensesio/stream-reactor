@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.http.sink
 import cats.effect.FiberIO
 import cats.effect.IO
 import cats.effect.Ref
+import cats.effect.Resource
 import cats.effect.kernel.Deferred
 import cats.effect.kernel.Outcome
 import cats.effect.kernel.Temporal
@@ -25,7 +26,9 @@ import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.common.config.SSLConfigContext
+import com.typesafe.scalalogging.StrictLogging
+import io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow
+import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToScalaOption
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
@@ -36,16 +39,19 @@ import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.http4s.Response
+import org.http4s.WaitQueueTimeoutException
+import org.http4s.client.Client
+import org.http4s.client.middleware.Retry
+import org.http4s.client.middleware.RetryPolicy
 import org.http4s.jdkhttpclient.JdkHttpClient
 
 import java.net.http.HttpClient
+import java.time.Duration
 import scala.collection.immutable.Queue
+import scala.concurrent.duration.DurationInt
 
-object HttpWriterManager {
-
-  private val DefaultErrorThreshold   = 5
-  private val DefaultUploadSyncPeriod = 100
-
+object HttpWriterManager extends StrictLogging {
   def apply(
     sinkName:  String,
     config:    HttpSinkConfig,
@@ -56,37 +62,62 @@ object HttpWriterManager {
     t: Temporal[IO],
   ): HttpWriterManager = {
 
-    // in certain circumstances we want a customised http client.
-    val clientCreate = config match {
-      case HttpSinkConfig(_, _, _, _, _, Some(ssl), _, _, _) =>
-        val sslContext = SSLConfigContext(ssl) // TODO: wrap for error handling
-        val httpClient = HttpClient.newBuilder().sslContext(sslContext).build()
-        JdkHttpClient[IO](httpClient)
-      case _ =>
-        JdkHttpClient.simple[IO]
-    }
-    clientCreate.allocated.unsafeRunSync() match {
-      case (cRes, cResRel) =>
+    val httpClientBuilder = HttpClient.newBuilder()
+      .connectTimeout(Duration.ofMillis(config.timeout.connectionTimeoutMs.toLong))
+
+    val builderAfterSSL =
+      convertToScalaOption(unpackOrThrow(config.ssl.toSslContext)).fold(httpClientBuilder)(httpClientBuilder.sslContext)
+
+    val httpClient = builderAfterSSL.build()
+    logger.info(
+      s"[$sinkName] Setting up http client with maxTimeout: ${config.retries.maxTimeoutMs.millis}, retries: ${config.retries.maxRetries}",
+    )
+    val retryPolicy = RetryPolicy.exponentialBackoff(config.retries.maxTimeoutMs.millis, config.retries.maxRetries)
+
+    val retriableFn: Either[Throwable, Response[IO]] => Boolean =
+      isErrorOrRetriableStatus(_, config.retries.onStatusCodes.toSet)
+
+    val retriablePolicy = RetryPolicy[IO](
+      retryPolicy,
+      retriable = (_, response) => retriableFn(response),
+    )
+
+    val clientResource: Resource[IO, Client[IO]] = JdkHttpClient[IO](httpClient)
+    // This code would need to propagate the resource up to the caller
+    clientResource.allocated.unsafeRunSync() match {
+      case (client, cResRel) =>
+        val retriableClient = Retry(retriablePolicy)(client)
         val requestSender = new HttpRequestSender(
           sinkName,
           config.authentication,
           config.method.toHttp4sMethod,
-          cRes,
+          retriableClient,
         )
+        val commitPolicy = config.batch.toCommitPolicy
         new HttpWriterManager(
           sinkName,
           template,
           requestSender,
-          config.batch.map(_.toCommitPolicy).getOrElse(HttpCommitPolicy.Default),
+          if (commitPolicy.conditions.nonEmpty) commitPolicy else HttpCommitPolicy.Default,
           cResRel,
           Ref.unsafe(Map[Topic, HttpWriter]()),
           terminate,
-          config.errorThreshold.getOrElse(DefaultErrorThreshold),
-          config.uploadSyncPeriod.getOrElse(DefaultUploadSyncPeriod),
+          config.errorThreshold,
+          config.uploadSyncPeriod,
         )
     }
 
   }
+
+  /*
+    Returns true if parameter is a Left or if the response contains a retriable status(as per HTTP spec)
+   */
+  def isErrorOrRetriableStatus[F[_]](result: Either[Throwable, Response[F]], statusCodes: Set[Int]): Boolean =
+    result match {
+      case Right(resp)                     => statusCodes(resp.status.code)
+      case Left(WaitQueueTimeoutException) => false
+      case _                               => true
+    }
 }
 class HttpWriterManager(
   sinkName:          String,

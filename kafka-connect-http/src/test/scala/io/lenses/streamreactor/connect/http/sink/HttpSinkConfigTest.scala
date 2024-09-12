@@ -14,50 +14,90 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.http.sink
-import io.circe.parser.decode
-import cats.implicits.catsSyntaxOptionId
-import cats.implicits.none
-import io.lenses.streamreactor.connect.http.sink.client.BasicAuthentication
+import io.lenses.streamreactor.common.security.StoresInfo
 import io.lenses.streamreactor.connect.http.sink.client.HttpMethod.Put
-import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
+import io.lenses.streamreactor.connect.http.sink.client.BasicAuthentication
+import io.lenses.streamreactor.connect.http.sink.client.NoAuthentication
+import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.ErrorThresholdDefault
+import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.UploadSyncPeriodDefault
+import io.lenses.streamreactor.connect.http.sink.config._
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
-
+import cyclops.control.Option.{ none => cynone }
+import cyclops.control.Option.{ some => cysome }
 class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues {
 
-  test("should write config to json") {
-    HttpSinkConfig(
-      Put,
-      "http://myaddress.example.com",
-      "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
-      Some(BasicAuthentication("user", "pass")),
-      Seq("something" -> "somethingelse").some,
-      none,
-      none,
-      none,
-      none,
-    ).toJson should be(
-      """{"method":"Put","endpoint":"http://myaddress.example.com","content":"<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>","authentication":{"username":"user","password":"pass","type":"BasicAuthentication"},"headers":[["something","somethingelse"]],"ssl":null,"batch":null,"errorThreshold":null,"uploadSyncPeriod":null}""",
-    )
-  }
-
-  test("read minimal config") {
-    val minConfig =
-      """{"method":"Put","endpoint":"http://myaddress.example.com","content":"<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>"}"""
-    val minConfigSink = decode[HttpSinkConfig](minConfig)
-    minConfigSink.value should be(
+  val DEFAULT_SSL_PROTOCOL_TLS = "TLSv1.3"
+  test("should read minimal config") {
+    HttpSinkConfig.from(
+      Map(
+        //use HttpSinkConfigDef props as keys
+        HttpSinkConfigDef.HttpMethodProp         -> "put",
+        HttpSinkConfigDef.HttpEndpointProp       -> "http://myaddress.example.com",
+        HttpSinkConfigDef.HttpRequestContentProp -> "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
+      ),
+    ).value should be(
       HttpSinkConfig(
         Put,
         "http://myaddress.example.com",
         "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
-        none,
-        none,
-        none,
-        none,
-        none,
-        none,
+        NoAuthentication,
+        List(
+          ("Content-Type", "application/json"),
+        ),
+        new StoresInfo(cysome(DEFAULT_SSL_PROTOCOL_TLS), cynone(), cynone()),
+        BatchConfig(None, None, None),
+        ErrorThresholdDefault,
+        UploadSyncPeriodDefault,
+        RetriesConfig(
+          HttpSinkConfigDef.RetriesMaxRetriesDefault,
+          HttpSinkConfigDef.RetriesMaxTimeoutMsDefault,
+          HttpSinkConfigDef.RetriesOnStatusCodesDefault,
+        ),
+        TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault),
       ),
+    )
+  }
+
+  test("fails if the method is not supported") {
+    HttpSinkConfig.from(
+      Map(
+        HttpSinkConfigDef.HttpMethodProp         -> "NotSupported",
+        HttpSinkConfigDef.HttpEndpointProp       -> "http://myaddress.example.com",
+        HttpSinkConfigDef.HttpRequestContentProp -> "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
+      ),
+    ).left.value.getMessage should include("Invalid HTTP method. Supported methods are: Put, Post, Patch")
+  }
+
+  test("authentication set to Basic") {
+    HttpSinkConfig.from(
+      Map(
+        HttpSinkConfigDef.HttpMethodProp                  -> "put",
+        HttpSinkConfigDef.HttpEndpointProp                -> "http://myaddress.example.com",
+        HttpSinkConfigDef.HttpRequestContentProp          -> "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
+        HttpSinkConfigDef.AuthenticationTypeProp          -> "basic",
+        HttpSinkConfigDef.BasicAuthenticationUsernameProp -> "user",
+        HttpSinkConfigDef.BasicAuthenticationPasswordProp -> "pass",
+      ),
+    ).value shouldBe HttpSinkConfig(
+      Put,
+      "http://myaddress.example.com",
+      "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
+      BasicAuthentication("user", "pass"),
+      List(
+        ("Content-Type", "application/json"),
+      ),
+      new StoresInfo(cysome(DEFAULT_SSL_PROTOCOL_TLS), cynone(), cynone()),
+      BatchConfig(None, None, None),
+      ErrorThresholdDefault,
+      UploadSyncPeriodDefault,
+      RetriesConfig(
+        HttpSinkConfigDef.RetriesMaxRetriesDefault,
+        HttpSinkConfigDef.RetriesMaxTimeoutMsDefault,
+        HttpSinkConfigDef.RetriesOnStatusCodesDefault,
+      ),
+      TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault),
     )
   }
 }

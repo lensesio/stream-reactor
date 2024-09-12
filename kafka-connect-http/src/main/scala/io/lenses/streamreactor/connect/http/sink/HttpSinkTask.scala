@@ -25,8 +25,6 @@ import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
-import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig.fromJson
-import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.configProp
 import io.lenses.streamreactor.connect.http.sink.tpl.RawTemplate
 import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -60,9 +58,9 @@ class HttpSinkTask extends SinkTask with LazyLogging with JarManifestProvided {
     maybeSinkName = propsAsScala.get("name")
 
     IO
-      .fromEither(parseConfig(propsAsScala.get(configProp)))
+      .fromEither(HttpSinkConfig.from(propsAsScala.toMap))
       .flatMap { config =>
-        val template      = RawTemplate(config.endpoint, config.content, config.headers.getOrElse(Seq.empty))
+        val template      = RawTemplate(config.endpoint, config.content, config.headers)
         val writerManager = HttpWriterManager(sinkName, config, template, deferred)
         val refUpdateCallback: Throwable => Unit =
           (err: Throwable) => {
@@ -88,10 +86,6 @@ class HttpSinkTask extends SinkTask with LazyLogging with JarManifestProvided {
           IO.raiseError[Unit](new RuntimeException("Unexpected error occurred during sink start", e))
       }.unsafeRunSync()
   }
-
-  private def parseConfig(propVal: Option[String]): Either[Throwable, HttpSinkConfig] =
-    propVal.toRight(new IllegalArgumentException("No prop found"))
-      .flatMap(fromJson)
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
 

@@ -17,7 +17,7 @@ package io.lenses.streamreactor.connect.http.sink.client
 
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
-import cats.implicits.catsSyntaxOptionId
+//import cats.implicits.catsSyntaxOptionId
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.BasicCredentials
 import com.github.tomakehurst.wiremock.client.WireMock
@@ -70,7 +70,7 @@ class HttpRequestSenderIT
       client =>
         val requestSender = new HttpRequestSender(
           sinkName,
-          Option.empty,
+          NoAuthentication,
           Method.PUT,
           client,
         )
@@ -109,7 +109,7 @@ class HttpRequestSenderIT
       client =>
         val requestSender = new HttpRequestSender(
           sinkName,
-          BasicAuthentication("myUser", "myPassword").some,
+          BasicAuthentication("myUser", "myPassword"),
           Method.POST,
           client,
         )
@@ -149,7 +149,7 @@ class HttpRequestSenderIT
 
     val requestSender = new HttpRequestSender(
       sinkName,
-      Option.empty,
+      NoAuthentication,
       Method.PUT,
       mockClient,
     )

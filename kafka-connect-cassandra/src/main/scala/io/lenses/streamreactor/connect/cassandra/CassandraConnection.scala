@@ -103,8 +103,8 @@ object CassandraConnection extends StrictLogging {
     val username = connectorConfig.getString(CassandraConfigConstants.USERNAME)
     val password = connectorConfig.getPassword(CassandraConfigConstants.PASSWD).value
 
-    if (username.length > 0 && password.length > 0) {
-      builder.withCredentials(username.trim, password.toString.trim)
+    if (username.nonEmpty && password.nonEmpty) {
+      builder.withCredentials(username.trim, password.trim)
     } else {
       logger.warn("Username and password not set.")
     }
@@ -127,7 +127,6 @@ object CassandraConnection extends StrictLogging {
         trustStorePass = connectorConfig.getPassword(CassandraConfigConstants.TRUST_STORE_PASSWD).value,
         keyStorePath   = Some(connectorConfig.getString(CassandraConfigConstants.KEY_STORE_PATH)),
         keyStorePass   = Some(connectorConfig.getPassword(CassandraConfigConstants.KEY_STORE_PASSWD).value),
-        useClientCert  = connectorConfig.getBoolean(CassandraConfigConstants.USE_CLIENT_AUTH),
         keyStoreType   = connectorConfig.getString(CassandraConfigConstants.KEY_STORE_TYPE),
         trustStoreType = connectorConfig.getString(CassandraConfigConstants.TRUST_STORE_TYPE),
       )
