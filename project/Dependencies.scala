@@ -68,7 +68,7 @@ object Dependencies {
 
     val lombokVersion = "1.18.34"
 
-    val logbackVersion      = "1.5.7"
+    val logbackVersion      = "1.5.8"
     val scalaLoggingVersion = "3.9.5"
 
     val dnsJavaVersion  = "3.6.1"
@@ -85,7 +85,7 @@ object Dependencies {
     val azureCoreVersion                  = "1.51.0"
     val msal4jVersion                     = "1.16.0"
     val msal4jPersistenceExtensionVersion = "1.3.0"
-    val gcpCloudVersion                   = "2.42.0"
+    val gcpCloudVersion                   = "2.43.0"
     val gcpCloudStorageVersion            = "2.42.0"
 
     val jacksonVersion      = "2.17.2"
