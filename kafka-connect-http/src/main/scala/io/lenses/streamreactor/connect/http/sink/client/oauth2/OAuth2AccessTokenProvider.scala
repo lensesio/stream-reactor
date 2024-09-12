@@ -87,16 +87,15 @@ class OAuth2AccessTokenProvider[F[_]: Concurrent: Clock](
       )
 
     // Send the request and decode the response with the configurable fields
-    for {
-      now          <- Clock[F].realTime
-      jsonResponse <- client.expect[Json](request)
-      accessToken <- jsonResponse.as(
-        AccessTokenResponse.decoder(accessTokenField, tokenTypeField, expiresInField),
-      ) match {
-        case Right(token) => Concurrent[F].pure(token.toAccessToken(now.toMillis))
-        case Left(error) =>
-          Concurrent[F].raiseError[AccessToken](new Exception(s"Failed to decode access token: $error"))
-      }
-    } yield accessToken
+    {
+      for {
+        now          <- Clock[F].realTime
+        jsonResponse <- client.expect[Json](request)
+        accessTokenE = jsonResponse.as(
+          AccessTokenResponse.decoder(accessTokenField, tokenTypeField, expiresInField),
+        )
+        accessToken <- accessTokenE.leftMap(e => new Exception(s"Failed to decode access token: $e")).liftTo[F]
+      } yield accessToken.toAccessToken(now.toMillis)
+    }
   }
 }
