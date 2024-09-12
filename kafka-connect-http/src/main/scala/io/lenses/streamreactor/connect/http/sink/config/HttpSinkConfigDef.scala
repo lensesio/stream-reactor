@@ -15,7 +15,6 @@
  */
 package io.lenses.streamreactor.connect.http.sink.config
 
-import io.lenses.streamreactor.common.config.SSLConfig
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.OAuth2Config
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.Importance
