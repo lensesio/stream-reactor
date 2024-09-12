@@ -31,6 +31,7 @@ allprojects {
         apacheToConfluentVersionAxis = ["2.8.1": "6.2.2", "3.3.0": "7.3.1"]
         caffeineVersion = '3.1.8'
         cyclopsVersion = '10.4.1'
+        bouncyCastleVersion = "1.78.1"
 
         //Other Manifest Info
         mainClassName = ''
@@ -64,6 +65,7 @@ allprojects {
 
         // functional java
         implementation group: 'com.oath.cyclops', name: 'cyclops', version: cyclopsVersion
+        implementation group: 'com.oath.cyclops', name: 'cyclops-pure', version: cyclopsVersion
 
         //tests
         testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoJupiterVersion

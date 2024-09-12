@@ -220,7 +220,7 @@ class WriterManager[SM <: FileMetadata](
         () => stagingFilenameFn(topicPartition, partitionValues),
         objKeyBuilderFn(topicPartition, partitionValues),
         formatWriterFn.curried(topicPartition),
-        getOffsetFn.map(_(topicPartition)).orNull,
+        getOffsetFn.flatMap(_(topicPartition)),
       )
     }
   }

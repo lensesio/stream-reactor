@@ -1,4 +1,5 @@
 import Dependencies.Versions
+import Dependencies.`cyclopsPure`
 import Dependencies.`cyclops`
 import Dependencies.`lombok`
 import Dependencies.globalExcludeDeps
@@ -71,7 +72,7 @@ lazy val `query-language` = (project in file("java-connectors/kafka-connect-quer
       Seq(
         name := "kafka-connect-query-language",
         description := "Kafka Connect compatible connectors to move data between Kafka and popular data stores",
-        libraryDependencies ++= Seq(cyclops, lombok),
+        libraryDependencies ++= Seq(cyclops, cyclopsPure, lombok),
         publish / skip := true,
       ),
   )
