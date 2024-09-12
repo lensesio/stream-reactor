@@ -74,7 +74,7 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
         HttpSinkConfigDef.HttpMethodProp                  -> "put",
         HttpSinkConfigDef.HttpEndpointProp                -> "http://myaddress.example.com",
         HttpSinkConfigDef.HttpRequestContentProp          -> "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
-        HttpSinkConfigDef.AuthenticationTypeProp          -> "baSic",
+        HttpSinkConfigDef.AuthenticationTypeProp          -> "basic",
         HttpSinkConfigDef.BasicAuthenticationUsernameProp -> "user",
         HttpSinkConfigDef.BasicAuthenticationPasswordProp -> "pass",
       ),
