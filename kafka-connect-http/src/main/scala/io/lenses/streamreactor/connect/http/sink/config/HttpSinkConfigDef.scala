@@ -100,7 +100,7 @@ object HttpSinkConfigDef {
     """
       |The time in milliseconds to wait before sending the request.
       |""".stripMargin
-  val UploadSyncPeriodDefault = 5000
+  val UploadSyncPeriodDefault = 100
 
   val BatchCountProp: String = "connect.http.batch.count"
   val BatchCountDoc: String =
@@ -211,7 +211,7 @@ object HttpSinkConfigDef {
     .define(
       BatchCountProp,
       Type.LONG,
-      0L,
+      1L,
       Importance.HIGH,
       BatchCountDoc,
     )
