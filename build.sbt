@@ -560,7 +560,7 @@ Compile / generateFunModulesList :=
 
 Compile / generatePublishModulesList := {
 
-  val nonPublishableModulesFragments = Set("common", "utils", "query-language", "test")
+  val nonPublishableModulesFragments = Set("common", "utils", "query-language", "test", "reporting")
   val publishableModules = subProjects
     .filterNot(project => nonPublishableModulesFragments.exists(ignore => project.id.contains(ignore)))
 
