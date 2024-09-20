@@ -7,6 +7,9 @@ import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef
 
 trait HttpConfiguration extends LazyLogging {
 
+  val ERROR_REPORTING_ENABLED_PROP   = "connect.reporting.error.config.enabled";
+  val SUCCESS_REPORTING_ENABLED_PROP = "connect.reporting.success.config.enabled";
+
   def sinkConfig(
     randomTestId:    String,
     endpointUrl:     String,
@@ -27,6 +30,8 @@ trait HttpConfiguration extends LazyLogging {
         HttpSinkConfigDef.HttpRequestHeadersProp -> ConfigValue(headerTemplates.mkString(",")),
         HttpSinkConfigDef.AuthenticationTypeProp -> ConfigValue("none"), //NoAuthentication
         HttpSinkConfigDef.BatchCountProp         -> ConfigValue(1),
+        ERROR_REPORTING_ENABLED_PROP             -> ConfigValue("false"),
+        SUCCESS_REPORTING_ENABLED_PROP           -> ConfigValue("false"),
       )
     debugLogConnectorConfig(configMap)
     ConnectorConfiguration(

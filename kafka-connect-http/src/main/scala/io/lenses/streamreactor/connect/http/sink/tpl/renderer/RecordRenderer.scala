@@ -45,7 +45,7 @@ object RecordRenderer {
       recordRend:   String <- TemplateRenderer.render(sinkRecord, contentTpl)
       headersRend:  Seq[(String, String)] <- renderHeaders(sinkRecord, headers)
       endpointRend: Option[String] <- renderEndpoint(sinkRecord, endpointTpl)
-    } yield RenderedRecord(topicPartitionOffset, recordRend, headersRend, endpointRend)
+    } yield RenderedRecord(topicPartitionOffset, sinkRecord.timestamp(), recordRend, headersRend, endpointRend)
   }
 
   private def renderHeader(

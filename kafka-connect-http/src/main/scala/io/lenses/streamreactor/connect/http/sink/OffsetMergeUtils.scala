@@ -49,6 +49,9 @@ object OffsetMergeUtils {
       lastFlushedTimestamp = System.currentTimeMillis().some,
     )
 
+  def maxRecord(batch: Seq[RenderedRecord]): RenderedRecord =
+    batch.maxBy(_.topicPartitionOffset.offset)
+
   private def maxOffsets(batch: Seq[RenderedRecord]): Map[TopicPartition, Offset] =
     batch
       .map(_.topicPartitionOffset.toTopicPartitionOffsetTuple)

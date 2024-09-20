@@ -37,6 +37,7 @@ import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitPolicy
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfig
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
+import io.lenses.streamreactor.connect.reporting.ReportingController
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.http4s.Response
 import org.http4s.WaitQueueTimeoutException
@@ -104,6 +105,8 @@ object HttpWriterManager extends StrictLogging {
       terminate,
       config.errorThreshold,
       config.uploadSyncPeriod,
+      config.errorReportingController,
+      config.successReportingController,
     )
   }
 
@@ -118,15 +121,17 @@ object HttpWriterManager extends StrictLogging {
     }
 }
 class HttpWriterManager(
-  sinkName:          String,
-  template:          TemplateType,
-  httpRequestSender: HttpRequestSender,
-  commitPolicy:      CommitPolicy,
-  val close:         IO[Unit],
-  writersRef:        Ref[IO, Map[Topic, HttpWriter]],
-  deferred:          Deferred[IO, Either[Throwable, Unit]],
-  errorThreshold:    Int,
-  uploadSyncPeriod:  Int,
+  sinkName:                   String,
+  template:                   TemplateType,
+  httpRequestSender:          HttpRequestSender,
+  commitPolicy:               CommitPolicy,
+  val close:                  IO[Unit],
+  writersRef:                 Ref[IO, Map[Topic, HttpWriter]],
+  deferred:                   Deferred[IO, Either[Throwable, Unit]],
+  errorThreshold:             Int,
+  uploadSyncPeriod:           Int,
+  errorReportingController:   ReportingController,
+  successReportingController: ReportingController,
 )(
   implicit
   t: Temporal[IO],
@@ -141,7 +146,14 @@ class HttpWriterManager(
       Ref.unsafe[IO, Queue[RenderedRecord]](Queue()),
       Ref.unsafe[IO, HttpCommitContext](HttpCommitContext.default(sinkName)),
       errorThreshold,
+      errorReportingController,
+      successReportingController,
     )
+
+  def closeReportingControllers(): Unit = {
+    errorReportingController.close()
+    successReportingController.close()
+  }
 
   def getWriter(topic: Topic): IO[HttpWriter] = {
     var foundWriter = Option.empty[HttpWriter]

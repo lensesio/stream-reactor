@@ -19,6 +19,7 @@ lazy val subProjects: Seq[Project] = Seq(
   `test-utils`,
   `query-language`,
   `java-common`,
+  `sink-reporting`,
   `gcp-common`,
   common,
   `sql-common`,
@@ -88,6 +89,21 @@ lazy val `java-common` = (project in file("java-connectors/kafka-connect-common"
       Seq(
         name := "kafka-connect-java-common",
         description := "Common components from java",
+        libraryDependencies ++= javaCommonDeps,
+        publish / skip := true,
+      ),
+  )
+  .configureAssembly(false)
+  .configureTests(javaCommonTestDeps)
+
+lazy val `sink-reporting` = (project in file("java-connectors/kafka-connect-sink-reporting"))
+  .dependsOn(`java-common`)
+  .dependsOn(`test-utils` % "test->test")
+  .settings(
+    settings ++
+      Seq(
+        name := "kafka-connect-sink-reporting",
+        description := "Common reporting components from java",
         libraryDependencies ++= javaCommonDeps,
         publish / skip := true,
       ),
@@ -324,6 +340,7 @@ lazy val elastic7 = (project in file("kafka-connect-elastic7"))
 
 lazy val http = (project in file("kafka-connect-http"))
   .dependsOn(common)
+  .dependsOn(`sink-reporting`)
   .dependsOn(`test-common` % "fun->compile")
   .settings(
     settings ++

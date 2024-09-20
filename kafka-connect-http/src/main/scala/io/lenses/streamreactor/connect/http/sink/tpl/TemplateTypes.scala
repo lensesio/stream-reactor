@@ -57,7 +57,7 @@ case class SimpleTemplate(
 
   override def process(records: Seq[RenderedRecord]): Either[SubstitutionError, ProcessedTemplate] =
     records.headOption match {
-      case Some(RenderedRecord(_, recordRendered, headersRendered, Some(endpointRendered))) =>
+      case Some(RenderedRecord(_, _, recordRendered, headersRendered, Some(endpointRendered))) =>
         ProcessedTemplate(endpointRendered, recordRendered, headersRendered).asRight
       case _ => SubstitutionError("No record found").asLeft
     }

@@ -27,12 +27,13 @@ class OffsetMergeUtilsTest extends AnyFunSuite {
 
   private val sinkName = "mySinkName"
 
+  private val TIMESTAMP = 125L
   test(
     "createCommitContextFromBatch should create a new HttpCommitContext with merged offsets when currentCommitContext is provided",
   ) {
     val batch = Seq(
-      RenderedRecord(Topic("topic1").withPartition(0).withOffset(Offset(100)), "record1", Seq.empty, None),
-      RenderedRecord(Topic("topic2").withPartition(0).withOffset(Offset(50)), "record2", Seq.empty, None),
+      RenderedRecord(Topic("topic1").withPartition(0).withOffset(Offset(100)), TIMESTAMP, "record1", Seq.empty, None),
+      RenderedRecord(Topic("topic2").withPartition(0).withOffset(Offset(50)), TIMESTAMP, "record2", Seq.empty, None),
     )
     val currentCommitContext = HttpCommitContext(
       sinkName,
@@ -56,8 +57,8 @@ class OffsetMergeUtilsTest extends AnyFunSuite {
 
   test("createCommitContextFromBatch should create a new HttpCommitContext when currentCommitContext is None") {
     val batch = Seq(
-      RenderedRecord(Topic("topic1").withPartition(0).withOffset(Offset(100)), "record1", Seq.empty, None),
-      RenderedRecord(Topic("topic2").withPartition(0).withOffset(Offset(50)), "record2", Seq.empty, None),
+      RenderedRecord(Topic("topic1").withPartition(0).withOffset(Offset(100)), TIMESTAMP, "record1", Seq.empty, None),
+      RenderedRecord(Topic("topic2").withPartition(0).withOffset(Offset(50)), TIMESTAMP, "record2", Seq.empty, None),
     )
     val currentCommitContext = HttpCommitContext.default("My Sink")
 
