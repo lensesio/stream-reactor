@@ -65,6 +65,7 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
       ),
     )
     httpSinkConfig.timeout should be(TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault))
+    httpSinkConfig.tidyJson should be(false)
     httpSinkConfig.errorReportingController == null shouldBe false
     httpSinkConfig.successReportingController == null shouldBe false
   }
@@ -90,6 +91,7 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
         HttpSinkConfigDef.BasicAuthenticationPasswordProp -> "pass",
         ERROR_REPORTING_ENABLED_PROP                      -> "false",
         SUCCESS_REPORTING_ENABLED_PROP                    -> "false",
+        HttpSinkConfigDef.JsonTidyProp                    -> "true",
       ),
     ).value
 
@@ -114,6 +116,7 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
       ),
     )
     httpSinkConfig.timeout should be(TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault))
+    httpSinkConfig.tidyJson should be(true)
     httpSinkConfig.errorReportingController == null shouldBe false
     httpSinkConfig.successReportingController == null shouldBe false
 

@@ -13,19 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.http.sink.tpl.substitutions
+package io.lenses.streamreactor.connect.http.sink.tpl
 
-import cats.implicits.catsSyntaxOptionId
 import com.typesafe.scalalogging.LazyLogging
+import org.json4s._
+import org.json4s.native.JsonMethods._
 
-object SubstitutionError extends LazyLogging {
-  def apply(msg: String): SubstitutionError = {
-    logger.error("SubstitutionError Raised: " + msg)
-    SubstitutionError(msg, Option.empty)
-  }
-  def apply(msg: String, throwable: Throwable): SubstitutionError = {
-    logger.error("SubstitutionError Raised: " + msg, throwable)
-    SubstitutionError(msg, throwable.some)
-  }
+object JsonTidy extends LazyLogging {
+  implicit val formats: Formats = DefaultFormats
+
+  def cleanUp(jsonString: String): String =
+    try {
+      val json = parse(jsonString)
+      compact(render(json))
+    } catch {
+      case e: Exception =>
+        logger.error("Error formatting json", e)
+        jsonString
+    }
 }
-case class SubstitutionError(msg: String, throwable: Option[Throwable]) extends Throwable

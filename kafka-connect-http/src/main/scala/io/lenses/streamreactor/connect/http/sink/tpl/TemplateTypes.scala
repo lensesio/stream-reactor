@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.http.sink.tpl
 import cats.implicits.catsSyntaxEitherId
 import cats.implicits.catsSyntaxOptionId
 import cats.implicits.toTraverseOps
+import io.lenses.streamreactor.connect.http.sink.tpl.JsonTidy.cleanUp
 import io.lenses.streamreactor.connect.http.sink.tpl.renderer.RecordRenderer
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionError
 import org.apache.kafka.connect.sink.SinkRecord
@@ -42,7 +43,7 @@ trait TemplateType {
 
   def renderRecords(record: Seq[SinkRecord]): Either[SubstitutionError, Seq[RenderedRecord]]
 
-  def process(records: Seq[RenderedRecord]): Either[SubstitutionError, ProcessedTemplate]
+  def process(records: Seq[RenderedRecord], tidyJson: Boolean): Either[SubstitutionError, ProcessedTemplate]
 }
 
 // this template type will require individual requests, the messages can't be batched
@@ -55,7 +56,7 @@ case class SimpleTemplate(
   override def renderRecords(records: Seq[SinkRecord]): Either[SubstitutionError, Seq[RenderedRecord]] =
     RecordRenderer.renderRecords(records, endpoint.some, content, headers)
 
-  override def process(records: Seq[RenderedRecord]): Either[SubstitutionError, ProcessedTemplate] =
+  override def process(records: Seq[RenderedRecord], tidyJson: Boolean): Either[SubstitutionError, ProcessedTemplate] =
     records.headOption match {
       case Some(RenderedRecord(_, _, recordRendered, headersRendered, Some(endpointRendered))) =>
         ProcessedTemplate(endpointRendered, recordRendered, headersRendered).asRight
@@ -82,10 +83,17 @@ case class TemplateWithInnerLoop(
         )
     }.sequence
 
-  override def process(records: Seq[RenderedRecord]): Either[SubstitutionError, ProcessedTemplate] = {
+  override def process(
+    records:  Seq[RenderedRecord],
+    tidyJson: Boolean,
+  ): Either[SubstitutionError, ProcessedTemplate] = {
 
-    val replaceWith    = records.flatMap(_.recordRendered).mkString("")
-    val contentOrError = prefixContent + replaceWith + suffixContent
+    val replaceWith = records.flatMap(_.recordRendered).mkString("")
+    val fnContextFix: String => String = content => {
+      if (tidyJson) cleanUp(content) else content
+    }
+    val contentOrError = fnContextFix(prefixContent + replaceWith + suffixContent)
+
     val maybeProcessedTpl = for {
       headRecord <- records.headOption
       ep         <- headRecord.endpointRendered

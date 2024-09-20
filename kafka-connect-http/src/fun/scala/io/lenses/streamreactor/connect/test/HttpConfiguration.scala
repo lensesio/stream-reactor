@@ -18,6 +18,8 @@ trait HttpConfiguration extends LazyLogging {
     headerTemplates: Seq[(String, String)],
     topicName:       String,
     converters:      Map[String, String],
+    batchSize:       Int,
+    jsonTidy:        Boolean,
   ): ConnectorConfiguration = {
     val configMap: Map[String, ConfigValue[_]] = converters.view.mapValues(new ConfigValue[String](_)).toMap ++
       Map(
@@ -29,7 +31,8 @@ trait HttpConfiguration extends LazyLogging {
         HttpSinkConfigDef.HttpRequestContentProp -> ConfigValue(contentTemplate),
         HttpSinkConfigDef.HttpRequestHeadersProp -> ConfigValue(headerTemplates.mkString(",")),
         HttpSinkConfigDef.AuthenticationTypeProp -> ConfigValue("none"), //NoAuthentication
-        HttpSinkConfigDef.BatchCountProp         -> ConfigValue(1),
+        HttpSinkConfigDef.BatchCountProp         -> ConfigValue(batchSize),
+        HttpSinkConfigDef.JsonTidyProp           -> ConfigValue(jsonTidy),
         ERROR_REPORTING_ENABLED_PROP             -> ConfigValue("false"),
         SUCCESS_REPORTING_ENABLED_PROP           -> ConfigValue("false"),
       )

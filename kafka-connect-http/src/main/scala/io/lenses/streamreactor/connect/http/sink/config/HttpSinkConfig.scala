@@ -85,6 +85,7 @@ case class HttpSinkConfig(
   uploadSyncPeriod:           Int,
   retries:                    RetriesConfig,
   timeout:                    TimeoutConfig,
+  tidyJson:                   Boolean,
   errorReportingController:   ReportingController,
   successReportingController: ReportingController,
 )
@@ -120,6 +121,7 @@ object HttpSinkConfig {
       retries                    = RetriesConfig(maxRetries, maxTimeoutMs, onStatusCodes)
       connectionTimeoutMs        = connectConfig.getInt(HttpSinkConfigDef.ConnectionTimeoutMsProp)
       timeout                    = TimeoutConfig(connectionTimeoutMs)
+      jsonTidy                   = connectConfig.getBoolean(HttpSinkConfigDef.JsonTidyProp)
       errorReportingController   = createAndStartController(new ErrorReportingController(connectConfig))
       successReportingController = createAndStartController(new SuccessReportingController(connectConfig))
     } yield HttpSinkConfig(
@@ -134,6 +136,7 @@ object HttpSinkConfig {
       uploadSyncPeriod,
       retries,
       timeout,
+      jsonTidy,
       errorReportingController,
       successReportingController,
     )

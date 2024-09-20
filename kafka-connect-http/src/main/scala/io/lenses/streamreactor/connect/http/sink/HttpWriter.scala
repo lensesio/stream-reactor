@@ -46,6 +46,7 @@ class HttpWriter(
   recordsQueueRef:  Ref[IO, Queue[RenderedRecord]],
   commitContextRef: Ref[IO, HttpCommitContext],
   errorThreshold:   Int,
+  tidyJson:         Boolean,
   errorReporter:    ReportingController,
   successReporter:  ReportingController,
 ) extends LazyLogging {
@@ -177,7 +178,7 @@ class HttpWriter(
 
   private def flush(records: Seq[RenderedRecord]): IO[ProcessedTemplate] =
     for {
-      processed <- IO.fromEither(template.process(records))
+      processed <- IO.fromEither(template.process(records, tidyJson))
       _         <- reportResult(records, processed, sender.sendHttpRequest(processed))
     } yield processed
 

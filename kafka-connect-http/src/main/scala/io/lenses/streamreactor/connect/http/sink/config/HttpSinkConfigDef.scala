@@ -140,6 +140,12 @@ object HttpSinkConfigDef {
       |The password for basic authentication.
       |""".stripMargin
 
+  val JsonTidyProp: String = "connect.http.json.tidy"
+  val JsonTidyPropDoc: String =
+    """
+      |Tidy the output json.
+      |""".stripMargin
+
   val config: ConfigDef = {
     val configDef = new ConfigDef()
       .withClientSslSupport()
@@ -252,6 +258,13 @@ object HttpSinkConfigDef {
         "",
         Importance.HIGH,
         BasicAuthenticationPasswordDoc,
+      )
+      .define(
+        JsonTidyProp,
+        Type.BOOLEAN,
+        false,
+        Importance.HIGH,
+        JsonTidyPropDoc,
       )
     ReporterConfig.withErrorRecordReportingSupport(configDef)
     ReporterConfig.withSuccessRecordReportingSupport(configDef)

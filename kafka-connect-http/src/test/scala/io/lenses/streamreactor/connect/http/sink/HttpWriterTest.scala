@@ -30,6 +30,7 @@ import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
 import io.lenses.streamreactor.connect.reporting.ReportingController.ErrorReportingController
 import io.lenses.streamreactor.connect.reporting.ReportingController.SuccessReportingController
 import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchersSugar.eqTo
 import org.mockito.MockitoSugar
 import org.scalatest.funsuite.AsyncFunSuiteLike
 import org.scalatest.matchers.should.Matchers
@@ -58,6 +59,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                   recordsQueueRef,
                                   commitContextRef,
                                   5,
+                                  false,
                                   mock[ErrorReportingController],
                                   mock[SuccessReportingController],
       )
@@ -80,7 +82,10 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
     when(senderMock.sendHttpRequest(any[ProcessedTemplate])).thenReturn(IO.unit)
 
     val templateMock = mock[TemplateType]
-    when(templateMock.process(any[Seq[RenderedRecord]])).thenReturn(Right(ProcessedTemplate("a", "b", Seq.empty)))
+    when(templateMock.process(any[Seq[RenderedRecord]], eqTo(false))).thenReturn(Right(ProcessedTemplate("a",
+                                                                                                         "b",
+                                                                                                         Seq.empty,
+    )))
 
     val recordsToAdd = Seq(
       RenderedRecord(topicPartition.atOffset(100), TIMESTAMP, "record1", Seq.empty, None),
@@ -99,6 +104,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                     recordsQueueRef,
                                     commitContextRef,
                                     5,
+                                    false,
                                     mock[ErrorReportingController],
                                     mock[SuccessReportingController],
         )
@@ -132,6 +138,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                   recordsQueueRef,
                                   commitContextRef,
                                   5,
+                                  false,
                                   mock[ErrorReportingController],
                                   mock[SuccessReportingController],
       )

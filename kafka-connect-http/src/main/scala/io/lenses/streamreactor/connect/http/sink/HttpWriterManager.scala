@@ -105,6 +105,7 @@ object HttpWriterManager extends StrictLogging {
       terminate,
       config.errorThreshold,
       config.uploadSyncPeriod,
+      config.tidyJson,
       config.errorReportingController,
       config.successReportingController,
     )
@@ -130,6 +131,7 @@ class HttpWriterManager(
   deferred:                   Deferred[IO, Either[Throwable, Unit]],
   errorThreshold:             Int,
   uploadSyncPeriod:           Int,
+  tidyJson:                   Boolean,
   errorReportingController:   ReportingController,
   successReportingController: ReportingController,
 )(
@@ -146,6 +148,7 @@ class HttpWriterManager(
       Ref.unsafe[IO, Queue[RenderedRecord]](Queue()),
       Ref.unsafe[IO, HttpCommitContext](HttpCommitContext.default(sinkName)),
       errorThreshold,
+      tidyJson,
       errorReportingController,
       successReportingController,
     )

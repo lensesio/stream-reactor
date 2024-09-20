@@ -42,7 +42,7 @@ class RawTemplateTest extends AnyFunSuite with Matchers with EitherValues with L
 
     val rendered = template.renderRecords(Seq(sinkRecord))
 
-    val processedTemplate = template.process(rendered.value)
+    val processedTemplate = template.process(rendered.value, true)
     processedTemplate.value.endpoint should be("Endpoint: KeyData")
     processedTemplate.value.content should be("Content: ValueData")
     processedTemplate.value.headers should be(
@@ -73,7 +73,7 @@ class RawTemplateTest extends AnyFunSuite with Matchers with EitherValues with L
 
     val rendered = template.renderRecords(Seq(sinkRecord))
 
-    val processedTemplate = template.process(rendered.value)
+    val processedTemplate = template.process(rendered.value, true)
     processedTemplate.value.headers shouldBe headerResults
   }
 
