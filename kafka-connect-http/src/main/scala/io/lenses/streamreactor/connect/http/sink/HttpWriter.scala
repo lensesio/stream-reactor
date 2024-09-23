@@ -19,6 +19,7 @@ import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.unsafe.implicits.global
 import com.typesafe.scalalogging.LazyLogging
+import cyclops.data.tuple
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
@@ -26,11 +27,16 @@ import io.lenses.streamreactor.connect.http.sink.OffsetMergeUtils.createCommitCo
 import io.lenses.streamreactor.connect.http.sink.OffsetMergeUtils.updateCommitContextPostCommit
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
 import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
+import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
+import io.lenses.streamreactor.connect.reporting.ReportingController
+import io.lenses.streamreactor.connect.reporting.model.generic.ReportingRecord
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 
+import java.util
 import scala.collection.immutable.Queue
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class HttpWriter(
   sinkName:         String,
@@ -40,6 +46,9 @@ class HttpWriter(
   recordsQueueRef:  Ref[IO, Queue[RenderedRecord]],
   commitContextRef: Ref[IO, HttpCommitContext],
   errorThreshold:   Int,
+  tidyJson:         Boolean,
+  errorReporter:    ReportingController,
+  successReporter:  ReportingController,
 ) extends LazyLogging {
   private val maybeBatchSize: Option[Int] = commitPolicy.conditions.collectFirst {
     case Count(maxCount) => maxCount.toInt
@@ -130,27 +139,26 @@ class HttpWriter(
   private def updateCommitContextIfFlush(
     cc:    HttpCommitContext,
     batch: Queue[RenderedRecord],
-  ): IO[(HttpCommitContext, Unit)] =
+  ): IO[HttpCommitContext] =
     for {
       flushEvalCommitContext: HttpCommitContext <- IO.pure(createCommitContextForEvaluation(batch, cc))
       _ <- IO.delay(logger.trace(s"[$sinkName] Updating sink context to: $flushEvalCommitContext"))
       shouldFlush: Boolean <- IO.pure(commitPolicy.shouldFlush(flushEvalCommitContext))
       _ <- IO.delay(logger.trace(s"[$sinkName] Should flush? $shouldFlush"))
       _ <- if (shouldFlush) {
-        IO.delay(logger.trace(s"[$sinkName] Flushing batch"))
-        flush(batch)
+        for {
+          _                 <- IO.delay(logger.trace(s"[$sinkName] Flushing batch"))
+          processedTemplate <- flush(batch)
+        } yield processedTemplate
       } else {
         IO.unit
       }
     } yield {
-      (
-        if (shouldFlush) {
-          updateCommitContextPostCommit(currentCommitContext = flushEvalCommitContext)
-        } else {
-          cc
-        },
-        (),
-      )
+      if (shouldFlush) {
+        updateCommitContextPostCommit(currentCommitContext = flushEvalCommitContext)
+      } else {
+        cc
+      }
     }
 
   private def modifyCommitContext(batch: Queue[RenderedRecord]): IO[Unit] = {
@@ -158,7 +166,8 @@ class HttpWriter(
 
     commitContextRef.modify {
       cc: HttpCommitContext =>
-        updateCommitContextIfFlush(cc, batch).unsafeRunSync()
+        updateCommitContextIfFlush(cc, batch)
+          .map((_, ())).unsafeRunSync()
     }
   }
 
@@ -167,10 +176,39 @@ class HttpWriter(
       case (_, remaining) => remaining
     }
 
-  private def flush(records: Seq[RenderedRecord]): IO[Unit] =
+  private def flush(records: Seq[RenderedRecord]): IO[ProcessedTemplate] =
     for {
-      processed <- IO.fromEither(template.process(records))
-      sent      <- sender.sendHttpRequest(processed)
-    } yield sent
+      processed <- IO.fromEither(template.process(records, tidyJson))
+      _         <- reportResult(records, processed, sender.sendHttpRequest(processed))
+    } yield processed
+
+  private def reportResult(
+    renderedRecords:   Seq[RenderedRecord],
+    processedTemplate: ProcessedTemplate,
+    responseIo:        IO[Unit],
+  ): IO[Unit] = {
+    val maxRecord = OffsetMergeUtils.maxRecord(renderedRecords)
+
+    val reportRecord = (templateContent: String) =>
+      new ReportingRecord(
+        maxRecord.topicPartitionOffset.toTopicPartition.toKafka,
+        maxRecord.topicPartitionOffset.offset.value,
+        maxRecord.timestamp,
+        processedTemplate.endpoint,
+        templateContent,
+        convertToCyclopsTuples(processedTemplate.headers),
+      )
+
+    responseIo.flatTap { _ =>
+      IO(successReporter.enqueue(reportRecord(processedTemplate.content)))
+    }.handleErrorWith { error =>
+      IO(errorReporter.enqueue(reportRecord(error.getMessage))) *> IO.raiseError(error)
+    }
+  }
+
+  private def convertToCyclopsTuples(headers: Seq[(String, String)]): util.List[tuple.Tuple2[String, String]] =
+    headers.map {
+      case (hk, hv) => new tuple.Tuple2(hk, hv)
+    }.asJava
 
 }

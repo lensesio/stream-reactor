@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 package io.lenses.streamreactor.connect.http.sink
+import cyclops.control.Option.{ none => cynone }
+import cyclops.control.Option.{ some => cysome }
 import io.lenses.streamreactor.common.security.StoresInfo
 import io.lenses.streamreactor.connect.http.sink.client.HttpMethod.Put
 import io.lenses.streamreactor.connect.http.sink.client.BasicAuthentication
@@ -24,40 +26,48 @@ import io.lenses.streamreactor.connect.http.sink.config._
 import org.scalatest.EitherValues
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
-import cyclops.control.Option.{ none => cynone }
-import cyclops.control.Option.{ some => cysome }
 class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues {
+
+  val ERROR_REPORTING_ENABLED_PROP   = "connect.reporting.error.config.enabled";
+  val SUCCESS_REPORTING_ENABLED_PROP = "connect.reporting.success.config.enabled";
 
   val DEFAULT_SSL_PROTOCOL_TLS = "TLSv1.3"
   test("should read minimal config") {
-    HttpSinkConfig.from(
+
+    val httpSinkConfig = HttpSinkConfig.from(
       Map(
-        //use HttpSinkConfigDef props as keys
         HttpSinkConfigDef.HttpMethodProp         -> "put",
         HttpSinkConfigDef.HttpEndpointProp       -> "http://myaddress.example.com",
         HttpSinkConfigDef.HttpRequestContentProp -> "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
+        ERROR_REPORTING_ENABLED_PROP             -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP           -> "false",
       ),
-    ).value should be(
-      HttpSinkConfig(
-        Put,
-        "http://myaddress.example.com",
-        "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
-        NoAuthentication,
-        List(
-          ("Content-Type", "application/json"),
-        ),
-        new StoresInfo(cysome(DEFAULT_SSL_PROTOCOL_TLS), cynone(), cynone()),
-        BatchConfig(Some(1), None, None),
-        ErrorThresholdDefault,
-        UploadSyncPeriodDefault,
-        RetriesConfig(
-          HttpSinkConfigDef.RetriesMaxRetriesDefault,
-          HttpSinkConfigDef.RetriesMaxTimeoutMsDefault,
-          HttpSinkConfigDef.RetriesOnStatusCodesDefault,
-        ),
-        TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault),
+    ).value
+
+    httpSinkConfig.method should be(Put)
+    httpSinkConfig.endpoint should be("http://myaddress.example.com")
+    httpSinkConfig.content should be(
+      "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
+    )
+    httpSinkConfig.authentication should be(NoAuthentication)
+    httpSinkConfig.headers should be(List(
+      ("Content-Type", "application/json"),
+    ))
+    httpSinkConfig.ssl should be(new StoresInfo(cysome(DEFAULT_SSL_PROTOCOL_TLS), cynone(), cynone()))
+    httpSinkConfig.batch should be(BatchConfig(Some(1), None, None))
+    httpSinkConfig.errorThreshold should be(ErrorThresholdDefault)
+    httpSinkConfig.uploadSyncPeriod should be(UploadSyncPeriodDefault)
+    httpSinkConfig.retries should be(
+      RetriesConfig(
+        HttpSinkConfigDef.RetriesMaxRetriesDefault,
+        HttpSinkConfigDef.RetriesMaxTimeoutMsDefault,
+        HttpSinkConfigDef.RetriesOnStatusCodesDefault,
       ),
     )
+    httpSinkConfig.timeout should be(TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault))
+    httpSinkConfig.tidyJson should be(false)
+    httpSinkConfig.errorReportingController == null shouldBe false
+    httpSinkConfig.successReportingController == null shouldBe false
   }
 
   test("fails if the method is not supported") {
@@ -71,7 +81,7 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
   }
 
   test("authentication set to Basic") {
-    HttpSinkConfig.from(
+    val httpSinkConfig = HttpSinkConfig.from(
       Map(
         HttpSinkConfigDef.HttpMethodProp                  -> "put",
         HttpSinkConfigDef.HttpEndpointProp                -> "http://myaddress.example.com",
@@ -79,25 +89,36 @@ class HttpSinkConfigTest extends AnyFunSuiteLike with Matchers with EitherValues
         HttpSinkConfigDef.AuthenticationTypeProp          -> "basic",
         HttpSinkConfigDef.BasicAuthenticationUsernameProp -> "user",
         HttpSinkConfigDef.BasicAuthenticationPasswordProp -> "pass",
+        ERROR_REPORTING_ENABLED_PROP                      -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP                    -> "false",
+        HttpSinkConfigDef.JsonTidyProp                    -> "true",
       ),
-    ).value shouldBe HttpSinkConfig(
-      Put,
-      "http://myaddress.example.com",
+    ).value
+
+    httpSinkConfig.method should be(Put)
+    httpSinkConfig.endpoint should be("http://myaddress.example.com")
+    httpSinkConfig.content should be(
       "<note>\n<to>Dave</to>\n<from>Jason</from>\n<body>Hooray for Kafka Connect!</body>\n</note>",
-      BasicAuthentication("user", "pass"),
-      List(
-        ("Content-Type", "application/json"),
-      ),
-      new StoresInfo(cysome(DEFAULT_SSL_PROTOCOL_TLS), cynone(), cynone()),
-      BatchConfig(Some(1), None, None),
-      ErrorThresholdDefault,
-      UploadSyncPeriodDefault,
+    )
+    httpSinkConfig.authentication should be(BasicAuthentication("user", "pass"))
+    httpSinkConfig.headers should be(List(
+      ("Content-Type", "application/json"),
+    ))
+    httpSinkConfig.ssl should be(new StoresInfo(cysome(DEFAULT_SSL_PROTOCOL_TLS), cynone(), cynone()))
+    httpSinkConfig.batch should be(BatchConfig(Some(1), None, None))
+    httpSinkConfig.errorThreshold should be(ErrorThresholdDefault)
+    httpSinkConfig.uploadSyncPeriod should be(UploadSyncPeriodDefault)
+    httpSinkConfig.retries should be(
       RetriesConfig(
         HttpSinkConfigDef.RetriesMaxRetriesDefault,
         HttpSinkConfigDef.RetriesMaxTimeoutMsDefault,
         HttpSinkConfigDef.RetriesOnStatusCodesDefault,
       ),
-      TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault),
     )
+    httpSinkConfig.timeout should be(TimeoutConfig(HttpSinkConfigDef.ConnectionTimeoutMsDefault))
+    httpSinkConfig.tidyJson should be(true)
+    httpSinkConfig.errorReportingController == null shouldBe false
+    httpSinkConfig.successReportingController == null shouldBe false
+
   }
 }

@@ -19,6 +19,7 @@ import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 
 case class RenderedRecord(
   topicPartitionOffset: TopicPartitionOffset,
+  timestamp:            Long,
   recordRendered:       String,
   headersRendered:      Seq[(String, String)],
   endpointRendered:     Option[String], // only for the first 1

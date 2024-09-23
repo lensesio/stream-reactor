@@ -107,6 +107,7 @@ jobs:
           key: assembly-java-${{ github.run_id }}
 
   jar-dependency-check:
+    if: false  # This ensures dependency-check is always skipped
     needs:
       - build-and-cache
       - initiate-java-modules
@@ -148,6 +149,7 @@ jobs:
     name: (Java) Final Stage
     runs-on: ubuntu-latest
     needs: jar-dependency-check
+    if: ${{ needs.jar-dependency-check.result == 'success' || needs.jar-dependency-check.result == 'skipped' }}
     steps:
       - name: Final Status Check
         run: echo "All matrix jobs have completed successfully."

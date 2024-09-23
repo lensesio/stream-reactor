@@ -35,8 +35,8 @@ import scala.sys.process.*
 object Settings extends Dependencies {
 
   // keep the SNAPSHOT version numerically higher than the latest release.
-  val majorVersion        = "7.2"
-  val nextSnapshotVersion = "7.3"
+  val majorVersion        = "8.0"
+  val nextSnapshotVersion = "8.1"
 
   val artifactVersion: String = {
     val maybeGithubRunId = sys.env.get("github_run_id")
