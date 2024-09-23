@@ -34,6 +34,8 @@ import io.lenses.streamreactor.connect.cloud.common.storage.FileMetadata
   */
 class WriterIndexer[SM <: FileMetadata](maybeIndexManager: Option[IndexManager[SM]]) {
 
+  def indexingEnabled(): Boolean = maybeIndexManager.nonEmpty
+
   /**
     * Executes a function with the `IndexManager` and a provided value if both are present.
     *
@@ -88,5 +90,8 @@ class WriterIndexer[SM <: FileMetadata](maybeIndexManager: Option[IndexManager[S
     withIndexManager(maybeIndexFileName) { (indexManager, indexFileName) =>
       indexManager.clean(key.bucket, indexFileName, topicPartition)
     }
+
+  def getSeekedOffsetForTopicPartition(topicPartition: TopicPartition): Option[Offset] =
+    maybeIndexManager.flatMap(im => im.getSeekedOffsetForTopicPartition(topicPartition))
 
 }
