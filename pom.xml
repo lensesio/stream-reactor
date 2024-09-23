@@ -39,7 +39,7 @@
         <debezium.version>0.6.2</debezium.version>
         <google.auth.version>0.16.1</google.auth.version>
         <google.cloud.version>1.79.0</google.cloud.version>
-        <google.protobuf.version>3.19.6</google.protobuf.version>
+        <google.protobuf.version>3.25.5</google.protobuf.version>
         <jackson.version>2.16.2</jackson.version>
         <kafka.version>2.5.0</kafka.version>
         <kafka.scala.version>2.12</kafka.scala.version>
