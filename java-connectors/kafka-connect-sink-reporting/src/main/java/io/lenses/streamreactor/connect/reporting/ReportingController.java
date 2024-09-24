@@ -55,6 +55,7 @@ public abstract class ReportingController {
   private final Producer<byte[], String> producer;
   private final ExecutorService executorService;
   private final String reportTopic;
+  private final String reportingClientId;
 
   protected ReportingController(Map<String, Object> senderConfig) {
 
@@ -67,6 +68,7 @@ public abstract class ReportingController {
     this.producer = senderEnabled ? createKafkaProducer(senderConfig) : null;
     this.reportHolder = senderEnabled ? new ReportHolder(null) : null;
     this.executorService = senderEnabled ? Executors.newFixedThreadPool(1) : null;
+    this.reportingClientId = senderEnabled ? createProducerId() : null;
   }
 
   /**
@@ -85,6 +87,7 @@ public abstract class ReportingController {
    * to Kafka topic (specified in config).
    */
   public void start() {
+    log.info("Starting reporting Kafka Producer with clientId:" + reportingClientId);
     if (isSenderEnabled()) {
       executorService.submit(() -> {
 
@@ -107,6 +110,7 @@ public abstract class ReportingController {
    * This method should be called before Connector closes in order to gracefully close KafkaProducer
    */
   public void close() {
+    log.info("Stopping reporting Kafka Producer with clientId:" + reportingClientId);
     if (isSenderEnabled()) {
       Try.withCatch(() -> executorService.awaitTermination(DEFAULT_CLOSE_DURATION_IN_MILLIS, TimeUnit.MILLISECONDS));
       senderEnabled = false;
@@ -134,7 +138,7 @@ public abstract class ReportingController {
   }
 
   private Producer<byte[], String> createKafkaProducer(Map<String, Object> senderConfig) {
-    senderConfig.put(ProducerConfig.CLIENT_ID_CONFIG, createProducerId());
+    senderConfig.put(ProducerConfig.CLIENT_ID_CONFIG, reportingClientId);
     senderConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
     senderConfig.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
     return new KafkaProducer<>(senderConfig);
