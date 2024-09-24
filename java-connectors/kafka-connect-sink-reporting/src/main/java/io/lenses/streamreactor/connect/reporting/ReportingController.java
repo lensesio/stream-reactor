@@ -45,7 +45,7 @@ public abstract class ReportingController {
 
   private static final String EXCEPTION_WHILE_PRODUCING_MESSAGE =
       "Exception was thrown when sending report, will try again for next reports:";
-  private static final String CLIENT_ID_DEFAULT = "ConnectorReportsProducer";
+  private static final String CLIENT_ID_PREFIX = "http-sink-reporter-";
   private static final int DEFAULT_CLOSE_DURATION_IN_MILLIS = 500;
   private static final String TOPIC_ERROR = "If reporting is enabled then reporting kafka topic must be specified";
 
@@ -145,7 +145,7 @@ public abstract class ReportingController {
   }
 
   private String createProducerId() {
-    return CLIENT_ID_DEFAULT + UUID.randomUUID();
+    return CLIENT_ID_PREFIX + UUID.randomUUID();
   }
 
   public static class ErrorReportingController extends ReportingController {
