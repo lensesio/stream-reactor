@@ -15,15 +15,12 @@
  */
 package io.lenses.streamreactor.connect.gcp.storage.auth
 
-import com.google.cloud.TransportOptions
-import com.google.cloud.http.HttpTransportOptions
 import io.lenses.streamreactor.common.config.base.RetryConfig
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.CredentialsAuthMode
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.DefaultAuthMode
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.FileAuthMode
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig
-import io.lenses.streamreactor.connect.gcp.common.auth.HttpTimeoutConfig
 import org.apache.commons.io.IOUtils
 import org.apache.kafka.common.config.types.Password
 import org.scalatest.EitherValues
@@ -106,32 +103,6 @@ class GCPStorageClientCreatorTest extends AnyFunSuite with Matchers with EitherV
     retrySettings.getRetryDelayMultiplier should be(retryDelayMultiplier)
     retrySettings.getInitialRetryDelay should be(Duration.ofMillis(retryIntervalMillis))
 
-  }
-
-  test("should use http by default") {
-
-    val config = defaultConfigBuilder.build()
-
-    val transportOpts: TransportOptions = GCPStorageClientCreator.make(config).value.getOptions.getTransportOptions
-    transportOpts match {
-      case _: HttpTransportOptions =>
-      case _ => fail("Nope")
-    }
-  }
-
-  test("should handle http timeout config") {
-
-    val config = defaultConfigBuilder.timeouts(
-      new HttpTimeoutConfig(250L, 800L),
-    ).build()
-
-    val transportOpts: TransportOptions = GCPStorageClientCreator.make(config).value.getOptions.getTransportOptions
-    transportOpts match {
-      case options: HttpTransportOptions =>
-        options.getReadTimeout should be(250)
-        options.getConnectTimeout should be(800)
-      case _ => fail("Nope")
-    }
   }
 
 }

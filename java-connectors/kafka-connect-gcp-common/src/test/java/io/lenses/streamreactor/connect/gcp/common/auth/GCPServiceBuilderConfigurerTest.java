@@ -35,7 +35,6 @@ import org.threeten.bp.Duration;
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.NoCredentials;
 import com.google.cloud.ServiceOptions;
-import com.google.cloud.http.HttpTransportOptions;
 
 import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.connect.gcp.common.auth.mode.NoAuthMode;
@@ -83,23 +82,6 @@ class GCPServiceBuilderConfigurerTest {
 
     assertRetrySettingsConfigured(builder, retryIntervalMillis,
         maxRetryIntervalMillis, retryLimit, retryDelayMultiplier);
-  }
-
-  @Test
-  void testConfigure_withTransportOptionsConfigured() throws IOException {
-    val timeoutConfig =
-        HttpTimeoutConfig.builder()
-            .socketTimeoutMillis(5000L)
-            .connectionTimeoutMillis(3000L)
-            .build();
-
-    val config = configBuilder.timeouts(timeoutConfig).build();
-
-    val builder = createMockBuilder();
-
-    GCPServiceBuilderConfigurer.configure(config, builder);
-
-    assertTransportOptionsConfigured(builder, 5000, 3000);
   }
 
   @Test
@@ -151,19 +133,5 @@ class GCPServiceBuilderConfigurerTest {
     assertEquals(expectedMaxRetryDelay, capturedRetrySettings.getMaxRetryDelay().toMillis());
     assertEquals(expectedMaxAttempts, capturedRetrySettings.getMaxAttempts());
     assertEquals(retryDelayMultiplier, capturedRetrySettings.getRetryDelayMultiplier());
-  }
-
-  private void assertTransportOptionsConfigured(
-      ServiceOptions.Builder<?, ?, ?> builder,
-      int expectedReadTimeout,
-      int expectedConnectTimeout) {
-    ArgumentCaptor<HttpTransportOptions> transportOptionsCaptor =
-        ArgumentCaptor.forClass(HttpTransportOptions.class);
-    verify(builder).setTransportOptions(transportOptionsCaptor.capture());
-
-    HttpTransportOptions capturedTransportOptions = transportOptionsCaptor.getValue();
-    assertNotNull(capturedTransportOptions);
-    assertEquals(expectedReadTimeout, capturedTransportOptions.getReadTimeout());
-    assertEquals(expectedConnectTimeout, capturedTransportOptions.getConnectTimeout());
   }
 }

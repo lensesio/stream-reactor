@@ -90,3 +90,12 @@ classes/*
 /kafka-connect-hive/it/.settings/
 /kafka-connect-hive/it/bin/
 java-connectors/kafka-connect-query-language/gen/*
+
+
+.bloop/
+.metals/
+gradle-modules.txt
+gradle-test-modules.txt
+project/.bloop/
+project/metals.sbt
+project/project/
