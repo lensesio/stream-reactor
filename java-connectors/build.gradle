@@ -214,7 +214,8 @@ task releaseModuleList() {
         "test-utils",
         "kafka-connect-cloud-common",
         "kafka-connect-common",
-        "kafka-connect-query-language"
+        "kafka-connect-query-language",
+        "kafka-connect-sink-reporting"
     ]
 
     def modulesFile = new File("gradle-modules.txt")
