@@ -130,18 +130,6 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
                 4,
                 ConfigDef.Width.LONG,
                 httpErrorRetryTimeoutMultiplier);
-            // .define(
-            //     httpSocketTimeoutKey,
-            //     ConfigDef.Type.LONG,
-            //     HTTP_SOCKET_TIMEOUT_DEFAULT,
-            //     ConfigDef.Importance.LOW,
-            //     "Socket timeout (ms)")
-            // .define(
-            //     httpConnectionTimeoutKey,
-            //     ConfigDef.Type.LONG,
-            //     HTTP_CONNECTION_TIMEOUT_DEFAULT,
-            //     ConfigDef.Importance.LOW,
-            //     "Connection timeout (ms)");
 
     return authModeSettings.withSettings(conf);
   }
