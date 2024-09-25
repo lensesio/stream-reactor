@@ -25,7 +25,6 @@ import io.lenses.streamreactor.common.config.base.RetryConfig;
 import io.lenses.streamreactor.common.config.base.model.ConnectorPrefix;
 import io.lenses.streamreactor.common.config.source.ConfigSource;
 import io.lenses.streamreactor.connect.gcp.common.auth.GCPConnectionConfig;
-import io.lenses.streamreactor.connect.gcp.common.auth.HttpTimeoutConfig;
 import lombok.Getter;
 import lombok.val;
 
@@ -44,8 +43,6 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
   private final String httpErrorRetryIntervalKey;
   private final String httpErrorRetryTimeoutMultiplier;
   private final String httpNbrOfRetriesKey;
-  private final String httpSocketTimeoutKey;
-  private final String httpConnectionTimeoutKey;
 
   //The default values for the GCP HTTP timeout is 3 minutes
   public static final Long HTTP_ERROR_RETRY_INTERVAL_DEFAULT = 500L;
@@ -69,9 +66,6 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
     httpErrorRetryTimeoutMultiplier =
         connectorPrefix.prefixKey("http.retry.timeout.multiplier");
     httpNbrOfRetriesKey = connectorPrefix.prefixKey("http.max.retries");
-    httpSocketTimeoutKey = connectorPrefix.prefixKey("http.socket.timeout");
-    httpConnectionTimeoutKey = connectorPrefix.prefixKey("http.connection.timeout");
-
     authModeSettings = new AuthModeSettings(connectorPrefix);
   }
 
@@ -152,13 +146,7 @@ public class GCPSettings implements ConfigSettings<GCPConnectionConfig> {
                       HTTP_BACKOFF_RETRY_MULTIPLIER_DEFAULT)
               );
 
-          val timeoutConfig =
-              new HttpTimeoutConfig(
-                  configSource.getLong(httpSocketTimeoutKey).orElse(null),
-                  configSource.getLong(httpConnectionTimeoutKey).orElse(null));
-
           builder.httpRetryConfig(retryConfig);
-          builder.timeouts(timeoutConfig);
           return builder.build();
         });
 
