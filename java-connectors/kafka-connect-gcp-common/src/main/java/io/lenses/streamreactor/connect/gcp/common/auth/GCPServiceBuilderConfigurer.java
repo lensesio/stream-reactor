@@ -71,9 +71,9 @@ public class GCPServiceBuilderConfigurer {
         config.getHttpRetryConfig()
             .orElseThrow(createConfigException("RetrySettings has to be configured by setting a.b"))));
 
-    createTransportOptions(config.getTimeouts()
-        .orElseThrow(createConfigException("TransportOptions have to be configured by setting c.d")))
-        .ifPresent(builder::setTransportOptions);
+    // createTransportOptions(config.getTimeouts()
+    //     .orElseThrow(createConfigException("TransportOptions have to be configured by setting c.d")))
+    //     .ifPresent(builder::setTransportOptions);
 
     return builder;
   }
