@@ -15,17 +15,16 @@
  */
 package io.lenses.streamreactor.connect.reporting.model.generic;
 
-import cyclops.data.Seq;
+import cyclops.control.Option;
 import cyclops.data.tuple.Tuple2;
 import io.lenses.streamreactor.connect.reporting.model.RecordReport;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
-import lombok.val;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 
+import java.util.List;
 import java.util.Optional;
 
 @AllArgsConstructor
@@ -40,6 +39,7 @@ public class ReportingRecord implements RecordReport {
   private String endpoint;
   private String payload;
   private List<Tuple2<String, String>> headers;
+  private Option<String> error;
 
   @Override
   public Optional<ProducerRecord<byte[], String>> produceReportRecord(String reportingTopic) {
