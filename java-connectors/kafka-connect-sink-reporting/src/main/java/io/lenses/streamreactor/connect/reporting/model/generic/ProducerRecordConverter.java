@@ -54,7 +54,8 @@ public class ProducerRecordConverter {
             .getBytes()),
         new RecordHeader(ReportHeadersConstants.INPUT_KEY, null),
         new RecordHeader(ReportHeadersConstants.INPUT_PAYLOAD, originalRecord.getPayload().getBytes()),
-        new RecordHeader(ReportHeadersConstants.ERROR, originalRecord.getError().map(String::getBytes).orElse(null))
+        new RecordHeader(ReportHeadersConstants.ERROR, originalRecord.getError().map(String::getBytes).orElseGet(
+            ""::getBytes))
     ), IOException.class)
         .peekFailed(f -> log.warn(
             String.format("Couldn't transform record to Report. Report won't be sent. Topic=%s, Offset=%s",
