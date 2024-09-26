@@ -18,6 +18,8 @@ package io.lenses.streamreactor.connect.http.sink
 import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.unsafe.implicits.global
+import cats.implicits.catsSyntaxOptionId
+import cats.implicits.none
 import com.typesafe.scalalogging.LazyLogging
 import cyclops.data.tuple
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
@@ -37,6 +39,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import java.util
 import scala.collection.immutable.Queue
 import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.jdk.OptionConverters.RichOption
 
 class HttpWriter(
   sinkName:         String,
@@ -189,20 +192,21 @@ class HttpWriter(
   ): IO[Unit] = {
     val maxRecord = OffsetMergeUtils.maxRecord(renderedRecords)
 
-    val reportRecord = (templateContent: String) =>
+    val reportRecord = (error: Option[String]) =>
       new ReportingRecord(
         maxRecord.topicPartitionOffset.toTopicPartition.toKafka,
         maxRecord.topicPartitionOffset.offset.value,
         maxRecord.timestamp,
         processedTemplate.endpoint,
-        templateContent,
+        processedTemplate.content,
         convertToCyclopsTuples(processedTemplate.headers),
+        cyclops.control.Option.fromOptional(error.toJava),
       )
 
     responseIo.flatTap { _ =>
-      IO(successReporter.enqueue(reportRecord(processedTemplate.content)))
+      IO(successReporter.enqueue(reportRecord(none)))
     }.handleErrorWith { error =>
-      IO(errorReporter.enqueue(reportRecord(error.getMessage))) *> IO.raiseError(error)
+      IO(errorReporter.enqueue(reportRecord(error.getMessage.some))) *> IO.raiseError(error)
     }
   }
 

@@ -23,5 +23,6 @@ public class ReportHeadersConstants {
   public static final String INPUT_TOPIC = "input_topic";
   public static final String INPUT_KEY = "input_key";
   public static final String INPUT_PAYLOAD = "input_payload";
+  public static final String ERROR = "error_message";
 
 }

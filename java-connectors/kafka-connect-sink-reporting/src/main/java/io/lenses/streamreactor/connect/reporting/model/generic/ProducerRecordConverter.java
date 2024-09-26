@@ -15,20 +15,18 @@
  */
 package io.lenses.streamreactor.connect.reporting.model.generic;
 
-import static io.lenses.streamreactor.common.util.ByteConverters.toBytes;
-
-import cyclops.control.Option;
 import cyclops.control.Try;
 import io.lenses.streamreactor.connect.reporting.model.ReportHeadersConstants;
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 @Slf4j
@@ -48,11 +46,16 @@ public class ProducerRecordConverter {
 
   private static Optional<List<Header>> convertToHeaders(ReportingRecord originalRecord) {
     return Try.withCatch(() -> List.<Header>of(
-        new RecordHeader(ReportHeadersConstants.INPUT_TOPIC, toBytes(originalRecord.getTopicPartition().topic())),
-        new RecordHeader(ReportHeadersConstants.INPUT_OFFSET, toBytes(originalRecord.getOffset())),
-        new RecordHeader(ReportHeadersConstants.INPUT_TIMESTAMP, toBytes(originalRecord.getTimestamp())),
+        new RecordHeader(ReportHeadersConstants.INPUT_TOPIC, originalRecord.getTopicPartition().topic().getBytes()),
+        new RecordHeader(ReportHeadersConstants.INPUT_PARTITION, String.valueOf(originalRecord.getTopicPartition()
+            .partition()).getBytes()),
+        new RecordHeader(ReportHeadersConstants.INPUT_OFFSET, String.valueOf(originalRecord.getOffset()).getBytes()),
+        new RecordHeader(ReportHeadersConstants.INPUT_TIMESTAMP, String.valueOf(originalRecord.getTimestamp())
+            .getBytes()),
         new RecordHeader(ReportHeadersConstants.INPUT_KEY, null),
-        new RecordHeader(ReportHeadersConstants.INPUT_PAYLOAD, toBytes(originalRecord.getPayload()))
+        new RecordHeader(ReportHeadersConstants.INPUT_PAYLOAD, originalRecord.getPayload().getBytes()),
+        new RecordHeader(ReportHeadersConstants.ERROR, originalRecord.getError().map(String::getBytes).orElseGet(
+            ""::getBytes))
     ), IOException.class)
         .peekFailed(f -> log.warn(
             String.format("Couldn't transform record to Report. Report won't be sent. Topic=%s, Offset=%s",
