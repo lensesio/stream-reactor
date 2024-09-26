@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import cyclops.data.Seq;
 import cyclops.data.tuple.Tuple2;
+import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig;
 import io.lenses.streamreactor.connect.reporting.model.ReportHeadersConstants;
 import java.io.IOException;
 import java.util.Collections;
@@ -49,10 +50,12 @@ class ProducerRecordConverterTest {
   void convertShouldProduceProducerRecord() throws IOException {
     //given
     ReportingRecord reportingRecord = createReportingRecord();
+    ReportingMessagesConfig messagesConfig =
+        new ReportingMessagesConfig(REPORTING_TOPIC, null);
 
     //when
     Optional<ProducerRecord<byte[], String>> converted =
-        ProducerRecordConverter.convert(reportingRecord, REPORTING_TOPIC);
+        ProducerRecordConverter.convert(reportingRecord, messagesConfig);
 
     //then
     assertTrue(converted.isPresent());

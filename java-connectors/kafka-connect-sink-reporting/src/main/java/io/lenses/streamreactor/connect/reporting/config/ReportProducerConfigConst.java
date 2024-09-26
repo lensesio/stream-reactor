@@ -44,4 +44,8 @@ public class ReportProducerConfigConst {
   public static final String TOPIC = "topic";
   public static final String TOPIC_DOC = "Specifies the topic for Reporter to write to";
 
+  public static final String PARTITION = "partition";
+  public static final String PARTITION_DOC = "Specifies the topic topic for Reporter to write to";
+  public static final int PARTITION_DEFAULT = -1;
+
 }

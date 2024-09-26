@@ -47,7 +47,7 @@ class ReportingControllerTest {
   @Test
   void enqueueShouldCallEnqueueOnHolderIfEnabled() {
     //given
-    final AbstractConfig disabledReportingConfig = createEnabledReportingConfig();
+    final AbstractConfig enabledReportingConfig = createEnabledReportingConfig();
     RecordReport recordReport = mock(RecordReport.class);
 
     ErrorReportingController reportingController;
@@ -56,7 +56,7 @@ class ReportingControllerTest {
         Mockito.mockConstruction(KafkaProducer.class)) {
       try (MockedConstruction<ReportHolder> mockedHolderConstr =
           Mockito.mockConstruction(ReportHolder.class)) {
-        reportingController = new ErrorReportingController(disabledReportingConfig);
+        reportingController = new ErrorReportingController(enabledReportingConfig);
         reportHolder = mockedHolderConstr.constructed().get(0);
       }
     }
@@ -141,7 +141,7 @@ class ReportingControllerTest {
 
     Properties properties = new Properties();
     properties.put(ERROR_CONFIG_NAME_PREFIX_APPENDER
-        .apply(ReportProducerConfigConst.REPORTING_ENABLED_CONFIG), "false");
+        .apply(ReportProducerConfigConst.REPORTING_ENABLED_CONFIG), false);
     return new TestingErrorReportingConfig(properties);
   }
 
@@ -153,7 +153,7 @@ class ReportingControllerTest {
 
     Properties properties = new Properties();
     properties.put(ERROR_CONFIG_NAME_PREFIX_APPENDER
-        .apply(ReportProducerConfigConst.REPORTING_ENABLED_CONFIG), "true");
+        .apply(ReportProducerConfigConst.REPORTING_ENABLED_CONFIG), true);
     properties.put(ERROR_CONFIG_NAME_PREFIX_APPENDER
         .apply(ReportProducerConfigConst.BOOTSTRAP_SERVERS_CONFIG), KAFKA_BOOTSTRAP_PROPERTY);
     properties.put(ERROR_CONFIG_NAME_PREFIX_APPENDER

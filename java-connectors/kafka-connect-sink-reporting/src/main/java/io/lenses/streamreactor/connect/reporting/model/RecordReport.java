@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.reporting.model;
 
+import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
@@ -23,10 +24,10 @@ public interface RecordReport {
   /**
    * Converts sinkRecord to Report that can be then sent to report topic.
    *
-   * @param reportingTopic topic to send record to
+   * @param messagesConfig parameters for ProducerRecord
    * @return Optional with ProducerRecord that indicated the Report or empty
    *         if we couldn't translate originalRecord
    */
-  Optional<ProducerRecord<byte[], String>> produceReportRecord(String reportingTopic);
+  Optional<ProducerRecord<byte[], String>> produceReportRecord(ReportingMessagesConfig messagesConfig);
 
 }

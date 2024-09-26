@@ -15,10 +15,15 @@
  */
 package io.lenses.streamreactor.connect.reporting;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.lenses.streamreactor.connect.reporting.model.RecordReport;
+import io.lenses.streamreactor.connect.reporting.model.generic.ReportingRecord;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
@@ -43,15 +48,19 @@ class ReportHolderTest {
   }
 
   @Test
-  void pollReport() throws InterruptedException {
+  void pollReportShouldCallPollOnQueue() throws InterruptedException {
     //given
     BlockingQueue queue = mock(BlockingQueue.class);
+    ReportingRecord reportingRecord = mock(ReportingRecord.class);
+    when(queue.poll(DEFAULT_POLL_TIME_MILLIS, TimeUnit.MILLISECONDS)).thenReturn(reportingRecord);
 
     //when
     ReportHolder reportHolder = new ReportHolder(queue);
-    reportHolder.pollReport();
+    Optional<RecordReport> recordReport = reportHolder.pollReport();
 
     //then
+    assertTrue(recordReport.isPresent());
+    assertEquals(reportingRecord, recordReport.get());
     verify(queue).poll(DEFAULT_POLL_TIME_MILLIS, TimeUnit.MILLISECONDS);
   }
 }

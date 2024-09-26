@@ -19,15 +19,18 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 
-import cyclops.control.Either;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
 
 class ByteConvertersTest {
+
+  //it's a word HEADER characters in UTF-8 notation
+  private static final byte[] HEADER = new byte[]{-84, -19, 0, 5, 116, 0};
 
   @Test
   void toBytesShouldNaturallyConvertStringToBytes() throws IOException {
@@ -43,13 +46,12 @@ class ByteConvertersTest {
   }
 
   @Test
-  void toBytesShouldReturnIOExceptionIfConversionFailed() throws IOException {
+  void toBytesShouldReturnIOExceptionIfConversionFailed() {
     //given
     String textToConvert = "TEXT_THAT_FAILS";
     IOException badTimesException = new IOException("BAD TIMES");
 
     //when
-    Either<IOException, byte[]> result;
     try (MockedConstruction<ObjectOutputStream> ignored =
         Mockito.mockConstruction(ObjectOutputStream.class,
             (mock, context) -> doThrow(badTimesException).when(mock).writeObject(textToConvert))) {
@@ -59,17 +61,15 @@ class ByteConvertersTest {
 
   private static byte[] getBytesIncludingHeader(String textToConvert) {
     byte[] textInBytes = textToConvert.getBytes(StandardCharsets.UTF_8);
-    byte[] stringByteHeader = new byte[]{-84, -19, 0, 5, 116, 0, (byte) textToConvert.length()};
-    byte[] fullTextObjectInBytes = new byte[stringByteHeader.length + textInBytes.length];
+    byte[] headerInBytes =
+        ByteBuffer.allocate(HEADER.length + 1)
+            .put(HEADER)
+            .put((byte) textToConvert.length())
+            .array();
 
-    for (int i = 0; i < fullTextObjectInBytes.length; i++) {
-      if (i < stringByteHeader.length) {
-        fullTextObjectInBytes[i] = stringByteHeader[i];
-      } else {
-        fullTextObjectInBytes[i] = textInBytes[i - stringByteHeader.length];
-      }
-    }
-
-    return fullTextObjectInBytes;
+    return ByteBuffer.allocate(headerInBytes.length + textInBytes.length)
+        .put(headerInBytes)
+        .put(textInBytes)
+        .array();
   }
 }

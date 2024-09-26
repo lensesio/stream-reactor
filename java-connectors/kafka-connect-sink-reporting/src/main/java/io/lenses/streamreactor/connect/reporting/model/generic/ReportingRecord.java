@@ -15,25 +15,22 @@
  */
 package io.lenses.streamreactor.connect.reporting.model.generic;
 
-import cyclops.data.Seq;
 import cyclops.data.tuple.Tuple2;
+import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig;
 import io.lenses.streamreactor.connect.reporting.model.RecordReport;
 import java.util.List;
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
-import lombok.val;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
-
-import java.util.Optional;
 
 @AllArgsConstructor
 @Getter
 @Data
 public class ReportingRecord implements RecordReport {
 
-  // todo: move TopicPartitionOffset to java commons?
   private TopicPartition topicPartition;
   private Long offset;
   private Long timestamp;
@@ -42,7 +39,7 @@ public class ReportingRecord implements RecordReport {
   private List<Tuple2<String, String>> headers;
 
   @Override
-  public Optional<ProducerRecord<byte[], String>> produceReportRecord(String reportingTopic) {
-    return ProducerRecordConverter.convert(this, reportingTopic);
+  public Optional<ProducerRecord<byte[], String>> produceReportRecord(ReportingMessagesConfig messagesConfig) {
+    return ProducerRecordConverter.convert(this, messagesConfig);
   }
 }

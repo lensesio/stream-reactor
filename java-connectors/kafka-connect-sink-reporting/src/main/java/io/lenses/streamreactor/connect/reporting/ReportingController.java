@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.reporting;
 import static io.lenses.streamreactor.common.util.StringUtils.isBlank;
 
 import cyclops.control.Try;
+import io.lenses.streamreactor.common.config.source.MapConfigSource;
 import io.lenses.streamreactor.common.exception.StreamReactorException;
 import io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst;
 import io.lenses.streamreactor.connect.reporting.config.ReporterConfig;
@@ -48,22 +49,23 @@ public abstract class ReportingController {
   private static final String CLIENT_ID_PREFIX = "http-sink-reporter-";
   private static final int DEFAULT_CLOSE_DURATION_IN_MILLIS = 500;
   private static final String TOPIC_ERROR = "If reporting is enabled then reporting kafka topic must be specified";
+  private static final Integer PARTITION_NOT_DEFINED = -1;
 
   @Getter
   private boolean senderEnabled;
   private final ReportHolder reportHolder;
   private final Producer<byte[], String> producer;
   private final ExecutorService executorService;
-  private final String reportTopic;
+  private final ReportingMessagesConfig reportingMessagesConfig;
   private final String reportingClientId;
 
   protected ReportingController(Map<String, Object> senderConfig) {
 
+    MapConfigSource wrappedConfig = new MapConfigSource(senderConfig);
     this.senderEnabled =
-        getEnabledBoolean(senderConfig
-            .getOrDefault(ReportProducerConfigConst.REPORTING_ENABLED_CONFIG, "false"));
+        wrappedConfig.getBoolean(ReportProducerConfigConst.REPORTING_ENABLED_CONFIG).orElse(false);
 
-    this.reportTopic = senderEnabled ? getReportTopic(senderConfig.get(ReportProducerConfigConst.TOPIC)) : null;
+    reportingMessagesConfig = senderEnabled ? getMessagesConfig(wrappedConfig) : null;
 
     this.producer = senderEnabled ? createKafkaProducer(senderConfig) : null;
     this.reportHolder = senderEnabled ? new ReportHolder(null) : null;
@@ -71,9 +73,16 @@ public abstract class ReportingController {
     this.reportingClientId = senderEnabled ? createProducerId() : null;
   }
 
+  private ReportingMessagesConfig getMessagesConfig(MapConfigSource wrappedConfig) {
+    return new ReportingMessagesConfig(
+        getReportTopic(wrappedConfig),
+        getReportTopicPartition(wrappedConfig)
+    );
+  }
+
   /**
    * Enqueues report for Kafka Producer to send.
-   * 
+   *
    * @param report a {@link SinkRecordRecordReport} instance
    */
   public void enqueue(RecordReport report) {
@@ -92,10 +101,10 @@ public abstract class ReportingController {
       executorService.submit(() -> {
 
         while (isSenderEnabled()) {
-          RecordReport report = reportHolder.pollReport();
-          if (report != null) {
+          Optional<RecordReport> report = reportHolder.pollReport();
+          if (report.isPresent()) {
             Optional<ProducerRecord<byte[], String>> optionalReport =
-                report.produceReportRecord(reportTopic);
+                report.get().produceReportRecord(reportingMessagesConfig);
             Try.runWithCatch(() -> optionalReport.ifPresent(producer::send))
                 .toFailedOption()
                 .stream().forEach(ex -> log.warn(EXCEPTION_WHILE_PRODUCING_MESSAGE, ex));
@@ -118,23 +127,20 @@ public abstract class ReportingController {
     }
   }
 
-  private static String getReportTopic(Object senderConfig) {
-    if (isBlank((String) senderConfig)) {
+  private static String getReportTopic(MapConfigSource mapConfigSource) {
+    Optional<String> topic = mapConfigSource.getString(ReportProducerConfigConst.TOPIC);
+    if (topic.isEmpty() || isBlank(topic.get())) {
       throw new StreamReactorException(TOPIC_ERROR);
     }
-    return (String) senderConfig;
+    return topic.get();
   }
 
-  private boolean getEnabledBoolean(Object o) {
-    //TODO: check if we have something like
-    // io.lenses.streamreactor.connect.cloud.common.config.ConfigParse#getBoolean
-    if (Boolean.class.isAssignableFrom(o.getClass())) {
-      return (Boolean) o;
+  private static Integer getReportTopicPartition(MapConfigSource mapConfigSource) {
+    Optional<Integer> partition = mapConfigSource.getInt(ReportProducerConfigConst.PARTITION);
+    if (partition.isEmpty() || partition.get().compareTo(PARTITION_NOT_DEFINED) == 0) {
+      return null;
     }
-    if (String.class.isAssignableFrom(o.getClass())) {
-      return Boolean.parseBoolean((String) o);
-    }
-    return false;
+    return partition.get();
   }
 
   private Producer<byte[], String> createKafkaProducer(Map<String, Object> senderConfig) {

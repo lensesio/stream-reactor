@@ -17,8 +17,8 @@ package io.lenses.streamreactor.connect.reporting.model;
 
 import static io.lenses.streamreactor.common.util.ByteConverters.toBytes;
 
+import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.Getter;
@@ -43,8 +43,7 @@ public class SinkRecordRecordReport implements RecordReport {
     this.sendingStatus = sendingStatus;
   }
 
-  //TODO: shall we always send with null as key and use header to indicate key?
-  public Optional<ProducerRecord<byte[], String>> produceReportRecord(String reportingTopic) {
+  public Optional<ProducerRecord<byte[], String>> produceReportRecord(ReportingMessagesConfig messagesConfig) {
     List<Header> recordHeaders;
     try {
       recordHeaders = convertToHeaders(originalRecord);
@@ -54,17 +53,16 @@ public class SinkRecordRecordReport implements RecordReport {
       return Optional.empty();
     }
 
-    return Optional.of(new ProducerRecord<>(reportingTopic, null,
-        null, null, sendingStatus, recordHeaders));
+    return Optional.of(new ProducerRecord<>(messagesConfig.getReportTopic(),
+        messagesConfig.getReportTopicPartition(), null, null, sendingStatus, recordHeaders));
   }
 
   private List<Header> convertToHeaders(SinkRecord originalRecord) throws IOException {
-    List<Header> headers = new ArrayList<>();
-    headers.add(new RecordHeader(ReportHeadersConstants.INPUT_TOPIC, toBytes(originalRecord.originalTopic())));
-    headers.add(new RecordHeader(ReportHeadersConstants.INPUT_OFFSET, toBytes(originalRecord.originalKafkaOffset())));
-    headers.add(new RecordHeader(ReportHeadersConstants.INPUT_TIMESTAMP, toBytes(originalRecord.timestamp())));
-    headers.add(new RecordHeader(ReportHeadersConstants.INPUT_KEY, toBytes(originalRecord.key())));
-    headers.add(new RecordHeader(ReportHeadersConstants.INPUT_PAYLOAD, toBytes(originalRecord.value())));
-    return headers;
+    return List.of(new RecordHeader(ReportHeadersConstants.INPUT_TOPIC, toBytes(originalRecord.originalTopic())),
+        new RecordHeader(ReportHeadersConstants.INPUT_OFFSET, toBytes(originalRecord.originalKafkaOffset())),
+        new RecordHeader(ReportHeadersConstants.INPUT_TIMESTAMP, toBytes(originalRecord.timestamp())),
+        new RecordHeader(ReportHeadersConstants.INPUT_KEY, toBytes(originalRecord.key())),
+        new RecordHeader(ReportHeadersConstants.INPUT_PAYLOAD, toBytes(originalRecord.value()))
+    );
   }
 }

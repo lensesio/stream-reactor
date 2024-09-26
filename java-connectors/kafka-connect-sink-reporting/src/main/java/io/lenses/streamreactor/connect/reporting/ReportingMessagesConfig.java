@@ -13,18 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.common.config.source;
+package io.lenses.streamreactor.connect.reporting;
 
-import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
-class MapConfigSourceTest extends ConfigSourceTestBase {
+/**
+ * Wrapper for config passed to {@link io.lenses.streamreactor.connect.reporting.model.RecordReport}
+ */
+@AllArgsConstructor
+@Getter
+public class ReportingMessagesConfig {
 
-  @Override
-  ConfigSource createConfigSource() {
-    return new MapConfigSource(
-        Map.of(
-            USERNAME_KEY, USERNAME_VALUE,
-            PASSWORD_KEY, PASSWORD_VALUE,
-            BOOLEAN_KEY, BOOLEAN_VALUE));
-  }
+  private final String reportTopic;
+  private final Integer reportTopicPartition;
+
 }

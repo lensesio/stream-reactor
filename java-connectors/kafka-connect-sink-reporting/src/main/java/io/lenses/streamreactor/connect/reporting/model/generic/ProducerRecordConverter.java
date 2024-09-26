@@ -19,6 +19,7 @@ import static io.lenses.streamreactor.common.util.ByteConverters.toBytes;
 
 import cyclops.control.Option;
 import cyclops.control.Try;
+import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig;
 import io.lenses.streamreactor.connect.reporting.model.ReportHeadersConstants;
 import java.io.IOException;
 import java.util.List;
@@ -34,16 +35,17 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 @Slf4j
 public class ProducerRecordConverter {
 
-  public static Optional<ProducerRecord<byte[], String>> convert(ReportingRecord source, String reportingTopic) {
+  public static Optional<ProducerRecord<byte[], String>> convert(ReportingRecord source,
+      ReportingMessagesConfig messagesConfig) {
     return convertToHeaders(source)
-        .flatMap(headers -> createRecord(headers, source, reportingTopic));
+        .flatMap(headers -> createRecord(headers, source, messagesConfig));
 
   }
 
   private static Optional<ProducerRecord<byte[], String>> createRecord(List<Header> headers,
-      ReportingRecord source, String reportingTopic) {
-    return Optional.of(new ProducerRecord<>(reportingTopic, null,
-        null, null, source.getPayload(), headers));
+      ReportingRecord source, ReportingMessagesConfig messagesConfig) {
+    return Optional.of(new ProducerRecord<>(messagesConfig.getReportTopic(),
+        messagesConfig.getReportTopicPartition(), null, null, source.getPayload(), headers));
   }
 
   private static Optional<List<Header>> convertToHeaders(ReportingRecord originalRecord) {

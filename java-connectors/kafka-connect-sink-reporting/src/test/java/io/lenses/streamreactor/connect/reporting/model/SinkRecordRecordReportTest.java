@@ -24,6 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.lenses.streamreactor.common.util.ByteConverters;
+import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig;
 import java.io.IOException;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -67,10 +68,11 @@ class SinkRecordRecordReportTest {
     when(sinkRecord.originalKafkaOffset()).thenReturn(RECORD_OFFSET);
     when(sinkRecord.timestamp()).thenReturn(RECORD_TIMESTAMP);
     when(sinkRecord.originalTopic()).thenReturn(RECORD_TOPIC);
+    ReportingMessagesConfig messagesConfig = new ReportingMessagesConfig(REPORT_TOPIC, null);
 
     //when
     Optional<ProducerRecord<byte[], String>> reportRecord =
-        new SinkRecordRecordReport(sinkRecord, sendingStatus).produceReportRecord(REPORT_TOPIC);
+        new SinkRecordRecordReport(sinkRecord, sendingStatus).produceReportRecord(messagesConfig);
 
     //then
     assertTrue(reportRecord.isPresent());
@@ -100,13 +102,14 @@ class SinkRecordRecordReportTest {
     SinkRecord sinkRecord = mock(SinkRecord.class);
     String sendingStatus = "OK";
     when(sinkRecord.originalTopic()).thenReturn(REPORT_TOPIC);
+    ReportingMessagesConfig messagesConfig = new ReportingMessagesConfig(REPORT_TOPIC, null);
 
     //when
     Optional<ProducerRecord<byte[], String>> reportRecord;
     try (MockedStatic<ByteConverters> mapper = Mockito.mockStatic(ByteConverters.class)) {
       IOException ioException = new IOException();
       mapper.when(() -> ByteConverters.toBytes(REPORT_TOPIC)).thenThrow(ioException);
-      reportRecord = new SinkRecordRecordReport(sinkRecord, sendingStatus).produceReportRecord(REPORT_TOPIC);
+      reportRecord = new SinkRecordRecordReport(sinkRecord, sendingStatus).produceReportRecord(messagesConfig);
     }
 
     //then
