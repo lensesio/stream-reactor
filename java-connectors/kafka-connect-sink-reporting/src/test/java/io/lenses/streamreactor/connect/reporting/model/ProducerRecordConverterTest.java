@@ -63,7 +63,7 @@ class ProducerRecordConverterTest {
 
     assertNotNull(record.headers());
     Header[] headers = record.headers().toArray();
-    assertEquals(7, headers.length);
+    assertEquals(9, headers.length);
 
     assertThat(record)
         .returns(REPORTING_TOPIC, from(ProducerRecord::topic))
@@ -81,14 +81,16 @@ class ProducerRecordConverterTest {
         new RecordHeader(ReportHeadersConstants.INPUT_TIMESTAMP, String.valueOf(TIMESTAMP).getBytes()),
         new RecordHeader(ReportHeadersConstants.INPUT_KEY, null),
         new RecordHeader(ReportHeadersConstants.INPUT_PAYLOAD, JSON_PAYLOAD.getBytes()),
-        new RecordHeader(ReportHeadersConstants.ERROR, "".getBytes())
+        new RecordHeader(ReportHeadersConstants.ERROR, "".getBytes()),
+        new RecordHeader(ReportHeadersConstants.RESPONSE_CONTENT, "OK".getBytes()),
+        new RecordHeader(ReportHeadersConstants.RESPONSE_STATUS, "200".getBytes()),
     };
   }
 
   private ReportingRecord createReportingRecord() {
     return new ReportingRecord(new TopicPartition(TOPIC, PARTITION), OFFSET,
         TIMESTAMP, ENDPOINT, JSON_PAYLOAD, Collections.emptyList(),
-        Option.none()
+        Option.none(), Option.of(200), Option.of("OK")
     );
   }
 }

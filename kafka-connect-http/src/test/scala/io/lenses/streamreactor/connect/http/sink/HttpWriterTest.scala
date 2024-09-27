@@ -18,11 +18,16 @@ package io.lenses.streamreactor.connect.http.sink
 import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.testing.scalatest.AsyncIOSpec
+import cats.implicits.catsSyntaxEitherId
+import cats.implicits.catsSyntaxOptionId
+import cats.implicits.none
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
+import io.lenses.streamreactor.connect.http.sink.client.HttpResponseFailure
+import io.lenses.streamreactor.connect.http.sink.client.HttpResponseSuccess
 import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
@@ -78,7 +83,7 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
   test("process method should flush records when the queue is non-empty and commit policy requires flush") {
     val commitPolicy = CommitPolicy(Count(2L))
     val senderMock   = mock[HttpRequestSender]
-    when(senderMock.sendHttpRequest(any[ProcessedTemplate])).thenReturn(IO.unit)
+    when(senderMock.sendHttpRequest(any[ProcessedTemplate])).thenReturn(IO(HttpResponseSuccess(200, "OK").asRight))
 
     val templateMock = mock[TemplateType]
     when(templateMock.process(any[Seq[RenderedRecord]], eqTo(false))).thenReturn(Right(ProcessedTemplate("a",
@@ -122,7 +127,11 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
   test("process method should not flush records when the queue is empty") {
     val commitPolicy = CommitPolicy(Count(2L))
     val senderMock   = mock[HttpRequestSender]
-    when(senderMock.sendHttpRequest(any[ProcessedTemplate])).thenReturn(IO.unit)
+    when(senderMock.sendHttpRequest(any[ProcessedTemplate])).thenReturn(IO(HttpResponseFailure("fail",
+                                                                                               none,
+                                                                                               404.some,
+                                                                                               none,
+    ).asLeft))
 
     val templateMock = mock[TemplateType]
 

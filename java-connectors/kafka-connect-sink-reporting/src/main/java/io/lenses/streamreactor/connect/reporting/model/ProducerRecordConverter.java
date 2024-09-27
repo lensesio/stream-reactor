@@ -26,10 +26,13 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Supplier;
 
 @NoArgsConstructor
 @Slf4j
 public class ProducerRecordConverter {
+
+  private static final Supplier<byte[]> EMPTY_BYTES = ""::getBytes;
 
   public Option<ProducerRecord<byte[], String>> convert(ReportingRecord source,
       ReportingMessagesConfig messagesConfig) {
@@ -54,9 +57,15 @@ public class ProducerRecordConverter {
             .getBytes()),
         new RecordHeader(ReportHeadersConstants.INPUT_KEY, null),
         new RecordHeader(ReportHeadersConstants.INPUT_PAYLOAD, Try.withCatch(() -> originalRecord.getPayload()
-            .getBytes()).orElseGet(""::getBytes)),
+            .getBytes()).orElseGet(EMPTY_BYTES)),
         new RecordHeader(ReportHeadersConstants.ERROR, originalRecord.getError().map(String::getBytes).orElseGet(
-            ""::getBytes))
+            EMPTY_BYTES)),
+        new RecordHeader(ReportHeadersConstants.RESPONSE_CONTENT, originalRecord.getResponseContent().map(
+            String::getBytes).orElseGet(
+                EMPTY_BYTES)),
+        new RecordHeader(ReportHeadersConstants.RESPONSE_STATUS, originalRecord.getResponseStatusCode().map(
+            String::valueOf).map(String::getBytes).orElseGet(
+                EMPTY_BYTES))
     ), IOException.class)
         .peekFailed(f -> log.warn(
             String.format("Couldn't transform record to Report. Report won't be sent. Topic=%s, Offset=%s",

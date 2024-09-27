@@ -22,12 +22,15 @@ import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
 import com.typesafe.scalalogging.LazyLogging
 import cyclops.data.tuple
+import io.lenses.streamreactor.common.utils.CyclopsToScalaOption.convertToCyclopsOption
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.Count
 import io.lenses.streamreactor.connect.http.sink.OffsetMergeUtils.createCommitContextForEvaluation
 import io.lenses.streamreactor.connect.http.sink.OffsetMergeUtils.updateCommitContextPostCommit
 import io.lenses.streamreactor.connect.http.sink.client.HttpRequestSender
+import io.lenses.streamreactor.connect.http.sink.client.HttpResponseFailure
+import io.lenses.streamreactor.connect.http.sink.client.HttpResponseSuccess
 import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
@@ -39,7 +42,6 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import java.util
 import scala.collection.immutable.Queue
 import scala.jdk.CollectionConverters.SeqHasAsJava
-import scala.jdk.OptionConverters.RichOption
 
 class HttpWriter(
   sinkName:         String,
@@ -188,11 +190,15 @@ class HttpWriter(
   private def reportResult(
     renderedRecords:   Seq[RenderedRecord],
     processedTemplate: ProcessedTemplate,
-    responseIo:        IO[Unit],
+    responseIo:        IO[Either[HttpResponseFailure, HttpResponseSuccess]],
   ): IO[Unit] = {
     val maxRecord = OffsetMergeUtils.maxRecord(renderedRecords)
 
-    val reportRecord = (error: Option[String]) =>
+    val reportRecord = (
+      error:      Option[String],
+      statusCode: Option[Int],
+      content:    Option[String],
+    ) =>
       new ReportingRecord(
         maxRecord.topicPartitionOffset.toTopicPartition.toKafka,
         maxRecord.topicPartitionOffset.offset.value,
@@ -200,13 +206,30 @@ class HttpWriter(
         processedTemplate.endpoint,
         processedTemplate.content,
         convertToCyclopsTuples(processedTemplate.headers),
-        cyclops.control.Option.fromOptional(error.toJava),
+        convertToCyclopsOption(error),
+        convertToCyclopsOption(statusCode.map(_.toInt)),
+        convertToCyclopsOption(content),
       )
 
-    responseIo.flatTap { _ =>
-      IO(successReporter.enqueue(reportRecord(none)))
-    }.handleErrorWith { error =>
-      IO(errorReporter.enqueue(reportRecord(error.getMessage.some))) *> IO.raiseError(error)
+    responseIo.flatMap {
+      case Left(error) => IO(
+          errorReporter.enqueue(
+            reportRecord(
+              error.getMessage.some,
+              error.statusCode,
+              error.responseContent,
+            ),
+          ),
+        ) *> IO.raiseError(error)
+      case Right(success) => IO(
+          successReporter.enqueue(
+            reportRecord(
+              none,
+              success.statusCode.some,
+              success.responseContent.some,
+            ),
+          ),
+        )
     }
   }
 

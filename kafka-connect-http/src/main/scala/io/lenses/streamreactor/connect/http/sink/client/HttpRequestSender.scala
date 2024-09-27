@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.http.sink.client
 import cats.effect.IO
 import cats.effect.Ref
+import cats.implicits.catsSyntaxOptionId
 import cats.implicits.none
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.cache.CachedAccessTokenProvider
@@ -124,9 +125,19 @@ abstract class HttpRequestSender(
 
   protected def updateRequest(request: Request[IO]): IO[Request[IO]]
 
+  /**
+    * Sends an HTTP request based on the provided processed template.
+    *
+    * This method constructs an HTTP request using the provided template,
+    * adds necessary headers and authentication, and sends the request using the client.
+    * It processes the response and handles any errors that may occur during the request.
+    *
+    * @param processedTemplate the template containing the endpoint, content, and headers for the request
+    * @return an `IO` containing either a `HttpResponseFailure` or a `HttpResponseSuccess`
+    */
   def sendHttpRequest(
     processedTemplate: ProcessedTemplate,
-  ): IO[Unit] =
+  ): IO[Either[HttpResponseFailure, HttpResponseSuccess]] =
     for {
       tpl: ProcessedTemplate <- IO.pure(processedTemplate)
 
@@ -147,12 +158,43 @@ abstract class HttpRequestSender(
       // Add authentication if present
       authenticatedRequest <- updateRequest(requestWithContentType)
       _                    <- IO.delay(logger.debug(s"[$sinkName] Auth: $authenticatedRequest"))
-      response <- client.expect[String](authenticatedRequest).onError(e =>
-        IO {
-          logger.error(s"[$sinkName] error writing to HTTP endpoint", e.getMessage)
-        } *> IO.raiseError(e),
-      )
-      _ <- IO.delay(logger.trace(s"[$sinkName] Response: $response"))
-    } yield ()
+      response             <- executeRequestAndHandleErrors(authenticatedRequest)
+      _                    <- IO.delay(logger.trace(s"[$sinkName] Response: $response"))
+    } yield response
 
+  /**
+    * Executes the HTTP request and handles any errors that occur.
+    *
+    * This method sends the authenticated HTTP request using the provided client,
+    * processes the response, and handles any errors that may occur during the request.
+    *
+    * @param authenticatedRequest the authenticated HTTP request to be sent
+    * @return an `IO` containing either a `HttpResponseFailure` or a `HttpResponseSuccess`
+    */
+  private def executeRequestAndHandleErrors(
+    authenticatedRequest: Request[IO],
+  ): IO[Either[HttpResponseFailure, HttpResponseSuccess]] =
+    client.run(authenticatedRequest).use { response =>
+      response.as[String].map { body =>
+        if (response.status.isSuccess) {
+          Right(HttpResponseSuccess(response.status.code, body))
+        } else {
+          Left(
+            HttpResponseFailure(
+              message         = "Request failed with error response",
+              cause           = Option.empty,
+              statusCode      = response.status.code.some,
+              responseContent = body.some,
+            ),
+          )
+        }
+      }
+    }.handleErrorWith { error =>
+      IO.pure(Left(HttpResponseFailure(
+        message         = error.getMessage,
+        cause           = error.some,
+        statusCode      = none,
+        responseContent = none,
+      )))
+    }
 }

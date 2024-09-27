@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.http.sink.client
 
 import cats.effect.IO
+import cats.effect.kernel.Resource
 import cats.effect.testing.scalatest.AsyncIOSpec
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.AccessToken
 import io.lenses.streamreactor.connect.http.sink.client.oauth2.AccessTokenProvider
@@ -24,24 +25,27 @@ import org.http4s._
 import org.http4s.client.Client
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
-import org.mockito.MockitoSugar.mock
+import org.mockito.MockitoSugar
+import org.scalatest.EitherValues
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 import org.typelevel.ci.CIString
 
 import java.time.Instant
 
-class OAuth2AuthenticationHttpRequestSenderTest extends AsyncFreeSpec with AsyncIOSpec with Matchers {
+class OAuth2AuthenticationHttpRequestSenderTest
+    extends AsyncFreeSpec
+    with AsyncIOSpec
+    with Matchers
+    with MockitoSugar
+    with EitherValues {
 
   "OAuth2AuthenticationHttpRequestSender" - {
     "should attach the OAuth2 token header to the request" in {
       val sinkName = "sink"
       val method   = Method.POST
       val client: Client[IO] = mock[Client[IO]]
-
-      val requestCaptor: ArgumentCaptor[Request[IO]] = ArgumentCaptor.forClass(classOf[Request[IO]])
-      when(client.expect[String](requestCaptor.capture())(any[EntityDecoder[IO, String]])).thenReturn(IO.pure("OK"))
+      when(client.run(any[Request[IO]])).thenReturn(Resource.pure(Response[IO](status = Status.Ok).withEntity("OK")))
 
       val token = "token"
       val tokenProvider = new AccessTokenProvider[IO] {
@@ -56,8 +60,12 @@ class OAuth2AuthenticationHttpRequestSenderTest extends AsyncFreeSpec with Async
         List("header" -> "value"),
       )
 
-      sender.sendHttpRequest(template).flatMap { _ =>
-        IO {
+      val requestCaptor: ArgumentCaptor[Request[IO]] = ArgumentCaptor.forClass(classOf[Request[IO]])
+
+      sender.sendHttpRequest(template).asserting {
+        response =>
+          verify(client).run(requestCaptor.capture())
+
           val capturedRequest: Request[IO] = requestCaptor.getValue
 
           // Assertions
@@ -65,7 +73,8 @@ class OAuth2AuthenticationHttpRequestSenderTest extends AsyncFreeSpec with Async
           capturedRequest.uri shouldBe Uri.unsafeFromString("http://localhost:8080")
           capturedRequest.headers.headers should contain(Header.Raw(CIString("header"), "value"))
           capturedRequest.headers.headers should contain(Header.Raw(CIString("Authorization"), s"Bearer $token"))
-        }
+
+          response.value should be(HttpResponseSuccess(200, "OK"))
       }
     }
   }
