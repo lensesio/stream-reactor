@@ -33,7 +33,7 @@ import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
 import io.lenses.streamreactor.connect.reporting.ReportingController
-import io.lenses.streamreactor.connect.reporting.model.generic.ReportingRecord
+import io.lenses.streamreactor.connect.reporting.model.ReportingRecord
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 
 import java.util

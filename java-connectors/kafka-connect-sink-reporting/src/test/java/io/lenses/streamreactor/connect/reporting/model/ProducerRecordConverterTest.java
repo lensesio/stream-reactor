@@ -13,20 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.reporting.model.generic;
+package io.lenses.streamreactor.connect.reporting.model;
 
 import cyclops.control.Option;
-import io.lenses.streamreactor.connect.reporting.model.ReportHeadersConstants;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.Collections;
-import java.util.Optional;
 
+import static io.lenses.streamreactor.test.utils.OptionValues.getValue;
 import static org.assertj.core.api.Assertions.from;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -45,18 +43,20 @@ class ProducerRecordConverterTest {
   private static final String JSON_PAYLOAD = "{\"payload\": \"somevalue\"}";
   private static final String ERROR = "Bad things happened";
 
+  private static final ProducerRecordConverter target = new ProducerRecordConverter();
+
   @Test
-  void convertShouldProduceProducerRecord() throws IOException {
+  void convertShouldProduceProducerRecord() {
     //given
     ReportingRecord reportingRecord = createReportingRecord();
 
     //when
-    Optional<ProducerRecord<byte[], String>> converted =
-        ProducerRecordConverter.convert(reportingRecord, REPORTING_TOPIC);
+    Option<ProducerRecord<byte[], String>> converted =
+        target.convert(reportingRecord, REPORTING_TOPIC);
 
     //then
     assertTrue(converted.isPresent());
-    ProducerRecord<byte[], String> record = converted.get();
+    ProducerRecord<byte[], String> record = getValue(converted);
 
     assertNotNull(record.headers());
     Header[] headers = record.headers().toArray();
@@ -70,7 +70,7 @@ class ProducerRecordConverterTest {
     assertArrayEquals(buildExpectedHeaders(), headers);
   }
 
-  private Header[] buildExpectedHeaders() throws IOException {
+  private Header[] buildExpectedHeaders() {
     return new Header[]{
         new RecordHeader(ReportHeadersConstants.INPUT_TOPIC, TOPIC.getBytes()),
         new RecordHeader(ReportHeadersConstants.INPUT_PARTITION, String.valueOf(PARTITION).getBytes()),

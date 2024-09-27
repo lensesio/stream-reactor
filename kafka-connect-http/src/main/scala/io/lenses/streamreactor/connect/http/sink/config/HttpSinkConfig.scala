@@ -118,12 +118,14 @@ object HttpSinkConfig {
         .map(_.asScala.toList).filter(_.nonEmpty)
         .getOrElse(Nil)
         .traverse(v => Try(v.toInt).toEither.leftMap(e => new IllegalArgumentException(s"Invalid status code: $v", e)))
-      retries                    = RetriesConfig(maxRetries, maxTimeoutMs, onStatusCodes)
-      connectionTimeoutMs        = connectConfig.getInt(HttpSinkConfigDef.ConnectionTimeoutMsProp)
-      timeout                    = TimeoutConfig(connectionTimeoutMs)
-      jsonTidy                   = connectConfig.getBoolean(HttpSinkConfigDef.JsonTidyProp)
-      errorReportingController   = createAndStartController(new ErrorReportingController(connectConfig))
-      successReportingController = createAndStartController(new SuccessReportingController(connectConfig))
+      retries                  = RetriesConfig(maxRetries, maxTimeoutMs, onStatusCodes)
+      connectionTimeoutMs      = connectConfig.getInt(HttpSinkConfigDef.ConnectionTimeoutMsProp)
+      timeout                  = TimeoutConfig(connectionTimeoutMs)
+      jsonTidy                 = connectConfig.getBoolean(HttpSinkConfigDef.JsonTidyProp)
+      errorReportingController = createAndStartController(ErrorReportingController.fromAbstractConfig(connectConfig))
+      successReportingController = createAndStartController(
+        SuccessReportingController.fromAbstractConfig(connectConfig),
+      )
     } yield HttpSinkConfig(
       method,
       endpoint,

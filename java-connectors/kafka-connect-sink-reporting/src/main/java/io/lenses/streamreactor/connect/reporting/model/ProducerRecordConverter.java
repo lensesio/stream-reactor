@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.reporting.model.generic;
+package io.lenses.streamreactor.connect.reporting.model;
 
+import cyclops.control.Option;
 import cyclops.control.Try;
-import io.lenses.streamreactor.connect.reporting.model.ReportHeadersConstants;
-import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -26,25 +25,24 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor
 @Slf4j
 public class ProducerRecordConverter {
 
-  public static Optional<ProducerRecord<byte[], String>> convert(ReportingRecord source, String reportingTopic) {
+  public Option<ProducerRecord<byte[], String>> convert(ReportingRecord source, String reportingTopic) {
     return convertToHeaders(source)
         .flatMap(headers -> createRecord(headers, source, reportingTopic));
 
   }
 
-  private static Optional<ProducerRecord<byte[], String>> createRecord(List<Header> headers,
+  private Option<ProducerRecord<byte[], String>> createRecord(List<Header> headers,
       ReportingRecord source, String reportingTopic) {
-    return Optional.of(new ProducerRecord<>(reportingTopic, null,
+    return Option.of(new ProducerRecord<>(reportingTopic, null,
         null, null, source.getPayload(), headers));
   }
 
-  private static Optional<List<Header>> convertToHeaders(ReportingRecord originalRecord) {
+  private Option<List<Header>> convertToHeaders(ReportingRecord originalRecord) {
     return Try.withCatch(() -> List.<Header>of(
         new RecordHeader(ReportHeadersConstants.INPUT_TOPIC, originalRecord.getTopicPartition().topic().getBytes()),
         new RecordHeader(ReportHeadersConstants.INPUT_PARTITION, String.valueOf(originalRecord.getTopicPartition()
@@ -53,7 +51,8 @@ public class ProducerRecordConverter {
         new RecordHeader(ReportHeadersConstants.INPUT_TIMESTAMP, String.valueOf(originalRecord.getTimestamp())
             .getBytes()),
         new RecordHeader(ReportHeadersConstants.INPUT_KEY, null),
-        new RecordHeader(ReportHeadersConstants.INPUT_PAYLOAD, originalRecord.getPayload().getBytes()),
+        new RecordHeader(ReportHeadersConstants.INPUT_PAYLOAD, Try.withCatch(() -> originalRecord.getPayload()
+            .getBytes()).orElseGet(""::getBytes)),
         new RecordHeader(ReportHeadersConstants.ERROR, originalRecord.getError().map(String::getBytes).orElseGet(
             ""::getBytes))
     ), IOException.class)
@@ -63,6 +62,6 @@ public class ProducerRecordConverter {
                 originalRecord.getOffset()
             ),
             f
-        )).toOptional();
+        )).toOption();
   }
 }

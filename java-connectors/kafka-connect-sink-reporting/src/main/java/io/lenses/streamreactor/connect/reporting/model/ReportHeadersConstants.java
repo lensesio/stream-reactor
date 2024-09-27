@@ -15,6 +15,10 @@
  */
 package io.lenses.streamreactor.connect.reporting.model;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ReportHeadersConstants {
 
   public static final String INPUT_OFFSET = "input_offset";
