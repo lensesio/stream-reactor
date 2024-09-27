@@ -15,7 +15,7 @@
  */
 package io.lenses.streamreactor.connect.reporting;
 
-import io.lenses.streamreactor.connect.reporting.model.generic.ReportingRecord;
+import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.BlockingQueue;

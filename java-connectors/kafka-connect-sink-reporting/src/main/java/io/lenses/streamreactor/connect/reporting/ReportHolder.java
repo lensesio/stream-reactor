@@ -15,9 +15,10 @@
  */
 package io.lenses.streamreactor.connect.reporting;
 
+import cyclops.control.Option;
 import cyclops.control.Try;
 import io.lenses.streamreactor.connect.reporting.exceptions.ReportingException;
-import io.lenses.streamreactor.connect.reporting.model.generic.ReportingRecord;
+import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
 
 import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -32,7 +33,7 @@ public class ReportHolder {
   private final BlockingQueue<ReportingRecord> reportsToSend;
 
   public ReportHolder(BlockingQueue<ReportingRecord> recordReportsQueue) {
-    this.reportsToSend =
+    reportsToSend =
         Optional.ofNullable(recordReportsQueue)
             .orElse(new ArrayBlockingQueue<>(DEFAULT_QUEUES_SIZE));
   }
@@ -50,9 +51,9 @@ public class ReportHolder {
    * 
    * @return RecordReport instance or null if the specified waiting time elapses before an element is available
    */
-  public ReportingRecord pollReport() {
+  public Option<ReportingRecord> pollReport() {
     try {
-      return reportsToSend.poll(DEFAULT_POLL_TIME_MILLIS, TimeUnit.MILLISECONDS);
+      return Option.ofNullable(reportsToSend.poll(DEFAULT_POLL_TIME_MILLIS, TimeUnit.MILLISECONDS));
     } catch (InterruptedException e) {
       throw new ReportingException("InterruptedException happened:", e);
     }

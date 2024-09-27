@@ -15,13 +15,15 @@
  */
 package io.lenses.streamreactor.connect.reporting;
 
+import cyclops.control.Option;
 import io.lenses.streamreactor.connect.reporting.ReportingController.ErrorReportingController;
 import io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst;
 import io.lenses.streamreactor.connect.reporting.config.ReporterConfig;
-import io.lenses.streamreactor.connect.reporting.model.generic.ReportingRecord;
+import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
@@ -32,10 +34,12 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.function.UnaryOperator;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static io.lenses.streamreactor.test.utils.OptionValues.getValue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 class ReportingControllerTest {
@@ -51,13 +55,13 @@ class ReportingControllerTest {
     final AbstractConfig disabledReportingConfig = createEnabledReportingConfig();
     ReportingRecord report = mock(ReportingRecord.class);
 
-    ErrorReportingController reportingController;
+    ReportingController reportingController;
     ReportHolder reportHolder;
     try (MockedConstruction<KafkaProducer> ignored =
         Mockito.mockConstruction(KafkaProducer.class)) {
       try (MockedConstruction<ReportHolder> mockedHolderConstr =
           Mockito.mockConstruction(ReportHolder.class)) {
-        reportingController = new ErrorReportingController(disabledReportingConfig);
+        reportingController = ErrorReportingController.fromAbstractConfig(disabledReportingConfig);
         reportHolder = mockedHolderConstr.constructed().get(0);
       }
     }
@@ -75,11 +79,11 @@ class ReportingControllerTest {
     final AbstractConfig disabledReportingConfig = createDisabledReportingConfig();
     ReportingRecord report = mock(ReportingRecord.class);
 
-    ErrorReportingController reportingController;
+    ReportingController reportingController;
     try (MockedConstruction<KafkaProducer> ignored =
         Mockito.mockConstruction(KafkaProducer.class); MockedConstruction<ReportHolder> mockedHolderConstr =
             Mockito.mockConstruction(ReportHolder.class)) {
-      reportingController = new ErrorReportingController(disabledReportingConfig);
+      reportingController = ErrorReportingController.fromAbstractConfig(disabledReportingConfig);
       assertTrue(mockedHolderConstr.constructed().isEmpty());
     }
 
@@ -96,9 +100,9 @@ class ReportingControllerTest {
     KafkaProducer kafkaProducer;
 
     //when
-    ErrorReportingController reportingController;
+    ReportingController reportingController;
     try (MockedConstruction<KafkaProducer> mocked = Mockito.mockConstruction(KafkaProducer.class)) {
-      reportingController = new ErrorReportingController(enabledReportingConfig);
+      reportingController = ErrorReportingController.fromAbstractConfig(enabledReportingConfig);
       kafkaProducer = mocked.constructed().get(0);
     }
     reportingController.close();
@@ -113,10 +117,10 @@ class ReportingControllerTest {
     AbstractConfig disabledReportingConfig = createDisabledReportingConfig();
 
     //when
-    ErrorReportingController reportingController = new ErrorReportingController(disabledReportingConfig);
+    ReportingController reportingController = ErrorReportingController.fromAbstractConfig(disabledReportingConfig);
 
     //then
-    assertFalse(reportingController.isSenderEnabled());
+    assertTrue(reportingController.reportSender.stream().isEmpty());
   }
 
   @Test
@@ -125,13 +129,45 @@ class ReportingControllerTest {
     final AbstractConfig enabledReportingConfig = createEnabledReportingConfig();
 
     //when
-    ErrorReportingController reportingController;
+    ReportingController reportingController;
     try (MockedConstruction<KafkaProducer> ignored = Mockito.mockConstruction(KafkaProducer.class)) {
-      reportingController = new ErrorReportingController(enabledReportingConfig);
+      reportingController = ErrorReportingController.fromAbstractConfig(enabledReportingConfig);
     }
 
     //then
-    assertTrue(reportingController.isSenderEnabled());
+    assertNotNull(getValue(reportingController.reportSender));
+  }
+
+  private ReportingController reportingController;
+  private ReportSender mockReportSender;
+  private ReportingRecord mockReportingRecord;
+
+  @BeforeEach
+  void setUp() {
+    mockReportSender = mock(ReportSender.class);
+    mockReportingRecord = mock(ReportingRecord.class);
+    reportingController = new ReportingController(Option.of(mockReportSender));
+  }
+
+  @Test
+  void testEnqueue() {
+    reportingController.enqueue(mockReportingRecord);
+
+    verify(mockReportSender, times(1)).enqueue(mockReportingRecord);
+  }
+
+  @Test
+  void testStart() {
+    reportingController.start();
+
+    verify(mockReportSender, times(1)).start();
+  }
+
+  @Test
+  void testClose() {
+    reportingController.close();
+
+    verify(mockReportSender, times(1)).close();
   }
 
   private AbstractConfig createDisabledReportingConfig() {

@@ -15,62 +15,35 @@
  */
 package io.lenses.streamreactor.connect.reporting;
 
-import cyclops.control.Try;
-import io.lenses.streamreactor.common.exception.StreamReactorException;
+import cyclops.control.Option;
 import io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst;
 import io.lenses.streamreactor.connect.reporting.config.ReporterConfig;
-import io.lenses.streamreactor.connect.reporting.model.generic.ProducerRecordConverter;
-import io.lenses.streamreactor.connect.reporting.model.generic.ReportingRecord;
-import lombok.Getter;
+import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
+import lombok.val;
 import org.apache.kafka.common.config.AbstractConfig;
-import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 
-import java.time.Duration;
 import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import static io.lenses.streamreactor.common.util.StringUtils.isBlank;
 
 @Slf4j
-public abstract class ReportingController {
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
+public class ReportingController {
 
-  private static final String EXCEPTION_WHILE_PRODUCING_MESSAGE =
-      "Exception was thrown when sending report, will try again for next reports:";
-  private static final String CLIENT_ID_PREFIX = "http-sink-reporter-";
-  private static final int DEFAULT_CLOSE_DURATION_IN_MILLIS = 500;
-  private static final String TOPIC_ERROR = "If reporting is enabled then reporting kafka topic must be specified";
+  protected Option<ReportSender> reportSender;
 
+  public static ReportingController fromConfig(Map<String, Object> senderConfig) {
 
-  @Getter
-  private boolean senderEnabled;
-  private final ReportHolder reportHolder;
-  private final Producer<byte[], String> producer;
-  private final ExecutorService executorService;
-  private final String reportTopic;
-  private final String reportingClientId = createProducerId();
-
-  //public static Option<ReportingController fromConfig()
-  protected ReportingController(Map<String, Object> senderConfig) {
-
-    this.senderEnabled =
+    val senderEnabled =
         getEnabledBoolean(senderConfig
             .getOrDefault(ReportProducerConfigConst.REPORTING_ENABLED_CONFIG, "false"));
 
-    this.reportTopic = senderEnabled ? getReportTopic(senderConfig.get(ReportProducerConfigConst.TOPIC)) : null;
+    val reportSenderOption =
+        (senderEnabled) ? Option.of(ReportSender.fromConfigMap(senderConfig)) : Option.<ReportSender>none();
+    return new ReportingController(reportSenderOption);
 
-    this.producer = senderEnabled ? createKafkaProducer(senderConfig) : null;
-    this.reportHolder = senderEnabled ? new ReportHolder(null) : null;
-    this.executorService = senderEnabled ? Executors.newFixedThreadPool(1) : null;
   }
 
   /**
@@ -79,9 +52,7 @@ public abstract class ReportingController {
    * @param report a {@link ReportingRecord} instance
    */
   public void enqueue(ReportingRecord report) {
-    if (isSenderEnabled()) {
-      reportHolder.enqueueReport(report);
-    }
+    reportSender.forEach(sender -> sender.enqueue(report));
   }
 
   /**
@@ -89,44 +60,17 @@ public abstract class ReportingController {
    * to Kafka topic (specified in config).
    */
   public void start() {
-    log.info("Starting reporting Kafka Producer with clientId:" + reportingClientId);
-    if (isSenderEnabled()) {
-      executorService.submit(() -> {
-
-        while (isSenderEnabled()) {
-          ReportingRecord report = reportHolder.pollReport();
-          if (report != null) {
-            Optional<ProducerRecord<byte[], String>> optionalReport = ProducerRecordConverter.convert(report, reportTopic);
-            Try.runWithCatch(() -> optionalReport.ifPresent(producer::send))
-                .toFailedOption()
-                .stream().forEach(ex -> log.warn(EXCEPTION_WHILE_PRODUCING_MESSAGE, ex));
-          }
-        }
-
-      });
-    }
+    reportSender.forEach(ReportSender::start);
   }
 
   /**
    * This method should be called before Connector closes in order to gracefully close KafkaProducer
    */
   public void close() {
-    log.info("Stopping reporting Kafka Producer with clientId:" + reportingClientId);
-    if (isSenderEnabled()) {
-      Try.withCatch(() -> executorService.awaitTermination(DEFAULT_CLOSE_DURATION_IN_MILLIS, TimeUnit.MILLISECONDS));
-      senderEnabled = false;
-      producer.close(Duration.ofMillis(DEFAULT_CLOSE_DURATION_IN_MILLIS));
-    }
+    reportSender.forEach(ReportSender::close);
   }
 
-  private static String getReportTopic(Object senderConfig) {
-    if (isBlank((String) senderConfig)) {
-      throw new StreamReactorException(TOPIC_ERROR);
-    }
-    return (String) senderConfig;
-  }
-
-  private boolean getEnabledBoolean(Object o) {
+  private static boolean getEnabledBoolean(Object o) {
     //TODO: check if we have something like
     // io.lenses.streamreactor.connect.cloud.common.config.ConfigParse#getBoolean
     if (Boolean.class.isAssignableFrom(o.getClass())) {
@@ -138,28 +82,19 @@ public abstract class ReportingController {
     return false;
   }
 
-  private Producer<byte[], String> createKafkaProducer(Map<String, Object> senderConfig) {
-    senderConfig.put(ProducerConfig.CLIENT_ID_CONFIG, reportingClientId);
-    senderConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
-    senderConfig.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-    return new KafkaProducer<>(senderConfig);
-  }
+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
+  public static class ErrorReportingController {
 
-  private String createProducerId() {
-    return CLIENT_ID_PREFIX + UUID.randomUUID();
-  }
-
-  public static class ErrorReportingController extends ReportingController {
-
-    public ErrorReportingController(AbstractConfig connectorConfig) {
-      super(ReporterConfig.getErrorReportingProducerConfig(connectorConfig));
+    public static ReportingController fromAbstractConfig(AbstractConfig connectorConfig) {
+      return ReportingController.fromConfig(ReporterConfig.getErrorReportingProducerConfig(connectorConfig));
     }
   }
 
-  public static class SuccessReportingController extends ReportingController {
+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
+  public static class SuccessReportingController {
 
-    public SuccessReportingController(AbstractConfig connectorConfig) {
-      super(ReporterConfig.getSuccessReportingProducerConfig(connectorConfig));
+    public static ReportingController fromAbstractConfig(AbstractConfig connectorConfig) {
+      return ReportingController.fromConfig(ReporterConfig.getSuccessReportingProducerConfig(connectorConfig));
     }
   }
 

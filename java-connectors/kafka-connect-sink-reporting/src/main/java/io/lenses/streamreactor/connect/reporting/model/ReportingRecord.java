@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.reporting.model.generic;
+package io.lenses.streamreactor.connect.reporting.model;
 
 import cyclops.control.Option;
 import cyclops.data.tuple.Tuple2;

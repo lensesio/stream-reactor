@@ -27,8 +27,7 @@ import io.lenses.streamreactor.connect.http.sink.commit.HttpCommitContext
 import io.lenses.streamreactor.connect.http.sink.tpl.ProcessedTemplate
 import io.lenses.streamreactor.connect.http.sink.tpl.RenderedRecord
 import io.lenses.streamreactor.connect.http.sink.tpl.TemplateType
-import io.lenses.streamreactor.connect.reporting.ReportingController.ErrorReportingController
-import io.lenses.streamreactor.connect.reporting.ReportingController.SuccessReportingController
+import io.lenses.streamreactor.connect.reporting.ReportingController
 import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchersSugar.eqTo
 import org.mockito.MockitoSugar
@@ -60,8 +59,8 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                   commitContextRef,
                                   5,
                                   false,
-                                  mock[ErrorReportingController],
-                                  mock[SuccessReportingController],
+                                  mock[ReportingController],
+                                  mock[ReportingController],
       )
       recordsToAdd = Seq(
         RenderedRecord(topicPartition.atOffset(100), TIMESTAMP, "record1", Seq.empty, None),
@@ -105,8 +104,8 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                     commitContextRef,
                                     5,
                                     false,
-                                    mock[ErrorReportingController],
-                                    mock[SuccessReportingController],
+                                    mock[ReportingController],
+                                    mock[ReportingController],
         )
 
         _              <- httpWriter.add(recordsToAdd)
@@ -139,8 +138,8 @@ class HttpWriterTest extends AsyncIOSpec with AsyncFunSuiteLike with Matchers wi
                                   commitContextRef,
                                   5,
                                   false,
-                                  mock[ErrorReportingController],
-                                  mock[SuccessReportingController],
+                                  mock[ReportingController],
+                                  mock[ReportingController],
       )
 
       _              <- httpWriter.process()
