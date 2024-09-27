@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.reporting.model;
 
 import cyclops.control.Option;
+import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Header;
@@ -31,8 +32,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig;
 
 class ProducerRecordConverterTest {
 
@@ -52,7 +51,7 @@ class ProducerRecordConverterTest {
     //given
     ReportingRecord reportingRecord = createReportingRecord();
     ReportingMessagesConfig messagesConfig =
-        new ReportingMessagesConfig(REPORTING_TOPIC, null);
+        new ReportingMessagesConfig(REPORTING_TOPIC, Option.none());
 
     //when
     Option<ProducerRecord<byte[], String>> converted =

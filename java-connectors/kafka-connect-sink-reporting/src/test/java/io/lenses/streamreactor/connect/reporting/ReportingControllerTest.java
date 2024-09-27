@@ -189,12 +189,17 @@ class ReportingControllerTest {
         name -> ERROR_REPORTING_CONFIG_PREFIX + name;
 
     Properties properties = new Properties();
-    properties.put(ERROR_CONFIG_NAME_PREFIX_APPENDER
-        .apply(ReportProducerConfigConst.REPORTING_ENABLED_CONFIG), "true");
-    properties.put(ERROR_CONFIG_NAME_PREFIX_APPENDER
-        .apply(ReportProducerConfigConst.BOOTSTRAP_SERVERS_CONFIG), KAFKA_BOOTSTRAP_PROPERTY);
-    properties.put(ERROR_CONFIG_NAME_PREFIX_APPENDER
-        .apply(ReportProducerConfigConst.TOPIC), TOPIC_PROPERTY);
+    properties.putAll(
+        Map.of(
+            ERROR_CONFIG_NAME_PREFIX_APPENDER
+                .apply(ReportProducerConfigConst.REPORTING_ENABLED_CONFIG), "true",
+            ERROR_CONFIG_NAME_PREFIX_APPENDER
+                .apply(ReportProducerConfigConst.BOOTSTRAP_SERVERS_CONFIG), KAFKA_BOOTSTRAP_PROPERTY,
+            ERROR_CONFIG_NAME_PREFIX_APPENDER
+                .apply(ReportProducerConfigConst.TOPIC), TOPIC_PROPERTY
+        )
+    );
+
     return new TestingErrorReportingConfig(properties);
   }
 

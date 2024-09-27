@@ -15,6 +15,7 @@
  */
 package io.lenses.streamreactor.connect.reporting;
 
+import cyclops.control.Option;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -26,6 +27,6 @@ import lombok.Getter;
 public class ReportingMessagesConfig {
 
   private final String reportTopic;
-  private final Integer reportTopicPartition;
+  private final Option<Integer> reportTopicPartition;
 
 }

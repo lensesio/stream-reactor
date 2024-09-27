@@ -15,20 +15,19 @@
  */
 package io.lenses.streamreactor.connect.reporting;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import cyclops.control.Option;
 import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
 import org.junit.jupiter.api.Test;
-import static org.mockito.Mockito.when;
 
-import io.lenses.streamreactor.connect.reporting.model.RecordReport;
-
-import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import static io.lenses.streamreactor.test.utils.OptionValues.getValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class ReportHolderTest {
 
@@ -58,11 +57,11 @@ class ReportHolderTest {
 
     //when
     ReportHolder reportHolder = new ReportHolder(queue);
-    Optional<RecordReport> recordReport = reportHolder.pollReport();
+    Option<ReportingRecord> recordReport = reportHolder.pollReport();
 
     //then
     assertTrue(recordReport.isPresent());
-    assertEquals(reportingRecord, recordReport.get());
+    assertEquals(reportingRecord, getValue(recordReport));
     verify(queue).poll(DEFAULT_POLL_TIME_MILLIS, TimeUnit.MILLISECONDS);
   }
 }

@@ -48,7 +48,7 @@ import static org.mockito.Mockito.when;
 class ReportSenderTest {
 
   private static final TopicPartition topicPartition = new TopicPartition("myTopic", 5);
-  private static final String reportTopic = "test-topic";
+  private static final ReportingMessagesConfig reportTopic = new ReportingMessagesConfig("test-topic", Option.of(1));
 
   private ReportSender reportSender;
   private ReportHolder mockReportHolder;
