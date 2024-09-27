@@ -15,27 +15,28 @@
  */
 package io.lenses.streamreactor.connect.reporting;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-
 import io.lenses.streamreactor.connect.reporting.ReportingController.ErrorReportingController;
 import io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst;
 import io.lenses.streamreactor.connect.reporting.config.ReporterConfig;
-import io.lenses.streamreactor.connect.reporting.model.RecordReport;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.Map;
-import java.util.Properties;
-import java.util.function.UnaryOperator;
+import io.lenses.streamreactor.connect.reporting.model.generic.ReportingRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
+
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.Map;
+import java.util.Properties;
+import java.util.function.UnaryOperator;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 class ReportingControllerTest {
 
@@ -48,7 +49,7 @@ class ReportingControllerTest {
   void enqueueShouldCallEnqueueOnHolderIfEnabled() {
     //given
     final AbstractConfig disabledReportingConfig = createEnabledReportingConfig();
-    RecordReport recordReport = mock(RecordReport.class);
+    ReportingRecord report = mock(ReportingRecord.class);
 
     ErrorReportingController reportingController;
     ReportHolder reportHolder;
@@ -62,17 +63,17 @@ class ReportingControllerTest {
     }
 
     //when
-    reportingController.enqueue(recordReport);
+    reportingController.enqueue(report);
 
     //then
-    reportHolder.enqueueReport(recordReport);
+    reportHolder.enqueueReport(report);
   }
 
   @Test
   void enqueueShouldCallEnqueueOnHolderIfDisabled() {
     //given
     final AbstractConfig disabledReportingConfig = createDisabledReportingConfig();
-    RecordReport recordReport = mock(RecordReport.class);
+    ReportingRecord report = mock(ReportingRecord.class);
 
     ErrorReportingController reportingController;
     try (MockedConstruction<KafkaProducer> ignored =
@@ -83,7 +84,7 @@ class ReportingControllerTest {
     }
 
     //when
-    reportingController.enqueue(recordReport);
+    reportingController.enqueue(report);
 
     //then
   }

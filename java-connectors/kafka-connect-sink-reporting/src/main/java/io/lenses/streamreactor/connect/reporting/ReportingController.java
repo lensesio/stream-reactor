@@ -19,8 +19,8 @@ import cyclops.control.Try;
 import io.lenses.streamreactor.common.exception.StreamReactorException;
 import io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst;
 import io.lenses.streamreactor.connect.reporting.config.ReporterConfig;
-import io.lenses.streamreactor.connect.reporting.model.RecordReport;
-import io.lenses.streamreactor.connect.reporting.model.SinkRecordRecordReport;
+import io.lenses.streamreactor.connect.reporting.model.generic.ProducerRecordConverter;
+import io.lenses.streamreactor.connect.reporting.model.generic.ReportingRecord;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -50,6 +50,7 @@ public abstract class ReportingController {
   private static final int DEFAULT_CLOSE_DURATION_IN_MILLIS = 500;
   private static final String TOPIC_ERROR = "If reporting is enabled then reporting kafka topic must be specified";
 
+
   @Getter
   private boolean senderEnabled;
   private final ReportHolder reportHolder;
@@ -58,6 +59,7 @@ public abstract class ReportingController {
   private final String reportTopic;
   private final String reportingClientId = createProducerId();
 
+  //public static Option<ReportingController fromConfig()
   protected ReportingController(Map<String, Object> senderConfig) {
 
     this.senderEnabled =
@@ -74,9 +76,9 @@ public abstract class ReportingController {
   /**
    * Enqueues report for Kafka Producer to send.
    * 
-   * @param report a {@link SinkRecordRecordReport} instance
+   * @param report a {@link ReportingRecord} instance
    */
-  public void enqueue(RecordReport report) {
+  public void enqueue(ReportingRecord report) {
     if (isSenderEnabled()) {
       reportHolder.enqueueReport(report);
     }
@@ -92,10 +94,9 @@ public abstract class ReportingController {
       executorService.submit(() -> {
 
         while (isSenderEnabled()) {
-          RecordReport report = reportHolder.pollReport();
+          ReportingRecord report = reportHolder.pollReport();
           if (report != null) {
-            Optional<ProducerRecord<byte[], String>> optionalReport =
-                report.produceReportRecord(reportTopic);
+            Optional<ProducerRecord<byte[], String>> optionalReport = ProducerRecordConverter.convert(report, reportTopic);
             Try.runWithCatch(() -> optionalReport.ifPresent(producer::send))
                 .toFailedOption()
                 .stream().forEach(ex -> log.warn(EXCEPTION_WHILE_PRODUCING_MESSAGE, ex));
