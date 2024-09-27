@@ -16,20 +16,28 @@
 package io.lenses.streamreactor.connect.reporting;
 
 import cyclops.control.Option;
+import io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst;
 import io.lenses.streamreactor.connect.reporting.model.ProducerRecordConverter;
 import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
 import lombok.val;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -39,14 +47,15 @@ import static org.mockito.Mockito.when;
 
 class ReportSenderTest {
 
-  private TopicPartition topicPartition = new TopicPartition("myTopic", 5);
+  private static final TopicPartition topicPartition = new TopicPartition("myTopic", 5);
+  private static final String reportTopic = "test-topic";
 
   private ReportSender reportSender;
   private ReportHolder mockReportHolder;
   private Producer<byte[], String> mockProducer;
   private ScheduledExecutorService mockExecutorService;
   private ReportingRecord mockReportingRecord;
-  private String reportTopic = "test-topic";
+  private Map<String, Object> senderConfig;
 
   @BeforeEach
   void setUp() {
@@ -59,6 +68,10 @@ class ReportSenderTest {
     when(mockReportingRecord.getError()).thenReturn(Option.none());
     reportSender =
         new ReportSender(converter, "test-client-id", mockReportHolder, mockProducer, mockExecutorService, reportTopic);
+
+    senderConfig = new HashMap<>();
+    senderConfig.put(ReportProducerConfigConst.TOPIC, "test-topic");
+
   }
 
   @Test
@@ -92,5 +105,23 @@ class ReportSenderTest {
 
     verify(mockExecutorService, times(1)).awaitTermination(500, TimeUnit.MILLISECONDS);
     verify(mockProducer, times(1)).close(Duration.ofMillis(500));
+  }
+
+  @Test
+  void testAddExtraConfig() {
+    String reportingClientId = "test-client-id";
+
+    Map<String, Object> newConfig = ReportSender.addExtraConfig(senderConfig, reportingClientId);
+
+    assertEquals(reportingClientId, newConfig.get(ProducerConfig.CLIENT_ID_CONFIG));
+    assertEquals(ByteArraySerializer.class.getName(), newConfig.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG));
+    assertEquals(StringSerializer.class.getName(), newConfig.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG));
+
+    assertThatMapIsImmutable(newConfig);
+
+  }
+
+  private static void assertThatMapIsImmutable(Map<String, Object> newConfig) {
+    assertThrows(UnsupportedOperationException.class, () -> newConfig.put("newKey", "newValue"));
   }
 }

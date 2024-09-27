@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigCons
 import io.lenses.streamreactor.connect.reporting.model.ProducerRecordConverter;
 import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -37,11 +38,14 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static io.lenses.streamreactor.common.util.StringUtils.isBlank;
 
 @Slf4j
 @AllArgsConstructor
+@Getter
 public class ReportSender {
 
   private static final String CLIENT_ID_PREFIX = "http-sink-reporter-";
@@ -96,21 +100,27 @@ public class ReportSender {
         reportTopic);
   }
 
-  private static String getReportTopic(Object senderConfig) {
+  protected static String getReportTopic(Object senderConfig) {
     if (isBlank((String) senderConfig)) {
       throw new StreamReactorException(TOPIC_ERROR);
     }
     return (String) senderConfig;
   }
 
-  private static Producer<byte[], String> createKafkaProducer(
-      Map<String, Object> senderConfig,
-      String reportingClientId
-  ) {
-    senderConfig.put(ProducerConfig.CLIENT_ID_CONFIG, reportingClientId);
-    senderConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
-    senderConfig.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-    return new KafkaProducer<>(senderConfig);
+  private static Producer<byte[], String> createKafkaProducer(Map<String, Object> senderConfig,
+      String reportingClientId) {
+    return new KafkaProducer<>(addExtraConfig(senderConfig, reportingClientId));
   }
 
+  protected static Map<String, Object> addExtraConfig(Map<String, Object> senderConfig, String reportingClientId) {
+    return Stream.concat(
+        senderConfig.entrySet().stream(),
+        Stream.of(
+            Map.entry(ProducerConfig.CLIENT_ID_CONFIG, reportingClientId),
+            Map.entry(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName()),
+            Map.entry(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName())
+        )
+    )
+        .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
 }
