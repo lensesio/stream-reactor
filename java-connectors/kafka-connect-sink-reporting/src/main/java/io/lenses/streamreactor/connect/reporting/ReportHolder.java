@@ -15,31 +15,26 @@
  */
 package io.lenses.streamreactor.connect.reporting;
 
+import cyclops.control.Option;
 import cyclops.control.Try;
-import io.lenses.streamreactor.connect.reporting.model.RecordReport;
-import java.util.Optional;
-import java.util.concurrent.ArrayBlockingQueue;
+import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
+import lombok.AllArgsConstructor;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+@AllArgsConstructor
 public class ReportHolder {
 
-  private static final int DEFAULT_QUEUES_SIZE = 1000;
   private static final int DEFAULT_OFFER_TIME_MILLIS = 300;
   private static final int DEFAULT_POLL_TIME_MILLIS = 100;
-  private final BlockingQueue<RecordReport> reportsToSend;
 
-  public ReportHolder(BlockingQueue<RecordReport> recordReportsQueue) {
-    this.reportsToSend =
-        Optional.ofNullable(recordReportsQueue)
-            .orElse(new ArrayBlockingQueue<>(DEFAULT_QUEUES_SIZE));
-  }
+  private final BlockingQueue<ReportingRecord> reportsToSend;
 
   /**
    * Offers Report to be queued for ReportSender to send. Since reporting is non-critical operation,
    * if it fails, the connector just leaves it.
    */
-  public void enqueueReport(RecordReport recordReport) {
+  public void enqueueReport(ReportingRecord recordReport) {
     Try.withCatch(() -> reportsToSend.offer(recordReport, DEFAULT_OFFER_TIME_MILLIS, TimeUnit.MILLISECONDS));
   }
 
@@ -48,9 +43,9 @@ public class ReportHolder {
    *
    * @return RecordReport instance or null if the specified waiting time elapses before an element is available
    */
-  public Optional<RecordReport> pollReport() {
+  public Option<ReportingRecord> pollReport() {
     return Try.withCatch(() -> reportsToSend.poll(DEFAULT_POLL_TIME_MILLIS, TimeUnit.MILLISECONDS),
-        InterruptedException.class).toOptional();
+        InterruptedException.class).toOption();
   }
 
 }

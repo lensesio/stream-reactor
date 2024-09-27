@@ -13,48 +13,51 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.reporting.model.generic;
-
-import static io.lenses.streamreactor.common.util.ByteConverters.toBytes;
+package io.lenses.streamreactor.connect.reporting.model;
 
 import cyclops.control.Option;
 import cyclops.control.Try;
 import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig;
-import io.lenses.streamreactor.connect.reporting.model.ReportHeadersConstants;
+
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
-import lombok.AccessLevel;
+
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor
 @Slf4j
 public class ProducerRecordConverter {
 
-  public static Optional<ProducerRecord<byte[], String>> convert(ReportingRecord source,
+  public Option<ProducerRecord<byte[], String>> convert(ReportingRecord source,
       ReportingMessagesConfig messagesConfig) {
     return convertToHeaders(source)
         .flatMap(headers -> createRecord(headers, source, messagesConfig));
 
   }
 
-  private static Optional<ProducerRecord<byte[], String>> createRecord(List<Header> headers,
+  private Option<ProducerRecord<byte[], String>> createRecord(List<Header> headers,
       ReportingRecord source, ReportingMessagesConfig messagesConfig) {
-    return Optional.of(new ProducerRecord<>(messagesConfig.getReportTopic(),
+    return Option.of(new ProducerRecord<>(messagesConfig.getReportTopic(),
         messagesConfig.getReportTopicPartition(), null, null, source.getPayload(), headers));
   }
 
-  private static Optional<List<Header>> convertToHeaders(ReportingRecord originalRecord) {
+  private Option<List<Header>> convertToHeaders(ReportingRecord originalRecord) {
     return Try.withCatch(() -> List.<Header>of(
-        new RecordHeader(ReportHeadersConstants.INPUT_TOPIC, toBytes(originalRecord.getTopicPartition().topic())),
-        new RecordHeader(ReportHeadersConstants.INPUT_OFFSET, toBytes(originalRecord.getOffset())),
-        new RecordHeader(ReportHeadersConstants.INPUT_TIMESTAMP, toBytes(originalRecord.getTimestamp())),
+        new RecordHeader(ReportHeadersConstants.INPUT_TOPIC, originalRecord.getTopicPartition().topic().getBytes()),
+        new RecordHeader(ReportHeadersConstants.INPUT_PARTITION, String.valueOf(originalRecord.getTopicPartition()
+            .partition()).getBytes()),
+        new RecordHeader(ReportHeadersConstants.INPUT_OFFSET, String.valueOf(originalRecord.getOffset()).getBytes()),
+        new RecordHeader(ReportHeadersConstants.INPUT_TIMESTAMP, String.valueOf(originalRecord.getTimestamp())
+            .getBytes()),
         new RecordHeader(ReportHeadersConstants.INPUT_KEY, null),
-        new RecordHeader(ReportHeadersConstants.INPUT_PAYLOAD, toBytes(originalRecord.getPayload()))
+        new RecordHeader(ReportHeadersConstants.INPUT_PAYLOAD, Try.withCatch(() -> originalRecord.getPayload()
+            .getBytes()).orElseGet(""::getBytes)),
+        new RecordHeader(ReportHeadersConstants.ERROR, originalRecord.getError().map(String::getBytes).orElseGet(
+            ""::getBytes))
     ), IOException.class)
         .peekFailed(f -> log.warn(
             String.format("Couldn't transform record to Report. Report won't be sent. Topic=%s, Offset=%s",
@@ -62,6 +65,6 @@ public class ProducerRecordConverter {
                 originalRecord.getOffset()
             ),
             f
-        )).toOptional();
+        )).toOption();
   }
 }

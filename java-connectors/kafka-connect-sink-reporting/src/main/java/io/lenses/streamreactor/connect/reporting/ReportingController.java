@@ -15,80 +15,44 @@
  */
 package io.lenses.streamreactor.connect.reporting;
 
-import static io.lenses.streamreactor.common.util.StringUtils.isBlank;
-
-import cyclops.control.Try;
-import io.lenses.streamreactor.common.config.source.MapConfigSource;
-import io.lenses.streamreactor.common.exception.StreamReactorException;
+import cyclops.control.Option;
 import io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst;
 import io.lenses.streamreactor.connect.reporting.config.ReporterConfig;
-import io.lenses.streamreactor.connect.reporting.model.RecordReport;
-import io.lenses.streamreactor.connect.reporting.model.SinkRecordRecordReport;
-import java.time.Duration;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import lombok.Getter;
+import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
+import lombok.val;
 import org.apache.kafka.common.config.AbstractConfig;
-import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.apache.kafka.common.serialization.StringSerializer;
+
+import java.util.Map;
 
 @Slf4j
-public abstract class ReportingController {
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
+public class ReportingController {
 
-  private static final String EXCEPTION_WHILE_PRODUCING_MESSAGE =
-      "Exception was thrown when sending report, will try again for next reports:";
-  private static final String CLIENT_ID_PREFIX = "http-sink-reporter-";
-  private static final int DEFAULT_CLOSE_DURATION_IN_MILLIS = 500;
-  private static final String TOPIC_ERROR = "If reporting is enabled then reporting kafka topic must be specified";
-  private static final Integer PARTITION_NOT_DEFINED = -1;
+  protected Option<ReportSender> reportSender;
 
-  @Getter
-  private boolean senderEnabled;
-  private final ReportHolder reportHolder;
-  private final Producer<byte[], String> producer;
-  private final ExecutorService executorService;
-  private final ReportingMessagesConfig reportingMessagesConfig;
-  private final String reportingClientId;
+  public static ReportingController fromConfig(Map<String, Object> senderConfig) {
 
-  protected ReportingController(Map<String, Object> senderConfig) {
+    val senderEnabled =
+        getEnabledBoolean(senderConfig
+            .getOrDefault(ReportProducerConfigConst.REPORTING_ENABLED_CONFIG, "false"));
 
-    MapConfigSource wrappedConfig = new MapConfigSource(senderConfig);
-    this.senderEnabled =
-        wrappedConfig.getBoolean(ReportProducerConfigConst.REPORTING_ENABLED_CONFIG).orElse(false);
+    val reportSenderOption =
+        (senderEnabled) ? Option.of(ReportSender.fromConfigMap(senderConfig)) : Option.<ReportSender>none();
+    return new ReportingController(reportSenderOption);
 
-    reportingMessagesConfig = senderEnabled ? getMessagesConfig(wrappedConfig) : null;
-
-    this.producer = senderEnabled ? createKafkaProducer(senderConfig) : null;
-    this.reportHolder = senderEnabled ? new ReportHolder(null) : null;
-    this.executorService = senderEnabled ? Executors.newFixedThreadPool(1) : null;
-    this.reportingClientId = senderEnabled ? createProducerId() : null;
-  }
-
-  private ReportingMessagesConfig getMessagesConfig(MapConfigSource wrappedConfig) {
-    return new ReportingMessagesConfig(
-        getReportTopic(wrappedConfig),
-        getReportTopicPartition(wrappedConfig)
-    );
   }
 
   /**
    * Enqueues report for Kafka Producer to send.
-   *
-   * @param report a {@link SinkRecordRecordReport} instance
+   * 
+   * @param report a {@link ReportingRecord} instance
    */
-  public void enqueue(RecordReport report) {
-    if (isSenderEnabled()) {
-      reportHolder.enqueueReport(report);
-    }
+  public void enqueue(ReportingRecord report) {
+    reportSender.forEach(sender -> sender.enqueue(report));
   }
 
   /**
@@ -96,75 +60,41 @@ public abstract class ReportingController {
    * to Kafka topic (specified in config).
    */
   public void start() {
-    log.info("Starting reporting Kafka Producer with clientId:" + reportingClientId);
-    if (isSenderEnabled()) {
-      executorService.submit(() -> {
-
-        while (isSenderEnabled()) {
-          Optional<RecordReport> report = reportHolder.pollReport();
-          if (report.isPresent()) {
-            Optional<ProducerRecord<byte[], String>> optionalReport =
-                report.get().produceReportRecord(reportingMessagesConfig);
-            Try.runWithCatch(() -> optionalReport.ifPresent(producer::send))
-                .toFailedOption()
-                .stream().forEach(ex -> log.warn(EXCEPTION_WHILE_PRODUCING_MESSAGE, ex));
-          }
-        }
-
-      });
-    }
+    reportSender.forEach(ReportSender::start);
   }
 
   /**
    * This method should be called before Connector closes in order to gracefully close KafkaProducer
    */
   public void close() {
-    log.info("Stopping reporting Kafka Producer with clientId:" + reportingClientId);
-    if (isSenderEnabled()) {
-      Try.withCatch(() -> executorService.awaitTermination(DEFAULT_CLOSE_DURATION_IN_MILLIS, TimeUnit.MILLISECONDS));
-      senderEnabled = false;
-      producer.close(Duration.ofMillis(DEFAULT_CLOSE_DURATION_IN_MILLIS));
+    reportSender.forEach(ReportSender::close);
+  }
+
+  private static boolean getEnabledBoolean(Object o) {
+    //TODO: check if we have something like
+    // io.lenses.streamreactor.connect.cloud.common.config.ConfigParse#getBoolean
+    if (Boolean.class.isAssignableFrom(o.getClass())) {
+      return (Boolean) o;
+    }
+    if (String.class.isAssignableFrom(o.getClass())) {
+      return Boolean.parseBoolean((String) o);
+    }
+    return false;
+  }
+
+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
+  public static class ErrorReportingController {
+
+    public static ReportingController fromAbstractConfig(AbstractConfig connectorConfig) {
+      return ReportingController.fromConfig(ReporterConfig.getErrorReportingProducerConfig(connectorConfig));
     }
   }
 
-  private static String getReportTopic(MapConfigSource mapConfigSource) {
-    Optional<String> topic = mapConfigSource.getString(ReportProducerConfigConst.TOPIC);
-    if (topic.isEmpty() || isBlank(topic.get())) {
-      throw new StreamReactorException(TOPIC_ERROR);
-    }
-    return topic.get();
-  }
+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
+  public static class SuccessReportingController {
 
-  private static Integer getReportTopicPartition(MapConfigSource mapConfigSource) {
-    Optional<Integer> partition = mapConfigSource.getInt(ReportProducerConfigConst.PARTITION);
-    if (partition.isEmpty() || partition.get().compareTo(PARTITION_NOT_DEFINED) == 0) {
-      return null;
-    }
-    return partition.get();
-  }
-
-  private Producer<byte[], String> createKafkaProducer(Map<String, Object> senderConfig) {
-    senderConfig.put(ProducerConfig.CLIENT_ID_CONFIG, reportingClientId);
-    senderConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
-    senderConfig.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-    return new KafkaProducer<>(senderConfig);
-  }
-
-  private String createProducerId() {
-    return CLIENT_ID_PREFIX + UUID.randomUUID();
-  }
-
-  public static class ErrorReportingController extends ReportingController {
-
-    public ErrorReportingController(AbstractConfig connectorConfig) {
-      super(ReporterConfig.getErrorReportingProducerConfig(connectorConfig));
-    }
-  }
-
-  public static class SuccessReportingController extends ReportingController {
-
-    public SuccessReportingController(AbstractConfig connectorConfig) {
-      super(ReporterConfig.getSuccessReportingProducerConfig(connectorConfig));
+    public static ReportingController fromAbstractConfig(AbstractConfig connectorConfig) {
+      return ReportingController.fromConfig(ReporterConfig.getSuccessReportingProducerConfig(connectorConfig));
     }
   }
 

@@ -13,9 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.reporting.model.generic;
+package io.lenses.streamreactor.connect.reporting.model;
 
-import static io.lenses.streamreactor.common.util.ByteConverters.toBytes;
+import cyclops.control.Option;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.internals.RecordHeader;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+
+import static io.lenses.streamreactor.test.utils.OptionValues.getValue;
 import static org.assertj.core.api.Assertions.from;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -23,18 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import cyclops.data.Seq;
-import cyclops.data.tuple.Tuple2;
 import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig;
-import io.lenses.streamreactor.connect.reporting.model.ReportHeadersConstants;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Optional;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.header.internals.RecordHeader;
-import org.junit.jupiter.api.Test;
 
 class ProducerRecordConverterTest {
 
@@ -45,25 +43,28 @@ class ProducerRecordConverterTest {
   private static final long TIMESTAMP = 222L;
   private static final String ENDPOINT = "endpoint.local";
   private static final String JSON_PAYLOAD = "{\"payload\": \"somevalue\"}";
+  private static final String ERROR = "Bad things happened";
+
+  private static final ProducerRecordConverter target = new ProducerRecordConverter();
 
   @Test
-  void convertShouldProduceProducerRecord() throws IOException {
+  void convertShouldProduceProducerRecord() {
     //given
     ReportingRecord reportingRecord = createReportingRecord();
     ReportingMessagesConfig messagesConfig =
         new ReportingMessagesConfig(REPORTING_TOPIC, null);
 
     //when
-    Optional<ProducerRecord<byte[], String>> converted =
-        ProducerRecordConverter.convert(reportingRecord, messagesConfig);
+    Option<ProducerRecord<byte[], String>> converted =
+        target.convert(reportingRecord, messagesConfig);
 
     //then
     assertTrue(converted.isPresent());
-    ProducerRecord<byte[], String> record = converted.get();
+    ProducerRecord<byte[], String> record = getValue(converted);
 
     assertNotNull(record.headers());
     Header[] headers = record.headers().toArray();
-    assertEquals(5, headers.length);
+    assertEquals(7, headers.length);
 
     assertThat(record)
         .returns(REPORTING_TOPIC, from(ProducerRecord::topic))
@@ -73,19 +74,22 @@ class ProducerRecordConverterTest {
     assertArrayEquals(buildExpectedHeaders(), headers);
   }
 
-  private Header[] buildExpectedHeaders() throws IOException {
+  private Header[] buildExpectedHeaders() {
     return new Header[]{
-        new RecordHeader(ReportHeadersConstants.INPUT_TOPIC, toBytes(TOPIC)),
-        new RecordHeader(ReportHeadersConstants.INPUT_OFFSET, toBytes(OFFSET)),
-        new RecordHeader(ReportHeadersConstants.INPUT_TIMESTAMP, toBytes(TIMESTAMP)),
+        new RecordHeader(ReportHeadersConstants.INPUT_TOPIC, TOPIC.getBytes()),
+        new RecordHeader(ReportHeadersConstants.INPUT_PARTITION, String.valueOf(PARTITION).getBytes()),
+        new RecordHeader(ReportHeadersConstants.INPUT_OFFSET, String.valueOf(OFFSET).getBytes()),
+        new RecordHeader(ReportHeadersConstants.INPUT_TIMESTAMP, String.valueOf(TIMESTAMP).getBytes()),
         new RecordHeader(ReportHeadersConstants.INPUT_KEY, null),
-        new RecordHeader(ReportHeadersConstants.INPUT_PAYLOAD, toBytes(JSON_PAYLOAD))
+        new RecordHeader(ReportHeadersConstants.INPUT_PAYLOAD, JSON_PAYLOAD.getBytes()),
+        new RecordHeader(ReportHeadersConstants.ERROR, "".getBytes())
     };
   }
 
   private ReportingRecord createReportingRecord() {
     return new ReportingRecord(new TopicPartition(TOPIC, PARTITION), OFFSET,
-        TIMESTAMP, ENDPOINT, JSON_PAYLOAD, Collections.emptyList()
+        TIMESTAMP, ENDPOINT, JSON_PAYLOAD, Collections.emptyList(),
+        Option.none()
     );
   }
 }

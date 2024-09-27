@@ -17,16 +17,18 @@ package io.lenses.streamreactor.connect.reporting;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
+import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.when;
 
 import io.lenses.streamreactor.connect.reporting.model.RecordReport;
-import io.lenses.streamreactor.connect.reporting.model.generic.ReportingRecord;
+
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.Test;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 class ReportHolderTest {
 
@@ -37,7 +39,7 @@ class ReportHolderTest {
   void enqueueReport() throws InterruptedException {
     //given
     BlockingQueue queue = mock(BlockingQueue.class);
-    RecordReport report = mock(RecordReport.class);
+    ReportingRecord report = mock(ReportingRecord.class);
 
     //when
     ReportHolder reportHolder = new ReportHolder(queue);

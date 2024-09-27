@@ -13,10 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.reporting.sender;
+package io.lenses.streamreactor.connect.reporting.model;
 
-public abstract class SinkReportingSender {
+import cyclops.control.Option;
+import cyclops.data.tuple.Tuple2;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.Getter;
+import org.apache.kafka.common.TopicPartition;
 
-  protected abstract void send();
+import java.util.List;
+
+@AllArgsConstructor
+@Getter
+@Data
+public class ReportingRecord {
+
+  private TopicPartition topicPartition;
+  private Long offset;
+  private Long timestamp;
+  private String endpoint;
+  private String payload;
+  private List<Tuple2<String, String>> headers;
+  private Option<String> error;
 
 }

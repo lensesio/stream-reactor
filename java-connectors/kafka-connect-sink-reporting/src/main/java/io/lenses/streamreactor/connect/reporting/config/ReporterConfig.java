@@ -15,6 +15,17 @@
  */
 package io.lenses.streamreactor.connect.reporting.config;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigDef.Importance;
+import org.apache.kafka.common.config.ConfigDef.Type;
+import org.apache.kafka.common.config.ConfigDef.Width;
+
+import java.util.Map;
+import java.util.function.UnaryOperator;
+
 import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.BOOTSTRAP_SERVERS_CONFIG;
 import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.BOOTSTRAP_SERVERS_DOC;
 import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.OPTIONAL_EMPTY_DEFAULT;
@@ -34,14 +45,7 @@ import static io.lenses.streamreactor.connect.reporting.config.ReportProducerCon
 import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.TOPIC;
 import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.TOPIC_DOC;
 
-import java.util.Map;
-import java.util.function.UnaryOperator;
-import org.apache.kafka.common.config.AbstractConfig;
-import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.config.ConfigDef.Importance;
-import org.apache.kafka.common.config.ConfigDef.Type;
-import org.apache.kafka.common.config.ConfigDef.Width;
-
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ReporterConfig {
 
   public static final String ERROR_REPORTING_CONFIG_PREFIX = "connect.reporting.error.config.";

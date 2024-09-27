@@ -15,6 +15,8 @@
  */
 package io.lenses.streamreactor.connect.reporting.config;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SaslConfigs;
@@ -22,6 +24,7 @@ import org.apache.kafka.common.config.SaslConfigs;
 /**
  * This class holds (unprefixed!) Config constants for Kafka Report Producer
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ReportProducerConfigConst {
 
   public static final String OPTIONAL_EMPTY_DEFAULT = "";
