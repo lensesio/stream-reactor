@@ -15,21 +15,12 @@
  */
 package io.lenses.streamreactor.connect.reporting;
 
-import static io.lenses.streamreactor.common.util.StringUtils.isBlank;
-
 import cyclops.control.Try;
 import io.lenses.streamreactor.common.exception.StreamReactorException;
 import io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst;
 import io.lenses.streamreactor.connect.reporting.config.ReporterConfig;
 import io.lenses.streamreactor.connect.reporting.model.RecordReport;
 import io.lenses.streamreactor.connect.reporting.model.SinkRecordRecordReport;
-import java.time.Duration;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -39,6 +30,16 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+
+import java.time.Duration;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import static io.lenses.streamreactor.common.util.StringUtils.isBlank;
 
 @Slf4j
 public abstract class ReportingController {
@@ -55,7 +56,7 @@ public abstract class ReportingController {
   private final Producer<byte[], String> producer;
   private final ExecutorService executorService;
   private final String reportTopic;
-  private final String reportingClientId;
+  private final String reportingClientId = createProducerId();
 
   protected ReportingController(Map<String, Object> senderConfig) {
 
@@ -68,7 +69,6 @@ public abstract class ReportingController {
     this.producer = senderEnabled ? createKafkaProducer(senderConfig) : null;
     this.reportHolder = senderEnabled ? new ReportHolder(null) : null;
     this.executorService = senderEnabled ? Executors.newFixedThreadPool(1) : null;
-    this.reportingClientId = senderEnabled ? createProducerId() : null;
   }
 
   /**
