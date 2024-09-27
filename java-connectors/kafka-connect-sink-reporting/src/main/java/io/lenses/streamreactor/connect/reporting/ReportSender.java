@@ -35,6 +35,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -53,6 +54,7 @@ public class ReportSender {
   private static final String EXCEPTION_WHILE_PRODUCING_MESSAGE =
       "Exception was thrown when sending report, will try again for next reports:";
   private static final int DEFAULT_CLOSE_DURATION_IN_MILLIS = 500;
+  private static final int DEFAULT_QUEUES_SIZE = 1000;
 
   private final ProducerRecordConverter producerRecordConverter;
   private final String reportingClientId;
@@ -92,7 +94,8 @@ public class ReportSender {
     final String reportingClientId = CLIENT_ID_PREFIX + UUID.randomUUID();
 
     val producer = createKafkaProducer(senderConfig, reportingClientId);
-    val reportHolder = new ReportHolder(null);
+    val queue = new ArrayBlockingQueue<ReportingRecord>(DEFAULT_QUEUES_SIZE);
+    val reportHolder = new ReportHolder(queue);
     val executorService = Executors.newScheduledThreadPool(1);
 
     val producerRecordConverter = new ProducerRecordConverter();

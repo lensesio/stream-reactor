@@ -19,24 +19,18 @@ import cyclops.control.Option;
 import cyclops.control.Try;
 import io.lenses.streamreactor.connect.reporting.exceptions.ReportingException;
 import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
+import lombok.AllArgsConstructor;
 
-import java.util.Optional;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+@AllArgsConstructor
 public class ReportHolder {
 
-  private static final int DEFAULT_QUEUES_SIZE = 1000;
   private static final int DEFAULT_OFFER_TIME_MILLIS = 300;
   private static final int DEFAULT_POLL_TIME_MILLIS = 100;
-  private final BlockingQueue<ReportingRecord> reportsToSend;
 
-  public ReportHolder(BlockingQueue<ReportingRecord> recordReportsQueue) {
-    reportsToSend =
-        Optional.ofNullable(recordReportsQueue)
-            .orElse(new ArrayBlockingQueue<>(DEFAULT_QUEUES_SIZE));
-  }
+  private final BlockingQueue<ReportingRecord> reportsToSend;
 
   /**
    * Offers Report to be queued for ReportSender to send. Since reporting is non-critical operation,
