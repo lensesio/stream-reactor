@@ -71,7 +71,7 @@ object Dependencies {
     val logbackVersion      = "1.5.8"
     val scalaLoggingVersion = "3.9.5"
 
-    val dnsJavaVersion  = "3.6.1"
+    val dnsJavaVersion  = "3.6.2"
     val wiremockVersion = "3.9.1"
     val parquetVersion  = "1.14.1"
 
@@ -80,13 +80,13 @@ object Dependencies {
     val calciteVersion = "1.34.0"
     val awsSdkVersion  = "2.27.5"
 
-    val azureDataLakeVersion              = "12.20.1"
-    val azureIdentityVersion              = "1.13.2"
-    val azureCoreVersion                  = "1.51.0"
+    val azureDataLakeVersion              = "12.21.0"
+    val azureIdentityVersion              = "1.13.3"
+    val azureCoreVersion                  = "1.52.0"
     val msal4jVersion                     = "1.16.0"
     val msal4jPersistenceExtensionVersion = "1.3.0"
-    val gcpCloudVersion                   = "2.43.0"
-    val gcpCloudStorageVersion            = "2.42.0"
+    val gcpCloudVersion                   = "2.44.0"
+    val gcpCloudStorageVersion            = "2.43.0"
 
     val jacksonVersion      = "2.17.2"
     val json4sVersion       = "4.0.7"
@@ -121,10 +121,10 @@ object Dependencies {
     val commonsCodecVersion    = "1.17.1"
     val commonsCompressVersion = "1.27.0"
     val commonsConfigVersion   = "2.11.0"
-    val commonsIOVersion       = "2.16.1"
+    val commonsIOVersion       = "2.17.0"
     val commonsHttpVersion     = "4.5.14"
     val commonsLang3Version    = "3.16.0"
-    val jschVersion            = "0.2.19"
+    val jschVersion            = "0.2.20"
 
     val minaVersion           = "2.2.3"
     val betterFilesVersion    = "3.9.2"
