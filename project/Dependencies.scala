@@ -88,7 +88,7 @@ object Dependencies {
     val gcpCloudVersion                   = "2.44.1"
     val gcpCloudStorageVersion            = "2.43.1"
 
-    val jacksonVersion      = "2.17.2"
+    val jacksonVersion      = "2.18.0"
     val json4sVersion       = "4.0.7"
     val mockitoScalaVersion = "1.17.37"
     val mockitoJavaVersion  = "5.2.0"
