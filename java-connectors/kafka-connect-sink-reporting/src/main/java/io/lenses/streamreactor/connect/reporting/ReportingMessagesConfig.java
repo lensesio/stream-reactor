@@ -13,28 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.lenses.streamreactor.connect.reporting.model;
+package io.lenses.streamreactor.connect.reporting;
 
 import cyclops.control.Option;
-import cyclops.data.tuple.Tuple2;
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Getter;
-import org.apache.kafka.common.TopicPartition;
 
-import java.util.List;
-
+/**
+ * Wrapper for config passed to {@link io.lenses.streamreactor.connect.reporting.model.RecordReport}
+ */
 @AllArgsConstructor
 @Getter
-@Data
-public class ReportingRecord {
+public class ReportingMessagesConfig {
 
-  private TopicPartition topicPartition;
-  private Long offset;
-  private Long timestamp;
-  private String endpoint;
-  private String payload;
-  private List<Tuple2<String, String>> headers;
-  private Option<String> error;
+  private final String reportTopic;
+  private final Option<Integer> reportTopicPartition;
 
 }

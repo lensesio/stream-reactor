@@ -29,6 +29,9 @@ import java.util.function.UnaryOperator;
 import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.BOOTSTRAP_SERVERS_CONFIG;
 import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.BOOTSTRAP_SERVERS_DOC;
 import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.OPTIONAL_EMPTY_DEFAULT;
+import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.PARTITION;
+import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.PARTITION_DEFAULT;
+import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.PARTITION_DOC;
 import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.REPORTING_ENABLED_CONFIG;
 import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.REPORTING_ENABLED_DEFAULT;
 import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.REPORTING_ENABLED_DOC;
@@ -120,7 +123,16 @@ public class ReporterConfig {
             REPORTING_GROUP,
             6,
             Width.LONG,
-            prefixAppender.apply(SASL_MECHANISM_CONFIG));
+            prefixAppender.apply(SASL_MECHANISM_CONFIG))
+        .define(prefixAppender.apply(PARTITION),
+            Type.INT,
+            PARTITION_DEFAULT,
+            Importance.MEDIUM,
+            PARTITION_DOC,
+            REPORTING_GROUP,
+            7,
+            Width.LONG,
+            prefixAppender.apply(PARTITION));
   }
 
   public static Map<String, Object> getErrorReportingProducerConfig(AbstractConfig config) {

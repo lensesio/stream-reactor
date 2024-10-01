@@ -63,6 +63,11 @@ public class ConfigWrapperSource implements ConfigSource {
   }
 
   @Override
+  public Optional<Boolean> getBoolean(String key) {
+    return Optional.ofNullable(abstractConfig.getBoolean(key));
+  }
+
+  @Override
   public Optional<Password> getPassword(String key) {
     return Optional.ofNullable(abstractConfig.getPassword(key));
   }

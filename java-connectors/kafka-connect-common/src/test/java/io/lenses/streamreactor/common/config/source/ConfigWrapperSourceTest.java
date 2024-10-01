@@ -27,6 +27,7 @@ class ConfigWrapperSourceTest extends ConfigSourceTestBase {
     AbstractConfig config = mock(AbstractConfig.class);
     when(config.getString(USERNAME_KEY)).thenReturn(USERNAME_VALUE);
     when(config.getPassword(PASSWORD_KEY)).thenReturn(PASSWORD_VALUE);
+    when(config.getBoolean(BOOLEAN_KEY)).thenReturn(BOOLEAN_VALUE);
     when(config.getString(NULL_KEY)).thenReturn(NULL_VALUE);
 
     return new ConfigWrapperSource(config);
