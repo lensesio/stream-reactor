@@ -26,6 +26,9 @@ import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
+
+  val ERROR_REPORTING_ENABLED_PROP   = "connect.reporting.error.config.enabled";
+  val SUCCESS_REPORTING_ENABLED_PROP = "connect.reporting.success.config.enabled";
   override implicit def patienceConfig: PatienceConfig = PatienceConfig(timeout = Span(1, Minute))
   def wireMockServer: Resource[IO, WireMockServer] =
     for {
@@ -47,12 +50,8 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
       _    <- Resource.make(IO.delay(task.start(config.asJava)))(_ => IO.delay(task.stop()))
     } yield task
 
-  private val Host  = "localhost"
-  private val users = SampleData.Employees
-//  private val retries = RetriesConfig(3, 200, List(200))
-//  private val timeouts = TimeoutConfig(500)
-//  private val errorThresholdValue = 0
-//  private val uploadSyncPeriodValue = 100
+  private val Host             = "localhost"
+  private val users            = SampleData.Employees
   private val noAuthentication = "none"
 
   test("data triggers post calls") {
@@ -65,6 +64,8 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
         HttpSinkConfigDef.HttpRequestContentProp -> "test",
         HttpSinkConfigDef.AuthenticationTypeProp -> noAuthentication,
         HttpSinkConfigDef.BatchCountProp         -> "1",
+        ERROR_REPORTING_ENABLED_PROP             -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP           -> "false",
       )
       _         = server.stubFor(httpPost(urlEqualTo(path)).willReturn(aResponse().withStatus(200)))
       sinkTask <- sinkTaskUsingProps(config)
@@ -74,7 +75,11 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
         }.asJava,
       )
     } yield server).use { server =>
-      IO.delay(eventually(server.verify(exactly(3), postRequestedFor(urlEqualTo(path)))))
+      IO.delay(
+        eventually(
+          server.verify(exactly(7), postRequestedFor(urlEqualTo(path))),
+        ),
+      )
     }
   }
 
@@ -88,6 +93,8 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
         HttpSinkConfigDef.HttpRequestContentProp -> "{salary: {{value.salary}}}",
         HttpSinkConfigDef.AuthenticationTypeProp -> noAuthentication,
         HttpSinkConfigDef.BatchCountProp         -> "1",
+        ERROR_REPORTING_ENABLED_PROP             -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP           -> "false",
       )
       _         = server.stubFor(httpPost(urlMatching(path)).willReturn(aResponse().withStatus(200)))
       sinkTask <- sinkTaskUsingProps(config)
@@ -126,6 +133,8 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
         HttpSinkConfigDef.HttpRequestContentProp -> "{salary: {{value.salary}}}",
         HttpSinkConfigDef.AuthenticationTypeProp -> noAuthentication,
         HttpSinkConfigDef.BatchCountProp         -> "1",
+        ERROR_REPORTING_ENABLED_PROP             -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP           -> "false",
       )
       _     = server.stubFor(httpPost(urlEqualTo(path)).willReturn(aResponse().withStatus(200)))
       task <- sinkTaskUsingProps(config)
@@ -176,6 +185,8 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
              | </salaries>""".stripMargin,
         HttpSinkConfigDef.AuthenticationTypeProp -> noAuthentication,
         HttpSinkConfigDef.BatchCountProp         -> "7",
+        ERROR_REPORTING_ENABLED_PROP             -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP           -> "false",
       )
       _     = server.stubFor(httpPost(urlMatching(path)).willReturn(aResponse().withStatus(200)))
       task <- sinkTaskUsingProps(config)
@@ -210,6 +221,8 @@ class HttpSinkTaskIT extends AsyncFunSuite with AsyncIOSpec with Eventually {
              | Ultimately not important for this test""".stripMargin,
         HttpSinkConfigDef.AuthenticationTypeProp -> noAuthentication,
         HttpSinkConfigDef.BatchCountProp         -> "1",
+        ERROR_REPORTING_ENABLED_PROP             -> "false",
+        SUCCESS_REPORTING_ENABLED_PROP           -> "false",
       )
       task <- sinkTaskUsingProps(config)
       _     = server.stubFor(httpPost(urlMatching(path)).willReturn(aResponse().withStatus(404)))

@@ -170,7 +170,10 @@ class HttpSinkTask extends SinkTask with LazyLogging with JarManifestProvided {
 
   override def stop(): Unit =
     (for {
-      _ <- maybeWriterManager.traverse(_.close)
+      _ <- maybeWriterManager.traverse { x =>
+        x.closeReportingControllers()
+        x.close
+      }
       _ <- deferred.complete(().asRight)
     } yield ()).unsafeRunSync()
 }

@@ -1,14 +1,11 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import cats.implicits.catsSyntaxEitherId
-import cats.implicits.catsSyntaxOptionId
 import io.lenses.streamreactor.connect.aws.s3.model.location.S3LocationValidator
 import io.lenses.streamreactor.connect.aws.s3.storage.S3FileMetadata
 import io.lenses.streamreactor.connect.aws.s3.utils.S3ProxyContainerTest
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
-import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.Topic
-import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocationValidator
 import io.lenses.streamreactor.connect.cloud.common.sink.commit.CommitPolicy
@@ -44,7 +41,6 @@ class WriterManagerTest extends AnyFlatSpec with Matchers with S3ProxyContainerT
       formatWriterFn    = (_, _) => mock[FormatWriter].asRight,
       writerIndexer     = mock[WriterIndexer[S3FileMetadata]],
       _.asRight,
-      ((_: TopicPartition) => Offset(45).some).some,
     )
 
     val result = wm.preCommit(Map(topicPartition -> new OffsetAndMetadata(999)))

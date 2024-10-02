@@ -26,6 +26,9 @@ import io.lenses.streamreactor.connect.http.sink.client.HttpMethod
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.AuthenticationTypeProp
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.BasicAuthenticationPasswordProp
 import io.lenses.streamreactor.connect.http.sink.config.HttpSinkConfigDef.BasicAuthenticationUsernameProp
+import io.lenses.streamreactor.connect.reporting.ReportingController
+import io.lenses.streamreactor.connect.reporting.ReportingController.ErrorReportingController
+import io.lenses.streamreactor.connect.reporting.ReportingController.SuccessReportingController
 import org.apache.kafka.common.config.AbstractConfig
 
 import java.net.MalformedURLException
@@ -71,17 +74,20 @@ case class RetriesConfig(
 )
 
 case class HttpSinkConfig(
-  method:           HttpMethod,
-  endpoint:         String,
-  content:          String,
-  authentication:   Authentication,
-  headers:          List[(String, String)],
-  ssl:              StoresInfo,
-  batch:            BatchConfig,
-  errorThreshold:   Int,
-  uploadSyncPeriod: Int,
-  retries:          RetriesConfig,
-  timeout:          TimeoutConfig,
+  method:                     HttpMethod,
+  endpoint:                   String,
+  content:                    String,
+  authentication:             Authentication,
+  headers:                    List[(String, String)],
+  ssl:                        StoresInfo,
+  batch:                      BatchConfig,
+  errorThreshold:             Int,
+  uploadSyncPeriod:           Int,
+  retries:                    RetriesConfig,
+  timeout:                    TimeoutConfig,
+  tidyJson:                   Boolean,
+  errorReportingController:   ReportingController,
+  successReportingController: ReportingController,
 )
 
 object HttpSinkConfig {
@@ -112,20 +118,29 @@ object HttpSinkConfig {
         .map(_.asScala.toList).filter(_.nonEmpty)
         .getOrElse(Nil)
         .traverse(v => Try(v.toInt).toEither.leftMap(e => new IllegalArgumentException(s"Invalid status code: $v", e)))
-      retries             = RetriesConfig(maxRetries, maxTimeoutMs, onStatusCodes)
-      connectionTimeoutMs = connectConfig.getInt(HttpSinkConfigDef.ConnectionTimeoutMsProp)
-      timeout             = TimeoutConfig(connectionTimeoutMs)
-    } yield HttpSinkConfig(method,
-                           endpoint,
-                           content,
-                           auth,
-                           headers,
-                           ssl,
-                           batch,
-                           errorThreshold,
-                           uploadSyncPeriod,
-                           retries,
-                           timeout,
+      retries                  = RetriesConfig(maxRetries, maxTimeoutMs, onStatusCodes)
+      connectionTimeoutMs      = connectConfig.getInt(HttpSinkConfigDef.ConnectionTimeoutMsProp)
+      timeout                  = TimeoutConfig(connectionTimeoutMs)
+      jsonTidy                 = connectConfig.getBoolean(HttpSinkConfigDef.JsonTidyProp)
+      errorReportingController = createAndStartController(ErrorReportingController.fromAbstractConfig(connectConfig))
+      successReportingController = createAndStartController(
+        SuccessReportingController.fromAbstractConfig(connectConfig),
+      )
+    } yield HttpSinkConfig(
+      method,
+      endpoint,
+      content,
+      auth,
+      headers,
+      ssl,
+      batch,
+      errorThreshold,
+      uploadSyncPeriod,
+      retries,
+      timeout,
+      jsonTidy,
+      errorReportingController,
+      successReportingController,
     )
   }
 
@@ -166,6 +181,11 @@ object HttpSinkConfig {
         ("Content-Type", "application/json") :: parsedHeaders
       }
     }
+  }
+
+  private def createAndStartController(controller: ReportingController): ReportingController = {
+    controller.start()
+    controller
   }
 
 }

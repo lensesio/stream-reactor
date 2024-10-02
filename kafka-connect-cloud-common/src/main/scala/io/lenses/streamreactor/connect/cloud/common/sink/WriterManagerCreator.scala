@@ -140,7 +140,6 @@ class WriterManagerCreator[MD <: FileMetadata, SC <: CloudSinkConfig[_]] extends
       formatWriterFn,
       writerIndexer,
       transformers.transform,
-      indexManager.map(_.getSeekedOffsetForTopicPartition),
     )
     (indexManager, writerManager)
   }

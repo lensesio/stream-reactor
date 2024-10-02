@@ -20,7 +20,6 @@ import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.cloud.common.config.ConnectorTaskId
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.FormatWriter
 import io.lenses.streamreactor.connect.cloud.common.formats.writer.MessageDetail
-import io.lenses.streamreactor.connect.cloud.common.model.Offset
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartition
 import io.lenses.streamreactor.connect.cloud.common.model.TopicPartitionOffset
 import io.lenses.streamreactor.connect.cloud.common.model.location.CloudLocation
@@ -62,7 +61,6 @@ class WriterManager[SM <: FileMetadata](
   formatWriterFn:    (TopicPartition, File) => Either[SinkError, FormatWriter],
   writerIndexer:     WriterIndexer[SM],
   transformerF:      MessageDetail => Either[RuntimeException, MessageDetail],
-  getOffsetFn:       Option[TopicPartition => Option[Offset]],
 )(
   implicit
   connectorTaskId:  ConnectorTaskId,
@@ -220,7 +218,6 @@ class WriterManager[SM <: FileMetadata](
         () => stagingFilenameFn(topicPartition, partitionValues),
         objKeyBuilderFn(topicPartition, partitionValues),
         formatWriterFn.curried(topicPartition),
-        getOffsetFn.flatMap(_(topicPartition)),
       )
     }
   }

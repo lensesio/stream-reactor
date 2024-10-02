@@ -29,6 +29,8 @@ abstract class ConfigSourceTestBase {
 
   protected static final String PASSWORD_KEY = "password";
   protected static final Password PASSWORD_VALUE = new Password("secret");
+  protected static final String BOOLEAN_KEY = "boolean";
+  protected static final Boolean BOOLEAN_VALUE = true;
   protected static final String USERNAME_KEY = "username";
   protected static final String USERNAME_VALUE = "user123";
   protected static final String NULL_KEY = "valueNull";
@@ -63,6 +65,14 @@ abstract class ConfigSourceTestBase {
 
     assertTrue(password.isPresent());
     assertEquals(PASSWORD_VALUE, password.get());
+  }
+
+  @Test
+  void testGetBoolean_existingKey_shouldReturnBoolean() {
+    Optional<Boolean> booleanValue = configSource.getBoolean(BOOLEAN_KEY);
+
+    assertTrue(booleanValue.isPresent());
+    assertEquals(BOOLEAN_VALUE, booleanValue.get());
   }
 
   @Test

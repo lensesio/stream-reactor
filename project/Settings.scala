@@ -35,8 +35,8 @@ import scala.sys.process.*
 object Settings extends Dependencies {
 
   // keep the SNAPSHOT version numerically higher than the latest release.
-  val majorVersion        = "7.2"
-  val nextSnapshotVersion = "7.3"
+  val majorVersion        = "8.0"
+  val nextSnapshotVersion = "8.1"
 
   val artifactVersion: String = {
     val maybeGithubRunId = sys.env.get("github_run_id")
@@ -196,8 +196,8 @@ object Settings extends Dependencies {
             case _                                                   => MergeStrategy.first
           },
           assembly / assemblyShadeRules ++= Seq(
-            ShadeRule.rename("org.apache.avro.**" -> "lshaded.apache.avro.@1").inAll,
-            ShadeRule.rename("io.confluent.**" -> "lshaded.confluent.@1").inAll,
+            // ShadeRule.rename("org.apache.avro.**" -> "lshaded.apache.avro.@1").inAll,
+            // ShadeRule.rename("io.confluent.**" -> "lshaded.confluent.@1").inAll,
             ShadeRule.rename("com.fasterxml.**" -> "lshaded.fasterxml.@1").inAll,
             ShadeRule.rename("org.apache.hadoop" -> "lshaded.apache.hadoop").inAll,
             ShadeRule.rename("org.antlr.**" -> "lshaded.antlr.@1").inAll,
