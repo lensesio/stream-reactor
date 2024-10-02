@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.reporting.model;
 
 import cyclops.control.Option;
+import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Header;
@@ -49,10 +50,12 @@ class ProducerRecordConverterTest {
   void convertShouldProduceProducerRecord() {
     //given
     ReportingRecord reportingRecord = createReportingRecord();
+    ReportingMessagesConfig messagesConfig =
+        new ReportingMessagesConfig(REPORTING_TOPIC, Option.none());
 
     //when
     Option<ProducerRecord<byte[], String>> converted =
-        target.convert(reportingRecord, REPORTING_TOPIC);
+        target.convert(reportingRecord, messagesConfig);
 
     //then
     assertTrue(converted.isPresent());

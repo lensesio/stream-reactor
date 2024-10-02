@@ -17,10 +17,8 @@ package io.lenses.streamreactor.connect.reporting;
 
 import cyclops.control.Option;
 import cyclops.control.Try;
-import io.lenses.streamreactor.connect.reporting.exceptions.ReportingException;
 import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
 import lombok.AllArgsConstructor;
-
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -42,15 +40,12 @@ public class ReportHolder {
 
   /**
    * Polls for report to send.
-   * 
+   *
    * @return RecordReport instance or null if the specified waiting time elapses before an element is available
    */
   public Option<ReportingRecord> pollReport() {
-    try {
-      return Option.ofNullable(reportsToSend.poll(DEFAULT_POLL_TIME_MILLIS, TimeUnit.MILLISECONDS));
-    } catch (InterruptedException e) {
-      throw new ReportingException("InterruptedException happened:", e);
-    }
+    return Try.withCatch(() -> reportsToSend.poll(DEFAULT_POLL_TIME_MILLIS, TimeUnit.MILLISECONDS),
+        InterruptedException.class).toOption();
   }
 
 }

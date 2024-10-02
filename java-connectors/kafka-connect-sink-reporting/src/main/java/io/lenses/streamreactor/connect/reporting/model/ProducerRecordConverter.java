@@ -17,6 +17,7 @@ package io.lenses.streamreactor.connect.reporting.model;
 
 import cyclops.control.Option;
 import cyclops.control.Try;
+import io.lenses.streamreactor.connect.reporting.ReportingMessagesConfig;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -30,16 +31,17 @@ import java.util.List;
 @Slf4j
 public class ProducerRecordConverter {
 
-  public Option<ProducerRecord<byte[], String>> convert(ReportingRecord source, String reportingTopic) {
+  public Option<ProducerRecord<byte[], String>> convert(ReportingRecord source,
+      ReportingMessagesConfig messagesConfig) {
     return convertToHeaders(source)
-        .flatMap(headers -> createRecord(headers, source, reportingTopic));
+        .flatMap(headers -> createRecord(headers, source, messagesConfig));
 
   }
 
   private Option<ProducerRecord<byte[], String>> createRecord(List<Header> headers,
-      ReportingRecord source, String reportingTopic) {
-    return Option.of(new ProducerRecord<>(reportingTopic, null,
-        null, null, source.getPayload(), headers));
+      ReportingRecord source, ReportingMessagesConfig messagesConfig) {
+    return Option.of(new ProducerRecord<>(messagesConfig.getReportTopic(),
+        messagesConfig.getReportTopicPartition().orElseGet(() -> null), null, null, source.getPayload(), headers));
   }
 
   private Option<List<Header>> convertToHeaders(ReportingRecord originalRecord) {

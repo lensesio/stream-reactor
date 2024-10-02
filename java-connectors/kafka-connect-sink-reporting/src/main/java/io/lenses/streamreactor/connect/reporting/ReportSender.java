@@ -15,9 +15,13 @@
  */
 package io.lenses.streamreactor.connect.reporting;
 
+import cyclops.control.Either;
 import cyclops.control.Option;
 import cyclops.control.Try;
+import io.lenses.streamreactor.common.config.source.ConfigSource;
+import io.lenses.streamreactor.common.config.source.MapConfigSource;
 import io.lenses.streamreactor.common.exception.StreamReactorException;
+import io.lenses.streamreactor.common.util.StringUtils;
 import io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst;
 import io.lenses.streamreactor.connect.reporting.model.ProducerRecordConverter;
 import io.lenses.streamreactor.connect.reporting.model.ReportingRecord;
@@ -42,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.lenses.streamreactor.common.util.StringUtils.isBlank;
+import static io.lenses.streamreactor.common.util.EitherUtils.unpackOrThrow;
 
 @Slf4j
 @AllArgsConstructor
@@ -55,13 +59,14 @@ public class ReportSender {
       "Exception was thrown when sending report, will try again for next reports:";
   private static final int DEFAULT_CLOSE_DURATION_IN_MILLIS = 500;
   private static final int DEFAULT_QUEUES_SIZE = 1000;
+  private static final Integer PARTITION_NOT_DEFINED = -1;
 
   private final ProducerRecordConverter producerRecordConverter;
   private final String reportingClientId;
   private final ReportHolder reportHolder;
   private final Producer<byte[], String> producer;
   private final ScheduledExecutorService executorService;
-  private final String reportTopic;
+  private final ReportingMessagesConfig reportingMessagesConfig;
 
   public void enqueue(ReportingRecord report) {
     reportHolder.enqueueReport(report);
@@ -73,7 +78,7 @@ public class ReportSender {
         () -> reportHolder.pollReport().forEach(
             report -> {
               Option<ProducerRecord<byte[], String>> optionalReport =
-                  producerRecordConverter.convert(report, reportTopic);
+                  producerRecordConverter.convert(report, reportingMessagesConfig);
               Try.runWithCatch(() -> optionalReport.map(producer::send))
                   .toFailedOption()
                   .stream()
@@ -89,7 +94,13 @@ public class ReportSender {
   }
 
   protected static ReportSender fromConfigMap(Map<String, Object> senderConfig) {
-    val reportTopic = getReportTopic(senderConfig.get(ReportProducerConfigConst.TOPIC));
+
+    val configSource = new MapConfigSource(senderConfig);
+
+    // TODO: Return Either<StreamReactorException, ReportSender> instead of throwing exception here
+    val reportTopic = unpackOrThrow(getReportTopic(configSource));
+    val reportTopicPartition = getReportTopicPartition(configSource);
+    val reportingMessagesConfig = new ReportingMessagesConfig(reportTopic, reportTopicPartition);
 
     final String reportingClientId = CLIENT_ID_PREFIX + UUID.randomUUID();
 
@@ -100,17 +111,24 @@ public class ReportSender {
 
     val producerRecordConverter = new ProducerRecordConverter();
     return new ReportSender(producerRecordConverter, reportingClientId, reportHolder, producer, executorService,
-        reportTopic);
+        reportingMessagesConfig);
   }
 
-  protected static String getReportTopic(Object senderConfig) {
-    if (isBlank((String) senderConfig)) {
-      throw new StreamReactorException(TOPIC_ERROR);
-    }
-    return (String) senderConfig;
+  private static Either<StreamReactorException, String> getReportTopic(ConfigSource mapConfigSource) {
+    return Option
+        .fromOptional(mapConfigSource.getString(ReportProducerConfigConst.TOPIC))
+        .filterNot(StringUtils::isBlank)
+        .toEither(new StreamReactorException(TOPIC_ERROR));
   }
 
-  private static Producer<byte[], String> createKafkaProducer(Map<String, Object> senderConfig,
+  private static Option<Integer> getReportTopicPartition(ConfigSource mapConfigSource) {
+    return Option
+        .fromOptional(mapConfigSource.getInt(ReportProducerConfigConst.PARTITION))
+        .filterNot(partition -> partition.compareTo(PARTITION_NOT_DEFINED) == 0);
+  }
+
+  private static Producer<byte[], String> createKafkaProducer(
+      Map<String, Object> senderConfig,
       String reportingClientId) {
     return new KafkaProducer<>(addExtraConfig(senderConfig, reportingClientId));
   }

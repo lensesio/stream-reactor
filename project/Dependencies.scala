@@ -21,7 +21,7 @@ object Dependencies {
 
   // scala versions
   val scalaOrganization = "org.scala-lang"
-  val scalaVersion      = "2.13.14"
+  val scalaVersion      = "2.13.15"
   val supportedScalaVersions: Seq[String] = List(Dependencies.scalaVersion)
 
   val commonResolvers: Seq[MavenRepository] = Resolver.sonatypeOssRepos("public") ++
@@ -86,9 +86,9 @@ object Dependencies {
     val msal4jVersion                     = "1.16.0"
     val msal4jPersistenceExtensionVersion = "1.3.0"
     val gcpCloudVersion                   = "2.44.1"
-    val gcpCloudStorageVersion            = "2.43.0"
+    val gcpCloudStorageVersion            = "2.43.1"
 
-    val jacksonVersion      = "2.17.2"
+    val jacksonVersion      = "2.18.0"
     val json4sVersion       = "4.0.7"
     val mockitoScalaVersion = "1.17.37"
     val mockitoJavaVersion  = "5.2.0"

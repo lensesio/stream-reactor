@@ -16,6 +16,7 @@
 package io.lenses.streamreactor.connect.reporting.config;
 
 import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.BOOTSTRAP_SERVERS_CONFIG;
+import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.PARTITION;
 import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.REPORTING_ENABLED_CONFIG;
 import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.SASL_JAAS_CONFIG;
 import static io.lenses.streamreactor.connect.reporting.config.ReportProducerConfigConst.SASL_MECHANISM_CONFIG;
@@ -60,7 +61,7 @@ class ReporterConfigTest {
   private static final Set<String> PRODUCER_PROPERTIES =
       Set.of(REPORTING_ENABLED_CONFIG, SASL_MECHANISM_CONFIG,
           SASL_JAAS_CONFIG, SECURITY_PROTOCOL_CONFIG,
-          BOOTSTRAP_SERVERS_CONFIG, TOPIC);
+          BOOTSTRAP_SERVERS_CONFIG, TOPIC, PARTITION);
   private static final Integer PRODUCER_PROPERTIES_SIZE = PRODUCER_PROPERTIES.size();
 
   @Test

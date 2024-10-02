@@ -23,7 +23,7 @@ import org.apache.kafka.common.config.types.Password;
 import lombok.AllArgsConstructor;
 
 /**
- * A wrapper for Kafka Connect properties that provides methods to retrieve property values from a Map..
+ * A wrapper for Kafka Connect properties that provides methods to retrieve property values from a Map.
  */
 @AllArgsConstructor
 public class MapConfigSource implements ConfigSource {
@@ -48,6 +48,19 @@ public class MapConfigSource implements ConfigSource {
   @Override
   public Optional<Double> getDouble(String key) {
     return Optional.ofNullable((Double) wrapped.get(key));
+  }
+
+  @Override
+  public Optional<Boolean> getBoolean(String key) {
+    Object value = wrapped.get(key);
+    if (value != null) {
+      if (Boolean.class.isAssignableFrom(value.getClass())) {
+        return Optional.of((Boolean) value);
+      } else if (String.class.isAssignableFrom(value.getClass())) {
+        return Optional.of(Boolean.parseBoolean((String) value));
+      }
+    }
+    return Optional.empty();
   }
 
   @Override
