@@ -16,13 +16,15 @@
 package io.lenses.streamreactor.connect.http.sink.tpl.renderer
 
 import cats.implicits._
+import enumeratum.Enum
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionError
 import io.lenses.streamreactor.connect.http.sink.tpl.substitutions.SubstitutionType
 import org.apache.kafka.connect.sink.SinkRecord
 
 import java.util.regex.Matcher
 import scala.util.matching.Regex
-object TemplateRenderer {
+
+class TemplateRenderer[X <: SubstitutionType](substitutionType: Enum[X]) {
 
   private val templatePattern: Regex = "\\{\\{([^{}]*)}}".r
 
@@ -34,7 +36,7 @@ object TemplateRenderer {
           tplText,
           matchTag =>
             Matcher.quoteReplacement {
-              val tag = matchTag.group(1).trim
+              val tag = Option(matchTag.group(1)).getOrElse("").trim
               getValue(tag, data)
                 .leftMap(throw _)
                 .merge
@@ -42,17 +44,26 @@ object TemplateRenderer {
         ),
     )
 
-  // Helper method to get the value for a given tag from data
-  private def getValue(tag: String, data: SinkRecord): Either[SubstitutionError, String] = {
-    val locs = tag.split("\\.", 2)
-    (locs(0).toLowerCase, locs.lift(1)) match {
-      case ("#message", _) => "".asRight
-      case ("/message", _) => "".asRight
-      case (key: String, locator: Option[String]) =>
-        SubstitutionType.withNameInsensitiveOption(key) match {
-          case Some(sType) => sType.get(locator, data).map(_.toString)
-          case None        => SubstitutionError(s"Couldn't find $key SubstitutionType").asLeft
-        }
+// Helper method to get the value for a given tag from data
+  private[renderer] def getValue(tag: String, data: SinkRecord): Either[SubstitutionError, String] = {
+    val tagOpt = Option(tag).filter(_.nonEmpty).toRight(SubstitutionError("No tag specified"))
+    tagOpt.flatMap { t =>
+      val locs    = t.split("\\.", 2)
+      val key     = locs.headOption.map(_.toLowerCase).getOrElse("")
+      val locator = locs.lift(1)
+
+      (key, locator) match {
+        case ("#message", _) | ("/message", _) => Right("")
+        case (k, loc) =>
+          for {
+            sType <- substitutionType.withNameInsensitiveOption(k).toRight(
+              SubstitutionError(s"Couldn't find `$k` SubstitutionType"),
+            )
+            value <- sType.get(loc, data).map(_.toString).leftMap(_ =>
+              SubstitutionError("SubstitutionType returned null"),
+            )
+          } yield value
+      }
     }
   }
 

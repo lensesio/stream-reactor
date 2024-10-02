@@ -20,8 +20,10 @@ import org.apache.kafka.connect.sink.SinkRecord
 
 case object Header extends SubstitutionType {
   def get(locator: Option[String], sinkRecord: SinkRecord): Either[SubstitutionError, AnyRef] =
-    locator match {
-      case Some(loc) => sinkRecord.headers().lastWithName(loc).value().asRight
-      case None      => SubstitutionError("Invalid locator for path").asLeft
-    }
+    locator.map { loc =>
+      Option(sinkRecord.headers().lastWithName(loc)) match {
+        case Some(header) => Option(header.value()).toRight(SubstitutionError("Header value is null"))
+        case None         => SubstitutionError(s"Header with name `$loc` not found").asLeft
+      }
+    }.getOrElse(SubstitutionError("Invalid locator for path").asLeft)
 }
